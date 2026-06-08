@@ -5,6 +5,7 @@ import { sendSms, normalizePhoneNumber } from '@/lib/twilio'
 import { requireTwilioAuth } from '@/lib/twilio/webhook'
 import { checkVoiceStatusRateLimit } from '@/lib/rate-limit'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
+import { createFollowUpJobs } from '@/lib/follow-ups'
 
 // CALL TRACE logging function
 function logCallTrace(data: {
@@ -756,72 +757,24 @@ export async function POST(req: NextRequest) {
           
           if (!hasPendingJob) {
             console.log(`[followups] No existing follow-ups, scheduling follow-ups for lead: ${lead.id}`)
-            
-            // Calculate follow-up times
-            const now = new Date()
-            const followUp1Time = new Date(now.getTime() + 60 * 60 * 1000) // 1 hour later
-            const followUp2Time = new Date(now)
-            followUp2Time.setDate(followUp2Time.getDate() + 1) // Tomorrow
-            followUp2Time.setHours(9, 0, 0, 0) // 9:00 AM
-            
-            // Create follow-up messages with business name
-            const businessName = business.name || 'My Business'
-            const followUp1Message = `Just following up - did you still need help from ${businessName}?`
-            const followUp2Message = `Good morning, this is ${businessName}. Just checking if you still needed help. Happy to assist.`
-            
-            // Create idempotency keys to prevent duplicates
-            const callSid = params.CallSid || 'unknown'
-            const idempotencyKey1 = `lead:${lead.id}:call:${callSid}:followup:1`
-            const idempotencyKey2 = `lead:${lead.id}:call:${callSid}:followup:2`
-            
-            // Schedule Follow-up #1 (1 hour later)
-            console.log(`[followups] Scheduling follow-up 1 for ${followUp1Time.toISOString()}`)
-            const { data: followUp1, error: error1 } = await supabase
-              .from('follow_up_jobs')
-              .insert([{
-                lead_id: lead.id,
-                business_id: business.id,
-                conversation_id: conversation.id,
-                message_body: followUp1Message,
-                scheduled_for: followUp1Time.toISOString(),
-                status: "pending"
-              }])
-              .select()
-              .single()
-            
-            if (error1) {
-              console.error(`[followups] Failed to schedule follow-up 1:`, error1)
-            } else {
-              console.log(`[followups] Scheduled follow-up 1: ${followUp1?.id}`)
-            }
-            
-            // Schedule Follow-up #2 (next morning 9 AM)
-            console.log(`[followups] Scheduling follow-up 2 for ${followUp2Time.toISOString()}`)
-            const { data: followUp2, error: error2 } = await supabase
-              .from('follow_up_jobs')
-              .insert([{
-                lead_id: lead.id,
-                business_id: business.id,
-                conversation_id: conversation.id,
-                message_body: followUp2Message,
-                scheduled_for: followUp2Time.toISOString(),
-                status: "pending"
-              }])
-              .select()
-              .single()
-            
-            if (error2) {
-              console.error(`[followups] Failed to schedule follow-up 2:`, error2)
-            } else {
-              console.log(`[followups] Scheduled follow-up 2: ${followUp2?.id}`)
-            }
-            
-            if (!error1 && !error2) {
-              console.log(`[followups] Both follow-ups scheduled successfully for lead: ${lead.id}`)
+
+            // Use centralized createFollowUpJobs function to respect business settings
+            try {
+              const jobs = await createFollowUpJobs({
+                businessId: business.id,
+                leadId: lead.id,
+                conversationId: conversation.id,
+                businessName: business.name
+              })
+
+              console.log(`[followups] Created ${jobs.length} follow-up jobs for lead: ${lead.id}`)
               console.log('[VOICE STATUS FOLLOWUP CREATE]', {
                 conversationId: conversation.id,
-                leadId: lead.id
+                leadId: lead.id,
+                jobCount: jobs.length
               })
+            } catch (followUpError) {
+              console.error('[followups] Failed to create follow-up jobs:', followUpError)
             }
           } else {
             console.log(`[followups] Follow-ups already exist for lead: ${lead.id}`)
