@@ -7,6 +7,29 @@ import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * Safely convert any value to a string for SMS output
+ * Prevents [object Object] from appearing in messages
+ */
+function safeFieldToString(value: any): string {
+  if (value == null) return ""
+  if (typeof value === "string") return value.trim()
+  if (typeof value === "number" || typeof value === "boolean") return String(value)
+  if (Array.isArray(value)) return value.map(safeFieldToString).filter(Boolean).join(", ")
+  if (typeof value === "object") {
+    return (
+      value.value ||
+      value.text ||
+      value.details ||
+      value.summary ||
+      value.description ||
+      value.reason ||
+      JSON.stringify(value)
+    ).toString().trim()
+  }
+  return String(value).trim()
+}
+
 interface ConfirmationSMSRequest {
   businessId: string
   leadId: string
@@ -245,34 +268,35 @@ export async function POST(request: NextRequest) {
     const summaryParts: string[] = []
 
     // Map available keys from extracted_info using canonical property names
+    // Use safeFieldToString to prevent [object Object] from appearing
     if (extracted.callerName) {
-      summaryParts.push(`- Name: ${normalizePunctuation(extracted.callerName)}`)
+      summaryParts.push(`- Name: ${normalizePunctuation(safeFieldToString(extracted.callerName))}`)
     }
 
     if (extracted.reasonForCalling) {
-      summaryParts.push(`- Reason: ${normalizePunctuation(extracted.reasonForCalling)}`)
+      summaryParts.push(`- Reason: ${normalizePunctuation(safeFieldToString(extracted.reasonForCalling))}`)
     }
 
     if (extracted.importantDetails) {
-      summaryParts.push(`- Details: ${normalizePunctuation(extracted.importantDetails)}`)
+      summaryParts.push(`- Details: ${normalizePunctuation(safeFieldToString(extracted.importantDetails))}`)
     }
 
     if (extracted.urgencyLevel) {
-      summaryParts.push(`- Urgency: ${normalizePunctuation(extracted.urgencyLevel)}`)
+      summaryParts.push(`- Urgency: ${normalizePunctuation(safeFieldToString(extracted.urgencyLevel))}`)
     }
 
     if (extracted.addressOrLocation) {
-      summaryParts.push(`- Location: ${normalizePunctuation(extracted.addressOrLocation)}`)
+      summaryParts.push(`- Location: ${normalizePunctuation(safeFieldToString(extracted.addressOrLocation))}`)
     }
 
     if (extracted.preferredCallbackTime) {
-      summaryParts.push(`- Callback time: ${normalizePunctuation(extracted.preferredCallbackTime)}`)
+      summaryParts.push(`- Callback time: ${normalizePunctuation(safeFieldToString(extracted.preferredCallbackTime))}`)
     }
 
     // Callback number: use extracted.callbackNumber if present, otherwise fallback to callerPhone
     const callbackNumber = extracted.callbackNumber || callerPhone
     if (callbackNumber) {
-      summaryParts.push(`- Callback number: ${normalizePunctuation(callbackNumber)}`)
+      summaryParts.push(`- Callback number: ${normalizePunctuation(safeFieldToString(callbackNumber))}`)
     }
 
     console.log('[AI SMS FIELD VALUES]', {
