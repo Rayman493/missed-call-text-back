@@ -91,42 +91,17 @@ export async function GET(request: NextRequest) {
 
     console.log("[lead-details API] Conversation found:", conversation?.id || 'none')
 
-    // Fetch messages by lead_id OR conversation_id - no business_id filter
+    // Fetch messages by lead_id to ensure all messages for the lead are visible
+    // regardless of conversation assignment
+    const { data: messagesByLead, error: messagesByLeadError } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: true })
+
     let messages: any[] = []
-    
-    if (conversation) {
-      // Prefer conversation_id if conversation exists
-      const { data: messagesByConversation, error: messagesByConversationError } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("conversation_id", conversation.id)
-        .order("created_at", { ascending: true })
-
-      if (!messagesByConversationError && messagesByConversation && messagesByConversation.length > 0) {
-        messages = messagesByConversation
-      } else {
-        // Fallback to lead_id if conversation_id query fails
-        const { data: messagesByLead, error: messagesByLeadError } = await supabase
-          .from("messages")
-          .select("*")
-          .eq("lead_id", leadId)
-          .order("created_at", { ascending: true })
-
-        if (!messagesByLeadError && messagesByLead && messagesByLead.length > 0) {
-          messages = messagesByLead
-        }
-      }
-    } else {
-      // No conversation, fetch by lead_id only
-      const { data: messagesByLead, error: messagesByLeadError } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("lead_id", leadId)
-        .order("created_at", { ascending: true })
-
-      if (!messagesByLeadError && messagesByLead && messagesByLead.length > 0) {
-        messages = messagesByLead
-      }
+    if (!messagesByLeadError && messagesByLead && messagesByLead.length > 0) {
+      messages = messagesByLead
     }
 
     // Fetch media for all messages
