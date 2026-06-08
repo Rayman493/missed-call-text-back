@@ -36,7 +36,6 @@ export interface CreateSessionParams {
   lead_id: string | null
   call_sid: string
   openai_session_id?: string
-  business_category?: string
 }
 
 export interface UpdateSessionParams {
@@ -74,7 +73,6 @@ export async function createAISession(params: CreateSessionParams): Promise<AICa
         openai_session_id: params.openai_session_id || null,
         status: 'started',
         started_at: new Date().toISOString(),
-        business_category: params.business_category || null,
       })
       .select()
       .single()

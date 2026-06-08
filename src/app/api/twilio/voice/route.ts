@@ -15,7 +15,6 @@ import { createAISession } from '@/lib/ai-call-assistant/session';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 import { notificationServiceServer } from '@/lib/notifications-server';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
-import { detectBusinessCategory } from '@/lib/ai-call-assistant/prompts';
 
 // Constants for repeat caller behavior
 const AUTO_REPLY_REPEAT_WINDOW_MINUTES = 30;
@@ -595,7 +594,6 @@ export async function POST(request: NextRequest) {
               business_id: business.id,
               caller_phone: normalizedCallerPhone,
               status: 'new',
-              name: null,
               raw_metadata: { source: 'ai_voice' },
             })
             
@@ -609,16 +607,11 @@ export async function POST(request: NextRequest) {
             console.log('[AI CALL ASSISTANT] Using existing lead for AI session:', lead.id)
           }
 
-          // Create AI session with lead linkage and business category
-          // Detect business category for tailored intake questions
-          const businessCategory = detectBusinessCategory(business.name)
-          console.log('[AI CALL ASSISTANT] Business category detected:', businessCategory)
-          
+          // Create AI session with lead linkage
           const session = await createAISession({
             business_id: business.id,
             lead_id: lead?.id || null,
             call_sid: CallSid,
-            business_category: businessCategory
           })
 
           if (!session) {
