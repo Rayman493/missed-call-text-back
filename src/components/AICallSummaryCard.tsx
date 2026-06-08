@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime } from '@/lib/utils'
+import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 
 interface AICallRecord {
   id: string
@@ -165,7 +166,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
     return null // Don't show card if no AI call records exist
   }
 
-  const extractedInfo = aiCallRecord.extracted_info
+  const extractedInfo = normalizeExtractedInfo(aiCallRecord.extracted_info || {})
 
   return (
     <div className="bg-card border border-border rounded-xl p-4">

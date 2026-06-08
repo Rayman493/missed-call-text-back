@@ -5,6 +5,7 @@ import { notificationServiceServer } from '@/lib/notifications-server'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizePunctuation } from '@/lib/utils'
 import { detectCorrection, applyCorrection, generateCorrectionNote } from '@/lib/ai-correction-engine'
+import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 
 // Helper function to download MMS media from Twilio and store in Supabase Storage
 async function downloadAndStoreMedia(twilioMediaUrl: string, messageId: string, index: number): Promise<string | null> {
@@ -90,33 +91,33 @@ export interface ProcessInboundSmsParams {
   }>
 }
 
-// Generate summary from extracted_info fields
+// Generate summary from extracted_info fields using canonical keys
 function generateSummaryFromExtractedInfo(extractedInfo: any): string {
+  const normalized = normalizeExtractedInfo(extractedInfo)
   const parts: string[] = []
   
-  if (extractedInfo.callerName) {
-    parts.push(`Caller: ${normalizePunctuation(extractedInfo.callerName)}`)
+  if (normalized.callerName) {
+    parts.push(`Caller: ${normalizePunctuation(normalized.callerName)}`)
   }
   
-  if (extractedInfo.reasonForCalling) {
-    parts.push(`Service: ${normalizePunctuation(extractedInfo.reasonForCalling)}`)
+  if (normalized.reasonForCalling) {
+    parts.push(`Service: ${normalizePunctuation(normalized.reasonForCalling)}`)
   }
   
-  if (extractedInfo.addressOrLocation || extractedInfo.address || extractedInfo.location || extractedInfo.serviceAddress) {
-    const address = extractedInfo.addressOrLocation || extractedInfo.address || extractedInfo.location || extractedInfo.serviceAddress
-    parts.push(`Location: ${normalizePunctuation(address)}`)
+  if (normalized.addressOrLocation) {
+    parts.push(`Location: ${normalizePunctuation(normalized.addressOrLocation)}`)
   }
   
-  if (extractedInfo.urgencyLevel) {
-    parts.push(`Urgency: ${normalizePunctuation(extractedInfo.urgencyLevel)}`)
+  if (normalized.urgencyLevel) {
+    parts.push(`Urgency: ${normalizePunctuation(normalized.urgencyLevel)}`)
   }
   
-  if (extractedInfo.preferredCallbackTime) {
-    parts.push(`Preferred callback time: ${normalizePunctuation(extractedInfo.preferredCallbackTime)}`)
+  if (normalized.preferredCallbackTime) {
+    parts.push(`Preferred callback time: ${normalizePunctuation(normalized.preferredCallbackTime)}`)
   }
   
-  if (extractedInfo.importantDetails) {
-    parts.push(`Details: ${normalizePunctuation(extractedInfo.importantDetails)}`)
+  if (normalized.importantDetails) {
+    parts.push(`Details: ${normalizePunctuation(normalized.importantDetails)}`)
   }
   
   return parts.length > 0 ? parts.join('. ') : 'No information provided'

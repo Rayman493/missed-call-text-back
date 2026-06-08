@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber } from '@/lib/utils'
 import { Clock, User, Phone, MapPin, AlertCircle, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 
 interface AICallRecord {
   id: string
@@ -167,7 +168,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
     )
   }
 
-  const extractedInfo = aiCallRecord.extracted_info
+  const extractedInfo = normalizeExtractedInfo(aiCallRecord.extracted_info || {})
   const hasCustomerCorrections = leadData?.raw_metadata?.customer_corrected_info || leadData?.raw_metadata?.corrected_fields
   const correctedFields = leadData?.raw_metadata?.corrected_fields
   const previousValues = leadData?.raw_metadata?.previous_values
@@ -269,7 +270,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               <span className="text-base">📍</span>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {correctedFields?.address || leadData?.raw_metadata?.location || leadData?.raw_metadata?.address || leadData?.raw_metadata?.service_address || extractedInfo?.addressOrLocation}
+                  {correctedFields?.address || extractedInfo?.addressOrLocation}
                 </p>
               </div>
             </div>

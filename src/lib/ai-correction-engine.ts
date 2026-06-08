@@ -5,6 +5,7 @@
  */
 
 import OpenAI from 'openai'
+import { normalizeExtractedInfo, canonicalizeExtractedInfo } from './ai-field-mapping'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -41,6 +42,9 @@ export async function detectCorrection(
     customerReply,
     extractedInfo
   })
+
+  // Normalize extracted_info to canonical keys before sending to OpenAI
+  const normalizedExtractedInfo = normalizeExtractedInfo(extractedInfo)
 
   try {
     const systemPrompt = `You are an AI assistant that detects corrections to previously captured information.
@@ -82,7 +86,7 @@ If correction detected, set isCorrection to true, identify the field, old value,
     const userPrompt = `Customer reply: "${customerReply}"
 
 Previously extracted information:
-${JSON.stringify(extractedInfo, null, 2)}
+${JSON.stringify(normalizedExtractedInfo, null, 2)}
 
 Analyze if this is a correction and return JSON.`
 
@@ -133,23 +137,27 @@ Analyze if this is a correction and return JSON.`
 }
 
 /**
- * Update extracted_info with the corrected field
+ * Update extracted_info with the corrected field using canonical keys
  */
 export function applyCorrection(
   extractedInfo: ExtractedInfo,
   fieldChanged: string,
   newValue: string
 ): ExtractedInfo {
-  const updated = { ...extractedInfo }
+  // Normalize input to canonical keys first
+  const normalized = normalizeExtractedInfo(extractedInfo)
+  const updated = { ...normalized }
 
-  // Map field names to extracted_info keys
+  // Map field names to canonical extracted_info keys
   const fieldMapping: Record<string, keyof ExtractedInfo> = {
     'name': 'callerName',
     'callerName': 'callerName',
     'caller name': 'callerName',
+    'caller_name': 'callerName',
     'reason': 'reasonForCalling',
     'reasonForCalling': 'reasonForCalling',
     'reason for calling': 'reasonForCalling',
+    'reason_for_call': 'reasonForCalling',
     'details': 'importantDetails',
     'importantDetails': 'importantDetails',
     'important details': 'importantDetails',
@@ -160,11 +168,16 @@ export function applyCorrection(
     'address': 'addressOrLocation',
     'addressOrLocation': 'addressOrLocation',
     'address or location': 'addressOrLocation',
+    'serviceAddress': 'addressOrLocation',
+    'service_address': 'addressOrLocation',
     'callback time': 'preferredCallbackTime',
     'preferredCallbackTime': 'preferredCallbackTime',
     'preferred callback time': 'preferredCallbackTime',
+    'callbackTime': 'preferredCallbackTime',
+    'callback_time': 'preferredCallbackTime',
     'callback number': 'callbackNumber',
-    'callbackNumber': 'callbackNumber'
+    'callbackNumber': 'callbackNumber',
+    'callback_number': 'callbackNumber'
   }
 
   const mappedField = fieldMapping[fieldChanged.toLowerCase()] || fieldChanged as keyof ExtractedInfo
@@ -173,7 +186,8 @@ export function applyCorrection(
     (updated as any)[mappedField] = newValue
   }
 
-  return updated
+  // Canonicalize to ensure only canonical keys are returned
+  return canonicalizeExtractedInfo(updated)
 }
 
 /**

@@ -6,6 +6,7 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook'
 import { checkVoiceStatusRateLimit } from '@/lib/rate-limit'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { createFollowUpJobs } from '@/lib/follow-ups'
+import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 
 // CALL TRACE logging function
 function logCallTrace(data: {
@@ -638,10 +639,12 @@ export async function POST(req: NextRequest) {
           extracted_info: aiCallRecord.extracted_info
         })
 
-        const summaryParts: string[] = []
-        const extracted = aiCallRecord.extracted_info || {}
+        // Normalize extracted_info to canonical keys with backward compatibility
+        const extracted = normalizeExtractedInfo(aiCallRecord.extracted_info || {})
 
-        // Map available keys from extracted_info using correct property names
+        const summaryParts: string[] = []
+
+        // Map available keys from extracted_info using canonical property names
         if (extracted.callerName) {
           summaryParts.push(`- Name: ${extracted.callerName}`)
         }
@@ -658,12 +661,10 @@ export async function POST(req: NextRequest) {
           summaryParts.push(`- Urgency: ${extracted.urgencyLevel}`)
         }
 
-        // Use correct property name for location
         if (extracted.addressOrLocation) {
           summaryParts.push(`- Location: ${extracted.addressOrLocation}`)
         }
 
-        // Use correct property name for callback time
         if (extracted.preferredCallbackTime) {
           summaryParts.push(`- Callback time: ${extracted.preferredCallbackTime}`)
         }
