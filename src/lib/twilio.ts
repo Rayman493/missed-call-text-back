@@ -78,6 +78,7 @@ export async function sendSms(
         new_body: message.substring(0, 50)
       });
       console.log('[FOLLOWUP TWILIO SEND FAILED] Blocked by idempotency check');
+      console.log('[FOLLOWUP RETURN PATH] Idempotency check - returning null SID');
       return { sid: null, messageId: null }; // Block duplicate
     }
 
@@ -121,6 +122,7 @@ export async function sendSms(
       business_twilio_phone_number: !!business.twilio_phone_number,
       business_twilio_phone_number_sid: !!business.twilio_phone_number_sid
     });
+    console.log('[FOLLOWUP RETURN PATH] Twilio validation failed - returning null SID');
     // Still log the failed attempt
     await logFailedMessage(business, to, message, options, smsValidation.error || 'Twilio validation failed', 'CONFIG_ERROR', false);
     return { sid: null, messageId: null };
@@ -159,6 +161,7 @@ export async function sendSms(
       twilio_phone_number: business.twilio_phone_number,
       twilio_phone_number_sid: business.twilio_phone_number_sid
     });
+    console.log('[FOLLOWUP RETURN PATH] Missing Twilio number - returning null SID');
     await logFailedMessage(business, to, message, options, 'No Twilio number assigned to business', 'NO_TWILIO_NUMBER', false);
     return { sid: null, messageId: null };
   }
@@ -174,6 +177,7 @@ export async function sendSms(
     console.error('[SMS FAILED] Number not ready for use - provisioning incomplete');
     console.error('[FOLLOWUP TWILIO SEND FAILED] Number not ready');
     console.error('[SMS FAILED] Business provisioning status:', business.provisioning_status);
+    console.log('[FOLLOWUP RETURN PATH] Number not ready - returning null SID');
     await logFailedMessage(business, to, message, options, 'Number not ready for use - provisioning incomplete', 'NUMBER_NOT_READY', false);
     return { sid: null, messageId: null };
   }
@@ -278,6 +282,7 @@ export async function sendSms(
               selected_from: fromNumber,
             });
             console.error('[FOLLOWUP TWILIO SEND FAILED] Sender mismatch');
+            console.log('[FOLLOWUP RETURN PATH] Sender mismatch (messaging service) - returning null SID');
             await logFailedMessage(business, to, message, options, 'Sender mismatch: selected sender does not belong to business', 'SENDER_MISMATCH', false);
             return { sid: null, messageId: null };
           }
@@ -310,9 +315,10 @@ export async function sendSms(
           console.error('[SMS FAILED] pool sids:', senderPool.map(pn => pn.sid));
           console.error('[SMS FAILED] business sid:', business.twilio_phone_number_sid);
           console.error('[FOLLOWUP TWILIO SEND FAILED] Sender pool verification failed');
+          console.log('[FOLLOWUP RETURN PATH] Sender pool verification failed - returning null SID');
           errorMessage = 'Business number not found in Messaging Service sender pool';
           await logFailedMessage(business, to, message, options, errorMessage, 'SENDER_POOL_ERROR', false);
-          
+
           // Trigger repair provisioning
           console.log('[sms] triggering repair provisioning for business:', business.id);
           try {
@@ -324,12 +330,13 @@ export async function sendSms(
           } catch (repairError) {
             console.error('[sms] failed to trigger repair:', repairError);
           }
-          
+
           return { sid: null, messageId: null };
         }
       } catch (poolError) {
         console.error('[SMS FAILED] Error checking sender pool:', poolError);
         console.error('[FOLLOWUP TWILIO SEND FAILED] Sender pool check error');
+        console.log('[FOLLOWUP RETURN PATH] Sender pool check error - returning null SID');
         errorMessage = 'Failed to verify sender pool membership';
         await logFailedMessage(business, to, message, options, errorMessage, 'SENDER_POOL_CHECK_ERROR', false);
         return { sid: null, messageId: null };
@@ -361,6 +368,7 @@ export async function sendSms(
           selected_from: fromNumber,
         });
         console.error('[FOLLOWUP TWILIO SEND FAILED] Sender mismatch (direct from)');
+        console.log('[FOLLOWUP RETURN PATH] Sender mismatch (direct from) - returning null SID');
         await logFailedMessage(business, to, message, options, 'Sender mismatch: selected sender does not belong to business', 'SENDER_MISMATCH', false);
         return { sid: null, messageId: null };
       }
@@ -550,10 +558,11 @@ export async function sendSms(
           console.error('[SMS FAILED] - unknown twilio error code');
       }
     }
-    
+
     // Log the failed message attempt - this won't throw, ensuring webhook continues
+    console.log('[FOLLOWUP RETURN PATH] Twilio API error in catch block - returning null SID');
     await logFailedMessage(business, to, message, options, errorMessage, errorCode, true); // Twilio was called
-    
+
     // Return null instead of throwing to prevent webhooks from crashing
     return { sid: null, messageId: null }
   }

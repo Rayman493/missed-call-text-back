@@ -208,11 +208,19 @@ export async function POST(request: Request) {
 
         const sendResult = await sendSms(business, lead.caller_phone, job.message_body, smsOptions);
 
-        console.log(`[FOLLOWUP TWILIO SEND RESULT] Full sendResult:`, {
+        console.log(`[FOLLOWUP RAW SENDSMS RESULT]`, {
+          sendResult,
+          sendResultType: typeof sendResult,
+          hasSendResult: !!sendResult,
           sid: sendResult?.sid,
+          sidType: typeof sendResult?.sid,
           messageId: sendResult?.messageId,
-          hasSid: !!sendResult?.sid,
-          hasMessageId: !!sendResult?.messageId
+          messageIdType: typeof sendResult?.messageId
+        });
+
+        console.log(`[TWILIO RAW RESPONSE]`, {
+          rawResult: JSON.stringify(sendResult),
+          keys: sendResult ? Object.keys(sendResult) : []
         });
 
         // Check for Twilio send errors
