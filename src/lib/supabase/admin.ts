@@ -1021,19 +1021,22 @@ export const db = {
       return { leadId: null, conversationId: null, isNew: false }
     }
     
-    console.log('[CALL INTAKE] Looking up existing conversation for lead_id and business_id')
-    const { data: existingConversation } = await supabaseAdmin
+    console.log('[CALL INTAKE] Looking up existing conversations for lead_id and business_id')
+    const { data: existingConversations } = await supabaseAdmin
       .from('conversations')
-      .select('id')
+      .select('id, status, created_at')
       .eq('lead_id', leadId)
       .eq('business_id', params.businessId)
-      .maybeSingle()
+      .in('status', ['active', 'open'])
+      .order('created_at', { ascending: false })
     
     let conversationId: string | null = null
     
-    if (existingConversation) {
-      console.log('[CALL INTAKE] Found existing conversation:', existingConversation.id)
-      conversationId = existingConversation.id
+    if (existingConversations && existingConversations.length > 0) {
+      console.log('[CALL INTAKE] Found existing conversations:', existingConversations.length)
+      // Reuse the newest conversation (first in array due to descending order)
+      conversationId = existingConversations[0].id
+      console.log('[CALL INTAKE] Reusing existing conversation:', conversationId, 'with status:', existingConversations[0].status)
     } else {
       console.log('[CALL INTAKE] No existing conversation found, creating new conversation')
       const { data: newConversation, error: conversationError } = await supabaseAdmin
