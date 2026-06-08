@@ -1,15 +1,11 @@
 /**
  * AI Intake Correction Engine
  * 
- * Detects and applies customer corrections to AI intake data using OpenAI
+ * Detects and applies customer corrections to AI intake data
+ * RC1: Uses simple pattern matching (no OpenAI)
  */
 
-import OpenAI from 'openai'
 import { normalizeExtractedInfo, canonicalizeExtractedInfo } from './ai-field-mapping'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
 
 export interface CorrectionDetectionResult {
   isCorrection: boolean
@@ -33,106 +29,114 @@ export interface ExtractedInfo {
 
 /**
  * Detect if an inbound SMS contains a correction to AI intake data
+ * RC1: Simple pattern matching (no OpenAI)
  */
 export async function detectCorrection(
   customerReply: string,
   extractedInfo: ExtractedInfo
 ): Promise<CorrectionDetectionResult> {
-  console.log('[AI CORRECTION DETECTION START]', {
+  console.log('[CORRECTION DETECTION START]', {
     customerReply,
     extractedInfo
   })
 
-  // Normalize extracted_info to canonical keys before sending to OpenAI
   const normalizedExtractedInfo = normalizeExtractedInfo(extractedInfo)
+  const reply = customerReply.toLowerCase().trim()
 
-  try {
-    const systemPrompt = `You are an AI assistant that detects corrections to previously captured information.
+  // Simple pattern matching for corrections
+  const patterns = [
+    {
+      field: 'addressOrLocation',
+      patterns: [
+        /my address is actually\s+(.+)/i,
+        /the address is\s+(.+)/i,
+        /address is\s+(.+)/i,
+        /my location is actually\s+(.+)/i,
+        /the location is\s+(.+)/i,
+        /location is\s+(.+)/i,
+        /my service address is\s+(.+)/i,
+        /service address is\s+(.+)/i
+      ]
+    },
+    {
+      field: 'callbackNumber',
+      patterns: [
+        /my callback number is\s+(.+)/i,
+        /call me at\s+(.+)/i,
+        /my number is\s+(.+)/i,
+        /callback number is\s+(.+)/i,
+        /my phone number is\s+(.+)/i
+      ]
+    },
+    {
+      field: 'preferredCallbackTime',
+      patterns: [
+        /best time is\s+(.+)/i,
+        /callback time is\s+(.+)/i,
+        /call me tomorrow morning/i,
+        /call me tomorrow afternoon/i,
+        /call me tomorrow evening/i,
+        /call me in the morning/i,
+        /call me in the afternoon/i,
+        /call me in the evening/i
+      ]
+    },
+    {
+      field: 'urgencyLevel',
+      patterns: [
+        /it is urgent/i,
+        /this is urgent/i,
+        /not urgent/i,
+        /actually it is not urgent/i
+      ]
+    }
+  ]
 
-You will receive:
-1. A customer's reply to an SMS summary
-2. The previously extracted information
+  for (const { field, patterns: fieldPatterns } of patterns) {
+    for (const pattern of fieldPatterns) {
+      const match = reply.match(pattern)
+      if (match) {
+        const oldValue = (normalizedExtractedInfo as any)[field]
+        let newValue = match[1] || match[0]
 
-Your task:
-- Determine if the customer is correcting any information
-- Identify which field is being corrected
-- Extract the new value
-- Assess confidence (0-1)
-- Flag for review if confidence < 0.7
+        // Handle urgency special case
+        if (field === 'urgencyLevel') {
+          if (reply.includes('urgent')) {
+            newValue = 'urgent'
+          } else if (reply.includes('not urgent')) {
+            newValue = 'low'
+          }
+        }
 
-Fields to check:
-- callerName (customer's name)
-- reasonForCalling (reason for calling)
-- importantDetails (details about the request)
-- urgencyLevel (urgency)
-- addressOrLocation (location/service address)
-- preferredCallbackTime (when to call back)
-- callbackNumber (phone number)
+        console.log('[CORRECTION DETECTED]', {
+          field,
+          oldValue,
+          newValue,
+          pattern: pattern.toString()
+        })
 
-Return JSON:
-{
-  "isCorrection": boolean,
-  "fieldChanged": string | null,
-  "oldValue": string | null,
-  "newValue": string | null,
-  "confidence": number (0-1),
-  "requiresReview": boolean,
-  "reason": string
-}
-
-If not a correction, set isCorrection to false and provide a reason.
-If correction detected, set isCorrection to true, identify the field, old value, new value, confidence.`
-
-    const userPrompt = `Customer reply: "${customerReply}"
-
-Previously extracted information:
-${JSON.stringify(normalizedExtractedInfo, null, 2)}
-
-Analyze if this is a correction and return JSON.`
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.3,
-      response_format: { type: 'json_object' }
-    })
-
-    const responseText = completion.choices[0].message.content || '{}'
-    const result = JSON.parse(responseText) as CorrectionDetectionResult
-
-    console.log('[AI CORRECTION DETECTION RESULT]', result)
-
-    // Validate result structure
-    if (!result.isCorrection) {
-      return {
-        isCorrection: false,
-        confidence: 0,
-        requiresReview: false,
-        reason: result.reason || 'No correction detected'
+        return {
+          isCorrection: true,
+          fieldChanged: field,
+          oldValue,
+          newValue,
+          confidence: 0.9,
+          requiresReview: false,
+          reason: `Pattern match detected: ${pattern.toString()}`
+        }
       }
     }
+  }
 
-    // Ensure required fields are present for corrections
-    return {
-      isCorrection: true,
-      fieldChanged: result.fieldChanged || 'unknown',
-      oldValue: result.oldValue || '',
-      newValue: result.newValue || '',
-      confidence: result.confidence || 0.5,
-      requiresReview: (result.confidence || 0) < 0.7,
-      reason: result.reason || 'Correction detected'
-    }
-  } catch (error: any) {
-    console.error('[AI CORRECTION DETECTION ERROR]', error)
-    return {
-      isCorrection: false,
-      confidence: 0,
-      requiresReview: true,
-      reason: `Error during detection: ${error.message}`
-    }
+  console.log('[CORRECTION NOT DETECTED]', {
+    reason: 'No pattern matched'
+  })
+
+  return {
+    isCorrection: false,
+    confidence: 0,
+    requiresReview: false,
+    reason: 'No correction pattern detected'
   }
 }
 

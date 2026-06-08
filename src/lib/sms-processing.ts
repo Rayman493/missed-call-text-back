@@ -457,21 +457,17 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 
         // Log normalized data after correction
         const afterCorrection = normalizeExtractedInfo(updatedExtractedInfo)
-        console.log('[AI CORRECTION NORMALIZED AFTER]', {
+        console.log('[CORRECTION NORMALIZED AFTER]', {
           leadId: lead.id,
           aiCallRecordId: aiCallRecord.id,
           after: afterCorrection
         })
 
-        // Regenerate summary from updated extracted_info
-        const regeneratedSummary = generateSummaryFromExtractedInfo(updatedExtractedInfo)
-
-        // Update AI call record
+        // Update AI call record (RC1: don't regenerate summary, just update extracted_info)
         const { data: updatedAiRecord, error: aiUpdateError } = await supabaseAdmin
-          .from('ai_call_sessions')
+          .from('ai_call_records')
           .update({
             extracted_info: updatedExtractedInfo,
-            summary: regeneratedSummary,
             updated_at: now
           })
           .eq('id', aiCallRecord.id)
@@ -479,20 +475,23 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           .single()
 
         if (!aiUpdateError && updatedAiRecord) {
-          console.log('[AI CORRECTION AI INTAKE UPDATED]', {
+          console.log('[CORRECTION AI INTAKE UPDATED]', {
             callRecordId: updatedAiRecord.id,
-            fieldChanged: correctionResult.fieldChanged,
-            summary: regeneratedSummary
+            fieldChanged: correctionResult.fieldChanged
           })
         } else {
-          console.error('[AI CORRECTION AI INTAKE UPDATE ERROR]', {
+          console.error('[CORRECTION AI INTAKE UPDATE ERROR]', {
             callRecordId: aiCallRecord.id,
             error: aiUpdateError
           })
         }
 
-        // Update lead raw_metadata with correction history
+        // Update lead raw_metadata with correction history and count
         const currentMetadata = lead?.raw_metadata || {}
+        const currentCorrectionsCount = currentMetadata.corrections_count || 0
+        const currentCorrectedFields = currentMetadata.corrected_fields || {}
+        const currentPreviousValues = currentMetadata.previous_values || {}
+
         const correctionNote = generateCorrectionNote(
           correctionResult.fieldChanged,
           correctionResult.oldValue || 'unknown',
@@ -500,12 +499,30 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           correctionResult.confidence
         )
 
+        // Map field name to corrected_fields key
+        const fieldKeyMap: Record<string, string> = {
+          'addressOrLocation': 'address',
+          'callbackNumber': 'phone',
+          'preferredCallbackTime': 'callback_time',
+          'urgencyLevel': 'urgency'
+        }
+        const correctedFieldKey = fieldKeyMap[correctionResult.fieldChanged] || correctionResult.fieldChanged
+
         const correctedMetadata = {
           ...currentMetadata,
           customer_corrected_info: true,
           last_correction_at: now,
           last_correction_field: correctionResult.fieldChanged,
-          last_correction_note: correctionNote
+          last_correction_note: correctionNote,
+          corrections_count: currentCorrectionsCount + 1,
+          corrected_fields: {
+            ...currentCorrectedFields,
+            [correctedFieldKey]: correctionResult.newValue
+          },
+          previous_values: {
+            ...currentPreviousValues,
+            [correctedFieldKey]: correctionResult.oldValue || 'unknown'
+          }
         }
 
         const leadWithCorrection = await db.updateLead(lead.id, {
@@ -514,12 +531,14 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         })
 
         if (leadWithCorrection) {
-          console.log('[AI CORRECTION LEAD UPDATED]', {
+          console.log('[CORRECTION LEAD UPDATED]', {
             leadId: leadWithCorrection.id,
-            correctionNote
+            corrections_count: correctedMetadata.corrections_count,
+            corrected_field: correctedFieldKey,
+            new_value: correctionResult.newValue
           })
         } else {
-          console.error('[AI CORRECTION LEAD UPDATE ERROR]', {
+          console.error('[CORRECTION LEAD UPDATE ERROR]', {
             leadId: lead.id,
             error: 'Failed to update lead with correction metadata'
           })
