@@ -182,27 +182,24 @@ export default async function Home() {
   const session = data?.session
 
   if (session?.user) {
-    console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] User is authenticated')
+    console.log('[ROUTING DEBUG] userId:', session.user.id, 'businessFound:', 'checking...', 'twilioNumberFound:', 'checking...', 'currentPath:', '/', 'redirectTarget:', 'determining...', 'loadingState', 'complete')
     
     // Check if user has a business
-    const { data: business } = await supabase
+    const { data: business, error } = await supabase
       .from('businesses')
       .select('*')
       .eq('user_id', session.user.id)
       .single()
 
-    console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] Business check', {
-      hasBusiness: !!business,
-      onboardingStatus: business?.onboarding_status,
-      subscriptionStatus: business?.subscription_status
-    })
+    const reason = business ? 'business exists' : 'no business'
+    console.log('[ROUTING DEBUG] userId:', session.user.id, 'businessFound:', !!business, 'twilioNumberFound:', !!business?.twilio_phone_number, 'currentPath:', '/', 'redirectTarget', business ? '/dashboard' : '/onboarding', 'loadingState', 'complete', 'reason', reason)
 
     // Redirect to dashboard if business exists and setup is complete
     if (business) {
-      console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] Redirecting to dashboard')
+      console.log('[ROUTING DEBUG] Redirecting to /dashboard')
       redirect('/dashboard')
     } else {
-      console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] Redirecting to onboarding')
+      console.log('[ROUTING DEBUG] Redirecting to /onboarding')
       redirect('/onboarding')
     }
   }

@@ -126,115 +126,52 @@ export default function OnboardingPage() {
         .single()
 
       if (existingBusiness && !existingError) {
-        console.log('[Onboarding Routing Decision] Raw business data:', {
-          businessId: existingBusiness.id,
-          raw_subscription_status: existingBusiness.subscription_status,
-          raw_onboarding_status: existingBusiness.onboarding_status,
-          hasTwilioNumber: !!existingBusiness.twilio_phone_number,
-          stripe_customer_id: existingBusiness.stripe_customer_id,
-          stripe_subscription_id: existingBusiness.stripe_subscription_id
-        })
+        console.log('[ROUTING DEBUG] userId:', user.id, 'businessFound:', !!existingBusiness, 'twilioNumberFound:', !!existingBusiness.twilio_phone_number, 'currentPath:', '/onboarding', 'redirectTarget:', 'determining...', 'loadingState', 'complete')
         
-        // Check local cached onboarding state
-        let cachedOnboardingState = null
-        try {
-          if (typeof window !== 'undefined') {
-            const cached = localStorage.getItem('onboarding_status')
-            if (cached) {
-              cachedOnboardingState = cached
-              console.log('[Onboarding Routing Decision] Local cached onboarding state:', cachedOnboardingState)
-            }
-          }
-        } catch (error) {
-          console.warn('[Onboarding Routing Decision] Failed to read cached onboarding state:', error)
-        }
-        
+        // Use server/database truth only, ignore localStorage
         // If business has a Twilio number and active subscription, redirect to new onboarding flow
         if (existingBusiness.twilio_phone_number && existingBusiness.onboarding_status !== 'completed' && isActiveSubscription(existingBusiness.subscription_status)) {
-          console.log('[Onboarding Routing Decision] Derived setup route decision: /onboarding/new-onboarding')
-          console.log('[Onboarding Routing Decision] Redirect allowed: Twilio number exists AND subscription active')
+          console.log('[ROUTING DEBUG] Redirecting to /onboarding/new-onboarding - Twilio number exists AND subscription active')
           
           // Verify session exists before redirecting
           const { data: { session } } = await supabase.auth.getSession()
           if (!session) {
-            console.error('[Onboarding Routing Decision] Redirect blocked: No session exists')
-            console.log('[Onboarding Routing Decision] Derived setup route decision: /auth/signin (fallback)')
+            console.error('[ROUTING DEBUG] Redirect blocked: No session exists')
+            console.log('[ROUTING DEBUG] Redirecting to /auth/signin')
             router.push('/auth/signin?redirect=/onboarding')
             return
           }
           
           router.push('/onboarding/new-onboarding')
           return
-        } else {
-          console.log('[Onboarding Routing Decision] Redirect blocked: Missing Twilio number OR inactive subscription')
-          console.log('[Onboarding Routing Decision] Twilio number exists:', !!existingBusiness.twilio_phone_number)
-          console.log('[Onboarding Routing Decision] Subscription active:', isActiveSubscription(existingBusiness.subscription_status))
         }
         
         // User already has a business, check if they should be redirected
         // Only redirect to dashboard if onboarding is completed AND subscription is active
         if (existingBusiness.onboarding_status === 'completed' && isActiveSubscription(existingBusiness.subscription_status)) {
-          console.log('[Pre Checkout Routing Decision]', {
-            pathname: '/onboarding',
-            destination: '/dashboard',
-            subscriptionStatus: existingBusiness.subscription_status,
-            onboardingStatus: existingBusiness.onboarding_status,
-            hasBusiness: !!existingBusiness,
-            hasBasicProfile: !!(existingBusiness.name && existingBusiness.business_phone_number),
-            reason: 'Onboarding completed AND subscription active'
-          })
-          console.log('[Onboarding Routing Decision] Derived setup route decision: /dashboard')
-          console.log('[Onboarding Routing Decision] Redirect allowed: Onboarding completed AND subscription active')
+          console.log('[ROUTING DEBUG] userId:', user.id, 'businessFound:', true, 'twilioNumberFound:', !!existingBusiness.twilio_phone_number, 'currentPath:', '/onboarding', 'redirectTarget:', '/dashboard', 'loadingState', 'complete', 'reason', 'onboarding completed AND subscription active')
           router.push('/dashboard')
           return
         } else {
-          console.log('[Pre Checkout Routing Decision]', {
-            pathname: '/onboarding',
-            destination: '/onboarding',
-            subscriptionStatus: existingBusiness.subscription_status,
-            onboardingStatus: existingBusiness.onboarding_status,
-            hasBusiness: !!existingBusiness,
-            hasBasicProfile: !!(existingBusiness.name && existingBusiness.business_phone_number),
-            reason: existingBusiness.onboarding_status !== 'completed' ? 'Onboarding not completed' : 'Subscription not active'
-          })
-          console.log('[Onboarding Routing Decision] Redirect blocked: Onboarding not completed OR inactive subscription')
-          console.log('[Onboarding Routing Decision] Onboarding completed:', existingBusiness.onboarding_status === 'completed')
-          console.log('[Onboarding Routing Decision] Subscription active:', isActiveSubscription(existingBusiness.subscription_status))
+          const reason = existingBusiness.onboarding_status !== 'completed' ? 'onboarding not completed' : 'subscription not active'
+          console.log('[ROUTING DEBUG] userId:', user.id, 'businessFound:', true, 'twilioNumberFound:', !!existingBusiness.twilio_phone_number, 'currentPath:', '/onboarding', 'redirectTarget', '/onboarding (stay)', 'loadingState', 'complete', 'reason', reason)
         }
         
-        // IMPORTANT: Do NOT redirect to dashboard just because subscription is active
-        // Users with active subscription but incomplete onboarding should stay on onboarding
-        // This prevents dashboard redirects during business info entry
-        if (isActiveSubscription(existingBusiness.subscription_status)) {
-          console.log('[Pre Checkout Routing Decision]', {
-            pathname: '/onboarding',
-            destination: '/onboarding',
-            subscriptionStatus: existingBusiness.subscription_status,
-            onboardingStatus: existingBusiness.onboarding_status,
-            hasBusiness: !!existingBusiness,
-            hasBasicProfile: !!(existingBusiness.name && existingBusiness.business_phone_number),
-            reason: 'Active subscription but onboarding incomplete - stay on onboarding'
-          })
-          console.log('[Onboarding Routing Decision] Keeping user on onboarding - active subscription but incomplete setup')
-          console.log('[Onboarding Routing Decision] Subscription active:', isActiveSubscription(existingBusiness.subscription_status))
-          // Stay on onboarding page - do not redirect
-        } else {
-          console.log('[Pre Checkout Routing Decision]', {
-            pathname: '/onboarding',
-            destination: '/onboarding',
-            subscriptionStatus: existingBusiness.subscription_status,
-            onboardingStatus: existingBusiness.onboarding_status,
-            hasBusiness: !!existingBusiness,
-            hasBasicProfile: !!(existingBusiness.name && existingBusiness.business_phone_number),
-            reason: 'Inactive subscription - stay on onboarding'
-          })
-          console.log('[Onboarding Routing Decision] Redirect blocked: Inactive subscription')
-          console.log('[Onboarding Routing Decision] Subscription active:', isActiveSubscription(existingBusiness.subscription_status))
+        // Clear stale localStorage onboarding keys when business is loaded
+        try {
+          if (typeof window !== 'undefined') {
+            const keysToClear = ['onboarding_status', 'businessSetupPending', 'pendingOnboarding']
+            keysToClear.forEach(key => {
+              localStorage.removeItem(key)
+            })
+            console.log('[ROUTING DEBUG] Cleared stale localStorage keys')
+          }
+        } catch (error) {
+          console.warn('[ROUTING DEBUG] Failed to clear localStorage:', error)
         }
         
-        // Otherwise, stay on onboarding page
-        console.log('[Onboarding Routing Decision] Derived setup route decision: /onboarding (stay)')
-        console.log('[Onboarding Routing Decision] Stay on onboarding page: Onboarding incomplete AND no active subscription')
+        // Stay on onboarding page
+        console.log('[ROUTING DEBUG] Staying on onboarding page')
         setCheckingBusiness(false)
         return
       } else {
