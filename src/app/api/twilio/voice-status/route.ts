@@ -552,6 +552,22 @@ export async function POST(req: NextRequest) {
     // Send auto-reply SMS if no recent outbound message exists and we have a lead
     if (!hasRecentOutbound && lead) {
       console.log(`[Twilio Voice Status Webhook] Auto-reply send attempt - no recent outbound found`)
+
+      // Log SMS path based on AI call record
+      if (aiCallRecord) {
+        console.log('[SMS PATH AI SUMMARY]', {
+          callSid: CallSid,
+          aiCallRecordId: aiCallRecord.id,
+          leadId: lead.id,
+          reason: 'AI call record found, sending AI summary SMS'
+        })
+      } else {
+        console.log('[SMS PATH MISSED CALL]', {
+          callSid: CallSid,
+          leadId: lead.id,
+          reason: 'No AI call record, sending missed-call SMS'
+        })
+      }
       
       // Business hours check
       const businessHoursEnabled = business.business_hours_enabled || false

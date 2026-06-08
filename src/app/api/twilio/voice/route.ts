@@ -1186,8 +1186,31 @@ export async function POST(request: NextRequest) {
           
           // Don't let follow-up job creation fail the webhook
         }
-        
-        shouldSendSms = true; // Send SMS for new leads
+
+        // Check for AI call record to avoid duplicate SMS
+        // If AI call exists, voice-status route will send AI summary SMS
+        const { data: aiCallRecordCheck } = await supabase
+          .from('ai_call_sessions')
+          .select('id')
+          .eq('call_sid', CallSid)
+          .maybeSingle()
+
+        if (aiCallRecordCheck) {
+          console.log('[SMS PATH SKIPPED AI COMPLETED]', {
+            callSid: CallSid,
+            aiCallRecordId: aiCallRecordCheck.id,
+            leadId: lead.id,
+            reason: 'AI call record found, voice-status will send AI summary SMS'
+          })
+          shouldSendSms = false
+        } else {
+          console.log('[SMS PATH MISSED CALL]', {
+            callSid: CallSid,
+            leadId: lead.id,
+            reason: 'No AI call record, will send missed-call SMS'
+          })
+          shouldSendSms = true; // Send SMS for new leads
+        }
       } else {
         console.error('[Voice] Persistence failed: Lead creation returned null');
         console.error('[Voice] Returning safe TwiML response without SMS');
