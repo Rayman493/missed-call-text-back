@@ -11,6 +11,7 @@ function normalizePhone(phone: string): string {
 }
 
 export async function GET(request: NextRequest) {
+  console.log('[SERVER START] Lead Detail API debug logging enabled')
   console.log("[lead-details API] route hit")
   
   try {
