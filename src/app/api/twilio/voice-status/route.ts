@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
       businessId: null
     })
     
-    // Check for AI call record
+    // Check for AI call record with retry logic to handle race condition
     console.log('[VOICE STATUS AI RECORD CHECK]', {
       callSid: CallSid,
       aiCallRecordFound: false,
@@ -86,13 +86,46 @@ export async function POST(req: NextRequest) {
       aiLeadId: null
     })
 
-    const { data: aiCallRecord } = await supabase
-      .from('ai_call_sessions')
-      .select('id, lead_id, extracted_info')
-      .eq('call_sid', CallSid)
-      .maybeSingle()
+    let aiCallRecord = null
+    const retryDelays = [0, 1000, 2000, 3000]
 
-    if (aiCallRecord) {
+    for (let i = 0; i < retryDelays.length; i++) {
+      const delay = retryDelays[i]
+      if (delay > 0) {
+        console.log('[AI RECORD LOOKUP RETRY]', {
+          callSid: CallSid,
+          attempt: i + 1,
+          delay: delay
+        })
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+
+      const { data: record } = await supabase
+        .from('ai_call_sessions')
+        .select('id, lead_id, extracted_info')
+        .eq('call_sid', CallSid)
+        .maybeSingle()
+
+      if (record) {
+        aiCallRecord = record
+        if (i > 0) {
+          console.log('[AI RECORD FOUND AFTER RETRY]', {
+            callSid: CallSid,
+            attempt: i + 1,
+            totalDelay: delay,
+            aiCallRecordId: aiCallRecord.id
+          })
+        }
+        break
+      }
+    }
+
+    if (!aiCallRecord) {
+      console.log('[AI RECORD NOT FOUND AFTER RETRIES]', {
+        callSid: CallSid,
+        totalAttempts: retryDelays.length
+      })
+    } else {
       console.log('[VOICE STATUS AI RECORD CHECK]', {
         callSid: CallSid,
         aiCallRecordFound: true,
