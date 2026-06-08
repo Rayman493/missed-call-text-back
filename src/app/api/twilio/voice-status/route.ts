@@ -642,18 +642,31 @@ export async function POST(req: NextRequest) {
 
       if (aiCallRecord && aiCallRecord.outcome === 'completed') {
         // AI completed intake - build summary from extracted_info
-        console.log('[AI SUMMARY USING EXTRACTED_INFO]', {
+        const rawExtractedInfo = aiCallRecord.extracted_info || {}
+
+        console.log('[AI SUMMARY RAW INPUT]', {
           aiCallRecordId: aiCallRecord.id,
           outcome: aiCallRecord.outcome,
-          extracted_info: aiCallRecord.extracted_info
+          rawExtractedInfo
         })
 
         // Normalize extracted_info to canonical keys with backward compatibility
-        const extracted = normalizeExtractedInfo(aiCallRecord.extracted_info || {})
+        const extracted = normalizeExtractedInfo(rawExtractedInfo)
 
-        console.log('[AI SUMMARY NORMALIZED DATA]', {
+        console.log('[AI SUMMARY NORMALIZED OUTPUT]', {
           aiCallRecordId: aiCallRecord.id,
           normalized: extracted
+        })
+
+        console.log('[AI SUMMARY FIELD VALUES]', {
+          aiCallRecordId: aiCallRecord.id,
+          callerName: extracted.callerName,
+          reasonForCalling: extracted.reasonForCalling,
+          importantDetails: extracted.importantDetails,
+          urgencyLevel: extracted.urgencyLevel,
+          addressOrLocation: extracted.addressOrLocation,
+          preferredCallbackTime: extracted.preferredCallbackTime,
+          callbackNumber: extracted.callbackNumber
         })
 
         const summaryParts: string[] = []
@@ -698,6 +711,11 @@ export async function POST(req: NextRequest) {
         const businessName = business.name || 'My Business'
         autoReplyMessage = `Thanks for calling ${businessName}. We received your request.\n\nDetails:\n${summaryText}\n\nWe'll follow up as soon as possible. If anything above is wrong or you want to add more, just reply to this text.`
         messageTemplate = 'ai_intake_summary'
+
+        console.log('[AI SUMMARY FINAL BODY]', {
+          aiCallRecordId: aiCallRecord.id,
+          messageBody: autoReplyMessage
+        })
 
         console.log('[AI SUMMARY SMS GENERATED]', {
           template: messageTemplate,
