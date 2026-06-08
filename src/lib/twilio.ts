@@ -31,13 +31,26 @@ export async function sendSms(
     lead_id?: string;
     conversation_id?: string;
     isManual?: boolean; // Flag to distinguish manual user messages from automated
+    source?: string; // Explicit source to identify message type (e.g., 'follow_up_job')
   }
 ): Promise<{ sid: string | null; messageId: string | null }> {
   // Idempotency check for automated messages (prevent duplicates within 5 minutes)
   // Check for any outbound message to the same lead/phone within 5 minutes, regardless of body
   // This prevents duplicates even if message body differs slightly
   // Manual user messages are exempt from this check to allow normal conversation flow
-  const isAutomatedMessage = options?.lead_id && !options.isManual && !message.includes('ReplyFlow Admin') && !message.includes('Manual test');
+  // FOLLOW-UP EXCEPTION: Messages with explicit source='follow_up_job' are allowed even if within 5 minutes
+  const isFollowUpMessage = options?.source === 'follow_up_job';
+  const isAutomatedMessage = options?.lead_id && !options.isManual && !message.includes('ReplyFlow Admin') && !message.includes('Manual test') && !isFollowUpMessage;
+
+  console.log('[FOLLOWUP TWILIO SEND START] Checking idempotency for follow-up', {
+    lead_id: options?.lead_id,
+    conversation_id: options?.conversation_id,
+    source: options?.source,
+    isFollowUpMessage,
+    isAutomatedMessage,
+    message_preview: message.substring(0, 50)
+  });
+
   if (isAutomatedMessage) {
     console.log('[MESSAGE INSERT ATTEMPT] Checking for duplicate automated message', {
       lead_id: options.lead_id,
@@ -64,6 +77,7 @@ export async function sendSms(
         lead_id: options.lead_id,
         new_body: message.substring(0, 50)
       });
+      console.log('[FOLLOWUP TWILIO SEND FAILED] Blocked by idempotency check');
       return { sid: null, messageId: null }; // Block duplicate
     }
 
@@ -72,10 +86,18 @@ export async function sendSms(
       // Continue with send if check fails (don't block legitimate messages)
     }
   }
-  
+
+  console.log('[FOLLOWUP TWILIO SEND RESULT] Idempotency check passed, proceeding with send');
+
   // Validate Twilio environment for SMS operations
   const smsValidation = validateTwilioForSms();
-  
+
+  console.log('[FOLLOWUP TWILIO SEND START] Twilio validation check', {
+    isValid: smsValidation.isValid,
+    error: smsValidation.error,
+    method: smsValidation.method
+  });
+
   console.log('[SMS SEND] Starting sendSms:', {
     business_id: business.id,
     business_name: business.name,
@@ -87,9 +109,10 @@ export async function sendSms(
     messaging_service_sid: business.twilio_messaging_service_sid,
     provisioning_status: business.provisioning_status
   });
-  
+
   if (!smsValidation.isValid) {
     console.error('[SMS FAILED] Twilio validation failed:', smsValidation.error);
+    console.error('[FOLLOWUP TWILIO SEND FAILED] Twilio validation failed');
     console.error('[SMS FAILED] Missing config:', {
       TWILIO_ACCOUNT_SID: !!process.env.TWILIO_ACCOUNT_SID,
       TWILIO_AUTH_TOKEN: !!process.env.TWILIO_AUTH_TOKEN,
@@ -109,6 +132,12 @@ export async function sendSms(
   console.log('[SMS Sender] business messaging_service_sid:', business.twilio_messaging_service_sid);
   console.log('[SMS Sender] provisioning_status:', business.provisioning_status);
 
+  console.log('[FOLLOWUP TWILIO SEND START] Business config check', {
+    has_twilio_phone_number: !!business.twilio_phone_number,
+    has_twilio_phone_number_sid: !!business.twilio_phone_number_sid,
+    provisioning_status: business.provisioning_status
+  });
+
   console.log('[sms] outbound message queued:', {
     business_id: business.id,
     business_phone: business.twilio_phone_number,
@@ -124,6 +153,7 @@ export async function sendSms(
   // Verify business has a canonical number
   if (!business.twilio_phone_number || !business.twilio_phone_number_sid) {
     console.error('[SMS FAILED] No canonical Twilio number assigned to business');
+    console.error('[FOLLOWUP TWILIO SEND FAILED] Missing Twilio number');
     console.error('[SMS FAILED] Business config:', {
       business_id: business.id,
       twilio_phone_number: business.twilio_phone_number,
@@ -133,22 +163,28 @@ export async function sendSms(
     return { sid: null, messageId: null };
   }
 
+  console.log('[FOLLOWUP TWILIO SEND RESULT] Business config check passed');
+
   // FAIL-SAFE: Check if number is ready for use before sending
+  console.log('[FOLLOWUP TWILIO SEND START] Number readiness check');
   console.log('[SMS FAIL-SAFE] Checking if number is ready for use');
   const isReady = await isNumberReadyForUse(business.id);
   
   if (!isReady) {
     console.error('[SMS FAILED] Number not ready for use - provisioning incomplete');
+    console.error('[FOLLOWUP TWILIO SEND FAILED] Number not ready');
     console.error('[SMS FAILED] Business provisioning status:', business.provisioning_status);
     await logFailedMessage(business, to, message, options, 'Number not ready for use - provisioning incomplete', 'NUMBER_NOT_READY', false);
     return { sid: null, messageId: null };
   }
-  
+
+  console.log('[FOLLOWUP TWILIO SEND RESULT] Number readiness check passed');
   console.log('[SMS FAIL-SAFE] Number is ready for use');
 
   // Handle simulation mode
   if (smsValidation.method === 'simulated') {
     console.log('[SMS] 🧪 Simulated SMS sent:', { to, body: message.substring(0, 50) + '...' });
+    console.log('[FOLLOWUP TWILIO SEND RESULT] Simulated mode - returning simulated SID');
     
     // Insert simulated message record into database
     const { data: insertedMessage, error: insertError } = await supabase
@@ -201,7 +237,8 @@ export async function sendSms(
     // Get app URL for status callback
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
     const statusCallbackUrl = `${appUrl}/api/twilio/message-status`
-    
+
+    console.log('[FOLLOWUP TWILIO SEND START] Calling Twilio API');
     console.log('[SMS Sender] Verifying sender pool membership for SID:', business.twilio_phone_number_sid);
     
     // Verify the business's number is in the Messaging Service sender pool
@@ -216,6 +253,7 @@ export async function sendSms(
         if (numberInPool) {
           console.log('[SMS SEND] sender pool verification passed');
           console.log('[SMS SEND] using messaging service:', globalMessagingServiceSid);
+          console.log('[FOLLOWUP TWILIO SEND RESULT] Sender pool verification passed');
           
           // CRITICAL: Always specify from to ensure tenant isolation
           // Without from parameter, Twilio can choose any sender from the pool
@@ -239,6 +277,7 @@ export async function sendSms(
               business_twilio_phone_number: business.twilio_phone_number,
               selected_from: fromNumber,
             });
+            console.error('[FOLLOWUP TWILIO SEND FAILED] Sender mismatch');
             await logFailedMessage(business, to, message, options, 'Sender mismatch: selected sender does not belong to business', 'SENDER_MISMATCH', false);
             return { sid: null, messageId: null };
           }
@@ -265,10 +304,12 @@ export async function sendSms(
             message_sid: messageResult.sid,
             status: messageResult.status
           });
+          console.log('[FOLLOWUP TWILIO SEND RESULT] Twilio API call succeeded, SID:', messageResult.sid);
         } else {
           console.error('[SMS FAILED] sender pool verification failed');
           console.error('[SMS FAILED] pool sids:', senderPool.map(pn => pn.sid));
           console.error('[SMS FAILED] business sid:', business.twilio_phone_number_sid);
+          console.error('[FOLLOWUP TWILIO SEND FAILED] Sender pool verification failed');
           errorMessage = 'Business number not found in Messaging Service sender pool';
           await logFailedMessage(business, to, message, options, errorMessage, 'SENDER_POOL_ERROR', false);
           
@@ -288,6 +329,7 @@ export async function sendSms(
         }
       } catch (poolError) {
         console.error('[SMS FAILED] Error checking sender pool:', poolError);
+        console.error('[FOLLOWUP TWILIO SEND FAILED] Sender pool check error');
         errorMessage = 'Failed to verify sender pool membership';
         await logFailedMessage(business, to, message, options, errorMessage, 'SENDER_POOL_CHECK_ERROR', false);
         return { sid: null, messageId: null };
@@ -295,6 +337,7 @@ export async function sendSms(
     } else {
       // No Messaging Service configured - use direct from with business number
       console.warn('[SMS SEND] warning: no messaging service configured, using direct from');
+      console.log('[FOLLOWUP TWILIO SEND RESULT] No messaging service, using direct from');
       
       // CRITICAL: Always use business's canonical number for tenant isolation
       const fromNumber = business.twilio_phone_number;
@@ -317,6 +360,7 @@ export async function sendSms(
           business_twilio_phone_number: business.twilio_phone_number,
           selected_from: fromNumber,
         });
+        console.error('[FOLLOWUP TWILIO SEND FAILED] Sender mismatch (direct from)');
         await logFailedMessage(business, to, message, options, 'Sender mismatch: selected sender does not belong to business', 'SENDER_MISMATCH', false);
         return { sid: null, messageId: null };
       }
@@ -339,6 +383,7 @@ export async function sendSms(
         message_sid: messageResult.sid,
         status: messageResult.status
       });
+      console.log('[FOLLOWUP TWILIO SEND RESULT] Twilio API call succeeded (direct from), SID:', messageResult.sid);
     }
 
     console.log('[SMS SEND] Twilio accepted message:', {
@@ -447,6 +492,7 @@ export async function sendSms(
         error_message: twilioErrorMessage,
         message_body: message.substring(0, 50)
       });
+      console.log('[FOLLOWUP TWILIO SEND RESULT] Message inserted into DB, returning SID:', messageResult.sid);
     }
 
     // Mark forwarding as verified for successful auto-response SMS
@@ -469,7 +515,8 @@ export async function sendSms(
       more_info: error?.moreInfo,
       twilio_api_called: true
     });
-    
+    console.error('[FOLLOWUP TWILIO SEND FAILED] Twilio API error:', error?.message);
+
     // Extract error details for logging (internal only)
     errorCode = error?.code || 'UNKNOWN';
     errorMessage = error?.message || 'Unknown error occurred';

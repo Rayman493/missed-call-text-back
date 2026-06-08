@@ -473,6 +473,7 @@ export async function POST(req: NextRequest) {
 
         const smsOptions: any = {
           lead_id: lead.id,
+          source: 'follow_up_job' // Explicit source to identify this as a follow-up
         }
         
         // Only include conversation_id if we have one
@@ -978,6 +979,7 @@ export async function GET(req: NextRequest) {
 
         const smsOptions: any = {
           lead_id: lead.id,
+          source: 'follow_up_job' // Explicit source to identify this as a follow-up
         }
         
         // Only include conversation_id if we have one

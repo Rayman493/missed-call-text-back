@@ -93,10 +93,10 @@ export async function POST(request: Request) {
     
     for (const job of jobs) {
       processed++;
-      console.log(`[FOLLOWUP JOB PROCESSING] Processing job ${job.id}`);
+      console.log(`[FOLLOWUP JOB PICKED] Job ${job.id} picked for processing`);
 
       try {
-        console.log(`[FOLLOWUP JOB PROCESSING] Fetching lead for job ${job.id}`);
+        console.log(`[FOLLOWUP JOB PICKED] Fetching lead for job ${job.id}`);
         
         // Fetch the corresponding lead
         const { data: lead, error: leadError } = await supabase
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
           throw new Error(`Lead not found for job ${job.id}: ${leadError?.message || 'Unknown error'}`);
         }
 
-        console.log(`[SYSTEM] [FOLLOWUP] Lead fetched: ${lead.id}`);
+        console.log(`[FOLLOWUP LEAD LOADED] Lead ${lead.id} loaded for job ${job.id}`);
 
         // Check if lead has opted out
         if (lead.opted_out) {
@@ -140,6 +140,20 @@ export async function POST(request: Request) {
 
         console.log(`[SYSTEM] [FOLLOWUP] Phone validated: ${lead.caller_phone}`);
 
+        // Fetch conversation for this lead (for proper context)
+        const { data: conversation, error: conversationError } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('lead_id', job.lead_id)
+          .eq('status', 'open')
+          .maybeSingle();
+
+        if (conversationError && conversationError.code !== 'PGRST116') {
+          console.error(`[SYSTEM] [FOLLOWUP] Error fetching conversation for lead ${job.lead_id}:`, conversationError);
+        }
+
+        console.log(`[FOLLOWUP CONVERSATION LOADED] Conversation ${conversation?.id || 'none'} for job ${job.id}`);
+
         // Fetch business information for Twilio
         const { data: business, error: businessError } = await supabase
           .from('businesses')
@@ -151,27 +165,48 @@ export async function POST(request: Request) {
           throw new Error(`Business not found for job ${job.id}: ${businessError?.message || 'Unknown error'}`);
         }
 
-        console.log(`[SYSTEM] [FOLLOWUP] Business fetched: ${business.id}`);
-        
+        console.log(`[FOLLOWUP BUSINESS LOADED] Business ${business.id} loaded for job ${job.id}`);
+
         // Validate business has messaging service SID
         if (!business.twilio_messaging_service_sid) {
           throw new Error(`Missing twilio_messaging_service_sid for business ${business.id}`);
         }
 
-        console.log(`[SYSTEM] [FOLLOWUP] Sending SMS to ${lead.caller_phone} for job ${job.id}`);
+        console.log(`[FOLLOWUP MESSAGE CREATED] Message body prepared for job ${job.id}`, {
+          message_length: job.message_body.length,
+          message_preview: job.message_body.substring(0, 50)
+        });
 
         console.log(`[FOLLOWUP TWILIO SEND START] Starting Twilio send for job ${job.id}`, {
           business_id: business.id,
           business_phone: business.twilio_phone_number,
           to_phone: lead.caller_phone,
           message_length: job.message_body.length,
-          lead_id: job.lead_id
+          lead_id: job.lead_id,
+          conversation_id: conversation?.id
         });
 
-        // Send SMS using centralized sendSms function
-        const sendResult = await sendSms(business, lead.caller_phone, job.message_body, {
+        // Send SMS using centralized sendSms function with explicit source
+        const smsOptions: any = {
           lead_id: job.lead_id,
+          source: 'follow_up_job' // Explicit source to identify this as a follow-up
+        };
+
+        // Include conversation_id if available
+        if (conversation) {
+          smsOptions.conversation_id = conversation.id;
+        }
+
+        console.log(`[FOLLOWUP TWILIO SEND START] Calling sendSms with options:`, {
+          business_id: business.id,
+          to: lead.caller_phone,
+          message_length: job.message_body.length,
+          lead_id: smsOptions.lead_id,
+          conversation_id: smsOptions.conversation_id,
+          source: smsOptions.source
         });
+
+        const sendResult = await sendSms(business, lead.caller_phone, job.message_body, smsOptions);
 
         console.log(`[FOLLOWUP TWILIO SEND RESULT] Full sendResult:`, {
           sid: sendResult?.sid,
@@ -191,7 +226,7 @@ export async function POST(request: Request) {
 
         console.log(`[FOLLOWUP TWILIO SEND SUCCESS] SMS sent for job ${job.id}, SID: ${sendResult.sid}, Message ID: ${sendResult.messageId}`);
 
-        console.log(`[SYSTEM] [FOLLOWUP] Message inserted for job ${job.id}`);
+        console.log(`[FOLLOWUP MESSAGE UPDATED SENT] Message ${sendResult.messageId} updated with SID ${sendResult.sid} for job ${job.id}`);
         
         console.log(`[SYSTEM] [FOLLOWUP] Marking job ${job.id} as sent`);
         
