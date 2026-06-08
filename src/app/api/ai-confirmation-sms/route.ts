@@ -36,6 +36,26 @@ export async function POST(request: NextRequest) {
   console.log('[AI POST CALL SMS START] Request received')
 
   try {
+    // Verify INTERNAL_API_SECRET for server-to-server authentication
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[AI CONFIRMATION SMS ERROR] Missing or invalid authorization header')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const providedSecret = authHeader.replace('Bearer ', '')
+    const expectedSecret = process.env.INTERNAL_API_SECRET
+
+    if (!expectedSecret) {
+      console.error('[AI CONFIRMATION SMS ERROR] INTERNAL_API_SECRET not configured')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+
+    if (providedSecret !== expectedSecret) {
+      console.error('[AI CONFIRMATION SMS ERROR] Invalid INTERNAL_API_SECRET')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body: ConfirmationSMSRequest = await request.json()
 
     const {
@@ -75,6 +95,50 @@ export async function POST(request: NextRequest) {
         hasBusinessName: !!businessName
       })
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    // Verify lead belongs to business (ownership validation)
+    const { data: lead, error: leadError } = await supabaseAdmin
+      .from('leads')
+      .select('id, business_id')
+      .eq('id', leadId)
+      .single()
+
+    if (leadError || !lead) {
+      console.error('[AI CONFIRMATION SMS ERROR] Lead not found', { leadId, error: leadError })
+      return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
+    }
+
+    if (lead.business_id !== businessId) {
+      console.error('[AI CONFIRMATION SMS ERROR] Lead does not belong to business', { 
+        leadId, 
+        leadBusinessId: lead.business_id, 
+        requestBusinessId: businessId 
+      })
+      return NextResponse.json({ error: 'Lead does not belong to specified business' }, { status: 403 })
+    }
+
+    // Verify conversation belongs to lead (ownership validation)
+    const { data: conversation, error: conversationError } = await supabaseAdmin
+      .from('conversations')
+      .select('id, lead_id, business_id')
+      .eq('id', conversationId)
+      .single()
+
+    if (conversationError || !conversation) {
+      console.error('[AI CONFIRMATION SMS ERROR] Conversation not found', { conversationId, error: conversationError })
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+    }
+
+    if (conversation.lead_id !== leadId || conversation.business_id !== businessId) {
+      console.error('[AI CONFIRMATION SMS ERROR] Conversation does not belong to lead/business', { 
+        conversationId, 
+        conversationLeadId: conversation.lead_id, 
+        conversationBusinessId: conversation.business_id,
+        requestLeadId: leadId,
+        requestBusinessId: businessId
+      })
+      return NextResponse.json({ error: 'Conversation does not belong to specified lead/business' }, { status: 403 })
     }
 
     // Idempotency check - check if confirmation SMS already sent for this conversation
@@ -159,50 +223,71 @@ export async function POST(request: NextRequest) {
     })
 
     // Build confirmation message with all extracted fields
+    console.log('[AI SMS SOURCE RECORD]', {
+      route: '/api/ai-confirmation-sms',
+      businessId,
+      leadId,
+      conversationId,
+      callSid,
+      extractedInfo,
+      source: 'external_ai_voice_service'
+    })
+
     const callerName = normalizePunctuation(
-      extractedInfo?.caller_name || 
-      extractedInfo?.caller_name || 
+      extractedInfo?.caller_name ||
+      extractedInfo?.caller_name ||
       'Not provided'
     )
-    
+
     const reason = normalizePunctuation(
-      extractedInfo?.service_requested || 
-      extractedInfo?.reason || 
-      extractedInfo?.reason_for_call || 
-      extractedInfo?.summary || 
+      extractedInfo?.service_requested ||
+      extractedInfo?.reason ||
+      extractedInfo?.reason_for_call ||
+      extractedInfo?.summary ||
       'Not provided'
     )
-    
+
     const details = normalizePunctuation(
-      extractedInfo?.details || 
-      extractedInfo?.important_details || 
-      extractedInfo?.issue || 
+      extractedInfo?.details ||
+      extractedInfo?.important_details ||
+      extractedInfo?.issue ||
       ''
     )
-    
+
     const urgency = normalizePunctuation(
-      extractedInfo?.urgency || 
-      extractedInfo?.urgency_level || 
+      extractedInfo?.urgency ||
+      extractedInfo?.urgency_level ||
       'Not specified'
     )
-    
+
     const location = normalizePunctuation(
-      extractedInfo?.location || 
-      extractedInfo?.address || 
-      extractedInfo?.addressOrLocation || 
+      extractedInfo?.location ||
+      extractedInfo?.address ||
+      extractedInfo?.addressOrLocation ||
       'Not provided'
     )
-    
+
     const callbackTime = normalizePunctuation(
-      extractedInfo?.preferred_callback_time || 
+      extractedInfo?.preferred_callback_time ||
       'Not provided'
     )
-    
+
     const callbackNumber = normalizePunctuation(
-      extractedInfo?.callback_number || 
-      callerPhone || 
+      extractedInfo?.callback_number ||
+      callerPhone ||
       "We'll use the number you called from"
     )
+
+    console.log('[AI SMS FIELD VALUES]', {
+      route: '/api/ai-confirmation-sms',
+      callerName,
+      reason,
+      urgency,
+      location,
+      callbackTime,
+      callbackNumber,
+      hasDetails: !!details
+    })
 
     // Build comprehensive confirmation message
     let messageBody = `Hi, this is ${businessName}. Thanks for calling — we received your request.\n\n`

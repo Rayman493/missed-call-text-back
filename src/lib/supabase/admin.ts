@@ -1340,17 +1340,33 @@ export const db = {
     step?: number
     created_at?: string
   }): Promise<any | null> {
+    console.log('[FOLLOWUP INSERT SOURCE]', {
+      caller: 'db.createFollowUpJob',
+      file: 'admin.ts',
+      lead_id: job.lead_id,
+      business_id: job.business_id,
+      conversation_id: job.conversation_id,
+      step: job.step,
+      timestamp: new Date().toISOString()
+    })
+
+    console.log('[FOLLOWUP INSERT AI STATUS]', {
+      caller: 'db.createFollowUpJob',
+      aiCheck: 'not_implemented',
+      note: 'createFollowUpJob does not check for AI completed calls - caller should check before calling'
+    })
+
     const { data, error } = await supabaseAdmin
       .from('follow_up_jobs')
       .insert(job)
       .select()
       .single()
-    
+
     if (error) {
       console.error('Error creating follow-up job:', error)
       return null
     }
-    
+
     return data
   },
 
