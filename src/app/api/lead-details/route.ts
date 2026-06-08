@@ -79,6 +79,12 @@ export async function GET(request: NextRequest) {
     }
 
     console.log("[lead-details API] Lead found:", lead.id)
+    console.log("[LEAD DETAIL API LEAD]", {
+      leadId: lead.id,
+      leadBusinessId: lead.business_id,
+      leadCallerPhone: lead.caller_phone,
+      leadExists: !!lead
+    })
     console.log("[LEAD DETAIL LOAD]", {
       leadId: lead.id,
       businessId: lead.business_id
@@ -100,6 +106,13 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
 
     console.log("[lead-details API] Conversation found:", conversation?.id || 'none')
+    console.log("[LEAD DETAIL API CONVERSATION]", {
+      leadId,
+      conversationId: conversation?.id,
+      conversationBusinessId: conversation?.business_id,
+      conversationLeadId: conversation?.lead_id,
+      conversationExists: !!conversation
+    })
     console.log("[LEAD DETAIL CONVERSATION LOOKUP]", {
       leadId,
       conversationId: conversation?.id,
@@ -437,8 +450,7 @@ export async function GET(request: NextRequest) {
     console.log("[MMS DEBUG] Messages with media after attachment:", 
       messagesWithMedia.filter(m => m.media && m.media.length > 0).length)
 
-    // Return enhanced response
-    return NextResponse.json({
+    const responseData = {
       ok: true,
       lead: {
         ...lead,
@@ -448,7 +460,21 @@ export async function GET(request: NextRequest) {
         followUpJobs: followUpJobs || [],
         aiCallRecords: aiCallRecords || []
       }
+    }
+    
+    console.log("[LEAD DETAIL API RESPONSE]", {
+      leadId: lead.id,
+      conversationId: conversation?.id,
+      messageCount: messagesWithMedia.length,
+      voicemailCount: voicemailRecordings?.length || 0,
+      followUpJobsCount: followUpJobs?.length || 0,
+      aiCallRecordsCount: aiCallRecords?.length || 0,
+      responseKeys: Object.keys(responseData),
+      leadKeys: Object.keys(responseData.lead)
     })
+
+    // Return enhanced response
+    return NextResponse.json(responseData)
   } catch (error) {
     console.error('Error in lead-details API:', error)
     return NextResponse.json(
