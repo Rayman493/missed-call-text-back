@@ -1714,7 +1714,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Conversation Section */}
           <section className="flex flex-col min-h-0 bg-card rounded-xl border border-border shadow-sm overflow-hidden h-[calc(100vh-320px)]">
             {/* Desktop Message Thread */}
-            <div ref={conversationContainerRef} className={`flex-1 overflow-y-auto scroll-smooth p-4 sm:p-5 lg:p-6 min-h-0 transition-opacity duration-200 ${!initialScrollReady ? 'opacity-0' : 'opacity-100'}`} style={{ minHeight: '200px' }}>
+            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth p-4 sm:p-5 lg:p-6 min-h-0" style={{ minHeight: '200px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1731,11 +1731,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               ) : (
                 <div className="space-y-3 sm:space-y-4">
-                  {/* Temporary debug block */}
-                  <div className="p-2 bg-red-500 text-white">
-                    DEBUG messagesArray.length: {messagesArray.length}
-                    First body: {messagesArray[0]?.body}
-                  </div>
                   {messagesArray.map((message: any, index: number) => {
                     const isLatest = index === messagesArray.length - 1
                     const media = messageMedia[message.id]
@@ -2010,7 +2005,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           
           {/* Mobile Message Thread */}
-          <div ref={mobileConversationContainerRef} className={`p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth transition-opacity duration-200 ${!initialScrollReady ? 'opacity-0' : 'opacity-100'}`} style={{ minHeight: '200px', maxHeight: 'calc(100vh-280px)' }}>
+          <div ref={mobileConversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth" style={{ minHeight: '200px', maxHeight: 'calc(100vh-280px)' }}>
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
