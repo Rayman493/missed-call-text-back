@@ -160,16 +160,32 @@ export async function POST(request: Request) {
 
         console.log(`[SYSTEM] [FOLLOWUP] Sending SMS to ${lead.caller_phone} for job ${job.id}`);
 
-        console.log(`[FOLLOWUP TWILIO SEND START] Starting Twilio send for job ${job.id}`);
+        console.log(`[FOLLOWUP TWILIO SEND START] Starting Twilio send for job ${job.id}`, {
+          business_id: business.id,
+          business_phone: business.twilio_phone_number,
+          to_phone: lead.caller_phone,
+          message_length: job.message_body.length,
+          lead_id: job.lead_id
+        });
 
         // Send SMS using centralized sendSms function
         const sendResult = await sendSms(business, lead.caller_phone, job.message_body, {
           lead_id: job.lead_id,
         });
 
+        console.log(`[FOLLOWUP TWILIO SEND RESULT] Full sendResult:`, {
+          sid: sendResult?.sid,
+          messageId: sendResult?.messageId,
+          hasSid: !!sendResult?.sid,
+          hasMessageId: !!sendResult?.messageId
+        });
+
         // Check for Twilio send errors
         if (!sendResult || !sendResult.sid) {
-          console.log(`[FOLLOWUP TWILIO SEND FAILED] No message SID returned for job ${job.id}`);
+          console.log(`[FOLLOWUP TWILIO SEND FAILED] No message SID returned for job ${job.id}`, {
+            sendResult,
+            hasSendResult: !!sendResult
+          });
           throw new Error('SMS send failed: no Twilio message SID returned');
         }
 

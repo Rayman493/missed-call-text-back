@@ -68,19 +68,36 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
       .map((fu: any) => {
         // Convert delay based on unit
         let delayMinutes: number
-        switch (fu.delayUnit || 'days') {
+        const delayValue = fu.delayDays || fu.delay || 0
+        const delayUnit = fu.delayUnit || fu.unit || 'days'
+
+        console.log('[FOLLOWUP DELAY CONVERSION]', {
+          step: fu.step,
+          delayValue,
+          delayUnit,
+          original: { delayDays: fu.delayDays, delay: fu.delay, delayUnit: fu.delayUnit, unit: fu.unit }
+        })
+
+        switch (delayUnit) {
           case 'minutes':
-            delayMinutes = fu.delayDays
+            delayMinutes = delayValue
             break
           case 'hours':
-            delayMinutes = fu.delayDays * 60
+            delayMinutes = delayValue * 60
             break
           case 'days':
           default:
-            delayMinutes = fu.delayDays * 24 * 60
+            delayMinutes = delayValue * 24 * 60
             break
         }
-        
+
+        console.log('[FOLLOWUP DELAY CONVERTED]', {
+          step: fu.step,
+          delayMinutes,
+          delayValue,
+          delayUnit
+        })
+
         return {
           step: fu.step,
           delayMinutes,
@@ -163,21 +180,39 @@ export async function createFollowUpJobs(params: {
         continue
       }
       
-      // Calculate initial scheduled time
-      let scheduledFor = new Date(now.getTime() + followUp.delayMinutes * 60 * 1000)
+      const leadCreatedAt = now
+      const initialScheduledFor = new Date(now.getTime() + followUp.delayMinutes * 60 * 1000)
+      let scheduledFor = initialScheduledFor
       let action = 'CREATE'
       let reason = 'Normal scheduling'
-      
+
+      console.log('[FOLLOWUP SCHEDULE CALCULATION]', {
+        step: followUp.step,
+        leadCreatedAt: leadCreatedAt.toISOString(),
+        delayMinutes: followUp.delayMinutes,
+        initialScheduledFor: initialScheduledFor.toISOString(),
+        businessHoursEnabled,
+        businessTimezone
+      })
+
       // Enforce business hours if enabled
       if (businessHoursEnabled) {
         const isDuringHours = isDuringBusinessHours(scheduledFor, businessTimezone)
-        
+
         if (!isDuringHours) {
           // Reschedule to next business hours slot
           const adjustedTime = getNextBusinessHoursSlot(scheduledFor, businessTimezone)
           scheduledFor = adjustedTime
           action = 'RESCHEDULE'
           reason = 'Outside business hours, rescheduled to next valid slot'
+
+          console.log('[FOLLOWUP BUSINESS HOURS ADJUSTMENT]', {
+            step: followUp.step,
+            originalScheduledFor: initialScheduledFor.toISOString(),
+            adjustedScheduledFor: scheduledFor.toISOString(),
+            reason,
+            businessTimezone
+          })
           console.log(`[FollowUps] Rescheduled step ${followUp.step} to business hours`)
         }
       }
