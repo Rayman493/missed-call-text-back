@@ -162,6 +162,35 @@ export async function createFollowUpJobs(params: {
     timestamp: new Date().toISOString()
   })
 
+  // Defensive guard: Check for completed AI intake to suppress follow-up creation
+  console.log('[FOLLOWUP DEFENSIVE AI CHECK]', {
+    businessId,
+    leadId,
+    conversationId
+  })
+
+  const { data: aiCallRecord } = await db.getMostRecentAiCallRecordForLead(businessId, leadId)
+
+  console.log('[FOLLOWUP DEFENSIVE AI CHECK RESULT]', {
+    businessId,
+    leadId,
+    aiCallRecordFound: !!aiCallRecord,
+    aiCallRecordId: aiCallRecord?.id,
+    aiOutcome: aiCallRecord?.outcome
+  })
+
+  if (aiCallRecord && aiCallRecord.outcome === 'completed') {
+    console.log('[FOLLOWUP DEFENSIVE GUARD SKIPPED]', {
+      businessId,
+      leadId,
+      conversationId,
+      aiCallRecordId: aiCallRecord.id,
+      outcome: aiCallRecord.outcome,
+      reason: 'Defensive guard: AI intake completed, suppressing follow-up creation'
+    })
+    return []
+  }
+
   console.log('[CREATE FOLLOWUPS ENTER]', { businessId, leadId, conversationId, businessName });
   
   // Fetch business settings for timezone and business hours

@@ -77,9 +77,43 @@ export async function POST(request: NextRequest) {
 
     console.log('[FOLLOWUP CREATION AI CHECK]', {
       route: '/api/follow-ups/create-jobs',
-      aiCheck: 'not_implemented',
-      note: 'External API does not check for AI completed calls - this could be the source of unwanted follow-ups'
+      aiCheck: 'querying_ai_call_records',
+      leadId,
+      conversationId
     })
+
+    // Check for completed AI intake to suppress follow-up creation
+    const { data: aiCallRecords, error: aiError } = await supabaseAdmin
+      .from('ai_call_records')
+      .select('id, outcome, lead_id, conversation_id, call_sid')
+      .or(`lead_id.eq.${leadId}${conversationId ? `,conversation_id.eq.${conversationId}` : ''}`)
+      .maybeSingle()
+
+    console.log('[FOLLOWUP CREATE-JOBS AI CHECK RESULT]', {
+      route: '/api/follow-ups/create-jobs',
+      aiCallRecordFound: !!aiCallRecords,
+      aiCallRecordId: aiCallRecords?.id,
+      aiOutcome: aiCallRecords?.outcome,
+      leadId,
+      conversationId,
+      error: aiError
+    })
+
+    if (aiCallRecords && aiCallRecords.outcome === 'completed') {
+      console.log('[FOLLOWUP CREATE-JOBS SKIPPED AI COMPLETED]', {
+        leadId,
+        conversationId,
+        aiCallRecordId: aiCallRecords.id,
+        outcome: aiCallRecords.outcome,
+        reason: 'AI intake completed, suppressing follow-up creation'
+      })
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        reason: 'ai_intake_completed',
+        aiCallRecordId: aiCallRecords.id
+      })
+    }
 
     const jobs = await createFollowUpJobs({
       businessId,
