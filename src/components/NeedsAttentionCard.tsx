@@ -10,6 +10,7 @@ interface AttentionItem {
   id: string
   label: string
   subtitle?: string
+  actionLabel: string
   count: number
   priority: 'high' | 'medium' | 'low'
   group: 'High Priority' | 'Recommended' | 'Account'
@@ -67,6 +68,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
             id: `unread-${lead.id}`,
             label: 'Customer reply needs review',
             subtitle: getLeadDisplayName(lead),
+            actionLabel: 'Open',
             count: 1,
             priority: 'high',
             group: 'High Priority',
@@ -85,6 +87,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
             id: `correction-${lead.id}`,
             label: 'Customer updated intake information',
             subtitle: 'Review corrected details',
+            actionLabel: 'Review',
             count: 1,
             priority: 'high',
             group: 'High Priority',
@@ -105,6 +108,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
             id: `urgent-${lead.id}`,
             label: 'Urgent lead',
             subtitle: getLeadDisplayName(lead),
+            actionLabel: 'View',
             count: 1,
             priority: 'high',
             group: 'High Priority',
@@ -125,6 +129,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
               id: `new-${lead.id}`,
               label: 'New lead awaiting review',
               subtitle: getLeadDisplayName(lead),
+              actionLabel: 'Review',
               count: 1,
               priority: 'high',
               group: 'High Priority',
@@ -149,6 +154,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           attentionItems.push({
             id: 'followups-config',
             label: 'Follow-ups not configured',
+            actionLabel: 'Configure',
             count: 1,
             priority: 'medium',
             group: 'Recommended',
@@ -170,6 +176,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           attentionItems.push({
             id: 'calendar-config',
             label: 'Google Calendar not connected',
+            actionLabel: 'Connect',
             count: 1,
             priority: 'medium',
             group: 'Recommended',
@@ -185,6 +192,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           attentionItems.push({
             id: 'forwarding-verify',
             label: 'Forwarding not verified',
+            actionLabel: 'Verify',
             count: 1,
             priority: 'medium',
             group: 'Recommended',
@@ -204,6 +212,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
             attentionItems.push({
               id: 'trial-ending',
               label: `Trial ending in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`,
+              actionLabel: 'Upgrade',
               count: 1,
               priority: 'low',
               group: 'Account',
@@ -305,19 +314,22 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
                 const Icon = item.icon
                 return (
                   <Link key={item.id} href={item.actionUrl}>
-                    <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer group">
-                      <div className="flex items-center gap-3 flex-1">
+                    <div className="p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer group border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
+                      <div className="flex items-center gap-3 mb-1">
                         <div className={`w-8 h-8 ${item.bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
                           <Icon className={`w-4 h-4 ${item.color}`} />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-900 dark:text-foreground truncate">{item.label}</p>
-                          {item.subtitle && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle}</p>
-                          )}
-                        </div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-foreground flex-1">{item.label}</p>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors flex-shrink-0" />
+                      {item.subtitle && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 ml-11 mb-2">{item.subtitle}</p>
+                      )}
+                      <div className="flex items-center justify-between ml-11">
+                        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
+                          {item.actionLabel}
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors flex-shrink-0" />
+                      </div>
                     </div>
                   </Link>
                 )
