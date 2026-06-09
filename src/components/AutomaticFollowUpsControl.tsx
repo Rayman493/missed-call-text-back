@@ -134,138 +134,90 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, leadDa
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
-      {/* Header */}
-      <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
-              <Settings className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold text-foreground">ReplyFlow Activity</h3>
-              <p className="text-sm text-muted-foreground">
-                Automation and follow-up status for this lead
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="bg-card border border-border rounded-xl p-4">
+      {/* Compact Status Row */}
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-xs text-muted-foreground">Automation Status</span>
+        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+          hasAnyActiveJobs
+            ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-100 dark:border-green-800/30'
+            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+        }`}>
+          {hasAnyActiveJobs ? 'Active' : 'Inactive'}
+        </span>
+        <span className="text-xs text-muted-foreground">Customer Replied</span>
+        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+          customerReplied
+            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800/30'
+            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+        }`}>
+          {customerReplied ? 'Yes' : 'No'}
+        </span>
       </div>
 
-      <div className="p-4 sm:p-5 space-y-6">
-        {/* Lead Status Summary */}
-        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-          <h4 className="text-sm font-semibold text-foreground mb-3">Lead Automation Status</h4>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
+      {/* Compact Follow-Up Jobs */}
+      {followUpJobs.length > 0 && (
+        <div className="space-y-2 mb-4">
+          {followUpJobs.map((job) => (
+            <div key={job.id} className="flex items-center justify-between py-2 px-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
               <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-slate-500" />
-                <span className="text-xs text-muted-foreground">Status</span>
+                <span className="text-xs font-medium text-foreground">
+                  {job.step === 1 ? 'Auto Reply' : `Follow-Up ${job.step - 1}`}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {job.status === 'sent' ? `Sent ${formatRelativeTime(job.scheduled_for)}` :
+                   job.status === 'pending' ? `Scheduled ${formatRelativeTime(job.scheduled_for)}` :
+                   job.status === 'paused' ? 'Paused' :
+                   job.cancelled_reason ? `Cancelled (${job.cancelled_reason.replace('_', ' ')})` : 'Cancelled'}
+                </span>
               </div>
-              <span className="text-sm font-medium text-foreground">
-                {hasAnyActiveJobs ? 'Active' : 'Inactive'}
-              </span>
+              {getStatusBadge(job.status)}
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Send className="w-4 h-4 text-slate-500" />
-                <span className="text-xs text-muted-foreground">Auto Reply</span>
-              </div>
-              <span className="text-sm font-medium text-foreground">
-                {autoReplySent ? 'Sent' : 'Not Sent'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-slate-500" />
-                <span className="text-xs text-muted-foreground">Customer Replied</span>
-              </div>
-              <span className="text-sm font-medium text-foreground">
-                {customerReplied ? 'Yes' : 'No'}
-              </span>
-            </div>
-          </div>
+          ))}
         </div>
+      )}
 
-        {/* Follow-Up Status */}
-        <div>
-          <h4 className="text-sm font-semibold text-foreground mb-3">Follow-Up Status</h4>
-          <div className="space-y-2">
-            {followUpJobs.map((job, index) => (
-              <div key={job.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                    job.status === 'sent' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-                    job.status === 'pending' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
-                    job.status === 'paused' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' :
-                    'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300'
-                  }`}>
-                    {job.status === 'sent' ? '✓' : job.status === 'pending' ? '⏳' : job.status === 'paused' ? '⏸' : '✗'}
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-foreground">
-                      {job.step === 1 ? 'Auto Reply' : `Follow-Up ${job.step - 1}`}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {job.status === 'sent' ? `Sent ${formatRelativeTime(job.scheduled_for)}` :
-                       job.status === 'pending' ? `Scheduled ${formatRelativeTime(job.scheduled_for)}` :
-                       job.status === 'paused' ? 'Paused' : 
-                       job.cancelled_reason ? `Cancelled (${job.cancelled_reason.replace('_', ' ')})` : 'Cancelled'}
-                    </div>
-                  </div>
-                </div>
-                {getStatusBadge(job.status)}
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Actions */}
+      <div className="flex flex-wrap items-center gap-2">
+        {hasAnyActiveJobs && (
+          <button
+            onClick={allPaused ? handleResumeAll : handlePauseAll}
+            disabled={loading}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+              bg-background border-border text-foreground hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-1.5"
+          >
+            {allPaused ? (
+              <>
+                <Play className="w-3 h-3" />
+                Resume
+              </>
+            ) : (
+              <>
+                <Pause className="w-3 h-3" />
+                Pause
+              </>
+            )}
+          </button>
+        )}
 
-        {/* Actions */}
-        <div>
-          <h4 className="text-sm font-semibold text-foreground mb-3">Actions</h4>
-          <div className="flex flex-wrap gap-2">
-            {hasAnyActiveJobs && (
-              <button
-                onClick={allPaused ? handleResumeAll : handlePauseAll}
-                disabled={loading}
-                className="px-3 py-2 text-sm font-medium rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                  bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300
-                  hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
-              >
-                {allPaused ? (
-                  <>
-                    <Play className="w-4 h-4" />
-                    Resume Follow-Ups
-                  </>
-                ) : (
-                  <>
-                    <Pause className="w-4 h-4" />
-                    Pause Follow-Ups
-                  </>
-                )}
-              </button>
-            )}
-            
-            {upcomingJobs.length > 0 && (
-              <button
-                onClick={() => handleSendFollowUp(upcomingJobs[0].id)}
-                disabled={loading}
-                className="px-3 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                <Send className="w-4 h-4" />
-                Send Follow-Up Now
-              </button>
-            )}
-            
-            <Link
-              href="/dashboard/settings/follow-ups"
-              className="px-3 py-2 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Configure Follow-Ups
-            </Link>
-          </div>
-        </div>
+        {upcomingJobs.length > 0 && (
+          <button
+            onClick={() => handleSendFollowUp(upcomingJobs[0].id)}
+            disabled={loading}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          >
+            <Send className="w-3 h-3" />
+            Send Now
+          </button>
+        )}
+
+        <Link
+          href="/dashboard/settings/follow-ups"
+          className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border text-foreground hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+        >
+          <Settings className="w-3 h-3" />
+          Configure
+        </Link>
       </div>
     </div>
   )
