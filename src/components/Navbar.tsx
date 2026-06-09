@@ -175,34 +175,16 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
             // Logged-in navigation
             <>
               {isPublicPage ? (
-                // Public pages: show simplified navigation
+                // Public pages: show simplified navigation for authenticated users
                 <>
                   {isHomepage ? (
-                    // Homepage: show full navigation on desktop
+                    // Homepage: show only Dashboard and Account for authenticated users
                     <>
                       <Link
                         href="/dashboard"
                         className={`text-base font-semibold ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-200 hover:text-white'} transition-colors hidden sm:block py-1`}
                       >
                         Dashboard
-                      </Link>
-                      <Link
-                        href="/dashboard/leads"
-                        className={`text-base font-semibold ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-200 hover:text-white'} transition-colors hidden sm:block py-1`}
-                      >
-                        Leads
-                      </Link>
-                      <Link
-                        href="/dashboard/calendar"
-                        className={`text-base font-semibold ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-200 hover:text-white'} transition-colors hidden sm:block py-1`}
-                      >
-                        Calendar
-                      </Link>
-                      <Link
-                        href="/dashboard/settings"
-                        className={`text-base font-semibold ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-200 hover:text-white'} transition-colors hidden sm:block py-1`}
-                      >
-                        Settings
                       </Link>
                     </>
                   ) : (
@@ -354,43 +336,59 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
         >
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
             {isLoggedIn ? (
-              // Signed-in users: Application navigation
+              // Signed-in users: Simplified navigation on homepage, full app navigation elsewhere
               <nav className="flex flex-col space-y-3">
-                <Link
-                  href="/dashboard"
-                  onClick={closeMobileMenu}
-                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/dashboard/leads"
-                  onClick={closeMobileMenu}
-                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                >
-                  Leads
-                </Link>
-                <Link
-                  href="/dashboard/calendar"
-                  onClick={closeMobileMenu}
-                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                >
-                  Calendar
-                </Link>
-                <Link
-                  href="/dashboard/settings"
-                  onClick={closeMobileMenu}
-                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                >
-                  Settings
-                </Link>
-                <Link
-                  href="/home"
-                  onClick={closeMobileMenu}
-                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                >
-                  View Public Site
-                </Link>
+                {isHomepage ? (
+                  // Homepage: show only Dashboard
+                  <>
+                    <Link
+                      href="/dashboard"
+                      onClick={closeMobileMenu}
+                      className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+                    >
+                      Dashboard
+                    </Link>
+                  </>
+                ) : (
+                  // Other pages: show full app navigation
+                  <>
+                    <Link
+                      href="/dashboard"
+                      onClick={closeMobileMenu}
+                      className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+                    >
+                      Dashboard
+                    </Link>
+                    <Link
+                      href="/dashboard/leads"
+                      onClick={closeMobileMenu}
+                      className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+                    >
+                      Leads
+                    </Link>
+                    <Link
+                      href="/dashboard/calendar"
+                      onClick={closeMobileMenu}
+                      className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+                    >
+                      Calendar
+                    </Link>
+                    <Link
+                      href="/dashboard/settings"
+                      onClick={closeMobileMenu}
+                      className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+                    >
+                      Settings
+                    </Link>
+                    <Link
+                      href="/home"
+                      onClick={closeMobileMenu}
+                      className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
+                    >
+                      View Public Site
+                    </Link>
+                  </>
+                )}
               </nav>
             ) : (
               // Signed-out users: Marketing navigation
