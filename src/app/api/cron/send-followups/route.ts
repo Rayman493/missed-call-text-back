@@ -375,16 +375,16 @@ export async function POST(req: NextRequest) {
           currentTimeLocal: now.toLocaleString('en-US', { timeZone: businessTimezone }),
           scheduledForUTC: scheduledFor.toISOString(),
           scheduledForLocal: scheduledFor.toLocaleString('en-US', { timeZone: businessTimezone }),
-          isDuringBusinessHours: isDuringBusinessHours(now, businessTimezone)
+          isDuringBusinessHours: isDuringBusinessHours(scheduledFor, businessTimezone)
         })
         
         // Enforce business hours if enabled
         if (businessHoursEnabled) {
-          const isDuringHours = isDuringBusinessHours(now, businessTimezone)
+          const isDuringHours = isDuringBusinessHours(scheduledFor, businessTimezone)
           
           if (!isDuringHours) {
             // Reschedule to next business hours slot
-            const nextSlot = getNextBusinessHoursSlot(now, businessTimezone)
+            const nextSlot = getNextBusinessHoursSlot(scheduledFor, businessTimezone)
             
             console.log('[QA - Follow Ups] Rescheduling due to business hours:', {
               followUpId: followUp.id,
@@ -433,7 +433,32 @@ export async function POST(req: NextRequest) {
             continue
           }
         }
-        
+
+        // Debug logging for timing decision
+        console.log('[FOLLOWUP TIMING DEBUG]', {
+          jobId: followUp.id,
+          leadId: lead.id,
+          nowIso: now.toISOString(),
+          scheduledForRaw: followUp.scheduled_for,
+          scheduledForIso: scheduledFor.toISOString(),
+          businessTimezone,
+          isDue: scheduledFor <= now,
+          businessHoursEnabled,
+          isDuringBusinessHoursAtScheduledTime: isDuringBusinessHours(scheduledFor, businessTimezone)
+        })
+
+        // Guard: Explicitly check if job is actually due
+        if (scheduledFor > now) {
+          console.log('[FOLLOWUP SKIP NOT DUE]', {
+            jobId: followUp.id,
+            leadId: lead.id,
+            scheduledFor: scheduledFor.toISOString(),
+            now: now.toISOString(),
+            reason: 'Job scheduled time is in the future'
+          })
+          continue
+        }
+
         // Check if lead has opted out
         if (lead.opted_out) {
           console.log(`[send-followups] Lead ${lead.id} has opted out, skipping follow-up ${followUp.id}`)
@@ -520,19 +545,33 @@ export async function POST(req: NextRequest) {
         })
 
         // After successful send - update follow_up_job
+        const sentAt = new Date().toISOString()
         const { error: updateError } = await supabase
           .from('follow_up_jobs')
           .update({
             status: 'sent',
-            sent_at: new Date().toISOString()
+            sent_at: sentAt
           })
           .eq('id', followUp.id)
-        
+          .select()
+          .single()
+
         if (updateError) {
           console.error('[followups] Error marking follow-up as sent:', updateError)
+          console.error('[followups] Update details:', {
+            jobId: followUp.id,
+            status: 'sent',
+            sentAt
+          })
           throw updateError
         }
+
         console.log(`[followups] Follow-up sent successfully: ${followUp.id}`)
+        console.log('[followups] Update result:', {
+          jobId: followUp.id,
+          status: 'sent',
+          sentAt
+        })
         sent++
 
         // Create notification for follow-up sent
@@ -881,16 +920,16 @@ export async function GET(req: NextRequest) {
           currentTimeLocal: now.toLocaleString('en-US', { timeZone: businessTimezone }),
           scheduledForUTC: scheduledFor.toISOString(),
           scheduledForLocal: scheduledFor.toLocaleString('en-US', { timeZone: businessTimezone }),
-          isDuringBusinessHours: isDuringBusinessHours(now, businessTimezone)
+          isDuringBusinessHours: isDuringBusinessHours(scheduledFor, businessTimezone)
         })
         
         // Enforce business hours if enabled
         if (businessHoursEnabled) {
-          const isDuringHours = isDuringBusinessHours(now, businessTimezone)
+          const isDuringHours = isDuringBusinessHours(scheduledFor, businessTimezone)
           
           if (!isDuringHours) {
             // Reschedule to next business hours slot
-            const nextSlot = getNextBusinessHoursSlot(now, businessTimezone)
+            const nextSlot = getNextBusinessHoursSlot(scheduledFor, businessTimezone)
             
             console.log('[QA - Follow Ups] Rescheduling due to business hours:', {
               followUpId: followUp.id,
@@ -939,7 +978,32 @@ export async function GET(req: NextRequest) {
             continue
           }
         }
-        
+
+        // Debug logging for timing decision
+        console.log('[FOLLOWUP TIMING DEBUG]', {
+          jobId: followUp.id,
+          leadId: lead.id,
+          nowIso: now.toISOString(),
+          scheduledForRaw: followUp.scheduled_for,
+          scheduledForIso: scheduledFor.toISOString(),
+          businessTimezone,
+          isDue: scheduledFor <= now,
+          businessHoursEnabled,
+          isDuringBusinessHoursAtScheduledTime: isDuringBusinessHours(scheduledFor, businessTimezone)
+        })
+
+        // Guard: Explicitly check if job is actually due
+        if (scheduledFor > now) {
+          console.log('[FOLLOWUP SKIP NOT DUE]', {
+            jobId: followUp.id,
+            leadId: lead.id,
+            scheduledFor: scheduledFor.toISOString(),
+            now: now.toISOString(),
+            reason: 'Job scheduled time is in the future'
+          })
+          continue
+        }
+
         // Check if lead has opted out
         if (lead.opted_out) {
           console.log(`[send-followups] Lead ${lead.id} has opted out, skipping follow-up ${followUp.id}`)
@@ -1026,19 +1090,33 @@ export async function GET(req: NextRequest) {
         })
 
         // After successful send - update follow_up_job
+        const sentAt = new Date().toISOString()
         const { error: updateError } = await supabase
           .from('follow_up_jobs')
           .update({
             status: 'sent',
-            sent_at: new Date().toISOString()
+            sent_at: sentAt
           })
           .eq('id', followUp.id)
-        
+          .select()
+          .single()
+
         if (updateError) {
           console.error('[followups] Error marking follow-up as sent:', updateError)
+          console.error('[followups] Update details:', {
+            jobId: followUp.id,
+            status: 'sent',
+            sentAt
+          })
           throw updateError
         }
+
         console.log(`[followups] Follow-up sent successfully: ${followUp.id}`)
+        console.log('[followups] Update result:', {
+          jobId: followUp.id,
+          status: 'sent',
+          sentAt
+        })
         sent++
 
         // Create notification for follow-up sent
