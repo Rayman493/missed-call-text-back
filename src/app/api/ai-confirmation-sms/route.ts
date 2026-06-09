@@ -361,6 +361,31 @@ export async function POST(request: NextRequest) {
           twilioMessageSid,
           conversationId
         })
+
+        // Clear sms_pending in call_events to prevent standard missed-call SMS
+        // This marks the call as AI-handled
+        try {
+          const { error: updateError } = await supabaseAdmin
+            .from('call_events')
+            .update({
+              sms_pending: false,
+              ai_confirmation_sms_sent: true,
+              ai_confirmation_sms_sent_at: new Date().toISOString()
+            })
+            .eq('twilio_call_sid', callSid)
+
+          if (updateError) {
+            console.error('[AI CONFIRMATION SMS] Failed to clear sms_pending:', updateError)
+          } else {
+            console.log('[AI CONFIRMATION SMS] Cleared sms_pending in call_events', {
+              callSid,
+              twilioMessageSid
+            })
+          }
+        } catch (clearError) {
+          console.error('[AI CONFIRMATION SMS] Exception clearing sms_pending:', clearError)
+        }
+
         return NextResponse.json({
           success: true,
           twilioMessageSid,

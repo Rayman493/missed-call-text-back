@@ -562,6 +562,26 @@ export async function POST(req: NextRequest) {
     if (!hasRecentOutbound && lead) {
       console.log(`[Twilio Voice Status Webhook] Auto-reply send attempt - no recent outbound found`)
 
+      // Check call_events for sms_pending and ai_confirmation_sms_sent
+      const { data: callEvent } = await supabase
+        .from('call_events')
+        .select('sms_pending, ai_confirmation_sms_sent, ai_confirmation_sms_sent_at')
+        .eq('twilio_call_sid', CallSid)
+        .maybeSingle()
+
+      console.log('[STANDARD SMS DECISION]', {
+        callSid: CallSid,
+        leadId: lead?.id,
+        conversationId: conversation?.id,
+        smsPending: callEvent?.sms_pending,
+        aiConfirmationSmsAlreadySent: callEvent?.ai_confirmation_sms_sent,
+        aiConfirmationSmsSentAt: callEvent?.ai_confirmation_sms_sent_at,
+        aiCallRecordExists: !!aiCallRecord,
+        aiCallRecordOutcome: aiCallRecord?.outcome,
+        hasRecentOutbound,
+        leadExists: !!lead
+      })
+
       // Log SMS path based on AI call record
       if (aiCallRecord) {
         console.log('[SMS PATH AI SUMMARY]', {
@@ -640,7 +660,16 @@ export async function POST(req: NextRequest) {
       let autoReplyMessage
       let messageTemplate = 'unknown'
 
-      if (aiCallRecord && aiCallRecord.outcome === 'completed') {
+      // Check if AI confirmation SMS was already sent (cleared sms_pending)
+      if (callEvent?.ai_confirmation_sms_sent) {
+        console.log('[STANDARD SMS DECISION]', {
+          decision: 'skip',
+          reason: 'AI confirmation SMS already sent, sms_pending was cleared',
+          aiConfirmationSmsSentAt: callEvent.ai_confirmation_sms_sent_at
+        })
+        autoReplyMessage = null
+        messageTemplate = 'ai_confirmation_already_sent'
+      } else if (aiCallRecord && aiCallRecord.outcome === 'completed') {
         // AI completed intake - Fly.io service handles AI confirmation SMS via /api/ai-confirmation-sms
         // Skip sending duplicate SMS from voice-status webhook
         console.log('[AI SUMMARY SMS SKIPPED]', {
