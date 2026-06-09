@@ -21,7 +21,8 @@ import {
   truncateText,
   getLeadStatusColor,
   normalizePhoneNumberForSearch,
-  sentenceCase
+  sentenceCase,
+  getLeadDisplayName
 } from '@/lib/utils'
 import { copyToClipboard } from '@/lib/clipboard'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
@@ -1043,13 +1044,11 @@ export default function LeadsPage() {
                           {/* Header: Name, Phone, Status */}
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex-1 min-w-0">
-                              {lead.contact_name && (
-                                <h3 className={`text-lg font-semibold text-slate-900 dark:text-white mb-1 truncate ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
-                                  {lead.contact_name}
-                                </h3>
-                              )}
-                              <p className="text-base text-slate-600 dark:text-slate-400 font-medium">
-                                {lead.caller_phone === '+10000000000' ? 'Test Lead' : formatPhoneNumber(lead.caller_phone)}
+                              <h3 className={`text-lg font-semibold text-slate-900 dark:text-white mb-1 truncate ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                                {getLeadDisplayName(lead)}
+                              </h3>
+                              <p className="text-sm text-slate-500 dark:text-slate-400">
+                                {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                               </p>
                             </div>
                             <span className={`px-3 py-1 rounded-full text-sm font-semibold flex-shrink-0 ml-3 ${statusClasses}`}>
@@ -1185,13 +1184,11 @@ export default function LeadsPage() {
                               {/* Header: Name, Phone, Status */}
                               <div className="flex items-start justify-between mb-3">
                                 <div className="flex-1 min-w-0">
-                                  {lead.contact_name && (
-                                    <h3 className={`text-base font-semibold text-slate-900 dark:text-white mb-1 truncate ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
-                                      {lead.contact_name}
-                                    </h3>
-                                  )}
-                                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                                    {lead.caller_phone === '+10000000000' ? 'Test Lead' : formatPhoneNumber(lead.caller_phone)}
+                                  <h3 className={`text-base font-semibold text-slate-900 dark:text-white mb-1 truncate ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                                    {getLeadDisplayName(lead)}
+                                  </h3>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                                   </p>
                                 </div>
                                 <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ml-2 ${statusClasses}`}>

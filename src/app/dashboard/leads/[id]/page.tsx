@@ -11,7 +11,7 @@ import AppHeader from '@/components/AppHeader'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor } from '@/lib/utils'
+import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor, getLeadDisplayName } from '@/lib/utils'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import { copyToClipboard } from '@/lib/clipboard'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
@@ -1536,13 +1536,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   {/* Name and Phone */}
                   <div className="flex-1 min-w-0">
                     <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-tight truncate">
-                      {leadData?.contact_name || formatPhoneNumber(lead?.caller_phone || '')}
+                      {getLeadDisplayName(leadData || lead)}
                     </h1>
-                    {leadData?.contact_name && (
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {formatPhoneNumber(lead?.caller_phone || '')}
-                      </p>
-                    )}
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {formatPhoneNumber(lead?.caller_phone || '')}
+                    </p>
                   </div>
 
                   {/* Status Badge */}

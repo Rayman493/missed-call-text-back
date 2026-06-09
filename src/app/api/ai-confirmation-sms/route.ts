@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
     // Verify lead belongs to business (ownership validation)
     const { data: lead, error: leadError } = await supabaseAdmin
       .from('leads')
-      .select('id, business_id')
+      .select('id, business_id, contact_name')
       .eq('id', leadId)
       .single()
 
@@ -134,12 +134,37 @@ export async function POST(request: NextRequest) {
     }
 
     if (lead.business_id !== businessId) {
-      console.error('[AI CONFIRMATION SMS ERROR] Lead does not belong to business', { 
-        leadId, 
-        leadBusinessId: lead.business_id, 
-        requestBusinessId: businessId 
+      console.error('[AI CONFIRMATION SMS ERROR] Lead does not belong to business', {
+        leadId,
+        leadBusinessId: lead.business_id,
+        requestBusinessId: businessId
       })
       return NextResponse.json({ error: 'Lead does not belong to specified business' }, { status: 403 })
+    }
+
+    // Persist AI extracted caller name to leads.contact_name if currently null/empty/"Unknown Caller"
+    if (extractedInfo?.caller_name && (!lead.contact_name || lead.contact_name === 'Unknown Caller' || lead.contact_name === '')) {
+      console.log('[AI CONTACT NAME UPDATE]', {
+        leadId,
+        currentContactName: lead.contact_name,
+        newContactName: extractedInfo.caller_name
+      })
+
+      const { error: updateLeadError } = await supabaseAdmin
+        .from('leads')
+        .update({
+          contact_name: extractedInfo.caller_name
+        })
+        .eq('id', leadId)
+
+      if (updateLeadError) {
+        console.error('[AI CONTACT NAME UPDATE] Failed to update lead contact_name:', updateLeadError)
+      } else {
+        console.log('[AI CONTACT NAME UPDATE] Successfully updated lead contact_name:', {
+          leadId,
+          contactName: extractedInfo.caller_name
+        })
+      }
     }
 
     // Verify conversation belongs to lead (ownership validation)
