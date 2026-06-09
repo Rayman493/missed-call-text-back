@@ -16,10 +16,17 @@ export default function TestSetupPage() {
   const supabase = createBrowserClient()
   const [isCompletingManually, setIsCompletingManually] = useState(false)
   const [troubleshootingOpen, setTroubleshootingOpen] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
 
   // Guard: Redirect to forwarding setup if not configured
   if (business && !business.call_forwarding_enabled) {
     router.replace('/setup/forwarding')
+    return null
+  }
+
+  // Guard: If forwarding already verified and onboarding complete, redirect to dashboard
+  if (business && business.forwarding_verified && business.onboarding_status === 'completed' && !showSuccess) {
+    router.replace('/dashboard')
     return null
   }
 
@@ -41,12 +48,16 @@ export default function TestSetupPage() {
       if (error) throw error
 
       await refreshBusiness()
-      router.push('/dashboard')
+      setShowSuccess(true)
     } catch (error) {
       console.error('[TestSetup] Manual completion failed:', error)
     } finally {
       setIsCompletingManually(false)
     }
+  }
+
+  const handleGoToDashboard = () => {
+    router.push('/dashboard')
   }
 
   const troubleshooting = [
@@ -73,11 +84,47 @@ export default function TestSetupPage() {
       <BusinessGuard>
         <div className="min-h-screen bg-background p-4 sm:p-8">
           <div className="max-w-3xl mx-auto">
-            {/* Header */}
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-foreground mb-2">
-                ReplyFlow Is Ready 🎉
-              </h1>
+            {/* Success State */}
+            {showSuccess ? (
+              <div className="text-center py-12">
+                <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+                </div>
+                <h1 className="text-3xl font-bold text-foreground mb-4">
+                  Setup Complete! 🎉
+                </h1>
+                <div className="space-y-3 mb-8 max-w-md mx-auto">
+                  <div className="flex items-center justify-center gap-3 text-left">
+                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <span className="text-foreground">Setup Complete</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-3 text-left">
+                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <span className="text-foreground">Forwarding Verified</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-3 text-left">
+                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <span className="text-foreground">Test Successful</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-3 text-left">
+                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <span className="text-foreground">ReplyFlow is now protecting missed calls</span>
+                  </div>
+                </div>
+                <button
+                  onClick={handleGoToDashboard}
+                  className="inline-flex items-center justify-center px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                >
+                  Go to Dashboard
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Header */}
+                <div className="text-center mb-8">
+                  <h1 className="text-3xl font-bold text-foreground mb-2">
+                    ReplyFlow Is Ready 🎉
+                  </h1>
               <p className="text-muted-foreground text-lg">
                 Your phone number is connected and ready to capture missed calls.
               </p>
@@ -215,6 +262,8 @@ export default function TestSetupPage() {
                 Run Test Later
               </Link>
             </div>
+              </>
+            )}
           </div>
         </div>
       </BusinessGuard>

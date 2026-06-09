@@ -68,21 +68,21 @@ function PhoneSetupContent() {
   const [copiedCode, setCopiedCode] = useState(false)
   const [isForwardingEnabled, setIsForwardingEnabled] = useState(false)
 
-  // Check if user has active subscription before allowing phone setup
+  // LEGACY ROUTE REDIRECT: This page is now a legacy route
+  // Redirect to canonical forwarding setup route at /setup/forwarding
+  // This consolidates onboarding to a single entry point
   useEffect(() => {
-    if (!businessLoading && business) {
-      const hasSubscription = business.subscription_status === SUBSCRIPTION_STATES.TRIALING || 
-                             business.subscription_status === SUBSCRIPTION_STATES.ACTIVE ||
-                             business.subscription_status === SUBSCRIPTION_STATES.PAST_DUE ||
-                             business.subscription_status === SUBSCRIPTION_STATES.CANCELED
-      
-      if (!hasSubscription) {
-        console.log('[Phone Setup] No active subscription, redirecting to dashboard')
-        router.push('/dashboard')
-        return
-      }
-    }
-  }, [business, businessLoading, router])
+    console.log('[Legacy Route Redirect] /onboarding/phone-setup → /setup/forwarding')
+    
+    // Preserve any query parameters
+    const currentUrl = new URL(window.location.href)
+    const searchParams = currentUrl.searchParams.toString()
+    const targetUrl = searchParams ? `/setup/forwarding?${searchParams}` : '/setup/forwarding'
+    
+    console.log('[Legacy Route Redirect] Preserving query params:', searchParams)
+    router.push(targetUrl)
+    return
+  }, [router])
 
   const handleForwardingEnabled = async () => {
     if (!phoneNumber || !carrier) {

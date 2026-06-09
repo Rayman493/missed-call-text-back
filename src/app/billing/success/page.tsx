@@ -35,7 +35,7 @@ const PROGRESS_STEPS = [
   { id: 'finalizing', label: 'Finalizing your account setup...', duration: 5000 },
 ]
 
-const TIMEOUT_DURATION = 45000 // 45 seconds
+const TIMEOUT_DURATION = 90000 // 90 seconds (increased from 45s for slower provisioning)
 
 export default function BillingSuccessPage() {
   const router = useRouter()

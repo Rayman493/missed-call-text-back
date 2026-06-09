@@ -897,6 +897,7 @@ export default function DashboardContent() {
 
   if (businessFetchComplete && !businessLoading && business && !isAdmin) {
     // If setup is incomplete, route to the correct next step
+    // NOTE: All onboarding now routes through canonical /setup/forwarding
     if (!isSetupComplete) {
       const targetRoute = (() => {
         switch (setupState) {
@@ -918,7 +919,8 @@ export default function DashboardContent() {
             })
             return null  // Stay on dashboard, show billing prompt
           case 'provisioning_or_number_pending':
-            return '/onboarding/new-onboarding'
+            // Route to canonical forwarding setup (will handle provisioning state)
+            return '/setup/forwarding'
           case 'needs_forwarding':
             return '/setup/forwarding'
           case 'needs_final_test':

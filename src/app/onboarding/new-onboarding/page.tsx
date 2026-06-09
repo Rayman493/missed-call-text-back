@@ -32,88 +32,20 @@ export default function NewOnboardingPage() {
   const [isBusinessLoaded, setIsBusinessLoaded] = useState(false)
 
   useEffect(() => {
-    // Only evaluate routing when business is fully loaded
-    if (business === undefined) {
-      console.log('[Routing] Business loading...')
-      return
-    }
-
-    setIsBusinessLoaded(true)
-
-    if (!business) {
-      console.log('[Routing] No business found, redirecting to auth')
-      router.push('/auth?mode=signin')
-      return
-    }
-
-    console.log('[Routing] Business loaded:', {
-      id: business.id,
-      onboarding_status: business.onboarding_status,
-      forwarding_verified: business.forwarding_verified,
-      twilio_phone_number: business.twilio_phone_number,
-      subscription_status: business.subscription_status,
-      stripe_customer_id: business.stripe_customer_id,
-      stripe_subscription_id: business.stripe_subscription_id
-    })
-
-    // Check if user has valid subscription (active or trialing with Stripe IDs)
-    const hasValidSub = hasValidSubscription(
-      business.subscription_status,
-      business.stripe_customer_id,
-      business.stripe_subscription_id
-    )
-    const isActiveSub = isActiveSubscription(business.subscription_status)
-
-    console.log('[Routing] Subscription check:', {
-      hasValidSub,
-      isActiveSub,
-      subscription_status: business.subscription_status,
-      stripe_customer_id: business.stripe_customer_id,
-      stripe_subscription_id: business.stripe_subscription_id
-    })
-
-    // If no valid subscription, redirect to dashboard to activate trial/subscription
-    if (!hasValidSub) {
-      console.log('[Routing] No valid subscription, redirecting to dashboard for activation')
-      router.push('/dashboard')
-      return
-    }
-
-    // Check if onboarding is already completed - only redirect if BOTH conditions met
-    if (business.onboarding_status === 'completed' && business.forwarding_verified === true) {
-      console.log('[Routing] Onboarding complete, redirecting to dashboard')
-      router.push('/dashboard')
-      return
-    }
-
-    console.log('[Routing] Onboarding incomplete, staying on onboarding')
-    console.log('[Routing] Reason:', {
-      onboarding_status: business.onboarding_status,
-      forwarding_verified: business.forwarding_verified,
-      completed: business.onboarding_status === 'completed' && business.forwarding_verified === true
-    })
-
-    // If business doesn't have a Twilio number yet, go back to old onboarding
-    if (!business.twilio_phone_number) {
-      console.log('[Routing] No Twilio number, redirecting to old onboarding')
-      
-      // Verify session exists before redirecting
-      supabase.auth.getSession().then(({ data: { session } }: any) => {
-        if (!session) {
-          console.error('[Routing] No session exists, redirecting to sign in')
-          router.push('/auth/signin?redirect=/onboarding')
-          return
-        }
-        // Guard against redirect loop - only redirect if not already on /onboarding
-        if (typeof window !== 'undefined' && window.location.pathname !== '/onboarding') {
-          router.push('/onboarding')
-        } else {
-          console.log('[Routing] Already on /onboarding, preventing redirect loop')
-        }
-      })
-      return
-    }
-  }, [business, router])
+    // LEGACY ROUTE REDIRECT: This page is now a legacy route
+    // Redirect to canonical forwarding setup route at /setup/forwarding
+    // This consolidates onboarding to a single entry point
+    console.log('[Legacy Route Redirect] /onboarding/new-onboarding → /setup/forwarding')
+    
+    // Preserve any query parameters
+    const currentUrl = new URL(window.location.href)
+    const searchParams = currentUrl.searchParams.toString()
+    const targetUrl = searchParams ? `/setup/forwarding?${searchParams}` : '/setup/forwarding'
+    
+    console.log('[Legacy Route Redirect] Preserving query params:', searchParams)
+    router.push(targetUrl)
+    return
+  }, [router])
 
   const handleCopyNumber = () => {
     if (business?.twilio_phone_number) {

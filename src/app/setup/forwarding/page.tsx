@@ -279,7 +279,11 @@ export default function ForwardingSetupPage() {
   }
 
   // HARD GUARD: If subscription is not active, immediately redirect without rendering any UI
-  if (setupState !== 'needs_forwarding' && setupState !== 'needs_final_test') {
+  // LOOP PREVENTION: provisioning_or_number_pending is handled above with friendly UI
+  // Only redirect if state truly doesn't belong on this page
+  if (setupState !== 'needs_forwarding' && 
+      setupState !== 'needs_final_test' && 
+      setupState !== 'provisioning_or_number_pending') {
     console.log('[Forwarding Setup Route] Blocking access - redirecting to dashboard (no UI rendered)', { setupState })
     router.replace('/dashboard')
     return (
