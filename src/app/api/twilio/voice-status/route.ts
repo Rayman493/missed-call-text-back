@@ -825,106 +825,87 @@ export async function POST(req: NextRequest) {
     // ========================================
 
     let hasPendingJob = false
+    let jobsCreated: any[] = []
 
     // Guard: ensure lead.id exists before creating follow-up jobs
     if (!lead?.id) {
       console.error("[Twilio Voice Status Webhook] No valid lead id, skipping follow-up creation");
       // Continue to final summary instead of returning early
     } else {
+      // Check lead status before creating follow-up jobs
+      // Only create follow-ups for new or active leads
+      const currentStatus = (lead as any).status || (lead as any).lead_status || 'new'
+      const shouldCreateFollowUp = currentStatus === 'new' || currentStatus === 'active'
 
-      // Skip follow-up creation if AI call record exists with outcome = 'completed' (AI completed intake)
-      if (aiCallRecord && aiCallRecord.outcome === 'completed') {
-        console.log('[AI FOLLOWUP CHECK RESULT]', {
-          action: 'skipped',
-          reason: 'ai_intake_completed',
-          callSid: CallSid,
-          aiCallRecordId: aiCallRecord.id,
-          outcome: aiCallRecord.outcome,
-          leadId: lead.id,
-          businessId: business.id
-        });
-        console.log('[AI FOLLOWUPS SKIPPED] reason: ai_intake_completed', {
-          callSid: CallSid,
-          aiCallRecordId: aiCallRecord.id,
-          outcome: aiCallRecord.outcome,
-          leadId: lead.id,
-          businessId: business.id
-        });
-      } else {
-        // Check lead status before creating follow-up jobs
-        // Only create follow-ups for new or active leads
-        const currentStatus = (lead as any).status || (lead as any).lead_status || 'new'
-        const shouldCreateFollowUp = currentStatus === 'new' || currentStatus === 'active'
+      console.log(`[Twilio Voice Status Webhook] Lead status: ${currentStatus}, should create follow-up: ${shouldCreateFollowUp}`)
 
-        console.log(`[Twilio Voice Status Webhook] Lead status: ${currentStatus}, should create follow-up: ${shouldCreateFollowUp}`)
+      if (!shouldCreateFollowUp) {
+        console.log(`[Twilio Voice Status Webhook] Skipping follow-up creation for lead with status: ${currentStatus}`)
+      } else if (conversation) {
+        console.log(`[Twilio Voice Status Webhook] Attempting follow-up job creation for conversation: ${conversation.id}`)
 
-        if (!shouldCreateFollowUp) {
-          console.log(`[Twilio Voice Status Webhook] Skipping follow-up creation for lead with status: ${currentStatus}`)
-        } else if (conversation) {
-          console.log(`[Twilio Voice Status Webhook] Attempting follow-up job creation for conversation: ${conversation.id}`)
+        try {
+          // Check for existing pending follow-up job to prevent duplicates
+          const { data: existingJob } = await supabase
+            .from('follow_up_jobs')
+            .select('id')
+            .eq('lead_id', lead.id)
+            .eq('status', 'pending')
+            .limit(1)
+            .single()
 
-          try {
-            // Check for existing pending follow-up job to prevent duplicates
-            const { data: existingJob } = await supabase
-              .from('follow_up_jobs')
-              .select('id')
-              .eq('lead_id', lead.id)
-              .eq('status', 'pending')
-              .limit(1)
-              .single()
+          hasPendingJob = !!existingJob
+          console.log(`[Twilio Voice Status Webhook] Has existing pending follow-up job: ${hasPendingJob}`)
 
-            hasPendingJob = !!existingJob
-            console.log(`[Twilio Voice Status Webhook] Has existing pending follow-up job: ${hasPendingJob}`)
+          if (!hasPendingJob) {
+            console.log(`[followups] No existing follow-ups, scheduling follow-ups for lead: ${lead.id}`)
 
-            if (!hasPendingJob) {
-              console.log(`[followups] No existing follow-ups, scheduling follow-ups for lead: ${lead.id}`)
+            console.log('[FOLLOWUP CREATION SOURCE]', {
+              route: '/api/twilio/voice-status',
+              businessId: business.id,
+              leadId: lead.id,
+              conversationId: conversation.id,
+              callSid: CallSid,
+              timestamp: new Date().toISOString()
+            })
 
-              console.log('[FOLLOWUP CREATION SOURCE]', {
-                route: '/api/twilio/voice-status',
+            console.log('[FOLLOWUP CREATION AI CHECK]', {
+              route: '/api/twilio/voice-status',
+              aiCallRecord: !!aiCallRecord,
+              aiCallRecordId: aiCallRecord?.id,
+              aiOutcome: aiCallRecord?.outcome,
+              leadId: lead.id,
+              callSid: CallSid
+            })
+
+            // Use centralized createFollowUpJobs function to respect business settings
+            try {
+              const jobs = await createFollowUpJobs({
                 businessId: business.id,
                 leadId: lead.id,
                 conversationId: conversation.id,
-                callSid: CallSid,
-                timestamp: new Date().toISOString()
+                businessName: business.name
               })
 
-              console.log('[FOLLOWUP CREATION AI CHECK]', {
-                route: '/api/twilio/voice-status',
-                aiCallRecord: !!aiCallRecord,
-                aiCallRecordId: aiCallRecord?.id,
-                aiOutcome: aiCallRecord?.outcome,
-                aiCheckResult: aiCallRecord && aiCallRecord.outcome === 'completed' ? 'skip' : 'proceed',
+              jobsCreated = jobs
+
+              console.log(`[followups] Created ${jobs.length} follow-up jobs for lead: ${lead.id}`)
+              console.log('[VOICE STATUS FOLLOWUP CREATE]', {
+                conversationId: conversation.id,
                 leadId: lead.id,
-                callSid: CallSid
+                jobCount: jobs.length
               })
-
-              // Use centralized createFollowUpJobs function to respect business settings
-              try {
-                const jobs = await createFollowUpJobs({
-                  businessId: business.id,
-                  leadId: lead.id,
-                  conversationId: conversation.id,
-                  businessName: business.name
-                })
-
-                console.log(`[followups] Created ${jobs.length} follow-up jobs for lead: ${lead.id}`)
-                console.log('[VOICE STATUS FOLLOWUP CREATE]', {
-                  conversationId: conversation.id,
-                  leadId: lead.id,
-                  jobCount: jobs.length
-                })
-              } catch (followUpError) {
-                console.error('[followups] Failed to create follow-up jobs:', followUpError)
-              }
-            } else {
-              console.log(`[followups] Follow-ups already exist for lead: ${lead.id}`)
+            } catch (followUpError) {
+              console.error('[followups] Failed to create follow-up jobs:', followUpError)
             }
-          } catch (followUpError) {
-            console.error('[Twilio Voice Status Webhook] Error during follow-up job creation:', followUpError)
+          } else {
+            console.log(`[followups] Follow-ups already exist for lead: ${lead.id}`)
           }
-        } else {
-          console.error('[Twilio Voice Status Webhook] No conversation available for follow-up job creation')
+        } catch (followUpError) {
+          console.error('[Twilio Voice Status Webhook] Error during follow-up job creation:', followUpError)
         }
+      } else {
+        console.error('[Twilio Voice Status Webhook] No conversation available for follow-up job creation')
       }
     }
     
@@ -947,7 +928,8 @@ export async function POST(req: NextRequest) {
       conversation_created: conversationWasCreated,
       conversation_id: conversation?.id,
       auto_reply_sent: autoReplySent,
-      follow_up_job_created: lead?.id ? !hasPendingJob : false,
+      follow_up_job_created: jobsCreated.length > 0,
+      follow_up_jobs_created_count: jobsCreated.length,
       business_id: business.id,
       caller_phone: normalizedCallerPhone,
       call_status: CallStatus,
