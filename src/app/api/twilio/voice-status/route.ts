@@ -713,7 +713,7 @@ export async function POST(req: NextRequest) {
           })
         }
 
-        // Final suppression check: Ensure no standard missed-call SMS is sent after AI intake completed
+        // Final suppression check: Ensure no standard missed-call SMS is sent if AI record exists with intake data
         // This check must be placed directly before sendSms() for the standard missed-call auto-reply
         if (messageTemplate === 'missed_call' || messageTemplate === 'after_hours') {
           console.log('[STANDARD SMS SUPPRESSION CHECK]', {
@@ -726,20 +726,90 @@ export async function POST(req: NextRequest) {
           // Find AI call record by CallSid, lead_id, or conversation_id
           const { data: finalAiCheck } = await supabase
             .from('ai_call_records')
-            .select('id, outcome, call_sid, lead_id, conversation_id')
+            .select('id, outcome, call_sid, lead_id, conversation_id, extracted_info, summary')
             .or(`call_sid.eq.${CallSid},lead_id.eq.${lead.id},conversation_id.eq.${conversation?.id}`)
             .limit(1)
             .maybeSingle()
 
-          if (finalAiCheck && finalAiCheck.outcome === 'completed') {
-            console.log('[STANDARD SMS SUPPRESSED AI COMPLETED]', {
-              callSid: CallSid,
-              leadId: lead.id,
-              conversationId: conversation?.id,
-              aiCallRecordId: finalAiCheck.id,
-              reason: 'ai_intake_completed'
-            })
-            autoReplyMessage = null
+          if (finalAiCheck) {
+            const hasExtractedInfo = finalAiCheck.extracted_info && Object.keys(finalAiCheck.extracted_info).length > 0
+            const hasSummary = finalAiCheck.summary && finalAiCheck.summary.length > 0
+            const isCompleted = finalAiCheck.outcome === 'completed'
+
+            // Check if AI summary SMS already sent using messages table as durable marker
+            let aiSummaryAlreadySent = false
+            if (conversation?.id) {
+              const { data: existingAiSummary } = await supabase
+                .from('messages')
+                .select('id, body')
+                .eq('conversation_id', conversation.id)
+                .eq('direction', 'outbound')
+                .ilike('body', 'Hi, this is%')
+                .ilike('body', '%Thanks for calling — we received your request%')
+                .limit(1)
+                .maybeSingle()
+
+              aiSummaryAlreadySent = !!existingAiSummary
+
+              console.log('[AI SUMMARY SMS DURABLE CHECK]', {
+                conversationId: conversation.id,
+                aiSummaryAlreadySent,
+                existingAiSummaryId: existingAiSummary?.id
+              })
+            }
+
+            // Suppress standard SMS if AI record exists with intake data (completed OR has extracted_info OR has summary)
+            if (isCompleted || hasExtractedInfo || hasSummary) {
+              console.log('[STANDARD SMS SUPPRESSED AI RECORD EXISTS]', {
+                callSid: CallSid,
+                leadId: lead.id,
+                conversationId: conversation?.id,
+                aiCallRecordId: finalAiCheck.id,
+                outcome: finalAiCheck.outcome,
+                hasExtractedInfo,
+                hasSummary,
+                aiSummaryAlreadySent,
+                reason: isCompleted ? 'ai_intake_completed' : hasExtractedInfo ? 'ai_extracted_info_exists' : 'ai_summary_exists'
+              })
+              autoReplyMessage = null
+
+              // Fallback: Send AI summary SMS if not already sent
+              if (!aiSummaryAlreadySent && finalAiCheck.summary) {
+                console.log('[AI SUMMARY SMS FALLBACK SEND]', {
+                  callSid: CallSid,
+                  leadId: lead.id,
+                  conversationId: conversation?.id,
+                  aiCallRecordId: finalAiCheck.id
+                })
+
+                try {
+                  const aiSummaryMessageSid = await sendSms(business, From, finalAiCheck.summary, {
+                    lead_id: lead.id,
+                    conversation_id: conversation?.id,
+                  })
+
+                  if (aiSummaryMessageSid) {
+                    console.log('[AI SUMMARY SMS FALLBACK SUCCESS]', {
+                      messageSid: aiSummaryMessageSid,
+                      leadId: lead.id,
+                      conversationId: conversation?.id
+                    })
+                  } else {
+                    console.error('[AI SUMMARY SMS FALLBACK ERROR]', {
+                      leadId: lead.id,
+                      conversationId: conversation?.id,
+                      error: 'No message SID returned from sendSms'
+                    })
+                  }
+                } catch (fallbackError) {
+                  console.error('[AI SUMMARY SMS FALLBACK EXCEPTION]', {
+                    leadId: lead.id,
+                    conversationId: conversation?.id,
+                    error: fallbackError
+                  })
+                }
+              }
+            }
           }
         }
 
