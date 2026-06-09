@@ -639,7 +639,7 @@ export default async function Home() {
                     </svg>
                   </div>
                   <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm">Calendar Integration</h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">Sync appointments and schedule follow-ups automatically</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">Schedule appointments and automate follow-ups</p>
                 </div>
                 
                 <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-5 border border-orange-200 dark:border-orange-800 shadow-sm hover:shadow-md transition-shadow">
@@ -648,8 +648,8 @@ export default async function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm">AI Call History</h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">Review transcripts and summaries of all AI calls</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm">AI Intake History</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">Review AI intake summaries and caller information</p>
                 </div>
               </div>
             </div>
@@ -698,7 +698,7 @@ export default async function Home() {
                   <h3 className="text-lg font-bold text-slate-900 dark:text-foreground">AI Voicemail Intake</h3>
                 </div>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-center">
-                  Collect caller information automatically and receive an AI-generated summary.
+                  If caller leaves voicemail, collect caller information automatically and receive an AI-generated summary.
                 </p>
               </div>
 
@@ -728,7 +728,7 @@ export default async function Home() {
                   <h3 className="text-lg font-bold text-slate-900 dark:text-foreground">Calendar Booking</h3>
                 </div>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-center">
-                  Allow customers to schedule appointments without phone tag.
+                  Schedule appointments directly from the dashboard without phone tag.
                 </p>
               </div>
 
@@ -791,7 +791,7 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">Setup in under 5 minutes</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">Quick setup</h3>
                     <p className="text-sm text-slate-600 dark:text-slate-400">Get started quickly with guided onboarding.</p>
                   </div>
                 </div>
@@ -821,8 +821,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">AI-powered call intake</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">AI can collect caller information when you're unavailable.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">AI-powered voicemail intake</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">AI can collect caller information from voicemails when you're unavailable.</p>
                   </div>
                 </div>
               </div>
@@ -884,7 +884,7 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">Setup in under 5 minutes</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">Quick setup</h3>
                     <p className="text-sm text-slate-600 dark:text-slate-400">Get started quickly with guided onboarding.</p>
                   </div>
                 </div>
@@ -914,8 +914,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">AI-powered call intake</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">AI can collect caller information when you're unavailable.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">AI-powered voicemail intake</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">AI can collect caller information from voicemails when you're unavailable.</p>
                   </div>
                 </div>
               </div>
@@ -946,10 +946,10 @@ export default async function Home() {
           <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
             <div>
               <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-7">
-                Start Capturing More Leads Today
+                Recover Missed Leads Today
               </h2>
               <p className="text-xl md:text-2xl text-slate-600 dark:text-muted-foreground mb-12 leading-relaxed">
-                Stop losing opportunities from missed calls and give every customer a faster response.
+                Turn missed calls into opportunities and give every customer a faster response.
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">

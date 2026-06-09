@@ -316,7 +316,7 @@ export default function DemoPage() {
               Ready to stop missing leads?
             </h2>
             <p className="text-slate-600 dark:text-slate-400 mb-6">
-              Start your 14-day free trial and never miss another customer call.
+              Start your 14-day free trial and recover missed customer calls automatically.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
               <Link
