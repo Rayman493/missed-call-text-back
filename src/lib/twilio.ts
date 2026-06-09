@@ -65,12 +65,13 @@ export async function sendSms(
       .select('id, created_at, body')
       .eq('lead_id', options.lead_id)
       .eq('direction', 'outbound')
+      .eq('body', message)
       .gte('created_at', fiveMinutesAgo)
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (existingMessage) {
-      console.log('[MESSAGE DUPLICATE BLOCKED] Found outbound message to same lead within 5 minutes', {
+      console.log('[MESSAGE DUPLICATE BLOCKED] Found duplicate automated message with same body within 5 minutes', {
         existing_message_id: existingMessage.id,
         existing_created_at: existingMessage.created_at,
         existing_body: existingMessage.body?.substring(0, 50),

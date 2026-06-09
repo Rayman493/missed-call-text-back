@@ -327,8 +327,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       status: 'replied', // Customer replied, so mark as replied
       last_message_at: now,
       last_reply_at: now, // Track when customer replied
-      raw_metadata: updatedRawMetadata,
-      updated_at: now
+      raw_metadata: updatedRawMetadata
     })
 
     if (!updatedLead) {
