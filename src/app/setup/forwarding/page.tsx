@@ -12,7 +12,7 @@ import Link from 'next/link'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import { SUBSCRIPTION_STATES } from '@/lib/subscription'
-import { deriveSetupState } from '@/lib/subscription-utils'
+import { deriveSetupState, SetupState } from '@/lib/subscription-utils'
 
 // Carrier types and their specific forwarding instructions
 const CARRIER_INSTRUCTIONS: Record<string, { dialCode: string; notes?: string }> = {
@@ -232,7 +232,7 @@ export default function ForwardingSetupPage() {
     provisioning_status: business.provisioning_status,
   })
 
-  const setupState = deriveSetupState(business)
+  const setupState: SetupState = deriveSetupState(business)
   console.log('[Forwarding Setup Route] Derived setup state:', setupState)
   console.log('[Forwarding Setup Route] Route decision:', {
     canAccess: setupState === 'needs_forwarding' || setupState === 'needs_final_test',
@@ -283,7 +283,7 @@ export default function ForwardingSetupPage() {
   // Only redirect if state truly doesn't belong on this page
   if (setupState !== 'needs_forwarding' && 
       setupState !== 'needs_final_test' && 
-      setupState !== 'provisioning_or_number_pending') {
+      setupState !== ('provisioning_or_number_pending' as SetupState)) {
     console.log('[Forwarding Setup Route] Blocking access - redirecting to dashboard (no UI rendered)', { setupState })
     router.replace('/dashboard')
     return (
