@@ -1273,16 +1273,16 @@ export const db = {
   },
 
   // AI call record operations
-  async getMostRecentAiCallRecordForLead(businessId: string, callerPhone: string): Promise<any | null> {
+  async getMostRecentAiCallRecordForLead(businessId: string, leadId: string): Promise<any | null> {
     const { data, error } = await supabaseAdmin
       .from('ai_call_records')
       .select('*')
       .eq('business_id', businessId)
-      .eq('caller_phone', callerPhone)
+      .eq('lead_id', leadId)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single()
-    
+      .maybeSingle()
+
     if (error) {
       if (error.code === 'PGRST116') {
         // Not found
@@ -1291,7 +1291,7 @@ export const db = {
       console.error('Error fetching AI call record:', error)
       return null
     }
-    
+
     return data
   },
 

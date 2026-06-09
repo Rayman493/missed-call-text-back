@@ -1189,14 +1189,14 @@ export async function POST(request: NextRequest) {
 
         // Check for AI call record to avoid duplicate SMS
         // If AI call exists, voice-status route will send AI summary SMS
-        const { data: aiCallRecordCheck } = await supabase
-          .from('ai_call_sessions')
+        const { data: aiCallRecordCheck } = await supabaseAdmin
+          .from('ai_call_records')
           .select('id')
           .eq('call_sid', CallSid)
           .maybeSingle()
 
         if (aiCallRecordCheck) {
-          console.log('[SMS PATH SKIPPED AI COMPLETED]', {
+          console.log('[AI SMS SUPPRESSION] AI call record found, suppressing standard missed-call SMS', {
             callSid: CallSid,
             aiCallRecordId: aiCallRecordCheck.id,
             leadId: lead.id,
