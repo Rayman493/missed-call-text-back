@@ -509,6 +509,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         correctionFieldChanged = correctionResult.fieldChanged
         correctionNewValue = correctionResult.newValue
 
+        console.log('[CORRECTION TRACKING SET]', {
+          correctionDetectedAndApplied,
+          correctionFieldChanged,
+          correctionNewValue,
+          fieldChanged: correctionResult.fieldChanged
+        })
+
         // Log normalized data before correction
         const beforeCorrection = normalizeExtractedInfo(aiCallRecord.extracted_info || {})
         console.log('[AI CORRECTION NORMALIZED BEFORE]', {
@@ -576,7 +583,9 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           'preferredCallbackTime': 'callback_time',
           'urgencyLevel': 'urgency',
           'importantDetails': 'details',
-          'reasonForCalling': 'reason'
+          'reasonForCalling': 'reason',
+          'callerName': 'name',
+          'additionalInfo': 'additional_info'
         }
         const correctedFieldKey = fieldKeyMap[correctionResult.fieldChanged] || correctionResult.fieldChanged
 
@@ -611,6 +620,14 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         })
 
         if (leadWithCorrection) {
+          console.log('[CORRECTION SAVED]', {
+            leadId: leadWithCorrection.id,
+            corrections_count: correctedMetadata.corrections_count,
+            corrected_field: correctedFieldKey,
+            new_value: correctionResult.newValue,
+            previous_value: correctionResult.oldValue
+          })
+
           console.log('[LEAD METADATA UPDATED]', {
             leadId: leadWithCorrection.id,
             corrections_count: correctedMetadata.corrections_count,

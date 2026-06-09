@@ -208,37 +208,11 @@ export function getLeadDisplayName(lead: any): string {
 }
 
 /**
- * Get customer reply acknowledgement message based on message content
- * Priority: correction > scheduling > question > confirmation > fallback
+ * Get customer reply acknowledgement message
+ * Simplified workflow: always return the same standardized message
  */
 export function getCustomerReplyAcknowledgement(messageBody: string): string {
-  const normalized = messageBody.toLowerCase()
-
-  // 1. Correction / updated info (highest priority)
-  const correctionTriggers = ['actually', 'correction', 'wrong', 'change', 'address is', 'phone number is', 'instead']
-  if (correctionTriggers.some(trigger => normalized.includes(trigger))) {
-    return 'Thanks for the correction. We\'ll make sure the business sees the updated information.'
-  }
-
-  // 2. Scheduling / availability
-  const schedulingTriggers = ['tomorrow', 'morning', 'afternoon', 'evening', 'weekend', 'available', 'after', 'before']
-  if (schedulingTriggers.some(trigger => normalized.includes(trigger))) {
-    return 'Thanks. We\'ll pass your preferred time along to the business.'
-  }
-
-  // 3. Customer asks a question
-  if (normalized.includes('?')) {
-    return 'Thanks for reaching out. The business will follow up with you directly.'
-  }
-
-  // 4. No changes / confirmation
-  const confirmationTriggers = ['nothing to add', 'no changes', "that's correct", 'looks good', 'all good', 'correct']
-  if (confirmationTriggers.some(trigger => normalized.includes(trigger))) {
-    return 'Thanks for the update. We\'ll pass this along to the business.'
-  }
-
-  // 5. Fallback
-  return 'Thanks for the update. We\'ll pass this along to the business.'
+  return 'Thanks for the update. We\'ve added that information and will pass it along to the business.'
 }
 
 export function formatDate(dateString: string | null | undefined): string {

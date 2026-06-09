@@ -418,6 +418,18 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               )}
             </div>
           </div>
+
+          {/* Additional Info */}
+          {extractedInfo?.additionalInfo && (
+            <div className="flex items-center gap-2">
+              <span className="text-base">💬</span>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {sentenceCase(extractedInfo.additionalInfo)}
+                </p>
+              </div>
+            </div>
+          )}
             </div>
           </div>
         )}

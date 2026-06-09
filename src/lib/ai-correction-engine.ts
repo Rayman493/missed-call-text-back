@@ -25,6 +25,7 @@ export interface ExtractedInfo {
   addressOrLocation?: string
   preferredCallbackTime?: string
   callbackNumber?: string
+  additionalInfo?: string
 }
 
 /**
@@ -46,6 +47,17 @@ export async function detectCorrection(
   // Simple pattern matching for corrections
   const patterns = [
     {
+      field: 'callerName',
+      patterns: [
+        /my name is\s+(.+)/i,
+        /actually my name is\s+(.+)/i,
+        /this is\s+(.+)/i,
+        /i am\s+(.+)/i,
+        /call me\s+(.+)/i,
+        /name is\s+(.+)/i
+      ]
+    },
+    {
       field: 'importantDetails',
       patterns: [
         /actually i need\s+(.+)/i,
@@ -60,7 +72,17 @@ export async function detectCorrection(
         /the details are\s+(.+)/i,
         /the reason is\s+(.+)/i,
         /the project is actually\s+(.+)/i,
-        /the issue is actually\s+(.+)/i
+        /the issue is actually\s+(.+)/i,
+        /oh and the yard is\s+(.+)/i,
+        /oh and the lot is\s+(.+)/i,
+        /oh and the property is\s+(.+)/i,
+        /yard is\s+(.+)/i,
+        /lot is\s+(.+)/i,
+        /property is\s+(.+)/i,
+        /oh and (.+)/i,
+        /the yard is\s+(.+)/i,
+        /yard is actually\s+(.+)/i,
+        /project is\s+(.+)/i
       ]
     },
     {
@@ -161,14 +183,18 @@ export async function detectCorrection(
   }
 
   console.log('[CORRECTION NOT DETECTED]', {
-    reason: 'No pattern matched'
+    reason: 'No pattern matched, using Additional Info fallback'
   })
 
+  // Fallback to Additional Info if no pattern matched
   return {
-    isCorrection: false,
-    confidence: 0,
+    isCorrection: true,
+    fieldChanged: 'additionalInfo',
+    oldValue: normalizedExtractedInfo.additionalInfo || '',
+    newValue: customerReply.trim(),
+    confidence: 0.8,
     requiresReview: false,
-    reason: 'No correction pattern detected'
+    reason: 'No pattern matched, using Additional Info fallback'
   }
 }
 
@@ -213,7 +239,10 @@ export function applyCorrection(
     'callback_time': 'preferredCallbackTime',
     'callback number': 'callbackNumber',
     'callbackNumber': 'callbackNumber',
-    'callback_number': 'callbackNumber'
+    'callback_number': 'callbackNumber',
+    'additionalInfo': 'additionalInfo',
+    'additional info': 'additionalInfo',
+    'additional_info': 'additionalInfo'
   }
 
   const mappedField = fieldMapping[fieldChanged.toLowerCase()] || fieldChanged as keyof ExtractedInfo
@@ -225,16 +254,58 @@ export function applyCorrection(
     console.log('[CORRECTION FIELD FALLBACK]', {
       originalField: 'importantDetails',
       fallbackField: 'reasonForCalling',
-      reason: 'importantDetails not found, using reasonForCalling'
+      reason: 'importantDetails not found, using reasonForCalling',
+      hasImportantDetails: !!updated.importantDetails,
+      hasReasonForCalling: !!updated.reasonForCalling
     })
   }
 
+  console.log('[CORRECTION FIELD UPDATE]', {
+    fieldChanged,
+    mappedField,
+    finalField,
+    newValue,
+    fieldExistsInUpdated: finalField in updated,
+    originalImportantDetails: updated.importantDetails,
+    originalReasonForCalling: updated.reasonForCalling
+  })
+
   if (finalField in updated) {
-    (updated as any)[finalField] = newValue
+    // For additionalInfo, append instead of overwrite
+    if (finalField === 'additionalInfo') {
+      const existingValue = (updated as any)[finalField] || ''
+      let separator = ''
+      if (existingValue) {
+        separator = ' '
+      }
+      (updated as any)[finalField] = existingValue + separator + newValue
+      console.log('[ADDITIONAL INFO ADDED]', {
+        existingValue,
+        newValue,
+        appendedValue: (updated as any)[finalField]
+      })
+    } else {
+      (updated as any)[finalField] = newValue
+      console.log('[CORRECTION FIELD UPDATED]', {
+        finalField,
+        newValue,
+        updatedValue: (updated as any)[finalField]
+      })
+    }
+  } else {
+    console.error('[CORRECTION FIELD UPDATE ERROR]', {
+      finalField,
+      availableFields: Object.keys(updated)
+    })
   }
 
   // Canonicalize to ensure only canonical keys are returned
-  return canonicalizeExtractedInfo(updated)
+  const canonicalized = canonicalizeExtractedInfo(updated)
+  console.log('[CORRECTION CANONICALIZED]', {
+    before: updated,
+    after: canonicalized
+  })
+  return canonicalized
 }
 
 /**
