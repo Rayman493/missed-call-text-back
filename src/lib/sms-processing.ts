@@ -422,6 +422,14 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.log('[AI CORRECTION DETECTION RESULT]', correctionResult)
 
     if (correctionResult.isCorrection && correctionResult.fieldChanged && correctionResult.newValue) {
+      console.log('[CORRECTION DETECTED]', {
+        leadId: lead.id,
+        field: correctionResult.fieldChanged,
+        oldValue: correctionResult.oldValue,
+        newValue: correctionResult.newValue,
+        confidence: correctionResult.confidence
+      })
+
       if (correctionResult.requiresReview) {
         console.log('[AI CORRECTION REVIEW REQUIRED]', {
           leadId: lead.id,
@@ -431,6 +439,16 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           reason: correctionResult.reason
         })
       } else {
+        console.log('[CORRECTION FIELD]', {
+          fieldChanged: correctionResult.fieldChanged,
+          newValue: correctionResult.newValue
+        })
+
+        console.log('[CORRECTION VALUE]', {
+          oldValue: correctionResult.oldValue,
+          newValue: correctionResult.newValue
+        })
+
         console.log('[AI CORRECTION APPLIED]', {
           leadId: lead.id,
           aiCallRecordId: aiCallRecord.id,
@@ -475,9 +493,10 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           .single()
 
         if (!aiUpdateError && updatedAiRecord) {
-          console.log('[CORRECTION AI INTAKE UPDATED]', {
+          console.log('[AI RECORD UPDATED]', {
             callRecordId: updatedAiRecord.id,
-            fieldChanged: correctionResult.fieldChanged
+            fieldChanged: correctionResult.fieldChanged,
+            extracted_info: updatedAiRecord.extracted_info
           })
         } else {
           console.error('[CORRECTION AI INTAKE UPDATE ERROR]', {
@@ -533,11 +552,12 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         })
 
         if (leadWithCorrection) {
-          console.log('[CORRECTION LEAD UPDATED]', {
+          console.log('[LEAD METADATA UPDATED]', {
             leadId: leadWithCorrection.id,
             corrections_count: correctedMetadata.corrections_count,
             corrected_field: correctedFieldKey,
-            new_value: correctionResult.newValue
+            new_value: correctionResult.newValue,
+            raw_metadata: leadWithCorrection.raw_metadata
           })
         } else {
           console.error('[CORRECTION LEAD UPDATE ERROR]', {
@@ -580,6 +600,34 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       console.error('[INBOUND SMS AI CALL RECORD UPDATE ERROR]', {
         callRecordId: aiCallRecord.id,
         error: 'Failed to update AI call record'
+      })
+    }
+
+    // Set last_customer_reply_at in lead raw_metadata for UI display
+    const currentMetadata = lead?.raw_metadata || {}
+    const updatedMetadata = {
+      ...currentMetadata,
+      last_customer_reply_at: now,
+      replied_after_ai_call: true
+    }
+
+    const leadWithReplyFlag = await db.updateLead(lead.id, {
+      raw_metadata: updatedMetadata,
+      last_reply_at: now,
+      last_message_at: now,
+      updated_at: now
+    })
+
+    if (leadWithReplyFlag) {
+      console.log('[LEAD CUSTOMER REPLIED FLAG UPDATED]', {
+        leadId: leadWithReplyFlag.id,
+        last_customer_reply_at: updatedMetadata.last_customer_reply_at,
+        replied_after_ai_call: updatedMetadata.replied_after_ai_call
+      })
+    } else {
+      console.error('[LEAD CUSTOMER REPLIED FLAG UPDATE ERROR]', {
+        leadId: lead.id,
+        error: 'Failed to update lead with customer reply flag'
       })
     }
   }

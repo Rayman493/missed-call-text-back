@@ -79,6 +79,16 @@ export async function GET(request: NextRequest) {
 
     console.log("[lead-details API] Lead found:", lead.id)
 
+    // Log lead metadata for correction verification
+    console.log("[LEAD DATA RETURNED]", {
+      leadId: lead.id,
+      corrections_count: lead.raw_metadata?.corrections_count,
+      corrected_fields: lead.raw_metadata?.corrected_fields,
+      last_correction_field: lead.raw_metadata?.last_correction_field,
+      last_customer_reply_at: lead.raw_metadata?.last_customer_reply_at,
+      replied_after_ai_call: lead.raw_metadata?.replied_after_ai_call
+    })
+
     // Fetch conversation for this lead with RLS protection
     const { data: conversation } = await supabase
       .from("conversations")
@@ -255,6 +265,12 @@ export async function GET(request: NextRequest) {
         extractedInfoExists: !!aiCallRecords[0].extracted_info,
         outcome: aiCallRecords[0].outcome,
         createdAt: aiCallRecords[0].created_at
+      })
+
+      // Log extracted_info for correction verification
+      console.log("[AI EXTRACTED INFO RETURNED]", {
+        recordId: aiCallRecords[0].id,
+        extracted_info: aiCallRecords[0].extracted_info
       })
     } else {
       console.log("[AI CALL RECORD NOT LINKED]", {
