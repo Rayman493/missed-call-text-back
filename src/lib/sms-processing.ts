@@ -3,7 +3,7 @@ import { sendSms } from '@/lib/twilio'
 import { sanitizeMessageContent } from '@/lib/security'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
-import { normalizePunctuation } from '@/lib/utils'
+import { normalizePunctuation, getCustomerReplyAcknowledgement } from '@/lib/utils'
 import { detectCorrection, applyCorrection, generateCorrectionNote } from '@/lib/ai-correction-engine'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 
@@ -933,40 +933,58 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   
   // Send auto-acknowledgment via sendSms for database persistence
   if (source === 'twilio') {
+    // Check if this is the first customer reply after AI intake
+    const hadAlreadyReplied = aiCallRecord?.extracted_info?.customer_replied || false
+
     console.log('[AUTO ACK EXACT PATH HIT]', {
       leadId: lead.id,
       conversationId: conversation.id,
-      businessId: business.id
+      businessId: business.id,
+      hadAlreadyReplied
     });
 
-    console.log('[AUTO ACK CONVERSATION ID BEFORE SEND]', conversation.id);
-    console.log('[AUTO ACK LEAD ID BEFORE SEND]', lead.id);
-    console.log('[AUTO ACK SEND START]', {
-      toPhone: lead.caller_phone,
-      messageBody: 'Thanks - we received your message.'
-    });
+    // Only send acknowledgement if customer is replying for the first time after AI intake
+    if (!hadAlreadyReplied) {
+      console.log('[AUTO ACK CONVERSATION ID BEFORE SEND]', conversation.id);
+      console.log('[AUTO ACK LEAD ID BEFORE SEND]', lead.id);
 
-    const ackMessageSid = await sendSms(business, lead.caller_phone, 'Thanks - we received your message.', {
-      lead_id: lead.id,
-      conversation_id: conversation.id,
-    });
+      // Get contextual acknowledgement based on message content
+      const acknowledgementMessage = getCustomerReplyAcknowledgement(body)
 
-    if (ackMessageSid) {
-      console.log('[AUTO ACK TWILIO SENT]', {
-        messageSid: ackMessageSid,
-        leadId: lead.id,
-        conversationId: conversation.id
+      console.log('[AUTO ACK SEND START]', {
+        toPhone: lead.caller_phone,
+        messageBody: acknowledgementMessage,
+        originalBody: body
       });
-      console.log('[AUTO ACK DB INSERT SUCCESS]', {
-        messageId: ackMessageSid,
-        leadId: lead.id,
-        conversationId: conversation.id
+
+      const ackMessageSid = await sendSms(business, lead.caller_phone, acknowledgementMessage, {
+        lead_id: lead.id,
+        conversation_id: conversation.id,
       });
+
+      if (ackMessageSid) {
+        console.log('[AUTO ACK TWILIO SENT]', {
+          messageSid: ackMessageSid,
+          leadId: lead.id,
+          conversationId: conversation.id
+        });
+        console.log('[AUTO ACK DB INSERT SUCCESS]', {
+          messageId: ackMessageSid,
+          leadId: lead.id,
+          conversationId: conversation.id
+        });
+      } else {
+        console.error('[AUTO ACK DB INSERT ERROR]', {
+          leadId: lead.id,
+          conversationId: conversation.id,
+          error: 'No message SID returned from sendSms'
+        });
+      }
     } else {
-      console.error('[AUTO ACK DB INSERT ERROR]', {
+      console.log('[AUTO ACK SKIPPED - ALREADY REPLIED]', {
         leadId: lead.id,
         conversationId: conversation.id,
-        error: 'No message SID returned from sendSms'
+        hadAlreadyReplied
       });
     }
   }
