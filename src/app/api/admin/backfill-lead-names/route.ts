@@ -8,7 +8,7 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[BACKFILL LEAD NAMES] Starting backfill')
+    console.log('[BACKFILL LEAD NAMES] Starting backfill to raw_metadata')
 
     // Fetch all AI call records with extracted_info.name
     const { data: aiCallRecords, error: aiError } = await supabaseAdmin
@@ -45,10 +45,10 @@ export async function POST(request: NextRequest) {
         continue
       }
 
-      // Check current lead.contact_name
+      // Check current lead.raw_metadata
       const { data: lead, error: leadError } = await supabaseAdmin
         .from('leads')
-        .select('id, contact_name')
+        .select('id, raw_metadata')
         .eq('id', leadId)
         .single()
 
@@ -58,17 +58,27 @@ export async function POST(request: NextRequest) {
         continue
       }
 
-      // Only update if contact_name is null, empty, or "Unknown Caller"
-      if (lead.contact_name && lead.contact_name !== 'Unknown Caller' && lead.contact_name !== '') {
+      // Skip if raw_metadata already has caller_name
+      if (lead.raw_metadata?.caller_name && lead.raw_metadata.caller_name !== '') {
         skippedCount++
         continue
       }
 
-      // Update lead.contact_name
+      // Merge into raw_metadata without overwriting existing metadata
+      const updatedRawMetadata = {
+        ...(lead.raw_metadata || {}),
+        caller_name: extractedName,
+        extracted_info: {
+          ...(lead.raw_metadata?.extracted_info || {}),
+          name: extractedName
+        }
+      }
+
+      // Update lead.raw_metadata
       const { error: updateError } = await supabaseAdmin
         .from('leads')
         .update({
-          contact_name: extractedName
+          raw_metadata: updatedRawMetadata
         })
         .eq('id', leadId)
 
@@ -76,10 +86,9 @@ export async function POST(request: NextRequest) {
         console.error('[BACKFILL LEAD NAMES] Failed to update lead:', leadId, updateError)
         errorCount++
       } else {
-        console.log('[BACKFILL LEAD NAMES] Updated lead:', {
+        console.log('[BACKFILL LEAD NAMES] Updated lead raw_metadata:', {
           leadId,
-          oldContactName: lead.contact_name,
-          newContactName: extractedName
+          extractedName
         })
         updatedCount++
       }

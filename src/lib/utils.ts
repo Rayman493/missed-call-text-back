@@ -117,22 +117,22 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 
 /**
  * Get lead display name with graceful fallback
- * Priority: lead.name → lead.caller_name → lead.contact_name → ai_call_records.extracted_info.name → raw_metadata.name → raw_metadata.caller_name → phone number → "Unknown Caller"
+ * Priority: lead.raw_metadata?.caller_name → lead.raw_metadata?.extracted_info?.name → lead.raw_metadata?.extracted_info?.caller_name → ai_call_records extracted info → caller_phone / phone → "Unknown Caller"
  */
 export function getLeadDisplayName(lead: any): string {
-  // Try lead name first
-  if (lead.name && lead.name.trim()) {
-    return lead.name.trim()
+  // Try raw_metadata.caller_name first
+  if (lead.raw_metadata?.caller_name && lead.raw_metadata.caller_name.trim()) {
+    return lead.raw_metadata.caller_name.trim()
   }
 
-  // Try caller_name
-  if (lead.caller_name && lead.caller_name.trim()) {
-    return lead.caller_name.trim()
+  // Try raw_metadata.extracted_info.name
+  if (lead.raw_metadata?.extracted_info?.name && lead.raw_metadata.extracted_info.name.trim()) {
+    return lead.raw_metadata.extracted_info.name.trim()
   }
 
-  // Try contact_name
-  if (lead.contact_name && lead.contact_name.trim()) {
-    return lead.contact_name.trim()
+  // Try raw_metadata.extracted_info.caller_name
+  if (lead.raw_metadata?.extracted_info?.caller_name && lead.raw_metadata.extracted_info.caller_name.trim()) {
+    return lead.raw_metadata.extracted_info.caller_name.trim()
   }
 
   // Try ai_call_records.extracted_info.name
@@ -143,9 +143,12 @@ export function getLeadDisplayName(lead: any): string {
     }
   }
 
-  // Try raw_metadata.extracted_info.name
-  if (lead.raw_metadata?.extracted_info?.name && lead.raw_metadata.extracted_info.name.trim()) {
-    return lead.raw_metadata.extracted_info.name.trim()
+  // Try ai_call_records.extracted_info.caller_name
+  if (lead.ai_call_records && lead.ai_call_records.length > 0) {
+    const aiCall = lead.ai_call_records[0]
+    if (aiCall.extracted_info?.caller_name && aiCall.extracted_info.caller_name.trim()) {
+      return aiCall.extracted_info.caller_name.trim()
+    }
   }
 
   // Try raw_metadata.ai_extracted_info.name
@@ -156,11 +159,6 @@ export function getLeadDisplayName(lead: any): string {
   // Try raw_metadata.name
   if (lead.raw_metadata?.name && lead.raw_metadata.name.trim()) {
     return lead.raw_metadata.name.trim()
-  }
-
-  // Try raw_metadata.caller_name
-  if (lead.raw_metadata?.caller_name && lead.raw_metadata.caller_name.trim()) {
-    return lead.raw_metadata.caller_name.trim()
   }
 
   // Try formatted phone number

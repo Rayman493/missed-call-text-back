@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     // Verify lead belongs to business (ownership validation)
     const { data: lead, error: leadError } = await supabaseAdmin
       .from('leads')
-      .select('id, business_id, contact_name')
+      .select('id, business_id, raw_metadata')
       .eq('id', leadId)
       .single()
 
@@ -156,34 +156,45 @@ export async function POST(request: NextRequest) {
       customer_name: extractedInfo?.customer_name
     })
 
-    // Persist AI extracted caller name to leads.contact_name if currently null/empty/"Unknown Caller"
+    // Persist AI extracted caller name to leads.raw_metadata
     const extractedName =
       extractedInfo?.caller_name ||
       extractedInfo?.name ||
       extractedInfo?.contact_name ||
       extractedInfo?.customer_name
 
-    if (extractedName && (!lead.contact_name || lead.contact_name === 'Unknown Caller' || lead.contact_name === '')) {
+    if (extractedName) {
       console.log('[AI CONTACT NAME UPDATE]', {
         leadId,
-        currentContactName: lead.contact_name,
+        currentRawMetadata: lead.raw_metadata,
         extractedName,
         sourceField: extractedInfo?.caller_name ? 'caller_name' : extractedInfo?.name ? 'name' : extractedInfo?.contact_name ? 'contact_name' : extractedInfo?.customer_name ? 'customer_name' : 'unknown'
       })
 
+      // Merge into raw_metadata without overwriting existing metadata
+      const updatedRawMetadata = {
+        ...(lead.raw_metadata || {}),
+        caller_name: extractedName,
+        extracted_info: {
+          ...(lead.raw_metadata?.extracted_info || {}),
+          name: extractedName
+        }
+      }
+
       const { error: updateLeadError } = await supabaseAdmin
         .from('leads')
         .update({
-          contact_name: extractedName
+          raw_metadata: updatedRawMetadata
         })
         .eq('id', leadId)
 
       if (updateLeadError) {
-        console.error('[AI CONTACT NAME UPDATE] Failed to update lead contact_name:', updateLeadError)
+        console.error('[AI CONTACT NAME UPDATE] Failed to update lead raw_metadata:', updateLeadError)
       } else {
-        console.log('[AI CONTACT NAME UPDATE] Successfully updated lead contact_name:', {
+        console.log('[AI CONTACT NAME UPDATE] Successfully updated lead raw_metadata:', {
           leadId,
-          contactName: extractedName
+          caller_name: extractedName,
+          extracted_info_name: extractedName
         })
       }
     }
