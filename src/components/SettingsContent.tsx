@@ -1417,6 +1417,8 @@ export default function SettingsContent() {
                   )}
                 </div>
               </div>
+              </>
+              )}
 
               {/* Account Section - Merged Profile and Account Access */}
               <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[180px]">
