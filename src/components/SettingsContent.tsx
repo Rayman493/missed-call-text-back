@@ -1418,133 +1418,93 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              </>
-              )}
-
-              
-              {/* Security Section */}
-              <div id="danger" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[180px]">
-                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Security</h2>
-                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2 sm:mb-3">Manage your account security and access.</p>
-                <div className="space-y-1.5 sm:space-y-2">
-                  {/* Change Password Section */}
-                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30 p-2 sm:p-3">
-                    <div>
-                      <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground mb-0.5 sm:mb-1">Change Password</h3>
-                      <button
-                        onClick={() => setShowChangePasswordModal(true)}
-                        className="mt-1 sm:mt-2 px-3 py-1 sm:px-4 sm:py-1.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs"
-                      >
-                        Change Password
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Danger Zone Section */}
-              <div className="mt-6 sm:mt-8">
-                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium mb-2 sm:mb-3 uppercase tracking-wider">Danger Zone</p>
-                <div className="bg-red-50/60 dark:bg-red-900/20 rounded-xl border border-red-200/50 dark:border-red-800/30 p-2 sm:p-3.5">
-                  <p className="text-[10px] sm:text-xs text-red-700/80 dark:text-red-300/80 mb-2 sm:mb-3">
-                    Permanent destructive actions that cannot be undone.
-                  </p>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-semibold text-red-900 dark:text-red-100 mb-0.5 sm:mb-1">Delete Account</h3>
-                    <button
-                      onClick={() => setShowDeleteModal(true)}
-                      className="px-3 py-1 sm:px-4 sm:py-1.5 bg-red-600/90 hover:bg-red-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs"
-                    >
-                      Delete Account
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Account Access Section */}
-              <div id="account-access" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[180px]">
-                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Account Access</h2>
-                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Your account access status and expiration.</p>
+              {/* Account Section - Merged Profile and Account Access */}
+              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[180px]">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Account</h2>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Your account details and status.</p>
                 <div className="space-y-2 sm:space-y-3">
-                  {(() => {
-                    const accessInfo = getManualAccessDisplayInfo(business)
-                    const manualStatus = getManualAccessStatus(business)
-                    
-                    // Check if account is in grace period
-                    const isInGracePeriod = business?.twilio_release_status === 'scheduled' && business?.twilio_release_at
-                    
-                    if (!business?.manual_access_enabled) {
-                      return (
-                        <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30 p-2 sm:p-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-                            <h4 className="text-[10px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300">Manual Access</h4>
-                          </div>
-                          <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
-                            {hasActiveSubscription(business) 
-                              ? 'Your account is active via subscription'
-                              : 'No manual access granted'}
-                          </p>
-                          {isInGracePeriod && business.twilio_phone_number && (
-                            <div className="mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/30">
-                              <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300">
-                                Your ReplyFlow phone number is reserved until {new Date(business.twilio_release_at!).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    }
+                  {/* Email */}
+                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30 p-2 sm:p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg className="w-4 h-4 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 00-2-2H7a2 2 0 00-2 2z" />
+                      </svg>
+                      <h4 className="text-[10px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300">Email</h4>
+                    </div>
+                    <p className="text-[10px] sm:text-xs text-slate-900 dark:text-foreground">{user?.email}</p>
+                  </div>
 
+                  {/* Status */}
+                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30 p-2 sm:p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className={`w-2 h-2 rounded-full ${
+                        isInTrialPeriod(business?.subscription_status) 
+                          ? 'bg-blue-500' 
+                          : hasActiveSubscription(business)
+                            ? 'bg-green-500'
+                            : 'bg-amber-500'
+                      }`}></div>
+                      <h4 className="text-[10px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300">Status</h4>
+                    </div>
+                    <p className="text-[10px] sm:text-xs text-slate-900 dark:text-foreground">{getSubscriptionStatusText(business?.subscription_status)}</p>
+                  </div>
+
+                  {/* Access Status */}
+                  {(() => {
+                    const manualStatus = getManualAccessStatus(business)
+                    const accessInfo = getManualAccessDisplayInfo(business)
+                    
                     return (
                       <div className={`rounded-lg border p-2 sm:p-3 ${
-                        accessInfo.status === 'active' 
+                        manualStatus.hasManualAccess && accessInfo.status === 'active'
                           ? 'bg-green-50/60 dark:bg-green-900/20 border-green-200/60 dark:border-green-800/50'
-                          : 'bg-red-50/60 dark:bg-red-900/20 border-red-200/50 dark:border-red-800/50'
+                          : manualStatus.hasManualAccess && accessInfo.status === 'expired'
+                            ? 'bg-red-50/60 dark:bg-red-900/20 border-red-200/50 dark:border-red-800/50'
+                            : 'bg-slate-50/60 dark:bg-slate-800/30 border-slate-200/50 dark:border-slate-700/30'
                       }`}>
                         <div className="flex items-center gap-2 mb-1">
                           <div className={`w-2 h-2 rounded-full ${
-                            accessInfo.status === 'active' ? 'bg-green-500' : 'bg-red-500'
+                            manualStatus.hasManualAccess && accessInfo.status === 'active' 
+                              ? 'bg-green-500' 
+                              : manualStatus.hasManualAccess && accessInfo.status === 'expired'
+                                ? 'bg-red-500'
+                                : 'bg-slate-400'
                           }`}></div>
                           <h4 className={`text-[10px] sm:text-xs font-semibold ${
-                            accessInfo.status === 'active' 
+                            manualStatus.hasManualAccess && accessInfo.status === 'active' 
                               ? 'text-green-900 dark:text-green-100'
-                              : 'text-red-900 dark:text-red-100'
+                              : manualStatus.hasManualAccess && accessInfo.status === 'expired'
+                                ? 'text-red-900 dark:text-red-100'
+                                : 'text-slate-700 dark:text-slate-300'
                           }`}>
-                            {accessInfo.status === 'active' ? 'Manual Access Active' : 'Manual Access Expired'}
+                            Access Status
                           </h4>
                         </div>
                         <p className={`text-[10px] sm:text-xs ${
-                          accessInfo.status === 'active' 
+                          manualStatus.hasManualAccess && accessInfo.status === 'active' 
                             ? 'text-green-700 dark:text-green-300'
-                            : 'text-red-700 dark:text-red-300'
+                            : manualStatus.hasManualAccess && accessInfo.status === 'expired'
+                              ? 'text-red-700 dark:text-red-300'
+                              : 'text-slate-600 dark:text-slate-400'
                         }`}>
-                          {accessInfo.description}
+                          {manualStatus.hasManualAccess 
+                            ? (accessInfo.status === 'active' 
+                                ? 'Manual Access Active'
+                                : 'Manual Access Expired')
+                            : (hasActiveSubscription(business) 
+                                ? 'Your account is active via subscription'
+                                : 'No manual access granted')
+                          }
                         </p>
-                        {accessInfo.status === 'expired' && !hasActiveSubscription(business) && (
-                          <div className="mt-2 pt-2 border-t border-red-200/50 dark:border-red-800/30">
-                            <button
-                              onClick={() => handleBillingActionClick('upgrade')}
-                              disabled={isStartingCheckout}
-                              className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs"
-                            >
-                              {isStartingCheckout ? 'Processing...' : 'Subscribe to Reactivate'}
-                            </button>
-                          </div>
+                        {manualStatus.expiresAt && (
+                          <p className="text-[9px] sm:text-[10px] text-slate-600 dark:text-slate-400 mt-1">
+                            Until {new Date(manualStatus.expiresAt).toLocaleDateString()}
+                          </p>
                         )}
-                        {business.provisioning_status === 'released' && (
-                          <div className="mt-2 pt-2 border-t border-red-200/50 dark:border-red-800/30">
-                            <p className="text-[9px] sm:text-[10px] text-red-700 dark:text-red-300 mb-1">
-                              Your previous ReplyFlow number was released. Reactivating will assign a new ReplyFlow number and you will need to update call forwarding.
-                            </p>
-                          </div>
-                        )}
-                        {business.provisioning_status === 'needs_reprovision' && (
-                          <div className="mt-2 pt-2 border-t border-amber-200/50 dark:border-amber-800/30">
-                            <p className="text-[9px] sm:text-[10px] text-amber-700 dark:text-amber-300 mb-1">
-                              Your ReplyFlow number is invalid. A new number will be assigned automatically. You will need to update call forwarding once the new number is assigned.
-                            </p>
-                          </div>
+                        {!manualStatus.expiresAt && manualStatus.hasManualAccess && (
+                          <p className="text-[9px] sm:text-[10px] text-slate-600 dark:text-slate-400 mt-1">
+                            Lifetime access
+                          </p>
                         )}
                       </div>
                     )
@@ -1552,9 +1512,9 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              {/* Subscription Section */}
-              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[180px]">
-                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Subscription</h2>
+              {/* Subscription & Billing Section */}
+              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[180px]">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Subscription & Billing</h2>
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Manage your subscription and billing.</p>
                 <div className="space-y-2 sm:space-y-3">
                   <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/40 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200/60 dark:border-blue-800/50 p-2 sm:p-3">
@@ -1616,37 +1576,42 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              {/* Profile Section */}
-              <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5">
-                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Profile</h2>
-                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Your account details and status.</p>
-                <div className="space-y-1 sm:space-y-1.5">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium">Email:</span>
-                    <span className="text-[10px] sm:text-xs text-slate-900 dark:text-foreground">{user?.email}</span>
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium">Status:</span>
-                    <span className="text-[10px] sm:text-xs text-slate-900 dark:text-foreground">{getSubscriptionStatusText(business?.subscription_status)}</span>
-                  </div>
-                  {business && getManualAccessStatus(business).hasManualAccess && (
-                    <div className="flex items-center gap-2 mt-2 p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-                      <svg className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                      <div className="flex-1">
-                        <span className="text-[10px] sm:text-xs font-medium text-purple-700 dark:text-purple-300">Manual access active</span>
-                        {!getManualAccessStatus(business).expiresAt && (
-                          <span className="text-[9px] sm:text-[10px] text-purple-600 dark:text-purple-400 ml-1">(Lifetime)</span>
-                        )}
-                        {getManualAccessStatus(business).expiresAt && (
-                          <span className="text-[9px] sm:text-[10px] text-purple-600 dark:text-purple-400 ml-1">
-                            (Until {new Date(getManualAccessStatus(business).expiresAt!).toLocaleDateString()})
-                          </span>
-                        )}
-                      </div>
+              {/* Security Section */}
+              <div id="security" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[180px]">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Security</h2>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2 sm:mb-3">Manage your account security and access.</p>
+                <div className="space-y-1.5 sm:space-y-2">
+                  {/* Change Password Section */}
+                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30 p-2 sm:p-3">
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground mb-0.5 sm:mb-1">Change Password</h3>
+                      <button
+                        onClick={() => setShowChangePasswordModal(true)}
+                        className="mt-1 sm:mt-2 px-3 py-1 sm:px-4 sm:py-1.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs"
+                      >
+                        Change Password
+                      </button>
                     </div>
-                  )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Danger Zone Section */}
+              <div className="mt-6 sm:mt-8">
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium mb-2 sm:mb-3 uppercase tracking-wider">Danger Zone</p>
+                <div className="bg-red-50/60 dark:bg-red-900/20 rounded-xl border border-red-200/50 dark:border-red-800/30 p-2 sm:p-3.5">
+                  <p className="text-[10px] sm:text-xs text-red-700/80 dark:text-red-300/80 mb-2 sm:mb-3">
+                    Permanent destructive actions that cannot be undone.
+                  </p>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-semibold text-red-900 dark:text-red-100 mb-0.5 sm:mb-1">Delete Account</h3>
+                    <button
+                      onClick={() => setShowDeleteModal(true)}
+                      className="px-3 py-1 sm:px-4 sm:py-1.5 bg-red-600/90 hover:bg-red-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs"
+                    >
+                      Delete Account
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
