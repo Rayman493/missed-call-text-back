@@ -391,7 +391,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   // Look for AI call record for this lead (needed for correction updates)
   console.log('[INBOUND SMS AI CALL RECORD LOOKUP START]', {
     businessId: business.id,
-    callerPhone: normalizedCustomerPhone
+    callerPhone: normalizedCustomerPhone,
+    leadId: lead.id
   })
 
   const aiCallRecord = await db.getMostRecentAiCallRecordForLead(business.id, normalizedCustomerPhone)
@@ -400,22 +401,48 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.log('[INBOUND SMS AI CALL RECORD FOUND]', {
       callRecordId: aiCallRecord.id,
       leadId: aiCallRecord.lead_id,
-      callSid: aiCallRecord.call_sid
+      callSid: aiCallRecord.call_sid,
+      conversationId: aiCallRecord.conversation_id,
+      outcome: aiCallRecord.outcome,
+      hasExtractedInfo: !!aiCallRecord.extracted_info,
+      extractedInfoKeys: aiCallRecord.extracted_info ? Object.keys(aiCallRecord.extracted_info) : []
     })
   } else {
     console.log('[INBOUND SMS AI CALL RECORD NOT FOUND]', {
       businessId: business.id,
-      callerPhone: normalizedCustomerPhone
+      callerPhone: normalizedCustomerPhone,
+      leadId: lead.id
     })
   }
 
   // Detect and process corrections in inbound SMS using AI
+  console.log('[AI REPLY HANDLING DECISION]', {
+    leadId: lead.id,
+    conversationId: conversation?.id,
+    aiCallRecordFound: !!aiCallRecord,
+    aiCallRecordId: aiCallRecord?.id,
+    hasExtractedInfo: !!(aiCallRecord?.extracted_info),
+    extractedInfo: aiCallRecord?.extracted_info,
+    willEnter: !!(aiCallRecord && aiCallRecord.extracted_info)
+  })
+
   if (aiCallRecord && aiCallRecord.extracted_info) {
     console.log('[AI CORRECTION DETECTION START]', {
       leadId: lead.id,
       aiCallRecordId: aiCallRecord.id,
       customerReply: body
     })
+  } else {
+    console.log('[AI REPLY HANDLING SKIPPED]', {
+      leadId: lead.id,
+      conversationId: conversation?.id,
+      reason: !aiCallRecord ? 'no_ai_call_record' : 'no_extracted_info',
+      aiCallRecordFound: !!aiCallRecord,
+      hasExtractedInfo: !!(aiCallRecord?.extracted_info)
+    })
+  }
+
+  if (aiCallRecord && aiCallRecord.extracted_info) {
 
     const correctionResult = await detectCorrection(body, aiCallRecord.extracted_info)
 
@@ -643,6 +670,12 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     }
 
     // Set last_customer_reply_at in lead raw_metadata for UI display
+    console.log('[LEAD RAW METADATA UPDATE START]', {
+      leadId: lead.id,
+      currentMetadata: lead?.raw_metadata,
+      now
+    })
+
     const currentMetadata = lead?.raw_metadata || {}
     const updatedMetadata = {
       ...currentMetadata,
@@ -651,11 +684,22 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       customer_replied: true
     }
 
+    console.log('[LEAD RAW METADATA UPDATE BEFORE]', {
+      leadId: lead.id,
+      updatedMetadata
+    })
+
     const leadWithReplyFlag = await db.updateLead(lead.id, {
       raw_metadata: updatedMetadata,
       last_reply_at: now,
       last_message_at: now,
       updated_at: now
+    })
+
+    console.log('[LEAD RAW METADATA UPDATE AFTER]', {
+      leadId: lead.id,
+      success: !!leadWithReplyFlag,
+      updatedRawMetadata: leadWithReplyFlag?.raw_metadata
     })
 
     if (leadWithReplyFlag) {
