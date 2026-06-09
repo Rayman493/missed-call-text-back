@@ -90,7 +90,7 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 
 /**
  * Get lead display name with graceful fallback
- * Priority: lead.name → lead.caller_name → lead.contact_name → lead.raw_metadata.name → lead.raw_metadata.caller_name → lead.phone → lead.caller_phone → lead.phone_number → "Unknown Caller"
+ * Priority: lead.name → lead.caller_name → lead.contact_name → ai_call_records.extracted_info.name → raw_metadata.name → raw_metadata.caller_name → phone number → "Unknown Caller"
  */
 export function getLeadDisplayName(lead: any): string {
   // Try lead name first
@@ -106,6 +106,24 @@ export function getLeadDisplayName(lead: any): string {
   // Try contact_name
   if (lead.contact_name && lead.contact_name.trim()) {
     return lead.contact_name.trim()
+  }
+
+  // Try ai_call_records.extracted_info.name
+  if (lead.ai_call_records && lead.ai_call_records.length > 0) {
+    const aiCall = lead.ai_call_records[0]
+    if (aiCall.extracted_info?.name && aiCall.extracted_info.name.trim()) {
+      return aiCall.extracted_info.name.trim()
+    }
+  }
+
+  // Try raw_metadata.extracted_info.name
+  if (lead.raw_metadata?.extracted_info?.name && lead.raw_metadata.extracted_info.name.trim()) {
+    return lead.raw_metadata.extracted_info.name.trim()
+  }
+
+  // Try raw_metadata.ai_extracted_info.name
+  if (lead.raw_metadata?.ai_extracted_info?.name && lead.raw_metadata.ai_extracted_info.name.trim()) {
+    return lead.raw_metadata.ai_extracted_info.name.trim()
   }
 
   // Try raw_metadata.name
