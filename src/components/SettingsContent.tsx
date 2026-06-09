@@ -743,7 +743,7 @@ export default function SettingsContent() {
       window.history.replaceState({}, '', url.toString())
       
       // Manual offset scrolling to account for sticky header
-      const HEADER_OFFSET = 180 // Adjust based on actual header + tabs height
+      const HEADER_OFFSET = 200 // Adjust based on actual header + tabs height
       const targetTop = element.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET
       
       window.scrollTo({
@@ -857,7 +857,7 @@ export default function SettingsContent() {
             {/* Settings Sections */}
             <div className="space-y-6 sm:space-y-8 pb-40">
               {/* Business Info Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-5 sm:p-8 scroll-mt-[180px]">
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-5 sm:p-8 scroll-mt-[200px]">
                 <div className="mb-8">
                   <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-foreground mb-2">Business Info</h2>
                   <p className="text-sm text-slate-600 dark:text-slate-400">Your business identity and contact information.</p>
@@ -937,7 +937,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[180px]">
+              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[200px]">
                 <div className="mb-1 sm:mb-2">
                   <div className="flex items-center justify-between mb-0.5 sm:mb-1">
                     <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Instant Response Settings</h2>
@@ -1270,7 +1270,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Integrations Section */}
-              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[180px]">
+              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[200px]">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Integrations</h2>
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Connect third-party services to extend ReplyFlow's capabilities.</p>
                 
@@ -1337,7 +1337,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Ignored Contacts Section */}
-              <div id="contacts" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-2 sm:p-3.5 scroll-mt-[180px]">
+              <div id="contacts" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-2 sm:p-3.5 scroll-mt-[200px]">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div>
                     <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Ignored Contacts</h2>
@@ -1421,7 +1421,7 @@ export default function SettingsContent() {
               )}
 
               {/* Account Section - Merged Profile and Account Access */}
-              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6 scroll-mt-[180px]">
+              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6 scroll-mt-[200px]">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Account</h2>
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-4">Your account details and status.</p>
                 <div className="space-y-4">
@@ -1511,7 +1511,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Subscription & Billing Section */}
-              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[180px]">
+              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[200px]">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Subscription & Billing</h2>
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Manage your subscription and billing.</p>
                 <div className="space-y-2 sm:space-y-3">
@@ -1575,7 +1575,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Security Section */}
-              <div id="security" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[180px]">
+              <div id="security" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[200px]">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Security</h2>
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2 sm:mb-3">Manage your account security and access.</p>
                 <div className="space-y-1.5 sm:space-y-2">
