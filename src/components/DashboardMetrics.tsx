@@ -329,39 +329,57 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
 
   return (
     <div className="space-y-4">
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      {/* Primary KPI Cards - Leads Generated and Recovery Rate */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {[
-          { type: 'missedCalls', value: metrics.missedCallsCaptured },
           { type: 'leads', value: metrics.leadsGenerated },
-          { type: 'messages', value: metrics.messagesSent },
-          { type: 'conversations', value: metrics.activeConversations },
           { type: 'recovery', value: metrics.recoveryRate }
         ].map((metric) => (
-          <div key={metric.type} className="bg-gradient-to-br from-card to-muted/30 dark:from-card dark:to-slate-900/30 rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all duration-300 overflow-hidden flex flex-col">
-            <div className={`h-1.5 bg-gradient-to-r ${getMetricAccentColor(metric.type)} to-transparent opacity-80`}></div>
-            <div className="p-4 sm:p-5 flex-1 flex flex-col">
-              <div className="flex items-center justify-between mb-3">
-                <div className={`w-10 h-10 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border shadow-sm`}>
-                  {getMetricIcon(metric.type)}
-                </div>
-                <div className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-medium">
-                  {metrics.period}
-                </div>
+          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-5">
+            <div className="flex items-start justify-between mb-3">
+              <div className={`w-12 h-12 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border shadow-sm`}>
+                {getMetricIcon(metric.type)}
               </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                {metrics.period}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
+                {metric.type === 'recovery' ? `${metric.value}%` : metric.value.toLocaleString()}
+              </div>
+              <div className="text-sm font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                {getMetricLabel(metric.type)}
+              </div>
+              {metric.value === 0 && metric.type !== 'recovery' && (
+                <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                  {getEmptyStateText(metric.type)}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
 
-              <div className="space-y-0.5 flex-1 flex flex-col justify-center">
-                <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
-                  {metric.type === 'recovery' ? `${metric.value}%` : metric.value.toLocaleString()}
-                </div>
-                <div className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                  {getMetricLabel(metric.type)}
-                </div>
-                {metric.value === 0 && metric.type !== 'recovery' && (
-                  <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
-                    {getEmptyStateText(metric.type)}
-                  </div>
-                )}
+      {/* Secondary KPI Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { type: 'missedCalls', value: metrics.missedCallsCaptured },
+          { type: 'messages', value: metrics.messagesSent },
+          { type: 'conversations', value: metrics.activeConversations }
+        ].map((metric) => (
+          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className={`w-8 h-8 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
+                {getMetricIcon(metric.type)}
+              </div>
+            </div>
+            <div className="space-y-0.5">
+              <div className="text-2xl font-bold text-slate-900 dark:text-foreground leading-tight">
+                {metric.value.toLocaleString()}
+              </div>
+              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                {getMetricLabel(metric.type)}
               </div>
             </div>
           </div>

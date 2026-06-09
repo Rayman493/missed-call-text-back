@@ -65,6 +65,7 @@ import BusinessSnapshot from '@/components/BusinessSnapshot'
 import DashboardMetrics from '@/components/DashboardMetrics'
 import OperationalStatusCard from '@/components/OperationalStatusCard'
 import RecentActivityCard from '@/components/RecentActivityCard'
+import AIActivityCard from '@/components/AIActivityCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { HelpContext } from '@/components/HelpAssistant'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
@@ -1358,7 +1359,14 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Latest Lead Section - Priority 2 - SECONDARY */}
+                    {/* AI Activity Card - Priority 2 */}
+                    <SectionErrorBoundary sectionName="AIActivityCard">
+                      <div className="mb-4 sm:mb-6 transition-opacity duration-300">
+                        <AIActivityCard business={business} />
+                      </div>
+                    </SectionErrorBoundary>
+
+                    {/* Latest Lead Section - Priority 3 - SECONDARY */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
                       {/* Hide RecentLeadsSection when onboarding is expanded to avoid duplicate messaging */}
                       {!(isOnboardingExpanded && !isOnboardingComplete && hasActiveAccess(business) && business?.twilio_phone_number) && (
