@@ -8,7 +8,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { handleBillingAction } from '@/lib/billing'
 // import ThemeSelector from '@/components/ThemeSelector' // Temporarily disabled for mobile crash fix
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { HelpCircle, ExternalLink, LogOut, Settings, CreditCard, ChevronDown, User, Layout, CreditCard as BillingIcon } from 'lucide-react'
+import { HelpCircle, ExternalLink, LogOut, Settings, CreditCard, ChevronDown, User, Layout, CreditCard as BillingIcon, Home } from 'lucide-react'
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false)
@@ -168,6 +168,16 @@ export default function UserDropdown() {
                     <BillingIcon className="w-4 h-4 text-muted-foreground" />
                     Billing
                   </button>
+
+                  {/* View Homepage */}
+                  <Link
+                    href="/"
+                    onClick={() => setIsOpen(false)}
+                    className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
+                  >
+                    <Home className="w-4 h-4 text-muted-foreground" />
+                    View Homepage
+                  </Link>
                 </div>
 
                 {/* Divider before Sign Out */}
