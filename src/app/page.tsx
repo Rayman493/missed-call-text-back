@@ -638,8 +638,8 @@ export default async function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm">Calendar Integration</h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">Schedule appointments and automate follow-ups</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm">Google Calendar Sync</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">See appointments, holidays, and events without leaving ReplyFlow</p>
                 </div>
                 
                 <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-5 border border-orange-200 dark:border-orange-800 shadow-sm hover:shadow-md transition-shadow">
@@ -717,7 +717,7 @@ export default async function Home() {
                 </p>
               </div>
 
-              {/* Calendar Booking */}
+              {/* Google Calendar View */}
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
                 <div className="flex flex-col items-center text-center mb-4">
                   <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mb-3">
@@ -725,10 +725,10 @@ export default async function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-foreground">Calendar Booking</h3>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-foreground">Google Calendar View</h3>
                 </div>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 text-center">
-                  Schedule appointments directly from the dashboard without phone tag.
+                  Keep your schedule visible alongside your leads and conversations.
                 </p>
               </div>
 
