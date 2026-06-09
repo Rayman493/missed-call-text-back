@@ -28,6 +28,113 @@ export interface ExtractedInfo {
 }
 
 /**
+ * Clean the extracted value by removing common prefixes
+ * This ensures we store only the meaningful corrected value, not the entire sentence
+ */
+function cleanExtractedValue(value: string, field: string): string {
+  let cleaned = value.trim()
+
+  // Common prefixes to strip (case-insensitive)
+  const prefixesToRemove = [
+    // Address prefixes
+    /^the address is\s+/i,
+    /^address is\s+/i,
+    /^actually the address is\s+/i,
+    /^my address is\s+/i,
+    /^actually my address is\s+/i,
+    /^the location is\s+/i,
+    /^location is\s+/i,
+    /^actually the location is\s+/i,
+    /^my location is\s+/i,
+    /^actually my location is\s+/i,
+    /^my service address is\s+/i,
+    /^service address is\s+/i,
+
+    // Project details/yard prefixes
+    /^the yard is\s+/i,
+    /^yard is\s+/i,
+    /^actually the yard is\s+/i,
+    /^yard is actually\s+/i,
+    /^the lot is\s+/i,
+    /^lot is\s+/i,
+    /^actually the lot is\s+/i,
+    /^the property is\s+/i,
+    /^property is\s+/i,
+    /^actually the property is\s+/i,
+    /^the project is\s+/i,
+    /^project is\s+/i,
+    /^actually the project is\s+/i,
+    /^oh and the yard is\s+/i,
+    /^oh and the lot is\s+/i,
+    /^oh and the property is\s+/i,
+    /^oh and\s+/i,
+    /^and the yard is\s+/i,
+    /^and the lot is\s+/i,
+    /^and the property is\s+/i,
+    /^and\s+/i,
+
+    // Callback number prefixes
+    /^my number is\s+/i,
+    /^my callback number is\s+/i,
+    /^callback number is\s+/i,
+    /^my phone number is\s+/i,
+    /^call me at\s+/i,
+    /^use\s+/i,
+
+    // Callback time prefixes
+    /^call me\s+/i,
+    /^call after\s+/i,
+    /^available after\s+/i,
+    /^best time is\s+/i,
+    /^callback time is\s+/i,
+
+    // Name prefixes
+    /^my name is\s+/i,
+    /^actually my name is\s+/i,
+    /^this is\s+/i,
+    /^i am\s+/i,
+    /^call me\s+/i,
+    /^name is\s+/i,
+
+    // Reason prefixes
+    /^the reason is\s+/i,
+    /^reason is\s+/i,
+    /^actually the reason is\s+/i,
+
+    // General cleanup
+    /^actually\s+/i,
+    /^it is actually\s+/i,
+    /^the details are\s+/i,
+    /^the project is actually\s+/i,
+    /^the issue is actually\s+/i,
+    /^actually i need\s+/i,
+    /^actually i want\s+/i,
+    /^i meant\s+/i,
+    /^sorry, i meant\s+/i,
+    /^oh sorry i want\s+/i
+  ]
+
+  // Apply each prefix removal
+  for (const prefix of prefixesToRemove) {
+    cleaned = cleaned.replace(prefix, '')
+  }
+
+  // Additional cleanup for "of an" -> "of" or remove entirely
+  cleaned = cleaned.replace(/\s+of an\s+/g, ' of ')
+  cleaned = cleaned.replace(/\s+of the\s+/g, ' of ')
+
+  // Clean up extra whitespace
+  cleaned = cleaned.replace(/\s+/g, ' ').trim()
+
+  // Capitalize first letter
+  if (cleaned.length > 0) {
+    cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1)
+  }
+
+  return cleaned
+}
+
+/**
  * Detect if an inbound SMS contains a correction to AI intake data
  * RC1: Simple pattern matching (no OpenAI)
  */
@@ -160,6 +267,18 @@ export async function detectCorrection(
             newValue = 'low'
           }
         }
+
+        // Clean the extracted value by removing common prefixes
+        const originalNewValue = newValue
+        newValue = cleanExtractedValue(newValue, field)
+
+        console.log('[CORRECTION VALUE EXTRACTION]', {
+          field,
+          originalMessage: customerReply,
+          extractedValue: originalNewValue,
+          cleanedValue: newValue,
+          pattern: pattern.toString()
+        })
 
         console.log('[CORRECTION DETECTED]', {
           field,

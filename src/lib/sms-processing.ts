@@ -552,6 +552,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         const currentCorrectedFields = currentMetadata.corrected_fields || {}
         const currentPreviousValues = currentMetadata.previous_values || {}
 
+        console.log('[CORRECTION COUNT]', {
+          leadId: lead.id,
+          previousCount: currentCorrectionsCount,
+          newCount: currentCorrectionsCount + 1,
+          currentMetadata
+        })
+
         const correctionNote = generateCorrectionNote(
           correctionResult.fieldChanged,
           correctionResult.oldValue || 'unknown',
