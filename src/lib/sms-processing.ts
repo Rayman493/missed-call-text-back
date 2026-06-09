@@ -504,7 +504,9 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           'addressOrLocation': 'address',
           'callbackNumber': 'phone',
           'preferredCallbackTime': 'callback_time',
-          'urgencyLevel': 'urgency'
+          'urgencyLevel': 'urgency',
+          'importantDetails': 'details',
+          'reasonForCalling': 'reason'
         }
         const correctedFieldKey = fieldKeyMap[correctionResult.fieldChanged] || correctionResult.fieldChanged
 

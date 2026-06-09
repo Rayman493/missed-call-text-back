@@ -46,6 +46,24 @@ export async function detectCorrection(
   // Simple pattern matching for corrections
   const patterns = [
     {
+      field: 'importantDetails',
+      patterns: [
+        /actually i need\s+(.+)/i,
+        /actually i want\s+(.+)/i,
+        /i meant\s+(.+)/i,
+        /sorry, i meant\s+(.+)/i,
+        /oh sorry i want\s+(.+)/i,
+        /not\s+(.+),\s*(.+)?/i,
+        /not\s+(.+), but\s+(.+)/i,
+        /(.+), not\s+(.+)/i,
+        /it is actually\s+(.+)/i,
+        /the details are\s+(.+)/i,
+        /the reason is\s+(.+)/i,
+        /the project is actually\s+(.+)/i,
+        /the issue is actually\s+(.+)/i
+      ]
+    },
+    {
       field: 'addressOrLocation',
       patterns: [
         /my address is actually\s+(.+)/i,
@@ -98,6 +116,18 @@ export async function detectCorrection(
       if (match) {
         const oldValue = (normalizedExtractedInfo as any)[field]
         let newValue = match[1] || match[0]
+
+        // Handle importantDetails special cases for 'not X, Y' patterns
+        if (field === 'importantDetails') {
+          // For "not X, Y" patterns, use the second match group (Y) as the new value
+          if (match[2]) {
+            newValue = match[2].trim()
+          }
+          // For "X, not Y" patterns, use the second match group (Y) as the new value
+          if (pattern.toString().includes(', not')) {
+            newValue = match[2]?.trim() || match[1]?.trim()
+          }
+        }
 
         // Handle urgency special case
         if (field === 'urgencyLevel') {
@@ -186,8 +216,19 @@ export function applyCorrection(
 
   const mappedField = fieldMapping[fieldChanged.toLowerCase()] || fieldChanged as keyof ExtractedInfo
 
-  if (mappedField in updated) {
-    (updated as any)[mappedField] = newValue
+  // Fallback: if trying to update importantDetails but it doesn't exist, update reasonForCalling instead
+  let finalField = mappedField
+  if (mappedField === 'importantDetails' && !updated.importantDetails && updated.reasonForCalling) {
+    finalField = 'reasonForCalling'
+    console.log('[CORRECTION FIELD FALLBACK]', {
+      originalField: 'importantDetails',
+      fallbackField: 'reasonForCalling',
+      reason: 'importantDetails not found, using reasonForCalling'
+    })
+  }
+
+  if (finalField in updated) {
+    (updated as any)[finalField] = newValue
   }
 
   // Canonicalize to ensure only canonical keys are returned
