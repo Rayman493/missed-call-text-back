@@ -90,7 +90,7 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 
 /**
  * Get lead display name with graceful fallback
- * Priority: lead.name → formatted phone number → "Unknown Caller"
+ * Priority: lead.name → lead.caller_name → lead.contact_name → lead.raw_metadata.name → lead.raw_metadata.caller_name → lead.phone → lead.caller_phone → lead.phone_number → "Unknown Caller"
  */
 export function getLeadDisplayName(lead: any): string {
   // Try lead name first
@@ -98,10 +98,45 @@ export function getLeadDisplayName(lead: any): string {
     return lead.name.trim()
   }
 
+  // Try caller_name
+  if (lead.caller_name && lead.caller_name.trim()) {
+    return lead.caller_name.trim()
+  }
+
+  // Try contact_name
+  if (lead.contact_name && lead.contact_name.trim()) {
+    return lead.contact_name.trim()
+  }
+
+  // Try raw_metadata.name
+  if (lead.raw_metadata?.name && lead.raw_metadata.name.trim()) {
+    return lead.raw_metadata.name.trim()
+  }
+
+  // Try raw_metadata.caller_name
+  if (lead.raw_metadata?.caller_name && lead.raw_metadata.caller_name.trim()) {
+    return lead.raw_metadata.caller_name.trim()
+  }
+
   // Try formatted phone number
-  if (lead.customer_phone || lead.phone) {
-    const phone = lead.customer_phone || lead.phone
-    const formatted = formatPhoneNumber(phone)
+  if (lead.phone) {
+    const formatted = formatPhoneNumber(lead.phone)
+    if (formatted !== 'Unknown Caller') {
+      return formatted
+    }
+  }
+
+  // Try caller_phone
+  if (lead.caller_phone) {
+    const formatted = formatPhoneNumber(lead.caller_phone)
+    if (formatted !== 'Unknown Caller') {
+      return formatted
+    }
+  }
+
+  // Try phone_number
+  if (lead.phone_number) {
+    const formatted = formatPhoneNumber(lead.phone_number)
     if (formatted !== 'Unknown Caller') {
       return formatted
     }
