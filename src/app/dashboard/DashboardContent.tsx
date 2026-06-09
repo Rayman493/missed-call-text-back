@@ -65,7 +65,6 @@ import BusinessSnapshot from '@/components/BusinessSnapshot'
 import DashboardMetrics from '@/components/DashboardMetrics'
 import OperationalStatusCard from '@/components/OperationalStatusCard'
 import RecentActivityCard from '@/components/RecentActivityCard'
-import AIActivityCard from '@/components/AIActivityCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { HelpContext } from '@/components/HelpAssistant'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
@@ -1359,10 +1358,10 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* AI Activity Card - Priority 2 */}
-                    <SectionErrorBoundary sectionName="AIActivityCard">
+                    {/* Needs Attention Card - Priority 2 */}
+                    <SectionErrorBoundary sectionName="NeedsAttentionCard">
                       <div className="mb-4 sm:mb-6 transition-opacity duration-300">
-                        <AIActivityCard business={business} />
+                        <NeedsAttentionCard business={business} />
                       </div>
                     </SectionErrorBoundary>
 
@@ -1382,13 +1381,6 @@ export default function DashboardContent() {
                           )}
                         </div>
                       )}
-                    </SectionErrorBoundary>
-
-                    {/* Needs Attention Card - Priority 3 - SECONDARY */}
-                    <SectionErrorBoundary sectionName="NeedsAttentionCard">
-                      <div className="mb-4 sm:mb-6 transition-opacity duration-300">
-                        <NeedsAttentionCard business={business} setupHealth={setupHealth} />
-                      </div>
                     </SectionErrorBoundary>
 
 

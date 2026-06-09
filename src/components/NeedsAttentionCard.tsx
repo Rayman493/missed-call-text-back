@@ -3,132 +3,222 @@
 import React, { useState, useEffect } from 'react'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { AlertTriangle, CheckCircle, MessageSquare, Phone, Clock, X } from 'lucide-react'
+import { MessageSquare, AlertTriangle, User, Settings, Calendar, Phone, Clock, CreditCard, Check } from 'lucide-react'
 import Link from 'next/link'
-import { useSetupHealth } from '@/hooks/useSetupHealth'
 
 interface AttentionItem {
-  type: 'lead_awaiting' | 'customer_replied' | 'forwarding_issue' | 'followup_failed' | 'healthy'
-  title: string
-  description: string
+  id: string
+  label: string
+  count: number
   priority: 'high' | 'medium' | 'low'
-  link?: string
-  linkText?: string
+  icon: React.ElementType
+  color: string
+  bgColor: string
+  actionUrl: string
 }
 
 interface NeedsAttentionCardProps {
   business: Business | null
-  setupHealth?: import('@/lib/setup-health').SetupHealth
 }
 
-export default function NeedsAttentionCard({ business, setupHealth }: NeedsAttentionCardProps) {
-  const [attentionItems, setAttentionItems] = useState<AttentionItem[]>([])
+export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps) {
+  const [items, setItems] = useState<AttentionItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [totalCount, setTotalCount] = useState(0)
 
   useEffect(() => {
-    if (!business) return
-
     const fetchAttentionItems = async () => {
+      if (!business) return
+
       try {
         const supabase = createBrowserClient()
-        const items: AttentionItem[] = []
+        const attentionItems: AttentionItem[] = []
 
-        // Check for leads awaiting response
-        const { data: awaitingLeads } = await supabase
-          .from('leads')
-          .select('id, phone, created_at, messages')
-          .eq('business_id', business.id)
-          .is('last_message_at', null)
-
-        if (awaitingLeads && awaitingLeads.length > 0) {
-          items.push({
-            type: 'lead_awaiting',
-            title: `${awaitingLeads.length} Lead${awaitingLeads.length !== 1 ? 's' : ''} Awaiting Response`,
-            description: awaitingLeads.length === 1 
-              ? `Customer replied ${formatRelativeTime(awaitingLeads[0].created_at)}`
-              : `${awaitingLeads.length} customers waiting for response`,
-            priority: 'high',
-            link: '/dashboard/leads',
-            linkText: 'View Leads'
-          })
-        }
-
-        // Check for recent customer replies
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-        const { data: recentReplies } = await supabase
-          .from('messages')
-          .select('lead_id, created_at, leads!inner(phone)')
-          .eq('business_id', business.id)
-          .eq('direction', 'inbound')
-          .gte('created_at', twentyFourHoursAgo)
-          .order('created_at', { ascending: false })
-          .limit(1)
-
-        if (recentReplies && recentReplies.length > 0) {
-          const reply = recentReplies[0]
-          items.push({
-            type: 'customer_replied',
-            title: 'Customer Replied',
-            description: `${formatRelativeTime(reply.created_at)} from ${formatPhoneNumber(reply.leads.phone)}`,
-            priority: 'medium',
-            link: `/dashboard/leads/${reply.lead_id}`,
-            linkText: 'View Conversation'
-          })
-        }
-
-        console.log('[SETUP HEALTH]', setupHealth)
+        // High Priority Items
         
-        // Use setupHealth needsAttention - no other logic
-        if (setupHealth?.needsAttention && setupHealth.needsAttention.length > 0) {
-          // Add setup health issues to attention items
-          setupHealth.needsAttention.forEach(issue => {
-            items.push({
-              type: 'forwarding_issue' as any,
-              title: issue.title,
-              description: issue.description,
-              priority: issue.priority,
-              link: issue.actionUrl,
-              linkText: issue.actionText
-            })
-          })
-        }
-
-        // Check for failed follow-ups
-        const { data: failedFollowUps } = await supabase
-          .from('follow_up_jobs')
-          .select('id, lead_id, created_at')
+        // 1. Unread customer replies - check for leads with unread messages
+        const { data: leadsWithReplies } = await supabase
+          .from('leads')
+          .select('id, raw_metadata')
           .eq('business_id', business.id)
-          .eq('status', 'failed')
-          .gte('created_at', twentyFourHoursAgo)
+          .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
 
-        if (failedFollowUps && failedFollowUps.length > 0) {
-          items.push({
-            type: 'followup_failed',
-            title: 'Follow-Ups Require Review',
-            description: `${failedFollowUps.length} follow-up${failedFollowUps.length !== 1 ? 's' : ''} failed in the last 24 hours`,
+        const unreadReplies = leadsWithReplies?.filter((lead: any) => 
+          lead.raw_metadata?.last_customer_reply_at && 
+          !lead.raw_metadata?.replied_after_ai_call
+        ).length || 0
+
+        if (unreadReplies > 0) {
+          attentionItems.push({
+            id: 'unread-replies',
+            label: 'Unread customer replies',
+            count: unreadReplies,
+            priority: 'high',
+            icon: MessageSquare,
+            color: 'text-red-600 dark:text-red-400',
+            bgColor: 'bg-red-100 dark:bg-red-900/20',
+            actionUrl: '/dashboard/leads'
+          })
+        }
+
+        // 2. Customer corrections detected
+        const correctionsDetected = leadsWithReplies?.filter((lead: any) => 
+          lead.raw_metadata?.corrections_count > 0
+        ).length || 0
+
+        if (correctionsDetected > 0) {
+          attentionItems.push({
+            id: 'corrections',
+            label: 'Customer corrections detected',
+            count: correctionsDetected,
+            priority: 'high',
+            icon: AlertTriangle,
+            color: 'text-red-600 dark:text-red-400',
+            bgColor: 'bg-red-100 dark:bg-red-900/20',
+            actionUrl: '/dashboard/leads'
+          })
+        }
+
+        // 3. Urgent leads
+        const urgentLeads = leadsWithReplies?.filter((lead: any) => {
+          const extractedInfo = lead.raw_metadata?.extracted_info || lead.raw_metadata?.ai_extracted_info
+          const urgency = extractedInfo?.urgencyLevel || extractedInfo?.urgency
+          return urgency?.toLowerCase() === 'urgent' || urgency?.toLowerCase() === 'high'
+        })?.length || 0
+
+        if (urgentLeads > 0) {
+          attentionItems.push({
+            id: 'urgent-leads',
+            label: 'Urgent leads',
+            count: urgentLeads,
+            priority: 'high',
+            icon: AlertTriangle,
+            color: 'text-red-600 dark:text-red-400',
+            bgColor: 'bg-red-100 dark:bg-red-900/20',
+            actionUrl: '/dashboard/leads'
+          })
+        }
+
+        // 4. New leads awaiting review (created in last 24 hours)
+        const { data: recentLeads } = await supabase
+          .from('leads')
+          .select('id')
+          .eq('business_id', business.id)
+          .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+
+        if (recentLeads && recentLeads.length > 0) {
+          attentionItems.push({
+            id: 'new-leads',
+            label: 'New leads awaiting review',
+            count: recentLeads.length,
+            priority: 'high',
+            icon: User,
+            color: 'text-red-600 dark:text-red-400',
+            bgColor: 'bg-red-100 dark:bg-red-900/20',
+            actionUrl: '/dashboard/leads'
+          })
+        }
+
+        // Medium Priority Items
+        
+        // 5. Follow-ups not configured
+        const { data: followUpConfig } = await supabase
+          .from('follow_up_settings')
+          .select('id')
+          .eq('business_id', business.id)
+          .single()
+
+        if (!followUpConfig) {
+          attentionItems.push({
+            id: 'followups-config',
+            label: 'Follow-ups not configured',
+            count: 1,
             priority: 'medium',
-            link: '/dashboard/leads',
-            linkText: 'View Leads'
+            icon: Settings,
+            color: 'text-amber-600 dark:text-amber-400',
+            bgColor: 'bg-amber-100 dark:bg-amber-900/20',
+            actionUrl: '/dashboard/settings/follow-ups'
           })
         }
 
-        // Setup health issues already added above - no duplicate logic
+        // 6. Google Calendar not connected
+        const { data: calendarSettings } = await supabase
+          .from('calendar_settings')
+          .select('id')
+          .eq('business_id', business.id)
+          .single()
 
-        // Sort by priority
+        if (!calendarSettings) {
+          attentionItems.push({
+            id: 'calendar-config',
+            label: 'Google Calendar not connected',
+            count: 1,
+            priority: 'medium',
+            icon: Calendar,
+            color: 'text-amber-600 dark:text-amber-400',
+            bgColor: 'bg-amber-100 dark:bg-amber-900/20',
+            actionUrl: '/dashboard/calendar'
+          })
+        }
+
+        // 7. Forwarding not verified
+        if (!business.forwarding_verified) {
+          attentionItems.push({
+            id: 'forwarding-verify',
+            label: 'Forwarding not verified',
+            count: 1,
+            priority: 'medium',
+            icon: Phone,
+            color: 'text-amber-600 dark:text-amber-400',
+            bgColor: 'bg-amber-100 dark:bg-amber-900/20',
+            actionUrl: '/setup/forwarding'
+          })
+        }
+
+        // 8. Test call not completed - skip as business property may not exist
+        // if (!business.has_completed_test_call) {
+        //   attentionItems.push({
+        //     id: 'test-call',
+        //     label: 'Test call not completed',
+        //     count: 1,
+        //     priority: 'medium',
+        //     icon: Phone,
+        //     color: 'text-amber-600 dark:text-amber-400',
+        //     bgColor: 'bg-amber-100 dark:bg-amber-900/20',
+        //     actionUrl: '/dashboard/test-setup'
+        //   })
+        // }
+
+        // Low Priority Items
+        
+        // 9. Trial ending soon (if on trial)
+        if (business.trial_ends_at) {
+          const daysLeft = Math.ceil((new Date(business.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+          if (daysLeft <= 7) {
+            attentionItems.push({
+              id: 'trial-ending',
+              label: `Trial ending in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`,
+              count: 1,
+              priority: 'low',
+              icon: Clock,
+              color: 'text-blue-600 dark:text-blue-400',
+              bgColor: 'bg-blue-100 dark:bg-blue-900/20',
+              actionUrl: '/pricing'
+            })
+          }
+        }
+
+        // Sort by priority (high > medium > low) then by count
         const priorityOrder = { high: 0, medium: 1, low: 2 }
-        items.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
+        attentionItems.sort((a, b) => {
+          if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+            return priorityOrder[a.priority] - priorityOrder[b.priority]
+          }
+          return b.count - a.count
+        })
 
-        // If no issues, show healthy status
-        if (items.length === 0) {
-          items.push({
-            type: 'healthy',
-            title: 'All Systems Operational',
-            description: 'ReplyFlow is actively monitoring and responding to missed calls.',
-            priority: 'low'
-          })
-        }
-
-        setAttentionItems(items)
+        setItems(attentionItems)
+        setTotalCount(attentionItems.reduce((sum, item) => sum + item.count, 0))
       } catch (error) {
         console.error('Error fetching attention items:', error)
       } finally {
@@ -137,129 +227,77 @@ export default function NeedsAttentionCard({ business, setupHealth }: NeedsAtten
     }
 
     fetchAttentionItems()
-  }, [business, setupHealth])
-
-  const formatRelativeTime = (timestamp: string) => {
-    const now = new Date()
-    const eventTime = new Date(timestamp)
-    const diffInMinutes = Math.floor((now.getTime() - eventTime.getTime()) / (1000 * 60))
-    
-    if (diffInMinutes < 1) return 'just now'
-    if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hour${Math.floor(diffInMinutes / 60) !== 1 ? 's' : ''} ago`
-    return `${Math.floor(diffInMinutes / 1440)} day${Math.floor(diffInMinutes / 1440) !== 1 ? 's' : ''} ago`
-  }
-
-  const formatPhoneNumber = (phone: string) => {
-    if (!phone) return 'Unknown'
-    if (phone.length === 10) {
-      return `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`
-    }
-    return phone
-  }
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
-      case 'medium':
-        return 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
-      case 'low':
-        return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
-      default:
-        return 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300'
-    }
-  }
-
-  const getPriorityIcon = (type: string) => {
-    switch (type) {
-      case 'lead_awaiting':
-        return <MessageSquare className="w-4 h-4" />
-      case 'customer_replied':
-        return <MessageSquare className="w-4 h-4" />
-      case 'forwarding_issue':
-        return <Phone className="w-4 h-4" />
-      case 'followup_failed':
-        return <AlertTriangle className="w-4 h-4" />
-      case 'healthy':
-        return <CheckCircle className="w-4 h-4" />
-      default:
-        return <Clock className="w-4 h-4" />
-    }
-  }
+  }, [business])
 
   if (loading) {
     return (
-      <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-foreground">Needs Attention</h3>
-          <div className="text-xs text-muted-foreground">Loading...</div>
-        </div>
-        <div className="animate-pulse">
-          <div className="h-3 bg-muted rounded w-3/4 mb-2"></div>
-          <div className="h-2 bg-muted rounded w-1/2"></div>
+      <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+        <div className="animate-pulse space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-32"></div>
+                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-16"></div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     )
   }
 
-  // If all items are healthy, don't render since OperationalStatusCard already shows system status
-  if (attentionItems.length === 1 && attentionItems[0].type === 'healthy') {
-    return null
-  }
-
-  const topItem = attentionItems[0]
+  const visibleItems = items.slice(0, 5)
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-slate-300 dark:border-slate-700/60 rounded-xl p-2 sm:p-3 min-h-[130px] shadow-sm dark:shadow-md hover:shadow-md dark:hover:shadow-lg transition-all duration-300">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-semibold text-foreground">
-          {topItem?.type === 'healthy' ? 'System Health' : 'Needs Attention'}
-        </h3>
-        <div className="text-xs text-muted-foreground">
-          {topItem?.type === 'healthy' ? 'All systems operational' : attentionItems.length > 1 ? `${attentionItems.length} items` : 'Top priority'}
-        </div>
+    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Needs Attention</h3>
+        {totalCount > 0 && (
+          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+            items.some(i => i.priority === 'high') 
+              ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+              : items.some(i => i.priority === 'medium')
+              ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300'
+              : 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+          }`}>
+            {totalCount}
+          </span>
+        )}
       </div>
 
-      {topItem ? (
-        <div className={`flex items-start gap-3 p-2.5 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors ${getPriorityColor(topItem.priority)}`}>
-          <div className="flex-shrink-0 mt-0.5">
-            {getPriorityIcon(topItem.type)}
+      {visibleItems.length === 0 ? (
+        <div className="text-center py-8">
+          <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium">{topItem.title}</p>
-            <p className="text-xs opacity-75 mt-0.5">{topItem.description}</p>
-            {topItem.link && (
-              <Link
-                href={topItem.link}
-                className="inline-flex items-center gap-1 text-xs font-medium mt-1.5 hover:opacity-80 transition-opacity"
-              >
-                {topItem.linkText}
-              </Link>
-            )}
-          </div>
+          <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">All caught up</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">No outstanding actions. Your account is fully configured.</p>
         </div>
       ) : (
-        <div className="flex items-center gap-3 p-3 rounded-lg border bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
-          <div className="flex-shrink-0">
-            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-white" />
-            </div>
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-green-800 dark:text-green-200">All Systems Operational</p>
-            <p className="text-xs mt-0.5 text-green-600 dark:text-green-300">
-              ReplyFlow is monitoring missed calls and automated text-back is ready.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {attentionItems.length > 1 && topItem?.type !== 'healthy' && (
-        <div className="mt-2 text-center">
-          <p className="text-xs text-muted-foreground">
-            {attentionItems.length - 1} additional item{attentionItems.length - 1 !== 1 ? 's' : ''} need attention
-          </p>
+        <div className="space-y-2">
+          {visibleItems.map((item) => {
+            const Icon = item.icon
+            return (
+              <Link key={item.id} href={item.actionUrl}>
+                <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer group">
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className={`w-8 h-8 ${item.bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                      <Icon className={`w-4 h-4 ${item.color}`} />
+                    </div>
+                    <span className="text-sm text-slate-600 dark:text-slate-400 truncate">{item.label}</span>
+                  </div>
+                  <span className={`text-sm font-semibold ${
+                    item.priority === 'high' ? 'text-red-600 dark:text-red-400' :
+                    item.priority === 'medium' ? 'text-amber-600 dark:text-amber-400' :
+                    'text-blue-600 dark:text-blue-400'
+                  }`}>
+                    {item.count}
+                  </span>
+                </div>
+              </Link>
+            )
+          })}
         </div>
       )}
     </div>
