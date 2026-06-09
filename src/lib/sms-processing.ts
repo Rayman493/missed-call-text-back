@@ -421,6 +421,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 
     console.log('[AI CORRECTION DETECTION RESULT]', correctionResult)
 
+    console.log('[AI CORRECTION PARSE]', {
+      incomingBody: body,
+      correctionDetected: correctionResult.isCorrection,
+      correctionType: correctionResult.fieldChanged,
+      extractedValue: correctionResult.newValue
+    })
+
     if (correctionResult.isCorrection && correctionResult.fieldChanged && correctionResult.newValue) {
       console.log('[AI REPLY CORRECTION DETECTED]', {
         correctionType: correctionResult.fieldChanged,
@@ -554,6 +561,15 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           }
         }
 
+        console.log('[AI CORRECTION SAVE]', {
+          leadId: lead.id,
+          correctionType: correctedFieldKey,
+          oldValue: correctionResult.oldValue,
+          newValue: correctionResult.newValue,
+          correctedFieldsBefore: currentCorrectedFields,
+          correctedFieldsAfter: correctedMetadata.corrected_fields
+        })
+
         const leadWithCorrection = await db.updateLead(lead.id, {
           raw_metadata: correctedMetadata,
           updated_at: now
@@ -566,6 +582,11 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
             corrected_field: correctedFieldKey,
             new_value: correctionResult.newValue,
             raw_metadata: leadWithCorrection.raw_metadata
+          })
+
+          console.log('[AI CORRECTION VERIFY]', {
+            leadId: leadWithCorrection.id,
+            rawMetadataAfterUpdate: leadWithCorrection.raw_metadata
           })
         } else {
           console.error('[CORRECTION LEAD UPDATE ERROR]', {

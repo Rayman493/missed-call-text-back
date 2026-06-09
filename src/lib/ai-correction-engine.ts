@@ -66,9 +66,11 @@ export async function detectCorrection(
     {
       field: 'addressOrLocation',
       patterns: [
+        /actually my address is\s+(.+)/i,
         /my address is actually\s+(.+)/i,
         /the address is\s+(.+)/i,
         /address is\s+(.+)/i,
+        /actually my location is\s+(.+)/i,
         /my location is actually\s+(.+)/i,
         /the location is\s+(.+)/i,
         /location is\s+(.+)/i,
