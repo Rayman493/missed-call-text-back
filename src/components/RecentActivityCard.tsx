@@ -165,18 +165,18 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           <p className="text-sm text-slate-500 dark:text-slate-400">No recent activity</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {activities.map((activity, index) => (
             <div key={activity.id} className="flex items-start gap-3">
-              <div className="flex-shrink-0 mt-0.5">
+              <div className="flex-shrink-0 pt-0.5">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center ${activity.color} bg-slate-100 dark:bg-slate-800`}>
                   {activity.icon}
                 </div>
               </div>
-              <div className="flex-1 min-w-0 pb-4 border-l-2 border-slate-100 dark:border-slate-800 ml-3 -mt-6 pl-4">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-0.5">
                   <p className="text-xs font-medium text-slate-900 dark:text-foreground">{activity.title}</p>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">{formatRelativeTime(activity.timestamp)}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-2">{formatRelativeTime(activity.timestamp)}</span>
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-400">{activity.description}</p>
               </div>
