@@ -117,12 +117,22 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 
 /**
  * Get lead display name with graceful fallback
- * Priority: lead.raw_metadata?.caller_name → lead.raw_metadata?.extracted_info?.name → lead.raw_metadata?.extracted_info?.caller_name → ai_call_records extracted info → caller_phone / phone → "Unknown Caller"
+ * Priority: lead.raw_metadata?.callerName → lead.raw_metadata?.caller_name → lead.raw_metadata?.extracted_info?.callerName → lead.raw_metadata?.extracted_info?.name → ai_call_records extracted info → caller_phone / phone → "Unknown Caller"
  */
 export function getLeadDisplayName(lead: any): string {
-  // Try raw_metadata.caller_name first
+  // Try raw_metadata.callerName first (camelCase)
+  if (lead.raw_metadata?.callerName && lead.raw_metadata.callerName.trim()) {
+    return lead.raw_metadata.callerName.trim()
+  }
+
+  // Try raw_metadata.caller_name (snake_case)
   if (lead.raw_metadata?.caller_name && lead.raw_metadata.caller_name.trim()) {
     return lead.raw_metadata.caller_name.trim()
+  }
+
+  // Try raw_metadata.extracted_info.callerName (camelCase)
+  if (lead.raw_metadata?.extracted_info?.callerName && lead.raw_metadata.extracted_info.callerName.trim()) {
+    return lead.raw_metadata.extracted_info.callerName.trim()
   }
 
   // Try raw_metadata.extracted_info.name
@@ -133,6 +143,14 @@ export function getLeadDisplayName(lead: any): string {
   // Try raw_metadata.extracted_info.caller_name
   if (lead.raw_metadata?.extracted_info?.caller_name && lead.raw_metadata.extracted_info.caller_name.trim()) {
     return lead.raw_metadata.extracted_info.caller_name.trim()
+  }
+
+  // Try ai_call_records.extracted_info.callerName (camelCase)
+  if (lead.ai_call_records && lead.ai_call_records.length > 0) {
+    const aiCall = lead.ai_call_records[0]
+    if (aiCall.extracted_info?.callerName && aiCall.extracted_info.callerName.trim()) {
+      return aiCall.extracted_info.callerName.trim()
+    }
   }
 
   // Try ai_call_records.extracted_info.name

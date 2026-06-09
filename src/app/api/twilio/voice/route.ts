@@ -1381,21 +1381,6 @@ export async function POST(request: NextRequest) {
         callerPhone: From,
         timestamp: new Date().toISOString()
       });
-      
-      // Store SMS sending intent in call_events for voicemail callback to process
-      try {
-        await supabaseAdmin
-          .from('call_events')
-          .update({
-            sms_pending: true,
-            sms_scheduled_at: new Date().toISOString()
-          })
-          .eq('twilio_call_sid', CallSid);
-          
-        console.log('[MISSED CALL TIMING] SMS intent stored in call_events');
-      } catch (storeError) {
-        console.error('[MISSED CALL TIMING] Failed to store SMS intent:', storeError);
-      }
     } else {
       console.log('[MISSED CALL TIMING] SMS not scheduled - conditions not met:', {
         shouldSendSms,

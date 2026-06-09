@@ -38,24 +38,31 @@ interface ConfirmationSMSRequest {
   callerPhone: string
   businessName: string
   extractedInfo?: {
+    callerName?: string
     caller_name?: string
     name?: string
     contact_name?: string
     customer_name?: string
     service_requested?: string
     reason?: string
+    reasonForCalling?: string
     reason_for_call?: string
     summary?: string
     details?: string
+    importantDetails?: string
     important_details?: string
     issue?: string
     urgency?: string
+    urgencyLevel?: string
     urgency_level?: string
     location?: string
     address?: string
     addressOrLocation?: string
+    address_or_location?: string
     preferred_callback_time?: string
+    preferredCallbackTime?: string
     callback_number?: string
+    callbackNumber?: string
   }
 }
 
@@ -147,6 +154,7 @@ export async function POST(request: NextRequest) {
 
     // Persist AI extracted caller name to leads.raw_metadata
     const extractedName =
+      extractedInfo?.callerName ||
       extractedInfo?.caller_name ||
       extractedInfo?.name ||
       extractedInfo?.contact_name ||
@@ -171,9 +179,11 @@ export async function POST(request: NextRequest) {
       const updatedRawMetadata = {
         ...(lead.raw_metadata || {}),
         caller_name: extractedName,
+        callerName: extractedName,
         extracted_info: {
           ...(lead.raw_metadata?.extracted_info || {}),
-          name: extractedName
+          name: extractedName,
+          callerName: extractedName
         }
       }
 
@@ -432,30 +442,6 @@ export async function POST(request: NextRequest) {
           twilioMessageSid,
           conversationId
         })
-
-        // Clear sms_pending in call_events to prevent standard missed-call SMS
-        // This marks the call as AI-handled
-        try {
-          const { error: updateError } = await supabaseAdmin
-            .from('call_events')
-            .update({
-              sms_pending: false,
-              ai_confirmation_sms_sent: true,
-              ai_confirmation_sms_sent_at: new Date().toISOString()
-            })
-            .eq('twilio_call_sid', callSid)
-
-          if (updateError) {
-            console.error('[AI CONFIRMATION SMS] Failed to clear sms_pending:', updateError)
-          } else {
-            console.log('[AI CONFIRMATION SMS] Cleared sms_pending in call_events', {
-              callSid,
-              twilioMessageSid
-            })
-          }
-        } catch (clearError) {
-          console.error('[AI CONFIRMATION SMS] Exception clearing sms_pending:', clearError)
-        }
 
         return NextResponse.json({
           success: true,

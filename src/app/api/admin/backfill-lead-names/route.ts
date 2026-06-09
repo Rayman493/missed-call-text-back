@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
 
       // Extract name from various possible fields
       const extractedName =
+        extractedInfo?.callerName ||
         extractedInfo?.caller_name ||
         extractedInfo?.name ||
         extractedInfo?.contact_name ||
@@ -68,9 +69,11 @@ export async function POST(request: NextRequest) {
       const updatedRawMetadata = {
         ...(lead.raw_metadata || {}),
         caller_name: extractedName,
+        callerName: extractedName,
         extracted_info: {
           ...(lead.raw_metadata?.extracted_info || {}),
-          name: extractedName
+          name: extractedName,
+          callerName: extractedName
         }
       }
 
