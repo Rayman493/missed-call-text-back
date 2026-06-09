@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { MessageMedia } from '@/lib/types'
+import { createBrowserClient } from '@/lib/supabase/browser'
 
 interface MessageMediaRendererProps {
   media: MessageMedia[]
@@ -23,16 +24,86 @@ function getMediaUrl(originalUrl: string): string {
   return `/api/twilio/media?url=${encodeURIComponent(originalUrl)}`
 }
 
+// Helper function to fetch authenticated media for Twilio URLs
+async function fetchAuthenticatedMedia(mediaUrl: string): Promise<string | null> {
+  // If it's a Supabase URL, return as-is
+  if (mediaUrl.includes('supabase.co') || mediaUrl.includes('/storage/v1')) {
+    return mediaUrl
+  }
+
+  const supabase = createBrowserClient()
+  if (!supabase) {
+    return null
+  }
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) {
+      return null
+    }
+
+    const proxyUrl = getMediaUrl(mediaUrl)
+    const response = await fetch(proxyUrl, {
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`
+      }
+    })
+
+    if (!response.ok) {
+      return null
+    }
+
+    const blob = await response.blob()
+    return URL.createObjectURL(blob)
+  } catch (error) {
+    console.error('[MessageMediaRenderer] Error fetching authenticated media:', error)
+    return null
+  }
+}
+
 export default function MessageMediaRenderer({ media, isInbound = false, onImageLoad }: MessageMediaRendererProps) {
   const [expandedMedia, setExpandedMedia] = useState<string | null>(null)
   const [loadedMedia, setLoadedMedia] = useState<Set<string>>(new Set())
   const [failedMedia, setFailedMedia] = useState<Set<string>>(new Set())
   const [hasLoadedFirstImage, setHasLoadedFirstImage] = useState(false)
+  const [authenticatedUrls, setAuthenticatedUrls] = useState<Record<string, string>>({})
 
   console.log('[MMS UI ATTACHMENTS LOADED]', { 
     count: media?.length || 0,
     mediaUrls: media?.map(m => m.media_url) 
   })
+
+  // Fetch authenticated URLs for Twilio media on mount
+  useEffect(() => {
+    const fetchUrls = async () => {
+      const urlMap: Record<string, string> = {}
+      
+      for (const mediaItem of media || []) {
+        // Only fetch authenticated URLs for Twilio URLs
+        if (!mediaItem.media_url.includes('supabase.co') && !mediaItem.media_url.includes('/storage/v1')) {
+          const blobUrl = await fetchAuthenticatedMedia(mediaItem.media_url)
+          if (blobUrl) {
+            urlMap[mediaItem.id] = blobUrl
+          }
+        }
+      }
+      
+      setAuthenticatedUrls(urlMap)
+    }
+
+    fetchUrls()
+  }, [media])
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(authenticatedUrls).forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url)
+        }
+      })
+    }
+  }, [authenticatedUrls])
 
   if (!media || media.length === 0) {
     return null
@@ -83,7 +154,8 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
     <>
       <div className={`mt-2 ${media.length > 1 ? 'grid gap-2' + getGridClass() : 'flex flex-col gap-2'}`}>
         {media.map((mediaItem, index) => {
-          const mediaUrl = getMediaUrl(mediaItem.media_url)
+          // Use authenticated URL for Twilio media, direct URL for Supabase
+          const mediaUrl = authenticatedUrls[mediaItem.id] || getMediaUrl(mediaItem.media_url)
           const isLoaded = loadedMedia.has(mediaItem.id)
           const isFailed = failedMedia.has(mediaItem.id)
           
@@ -91,7 +163,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
             return (
               <div key={mediaItem.id} className="relative group overflow-hidden rounded-xl shadow-lg border border-slate-700/50">
                 {/* Image */}
-                {!isFailed && (
+                {!isFailed && mediaUrl && (
                   <img
                     src={mediaUrl}
                     alt="Message attachment"
@@ -129,12 +201,18 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
           if (isVideo(mediaItem.mime_type)) {
             return (
               <div key={mediaItem.id} className="relative group overflow-hidden rounded-xl shadow-lg border border-slate-700/50">
-                <video
-                  src={mediaUrl}
-                  controls
-                  className="max-w-[85%] md:max-w-[420px] max-h-[500px] md:max-h-[600px] w-full object-contain bg-black"
-                  preload="metadata"
-                />
+                {mediaUrl ? (
+                  <video
+                    src={mediaUrl}
+                    controls
+                    className="max-w-[85%] md:max-w-[420px] max-h-[500px] md:max-h-[600px] w-full object-contain bg-black"
+                    preload="metadata"
+                  />
+                ) : (
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Video failed to load</p>
+                  </div>
+                )}
               </div>
             )
           }
@@ -145,14 +223,18 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
               <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
               </svg>
-              <a
-                href={mediaUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                View attachment ({mediaItem.mime_type})
-              </a>
+              {mediaUrl ? (
+                <a
+                  href={mediaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  View attachment ({mediaItem.mime_type})
+                </a>
+              ) : (
+                <span className="text-sm text-slate-500 dark:text-slate-400">Attachment unavailable</span>
+              )}
             </div>
           )
         })}

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +22,62 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'Invalid media URL' },
         { status: 400 }
+      )
+    }
+
+    // Authenticate user
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('[Twilio Media Proxy] Authentication required - no Bearer token')
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
+    if (authError || !user) {
+      console.log('[Twilio Media Proxy] Invalid authentication token')
+      return NextResponse.json(
+        { error: 'Invalid authentication token' },
+        { status: 401 }
+      )
+    }
+
+    // Verify that the media URL belongs to a message owned by the authenticated user's business
+    const { data: mediaRecord, error: mediaError } = await supabaseAdmin
+      .from('message_media')
+      .select(`
+        *,
+        messages!inner (
+          lead_id,
+          leads!inner (
+            business_id,
+            businesses!inner (
+              user_id
+            )
+          )
+        )
+      `)
+      .eq('media_url', mediaUrl)
+      .eq('businesses.user_id', user.id)
+      .single()
+
+    if (mediaError || !mediaRecord) {
+      console.log('[Twilio Media Proxy] Media not found or access denied:', {
+        mediaUrl: mediaUrl.substring(0, 50),
+        userId: user.id,
+        error: mediaError?.message
+      })
+      return NextResponse.json(
+        { error: 'Media not found or access denied' },
+        { status: 404 }
       )
     }
 
@@ -55,7 +113,7 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+        'Cache-Control': 'private, max-age=3600', // Cache for 1 hour, private since it's authenticated
       },
     })
   } catch (error) {

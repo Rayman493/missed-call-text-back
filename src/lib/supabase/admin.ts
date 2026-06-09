@@ -111,6 +111,7 @@ export const db = {
 
   // Find lead by phone number for a specific business (dedicated number architecture)
   // CRITICAL: One Twilio number maps to exactly one business - no cross-business lookup needed
+  // Updated to use lead reuse policy: only reuse if status is not completed/ignored and activity is within 30 days
   async findLeadByPhoneAcrossBusinesses(phone: string, phoneNumber: string): Promise<{ lead: any; business: Business } | null> {
     console.log('[INBOUND SMS LEAD LOOKUP START]', {
       phone,
@@ -167,6 +168,24 @@ export const db = {
         businessId: business.id,
         reason: 'No lead found for this business'
       })
+      return null
+    }
+    
+    // Check if the lead should be reused based on the policy
+    const shouldReuse = this.shouldReuseLead(data as Lead)
+
+    console.log('[LEAD REUSE DECISION]', {
+      leadId: data.id,
+      phone: phone,
+      status: data.status,
+      lastActivity: data.last_message_at || data.last_reply_at || data.first_contact_at || data.created_at,
+      daysSinceActivity: data.last_message_at || data.last_reply_at || data.first_contact_at || data.created_at
+        ? Math.round((Date.now() - new Date(data.last_message_at || data.last_reply_at || data.first_contact_at || data.created_at).getTime()) / (1000 * 60 * 60 * 24))
+        : null,
+      decision: shouldReuse ? 'REUSE' : 'CREATE_NEW'
+    })
+
+    if (!shouldReuse) {
       return null
     }
     
@@ -796,6 +815,37 @@ export const db = {
     return data
   },
 
+  /**
+   * Helper function to determine if an existing lead should be reused
+   * Lead reuse policy: Only reuse if:
+   * - Status is NOT 'completed'
+   * - Status is NOT 'ignored'
+   * - Last activity is within 30 days
+   */
+  shouldReuseLead(lead: Lead | null): boolean {
+    if (!lead) {
+      return false
+    }
+
+    // Check status
+    if (lead.status === 'completed' || lead.status === 'ignored') {
+      return false
+    }
+
+    // Check last activity (use last_message_at or created_at as fallback)
+    const lastActivity = lead.last_message_at || lead.last_reply_at || lead.first_contact_at || lead.created_at
+    if (!lastActivity) {
+      return false
+    }
+
+    const daysSinceActivity = (Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24)
+    if (daysSinceActivity > 30) {
+      return false
+    }
+
+    return true
+  },
+
   async createLead(lead: Omit<Lead, 'id' | 'created_at' | 'updated_at'>): Promise<Lead | null> {
     const normalizedLead = {
       ...lead,
@@ -988,7 +1038,7 @@ export const db = {
     console.log('[CALL INTAKE] Looking up existing lead by business_id + caller_phone')
     const { data: existingLead } = await supabaseAdmin
       .from('leads')
-      .select('id')
+      .select('id, status, last_message_at, last_reply_at, first_contact_at, created_at')
       .eq('business_id', params.businessId)
       .eq('caller_phone', normalizedPhone)
       .maybeSingle()
@@ -997,9 +1047,28 @@ export const db = {
     let isNewLead = false
     
     if (existingLead) {
-      console.log('[CALL INTAKE] Found existing lead for repeat caller:', existingLead.id)
-      leadId = existingLead.id
-      isNewLead = false
+      // Check if the lead should be reused based on the policy
+      const shouldReuse = this.shouldReuseLead(existingLead as Lead)
+
+      console.log('[LEAD REUSE DECISION]', {
+        leadId: existingLead.id,
+        phone: normalizedPhone,
+        status: existingLead.status,
+        lastActivity: existingLead.last_message_at || existingLead.last_reply_at || existingLead.first_contact_at || existingLead.created_at,
+        daysSinceActivity: existingLead.last_message_at || existingLead.last_reply_at || existingLead.first_contact_at || existingLead.created_at
+          ? Math.round((Date.now() - new Date(existingLead.last_message_at || existingLead.last_reply_at || existingLead.first_contact_at || existingLead.created_at).getTime()) / (1000 * 60 * 60 * 24))
+          : null,
+        decision: shouldReuse ? 'REUSE' : 'CREATE_NEW'
+      })
+
+      if (shouldReuse) {
+        console.log('[CALL INTAKE] Reusing existing lead for repeat caller:', existingLead.id)
+        leadId = existingLead.id
+        isNewLead = false
+      } else {
+        console.log('[CALL INTAKE] Creating new lead (existing lead does not meet reuse criteria)')
+        isNewLead = true
+      }
     } else {
       // Step 4: Create new lead if no existing lead found
       console.log('[CALL INTAKE] No existing lead found, creating new lead')

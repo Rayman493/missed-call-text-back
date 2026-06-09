@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,15 +9,49 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'messageId is required' }, { status: 400 })
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    // Authenticate user
+    const supabase = createServerSupabaseClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 })
+    if (authError || !user) {
+      console.error('[MESSAGE MEDIA API ERROR] Authentication failed:', authError)
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    // Get user's business
+    const { data: business, error: businessError } = await supabase
+      .from('businesses')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
 
+    if (businessError || !business) {
+      console.error('[MESSAGE MEDIA API ERROR] Business not found:', businessError)
+      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    }
+
+    // Verify message belongs to user's business
+    const { data: message, error: messageError } = await supabase
+      .from('messages')
+      .select('id, business_id')
+      .eq('id', messageId)
+      .single()
+
+    if (messageError || !message) {
+      console.error('[MESSAGE MEDIA API ERROR] Message not found:', messageError)
+      return NextResponse.json({ error: 'Message not found' }, { status: 404 })
+    }
+
+    if (message.business_id !== business.id) {
+      console.error('[MESSAGE MEDIA API ERROR] Message does not belong to user\'s business', {
+        messageId,
+        messageBusinessId: message.business_id,
+        userBusinessId: business.id
+      })
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    }
+
+    // Fetch media for the message
     const { data: media, error } = await supabase
       .from('message_media')
       .select('*')

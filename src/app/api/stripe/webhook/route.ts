@@ -9,22 +9,67 @@ import { scheduleTwilioRelease, cancelTwilioRelease } from '@/lib/twilio-reclama
 
 export const dynamic = 'force-dynamic'
 
-// Simple in-memory idempotency cache (for production, use Redis or database)
-const processedEvents = new Map<string, number>()
-const IDEMPOTENCY_TTL = 24 * 60 * 60 * 1000 // 24 hours
-
-// Clean up old entries periodically
-setInterval(() => {
-  const now = Date.now()
-  const eventIds = Array.from(processedEvents.keys())
-  for (let i = 0; i < eventIds.length; i++) {
-    const eventId = eventIds[i]
-    const timestamp = processedEvents.get(eventId) || 0
-    if (now - timestamp > IDEMPOTENCY_TTL) {
-      processedEvents.delete(eventId)
+/**
+ * Check if a Stripe webhook event has already been processed
+ * Uses database-backed idempotency to work across server instances and deployments
+ */
+async function isEventProcessed(supabase: any, eventId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('stripe_webhook_events')
+      .select('id')
+      .eq('event_id', eventId)
+      .single()
+    
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 = not found, which is expected for new events
+      console.error('[STRIPE WEBHOOK] Error checking event processing status:', error)
     }
+    
+    return !!data
+  } catch (error) {
+    console.error('[STRIPE WEBHOOK] Exception checking event processing status:', error)
+    return false
   }
-}, 60 * 60 * 1000) // Clean up every hour
+}
+
+/**
+ * Mark a Stripe webhook event as processed
+ * Returns true if successfully marked, false if already exists
+ */
+async function markEventProcessed(
+  supabase: any,
+  eventId: string,
+  eventType: string,
+  businessId?: string | null
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('stripe_webhook_events')
+      .insert({
+        event_id: eventId,
+        event_type: eventType,
+        business_id: businessId || null,
+        status: 'processed'
+      })
+    
+    if (error) {
+      if (error.code === '23505') {
+        // Unique constraint violation - event already processed
+        console.log('[STRIPE WEBHOOK] Event already processed (unique constraint):', eventId)
+        return false
+      }
+      console.error('[STRIPE WEBHOOK] Error marking event as processed:', error)
+      return false
+    }
+    
+    console.log('[STRIPE WEBHOOK] Event marked as processed:', eventId)
+    return true
+  } catch (error) {
+    console.error('[STRIPE WEBHOOK] Exception marking event as processed:', error)
+    return false
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -54,21 +99,20 @@ export async function POST(request: Request) {
     const event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
     console.log('[SYSTEM] [STRIPE] Event type:', event.type);
 
-    // Idempotency check - prevent duplicate processing
-    if (processedEvents.has(event.id)) {
-      console.log('[STRIPE WEBHOOK] Event already processed, skipping:', event.id)
-      return NextResponse.json({ received: true, idempotent: true })
-    }
-    
-    // Mark event as processed
-    processedEvents.set(event.id, Date.now())
-    console.log('[STRIPE WEBHOOK] Processing new event:', event.id)
-
     // Use service role key for webhook to bypass RLS
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
+
+    // Idempotency check - prevent duplicate processing using database
+    const alreadyProcessed = await isEventProcessed(supabase, event.id)
+    if (alreadyProcessed) {
+      console.log('[STRIPE WEBHOOK] Event already processed, skipping:', event.id)
+      return NextResponse.json({ received: true, idempotent: true })
+    }
+    
+    console.log('[STRIPE WEBHOOK] Processing new event:', event.id)
 
     console.log('[Stripe Webhook] Received event:', event.type)
     console.log('[STRIPE WEBHOOK] ========== EVENT DISPATCH ==========')
@@ -364,6 +408,9 @@ export async function POST(request: Request) {
           await cancelTwilioRelease(businessId)
         }
 
+        // Mark event as processed
+        await markEventProcessed(supabase, event.id, event.type, businessId)
+
         // DISABLED: Old Twilio Number Manager provisioning path
         // Only provisionTwilioNumber() should be used for provisioning
         // This old path was purchasing a second number and overwriting the correct number
@@ -478,6 +525,9 @@ export async function POST(request: Request) {
           // Cancel any scheduled Twilio release since subscription is being created
           await cancelTwilioRelease(business.id)
 
+          // Mark event as processed
+          await markEventProcessed(supabase, event.id, event.type, business.id)
+
           console.log('[Stripe Webhook] subscription status updated:', subscription.status)
           console.log('[Stripe Webhook] triggering provisioning check for business:', business.id)
           
@@ -511,81 +561,91 @@ export async function POST(request: Request) {
                 // This repair logic was potentially using stale data and interfering with new number persistence
                 
                 // Only provision if no number exists and not already provisioning
+                // Use atomic update to prevent race conditions
                 if (!businessDetails.twilio_phone_number && businessDetails.provisioning_status !== 'provisioning') {
-                  console.log('[Provisioning] Triggering provisioning for business:', businessDetails.id)
-                  console.log('[Provisioning] START - calling provisionTwilioNumber')
+                  console.log('[Provisioning] Attempting to acquire provisioning lock for business:', businessDetails.id)
                   
                   try {
-                    // Set provisioning status to 'provisioning'
-                    await supabase
+                    // Atomic lock acquisition: only update if status is not already 'provisioning'
+                    const { data: lockResult, error: lockError } = await supabase
                       .from('businesses')
                       .update({ provisioning_status: 'provisioning' })
                       .eq('id', businessDetails.id)
+                      .neq('provisioning_status', 'provisioning')
+                      .select('provisioning_status')
+                      .single()
                     
-                    console.log('[Provisioning] Set provisioning_status to provisioning for business:', businessDetails.id)
+                    if (lockError || !lockResult) {
+                      console.log('[Provisioning] Failed to acquire lock - another process may be provisioning')
+                      console.log('[Provisioning] Lock error:', lockError)
+                      // Skip provisioning if lock not acquired
+                    } else {
+                      console.log('[Provisioning] Lock acquired successfully for business:', businessDetails.id)
+                      console.log('[Provisioning] START - calling provisionTwilioNumber')
                     
-                    // Import and call provisioning function
-                    const { provisionTwilioNumber } = await import('@/lib/twilio')
-                    
-                    const provisioningResult = await provisionTwilioNumber(businessDetails.id)
-                    
-                    if (provisioningResult) {
-                      console.log('[Provisioning] Provisioning succeeded:', provisioningResult.phoneNumber)
-                      console.log('[Provisioning] Purchased number from Twilio:', provisioningResult.phoneNumber)
-                      console.log('[Provisioning] Purchased SID from Twilio:', provisioningResult.phoneNumberSid)
+                      // Import and call provisioning function
+                      const { provisionTwilioNumber } = await import('@/lib/twilio')
                       
-                      // Only save number if messaging service attached
-                      if (provisioningResult.messagingServiceAttached) {
-                        // Use saveProvisionedNumberToBusiness helper to ensure correct number is saved
-                        const { saveProvisionedNumberToBusiness } = await import('@/lib/twilio')
+                      const provisioningResult = await provisionTwilioNumber(businessDetails.id)
+                      
+                      if (provisioningResult) {
+                        console.log('[Provisioning] Provisioning succeeded:', provisioningResult.phoneNumber)
+                        console.log('[Provisioning] Purchased number from Twilio:', provisioningResult.phoneNumber)
+                        console.log('[Provisioning] Purchased SID from Twilio:', provisioningResult.phoneNumberSid)
                         
-                        const saveResult = await saveProvisionedNumberToBusiness({
-                          businessId: businessDetails.id,
-                          phoneNumber: provisioningResult.phoneNumber,
-                          phoneNumberSid: provisioningResult.phoneNumberSid,
-                          messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID || null
-                        })
-                        
-                        if (!saveResult.success) {
-                          console.error('[Provisioning] Failed to save provisioned number to business')
+                        // Only save number if messaging service attached
+                        if (provisioningResult.messagingServiceAttached) {
+                          // Use saveProvisionedNumberToBusiness helper to ensure correct number is saved
+                          const { saveProvisionedNumberToBusiness } = await import('@/lib/twilio')
+                          
+                          const saveResult = await saveProvisionedNumberToBusiness({
+                            businessId: businessDetails.id,
+                            phoneNumber: provisioningResult.phoneNumber,
+                            phoneNumberSid: provisioningResult.phoneNumberSid,
+                            messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID || null
+                          })
+                          
+                          if (!saveResult.success) {
+                            console.error('[Provisioning] Failed to save provisioned number to business')
+                            await supabase
+                              .from('businesses')
+                              .update({
+                                provisioning_status: 'failed',
+                                provisioning_error: 'Failed to save provisioned number to business'
+                              })
+                              .eq('id', businessDetails.id)
+                          } else {
+                            console.log('[Provisioning] Number saved successfully to business')
+                            console.log('[Provisioning] DB twilio_phone_number:', saveResult.dbNumber)
+                            console.log('[Provisioning] DB twilio_phone_number_sid:', saveResult.dbNumberSid)
+                          }
+                        } else {
+                          console.error('[Provisioning] Messaging Service NOT attached - NOT saving number to business')
+                          console.error('[Provisioning] Error:', provisioningResult.messagingServiceError)
+                          
+                          // Mark as failed
                           await supabase
                             .from('businesses')
                             .update({
                               provisioning_status: 'failed',
-                              provisioning_error: 'Failed to save provisioned number to business'
+                              provisioning_error: provisioningResult.messagingServiceError || 'Messaging Service attachment failed'
                             })
                             .eq('id', businessDetails.id)
-                        } else {
-                          console.log('[Provisioning] Number saved successfully to business')
-                          console.log('[Provisioning] DB twilio_phone_number:', saveResult.dbNumber)
-                          console.log('[Provisioning] DB twilio_phone_number_sid:', saveResult.dbNumberSid)
+                          
+                          console.log('[Provisioning] Business marked as failed')
                         }
-                      } else {
-                        console.error('[Provisioning] Messaging Service NOT attached - NOT saving number to business')
-                        console.error('[Provisioning] Error:', provisioningResult.messagingServiceError)
                         
-                        // Mark as failed
+                        console.log('[Provisioning] Business updated with provisioned number')
+                      } else {
+                        console.error('[Provisioning] Provisioning failed - no result returned')
                         await supabase
                           .from('businesses')
                           .update({
                             provisioning_status: 'failed',
-                            provisioning_error: provisioningResult.messagingServiceError || 'Messaging Service attachment failed'
+                            provisioning_error: 'Provisioning failed - no result returned'
                           })
                           .eq('id', businessDetails.id)
-                        
-                        console.log('[Provisioning] Business marked as failed')
                       }
-                      
-                      console.log('[Provisioning] Business updated with provisioned number')
-                    } else {
-                      console.error('[Provisioning] Provisioning failed - no result returned')
-                      await supabase
-                        .from('businesses')
-                        .update({
-                          provisioning_status: 'failed',
-                          provisioning_error: 'Provisioning failed - no result returned'
-                        })
-                        .eq('id', businessDetails.id)
                     }
                   } catch (provisioningError) {
                     console.error('[Provisioning] Error during provisioning:', provisioningError)
@@ -735,6 +795,9 @@ export async function POST(request: Request) {
             console.log('[STRIPE CANCEL] Fields saved:', Object.keys(updatePayload).join(', '))
             console.log('[STRIPE CANCEL] cancel_at_period_end saved as:', updatePayload.cancel_at_period_end)
           }
+
+          // Mark event as processed
+          await markEventProcessed(supabase, event.id, event.type, business.id)
         } else {
           console.error('[STRIPE CANCEL] Business not found for subscription:', subscription.id)
         }
@@ -816,6 +879,9 @@ export async function POST(request: Request) {
             console.error('[stripe-webhook] Error triggering offboarding email:', emailError)
             // Don't fail the webhook - email is not critical
           }
+
+          // Mark event as processed
+          await markEventProcessed(supabase, event.id, event.type, business.id)
         } else {
           console.error('[STRIPE CANCEL] Business not found for subscription:', subscription.id)
         }
@@ -858,9 +924,91 @@ export async function POST(request: Request) {
           } else {
             console.log('[STRIPE CANCEL] Manual access exists, skipping Twilio release')
           }
+
+          // Mark event as processed
+          await markEventProcessed(supabase, event.id, event.type, business.id)
         }
         
         console.log('[STRIPE CANCEL] ========== INVOICE.PAYMENT.FAILED END ==========')
+        break
+      }
+
+      case 'invoice.paid': {
+        console.log('[STRIPE PAYMENT RECOVERY] ========== INVOICE.PAID START ==========')
+        
+        const invoice = event.data.object as Stripe.Invoice
+        const subscriptionId = (invoice as any).subscription as string | null
+
+        if (!subscriptionId) {
+          console.log('[STRIPE PAYMENT RECOVERY] No subscription ID in invoice, skipping')
+          break
+        }
+
+        console.log('[STRIPE PAYMENT RECOVERY] Subscription ID:', subscriptionId)
+
+        // Find business by stripe_subscription_id
+        const { data: business } = await supabase
+          .from('businesses')
+          .select('id, subscription_status, twilio_phone_number, twilio_phone_number_sid, manual_access_enabled, manual_access_expires_at, provisioning_status')
+          .eq('stripe_subscription_id', subscriptionId)
+          .limit(1)
+          .single()
+
+        if (business) {
+          console.log('[STRIPE PAYMENT RECOVERY] Business found:', business.id)
+          
+          // Cancel any scheduled Twilio release since payment succeeded
+          console.log('[STRIPE PAYMENT RECOVERY] Canceling scheduled Twilio release')
+          await cancelTwilioRelease(business.id)
+
+          // If number was already released (no twilio_phone_number_sid), trigger reprovisioning
+          if (!business.twilio_phone_number_sid && (business.subscription_status === 'active' || business.subscription_status === 'trialing')) {
+            console.log('[STRIPE PAYMENT RECOVERY] Number was released, triggering reprovisioning')
+            
+            // Check if eligible for provisioning
+            const shouldProvision = isEligibleForProvisioning(business)
+            
+            if (shouldProvision) {
+              console.log('[STRIPE PAYMENT RECOVERY] Triggering provisioning for recovered subscription')
+              
+              try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/business/trigger-provisioning`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-secret': process.env.PROVISIONING_ADMIN_SECRET || ''
+                  },
+                  body: JSON.stringify({
+                    business_id: business.id
+                  })
+                })
+                
+                if (response.ok) {
+                  console.log('[STRIPE PAYMENT RECOVERY] Provisioning triggered successfully')
+                } else {
+                  console.error('[STRIPE PAYMENT RECOVERY] Failed to trigger provisioning:', await response.text())
+                }
+              } catch (provisioningError) {
+                console.error('[STRIPE PAYMENT RECOVERY] Error triggering provisioning:', provisioningError)
+              }
+            } else {
+              console.log('[STRIPE PAYMENT RECOVERY] Not eligible for provisioning:', {
+                subscription_status: business.subscription_status,
+                twilio_phone_number: business.twilio_phone_number,
+                provisioning_status: business.provisioning_status
+              })
+            }
+          } else {
+            console.log('[STRIPE PAYMENT RECOVERY] Number still assigned, no reprovisioning needed')
+          }
+
+          // Mark event as processed
+          await markEventProcessed(supabase, event.id, event.type, business.id)
+        } else {
+          console.error('[STRIPE PAYMENT RECOVERY] Business not found for subscription:', subscriptionId)
+        }
+        
+        console.log('[STRIPE PAYMENT RECOVERY] ========== INVOICE.PAID END ==========')
         break
       }
 
