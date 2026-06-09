@@ -530,11 +530,11 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Step 21: Soft-delete businesses and record trial history
-      console.log('[delete-account] Step 21: soft-delete businesses and record trial history')
+      // Step 21: Hard-delete businesses and record trial history
+      console.log('[delete-account] Step 21: hard-delete businesses and record trial history')
       
       for (const business of businesses as any[]) {
-        // Record trial history before soft-deleting
+        // Record trial history before deleting
         if (business.stripe_customer_id || business.trial_ends_at) {
           const trialHistoryData = {
             business_id: business.id,
@@ -568,28 +568,24 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // Soft-delete the business (preserve data for abuse prevention)
+        // Hard-delete the business row
         if (!dryRun) {
-          const { error: businessesSoftDeleteError } = await supabaseAdmin
+          const { error: businessesDeleteError } = await supabaseAdmin
             .from('businesses')
-            .update({
-              deleted_at: new Date().toISOString(),
-              deleted_by: 'self',
-              deletion_reason: 'user_request',
-            })
+            .delete()
             .eq('id', business.id)
 
-          if (businessesSoftDeleteError) {
-            console.error('[delete-account] Step 21 soft-delete failed:', businessesSoftDeleteError)
+          if (businessesDeleteError) {
+            console.error('[delete-account] Step 21 hard-delete failed:', businessesDeleteError)
             return NextResponse.json(
-              { ok: false, step: 'soft_delete_businesses', error: 'Failed to delete account data. Please try again or contact support.', details: businessesSoftDeleteError.message },
+              { ok: false, step: 'delete_businesses', error: 'Failed to delete account data. Please try again or contact support.', details: businessesDeleteError.message },
               { status: 500 }
             )
           }
         }
       }
       summary.tablesDeleted.businesses = businesses.length
-      console.log('[delete-account] Step 21 completed: soft-deleted businesses and recorded trial history')
+      console.log('[delete-account] Step 21 completed: hard-deleted businesses and recorded trial history')
     }
 
     // Step 22: Delete the Supabase Auth user last
