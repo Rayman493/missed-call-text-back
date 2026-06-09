@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Calendar, Clock, FileText, Tag } from 'lucide-react'
 
 interface EventComposerProps {
@@ -8,16 +8,21 @@ interface EventComposerProps {
   onClose: () => void
   onSave: (event: any) => Promise<void>
   selectedDate?: Date | null
+  prefill?: {
+    title?: string
+    description?: string
+    eventType?: string
+  }
 }
 
-export default function EventComposer({ isOpen, onClose, onSave, selectedDate }: EventComposerProps) {
-  const [title, setTitle] = useState('')
+export default function EventComposer({ isOpen, onClose, onSave, selectedDate, prefill }: EventComposerProps) {
+  const [title, setTitle] = useState(prefill?.title || '')
   const [date, setDate] = useState(selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
   const [startTime, setStartTime] = useState('09:00')
-  const [endTime, setEndTime] = useState('09:30')
+  const [endTime, setEndTime] = useState('10:00') // Default 60 min duration
   const [allDay, setAllDay] = useState(false)
-  const [description, setDescription] = useState('')
-  const [eventType, setEventType] = useState('appointment')
+  const [description, setDescription] = useState(prefill?.description || '')
+  const [eventType, setEventType] = useState(prefill?.eventType || 'appointment')
   const [isSaving, setIsSaving] = useState(false)
 
   const eventTypes = [
@@ -27,6 +32,15 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate }:
     { value: 'personal', label: 'Personal' },
     { value: 'other', label: 'Other' },
   ]
+
+  // Sync prefill values when modal opens
+  useEffect(() => {
+    if (isOpen && prefill) {
+      setTitle(prefill.title || '')
+      setDescription(prefill.description || '')
+      setEventType(prefill.eventType || 'appointment')
+    }
+  }, [isOpen, prefill])
 
   const handleSave = async () => {
     if (!title || !date) {

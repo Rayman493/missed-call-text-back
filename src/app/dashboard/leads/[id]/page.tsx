@@ -25,6 +25,7 @@ import { ImageMessage } from '@/components/ImageMessage'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
 import { HelpContext } from '@/components/HelpAssistant'
+import EventComposer from '@/components/calendar/EventComposer'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -132,6 +133,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [mobileImages, setMobileImages] = useState<File[]>([])
   const mobileFileInputRef = useRef<HTMLInputElement>(null)
   const clearComposerImagesRef = useRef<(() => void) | null>(null)
+  const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
   
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -1213,6 +1215,58 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
+  const handleAppointmentSave = async (event: any) => {
+    try {
+      const response = await fetch('/api/google/calendar/create-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(event),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create appointment')
+      }
+
+      const data = await response.json()
+
+      // Store appointment data in lead metadata
+      const appointmentData = {
+        googleEventId: data.event.id,
+        googleEventLink: data.event.htmlLink,
+        title: data.event.summary,
+        start: data.event.start,
+        end: data.event.end,
+        scheduledAt: new Date().toISOString()
+      }
+
+      await supabase
+        .from('leads')
+        .update({
+          raw_metadata: {
+            ...(leadData?.raw_metadata || {}),
+            appointment: appointmentData
+          }
+        })
+        .eq('id', params.id)
+
+      // Refresh lead data
+      const updatedLead = await getLeadDetails(params.id)
+      if (updatedLead) {
+        setLeadData(updatedLead)
+      }
+
+      setSuccessMessage('Appointment scheduled successfully')
+      setIsAppointmentModalOpen(false)
+    } catch (error: any) {
+      console.error('Failed to create appointment:', error)
+      setError(error.message || 'Failed to create appointment')
+    }
+  }
+
   const handleRetry = async (messageBody: string, messageId?: string, clientTempId?: string) => {
     if (sending) return
     
@@ -1501,6 +1555,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <span>{Object.keys(leadData.raw_metadata.corrected_fields).length} Customer Correction{Object.keys(leadData.raw_metadata.corrected_fields).length > 1 ? 's' : ''}</span>
                       </span>
                     )}
+                    {leadData?.raw_metadata?.appointment && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>Appointment Scheduled</span>
+                      </span>
+                    )}
                   </div>
 
                   {/* Quick Actions */}
@@ -1515,6 +1577,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </svg>
                     </button>
                     <button
+                      onClick={() => setIsAppointmentModalOpen(true)}
+                      className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 transition-colors"
+                      title="Schedule Appointment"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                    <button
                       onClick={() => {
                         const composer = document.querySelector('textarea[name="message"]') as HTMLTextAreaElement
                         if (composer) composer.focus()
@@ -1526,8 +1597,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                     </button>
-                    <LeadStatusDropdown 
-                      currentStatus={leadData?.status || 'new'} 
+                    <LeadStatusDropdown
+                      currentStatus={leadData?.status || 'new'}
                       onStatusChange={async (newStatus) => {
                         // Status change handled by dropdown
                       }}
@@ -2583,6 +2654,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       onClose={() => {
         setPhotoModalOpen(false)
         setSelectedPhotoUrl('')
+      }}
+    />
+
+    {/* Appointment Modal */}
+    <EventComposer
+      isOpen={isAppointmentModalOpen}
+      onClose={() => setIsAppointmentModalOpen(false)}
+      onSave={handleAppointmentSave}
+      prefill={{
+        title: `Appointment - ${leadData?.contact_name || leadData?.caller_phone || 'Lead'}`,
+        description: `Phone: ${formatPhoneNumber(leadData?.caller_phone || '')}${leadData?.company_name ? `\nCompany: ${leadData.company_name}` : ''}`,
+        eventType: 'appointment'
       }}
     />
     </DashboardErrorBoundary>
