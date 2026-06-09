@@ -126,7 +126,7 @@ export default function DesktopConversationMessageList({
             )}
             
             {/* Message Content */}
-            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} max-w-[85%] ${!isInbound && !shouldShowAvatar ? 'ml-10' : ''}`}>
+            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isOutbound ? 'max-w-[70%]' : 'max-w-[85%]'} ${!isInbound && !shouldShowAvatar ? 'ml-10' : ''}`}>
               {/* Message Bubble - Desktop styling */}
               <div
                 className={`rounded-2xl shadow-sm ${

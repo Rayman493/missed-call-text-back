@@ -256,6 +256,33 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
     return 'Contacted'
   }
 
+  // Helper to get structured AI data from lead
+  const getAIData = (lead: any): { reason: string | null; urgency: string | null; details: string | null } => {
+    // Try to get extracted_info from raw_metadata
+    const extractedInfo = lead.raw_metadata?.extracted_info || lead.raw_metadata?.ai_extracted_info
+    const correctedFields = lead.raw_metadata?.corrected_fields
+
+    // Get reason
+    let reason = extractedInfo?.reasonForCalling || extractedInfo?.reason || null
+    if (correctedFields?.reason) {
+      reason = correctedFields.reason
+    }
+
+    // Get urgency
+    let urgency = extractedInfo?.urgencyLevel || extractedInfo?.urgency || null
+    if (correctedFields?.urgency) {
+      urgency = correctedFields.urgency
+    }
+
+    // Get details
+    let details = extractedInfo?.importantDetails || extractedInfo?.details || null
+    if (correctedFields?.details) {
+      details = correctedFields.details
+    }
+
+    return { reason, urgency, details }
+  }
+
   const getLeadStage = (lead: any) => {
     const hasInbound = lead.messages?.some((m: any) => m.direction === 'inbound')
     const hasOutboundAfterInbound = lead.messages?.some((m: any) => {
@@ -402,53 +429,89 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
         ) : (
           <>
             {/* CRM-style Summary Card for First Lead */}
-            {leads.length > 0 && (
-              <Link href={`/dashboard/leads/${leads[0].id}`} className="block">
-                <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:shadow-md transition-all duration-300 cursor-pointer">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <p className="text-base font-semibold text-slate-900 dark:text-white mb-1">
-                        {getLeadDisplayName(leads[0])}
-                      </p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                        {formatPhoneNumber(leads[0].phone_number)}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                          getLeadStatus(leads[0]) === 'Awaiting Response' 
-                            ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/30'
-                            : getLeadStatus(leads[0]) === 'New'
-                            ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/30'
-                            : 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800/30'
-                        }`}>
-                          🟢 {getLeadStatus(leads[0])}
-                        </span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          {formatRelativeTime(leads[0].created_at)}
-                        </span>
-                      </div>
-                    </div>
-                    {leads[0].voicemail_recordings && leads[0].voicemail_recordings.length > 0 && (
-                      <span className="text-blue-600 dark:text-blue-400 text-lg">📞</span>
-                    )}
-                  </div>
-                  
-                  {/* Conversation Preview */}
-                  {leads[0].messages && leads[0].messages.length > 0 && (
-                    <div className="mb-3">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Latest message:</p>
-                      <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2 italic">
-                        "{leads[0].messages[0].body}"
-                      </p>
-                    </div>
-                  )}
+            {leads.length > 0 && (() => {
+              const latestLead = leads[0]
+              const aiData = getAIData(latestLead)
 
-                  <div className="flex items-center text-blue-600 dark:text-blue-400 text-sm font-medium hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
-                    View Conversation →
+              return (
+                <Link href={`/dashboard/leads/${latestLead.id}`} className="block">
+                  <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:shadow-md transition-all duration-300 cursor-pointer">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <p className="text-base font-semibold text-slate-900 dark:text-white mb-1">
+                          {getLeadDisplayName(latestLead)}
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                          {formatPhoneNumber(latestLead.phone_number)}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            getLeadStatus(latestLead) === 'Awaiting Response'
+                              ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/30'
+                              : getLeadStatus(latestLead) === 'New'
+                              ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/30'
+                              : 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800/30'
+                          }`}>
+                            🟢 {getLeadStatus(latestLead)}
+                          </span>
+                          {aiData.urgency && (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                              aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
+                                ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/30'
+                                : 'bg-slate-100 dark:bg-slate-900/20 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/30'
+                            }`}>
+                              🔥 {aiData.urgency}
+                            </span>
+                          )}
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            {formatRelativeTime(latestLead.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                      {latestLead.voicemail_recordings && latestLead.voicemail_recordings.length > 0 && (
+                        <span className="text-blue-600 dark:text-blue-400 text-lg">📞</span>
+                      )}
+                    </div>
+
+                    {/* AI Summary */}
+                    {aiData.reason || aiData.details ? (
+                      <div className="mb-3 space-y-1.5">
+                        {aiData.reason && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">📋</span>
+                            <p className="text-sm text-slate-700 dark:text-slate-300">
+                              {aiData.reason}
+                            </p>
+                          </div>
+                        )}
+                        {aiData.details && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">📝</span>
+                            <p className="text-sm text-slate-700 dark:text-slate-300">
+                              {aiData.details}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* Fallback to conversation preview if no AI data */
+                      latestLead.messages && latestLead.messages.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Latest message:</p>
+                          <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2 italic">
+                            "{latestLead.messages[0].body}"
+                          </p>
+                        </div>
+                      )
+                    )}
+
+                    <div className="flex items-center text-blue-600 dark:text-blue-400 text-sm font-medium hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+                      View Conversation →
+                    </div>
                   </div>
-                </div>
-              </Link>
-            )}
+                </Link>
+              )
+            })()}
 
             {/* Remaining leads as compact list */}
             {leads.length > 1 && (

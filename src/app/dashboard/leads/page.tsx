@@ -58,19 +58,46 @@ function getCompactSummary(lead: any): string {
     const firstLine = aiSummary.split('\n')[0]
     return truncateText(firstLine, 80)
   }
-  
+
   // Fall back to latest message
   if (lead.messages && lead.messages.length > 0) {
-    const latestMessage = lead.messages.sort((a: any, b: any) => 
+    const latestMessage = lead.messages.sort((a: any, b: any) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )[0]
     if (latestMessage && latestMessage.body) {
       return truncateText(latestMessage.body, 80)
     }
   }
-  
+
   // Fall back to "Tap to view full intake"
   return 'Tap to view full intake'
+}
+
+// Helper to get structured AI data for lead card
+function getAIData(lead: any): { reason: string | null; urgency: string | null; details: string | null } {
+  // Try to get extracted_info from ai_call_records in raw_metadata
+  const extractedInfo = lead.raw_metadata?.extracted_info || lead.raw_metadata?.ai_extracted_info
+  const correctedFields = lead.raw_metadata?.corrected_fields
+
+  // Get reason
+  let reason = extractedInfo?.reasonForCalling || extractedInfo?.reason || null
+  if (correctedFields?.reason) {
+    reason = correctedFields.reason
+  }
+
+  // Get urgency
+  let urgency = extractedInfo?.urgencyLevel || extractedInfo?.urgency || null
+  if (correctedFields?.urgency) {
+    urgency = correctedFields.urgency
+  }
+
+  // Get details
+  let details = extractedInfo?.importantDetails || extractedInfo?.details || null
+  if (correctedFields?.details) {
+    details = correctedFields.details
+  }
+
+  return { reason, urgency, details }
 }
 
 // Helper to get address from lead
@@ -992,6 +1019,7 @@ export default function LeadsPage() {
                   const isNewLead = (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
                   let statusBadge = getLeadStatusLabel(getLeadLifecycleStatus(lead))
                   const statusClasses = getLeadStatusClasses(getLeadLifecycleStatus(lead))
+                  const aiData = getAIData(lead)
 
                   return (
                     <div className="flex flex-col items-center">
@@ -1030,12 +1058,37 @@ export default function LeadsPage() {
 
                           {/* Compact Preview */}
                           <div className="mb-4 space-y-2">
-                            <p className="text-sm text-slate-700 dark:text-slate-300">
-                              {getCompactSummary(lead)}
-                            </p>
-                            {getAddress(lead) && (
-                              <p className="text-xs text-slate-500 dark:text-slate-400">
-                                {getAddress(lead)}
+                            {aiData.reason && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">📋</span>
+                                <p className="text-sm text-slate-700 dark:text-slate-300">
+                                  {aiData.reason}
+                                </p>
+                              </div>
+                            )}
+                            {aiData.details && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">📝</span>
+                                <p className="text-sm text-slate-700 dark:text-slate-300">
+                                  {aiData.details}
+                                </p>
+                              </div>
+                            )}
+                            {aiData.urgency && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm">🔥</span>
+                                <span className={`text-sm font-medium ${
+                                  aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-slate-700 dark:text-slate-300'
+                                }`}>
+                                  {aiData.urgency}
+                                </span>
+                              </div>
+                            )}
+                            {!aiData.reason && !aiData.details && !aiData.urgency && (
+                              <p className="text-sm text-slate-700 dark:text-slate-300">
+                                {getCompactSummary(lead)}
                               </p>
                             )}
                           </div>
@@ -1110,6 +1163,7 @@ export default function LeadsPage() {
 
                         let statusBadge = getLeadStatusLabel(getLeadLifecycleStatus(lead))
                         const statusClasses = getLeadStatusClasses(getLeadLifecycleStatus(lead))
+                        const aiData = getAIData(lead)
 
                         return (
                           <Link
@@ -1146,12 +1200,37 @@ export default function LeadsPage() {
 
                               {/* Compact Preview */}
                               <div className="mb-3 space-y-1.5">
-                                <p className="text-xs text-slate-700 dark:text-slate-300">
-                                  {getCompactSummary(lead)}
-                                </p>
-                                {getAddress(lead) && (
-                                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                                    {getAddress(lead)}
+                                {aiData.reason && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs">📋</span>
+                                    <p className="text-xs text-slate-700 dark:text-slate-300">
+                                      {aiData.reason}
+                                    </p>
+                                  </div>
+                                )}
+                                {aiData.details && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs">📝</span>
+                                    <p className="text-xs text-slate-700 dark:text-slate-300">
+                                      {aiData.details}
+                                    </p>
+                                  </div>
+                                )}
+                                {aiData.urgency && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs">🔥</span>
+                                    <span className={`text-xs font-medium ${
+                                      aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
+                                        ? 'text-red-600 dark:text-red-400'
+                                        : 'text-slate-700 dark:text-slate-300'
+                                    }`}>
+                                      {aiData.urgency}
+                                    </span>
+                                  </div>
+                                )}
+                                {!aiData.reason && !aiData.details && !aiData.urgency && (
+                                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                                    {getCompactSummary(lead)}
                                   </p>
                                 )}
                               </div>

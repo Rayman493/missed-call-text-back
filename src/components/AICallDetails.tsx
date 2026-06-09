@@ -172,19 +172,49 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const hasCustomerCorrections = leadData?.raw_metadata?.customer_corrected_info || leadData?.raw_metadata?.corrected_fields
   const correctedFields = leadData?.raw_metadata?.corrected_fields
   const previousValues = leadData?.raw_metadata?.previous_values
+  const correctionsCount = leadData?.raw_metadata?.corrections_count || 0
+  const lastCorrectionField = leadData?.raw_metadata?.last_correction_field
+
+  // Get last correction field name for display
+  const getFieldName = (field: string) => {
+    const fieldNames: Record<string, string> = {
+      'addressOrLocation': 'Address',
+      'address': 'Address',
+      'callbackNumber': 'Phone',
+      'phone': 'Phone',
+      'preferredCallbackTime': 'Callback Time',
+      'callback_time': 'Callback Time',
+      'urgencyLevel': 'Urgency',
+      'urgency': 'Urgency',
+      'importantDetails': 'Details',
+      'details': 'Details',
+      'reasonForCalling': 'Reason',
+      'reason': 'Reason'
+    }
+    return fieldNames[field] || field
+  }
 
   return (
     <div className="space-y-4">
       {/* Customer Correction Badge */}
       {hasCustomerCorrections && (
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-              Customer Updated Information
-            </span>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                Corrections Made: {correctionsCount}
+              </span>
+            </div>
           </div>
-          
+
+          {/* Last Correction */}
+          {lastCorrectionField && (
+            <div className="text-xs text-amber-700 dark:text-amber-300 mb-2">
+              Last Correction: {getFieldName(lastCorrectionField)} updated by customer
+            </div>
+          )}
+
           {/* Display corrected fields */}
           {correctedFields && Object.keys(correctedFields).length > 0 && (
             <div className="space-y-2">
@@ -199,6 +229,81 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   {previousValues?.address && previousValues.address !== correctedFields.address && (
                     <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                       Previous: {previousValues.address}
+                    </div>
+                  )}
+                </div>
+              )}
+              {correctedFields.details && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-amber-200 dark:border-amber-700">
+                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                    Details
+                  </div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    {correctedFields.details}
+                  </div>
+                  {previousValues?.details && previousValues.details !== correctedFields.details && (
+                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Previous: {previousValues.details}
+                    </div>
+                  )}
+                </div>
+              )}
+              {correctedFields.phone && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-amber-200 dark:border-amber-700">
+                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                    Phone
+                  </div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    {correctedFields.phone}
+                  </div>
+                  {previousValues?.phone && previousValues.phone !== correctedFields.phone && (
+                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Previous: {previousValues.phone}
+                    </div>
+                  )}
+                </div>
+              )}
+              {correctedFields.callback_time && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-amber-200 dark:border-amber-700">
+                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                    Callback Time
+                  </div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    {correctedFields.callback_time}
+                  </div>
+                  {previousValues?.callback_time && previousValues.callback_time !== correctedFields.callback_time && (
+                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Previous: {previousValues.callback_time}
+                    </div>
+                  )}
+                </div>
+              )}
+              {correctedFields.urgency && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-amber-200 dark:border-amber-700">
+                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                    Urgency
+                  </div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    {correctedFields.urgency}
+                  </div>
+                  {previousValues?.urgency && previousValues.urgency !== correctedFields.urgency && (
+                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Previous: {previousValues.urgency}
+                    </div>
+                  )}
+                </div>
+              )}
+              {correctedFields.reason && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-amber-200 dark:border-amber-700">
+                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                    Reason
+                  </div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    {correctedFields.reason}
+                  </div>
+                  {previousValues?.reason && previousValues.reason !== correctedFields.reason && (
+                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Previous: {previousValues.reason}
                     </div>
                   )}
                 </div>
@@ -263,6 +368,18 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </p>
             </div>
           </div>
+
+          {/* Details */}
+          {(extractedInfo?.importantDetails || correctedFields?.details) && (
+            <div className="flex items-center gap-2">
+              <span className="text-base">📝</span>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {correctedFields?.details || extractedInfo?.importantDetails}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Location */}
           {(extractedInfo?.addressOrLocation || correctedFields?.address) && (
