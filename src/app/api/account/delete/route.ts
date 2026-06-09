@@ -18,6 +18,14 @@ interface DeleteResult {
     tablesDeleted: { [key: string]: number }
     twilioNumberReleased?: string
     authDeletionResult?: string
+    stripeResult?: {
+      customerId: string | null
+      subscriptionId: string | null
+      cancellationAttempted: boolean
+      cancellationSucceeded: boolean
+      error: string | null
+      dryRun?: boolean
+    }
   }
 }
 
@@ -60,6 +68,13 @@ export async function POST(request: NextRequest) {
     const summary: any = {
       userId: user.id,
       tablesDeleted: {} as { [key: string]: number },
+      stripeResult: {
+        customerId: null,
+        subscriptionId: null,
+        cancellationAttempted: false,
+        cancellationSucceeded: false,
+        error: null,
+      },
     }
 
     // Step 1: Find all businesses for this user (include Stripe + Twilio fields)
@@ -79,6 +94,12 @@ export async function POST(request: NextRequest) {
 
     const businessIds = businesses?.map((b: any) => b.id) || []
     summary.businessId = businessIds[0]
+
+    // Populate Stripe result from first business
+    if (businesses && businesses.length > 0) {
+      summary.stripeResult.customerId = businesses[0].stripe_customer_id || null
+      summary.stripeResult.subscriptionId = businesses[0].stripe_subscription_id || null
+    }
 
     console.log('[delete-account] Found businesses:', businessIds.length, businessIds)
 
@@ -438,7 +459,7 @@ export async function POST(request: NextRequest) {
       summary.tablesDeleted.leads = leadsCount || 0
       console.log('[delete-account] Step 18 completed: deleted leads:', leadsCount)
 
-      // Step 19: Cancel any active Stripe subscriptions BEFORE soft-deleting businesses
+      // Step 19: Cancel any active Stripe subscriptions BEFORE deleting businesses
       if (!dryRun && businesses && businesses.length > 0) {
         const stripe = getStripe()
         const subsToCancel = (businesses as any[]).filter(
@@ -456,6 +477,8 @@ export async function POST(request: NextRequest) {
 
           for (const b of subsToCancel) {
             console.log('[delete-account] Cancelling Stripe subscription:', b.stripe_subscription_id)
+            summary.stripeResult.cancellationAttempted = true
+            
             try {
               const cancelled = await stripe.subscriptions.cancel(b.stripe_subscription_id)
               console.log('[delete-account] Stripe cancellation result:', {
@@ -465,6 +488,14 @@ export async function POST(request: NextRequest) {
               if (cancelled.status !== 'canceled') {
                 throw new Error(`Stripe returned unexpected status: ${cancelled.status}`)
               }
+              
+              // Successful cancellation
+              summary.stripeResult.cancellationSucceeded = true
+              console.log('[ACCOUNT DELETE] Stripe subscription cancelled successfully', {
+                customerId: b.stripe_customer_id,
+                subscriptionId: b.stripe_subscription_id,
+              })
+              
               // Reflect cancellation in DB before continuing
               await supabaseAdmin
                 .from('businesses')
@@ -475,7 +506,15 @@ export async function POST(request: NextRequest) {
               const code = cancelErr?.code || cancelErr?.raw?.code
               if (code === 'resource_missing') {
                 console.warn('[delete-account] Subscription already gone in Stripe, continuing:', b.stripe_subscription_id)
+                summary.stripeResult.cancellationSucceeded = true // Already cancelled
               } else {
+                summary.stripeResult.cancellationSucceeded = false
+                summary.stripeResult.error = cancelErr?.message || String(cancelErr)
+                console.log('[ACCOUNT DELETE] Stripe cancellation failed', {
+                  customerId: b.stripe_customer_id,
+                  subscriptionId: b.stripe_subscription_id,
+                  error: cancelErr?.message || String(cancelErr),
+                })
                 console.error('[delete-account] Stripe cancellation failed:', cancelErr)
                 return NextResponse.json(
                   {
@@ -528,6 +567,15 @@ export async function POST(request: NextRequest) {
             }
           }
         }
+      } else if (dryRun && businesses && businesses.length > 0) {
+        // Dry-run mode: just log that cancellation would be attempted
+        const subsToCancel = (businesses as any[]).filter(
+          (b) => b.stripe_subscription_id && ACTIVE_SUB_STATUSES.has(b.subscription_status || '')
+        )
+        if (subsToCancel.length > 0) {
+          console.log('[delete-account] DRY RUN: Would cancel Stripe subscriptions:', subsToCancel.map((b) => b.stripe_subscription_id))
+        }
+        summary.stripeResult.dryRun = true
       }
 
       // Step 21: Hard-delete businesses and record trial history
@@ -607,7 +655,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[delete-account] Step 22 completed')
-    console.log('[delete-account] Deletion summary:', summary)
+    console.log('[ACCOUNT DELETE COMPLETE]', {
+      userId: summary.userId,
+      businessId: summary.businessId,
+      stripeResult: summary.stripeResult,
+      twilioNumberReleased: summary.twilioNumberReleased,
+      tablesDeleted: summary.tablesDeleted,
+      authDeletionResult: summary.authDeletionResult,
+    })
 
     return NextResponse.json({ ok: true, dryRun, summary })
   } catch (error) {
