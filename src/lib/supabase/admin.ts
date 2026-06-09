@@ -468,15 +468,15 @@ export const db = {
 
   async getBusinessByTwilioNumber(phone: string): Promise<{ business: Business | null; source: string } | null> {
     console.log('[getBusinessByTwilioNumber] Looking up business for phone:', phone)
-    
+
     // CRITICAL: Only use twilio_numbers table (dedicated number architecture)
     // Legacy fallback removed for routing safety
-    // Accept multiple valid statuses: 'assigned' and 'active'
+    // Look up by phone_number + non-null business_id (not status, to handle inconsistent data)
     const { data: twilioNumber, error: twilioError } = await supabaseAdmin
       .from('twilio_numbers')
       .select('id, business_id, phone_number, status')
       .eq('phone_number', phone)
-      .in('status', ['assigned', 'active'])
+      .not('business_id', 'is', null)
       .single()
 
     if (twilioError) {
@@ -490,6 +490,15 @@ export const db = {
     if (!twilioNumber || !twilioNumber.business_id) {
       console.error('[getBusinessByTwilioNumber] No valid twilio_number found for phone:', phone)
       return null
+    }
+
+    // Warn if status is inconsistent (has business_id but not 'assigned' or 'active')
+    if (twilioNumber && !['assigned', 'active'].includes(twilioNumber.status)) {
+      console.warn('[getBusinessByTwilioNumber] Assigned number has unexpected status', {
+        phone,
+        businessId: twilioNumber.business_id,
+        status: twilioNumber.status
+      })
     }
 
     console.log('[getBusinessByTwilioNumber] Found twilio_number:', twilioNumber.id, 'business_id:', twilioNumber.business_id, 'status:', twilioNumber.status)
