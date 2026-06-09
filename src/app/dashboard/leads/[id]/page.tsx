@@ -1532,44 +1532,49 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="flex items-start gap-4 flex-1 min-w-0">
               {/* Lead Details */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-4 mb-2">
-                  <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-3 mb-2">
+                  {/* Name and Phone */}
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-tight truncate">
+                      {leadData?.contact_name || formatPhoneNumber(lead?.caller_phone || '')}
+                    </h1>
                     {leadData?.contact_name && (
-                      <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white leading-tight truncate">
-                        {leadData.contact_name}
-                      </h1>
-                    )}
-                    <h2 className="text-xl sm:text-2xl font-medium text-slate-700 dark:text-slate-300 leading-tight truncate">
-                      {formatPhoneNumber(lead?.caller_phone || '')}
-                    </h2>
-                  </div>
-                  
-                  {/* Modern Status Badge */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium border ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
-                      {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
-                    </span>
-                    {leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0 && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                        <span>⚠</span>
-                        <span>{Object.keys(leadData.raw_metadata.corrected_fields).length} Customer Correction{Object.keys(leadData.raw_metadata.corrected_fields).length > 1 ? 's' : ''}</span>
-                      </span>
-                    )}
-                    {leadData?.raw_metadata?.appointment && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span>Appointment Scheduled</span>
-                      </span>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        {formatPhoneNumber(lead?.caller_phone || '')}
+                      </p>
                     )}
                   </div>
 
+                  {/* Status Badge */}
+                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))} flex-shrink-0`}>
+                    {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
+                  </span>
+
+                  {/* Correction Badge */}
+                  {leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0 && (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex-shrink-0">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span>{Object.keys(leadData.raw_metadata.corrected_fields).length}</span>
+                    </span>
+                  )}
+
+                  {/* Appointment Badge */}
+                  {leadData?.raw_metadata?.appointment && (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 flex-shrink-0">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span>Appointment</span>
+                    </span>
+                  )}
+
                   {/* Quick Actions */}
-                  <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+                  <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
                     <button
                       onClick={() => window.open(`tel:${lead?.caller_phone}`, '_self')}
-                      className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+                      className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
                       title="Call"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1578,7 +1583,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </button>
                     <button
                       onClick={() => setIsAppointmentModalOpen(true)}
-                      className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 transition-colors"
+                      className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 transition-colors"
                       title="Schedule Appointment"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1590,7 +1595,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         const composer = document.querySelector('textarea[name="message"]') as HTMLTextAreaElement
                         if (composer) composer.focus()
                       }}
-                      className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20 hover:bg-blue-200 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 transition-colors"
+                      className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/20 hover:bg-blue-200 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 transition-colors"
                       title="Send Text"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1605,47 +1610,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     />
                   </div>
                 </div>
-                
-                {/* Service/Company Name */}
-                {leadData?.company_name && (
-                  <div className="mb-2">
-                    <p className="text-base text-slate-600 dark:text-slate-400 truncate">
-                      {leadData.company_name}
-                    </p>
-                  </div>
-                )}
-                
-                {/* AI Intake Status */}
-                {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
-                  <div className="mb-2">
-                    <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-                      • AI Intake Complete
-                    </p>
-                  </div>
-                )}
-                
-                {/* Enhanced Lead Meta */}
-                <div className="flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-400">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="font-medium">Created {formatRelativeTime(lead?.created_at)}</span>
-                  </div>
-                  {lead?.last_message_at && (
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      <span className="font-medium">Last Activity {formatRelativeTime(lead.last_message_at)}</span>
-                    </div>
+
+                {/* Compact Meta Row */}
+                <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400 flex-wrap">
+                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
+                    <span className="text-green-600 dark:text-green-400 font-medium">
+                      AI Intake Complete
+                    </span>
                   )}
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                    </svg>
-                    <span className="font-medium">{messagesArray.length} Messages</span>
-                  </div>
+                  <span>•</span>
+                  <span>Created {formatRelativeTime(lead?.created_at)}</span>
+                  {lead?.last_message_at && (
+                    <>
+                      <span>•</span>
+                      <span>Last Activity {formatRelativeTime(lead.last_message_at)}</span>
+                    </>
+                  )}
+                  <span>•</span>
+                  <span>{messagesArray.length} Messages</span>
+                  {leadData?.company_name && (
+                    <>
+                      <span>•</span>
+                      <span className="truncate">{leadData.company_name}</span>
+                    </>
+                  )}
                 </div>
               </div>
               
@@ -2197,11 +2185,39 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Lead Health Card */}
           <div className="bg-card border border-border rounded-xl p-4">
             <h3 className="text-sm font-semibold text-foreground mb-3">Lead Health</h3>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: '75%' }}></div>
+            <div className="space-y-2">
+              {/* AI Intake */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">AI Intake</span>
+                <span className={`text-xs font-medium ${leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 ? 'Complete' : 'Not Started'}
+                </span>
               </div>
-              <span className="text-sm font-medium text-foreground">75%</span>
+              {/* Customer Replied */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Customer Replied</span>
+                <span className={`text-xs font-medium ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                  {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Yes' : 'No'}
+                </span>
+              </div>
+              {/* Corrections Made */}
+              {leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Corrections</span>
+                  <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                    {Object.keys(leadData.raw_metadata.corrected_fields).length}
+                  </span>
+                </div>
+              )}
+              {/* Appointment */}
+              {leadData?.raw_metadata?.appointment && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Appointment</span>
+                  <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                    Scheduled
+                  </span>
+                </div>
+              )}
             </div>
           </div>
           

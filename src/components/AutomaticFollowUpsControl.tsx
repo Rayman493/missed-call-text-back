@@ -145,14 +145,12 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, leadDa
         }`}>
           {hasAnyActiveJobs ? 'Active' : 'Inactive'}
         </span>
-        <span className="text-xs text-muted-foreground">Customer Replied</span>
-        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-          customerReplied
-            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800/30'
-            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-        }`}>
-          {customerReplied ? 'Yes' : 'No'}
-        </span>
+        {autoReplySent && (
+          <>
+            <span>•</span>
+            <span className="text-xs text-muted-foreground">Auto Reply Sent</span>
+          </>
+        )}
       </div>
 
       {/* Compact Follow-Up Jobs */}
