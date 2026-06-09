@@ -145,17 +145,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Lead does not belong to specified business' }, { status: 403 })
     }
 
-    // Debug logging for extractedInfo keys
-    console.log('[AI CONTACT NAME DEBUG]', {
-      leadId,
-      extractedInfo,
-      extractedInfoKeys: extractedInfo ? Object.keys(extractedInfo) : [],
-      caller_name: extractedInfo?.caller_name,
-      name: extractedInfo?.name,
-      contact_name: extractedInfo?.contact_name,
-      customer_name: extractedInfo?.customer_name
-    })
-
     // Persist AI extracted caller name to leads.raw_metadata
     const extractedName =
       extractedInfo?.caller_name ||
@@ -163,12 +152,19 @@ export async function POST(request: NextRequest) {
       extractedInfo?.contact_name ||
       extractedInfo?.customer_name
 
+    // Debug logging for extractedInfo keys
+    console.log('[AI CONTACT NAME DEBUG]', {
+      leadId,
+      extractedInfo,
+      extractedInfoKeys: extractedInfo ? Object.keys(extractedInfo) : [],
+      extractedName
+    })
+
     if (extractedName) {
-      console.log('[AI CONTACT NAME UPDATE]', {
+      console.log('[AI CONTACT NAME UPDATE ATTEMPT]', {
         leadId,
-        currentRawMetadata: lead.raw_metadata,
         extractedName,
-        sourceField: extractedInfo?.caller_name ? 'caller_name' : extractedInfo?.name ? 'name' : extractedInfo?.contact_name ? 'contact_name' : extractedInfo?.customer_name ? 'customer_name' : 'unknown'
+        existingRawMetadata: lead.raw_metadata
       })
 
       // Merge into raw_metadata without overwriting existing metadata
@@ -188,6 +184,12 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', leadId)
 
+      console.log('[AI CONTACT NAME UPDATE RESULT]', {
+        leadId,
+        success: !updateLeadError,
+        error: updateLeadError
+      })
+
       if (updateLeadError) {
         console.error('[AI CONTACT NAME UPDATE] Failed to update lead raw_metadata:', updateLeadError)
       } else {
@@ -195,6 +197,18 @@ export async function POST(request: NextRequest) {
           leadId,
           caller_name: extractedName,
           extracted_info_name: extractedName
+        })
+
+        // Verify update by re-querying the lead
+        const { data: updatedLead } = await supabaseAdmin
+          .from('leads')
+          .select('id, raw_metadata')
+          .eq('id', leadId)
+          .single()
+
+        console.log('[AI CONTACT NAME VERIFY]', {
+          leadId,
+          rawMetadata: updatedLead?.raw_metadata
         })
       }
     }
