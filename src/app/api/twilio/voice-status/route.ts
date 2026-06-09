@@ -713,6 +713,36 @@ export async function POST(req: NextRequest) {
           })
         }
 
+        // Final suppression check: Ensure no standard missed-call SMS is sent after AI intake completed
+        // This check must be placed directly before sendSms() for the standard missed-call auto-reply
+        if (messageTemplate === 'missed_call' || messageTemplate === 'after_hours') {
+          console.log('[STANDARD SMS SUPPRESSION CHECK]', {
+            callSid: CallSid,
+            leadId: lead.id,
+            conversationId: conversation?.id,
+            messageTemplate
+          })
+
+          // Find AI call record by CallSid, lead_id, or conversation_id
+          const { data: finalAiCheck } = await supabase
+            .from('ai_call_records')
+            .select('id, outcome, call_sid, lead_id, conversation_id')
+            .or(`call_sid.eq.${CallSid},lead_id.eq.${lead.id},conversation_id.eq.${conversation?.id}`)
+            .limit(1)
+            .maybeSingle()
+
+          if (finalAiCheck && finalAiCheck.outcome === 'completed') {
+            console.log('[STANDARD SMS SUPPRESSED AI COMPLETED]', {
+              callSid: CallSid,
+              leadId: lead.id,
+              conversationId: conversation?.id,
+              aiCallRecordId: finalAiCheck.id,
+              reason: 'ai_intake_completed'
+            })
+            autoReplyMessage = null
+          }
+        }
+
         messageSid = await sendSms(business, From, personalizedMessage, {
           lead_id: lead.id,
           conversation_id: conversation?.id,

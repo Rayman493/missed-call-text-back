@@ -933,18 +933,37 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   
   // Send auto-acknowledgment via sendSms for database persistence
   if (source === 'twilio') {
-    // Check if this is the first customer reply after AI intake
-    const hadAlreadyReplied = aiCallRecord?.extracted_info?.customer_replied || false
+    // Check if an outbound acknowledgement already exists in this conversation
+    const knownAcknowledgements = [
+      'Thanks for the correction. We\'ll make sure the business sees the updated information.',
+      'Thanks. We\'ll pass your preferred time along to the business.',
+      'Thanks for reaching out. The business will follow up with you directly.',
+      'Thanks for the update. We\'ll pass this along to the business.'
+    ]
 
-    console.log('[AUTO ACK EXACT PATH HIT]', {
-      leadId: lead.id,
+    const { data: existingAckMessages } = await supabaseAdmin
+      .from('messages')
+      .select('id, body')
+      .eq('conversation_id', conversation.id)
+      .eq('direction', 'outbound')
+      .in('body', knownAcknowledgements)
+      .limit(1)
+      .maybeSingle()
+
+    const existingAckFound = !!existingAckMessages
+
+    console.log('[AI REPLY ACK DECISION]', {
       conversationId: conversation.id,
-      businessId: business.id,
-      hadAlreadyReplied
+      leadId: lead.id,
+      incomingBody: body,
+      aiCallRecordFound: !!aiCallRecord,
+      existingAckFound,
+      decision: existingAckFound ? 'skip' : 'send',
+      reason: existingAckFound ? 'acknowledgement already sent' : 'first reply after AI intake'
     });
 
-    // Only send acknowledgement if customer is replying for the first time after AI intake
-    if (!hadAlreadyReplied) {
+    // Only send acknowledgement if no prior automated acknowledgement exists in this conversation
+    if (!existingAckFound) {
       console.log('[AUTO ACK CONVERSATION ID BEFORE SEND]', conversation.id);
       console.log('[AUTO ACK LEAD ID BEFORE SEND]', lead.id);
 
@@ -981,10 +1000,10 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         });
       }
     } else {
-      console.log('[AUTO ACK SKIPPED - ALREADY REPLIED]', {
+      console.log('[AUTO ACK SKIPPED - ALREADY SENT]', {
         leadId: lead.id,
         conversationId: conversation.id,
-        hadAlreadyReplied
+        existingAckFound
       });
     }
   }
