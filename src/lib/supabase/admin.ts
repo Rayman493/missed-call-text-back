@@ -1159,23 +1159,23 @@ export const db = {
   // Conversation operations
   async getOpenConversationForLead(leadId: string, businessId: string): Promise<Conversation | null> {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-    
+
     const { data, error } = await supabaseAdmin
       .from('conversations')
       .select('*')
       .eq('lead_id', leadId)
       .eq('business_id', businessId)
-      .eq('status', 'open')
+      .in('status', ['open', 'active'])
       .gte('last_activity_at', thirtyDaysAgo)
       .order('last_activity_at', { ascending: false })
       .limit(1)
-      .single()
-    
+      .maybeSingle()
+
     if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
       console.error('Error fetching open conversation:', error)
       return null
     }
-    
+
     return data
   },
 

@@ -395,7 +395,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     leadId: lead.id
   })
 
-  const aiCallRecord = await db.getMostRecentAiCallRecordForLead(business.id, normalizedCustomerPhone)
+  const aiCallRecord = await db.getMostRecentAiCallRecordForLead(business.id, lead.id)
 
   if (aiCallRecord) {
     console.log('[INBOUND SMS AI CALL RECORD FOUND]', {
@@ -598,8 +598,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         })
 
         const leadWithCorrection = await db.updateLead(lead.id, {
-          raw_metadata: correctedMetadata,
-          updated_at: now
+          raw_metadata: correctedMetadata
         })
 
         if (leadWithCorrection) {
@@ -692,8 +691,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     const leadWithReplyFlag = await db.updateLead(lead.id, {
       raw_metadata: updatedMetadata,
       last_reply_at: now,
-      last_message_at: now,
-      updated_at: now
+      last_message_at: now
     })
 
     console.log('[LEAD RAW METADATA UPDATE AFTER]', {
