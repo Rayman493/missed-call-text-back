@@ -1837,7 +1837,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Customer Replied</span>
                     <span className="text-xs font-medium text-foreground">
-                      {leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied') ? 'Yes' : 'No'}
+                      {leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied') ? 'Yes' : 'No'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">

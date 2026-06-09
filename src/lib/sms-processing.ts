@@ -422,6 +422,14 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.log('[AI CORRECTION DETECTION RESULT]', correctionResult)
 
     if (correctionResult.isCorrection && correctionResult.fieldChanged && correctionResult.newValue) {
+      console.log('[AI REPLY CORRECTION DETECTED]', {
+        correctionType: correctionResult.fieldChanged,
+        oldValue: correctionResult.oldValue,
+        newValue: correctionResult.newValue,
+        incomingBody: body,
+        confidence: correctionResult.confidence
+      })
+
       console.log('[CORRECTION DETECTED]', {
         leadId: lead.id,
         field: correctionResult.fieldChanged,
@@ -586,6 +594,16 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 
   // Update AI call record with customer reply info (separate from correction updates)
   if (aiCallRecord) {
+    console.log('[AI REPLY HANDLING START]', {
+      leadId: lead.id,
+      conversationId: conversation.id,
+      incomingBody: body,
+      aiCallRecordFound: !!aiCallRecord,
+      aiOutcome: aiCallRecord.outcome,
+      customerRepliedBefore: aiCallRecord.extracted_info?.customer_replied,
+      correctionsBefore: lead.raw_metadata?.corrections_count || 0
+    })
+
     // Update AI call record with customer reply info
     const updatedAiCallRecord = await db.updateAiCallRecordCustomerReply(aiCallRecord.id, body)
 
@@ -608,7 +626,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     const updatedMetadata = {
       ...currentMetadata,
       last_customer_reply_at: now,
-      replied_after_ai_call: true
+      replied_after_ai_call: true,
+      customer_replied: true
     }
 
     const leadWithReplyFlag = await db.updateLead(lead.id, {
@@ -952,12 +971,15 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 
     const existingAckFound = !!existingAckMessages
 
+    const acknowledgementMessage = getCustomerReplyAcknowledgement(body)
+
     console.log('[AI REPLY ACK DECISION]', {
       conversationId: conversation.id,
       leadId: lead.id,
       incomingBody: body,
       aiCallRecordFound: !!aiCallRecord,
       existingAckFound,
+      acknowledgementMessage,
       decision: existingAckFound ? 'skip' : 'send',
       reason: existingAckFound ? 'acknowledgement already sent' : 'first reply after AI intake'
     });
