@@ -144,6 +144,22 @@ export default function CalendarPage() {
     setIsDayDetailOpen(true)
   }
 
+  const getTodayEvents = () => {
+    const now = new Date()
+    const startOfDay = new Date(now)
+    startOfDay.setHours(0, 0, 0, 0)
+    
+    const endOfDay = new Date(now)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    return events.filter(event => {
+      const eventDateRaw = event.start?.dateTime || event.start?.date
+      if (!eventDateRaw) return false
+      const eventDate = new Date(eventDateRaw)
+      return eventDate >= startOfDay && eventDate <= endOfDay
+    }).length
+  }
+
   const getThisWeekEvents = () => {
     const now = new Date()
     const startOfWeek = new Date(now)
@@ -510,28 +526,37 @@ export default function CalendarPage() {
                     <div>
                       {/* Calendar Summary Row */}
                       <div className="mb-4 sm:mb-6">
-                        <div className="flex items-center gap-6 sm:gap-8 p-4 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
-                          <div className="flex items-center gap-3">
-                            <div className="w-2.5 h-2.5 bg-blue-500 rounded-full shadow-sm shadow-blue-500/30"></div>
-                            <div>
-                              <p className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">Upcoming Events</p>
-                              <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground">{events.length}</p>
+                        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
+                          <div className="flex items-center gap-4 sm:gap-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-2.5 h-2.5 bg-red-500 rounded-full shadow-sm shadow-red-500/30"></div>
+                              <div>
+                                <p className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">Today</p>
+                                <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground">{getTodayEvents()}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-2.5 h-2.5 bg-green-500 rounded-full shadow-sm shadow-green-500/30"></div>
+                              <div>
+                                <p className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">This Week</p>
+                                <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground">{getThisWeekEvents()}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-2.5 h-2.5 bg-purple-500 rounded-full shadow-sm shadow-purple-500/30"></div>
+                              <div>
+                                <p className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">This Month</p>
+                                <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground">{getThisMonthEvents()}</p>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full shadow-sm shadow-green-500/30"></div>
-                            <div>
-                              <p className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">This Week</p>
-                              <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground">{getThisWeekEvents()}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-2.5 h-2.5 bg-purple-500 rounded-full shadow-sm shadow-purple-500/30"></div>
-                            <div>
-                              <p className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">This Month</p>
-                              <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground">{getThisMonthEvents()}</p>
-                            </div>
-                          </div>
+                          <button
+                            onClick={handleAddEvent}
+                            className="hidden md:flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors active:scale-95 shadow-md"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>New Appointment</span>
+                          </button>
                         </div>
                       </div>
 
