@@ -907,7 +907,54 @@ export async function POST(req: NextRequest) {
               callSid: CallSid
             })
 
-            // Use centralized createFollowUpJobs function to respect business settings
+            // Suppress follow-up creation for completed AI intake calls
+            if (aiCallRecord && aiCallRecord.outcome === 'completed') {
+              console.log('[AI FOLLOWUPS SUPPRESSED]', {
+                reason: 'ai_intake_completed',
+                callSid: CallSid,
+                leadId: lead.id,
+                conversationId: conversation.id,
+                aiCallRecordId: aiCallRecord.id
+              })
+              jobsCreated = []
+              hasPendingJob = false
+
+              // Optional cleanup: cancel any pending follow-up jobs that may have been created earlier
+              try {
+                const { data: pendingJobs, error: pendingJobsError } = await supabase
+                  .from('follow_up_jobs')
+                  .select('id')
+                  .eq('lead_id', lead.id)
+                  .eq('status', 'pending')
+
+                if (pendingJobsError) {
+                  console.error('[AI FOLLOWUPS CLEANUP] Error fetching pending jobs:', pendingJobsError)
+                } else if (pendingJobs && pendingJobs.length > 0) {
+                  const jobIds = pendingJobs.map(j => j.id)
+                  const { error: cancelError } = await supabase
+                    .from('follow_up_jobs')
+                    .update({
+                      status: 'cancelled',
+                      cancelled_reason: 'ai_intake_completed',
+                      cancelled_at: new Date().toISOString()
+                    })
+                    .in('id', jobIds)
+
+                  if (cancelError) {
+                    console.error('[AI FOLLOWUPS CLEANUP] Error cancelling pending jobs:', cancelError)
+                  } else {
+                    console.log('[AI FOLLOWUPS CLEANUP] Cancelled pending jobs for completed AI intake:', {
+                      leadId: lead.id,
+                      jobCount: jobIds.length,
+                      jobIds
+                    })
+                  }
+                }
+              } catch (cleanupError) {
+                console.error('[AI FOLLOWUPS CLEANUP] Exception during cleanup:', cleanupError)
+              }
+            } else {
+              // Use centralized createFollowUpJobs function to respect business settings
             try {
               const jobs = await createFollowUpJobs({
                 businessId: business.id,
@@ -927,6 +974,7 @@ export async function POST(req: NextRequest) {
             } catch (followUpError) {
               console.error('[followups] Failed to create follow-up jobs:', followUpError)
             }
+            } // Close else block for non-AI calls
           } else {
             console.log(`[followups] Follow-ups already exist for lead: ${lead.id}`)
           }
