@@ -6,8 +6,31 @@ import { twilioClient } from '@/lib/twilio'
 
 const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
 
+interface DeleteResult {
+  ok: boolean
+  step?: string
+  error?: string
+  details?: any
+  dryRun?: boolean
+  summary?: {
+    userId: string
+    businessId?: string
+    tablesDeleted: { [key: string]: number }
+    twilioNumberReleased?: string
+    authDeletionResult?: string
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // Check for dry-run mode
+    const body = await request.json().catch(() => ({}))
+    const dryRun = body.dryRun === true
+
+    if (dryRun) {
+      console.log('[delete-account] DRY RUN MODE - No actual deletions will occur')
+    }
+
     // Check required env vars
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
       console.error('[delete-account] Missing NEXT_PUBLIC_SUPABASE_URL')
@@ -33,6 +56,12 @@ export async function POST(request: NextRequest) {
 
     console.log('[delete-account] Authenticated user:', user.id)
 
+    // Summary object for logging
+    const summary: any = {
+      userId: user.id,
+      tablesDeleted: {} as { [key: string]: number },
+    }
+
     // Step 1: Find all businesses for this user (include Stripe + Twilio fields)
     console.log('[delete-account] Step 1: find businesses')
     const { data: businesses, error: businessesError } = await supabaseAdmin
@@ -49,101 +78,9 @@ export async function POST(request: NextRequest) {
     }
 
     const businessIds = businesses?.map((b: any) => b.id) || []
+    summary.businessId = businessIds[0]
 
-    // Step 1.5: Cancel any active Stripe subscriptions BEFORE deleting data.
-    // If cancellation fails, abort the deletion so the user is never soft-locked.
-    if (businesses && businesses.length > 0) {
-      const stripe = getStripe()
-      const subsToCancel = (businesses as any[]).filter(
-        (b) => b.stripe_subscription_id && ACTIVE_SUB_STATUSES.has(b.subscription_status || '')
-      )
-
-      if (subsToCancel.length > 0) {
-        if (!stripe) {
-          console.error('[delete-account] Stripe client unavailable, cannot cancel subscription')
-          return NextResponse.json(
-            { ok: false, step: 'stripe_init', error: 'Billing service unavailable. Please try again later.' },
-            { status: 503 }
-          )
-        }
-
-        for (const b of subsToCancel) {
-          console.log('[delete-account] Cancelling Stripe subscription:', b.stripe_subscription_id)
-          try {
-            const cancelled = await stripe.subscriptions.cancel(b.stripe_subscription_id)
-            console.log('[delete-account] Stripe cancellation result:', {
-              id: cancelled.id,
-              status: cancelled.status,
-            })
-            if (cancelled.status !== 'canceled') {
-              throw new Error(`Stripe returned unexpected status: ${cancelled.status}`)
-            }
-            // Reflect cancellation in DB before continuing
-            await supabaseAdmin
-              .from('businesses')
-              .update({ subscription_status: 'canceled' })
-              .eq('id', b.id)
-          } catch (cancelErr: any) {
-            // Already-cancelled subscriptions sometimes return a 404 / resource_missing
-            const code = cancelErr?.code || cancelErr?.raw?.code
-            if (code === 'resource_missing') {
-              console.warn('[delete-account] Subscription already gone in Stripe, continuing:', b.stripe_subscription_id)
-            } else {
-              console.error('[delete-account] Stripe cancellation failed:', cancelErr)
-              return NextResponse.json(
-                {
-                  ok: false,
-                  step: 'stripe_cancel',
-                  error: 'Failed to cancel your subscription. Your account was not deleted. Please try again or contact support.',
-                  details: cancelErr?.message || String(cancelErr),
-                },
-                { status: 502 }
-              )
-            }
-          }
-        }
-      } else {
-        console.log('[delete-account] No active Stripe subscriptions to cancel')
-      }
-
-      // Step 1.6: Twilio number release - release from Twilio API
-      for (const b of businesses as any[]) {
-        if (b.twilio_phone_number_sid) {
-          console.log('[delete-account] Releasing Twilio number', {
-            businessId: b.id,
-            phoneNumber: b.twilio_phone_number,
-            sid: b.twilio_phone_number_sid,
-          })
-
-          try {
-            if (twilioClient) {
-              await twilioClient.incomingPhoneNumbers(b.twilio_phone_number_sid).remove()
-              console.log('[delete-account] Twilio number released successfully', {
-                businessId: b.id,
-                phoneNumber: b.twilio_phone_number,
-                sid: b.twilio_phone_number_sid,
-              })
-            } else {
-              console.error('[delete-account] Twilio client not available, cannot release number', {
-                businessId: b.id,
-                phoneNumber: b.twilio_phone_number,
-                sid: b.twilio_phone_number_sid,
-              })
-            }
-          } catch (twilioError) {
-            console.error('[delete-account] Failed to release Twilio number (continuing deletion)', {
-              businessId: b.id,
-              phoneNumber: b.twilio_phone_number,
-              sid: b.twilio_phone_number_sid,
-              error: twilioError instanceof Error ? twilioError.message : String(twilioError),
-            })
-            // Continue deletion process even if Twilio release fails
-          }
-        }
-      }
-    }
-    console.log('[delete-account] businesses:', businesses)
-    console.log('[delete-account] businessIds:', businessIds)
+    console.log('[delete-account] Found businesses:', businessIds.length, businessIds)
 
     if (businessIds.length === 0) {
       console.log('[delete-account] No businesses found, skipping data deletion')
@@ -164,142 +101,437 @@ export async function POST(request: NextRequest) {
       }
 
       const leadIds = leads?.map(l => l.id) || []
-      console.log('[delete-account] leadIds:', leadIds)
+      console.log('[delete-account] Found leads:', leadIds.length)
 
-      // Step 3: Delete messages linked to leads
+      // Step 3: Delete message_media linked to messages
       if (leadIds.length > 0) {
-        console.log('[delete-account] Step 3: delete messages')
-        const { error: messagesError } = await supabaseAdmin
+        console.log('[delete-account] Step 3: delete message_media')
+        
+        // First get message IDs for these leads
+        const { data: messages } = await supabaseAdmin
+          .from('messages')
+          .select('id')
+          .in('lead_id', leadIds)
+        
+        const messageIds = messages?.map(m => m.id) || []
+        
+        if (messageIds.length > 0) {
+          const { error: messageMediaError, count } = await supabaseAdmin
+            .from('message_media')
+            .delete()
+            .in('message_id', messageIds)
+            .select()
+
+          if (messageMediaError) {
+            console.error('[delete-account] Step 3 failed:', messageMediaError)
+            return NextResponse.json(
+              { ok: false, step: 'delete_message_media', error: messageMediaError.message, details: messageMediaError },
+              { status: 500 }
+            )
+          }
+          summary.tablesDeleted.message_media = count || 0
+          console.log('[delete-account] Step 3 completed: deleted message_media:', count)
+        }
+      }
+
+      // Step 4: Delete messages linked to leads
+      if (leadIds.length > 0) {
+        console.log('[delete-account] Step 4: delete messages')
+        
+        const { error: messagesError, count } = await supabaseAdmin
           .from('messages')
           .delete()
           .in('lead_id', leadIds)
+          .select()
 
         if (messagesError) {
-          console.error('[delete-account] Step 3 failed:', messagesError)
+          console.error('[delete-account] Step 4 failed:', messagesError)
           return NextResponse.json(
             { ok: false, step: 'delete_messages', error: messagesError.message, details: messagesError },
             { status: 500 }
           )
         }
-        console.log('[delete-account] Step 3 completed: deleted messages')
-      } else {
-        console.log('[delete-account] Step 3 skipped: no leads to delete messages for')
+        summary.tablesDeleted.messages = count || 0
+        console.log('[delete-account] Step 4 completed: deleted messages:', count)
       }
 
-      // Step 4: Delete follow_up_jobs linked to businesses
-      console.log('[delete-account] Step 4: delete follow_up_jobs')
-      const { error: followUpJobsError } = await supabaseAdmin
+      // Step 5: Delete notifications linked to businesses
+      console.log('[delete-account] Step 5: delete notifications')
+      
+      const { error: notificationsError, count: notificationsCount } = await supabaseAdmin
+        .from('notifications')
+        .delete()
+        .in('business_id', businessIds)
+        .select()
+
+      if (notificationsError) {
+        console.error('[delete-account] Step 5 failed:', notificationsError)
+        return NextResponse.json(
+          { ok: false, step: 'delete_notifications', error: notificationsError.message, details: notificationsError },
+          { status: 500 }
+        )
+      }
+      summary.tablesDeleted.notifications = notificationsCount || 0
+      console.log('[delete-account] Step 5 completed: deleted notifications:', notificationsCount)
+
+      // Step 6: Delete follow_up_jobs linked to businesses
+      console.log('[delete-account] Step 6: delete follow_up_jobs')
+      
+      const { error: followUpJobsError, count: followUpJobsCount } = await supabaseAdmin
         .from('follow_up_jobs')
         .delete()
         .in('business_id', businessIds)
+        .select()
 
       if (followUpJobsError) {
-        console.error('[delete-account] Step 4 failed:', followUpJobsError)
+        console.error('[delete-account] Step 6 failed:', followUpJobsError)
         return NextResponse.json(
           { ok: false, step: 'delete_follow_up_jobs', error: followUpJobsError.message, details: followUpJobsError },
           { status: 500 }
         )
       }
-      console.log('[delete-account] Step 4 completed: deleted follow_up_jobs')
+      summary.tablesDeleted.follow_up_jobs = followUpJobsCount || 0
+      console.log('[delete-account] Step 6 completed: deleted follow_up_jobs:', followUpJobsCount)
 
-      // Step 5: Delete conversations linked to businesses
-      console.log('[delete-account] Step 5: delete conversations')
-      const { error: conversationsError } = await supabaseAdmin
+      // Step 7: Delete conversations linked to businesses
+      console.log('[delete-account] Step 7: delete conversations')
+      
+      const { error: conversationsError, count: conversationsCount } = await supabaseAdmin
         .from('conversations')
         .delete()
         .in('business_id', businessIds)
+        .select()
 
       if (conversationsError) {
-        console.error('[delete-account] Step 5 failed:', conversationsError)
+        console.error('[delete-account] Step 7 failed:', conversationsError)
         return NextResponse.json(
           { ok: false, step: 'delete_conversations', error: conversationsError.message, details: conversationsError },
           { status: 500 }
         )
       }
-      console.log('[delete-account] Step 5 completed: deleted conversations')
+      summary.tablesDeleted.conversations = conversationsCount || 0
+      console.log('[delete-account] Step 7 completed: deleted conversations:', conversationsCount)
 
-      // Step 6: Delete follow_ups linked to businesses
-      console.log('[delete-account] Step 6: delete follow_ups')
-      const { error: followUpsError } = await supabaseAdmin
+      // Step 8: Delete ai_call_records linked to businesses
+      console.log('[delete-account] Step 8: delete ai_call_records')
+      
+      const { error: aiCallRecordsError, count: aiCallRecordsCount } = await supabaseAdmin
+        .from('ai_call_records')
+        .delete()
+        .in('business_id', businessIds)
+        .select()
+
+      if (aiCallRecordsError) {
+        console.error('[delete-account] Step 8 failed:', aiCallRecordsError)
+        return NextResponse.json(
+          { ok: false, step: 'delete_ai_call_records', error: aiCallRecordsError.message, details: aiCallRecordsError },
+          { status: 500 }
+        )
+      }
+      summary.tablesDeleted.ai_call_records = aiCallRecordsCount || 0
+      console.log('[delete-account] Step 8 completed: deleted ai_call_records:', aiCallRecordsCount)
+
+      // Step 9: Delete ai_call_sessions linked to businesses
+      console.log('[delete-account] Step 9: delete ai_call_sessions')
+      
+      const { error: aiCallSessionsError, count: aiCallSessionsCount } = await supabaseAdmin
+        .from('ai_call_sessions')
+        .delete()
+        .in('business_id', businessIds)
+        .select()
+
+      if (aiCallSessionsError) {
+        console.error('[delete-account] Step 9 failed:', aiCallSessionsError)
+        return NextResponse.json(
+          { ok: false, step: 'delete_ai_call_sessions', error: aiCallSessionsError.message, details: aiCallSessionsError },
+          { status: 500 }
+        )
+      }
+      summary.tablesDeleted.ai_call_sessions = aiCallSessionsCount || 0
+      console.log('[delete-account] Step 9 completed: deleted ai_call_sessions:', aiCallSessionsCount)
+
+      // Step 10: Delete ai_call_failures linked to businesses
+      console.log('[delete-account] Step 10: delete ai_call_failures')
+      
+      const { error: aiCallFailuresError, count: aiCallFailuresCount } = await supabaseAdmin
+        .from('ai_call_failures')
+        .delete()
+        .in('business_id', businessIds)
+        .select()
+
+      if (aiCallFailuresError) {
+        console.error('[delete-account] Step 10 failed:', aiCallFailuresError)
+        return NextResponse.json(
+          { ok: false, step: 'delete_ai_call_failures', error: aiCallFailuresError.message, details: aiCallFailuresError },
+          { status: 500 }
+        )
+      }
+      summary.tablesDeleted.ai_call_failures = aiCallFailuresCount || 0
+      console.log('[delete-account] Step 10 completed: deleted ai_call_failures:', aiCallFailuresCount)
+
+      // Step 11: Delete voicemail_recordings linked to businesses
+      console.log('[delete-account] Step 11: delete voicemail_recordings')
+      
+      const { error: voicemailRecordingsError, count: voicemailRecordingsCount } = await supabaseAdmin
+        .from('voicemail_recordings')
+        .delete()
+        .in('business_id', businessIds)
+        .select()
+
+      if (voicemailRecordingsError) {
+        console.error('[delete-account] Step 11 failed:', voicemailRecordingsError)
+        return NextResponse.json(
+          { ok: false, step: 'delete_voicemail_recordings', error: voicemailRecordingsError.message, details: voicemailRecordingsError },
+          { status: 500 }
+        )
+      }
+      summary.tablesDeleted.voicemail_recordings = voicemailRecordingsCount || 0
+      console.log('[delete-account] Step 11 completed: deleted voicemail_recordings:', voicemailRecordingsCount)
+
+      // Step 12: Delete calendar_integrations linked to businesses
+      console.log('[delete-account] Step 12: delete calendar_integrations')
+      
+      const { error: calendarIntegrationsError, count: calendarIntegrationsCount } = await supabaseAdmin
+        .from('calendar_integrations')
+        .delete()
+        .in('business_id', businessIds)
+        .select()
+
+      if (calendarIntegrationsError) {
+        console.error('[delete-account] Step 12 failed:', calendarIntegrationsError)
+        return NextResponse.json(
+          { ok: false, step: 'delete_calendar_integrations', error: calendarIntegrationsError.message, details: calendarIntegrationsError },
+          { status: 500 }
+        )
+      }
+      summary.tablesDeleted.calendar_integrations = calendarIntegrationsCount || 0
+      console.log('[delete-account] Step 12 completed: deleted calendar_integrations:', calendarIntegrationsCount)
+
+      // Step 13: Delete follow_ups linked to businesses
+      console.log('[delete-account] Step 13: delete follow_ups')
+      
+      const { error: followUpsError, count: followUpsCount } = await supabaseAdmin
         .from('follow_ups')
         .delete()
         .in('business_id', businessIds)
+        .select()
 
       if (followUpsError) {
-        console.error('[delete-account] Step 6 failed:', followUpsError)
+        console.error('[delete-account] Step 13 failed:', followUpsError)
         return NextResponse.json(
           { ok: false, step: 'delete_follow_ups', error: 'Failed to delete account data. Please try again or contact support.', details: followUpsError.message },
           { status: 500 }
         )
       }
-      console.log('[delete-account] Step 6 completed: deleted follow_ups')
+      summary.tablesDeleted.follow_ups = followUpsCount || 0
+      console.log('[delete-account] Step 13 completed: deleted follow_ups:', followUpsCount)
 
-      // Step 7: Delete call_events linked to businesses
-      console.log('[delete-account] Step 7: delete call_events')
-      const { error: callEventsError } = await supabaseAdmin
+      // Step 14: Delete call_events linked to businesses
+      console.log('[delete-account] Step 14: delete call_events')
+      
+      const { error: callEventsError, count: callEventsCount } = await supabaseAdmin
         .from('call_events')
         .delete()
         .in('business_id', businessIds)
+        .select()
 
       if (callEventsError) {
-        console.error('[delete-account] Step 7 failed:', callEventsError)
+        console.error('[delete-account] Step 14 failed:', callEventsError)
         return NextResponse.json(
           { ok: false, step: 'delete_call_events', error: 'Failed to delete account data. Please try again or contact support.', details: callEventsError.message },
           { status: 500 }
         )
       }
-      console.log('[delete-account] Step 7 completed: deleted call_events')
+      summary.tablesDeleted.call_events = callEventsCount || 0
+      console.log('[delete-account] Step 14 completed: deleted call_events:', callEventsCount)
 
-      // Step 8: Delete ignored_contacts linked to businesses
-      console.log('[delete-account] Step 8: delete ignored_contacts')
-      const { error: ignoredContactsError } = await supabaseAdmin
+      // Step 15: Delete ignored_contacts linked to businesses
+      console.log('[delete-account] Step 15: delete ignored_contacts')
+      
+      const { error: ignoredContactsError, count: ignoredContactsCount } = await supabaseAdmin
         .from('ignored_contacts')
         .delete()
         .in('business_id', businessIds)
+        .select()
 
       if (ignoredContactsError) {
-        console.error('[delete-account] Step 8 failed:', ignoredContactsError)
+        console.error('[delete-account] Step 15 failed:', ignoredContactsError)
         return NextResponse.json(
           { ok: false, step: 'delete_ignored_contacts', error: 'Failed to delete account data. Please try again or contact support.', details: ignoredContactsError.message },
           { status: 500 }
         )
       }
-      console.log('[delete-account] Step 8 completed: deleted ignored_contacts')
+      summary.tablesDeleted.ignored_contacts = ignoredContactsCount || 0
+      console.log('[delete-account] Step 15 completed: deleted ignored_contacts:', ignoredContactsCount)
 
-      // Step 9: Delete twilio_numbers linked to businesses
-      console.log('[delete-account] Step 9: delete twilio_numbers')
-      const { error: twilioNumbersError } = await supabaseAdmin
-        .from('twilio_numbers')
+      // Step 16: Delete stripe_webhook_events linked to businesses (if table exists)
+      console.log('[delete-account] Step 16: delete stripe_webhook_events')
+      
+      const { error: stripeWebhookEventsError, count: stripeWebhookEventsCount } = await supabaseAdmin
+        .from('stripe_webhook_events')
         .delete()
         .in('business_id', businessIds)
+        .select()
 
-      if (twilioNumbersError) {
-        console.error('[delete-account] Step 9 failed:', twilioNumbersError)
-        return NextResponse.json(
-          { ok: false, step: 'delete_twilio_numbers', error: 'Failed to delete account data. Please try again or contact support.', details: twilioNumbersError.message },
-          { status: 500 }
-        )
+      if (stripeWebhookEventsError) {
+        console.error('[delete-account] Step 16 failed:', stripeWebhookEventsError)
+        // Don't fail if this table doesn't exist or fails
+        console.warn('[delete-account] stripe_webhook_events deletion failed, continuing:', stripeWebhookEventsError)
+      } else {
+        summary.tablesDeleted.stripe_webhook_events = stripeWebhookEventsCount || 0
+        console.log('[delete-account] Step 16 completed: deleted stripe_webhook_events:', stripeWebhookEventsCount)
       }
-      console.log('[delete-account] Step 9 completed: deleted twilio_numbers')
 
-      // Step 10: Delete leads linked to businesses
-      console.log('[delete-account] Step 10: delete leads')
-      const { error: leadsDeleteError } = await supabaseAdmin
+      // Step 17: Release Twilio numbers (set business_id = NULL, status = 'available')
+      console.log('[delete-account] Step 17: release twilio_numbers in DB')
+      
+      for (const business of businesses as any[]) {
+        if (business.twilio_phone_number_sid) {
+          console.log('[delete-account] Releasing Twilio number in DB', {
+            businessId: business.id,
+            phoneNumber: business.twilio_phone_number,
+            sid: business.twilio_phone_number_sid,
+          })
+
+          if (!dryRun) {
+            const { error: twilioReleaseError } = await supabaseAdmin
+              .from('twilio_numbers')
+              .update({
+                business_id: null,
+                status: 'available',
+                assigned_at: null,
+              })
+              .eq('business_id', business.id)
+
+            if (twilioReleaseError) {
+              console.error('[delete-account] Failed to release Twilio number in DB:', twilioReleaseError)
+              return NextResponse.json(
+                { ok: false, step: 'release_twilio_number', error: 'Failed to release Twilio number. Please try again or contact support.', details: twilioReleaseError.message },
+                { status: 500 }
+              )
+            }
+          }
+          
+          summary.twilioNumberReleased = business.twilio_phone_number
+          console.log('[delete-account] Twilio number released in DB:', business.twilio_phone_number)
+        }
+      }
+      summary.tablesDeleted.twilio_numbers_released = businesses.filter((b: any) => b.twilio_phone_number_sid).length
+      console.log('[delete-account] Step 17 completed: released twilio_numbers in DB')
+
+      // Step 18: Delete leads linked to businesses
+      console.log('[delete-account] Step 18: delete leads')
+      
+      const { error: leadsDeleteError, count: leadsCount } = await supabaseAdmin
         .from('leads')
         .delete()
         .in('business_id', businessIds)
+        .select()
 
       if (leadsDeleteError) {
-        console.error('[delete-account] Step 10 failed:', leadsDeleteError)
+        console.error('[delete-account] Step 18 failed:', leadsDeleteError)
         return NextResponse.json(
           { ok: false, step: 'delete_leads', error: 'Failed to delete account data. Please try again or contact support.', details: leadsDeleteError.message },
           { status: 500 }
         )
       }
-      console.log('[delete-account] Step 10 completed: deleted leads')
+      summary.tablesDeleted.leads = leadsCount || 0
+      console.log('[delete-account] Step 18 completed: deleted leads:', leadsCount)
 
-      // Step 11: Soft-delete businesses and record trial history
-      console.log('[delete-account] Step 11: soft-delete businesses and record trial history')
+      // Step 19: Cancel any active Stripe subscriptions BEFORE soft-deleting businesses
+      if (!dryRun && businesses && businesses.length > 0) {
+        const stripe = getStripe()
+        const subsToCancel = (businesses as any[]).filter(
+          (b) => b.stripe_subscription_id && ACTIVE_SUB_STATUSES.has(b.subscription_status || '')
+        )
+
+        if (subsToCancel.length > 0) {
+          if (!stripe) {
+            console.error('[delete-account] Stripe client unavailable, cannot cancel subscription')
+            return NextResponse.json(
+              { ok: false, step: 'stripe_init', error: 'Billing service unavailable. Please try again later.' },
+              { status: 503 }
+            )
+          }
+
+          for (const b of subsToCancel) {
+            console.log('[delete-account] Cancelling Stripe subscription:', b.stripe_subscription_id)
+            try {
+              const cancelled = await stripe.subscriptions.cancel(b.stripe_subscription_id)
+              console.log('[delete-account] Stripe cancellation result:', {
+                id: cancelled.id,
+                status: cancelled.status,
+              })
+              if (cancelled.status !== 'canceled') {
+                throw new Error(`Stripe returned unexpected status: ${cancelled.status}`)
+              }
+              // Reflect cancellation in DB before continuing
+              await supabaseAdmin
+                .from('businesses')
+                .update({ subscription_status: 'canceled' })
+                .eq('id', b.id)
+            } catch (cancelErr: any) {
+              // Already-cancelled subscriptions sometimes return a 404 / resource_missing
+              const code = cancelErr?.code || cancelErr?.raw?.code
+              if (code === 'resource_missing') {
+                console.warn('[delete-account] Subscription already gone in Stripe, continuing:', b.stripe_subscription_id)
+              } else {
+                console.error('[delete-account] Stripe cancellation failed:', cancelErr)
+                return NextResponse.json(
+                  {
+                    ok: false,
+                    step: 'stripe_cancel',
+                    error: 'Failed to cancel your subscription. Your account was not deleted. Please try again or contact support.',
+                    details: cancelErr?.message || String(cancelErr),
+                  },
+                  { status: 502 }
+                )
+              }
+            }
+          }
+        } else {
+          console.log('[delete-account] No active Stripe subscriptions to cancel')
+        }
+
+        // Step 20: Release Twilio numbers from Twilio API (after DB release succeeds)
+        for (const business of businesses as any[]) {
+          if (business.twilio_phone_number_sid) {
+            console.log('[delete-account] Releasing Twilio number from Twilio API', {
+              businessId: business.id,
+              phoneNumber: business.twilio_phone_number,
+              sid: business.twilio_phone_number_sid,
+            })
+
+            try {
+              if (twilioClient) {
+                await twilioClient.incomingPhoneNumbers(business.twilio_phone_number_sid).remove()
+                console.log('[delete-account] Twilio number released from API successfully', {
+                  businessId: business.id,
+                  phoneNumber: business.twilio_phone_number,
+                  sid: business.twilio_phone_number_sid,
+                })
+              } else {
+                console.error('[delete-account] Twilio client not available, cannot release number from API', {
+                  businessId: business.id,
+                  phoneNumber: business.twilio_phone_number,
+                  sid: business.twilio_phone_number_sid,
+                })
+              }
+            } catch (twilioError) {
+              console.error('[delete-account] Failed to release Twilio number from API (continuing deletion)', {
+                businessId: business.id,
+                phoneNumber: business.twilio_phone_number,
+                sid: business.twilio_phone_number_sid,
+                error: twilioError instanceof Error ? twilioError.message : String(twilioError),
+              })
+              // Continue deletion process even if Twilio API release fails
+            }
+          }
+        }
+      }
+
+      // Step 21: Soft-delete businesses and record trial history
+      console.log('[delete-account] Step 21: soft-delete businesses and record trial history')
       
       for (const business of businesses as any[]) {
         // Record trial history before soft-deleting
@@ -307,8 +539,8 @@ export async function POST(request: NextRequest) {
           const trialHistoryData = {
             business_id: business.id,
             business_phone_number: business.twilio_phone_number,
-            business_email: null, // business_email column doesn't exist in schema
-            business_domain: null, // derived from business_email which doesn't exist
+            business_email: null,
+            business_domain: null,
             stripe_customer_id: business.stripe_customer_id,
             stripe_subscription_id: business.stripe_subscription_id,
             trial_started_at: business.created_at,
@@ -323,55 +555,65 @@ export async function POST(request: NextRequest) {
             deletion_reason: 'user_request',
           }
           
-          const { error: trialHistoryError } = await supabaseAdmin
-            .from('trial_history')
-            .insert(trialHistoryData)
-          
-          if (trialHistoryError) {
-            console.error('[delete-account] Failed to record trial history for business:', business.id, trialHistoryError)
-            // Don't fail the deletion if trial history recording fails, but log it
-          } else {
-            console.log('[delete-account] Recorded trial history for business:', business.id)
+          if (!dryRun) {
+            const { error: trialHistoryError } = await supabaseAdmin
+              .from('trial_history')
+              .insert(trialHistoryData)
+            
+            if (trialHistoryError) {
+              console.error('[delete-account] Failed to record trial history for business:', business.id, trialHistoryError)
+            } else {
+              console.log('[delete-account] Recorded trial history for business:', business.id)
+            }
           }
         }
         
         // Soft-delete the business (preserve data for abuse prevention)
-        const { error: businessesSoftDeleteError } = await supabaseAdmin
-          .from('businesses')
-          .update({
-            deleted_at: new Date().toISOString(),
-            deleted_by: 'self',
-            deletion_reason: 'user_request',
-          })
-          .eq('id', business.id)
+        if (!dryRun) {
+          const { error: businessesSoftDeleteError } = await supabaseAdmin
+            .from('businesses')
+            .update({
+              deleted_at: new Date().toISOString(),
+              deleted_by: 'self',
+              deletion_reason: 'user_request',
+            })
+            .eq('id', business.id)
 
-        if (businessesSoftDeleteError) {
-          console.error('[delete-account] Step 11 soft-delete failed:', businessesSoftDeleteError)
-          return NextResponse.json(
-            { ok: false, step: 'soft_delete_businesses', error: 'Failed to delete account data. Please try again or contact support.', details: businessesSoftDeleteError.message },
-            { status: 500 }
-          )
+          if (businessesSoftDeleteError) {
+            console.error('[delete-account] Step 21 soft-delete failed:', businessesSoftDeleteError)
+            return NextResponse.json(
+              { ok: false, step: 'soft_delete_businesses', error: 'Failed to delete account data. Please try again or contact support.', details: businessesSoftDeleteError.message },
+              { status: 500 }
+            )
+          }
         }
       }
-      console.log('[delete-account] Step 11 completed: soft-deleted businesses and recorded trial history')
+      summary.tablesDeleted.businesses = businesses.length
+      console.log('[delete-account] Step 21 completed: soft-deleted businesses and recorded trial history')
     }
 
-    // Step 12: Delete the Supabase Auth user last
-    console.log('[delete-account] Step 12: delete auth user')
-    const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
+    // Step 22: Delete the Supabase Auth user last
+    console.log('[delete-account] Step 22: delete auth user')
+    
+    if (!dryRun) {
+      const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
 
-    if (deleteUserError) {
-      console.error('[delete-account] Step 12 failed:', deleteUserError)
-      return NextResponse.json(
-        { ok: false, step: 'delete_auth_user', error: 'Failed to delete your account. Please try again or contact support.', details: deleteUserError.message },
-        { status: 500 }
-      )
+      if (deleteUserError) {
+        console.error('[delete-account] Step 22 failed:', deleteUserError)
+        return NextResponse.json(
+          { ok: false, step: 'delete_auth_user', error: 'Failed to delete your account. Please try again or contact support.', details: deleteUserError.message },
+          { status: 500 }
+        )
+      }
+      summary.authDeletionResult = 'success'
+    } else {
+      summary.authDeletionResult = 'skipped (dry run)'
     }
 
-    console.log('[delete-account] Step 12 completed: deleted auth user')
-    console.log('[delete-account] Successfully deleted user and all data')
+    console.log('[delete-account] Step 22 completed')
+    console.log('[delete-account] Deletion summary:', summary)
 
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, dryRun, summary })
   } catch (error) {
     console.error('[delete-account] Unexpected error:', error)
     return NextResponse.json(
