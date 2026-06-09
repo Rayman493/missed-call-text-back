@@ -39,6 +39,9 @@ interface ConfirmationSMSRequest {
   businessName: string
   extractedInfo?: {
     caller_name?: string
+    name?: string
+    contact_name?: string
+    customer_name?: string
     service_requested?: string
     reason?: string
     reason_for_call?: string
@@ -142,18 +145,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Lead does not belong to specified business' }, { status: 403 })
     }
 
+    // Debug logging for extractedInfo keys
+    console.log('[AI CONTACT NAME DEBUG]', {
+      leadId,
+      extractedInfo,
+      extractedInfoKeys: extractedInfo ? Object.keys(extractedInfo) : [],
+      caller_name: extractedInfo?.caller_name,
+      name: extractedInfo?.name,
+      contact_name: extractedInfo?.contact_name,
+      customer_name: extractedInfo?.customer_name
+    })
+
     // Persist AI extracted caller name to leads.contact_name if currently null/empty/"Unknown Caller"
-    if (extractedInfo?.caller_name && (!lead.contact_name || lead.contact_name === 'Unknown Caller' || lead.contact_name === '')) {
+    const extractedName =
+      extractedInfo?.caller_name ||
+      extractedInfo?.name ||
+      extractedInfo?.contact_name ||
+      extractedInfo?.customer_name
+
+    if (extractedName && (!lead.contact_name || lead.contact_name === 'Unknown Caller' || lead.contact_name === '')) {
       console.log('[AI CONTACT NAME UPDATE]', {
         leadId,
         currentContactName: lead.contact_name,
-        newContactName: extractedInfo.caller_name
+        extractedName,
+        sourceField: extractedInfo?.caller_name ? 'caller_name' : extractedInfo?.name ? 'name' : extractedInfo?.contact_name ? 'contact_name' : extractedInfo?.customer_name ? 'customer_name' : 'unknown'
       })
 
       const { error: updateLeadError } = await supabaseAdmin
         .from('leads')
         .update({
-          contact_name: extractedInfo.caller_name
+          contact_name: extractedName
         })
         .eq('id', leadId)
 
@@ -162,7 +183,7 @@ export async function POST(request: NextRequest) {
       } else {
         console.log('[AI CONTACT NAME UPDATE] Successfully updated lead contact_name:', {
           leadId,
-          contactName: extractedInfo.caller_name
+          contactName: extractedName
         })
       }
     }
