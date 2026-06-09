@@ -3,7 +3,7 @@ import { sendSms } from '@/lib/twilio'
 import { sanitizeMessageContent } from '@/lib/security'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
-import { normalizePunctuation, getCustomerReplyAcknowledgement } from '@/lib/utils'
+import { normalizePunctuation } from '@/lib/utils'
 import { detectCorrection, applyCorrection, generateCorrectionNote } from '@/lib/ai-correction-engine'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 
@@ -441,11 +441,6 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     })
   }
 
-  // Track if a correction was detected and applied for acknowledgement logic
-  let correctionDetectedAndApplied = false
-  let correctionFieldChanged = null
-  let correctionNewValue = null
-
   if (aiCallRecord && aiCallRecord.extracted_info) {
 
     const correctionResult = await detectCorrection(body, aiCallRecord.extracted_info)
@@ -502,18 +497,6 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           oldValue: correctionResult.oldValue,
           newValue: correctionResult.newValue,
           confidence: correctionResult.confidence
-        })
-
-        // Track that a correction was detected and applied for acknowledgement logic
-        correctionDetectedAndApplied = true
-        correctionFieldChanged = correctionResult.fieldChanged
-        correctionNewValue = correctionResult.newValue
-
-        console.log('[CORRECTION TRACKING SET]', {
-          correctionDetectedAndApplied,
-          correctionFieldChanged,
-          correctionNewValue,
-          fieldChanged: correctionResult.fieldChanged
         })
 
         // Log normalized data before correction
@@ -584,8 +567,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           'urgencyLevel': 'urgency',
           'importantDetails': 'details',
           'reasonForCalling': 'reason',
-          'callerName': 'name',
-          'additionalInfo': 'additional_info'
+          'callerName': 'name'
         }
         const correctedFieldKey = fieldKeyMap[correctionResult.fieldChanged] || correctionResult.fieldChanged
 
@@ -1039,127 +1021,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     }
   }
   
-  // Send auto-acknowledgment via sendSms for database persistence
-  if (source === 'twilio') {
-    // Check if an outbound acknowledgement already exists in this conversation
-    const knownAcknowledgements = [
-      'Thanks for the correction. We\'ll make sure the business sees the updated information.',
-      'Thanks. We\'ll pass your preferred time along to the business.',
-      'Thanks for reaching out. The business will follow up with you directly.',
-      'Thanks for the update. We\'ll pass this along to the business.'
-    ]
-
-    const { data: existingAckMessages } = await supabaseAdmin
-      .from('messages')
-      .select('id, body')
-      .eq('conversation_id', conversation.id)
-      .eq('direction', 'outbound')
-      .in('body', knownAcknowledgements)
-      .limit(1)
-      .maybeSingle()
-
-    const existingAckFound = !!existingAckMessages
-
-    const acknowledgementMessage = getCustomerReplyAcknowledgement(body)
-
-    // Check if this is a new correction (different from previous corrections)
-    let isNewCorrection = false
-    if (correctionDetectedAndApplied && correctionFieldChanged && correctionNewValue) {
-      const currentMetadata = lead?.raw_metadata || {}
-      const currentCorrectedFields = currentMetadata.corrected_fields || {}
-      const fieldKeyMap: Record<string, string> = {
-        'addressOrLocation': 'address',
-        'callbackNumber': 'phone',
-        'preferredCallbackTime': 'callback_time',
-        'urgencyLevel': 'urgency',
-        'importantDetails': 'details',
-        'reasonForCalling': 'reason'
-      }
-      const correctedFieldKey = fieldKeyMap[correctionFieldChanged] || correctionFieldChanged
-      const previousValue = currentCorrectedFields[correctedFieldKey]
-
-      // Only consider it a new correction if the value is different from the previous correction
-      isNewCorrection = previousValue !== correctionNewValue
-
-      console.log('[CORRECTION VALUE CHECK]', {
-        leadId: lead.id,
-        fieldChanged: correctionFieldChanged,
-        fieldKey: correctedFieldKey,
-        previousValue,
-        newValue: correctionNewValue,
-        isNewCorrection,
-        reason: isNewCorrection ? 'value differs from previous correction' : 'same as previous correction'
-      })
-    }
-
-    // Send acknowledgement if:
-    // 1. No prior acknowledgement exists (first reply)
-    // 2. OR a new correction was detected (even if prior acknowledgement exists)
-    const shouldSendAcknowledgement = !existingAckFound || isNewCorrection
-
-    console.log('[AI REPLY ACK DECISION]', {
-      conversationId: conversation.id,
-      leadId: lead.id,
-      incomingBody: body,
-      aiCallRecordFound: !!aiCallRecord,
-      existingAckFound,
-      correctionDetectedAndApplied,
-      isNewCorrection,
-      acknowledgementMessage,
-      decision: shouldSendAcknowledgement ? 'send' : 'skip',
-      reason: !existingAckFound ? 'first reply after AI intake'
-               : isNewCorrection ? 'new correction detected'
-               : 'no new correction, acknowledgement already sent'
-    });
-
-    if (shouldSendAcknowledgement) {
-      console.log('[AUTO ACK CONVERSATION ID BEFORE SEND]', conversation.id);
-      console.log('[AUTO ACK LEAD ID BEFORE SEND]', lead.id);
-
-      // Get contextual acknowledgement based on message content
-      const acknowledgementMessage = getCustomerReplyAcknowledgement(body)
-
-      console.log('[AUTO ACK SEND START]', {
-        toPhone: lead.caller_phone,
-        messageBody: acknowledgementMessage,
-        originalBody: body
-      });
-
-      const ackMessageSid = await sendSms(business, lead.caller_phone, acknowledgementMessage, {
-        lead_id: lead.id,
-        conversation_id: conversation.id,
-      });
-
-      if (ackMessageSid) {
-        console.log('[AUTO ACK TWILIO SENT]', {
-          messageSid: ackMessageSid,
-          leadId: lead.id,
-          conversationId: conversation.id
-        });
-        console.log('[AUTO ACK DB INSERT SUCCESS]', {
-          messageId: ackMessageSid,
-          leadId: lead.id,
-          conversationId: conversation.id
-        });
-      } else {
-        console.error('[AUTO ACK DB INSERT ERROR]', {
-          leadId: lead.id,
-          conversationId: conversation.id,
-          error: 'No message SID returned from sendSms'
-        });
-      }
-    } else {
-      console.log('[AUTO ACK SKIPPED]', {
-        leadId: lead.id,
-        conversationId: conversation.id,
-        existingAckFound,
-        correctionDetectedAndApplied,
-        isNewCorrection,
-        reason: 'no new correction, acknowledgement already sent'
-      });
-    }
-  }
-
+  
   // Return success response without TwiML message (since we already sent via sendSms)
   console.log('[INBOUND SMS SUCCESS]', {
     messageId: message?.id,

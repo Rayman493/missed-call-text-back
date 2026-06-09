@@ -25,7 +25,6 @@ export interface ExtractedInfo {
   addressOrLocation?: string
   preferredCallbackTime?: string
   callbackNumber?: string
-  additionalInfo?: string
 }
 
 /**
@@ -183,18 +182,14 @@ export async function detectCorrection(
   }
 
   console.log('[CORRECTION NOT DETECTED]', {
-    reason: 'No pattern matched, using Additional Info fallback'
+    reason: 'No pattern matched'
   })
 
-  // Fallback to Additional Info if no pattern matched
   return {
-    isCorrection: true,
-    fieldChanged: 'additionalInfo',
-    oldValue: normalizedExtractedInfo.additionalInfo || '',
-    newValue: customerReply.trim(),
-    confidence: 0.8,
+    isCorrection: false,
+    confidence: 0,
     requiresReview: false,
-    reason: 'No pattern matched, using Additional Info fallback'
+    reason: 'No correction pattern detected'
   }
 }
 
@@ -239,10 +234,7 @@ export function applyCorrection(
     'callback_time': 'preferredCallbackTime',
     'callback number': 'callbackNumber',
     'callbackNumber': 'callbackNumber',
-    'callback_number': 'callbackNumber',
-    'additionalInfo': 'additionalInfo',
-    'additional info': 'additionalInfo',
-    'additional_info': 'additionalInfo'
+    'callback_number': 'callbackNumber'
   }
 
   const mappedField = fieldMapping[fieldChanged.toLowerCase()] || fieldChanged as keyof ExtractedInfo
@@ -271,27 +263,12 @@ export function applyCorrection(
   })
 
   if (finalField in updated) {
-    // For additionalInfo, append instead of overwrite
-    if (finalField === 'additionalInfo') {
-      const existingValue = (updated as any)[finalField] || ''
-      let separator = ''
-      if (existingValue) {
-        separator = ' '
-      }
-      (updated as any)[finalField] = existingValue + separator + newValue
-      console.log('[ADDITIONAL INFO ADDED]', {
-        existingValue,
-        newValue,
-        appendedValue: (updated as any)[finalField]
-      })
-    } else {
-      (updated as any)[finalField] = newValue
-      console.log('[CORRECTION FIELD UPDATED]', {
-        finalField,
-        newValue,
-        updatedValue: (updated as any)[finalField]
-      })
-    }
+    (updated as any)[finalField] = newValue
+    console.log('[CORRECTION FIELD UPDATED]', {
+      finalField,
+      newValue,
+      updatedValue: (updated as any)[finalField]
+    })
   } else {
     console.error('[CORRECTION FIELD UPDATE ERROR]', {
       finalField,
