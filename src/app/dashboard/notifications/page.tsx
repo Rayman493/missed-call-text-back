@@ -6,7 +6,6 @@ import { notificationService, Notification, NotificationCount } from '@/lib/noti
 import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard, ExternalLink, PhoneMissed, Trash2, X } from 'lucide-react'
 import AppHeader from '@/components/AppHeader'
 import Navigation from '@/components/Navigation'
-import Footer from '@/components/Footer'
 
 export default function NotificationsPage() {
   const { business } = useBusiness()
@@ -99,20 +98,60 @@ export default function NotificationsPage() {
       case 'new_lead':
         return <User className="w-5 h-5 text-blue-600" />
       case 'customer_reply':
-        return <MessageSquare className="w-5 h-5 text-purple-600" />
+        return <MessageSquare className="w-5 h-5 text-green-600" />
       case 'followup_completed':
-        return <CheckCircle className="w-5 h-5 text-green-600" />
+        return <CheckCircle className="w-5 h-5 text-purple-600" />
       case 'forwarding_disconnected':
         return <AlertTriangle className="w-5 h-5 text-red-600" />
       case 'sms_failed':
-        return <AlertTriangle className="w-5 h-5 text-amber-600" />
+        return <AlertTriangle className="w-5 h-5 text-red-600" />
       case 'trial_ending':
-        return <Clock className="w-5 h-5 text-indigo-600" />
+        return <Clock className="w-5 h-5 text-amber-600" />
       case 'subscription_issue':
         return <CreditCard className="w-5 h-5 text-amber-600" />
+      case 'voicemail_received':
+        return <PhoneMissed className="w-5 h-5 text-blue-600" />
       default:
-        return <Bell className="w-5 h-5 text-gray-600" />
+        return <Bell className="w-5 h-5 text-slate-600" />
     }
+  }
+
+  const getNotificationAccent = (type: Notification['type']) => {
+    switch (type) {
+      case 'new_lead':
+        return 'border-l-4 border-l-blue-500'
+      case 'customer_reply':
+        return 'border-l-4 border-l-green-500'
+      case 'followup_completed':
+        return 'border-l-4 border-l-purple-500'
+      case 'forwarding_disconnected':
+      case 'sms_failed':
+        return 'border-l-4 border-l-red-500'
+      case 'trial_ending':
+      case 'subscription_issue':
+        return 'border-l-4 border-l-amber-500'
+      case 'voicemail_received':
+        return 'border-l-4 border-l-blue-500'
+      default:
+        return 'border-l-4 border-l-slate-300 dark:border-l-slate-600'
+    }
+  }
+
+  const getLeadContext = (notification: Notification) => {
+    if (notification.data?.leadName) return notification.data.leadName
+    if (notification.data?.leadPhone) return notification.data.leadPhone
+    return null
+  }
+
+  const formatTime = (timestamp: string) => {
+    const now = new Date()
+    const notificationTime = new Date(timestamp)
+    const diffInMinutes = Math.floor((now.getTime() - notificationTime.getTime()) / (1000 * 60))
+    
+    if (diffInMinutes < 1) return 'Just now'
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`
+    return `${Math.floor(diffInMinutes / 1440)}d ago`
   }
 
   if (loading) {
@@ -133,7 +172,6 @@ export default function NotificationsPage() {
             </div>
           </div>
         </div>
-        <Footer />
       </div>
     )
   }
@@ -152,17 +190,17 @@ export default function NotificationsPage() {
 
         {/* Actions */}
         {notifications.length > 0 && (
-          <div className="mb-4 flex items-center gap-3">
+          <div className="mb-6 flex items-center gap-3">
             <button
               onClick={handleClearAll}
-              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors"
+              className="px-4 py-2 bg-white dark:bg-card border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               Clear all
             </button>
             {notificationCount.unread > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+                className="px-4 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-medium rounded-lg hover:bg-slate-800 dark:hover:bg-white transition-colors"
               >
                 Mark all as read
               </button>
@@ -176,64 +214,75 @@ export default function NotificationsPage() {
             notifications.map(notification => (
               <div
                 key={notification.id}
-                className={`bg-card border rounded-lg p-3 transition-colors ${
+                className={`group relative bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-lg p-4 transition-colors hover:shadow-sm ${getNotificationAccent(notification.type)} ${
                   notification.read 
-                    ? 'border-border' 
-                    : 'border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10'
+                    ? '' 
+                    : 'bg-slate-50/50 dark:bg-slate-800/50'
                 }`}
               >
-                <div className="flex items-start gap-3">
-                  <div className="shrink-0 mt-0.5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="shrink-0">
                     {getNotificationIcon(notification.type)}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className={`font-medium ${notification.read ? 'text-muted-foreground' : 'text-foreground'}`}>
-                          {notification.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {notification.message}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          {new Date(notification.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        <button
-                          onClick={() => handleDeleteNotification(notification.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete notification"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                        {!notification.read && (
-                          <button
-                            onClick={() => handleMarkAsRead(notification.id)}
-                            className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
-                            title="Mark as read"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
+                  <div className="flex-1 min-w-0">
+                    {/* Title with timestamp */}
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className={`font-semibold text-slate-900 dark:text-foreground ${notification.read ? 'text-slate-600 dark:text-slate-400' : ''}`}>
+                        {notification.title}
+                      </h3>
+                      <span className="text-sm text-slate-500 dark:text-slate-400 flex-shrink-0 ml-2">
+                        {formatTime(notification.created_at)}
+                      </span>
                     </div>
+                    
+                    {/* Lead context */}
+                    {getLeadContext(notification) && (
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                        Lead: {getLeadContext(notification)}
+                      </p>
+                    )}
+                    
+                    {/* Message */}
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {notification.message}
+                    </p>
                   </div>
+                </div>
+                
+                {/* Hover actions */}
+                <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {!notification.read && (
+                    <button
+                      onClick={() => handleMarkAsRead(notification.id)}
+                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                      title="Mark as read"
+                    >
+                      <Check className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDeleteNotification(notification.id)}
+                    className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                    title="Delete notification"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))
           ) : (
-            <div className="text-center py-8">
-              <div className="text-2xl mb-2">🎉</div>
-              <h3 className="text-base font-semibold text-foreground mb-1">You're all caught up</h3>
-              <p className="text-sm text-muted-foreground">
+            <div className="text-center py-16">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Bell className="w-8 h-8 text-slate-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">You're all caught up</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 New leads and customer replies will appear here.
               </p>
             </div>
           )}
         </div>
       </div>
-      <Footer />
     </div>
   )
 }

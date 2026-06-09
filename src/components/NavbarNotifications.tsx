@@ -198,26 +198,53 @@ export default function NavbarNotifications() {
   }
 
   const getNotificationColor = (type: Notification['type'], read: boolean) => {
-    if (read) return 'bg-gray-50 dark:bg-gray-800/50'
+    if (read) return 'bg-white dark:bg-card'
     
     switch (type) {
       case 'new_lead':
-        return 'bg-blue-50 dark:bg-blue-900/20'
+        return 'bg-blue-50/50 dark:bg-blue-900/10'
       case 'customer_reply':
-        return 'bg-green-50 dark:bg-green-900/20'
+        return 'bg-green-50/50 dark:bg-green-900/10'
       case 'followup_completed':
-        return 'bg-purple-50 dark:bg-purple-900/20'
+        return 'bg-purple-50/50 dark:bg-purple-900/10'
       case 'forwarding_disconnected':
       case 'sms_failed':
-        return 'bg-red-50 dark:bg-red-900/20'
+        return 'bg-red-50/50 dark:bg-red-900/10'
       case 'trial_ending':
       case 'subscription_issue':
-        return 'bg-amber-50 dark:bg-amber-900/20'
+        return 'bg-amber-50/50 dark:bg-amber-900/10'
       case 'voicemail_received':
-        return 'bg-blue-50 dark:bg-blue-900/20'
+        return 'bg-blue-50/50 dark:bg-blue-900/10'
       default:
-        return 'bg-gray-50 dark:bg-gray-800/50'
+        return 'bg-white dark:bg-card'
     }
+  }
+
+  const getNotificationAccent = (type: Notification['type']) => {
+    switch (type) {
+      case 'new_lead':
+        return 'border-l-4 border-l-blue-500'
+      case 'customer_reply':
+        return 'border-l-4 border-l-green-500'
+      case 'followup_completed':
+        return 'border-l-4 border-l-purple-500'
+      case 'forwarding_disconnected':
+      case 'sms_failed':
+        return 'border-l-4 border-l-red-500'
+      case 'trial_ending':
+      case 'subscription_issue':
+        return 'border-l-4 border-l-amber-500'
+      case 'voicemail_received':
+        return 'border-l-4 border-l-blue-500'
+      default:
+        return 'border-l-4 border-l-slate-300 dark:border-l-slate-600'
+    }
+  }
+
+  const getLeadContext = (notification: Notification) => {
+    if (notification.data?.leadName) return notification.data.leadName
+    if (notification.data?.leadPhone) return notification.data.leadPhone
+    return null
   }
 
   const formatTime = (timestamp: string) => {
@@ -298,82 +325,71 @@ export default function NavbarNotifications() {
           <div className="max-h-96 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="text-center py-6 px-4">
-                <div className="text-2xl mb-2">🎉</div>
-                <p className="text-sm font-semibold text-foreground mb-1">You're all caught up</p>
-                <p className="text-xs text-muted-foreground">New leads and customer replies will appear here</p>
+              <div className="text-center py-8 px-4">
+                <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Bell className="w-6 h-6 text-slate-400" />
+                </div>
+                <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">You're all caught up</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">New leads and customer replies will appear here</p>
               </div>
             ) : (
-              <div className="divide-y divide-border">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className={`p-2.5 sm:p-3 ${getNotificationColor(notification.type, notification.read)} hover:bg-muted/50 transition-colors cursor-pointer`}
+                    className={`group relative p-3 ${getNotificationColor(notification.type, notification.read)} ${getNotificationAccent(notification.type)} hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer`}
                     onClick={() => notification.action_url && router.push(notification.action_url)}
                   >
-                    <div className="flex items-start gap-2 sm:gap-3">
-                      {/* Icon */}
-                      <div className="mt-0.5 flex-shrink-0">
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                      
-                      {/* Content */}
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-0.5">
-                          <h4 className="text-xs sm:text-sm font-medium text-foreground truncate">
+                        {/* Title with timestamp */}
+                        <div className="flex items-start justify-between mb-1">
+                          <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground">
                             {notification.title}
                           </h4>
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
-                              {formatTime(notification.created_at)}
-                            </span>
-                            <button
-                              onClick={(e) => handleDeleteNotification(notification.id, e)}
-                              className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                              title="Delete notification"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                            {!notification.read && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleMarkAsRead(notification.id)
-                                }}
-                                className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                                title="Mark as read"
-                              >
-                                <Check className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 flex-shrink-0 ml-2">
+                            {formatTime(notification.created_at)}
+                          </span>
                         </div>
                         
-                        <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 line-clamp-2">
+                        {/* Lead context */}
+                        {getLeadContext(notification) && (
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                            Lead: {getLeadContext(notification)}
+                          </p>
+                        )}
+                        
+                        {/* Message */}
+                        <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
                           {notification.message}
                         </p>
-                        
-                        {/* Action Button */}
-                        {notification.action_url && notification.action_text && (
-                          <Link
-                            href={notification.action_url}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setIsOpen(false)
-                              handleMarkAsRead(notification.id)
-                            }}
-                            className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                          >
-                            {notification.action_text}
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </Link>
-                        )}
                       </div>
+                    </div>
+                    
+                    {/* Hover actions */}
+                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {!notification.read && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleMarkAsRead(notification.id)
+                          }}
+                          className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                          title="Mark as read"
+                        >
+                          <Check className="w-3 h-3" />
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => handleDeleteNotification(notification.id, e)}
+                        className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                        title="Delete notification"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -383,13 +399,13 @@ export default function NavbarNotifications() {
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div className="p-3 border-t border-border">
+            <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
               <Link
                 href="/dashboard/notifications"
                 onClick={() => setIsOpen(false)}
-                className="block text-center text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                className="block text-center text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground transition-colors"
               >
-                View all notifications
+                View all notifications →
               </Link>
             </div>
           )}
