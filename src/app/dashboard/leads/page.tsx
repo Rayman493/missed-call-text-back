@@ -15,12 +15,13 @@ import GettingStarted from '@/components/GettingStarted'
 import AppHeader from '@/components/AppHeader'
 import BottomNavigation from '@/components/BottomNavigation'
 import Link from 'next/link'
-import { 
-  formatPhoneNumber, 
-  formatRelativeTime, 
-  truncateText, 
+import {
+  formatPhoneNumber,
+  formatRelativeTime,
+  truncateText,
   getLeadStatusColor,
-  normalizePhoneNumberForSearch
+  normalizePhoneNumberForSearch,
+  sentenceCase
 } from '@/lib/utils'
 import { copyToClipboard } from '@/lib/clipboard'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
@@ -1062,7 +1063,7 @@ export default function LeadsPage() {
                               <div className="flex items-center gap-2">
                                 <span className="text-sm">📋</span>
                                 <p className="text-sm text-slate-700 dark:text-slate-300">
-                                  {aiData.reason}
+                                  {sentenceCase(aiData.reason)}
                                 </p>
                               </div>
                             )}
@@ -1070,7 +1071,7 @@ export default function LeadsPage() {
                               <div className="flex items-center gap-2">
                                 <span className="text-sm">📝</span>
                                 <p className="text-sm text-slate-700 dark:text-slate-300">
-                                  {aiData.details}
+                                  {sentenceCase(aiData.details)}
                                 </p>
                               </div>
                             )}
@@ -1082,7 +1083,7 @@ export default function LeadsPage() {
                                     ? 'text-red-600 dark:text-red-400'
                                     : 'text-slate-700 dark:text-slate-300'
                                 }`}>
-                                  {aiData.urgency}
+                                  {sentenceCase(aiData.urgency)}
                                 </span>
                               </div>
                             )}

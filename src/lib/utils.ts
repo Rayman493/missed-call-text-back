@@ -35,6 +35,33 @@ export function truncateText(text: string, maxLength: number = 50): string {
   return text.substring(0, maxLength) + '...'
 }
 
+/**
+ * Apply sentence-style capitalization to text.
+ * Only capitalizes the first letter of the first word.
+ * Preserves existing capitalization, acronyms, and proper casing.
+ * Does NOT apply title case (capitalizing every word).
+ *
+ * Examples:
+ * "plumbing project" → "Plumbing project"
+ * "installing appliances in bathroom in new house" → "Installing appliances in bathroom in new house"
+ * "tomorrow morning" → "Tomorrow morning"
+ * "urgent" → "Urgent"
+ * "iPhone" → "iPhone" (preserved)
+ * "NASA" → "NASA" (preserved)
+ */
+export function sentenceCase(text: string | null | undefined): string {
+  if (!text || text.length === 0) return ''
+
+  // Check if text already has proper capitalization (first letter is uppercase)
+  // or contains all caps (acronyms), preserve it
+  if (/^[A-Z]/.test(text) && !/^[a-z]+$/.test(text)) {
+    return text
+  }
+
+  // Capitalize only the first letter
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
 // Zod schemas for validation
 export const twilioVoiceStatusSchema = z.object({
   CallSid: z.string(),

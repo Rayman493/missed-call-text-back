@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { formatRelativeTime, formatPhoneNumber } from '@/lib/utils'
+import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
 import { Clock, User, Phone, MapPin, AlertCircle, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 
@@ -364,7 +364,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             <span className="text-base">🌱</span>
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {extractedInfo?.reasonForCalling || 'Not Provided'}
+                {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
               </p>
             </div>
           </div>
@@ -375,7 +375,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               <span className="text-base">📝</span>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {correctedFields?.details || extractedInfo?.importantDetails}
+                  {correctedFields?.details ? sentenceCase(correctedFields.details) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : ''}
                 </p>
               </div>
             </div>
@@ -399,7 +399,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               <span className="text-base">⏰</span>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {extractedInfo.preferredCallbackTime}
+                  {sentenceCase(extractedInfo.preferredCallbackTime)}
                 </p>
               </div>
             </div>
@@ -411,7 +411,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             <div className="flex-1">
               {extractedInfo?.urgencyLevel ? (
                 <span className={`text-sm font-medium ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
-                  {extractedInfo.urgencyLevel}
+                  {sentenceCase(extractedInfo.urgencyLevel)}
                 </span>
               ) : (
                 <span className="text-sm text-gray-500 dark:text-gray-400">Unknown</span>
