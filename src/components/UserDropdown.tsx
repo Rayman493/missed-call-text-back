@@ -127,8 +127,13 @@ export default function UserDropdown() {
             {/* User Icon - always visible */}
             <User className="w-4 h-4 text-inherit group-hover:text-inherit transition-colors duration-200" />
             
-            {/* Account text - desktop only */}
-            <span className="hidden md:inline transition-colors duration-200">Account</span>
+            {/* Business name - desktop only */}
+            <span className="hidden md:inline transition-colors duration-200 max-w-32 truncate">
+              {business?.name || 'Account'}
+            </span>
+            
+            {/* Chevron icon - desktop only */}
+            <ChevronDown className={`hidden md:inline w-3 h-3 text-inherit transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {isOpen && (
@@ -145,24 +150,14 @@ export default function UserDropdown() {
 
                 {/* Navigation Items */}
                 <div className="py-1">
-                  {/* Dashboard */}
-                  <Link
-                    href="/dashboard"
-                    onClick={() => setIsOpen(false)}
-                    className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
-                  >
-                    <Layout className="w-4 h-4 text-muted-foreground" />
-                    Dashboard
-                  </Link>
-
-                  {/* Settings */}
+                  {/* Account Settings */}
                   <Link
                     href="/dashboard/settings"
                     onClick={() => setIsOpen(false)}
                     className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
                   >
                     <Settings className="w-4 h-4 text-muted-foreground" />
-                    Settings
+                    Account Settings
                   </Link>
 
                   {/* Billing */}
@@ -173,31 +168,18 @@ export default function UserDropdown() {
                     <BillingIcon className="w-4 h-4 text-muted-foreground" />
                     Billing
                   </button>
-
-                  {/* View Public Site */}
-                  <Link
-                    href="/"
-                    onClick={() => {
-                      console.log('[VIEW PUBLIC SITE LINK CLICKED] User clicked View public site link')
-                      setIsOpen(false)
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
-                  >
-                    <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                    View public site
-                  </Link>
                 </div>
 
-                {/* Divider before Logout */}
+                {/* Divider before Sign Out */}
                 <div className="border-t border-border my-1"></div>
 
-                {/* Logout */}
+                {/* Sign Out */}
                 <button
                   onClick={handleSignOut}
                   className="w-full px-4 py-2.5 text-left text-sm text-red-400/90 hover:text-red-400 hover:bg-muted transition-colors flex items-center gap-3"
                 >
                   <LogOut className="w-4 h-4" />
-                  Logout
+                  Sign Out
                 </button>
             </div>
           )}
