@@ -1421,24 +1421,24 @@ export default function SettingsContent() {
               )}
 
               {/* Account Section - Merged Profile and Account Access */}
-              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[180px]">
+              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6 scroll-mt-[180px]">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Account</h2>
-                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Your account details and status.</p>
-                <div className="space-y-2 sm:space-y-3">
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-4">Your account details and status.</p>
+                <div className="space-y-4">
                   {/* Email */}
-                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30 p-2 sm:p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <svg className="w-4 h-4 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-2">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 00-2-2H7a2 2 0 00-2 2z" />
                       </svg>
-                      <h4 className="text-[10px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300">Email</h4>
+                      <span className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">Email</span>
                     </div>
-                    <p className="text-[10px] sm:text-xs text-slate-900 dark:text-foreground">{user?.email}</p>
+                    <span className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">{user?.email}</span>
                   </div>
 
                   {/* Status */}
-                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30 p-2 sm:p-3">
-                    <div className="flex items-center gap-2 mb-1">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-2">
+                    <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${
                         isInTrialPeriod(business?.subscription_status) 
                           ? 'bg-blue-500' 
@@ -1446,9 +1446,9 @@ export default function SettingsContent() {
                             ? 'bg-green-500'
                             : 'bg-amber-500'
                       }`}></div>
-                      <h4 className="text-[10px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300">Status</h4>
+                      <span className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">Status</span>
                     </div>
-                    <p className="text-[10px] sm:text-xs text-slate-900 dark:text-foreground">{getSubscriptionStatusText(business?.subscription_status)}</p>
+                    <span className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">{getSubscriptionStatusText(business?.subscription_status)}</span>
                   </div>
 
                   {/* Access Status */}
@@ -1457,14 +1457,8 @@ export default function SettingsContent() {
                     const accessInfo = getManualAccessDisplayInfo(business)
                     
                     return (
-                      <div className={`rounded-lg border p-2 sm:p-3 ${
-                        manualStatus.hasManualAccess && accessInfo.status === 'active'
-                          ? 'bg-green-50/60 dark:bg-green-900/20 border-green-200/60 dark:border-green-800/50'
-                          : manualStatus.hasManualAccess && accessInfo.status === 'expired'
-                            ? 'bg-red-50/60 dark:bg-red-900/20 border-red-200/50 dark:border-red-800/50'
-                            : 'bg-slate-50/60 dark:bg-slate-800/30 border-slate-200/50 dark:border-slate-700/30'
-                      }`}>
-                        <div className="flex items-center gap-2 mb-1">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-2">
+                        <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${
                             manualStatus.hasManualAccess && accessInfo.status === 'active' 
                               ? 'bg-green-500' 
@@ -1472,42 +1466,44 @@ export default function SettingsContent() {
                                 ? 'bg-red-500'
                                 : 'bg-slate-400'
                           }`}></div>
-                          <h4 className={`text-[10px] sm:text-xs font-semibold ${
+                          <span className={`text-xs sm:text-sm font-medium ${
+                            manualStatus.hasManualAccess && accessInfo.status === 'active' 
+                              ? 'text-green-600 dark:text-green-400'
+                              : manualStatus.hasManualAccess && accessInfo.status === 'expired'
+                                ? 'text-red-600 dark:text-red-400'
+                                : 'text-slate-600 dark:text-slate-400'
+                          }`}>
+                            Access Status
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-start sm:items-end">
+                          <span className={`text-xs sm:text-sm font-medium ${
                             manualStatus.hasManualAccess && accessInfo.status === 'active' 
                               ? 'text-green-900 dark:text-green-100'
                               : manualStatus.hasManualAccess && accessInfo.status === 'expired'
                                 ? 'text-red-900 dark:text-red-100'
-                                : 'text-slate-700 dark:text-slate-300'
+                                : 'text-slate-900 dark:text-foreground'
                           }`}>
-                            Access Status
-                          </h4>
+                            {manualStatus.hasManualAccess 
+                              ? (accessInfo.status === 'active' 
+                                  ? 'Manual Access Active'
+                                  : 'Manual Access Expired')
+                              : (hasActiveSubscription(business) 
+                                  ? 'Active via Subscription'
+                                  : 'No manual access granted')
+                            }
+                          </span>
+                          {manualStatus.expiresAt && (
+                            <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                              Until {new Date(manualStatus.expiresAt).toLocaleDateString()}
+                            </span>
+                          )}
+                          {!manualStatus.expiresAt && manualStatus.hasManualAccess && (
+                            <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                              Lifetime access
+                            </span>
+                          )}
                         </div>
-                        <p className={`text-[10px] sm:text-xs ${
-                          manualStatus.hasManualAccess && accessInfo.status === 'active' 
-                            ? 'text-green-700 dark:text-green-300'
-                            : manualStatus.hasManualAccess && accessInfo.status === 'expired'
-                              ? 'text-red-700 dark:text-red-300'
-                              : 'text-slate-600 dark:text-slate-400'
-                        }`}>
-                          {manualStatus.hasManualAccess 
-                            ? (accessInfo.status === 'active' 
-                                ? 'Manual Access Active'
-                                : 'Manual Access Expired')
-                            : (hasActiveSubscription(business) 
-                                ? 'Your account is active via subscription'
-                                : 'No manual access granted')
-                          }
-                        </p>
-                        {manualStatus.expiresAt && (
-                          <p className="text-[9px] sm:text-[10px] text-slate-600 dark:text-slate-400 mt-1">
-                            Until {new Date(manualStatus.expiresAt).toLocaleDateString()}
-                          </p>
-                        )}
-                        {!manualStatus.expiresAt && manualStatus.hasManualAccess && (
-                          <p className="text-[9px] sm:text-[10px] text-slate-600 dark:text-slate-400 mt-1">
-                            Lifetime access
-                          </p>
-                        )}
                       </div>
                     )
                   })()}
