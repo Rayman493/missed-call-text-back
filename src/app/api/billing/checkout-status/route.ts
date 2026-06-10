@@ -123,11 +123,27 @@ export async function POST(request: NextRequest) {
     if (needsRepair && session.subscription) {
       console.log('[Billing Success Fallback Recovery] Webhook may have failed, repairing business state')
       console.log('[Billing Success Fallback Recovery] Current subscription_status:', business.subscription_status)
+      console.log('[Billing Success Fallback Recovery] session.subscription type:', typeof session.subscription)
       
       try {
-        const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
+        // Normalize subscription ID safely - session.subscription may be a string ID or expanded object
+        const subscriptionId = typeof session.subscription === 'string'
+          ? session.subscription
+          : session.subscription?.id
         
-        console.log('[Billing Success Fallback Recovery] Retrieved subscription from Stripe:', {
+        console.log('[Billing Success Fallback Recovery] subscriptionId:', subscriptionId)
+        
+        // Use expanded object if available, otherwise retrieve from Stripe
+        let subscription: any
+        if (typeof session.subscription === 'object') {
+          console.log('[Billing Success Fallback Recovery] Using expanded subscription object from session')
+          subscription = session.subscription
+        } else {
+          console.log('[Billing Success Fallback Recovery] Retrieving subscription from Stripe API')
+          subscription = await stripe.subscriptions.retrieve(subscriptionId)
+        }
+        
+        console.log('[Billing Success Fallback Recovery] Subscription data:', {
           id: subscription.id,
           status: subscription.status,
           current_period_end: (subscription as any).current_period_end,
