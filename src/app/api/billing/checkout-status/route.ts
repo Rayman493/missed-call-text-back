@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import getStripe from '@/lib/stripe'
 import { createClient } from '@supabase/supabase-js'
 import { hasActiveManualAccess, getManualAccessStatus } from '@/lib/manual-access'
+import { isEligibleForProvisioning } from '@/lib/subscription'
 
 export async function POST(request: NextRequest) {
   try {
@@ -113,6 +114,107 @@ export async function POST(request: NextRequest) {
       manualAccessEnabled: business.manual_access_enabled,
       manualAccessExpiresAt: business.manual_access_expires_at
     })
+
+    // FALLBACK RECOVERY: If webhook hasn't updated business yet, repair it now
+    // This handles cases where Stripe webhook is delayed or fails
+    const needsRepair = !business.subscription_status || 
+                         !['trialing', 'active', 'canceled', 'incomplete'].includes(business.subscription_status)
+    
+    if (needsRepair && session.subscription) {
+      console.log('[Billing Success Fallback Recovery] Webhook may have failed, repairing business state')
+      console.log('[Billing Success Fallback Recovery] Current subscription_status:', business.subscription_status)
+      
+      try {
+        const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
+        
+        console.log('[Billing Success Fallback Recovery] Retrieved subscription from Stripe:', {
+          id: subscription.id,
+          status: subscription.status,
+          current_period_end: (subscription as any).current_period_end,
+          trial_end: (subscription as any).trial_end
+        })
+        
+        // Calculate dates
+        let trialEndsAt = null
+        let currentPeriodEnd = null
+        
+        if ((subscription as any).trial_end) {
+          trialEndsAt = new Date((subscription as any).trial_end * 1000).toISOString()
+        }
+        
+        if ((subscription as any).current_period_end) {
+          currentPeriodEnd = new Date((subscription as any).current_period_end * 1000).toISOString()
+        }
+        
+        // Fallback: use trial_end for current_period_end if needed
+        if (!currentPeriodEnd && trialEndsAt) {
+          currentPeriodEnd = trialEndsAt
+        }
+        
+        // Repair business state
+        const repairData: any = {
+          subscription_status: subscription.status,
+          stripe_customer_id: session.customer as string,
+          stripe_subscription_id: subscription.id,
+          trial_ends_at: trialEndsAt,
+          trial_started_at: new Date().toISOString(),
+          current_period_end: currentPeriodEnd,
+        }
+        
+        if (subscription.items && subscription.items.data[0]) {
+          repairData.subscription_price_id = subscription.items.data[0].price.id
+        }
+        
+        console.log('[Billing Success Fallback Recovery] Repairing business with:', repairData)
+        
+        const { error: repairError } = await supabase
+          .from('businesses')
+          .update(repairData)
+          .eq('id', business.id)
+        
+        if (repairError) {
+          console.error('[Billing Success Fallback Recovery] Failed to repair business:', repairError)
+        } else {
+          console.log('[Billing Success Fallback Recovery] Successfully repaired business state')
+          
+          // Update local business object with repaired state
+          business.subscription_status = subscription.status
+          business.trial_ends_at = trialEndsAt
+          business.trial_started_at = new Date().toISOString()
+          business.current_period_end = currentPeriodEnd
+          
+          // Check if provisioning should be triggered after repair
+          const shouldProvision = isEligibleForProvisioning(business)
+          console.log('[Billing Success Fallback Recovery] Should trigger provisioning after repair:', shouldProvision)
+          
+          if (shouldProvision) {
+            console.log('[Billing Success Fallback Recovery] Triggering provisioning after repair')
+            try {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/business/trigger-provisioning`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-admin-secret': process.env.PROVISIONING_ADMIN_SECRET || ''
+                },
+                body: JSON.stringify({
+                  business_id: business.id
+                })
+              })
+              
+              if (response.ok) {
+                console.log('[Billing Success Fallback Recovery] Provisioning triggered successfully')
+              } else {
+                console.error('[Billing Success Fallback Recovery] Failed to trigger provisioning:', response.status)
+              }
+            } catch (provisioningError) {
+              console.error('[Billing Success Fallback Recovery] Error triggering provisioning:', provisioningError)
+            }
+          }
+        }
+      } catch (repairError) {
+        console.error('[Billing Success Fallback Recovery] Error repairing business:', repairError)
+      }
+    }
 
     // Determine checkout status and redirect readiness
     const subscriptionStatus = business.subscription_status
