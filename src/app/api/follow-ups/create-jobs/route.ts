@@ -18,52 +18,79 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[FOLLOWUP API ENTER] Request received');
     
-    // Authenticate user
-    const supabase = createServerSupabaseClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Check for internal auth (server-to-server from Fly.io AI voice service)
+    const authHeader = request.headers.get('authorization');
+    const internalApiSecret = process.env.INTERNAL_API_SECRET;
+    
+    let isInternalAuth = false;
+    let user = null;
+    let supabase = null;
 
-    if (authError || !user) {
-      console.error('[FOLLOWUP API ERROR] Authentication failed:', authError)
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    if (authHeader && internalApiSecret) {
+      const [scheme, token] = authHeader.split(' ');
+      if (scheme === 'Bearer' && token === internalApiSecret) {
+        isInternalAuth = true;
+        console.log('[FOLLOWUP API INTERNAL AUTH] Valid internal auth detected');
+      }
+    }
+
+    if (!isInternalAuth) {
+      // Fall back to user session auth for dashboard/manual use
+      console.log('[FOLLOWUP API USER AUTH] Attempting user session auth');
+      supabase = createServerSupabaseClient()
+      const authResult = await supabase.auth.getUser()
+      user = authResult.data.user
+      const authError = authResult.error
+
+      if (authError || !user) {
+        console.error('[FOLLOWUP API ERROR] Authentication failed:', authError)
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      console.log('[FOLLOWUP API USER AUTH] User authenticated:', user.id);
     }
 
     const body = await request.json()
     const { businessId, leadId, conversationId, businessName } = body
 
-    console.log('[FOLLOWUP API REQUEST BODY]', { businessId, leadId, conversationId, businessName, userId: user.id });
+    console.log('[FOLLOWUP API REQUEST BODY]', { businessId, leadId, conversationId, businessName, isInternalAuth, userId: user?.id });
 
     if (!businessId || !leadId) {
       console.error('[FOLLOWUP API ERROR] Missing required fields:', { businessId, leadId });
       return NextResponse.json({ error: 'Missing required fields: businessId, leadId' }, { status: 400 })
     }
 
-    // Verify business ownership
-    const { data: business, error: businessError } = await supabaseAdmin
-      .from('businesses')
-      .select('id, user_id')
-      .eq('id', businessId)
-      .single()
+    // For internal auth, skip business ownership check (Fly.io service is trusted)
+    // For user auth, verify business ownership
+    if (!isInternalAuth) {
+      const { data: business, error: businessError } = await supabaseAdmin
+        .from('businesses')
+        .select('id, user_id')
+        .eq('id', businessId)
+        .single()
 
-    if (businessError || !business) {
-      console.error('[FOLLOWUP API ERROR] Business not found:', { businessId, error: businessError })
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
-    }
+      if (businessError || !business) {
+        console.error('[FOLLOWUP API ERROR] Business not found:', { businessId, error: businessError })
+        return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+      }
 
-    if (business.user_id !== user.id) {
-      console.error('[FOLLOWUP API ERROR] Business ownership check failed:', { 
-        businessId, 
-        businessUserId: business.user_id, 
-        requestUserId: user.id 
-      })
-      return NextResponse.json({ error: 'Forbidden: You do not own this business' }, { status: 403 })
+      if (business.user_id !== user?.id) {
+        console.error('[FOLLOWUP API ERROR] Business ownership check failed:', { 
+          businessId, 
+          businessUserId: business.user_id, 
+          requestUserId: user?.id 
+        })
+        return NextResponse.json({ error: 'Forbidden: You do not own this business' }, { status: 403 })
+      }
     }
 
     console.log('[FOLLOWUP JOB CREATE ATTEMPT - API]', {
       businessId,
       leadId,
       conversationId,
-      source: 'external_api',
-      userId: user.id
+      source: isInternalAuth ? 'internal_api' : 'external_api',
+      userId: user?.id || 'internal_service',
+      isInternalAuth
     })
 
     console.log('[FOLLOWUP CREATION SOURCE]', {
@@ -71,7 +98,8 @@ export async function POST(request: NextRequest) {
       businessId,
       leadId,
       conversationId,
-      userId: user.id,
+      userId: user?.id || 'internal_service',
+      isInternalAuth,
       timestamp: new Date().toISOString()
     })
 

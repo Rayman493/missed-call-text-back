@@ -2362,13 +2362,27 @@ Return only JSON, no other text.`;
         try {
           console.log('[FOLLOWUP DEBUG API START - ACTIVE] Fetching from follow-up API');
           const followUpApiUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+          const internalApiSecret = process.env.INTERNAL_API_SECRET;
+          
           console.log('[FOLLOWUP DEBUG API URL - ACTIVE]', followUpApiUrl);
+          console.log('[FOLLOWUP DEBUG AUTH - ACTIVE]', {
+            hasInternalApiSecret: !!internalApiSecret,
+            secretLength: internalApiSecret?.length,
+            secretFirstChar: internalApiSecret?.[0],
+            secretLastChar: internalApiSecret?.[internalApiSecret.length - 1]
+          });
+          
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+          };
+          
+          if (internalApiSecret) {
+            headers['Authorization'] = `Bearer ${internalApiSecret}`;
+          }
           
           const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify({
               businessId: sessionBusinessId,
               leadId: lead.id,
