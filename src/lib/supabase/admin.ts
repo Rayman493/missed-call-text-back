@@ -505,12 +505,21 @@ export const db = {
     }
 
     if (twilioNumber && twilioNumber.business_id) {
-      // Warn if status is inconsistent (has business_id but not 'assigned' or 'active')
-      if (!['assigned', 'active'].includes(twilioNumber.status)) {
-        console.warn('[getBusinessByTwilioNumber] Assigned number has unexpected status', {
+      // Check status and add appropriate logging
+      if (['assigned', 'active'].includes(twilioNumber.status)) {
+        console.log('[getBusinessByTwilioNumber] Case: number assigned and valid', {
           phone,
           businessId: twilioNumber.business_id,
-          status: twilioNumber.status
+          status: twilioNumber.status,
+          twilioNumberId: twilioNumber.id
+        })
+      } else {
+        console.warn('[getBusinessByTwilioNumber] Case: number assigned but status mismatch', {
+          phone,
+          businessId: twilioNumber.business_id,
+          status: twilioNumber.status,
+          twilioNumberId: twilioNumber.id,
+          message: 'Number is assigned but status is not assigned/active. Run repair script to fix.'
         })
       }
 
@@ -547,16 +556,19 @@ export const db = {
 
     if (businessError) {
       console.error('[getBusinessByTwilioNumber] Error fetching business from businesses table:', businessError)
+      console.log('[getBusinessByTwilioNumber] Case: number not found in either table')
       return null
     }
 
     if (!business) {
       console.log('[getBusinessByTwilioNumber] No business found in businesses table for phone:', phone)
+      console.log('[getBusinessByTwilioNumber] Case: number not found')
       return null
     }
 
     console.log('[getBusinessByTwilioNumber] Found business:', business.id, 'via businesses table (FALLBACK - PROVISIONING MISMATCH)')
     console.log('[getBusinessByTwilioNumber] CRITICAL: twilio_numbers row missing for assigned number')
+    console.log('[getBusinessByTwilioNumber] Case: number found but unassigned in twilio_numbers table')
 
     // Log provisioning mismatch for self-healing
     console.log('[PROVISIONING MISMATCH DETECTED]', {
@@ -591,6 +603,7 @@ export const db = {
         console.error('[getBusinessByTwilioNumber] Self-healing failed to create twilio_numbers row:', insertError)
       } else if (insertedTwilioNumber) {
         console.log('[getBusinessByTwilioNumber] Self-healing successful: created twilio_numbers row with ID:', insertedTwilioNumber.id)
+        console.log('[getBusinessByTwilioNumber] Case: number status mismatch repaired')
 
         // Update businesses table with assigned_twilio_number_id if not set
         if (!business.assigned_twilio_number_id) {
