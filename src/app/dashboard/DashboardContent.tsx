@@ -247,7 +247,6 @@ export default function DashboardContent() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [billingError, setBillingError] = useState('')
-  const [isSetupBannerDismissed, setIsSetupBannerDismissed] = useState(false)
   const [adminPanelCollapsed, setAdminPanelCollapsed] = useState(true)
   const [loadingTimeout, setLoadingTimeout] = useState(false)
   const [stats, setStats] = useState<any>(null)
@@ -410,12 +409,6 @@ export default function DashboardContent() {
   const isSubscriptionStateResolved = businessFetchComplete && (business?.subscription_status !== null || business?.subscription_status !== undefined)
   const shouldShowLoadingState = isStateResolving || (!isSubscriptionStateResolved && !loadingTimeout)
 
-  // Initialize setup banner dismissal state from sessionStorage
-  useEffect(() => {
-    const dismissed = sessionStorage.getItem('replyflow_setup_banner_dismissed') === 'true'
-    setIsSetupBannerDismissed(dismissed)
-  }, [])
-
   
   // CENTRALIZED CHECKOUT RECOVERY FLOW
   // When ?checkout=success is present, wait up to 8 seconds for session restoration
@@ -560,11 +553,6 @@ export default function DashboardContent() {
   // EMERGENCY BYPASS REMOVED - Restoring full dashboard with selective feature enablement
   // All hooks are called before any conditional returns to prevent React #310
 
-  const handleDismissSetupBanner = () => {
-    setIsSetupBannerDismissed(true)
-    sessionStorage.setItem('replyflow_setup_banner_dismissed', 'true')
-  }
-  
   const handleManageSubscription = async () => {
     setIsOpeningBilling(true)
     setBillingError('')
@@ -1095,8 +1083,8 @@ export default function DashboardContent() {
             <div className="flex-1 pt-1.5 sm:pt-2 lg:pt-2 px-3 sm:px-4 lg:px-6 pb-12 relative z-10">
               <div className="max-w-[1400px] mx-auto space-y-1 sm:space-y-1.5">
 
-                {/* Setup Mode Banner - Show when user comes from billing success */}
-                {setupMode && (
+                {/* Setup Mode Banner - Show when user has active subscription but forwarding is not verified */}
+                {hasActiveSubscription(business) && !business?.forwarding_verified && (
                   <SectionErrorBoundary sectionName="SetupModeBanner">
                     <div className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 rounded-xl p-4 sm:p-6 shadow-lg">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
