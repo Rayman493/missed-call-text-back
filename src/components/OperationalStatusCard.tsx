@@ -292,7 +292,7 @@ export default function OperationalStatusCard({
 
       {/* Expanded Details - Only shown when unhealthy or manually expanded */}
       {showSystemDetails && (
-        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Recovery Instructions - Only when unhealthy */}
           {healthStatus !== 'healthy' && (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5">
@@ -423,11 +423,11 @@ export default function OperationalStatusCard({
                                 <p className="mb-1">Call your business number and enter this code:</p>
                                 <div className="flex items-center gap-2">
                                   <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono flex-1 text-xs">
-                                    {carrierInstructions[selectedCarrier].enableCode}{business.twilio_phone_number?.replace(/\D/g, '') || ''}#
+                                    {carrierInstructions[selectedCarrier].enableCode}{business?.twilio_phone_number?.replace(/\D/g, '') || ''}#
                                   </code>
                                   <button
                                     onClick={() => {
-                                      const code = `${carrierInstructions[selectedCarrier].enableCode}${business.twilio_phone_number?.replace(/\D/g, '') || ''}#`
+                                      const code = `${carrierInstructions[selectedCarrier].enableCode}${business?.twilio_phone_number?.replace(/\D/g, '') || ''}#`
                                       navigator.clipboard.writeText(code)
                                       alert('Code copied to clipboard!')
                                     }}
@@ -511,208 +511,219 @@ export default function OperationalStatusCard({
             </div>
           )}
 
-          {/* Live Metrics Collapsible Section */}
-          <div>
-            <button
-              onClick={() => toggleSection('live-metrics')}
-              className="w-full flex items-center justify-between text-left p-2 bg-slate-800/50 border border-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs font-medium text-slate-300">Live Operational Metrics</span>
+          {/* System Diagnostics Card */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-xs font-medium text-slate-300">System Diagnostics</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+              <div>
+                <span className="text-slate-400 block mb-0.5">Twilio Config</span>
+                <span className={`font-medium ${business?.twilio_phone_number ? 'text-green-400' : 'text-amber-400'}`}>
+                  {business?.twilio_phone_number ? 'Healthy' : 'Pending'}
+                </span>
               </div>
-              {expandedSection === 'live-metrics' ? (
-                <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-              ) : (
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              )}
-            </button>
+              <div>
+                <span className="text-slate-400 block mb-0.5">SMS Service</span>
+                <span className={`font-medium ${isTextReplyActive ? 'text-green-400' : 'text-amber-400'}`}>
+                  {isTextReplyActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block mb-0.5">Call Forwarding</span>
+                <span className={`font-medium ${isForwardingActive ? 'text-green-400' : 'text-amber-400'}`}>
+                  {isForwardingActive ? 'Verified' : 'Not Verified'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block mb-0.5">Last AI Intake</span>
+                <span className="font-medium text-slate-300">
+                  {liveMetrics.lastAiIntake ? formatRelativeTime(liveMetrics.lastAiIntake) : 'Never'}
+                </span>
+              </div>
+            </div>
 
-            {expandedSection === 'live-metrics' && (
-              <div className="mt-2 bg-slate-800/50 border border-slate-700 rounded-lg p-2.5 space-y-2">
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <span className="text-slate-400 block mb-0.5">Twilio Configuration</span>
-                    <span className={`font-medium ${business?.twilio_phone_number ? 'text-green-400' : 'text-amber-400'}`}>
-                      {business?.twilio_phone_number ? 'Healthy' : 'Pending'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block mb-0.5">SMS Service</span>
-                    <span className={`font-medium ${isTextReplyActive ? 'text-green-400' : 'text-amber-400'}`}>
-                      {isTextReplyActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block mb-0.5">Call Forwarding</span>
-                    <span className={`font-medium ${isForwardingActive ? 'text-green-400' : 'text-amber-400'}`}>
-                      {isForwardingActive ? 'Verified' : 'Not Verified'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block mb-0.5">Last AI Intake</span>
-                    <span className="font-medium text-slate-300">
-                      {liveMetrics.lastAiIntake ? formatRelativeTime(liveMetrics.lastAiIntake) : 'Never'}
-                    </span>
-                  </div>
-                </div>
-
-                {liveMetrics.deliveryFailures > 0 && (
-                  <div className="mt-2 pt-2 border-t border-slate-700">
-                    <span className="text-slate-400 text-xs block mb-0.5">Delivery Failures (24h)</span>
-                    <span className={`font-medium ${liveMetrics.deliveryFailures > 5 ? 'text-red-400' : 'text-amber-400'}`}>
-                      {liveMetrics.deliveryFailures} failures
-                    </span>
-                    {liveMetrics.recentErrors.length > 0 && (
-                      <div className="mt-1.5 space-y-0.5">
-                        {liveMetrics.recentErrors.slice(0, 3).map((error, idx) => (
-                          <p key={idx} className="text-xs text-red-300 truncate">{error}</p>
-                        ))}
-                      </div>
-                    )}
+            {liveMetrics.deliveryFailures > 0 && (
+              <div className="mt-3 pt-3 border-t border-slate-700">
+                <span className="text-slate-400 text-xs block mb-0.5">Delivery Failures (24h)</span>
+                <span className={`font-medium ${liveMetrics.deliveryFailures > 5 ? 'text-red-400' : 'text-amber-400'}`}>
+                  {liveMetrics.deliveryFailures} failures
+                </span>
+                {liveMetrics.recentErrors.length > 0 && (
+                  <div className="mt-1.5 space-y-0.5">
+                    {liveMetrics.recentErrors.slice(0, 3).map((error, idx) => (
+                      <p key={idx} className="text-xs text-red-300 truncate">{error}</p>
+                    ))}
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Call Forwarding Help Section - Nested Accordion */}
-          <div>
-            <button
-              onClick={() => setShowCallForwardingSection(!showCallForwardingSection)}
-              className="w-full flex items-center justify-between text-left p-2 bg-slate-800/50 border border-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-slate-400" />
-                <div className="flex flex-col items-start">
-                  <span className="text-xs font-medium text-slate-300">Call Forwarding</span>
-                  <span className="text-xs text-slate-500">Setup instructions and forwarding codes</span>
+          {/* Call Forwarding Setup Card */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <Phone className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-xs font-medium text-slate-300">Call Forwarding Setup</span>
+            </div>
+
+            {/* Carrier selector inline */}
+            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-slate-700">
+              <span className="text-xs text-slate-400">Carrier:</span>
+              <select 
+                className="bg-slate-700 border border-slate-600 rounded px-2 py-0.5 text-slate-300 text-xs"
+                value={selectedCarrier}
+                onChange={(e) => setSelectedCarrier(e.target.value)}
+              >
+                <option value="" disabled>Select carrier</option>
+                <option value="verizon">Verizon</option>
+                <option value="att">AT&T</option>
+                <option value="tmobile">T-Mobile</option>
+                <option value="sprint">Sprint</option>
+                <option value="google-fi">Google Fi</option>
+                <option value="cricket">Cricket Wireless</option>
+                <option value="other">Other / VoIP</option>
+              </select>
+              {selectedCarrier && carrierInstructions[selectedCarrier] && (
+                <span className="text-xs text-slate-500">
+                  {carrierInstructions[selectedCarrier].tested ? '(Tested)' : '(Untested)'}
+                </span>
+              )}
+            </div>
+
+            {/* 3-step layout */}
+            <div className="space-y-3">
+              {/* Step 1: Confirm number */}
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 bg-blue-500/20 border border-blue-500/30 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-xs font-medium text-blue-400">1</span>
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs text-slate-400 block mb-1">Confirm your ReplyFlow number</span>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono text-xs">
+                      {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
+                    </code>
+                    <button
+                      onClick={() => {
+                        if (business?.twilio_phone_number) {
+                          navigator.clipboard.writeText(business.twilio_phone_number)
+                        }
+                      }}
+                      className="bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded text-xs"
+                      title="Copy number"
+                    >
+                      Copy
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {isForwardingActive && (
-                  <span className="text-xs text-green-400 flex items-center gap-1">
-                    ✓ Configured
-                  </span>
-                )}
-                {!isForwardingActive && (
-                  <span className="text-xs text-amber-400 flex items-center gap-1">
-                    ⚠️ Not configured
-                  </span>
-                )}
-                {showCallForwardingSection ? (
-                  <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                )}
-              </div>
-            </button>
 
-            {showCallForwardingSection && (
-              <div className="mt-2 p-2.5 bg-slate-800/50 border border-slate-700 rounded-lg">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Left side: Forwarding codes */}
-                  <div className="space-y-2">
-                    <div>
-                      <span className="text-xs text-slate-400 block mb-1">ReplyFlow Number</span>
-                      <span className="font-mono text-xs text-slate-300">
-                        {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-slate-400 block mb-1">Carrier</span>
-                      <select 
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-300 text-xs"
-                        value={selectedCarrier}
-                        onChange={(e) => setSelectedCarrier(e.target.value)}
-                      >
-                        <option value="" disabled>Select carrier</option>
-                        <option value="verizon">Verizon</option>
-                        <option value="att">AT&T</option>
-                        <option value="tmobile">T-Mobile</option>
-                        <option value="sprint">Sprint</option>
-                        <option value="google-fi">Google Fi</option>
-                        <option value="cricket">Cricket Wireless</option>
-                        <option value="other">Other / VoIP</option>
-                      </select>
-                    </div>
-                    {selectedCarrier && carrierInstructions[selectedCarrier] && (
-                      <>
-                        <div>
-                          <span className="text-xs text-slate-400 block mb-1">Enable Code</span>
-                          <div className="flex items-center gap-2">
-                            <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono flex-1 text-xs">
-                              {carrierInstructions[selectedCarrier].enableCode}{business?.twilio_phone_number?.replace(/\D/g, '') || ''}#
-                            </code>
-                            <button
-                              onClick={() => {
-                                const code = `${carrierInstructions[selectedCarrier].enableCode}${business?.twilio_phone_number?.replace(/\D/g, '') || ''}#`
-                                navigator.clipboard.writeText(code)
-                              }}
-                              className="bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded text-xs"
-                              title="Copy code"
-                            >
-                              Copy
-                            </button>
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-xs text-slate-400 block mb-1">Disable Code</span>
-                          <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono text-xs">
-                            {carrierInstructions[selectedCarrier].disableCode}
-                          </code>
-                        </div>
-                      </>
-                    )}
+              {/* Step 2: Enable forwarding */}
+              {selectedCarrier && carrierInstructions[selectedCarrier] && (
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 bg-blue-500/20 border border-blue-500/30 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs font-medium text-blue-400">2</span>
                   </div>
+                  <div className="flex-1">
+                    <span className="text-xs text-slate-400 block mb-1">Enable call forwarding</span>
+                    <div className="flex items-center gap-2 mb-1">
+                      <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono text-xs">
+                        {carrierInstructions[selectedCarrier].enableCode}{business?.twilio_phone_number?.replace(/\D/g, '') || ''}#
+                      </code>
+                      <button
+                        onClick={() => {
+                          const code = `${carrierInstructions[selectedCarrier].enableCode}${business?.twilio_phone_number?.replace(/\D/g, '') || ''}#`
+                          navigator.clipboard.writeText(code)
+                        }}
+                        className="bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded text-xs"
+                        title="Copy code"
+                      >
+                        Copy
+                      </button>
+                      <a
+                        href={`tel:${carrierInstructions[selectedCarrier].enableCode}${business?.twilio_phone_number?.replace(/\D/g, '') || ''}#`}
+                        className="bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded text-xs"
+                        title="Dial code"
+                      >
+                        Dial
+                      </a>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <span>Disable:</span>
+                      <code className="bg-slate-700 px-1.5 py-0.5 rounded text-slate-300 font-mono text-xs">
+                        {carrierInstructions[selectedCarrier].disableCode}
+                      </code>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(carrierInstructions[selectedCarrier].disableCode)
+                        }}
+                        className="text-slate-400 hover:text-slate-300 text-xs"
+                        title="Copy disable code"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                  {/* Right side: Actions */}
-                  <div className="space-y-2">
+              {/* Step 3: Test */}
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 bg-blue-500/20 border border-blue-500/30 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-xs font-medium text-blue-400">3</span>
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs text-slate-400 block mb-1">Test your setup</span>
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => setShowTestModal(true)}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 px-3 rounded transition-colors"
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-1.5 px-3 rounded transition-colors"
                     >
                       Run Test Call
                     </button>
                     <Link
                       href="/dashboard/test-setup"
-                      className="block text-center text-xs text-blue-400 hover:text-blue-300"
+                      className="text-xs text-blue-400 hover:text-blue-300"
                     >
                       Watch Setup Demo
                     </Link>
-                    <div className="pt-2 border-t border-slate-700">
-                      <button
-                        onClick={() => toggleSection('troubleshooting')}
-                        className="w-full flex items-center justify-between text-left text-xs text-slate-400 hover:text-slate-300"
-                      >
-                        <span>Troubleshooting</span>
-                        {expandedSection === 'troubleshooting' ? (
-                          <ChevronUp className="w-3 h-3" />
-                        ) : (
-                          <ChevronDown className="w-3 h-3" />
-                        )}
-                      </button>
-                      {expandedSection === 'troubleshooting' && (
-                        <div className="mt-2 space-y-1.5 text-xs text-slate-400">
-                          <p><strong className="text-slate-300">Calls not reaching ReplyFlow?</strong></p>
-                          <ul className="list-disc list-inside space-y-0.5 ml-2">
-                            <li>Verify carrier forwarding settings</li>
-                            <li>Confirm ReplyFlow number is accurate</li>
-                            <li>Try restarting your phone</li>
-                          </ul>
-                          <p className="mt-1.5"><strong className="text-slate-300">Forwarding not activating?</strong></p>
-                          <ul className="list-disc list-inside space-y-0.5 ml-2">
-                            <li>Ensure you pressed Send/Call</li>
-                            <li>Listen for confirmation tone</li>
-                            <li>Contact your carrier if needed</li>
-                          </ul>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Troubleshooting accordion */}
+            <div className="mt-3 pt-3 border-t border-slate-700">
+              <button
+                onClick={() => toggleSection('troubleshooting')}
+                className="w-full flex items-center justify-between text-left text-xs text-slate-400 hover:text-slate-300"
+              >
+                <span>Troubleshooting</span>
+                {expandedSection === 'troubleshooting' ? (
+                  <ChevronUp className="w-3 h-3" />
+                ) : (
+                  <ChevronDown className="w-3 h-3" />
+                )}
+              </button>
+              {expandedSection === 'troubleshooting' && (
+                <div className="mt-2 space-y-1.5 text-xs text-slate-400">
+                  <p><strong className="text-slate-300">Calls not reaching ReplyFlow?</strong></p>
+                  <ul className="list-disc list-inside space-y-0.5 ml-2">
+                    <li>Verify carrier forwarding settings</li>
+                    <li>Confirm ReplyFlow number is accurate</li>
+                    <li>Try restarting your phone</li>
+                  </ul>
+                  <p className="mt-1.5"><strong className="text-slate-300">Forwarding not activating?</strong></p>
+                  <ul className="list-disc list-inside space-y-0.5 ml-2">
+                    <li>Ensure you pressed Send/Call</li>
+                    <li>Listen for confirmation tone</li>
+                    <li>Contact your carrier if needed</li>
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Trial Status */}
