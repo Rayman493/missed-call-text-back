@@ -15,7 +15,7 @@ interface AICallRecord {
   forwarded_from: string | null
   call_sid: string
   ai_session_id: string | null
-  outcome: 'completed' | 'caller_hung_up' | 'ai_failed' | 'voicemail_fallback'
+  outcome: 'completed_intake' | 'partial_intake' | 'early_hangup' | 'no_speech' | 'ai_connection_failed' | 'completed' | 'caller_hung_up' | 'ai_failed' | 'voicemail_fallback'
   transcript: Array<{ role: 'user' | 'assistant'; text: string; timestamp: string }>
   extracted_info: {
     callerName?: string
@@ -30,6 +30,9 @@ interface AICallRecord {
   extraction_failed: boolean
   created_at: string
   updated_at: string
+  hangup_stage?: string | null
+  fields_collected_count?: number | null
+  had_user_speech?: boolean | null
 }
 
 interface AICallSummaryCardProps {
@@ -132,6 +135,33 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
     }
   }
 
+  const getOutcomeStatus = (outcome?: string) => {
+    if (!outcome) return { label: 'Unknown', color: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' }
+    
+    switch (outcome) {
+      case 'completed_intake':
+        return { label: 'AI Intake Complete', color: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300' }
+      case 'partial_intake':
+        return { label: 'Partial Intake', color: 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300' }
+      case 'early_hangup':
+        return { label: 'Caller Hung Up Early', color: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300' }
+      case 'no_speech':
+        return { label: 'No Speech Detected', color: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300' }
+      case 'ai_connection_failed':
+        return { label: 'AI Connection Failed', color: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300' }
+      case 'completed':
+        return { label: 'AI Intake Complete', color: 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300' }
+      case 'caller_hung_up':
+        return { label: 'Caller Hung Up', color: 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300' }
+      case 'ai_failed':
+        return { label: 'AI Failed', color: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300' }
+      case 'voicemail_fallback':
+        return { label: 'Voicemail Fallback', color: 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' }
+      default:
+        return { label: 'Unknown', color: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' }
+    }
+  }
+
   const isPlaceholderValue = (value: string): boolean => {
     if (!value) return false
     const placeholders = [
@@ -176,9 +206,16 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
   return (
     <div className="bg-card border border-border rounded-xl p-4">
-      <div className="flex items-center space-x-2 mb-4">
-        <Phone className="w-5 h-5 text-muted-foreground" />
-        <h3 className="text-sm font-semibold text-foreground">AI Intake Summary</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <Phone className="w-5 h-5 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">AI Intake Summary</h3>
+        </div>
+        {aiCallRecord.outcome && (
+          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getOutcomeStatus(aiCallRecord.outcome).color}`}>
+            {getOutcomeStatus(aiCallRecord.outcome).label}
+          </span>
+        )}
       </div>
 
       <div className="space-y-3">
