@@ -335,17 +335,25 @@ export default function OperationalStatusCard({
       {!isOnboardingComplete && (
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
           <h4 className="text-sm font-semibold text-blue-100 mb-3">Setup Checklist</h4>
+          
+          {/* Reassurance message */}
+          <div className="mb-4 p-3 bg-blue-500/5 rounded-lg border border-blue-500/20">
+            <p className="text-xs text-blue-200">
+              💡 Your existing business phone number stays the same. ReplyFlow only handles missed calls after forwarding is enabled.
+            </p>
+          </div>
+          
           <div className="space-y-3">
             {/* Step 1: ReplyFlow number assigned */}
-            <div className="flex items-start gap-3">
+            <div className={`flex items-start gap-3 ${!business?.twilio_phone_number ? 'bg-blue-500/10 -mx-2 px-2 py-2 rounded-lg border border-blue-500/30' : ''}`}>
               {business?.twilio_phone_number ? (
                 <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
               ) : (
-                <div className="w-5 h-5 rounded-full border-2 border-slate-500 flex-shrink-0 mt-0.5" />
+                <div className="w-5 h-5 rounded-full border-2 border-blue-400 flex-shrink-0 mt-0.5" />
               )}
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <span className={`text-sm font-medium ${business?.twilio_phone_number ? 'text-slate-300 line-through' : 'text-slate-300'}`}>
+                  <span className={`text-sm font-medium ${business?.twilio_phone_number ? 'text-slate-300 line-through' : 'text-blue-300 font-semibold'}`}>
                     ReplyFlow number assigned
                   </span>
                   {business?.twilio_phone_number && (
@@ -353,13 +361,13 @@ export default function OperationalStatusCard({
                   )}
                 </div>
                 {!business?.twilio_phone_number && (
-                  <p className="text-xs text-slate-400 mt-1">Provisioning your ReplyFlow number...</p>
+                  <p className="text-xs text-blue-200 mt-1">Provisioning your ReplyFlow number...</p>
                 )}
               </div>
             </div>
 
             {/* Step 2: Set up call forwarding */}
-            <div className="flex items-start gap-3">
+            <div className={`flex items-start gap-3 ${business?.twilio_phone_number && !business?.call_forwarding_enabled ? 'bg-blue-500/10 -mx-2 px-2 py-2 rounded-lg border border-blue-500/30' : ''}`}>
               {business?.call_forwarding_enabled ? (
                 <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
               ) : (
@@ -367,7 +375,7 @@ export default function OperationalStatusCard({
               )}
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <span className={`text-sm font-medium ${business?.call_forwarding_enabled ? 'text-slate-300 line-through' : 'text-blue-300'}`}>
+                  <span className={`text-sm font-medium ${business?.call_forwarding_enabled ? 'text-slate-300 line-through' : 'text-blue-300 font-semibold'}`}>
                     Set up call forwarding
                   </span>
                   {business?.call_forwarding_enabled ? (
@@ -381,8 +389,8 @@ export default function OperationalStatusCard({
                     </button>
                   )}
                 </div>
-                {!business?.call_forwarding_enabled && (
-                  <p className="text-xs text-slate-400 mt-1">Forward calls from your business number to ReplyFlow</p>
+                {!business?.call_forwarding_enabled && business?.twilio_phone_number && (
+                  <p className="text-xs text-blue-200 mt-1">Forward calls from your business number to ReplyFlow</p>
                 )}
 
                 {/* Carrier-specific forwarding instructions */}
@@ -452,7 +460,7 @@ export default function OperationalStatusCard({
             </div>
 
             {/* Step 3: Run a test call */}
-            <div className="flex items-start gap-3">
+            <div className={`flex items-start gap-3 ${business?.call_forwarding_enabled && !liveMetrics.lastForwardedCall ? 'bg-blue-500/10 -mx-2 px-2 py-2 rounded-lg border border-blue-500/30' : ''}`}>
               {liveMetrics.lastForwardedCall ? (
                 <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
               ) : (
@@ -460,7 +468,7 @@ export default function OperationalStatusCard({
               )}
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <span className={`text-sm font-medium ${liveMetrics.lastForwardedCall ? 'text-slate-300 line-through' : 'text-blue-300'}`}>
+                  <span className={`text-sm font-medium ${liveMetrics.lastForwardedCall ? 'text-slate-300 line-through' : 'text-blue-300 font-semibold'}`}>
                     Run a test call
                   </span>
                   {liveMetrics.lastForwardedCall ? (
@@ -474,8 +482,8 @@ export default function OperationalStatusCard({
                     </button>
                   )}
                 </div>
-                {!liveMetrics.lastForwardedCall && (
-                  <p className="text-xs text-slate-400 mt-1">Verify your forwarding is working correctly</p>
+                {business?.call_forwarding_enabled && !liveMetrics.lastForwardedCall && (
+                  <p className="text-xs text-blue-200 mt-1">Verify your forwarding is working correctly</p>
                 )}
 
                 {/* Test call instructions */}
@@ -486,7 +494,7 @@ export default function OperationalStatusCard({
                       <ol className="list-decimal list-inside space-y-1">
                         <li>Call your business number from another phone</li>
                         <li>Let it ring until ReplyFlow answers</li>
-                        <li>Wait for dashboard to verify automatically</li>
+                        <li>Return here and confirm it worked</li>
                       </ol>
                       <button
                         onClick={() => setShowTestModal(true)}
@@ -500,8 +508,8 @@ export default function OperationalStatusCard({
               </div>
             </div>
 
-            {/* Step 4: Forwarding verified */}
-            <div className="flex items-start gap-3">
+            {/* Step 4: ReplyFlow is Active */}
+            <div className={`flex items-start gap-3 ${liveMetrics.lastForwardedCall && !isForwardingActive ? 'bg-blue-500/10 -mx-2 px-2 py-2 rounded-lg border border-blue-500/30' : ''}`}>
               {isForwardingActive ? (
                 <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
               ) : (
@@ -510,7 +518,7 @@ export default function OperationalStatusCard({
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <span className={`text-sm font-medium ${isForwardingActive ? 'text-slate-300 line-through' : 'text-slate-300'}`}>
-                    Forwarding verified
+                    ReplyFlow is Active
                   </span>
                   {isForwardingActive && (
                     <span className="text-xs text-green-400">Complete</span>
@@ -624,9 +632,9 @@ export default function OperationalStatusCard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
               </svg>
-              <span className="text-sm font-medium text-slate-300">Trial</span>
+              <span className="text-sm font-medium text-slate-300">🎉 Free Trial</span>
             </div>
             <div className="text-sm text-amber-400">
               {new Date(business.trial_ends_at) > new Date()
@@ -638,42 +646,45 @@ export default function OperationalStatusCard({
       )}
 
       {/* Primary Actions - Set Up Call Forwarding as primary CTA */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-        {!isForwardingActive ? (
-          <button
-            onClick={() => {
-              const setupGate = document.getElementById('setup-gate')
-              if (setupGate) {
-                setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              } else {
-                window.scrollTo({ top: 0, behavior: 'smooth' })
-              }
-            }}
-            className="inline-flex items-center justify-center gap-1.5 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-semibold shadow-md"
-          >
-            <Phone className="w-4 h-4" />
-            Set Up Call Forwarding
-          </button>
-        ) : (
-          <button
-            onClick={() => setShowTestModal(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-semibold shadow-md"
-          >
-            <Phone className="w-4 h-4" />
-            Run Test Call
-          </button>
-        )}
-        
-        {!isForwardingActive && (
-          <button
-            onClick={() => setShowTestModal(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-lg transition-colors text-sm font-medium"
-          >
-            <Phone className="w-4 h-4" />
-            Run Test Call
-          </button>
-        )}
-      </div>
+      {/* Hide when inline instructions are expanded to avoid duplicate CTAs */}
+      {!showForwardingInstructions && !showTestCallInstructions && (
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          {!isForwardingActive ? (
+            <button
+              onClick={() => {
+                const setupGate = document.getElementById('setup-gate')
+                if (setupGate) {
+                  setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                } else {
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }
+              }}
+              className="inline-flex items-center justify-center gap-1.5 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-semibold shadow-md"
+            >
+              <Phone className="w-4 h-4" />
+              Set Up Call Forwarding
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowTestModal(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-semibold shadow-md"
+            >
+              <Phone className="w-4 h-4" />
+              Run Test Call
+            </button>
+          )}
+          
+          {!isForwardingActive && (
+            <button
+              onClick={() => setShowTestModal(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-lg transition-colors text-sm font-medium"
+            >
+              <Phone className="w-4 h-4" />
+              Run Test Call
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Test ReplyFlow Modal */}
       <TestReplyFlowModal 
