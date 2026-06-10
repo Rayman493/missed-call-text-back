@@ -507,11 +507,11 @@ export default function ForwardingSetupPage() {
             {/* Progress indicator */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-muted-foreground">Step 3 of 4</p>
+                <p className="text-xs text-muted-foreground">Step 2 of 2</p>
                 <p className="text-xs text-muted-foreground">Almost ready — about 1 minute left</p>
               </div>
               <div className="w-full bg-muted rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '75%' }}></div>
+                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '50%' }}></div>
               </div>
             </div>
 
