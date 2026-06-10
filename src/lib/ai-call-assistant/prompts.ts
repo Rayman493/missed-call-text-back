@@ -31,7 +31,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   confirmationFormat: (data: any) => string
 }> = {
   home_services: {
-    greeting: "Hi, thanks for calling. I'm the automated assistant. I can take a quick message for our team. May I get your name?",
+    greeting: "Hi, this is the assistant. I can help get your request over to the team. What can I help with?",
     reasonQuestion: "What type of service are you looking for today?",
     followUpQuestions: [
       "Could you describe the issue or project in a bit more detail?",
@@ -45,7 +45,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   },
   
   plumbing_hvac: {
-    greeting: "Hi, thanks for calling. I'm the automated assistant. I can take a quick message for our plumbing team. May I get your name?",
+    greeting: "Hi, this is the assistant. I can help get your request over to the plumbing team. What can I help with?",
     reasonQuestion: "Are you calling about a plumbing issue or HVAC service?",
     followUpQuestions: [
       "Could you describe the problem briefly?",
@@ -59,7 +59,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   },
   
   cleaning: {
-    greeting: "Hi, thanks for calling. I'm the automated assistant. I can take a quick message for our cleaning team. May I get your name?",
+    greeting: "Hi, this is the assistant. I can help get your request over to the cleaning team. What can I help with?",
     reasonQuestion: "What type of cleaning service are you looking for?",
     followUpQuestions: [
       "What's the size of the space?",
@@ -73,7 +73,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   },
   
   landscaping: {
-    greeting: "Hi, thanks for calling. I'm the automated assistant. I can take a quick message for our landscaping team. May I get your name?",
+    greeting: "Hi, this is the assistant. I can help get your request over to the landscaping team. What can I help with?",
     reasonQuestion: "What type of landscaping or lawn care do you need?",
     followUpQuestions: [
       "Could you tell me a bit more about what you're looking for?",
@@ -87,7 +87,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   },
   
   real_estate: {
-    greeting: "Hi, thanks for calling. I'm the automated assistant. I can take a quick message for our team. May I get your name?",
+    greeting: "Hi, this is the assistant. I can help get your request over to the team. What can I help with?",
     reasonQuestion: "Are you calling about buying, selling, or a property inspection?",
     followUpQuestions: [
       "Could you share a bit more about what you're looking for?",
@@ -101,7 +101,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   },
   
   travel_agent: {
-    greeting: "Hi, thanks for calling. I'm the automated assistant. I can take a quick message for our travel team. May I get your name?",
+    greeting: "Hi, this is the assistant. I can help get your request over to the travel team. What can I help with?",
     reasonQuestion: "What's your travel destination or trip idea?",
     followUpQuestions: [
       "Do you have approximate travel dates in mind?",
@@ -115,7 +115,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   },
   
   salon_appointment: {
-    greeting: "Hi, thanks for calling. I'm the automated assistant. I can take a quick message for our team. May I get your name?",
+    greeting: "Hi, this is the assistant. I can help get your request over to the team. What can I help with?",
     reasonQuestion: "What type of appointment are you looking to book?",
     followUpQuestions: [
       "Do you have a preferred date or time?",
@@ -129,7 +129,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   },
   
   general_service: {
-    greeting: "Hi, thanks for calling. I'm the automated assistant. I can take a quick message for the team. May I get your name?",
+    greeting: "Hi, this is the assistant. I can help get your request over to the team. What can I help with?",
     reasonQuestion: "What's the reason for your call today?",
     followUpQuestions: [
       "Could you tell me a bit more about what you need?",

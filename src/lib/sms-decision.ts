@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 /**
  * SMS Decision Types
  */
-export type SmsTemplate = 'ai_summary' | 'missed_call' | 'after_hours' | 'none'
+export type SmsTemplate = 'ai_summary' | 'partial_intake' | 'missed_call' | 'after_hours' | 'none'
 
 export interface SmsDecisionResult {
   template: SmsTemplate
@@ -12,7 +12,19 @@ export interface SmsDecisionResult {
   aiCompleted: boolean
   voicemailCompleted: boolean
   aiCallRecordId?: string
+  aiOutcome?: string
+  fallbackSmsType?: string
 }
+
+/**
+ * AI Call Outcome Types
+ */
+export type AiCallOutcome = 
+  | 'completed_intake'  // AI collected required fields and confirmation flow completed
+  | 'partial_intake'    // Caller provided some useful info but hung up before completion
+  | 'early_hangup'      // Caller hung up before providing useful info
+  | 'no_speech'         // Call connected but caller did not speak
+  | 'ai_connection_failed'  // AI service failed before intake could start
 
 /**
  * Centralized SMS Decision Logic
@@ -20,6 +32,8 @@ export interface SmsDecisionResult {
  * This function provides a single authoritative decision point for determining
  * which SMS template to send after an inbound call, eliminating race conditions
  * between AI summary SMS and generic missed-call SMS.
+ * 
+ * Updated to handle early hangup and partial intake scenarios with appropriate fallback SMS.
  */
 export async function determineSmsTemplate(params: {
   callSid: string
@@ -49,7 +63,7 @@ export async function determineSmsTemplate(params: {
 
     const { data: record } = await supabaseAdmin
       .from('ai_call_records')
-      .select('id, outcome, call_sid, lead_id, conversation_id, extracted_info, summary')
+      .select('id, outcome, call_sid, lead_id, conversation_id, extracted_info, summary, hangup_stage, fields_collected_count, had_user_speech')
       .eq('call_sid', callSid)
       .maybeSingle()
 
@@ -68,49 +82,136 @@ export async function determineSmsTemplate(params: {
     }
   }
 
-  // Check if AI summary SMS already sent
-  let aiSummaryAlreadySent = false
-  if (conversationId) {
-    const { data: existingAiSummary } = await supabaseAdmin
-      .from('messages')
-      .select('id')
-      .eq('conversation_id', conversationId)
-      .ilike('body', 'Hi, this is%')
-      .ilike('body', '%Thanks for calling — we received your request%')
-      .limit(1)
-      .maybeSingle()
-
-    aiSummaryAlreadySent = !!existingAiSummary
+  // Check if any automated SMS has been sent for this lead in the last 5 minutes
+  const recentAutomatedSms = await hasRecentAutomatedSms(leadId)
+  if (recentAutomatedSms) {
+    console.log('[AUTO SMS DECISION] Recent automated SMS already sent - suppressing duplicate', {
+      leadId,
+      callSid,
+      reason: 'recent_automated_sms_exists'
+    })
+    return {
+      template: 'none',
+      shouldSend: false,
+      reason: 'recent_automated_sms_exists',
+      aiCompleted: false,
+      voicemailCompleted: false,
+      aiCallRecordId: aiCallRecord?.id
+    }
   }
 
-  // Decision logic
-  const aiCompleted = aiCallRecord?.outcome === 'completed'
+  // Decision logic based on AI call outcome
+  const outcome = aiCallRecord?.outcome as AiCallOutcome
   const hasExtractedInfo = aiCallRecord?.extracted_info && Object.keys(aiCallRecord.extracted_info).length > 0
   const hasSummary = aiCallRecord?.summary && aiCallRecord.summary.length > 0
+  const fieldsCollectedCount = aiCallRecord?.fields_collected_count || 0
+  const hadUserSpeech = aiCallRecord?.had_user_speech || false
 
   let result: SmsDecisionResult
 
-  if (aiCompleted || hasExtractedInfo || hasSummary) {
-    // AI has completed or has data - AI summary SMS should be sent by external service
-    console.log('[AUTO SMS DECISION] AI completed - suppress generic SMS', {
+  if (outcome === 'completed_intake') {
+    // AI completed full intake - AI summary SMS should be sent by external service
+    console.log('[AUTO SMS DECISION] AI completed intake - suppress generic SMS', {
       callSid,
       leadId,
-      conversationId,
       aiCallRecordId: aiCallRecord?.id,
-      aiCompleted,
-      hasExtractedInfo,
-      hasSummary,
-      aiSummaryAlreadySent,
-      reason: aiCompleted ? 'ai_intake_completed' : hasExtractedInfo ? 'ai_extracted_info_exists' : 'ai_summary_exists'
+      outcome,
+      reason: 'ai_intake_completed'
     })
 
     result = {
       template: 'none',
       shouldSend: false,
-      reason: aiCompleted ? 'ai_intake_completed' : hasExtractedInfo ? 'ai_extracted_info_exists' : 'ai_summary_exists',
+      reason: 'ai_intake_completed',
       aiCompleted: true,
       voicemailCompleted: false,
-      aiCallRecordId: aiCallRecord?.id
+      aiCallRecordId: aiCallRecord?.id,
+      aiOutcome: outcome,
+      fallbackSmsType: 'none'
+    }
+  } else if (outcome === 'partial_intake') {
+    // Partial intake - send partial recovery SMS
+    console.log('[AUTO SMS DECISION] Partial intake detected - send partial recovery SMS', {
+      callSid,
+      leadId,
+      aiCallRecordId: aiCallRecord?.id,
+      outcome,
+      fieldsCollectedCount,
+      reason: 'partial_intake'
+    })
+
+    result = {
+      template: 'partial_intake',
+      shouldSend: true,
+      reason: 'partial_intake',
+      aiCompleted: false,
+      voicemailCompleted: false,
+      aiCallRecordId: aiCallRecord?.id,
+      aiOutcome: outcome,
+      fallbackSmsType: 'partial_recovery'
+    }
+  } else if (outcome === 'early_hangup' || outcome === 'no_speech') {
+    // Early hangup or no speech - send generic missed-call recovery SMS
+    console.log('[AUTO SMS DECISION] Early hangup or no speech - send generic missed-call SMS', {
+      callSid,
+      leadId,
+      aiCallRecordId: aiCallRecord?.id,
+      outcome,
+      hadUserSpeech,
+      reason: outcome
+    })
+
+    result = {
+      template: 'missed_call',
+      shouldSend: true,
+      reason: outcome,
+      aiCompleted: false,
+      voicemailCompleted: false,
+      aiCallRecordId: aiCallRecord?.id,
+      aiOutcome: outcome,
+      fallbackSmsType: 'generic_recovery'
+    }
+  } else if (outcome === 'ai_connection_failed') {
+    // AI connection failed - send generic missed-call recovery SMS
+    console.log('[AUTO SMS DECISION] AI connection failed - send generic missed-call SMS', {
+      callSid,
+      leadId,
+      aiCallRecordId: aiCallRecord?.id,
+      outcome,
+      reason: 'ai_connection_failed'
+    })
+
+    result = {
+      template: 'missed_call',
+      shouldSend: true,
+      reason: 'ai_connection_failed',
+      aiCompleted: false,
+      voicemailCompleted: false,
+      aiCallRecordId: aiCallRecord?.id,
+      aiOutcome: outcome,
+      fallbackSmsType: 'generic_recovery'
+    }
+  } else if (hasExtractedInfo || hasSummary || fieldsCollectedCount > 0) {
+    // Legacy fallback: if AI has some data but no outcome recorded, treat as partial intake
+    console.log('[AUTO SMS DECISION] AI has data but no outcome - treat as partial intake', {
+      callSid,
+      leadId,
+      aiCallRecordId: aiCallRecord?.id,
+      hasExtractedInfo,
+      hasSummary,
+      fieldsCollectedCount,
+      reason: 'ai_data_without_outcome'
+    })
+
+    result = {
+      template: 'partial_intake',
+      shouldSend: true,
+      reason: 'ai_data_without_outcome',
+      aiCompleted: false,
+      voicemailCompleted: false,
+      aiCallRecordId: aiCallRecord?.id,
+      aiOutcome: outcome || 'partial_intake',
+      fallbackSmsType: 'partial_recovery'
     }
   } else {
     // No AI data - send generic missed-call SMS
@@ -119,7 +220,6 @@ export async function determineSmsTemplate(params: {
       leadId,
       conversationId,
       aiCallRecordFound: !!aiCallRecord,
-      aiSummaryAlreadySent,
       reason: 'no_ai_data'
     })
 
@@ -128,7 +228,8 @@ export async function determineSmsTemplate(params: {
       shouldSend: true,
       reason: 'no_ai_data',
       aiCompleted: false,
-      voicemailCompleted: false
+      voicemailCompleted: false,
+      fallbackSmsType: 'generic_recovery'
     }
   }
 
@@ -140,7 +241,8 @@ export async function determineSmsTemplate(params: {
     shouldSend: result.shouldSend,
     reason: result.reason,
     aiCompleted: result.aiCompleted,
-    generic_sms_suppressed: result.template === 'none'
+    aiOutcome: result.aiOutcome,
+    fallbackSmsType: result.fallbackSmsType
   })
 
   return result
