@@ -446,6 +446,21 @@ export async function POST(request: NextRequest) {
       messagingServiceSid: business.twilio_messaging_service_sid
     })
 
+    // Log explicit SMS decision before sending
+    console.log('[AUTO SMS DECISION BEFORE SEND]', {
+      callSid,
+      leadId,
+      conversationId,
+      businessId,
+      template: 'ai_summary',
+      reason: 'ai_intake_completed',
+      aiCompleted: true,
+      voicemailCompleted: false,
+      generic_sms_suppressed: true,
+      messageBody: messageBody.substring(0, 100),
+      source: 'external_ai_voice_service'
+    })
+
     try {
       const twilioMessageSid = await sendSms(
         business,

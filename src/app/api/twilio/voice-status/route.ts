@@ -7,6 +7,7 @@ import { checkVoiceStatusRateLimit } from '@/lib/rate-limit'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { createFollowUpJobs } from '@/lib/follow-ups'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
+import { determineSmsTemplate, hasAiSummaryBeenSent, hasRecentAutomatedSms } from '@/lib/sms-decision'
 
 // CALL TRACE logging function
 function logCallTrace(data: {
@@ -554,60 +555,55 @@ export async function POST(req: NextRequest) {
     } else {
       console.log('[Twilio Voice Status Webhook] No lead available for recent outbound check')
     }
-    
+
+    // Use centralized SMS decision logic
+    let smsDecision = null
+    if (!hasRecentOutbound && lead && conversation) {
+      try {
+        smsDecision = await determineSmsTemplate({
+          callSid: CallSid,
+          leadId: lead.id,
+          conversationId: conversation.id,
+          businessId: business.id
+        })
+      } catch (decisionError) {
+        console.error('[Twilio Voice Status Webhook] Error determining SMS template:', decisionError)
+        // Fallback to safe default
+        smsDecision = {
+          template: 'missed_call',
+          shouldSend: true,
+          reason: 'decision_error_fallback',
+          aiCompleted: false,
+          voicemailCompleted: false
+        }
+      }
+    }
+
     let autoReplySent = false
     let messageSid = null
     
-    // Send auto-reply SMS if no recent outbound message exists and we have a lead
-    if (!hasRecentOutbound && lead) {
-      console.log(`[Twilio Voice Status Webhook] Auto-reply send attempt - no recent outbound found`)
+    // Send auto-reply SMS based on centralized decision
+    if (smsDecision && smsDecision.shouldSend && lead) {
+      console.log(`[Twilio Voice Status Webhook] Sending SMS based on centralized decision`)
 
-      console.log('[STANDARD SMS DECISION]', {
-        callSid: CallSid,
-        leadId: lead?.id,
-        conversationId: conversation?.id,
-        aiCallRecordExists: !!aiCallRecord,
-        aiCallRecordOutcome: aiCallRecord?.outcome,
-        hasRecentOutbound,
-        leadExists: !!lead
-      })
-
-      // Log SMS path based on AI call record
-      if (aiCallRecord) {
-        console.log('[SMS PATH AI SUMMARY]', {
-          callSid: CallSid,
-          aiCallRecordId: aiCallRecord.id,
-          leadId: lead.id,
-          reason: 'AI call record found, sending AI summary SMS'
-        })
-      } else {
-        console.log('[SMS PATH MISSED CALL]', {
-          callSid: CallSid,
-          leadId: lead.id,
-          reason: 'No AI call record, sending missed-call SMS'
-        })
-      }
-      
       // Business hours check
       const businessHoursEnabled = business.business_hours_enabled || false
       const businessHoursStart = business.business_hours_start || '09:00'
       const businessHoursEnd = business.business_hours_end || '17:00'
       const businessTimezone = business.business_hours_timezone || 'America/New_York'
       const afterHoursMessage = business.after_hours_message || ''
-      
+
       let withinBusinessHours = true
       let nowLocal = ''
       let dayOfWeek = ''
-      
+
       if (businessHoursEnabled) {
-        // Get current time in business timezone
         const now = new Date()
         const nowInTimezone = new Date(now.toLocaleString('en-US', { timeZone: businessTimezone }))
         
         nowLocal = nowInTimezone.toISOString()
         dayOfWeek = nowInTimezone.toLocaleDateString('en-US', { weekday: 'long' })
         
-        // Parse business hours (format: "HH:MM")
         const [startHour, startMin] = businessHoursStart.split(':').map(Number)
         const [endHour, endMin] = businessHoursEnd.split(':').map(Number)
         
@@ -617,8 +613,7 @@ export async function POST(req: NextRequest) {
         const startTimeInMinutes = startHour * 60 + startMin
         const endTimeInMinutes = endHour * 60 + endMin
         
-        // Check if current time is within business hours (Monday-Friday only)
-        const dayIndex = nowInTimezone.getDay() // 0 = Sunday, 6 = Saturday
+        const dayIndex = nowInTimezone.getDay()
         const isWeekday = dayIndex >= 1 && dayIndex <= 5
         
         withinBusinessHours = isWeekday && currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes
@@ -645,27 +640,18 @@ export async function POST(req: NextRequest) {
           reason: 'Business hours disabled'
         })
       }
-      
-      // Select message based on call type (AI completed vs missed call) and business hours
-      let autoReplyMessage
-      let messageTemplate = 'unknown'
 
-      // Check if AI completed intake - Fly.io service handles AI confirmation SMS via /api/ai-confirmation-sms
-      // Skip sending duplicate SMS from voice-status webhook
-      if (aiCallRecord && aiCallRecord.outcome === 'completed') {
-        console.log('[AI SUMMARY SMS SKIPPED]', {
-          aiCallRecordId: aiCallRecord.id,
-          reason: 'Fly.io AI voice service handles AI confirmation SMS via /api/ai-confirmation-sms'
-        })
-        autoReplyMessage = null
-        messageTemplate = 'ai_intake_skipped'
-      } else if (businessHoursEnabled && !withinBusinessHours && afterHoursMessage) {
+      // Select message based on business hours
+      let autoReplyMessage
+      let messageTemplate = smsDecision.template
+
+      if (businessHoursEnabled && !withinBusinessHours && afterHoursMessage) {
         autoReplyMessage = afterHoursMessage
         messageTemplate = 'after_hours'
         console.log('[AFTER HOURS MESSAGE SELECTED]', {
           template: messageTemplate,
           businessId: business.id,
-          messageBody: autoReplyMessage
+          messageBody: autoReplyMessage?.substring(0, 100)
         })
       } else {
         autoReplyMessage = business.auto_reply_message ||
@@ -674,259 +660,86 @@ export async function POST(req: NextRequest) {
         console.log('[NORMAL MISSED CALL MESSAGE SELECTED]', {
           template: messageTemplate,
           businessId: business.id,
-          messageBody: autoReplyMessage
+          messageBody: autoReplyMessage?.substring(0, 100)
         })
       }
-      
-      // Substitute {{business_name}} token with actual business name for both normal and after-hours messages
+
+      // Substitute {{business_name}} token
       const personalizedMessage = autoReplyMessage ? autoReplyMessage.replace('{{business_name}}', business.name || 'My Business') : null
 
-      console.log(`[Twilio Voice Status Webhook] Auto-reply message: ${personalizedMessage}`)
+      console.log(`[Twilio Voice Status Webhook] Auto-reply message: ${personalizedMessage?.substring(0, 100)}...`)
       console.log(`[Twilio Voice Status Webhook] Business phone: ${business.twilio_phone_number}`)
-      console.log(`[Twilio Voice Status Webhook] Business has messaging_service_sid: ${!!business.twilio_messaging_service_sid}`)
 
-      // Skip SMS send if autoReplyMessage is null (AI completed intake - handled by Fly.io service)
-      if (!autoReplyMessage) {
+      // Log explicit SMS decision before sending
+      console.log('[AUTO SMS DECISION BEFORE SEND]', {
+        callSid: CallSid,
+        leadId: lead.id,
+        conversationId: conversation?.id,
+        businessId: business.id,
+        template: messageTemplate,
+        reason: smsDecision.reason,
+        aiCompleted: smsDecision.aiCompleted,
+        voicemailCompleted: smsDecision.voicemailCompleted,
+        generic_sms_suppressed: smsDecision.template === 'none',
+        messageBody: personalizedMessage?.substring(0, 100)
+      })
+
+      if (!personalizedMessage) {
         console.log('[SMS SEND SKIPPED]', {
-          reason: 'autoReplyMessage is null (AI completed intake handled by Fly.io service)',
+          reason: 'personalizedMessage is null',
           messageTemplate
         })
       } else {
         try {
-          console.log('[SMS SEND ATTEMPT]', {
-            route: '/api/twilio/voice-status',
-            businessId: business.id,
-            fromPhone: From,
-            toPhone: To,
-            callSid: CallSid,
-            messageBody: autoReplyMessage?.substring(0, 100) + '...',
-            timestamp: new Date().toISOString()
+          messageSid = await sendSms(business, From, personalizedMessage, {
+            lead_id: lead.id,
+            conversation_id: conversation?.id,
           })
 
-        if (messageTemplate === 'ai_intake_summary') {
-          console.log('[AI SUMMARY SMS FINAL BODY]', {
-            template: messageTemplate,
-            businessId: business.id,
-            aiCallRecordId: aiCallRecord?.id,
-            leadId: lead.id,
-            finalMessageBody: personalizedMessage
-          })
-        }
+          if (messageSid) {
+            console.log(`[Twilio Voice Status Webhook] Auto-reply SMS sent successfully - Twilio SID: ${messageSid}`)
+            autoReplySent = true
 
-        // Final suppression check: Ensure no standard missed-call SMS is sent if AI record exists with intake data
-        // This check must be placed directly before sendSms() for the standard missed-call auto-reply
-        if (messageTemplate === 'missed_call' || messageTemplate === 'after_hours') {
-          console.log('[STANDARD SMS SUPPRESSION CHECK]', {
-            callSid: CallSid,
-            leadId: lead.id,
-            conversationId: conversation?.id,
-            messageTemplate
-          })
-
-          // Find AI call record by CallSid, lead_id, or conversation_id
-          const { data: finalAiCheck } = await supabase
-            .from('ai_call_records')
-            .select('id, outcome, call_sid, lead_id, conversation_id, extracted_info, summary')
-            .or(`call_sid.eq.${CallSid},lead_id.eq.${lead.id},conversation_id.eq.${conversation?.id}`)
-            .limit(1)
-            .maybeSingle()
-
-          if (finalAiCheck) {
-            const hasExtractedInfo = finalAiCheck.extracted_info && Object.keys(finalAiCheck.extracted_info).length > 0
-            const hasSummary = finalAiCheck.summary && finalAiCheck.summary.length > 0
-            const isCompleted = finalAiCheck.outcome === 'completed'
-
-            // Check if AI summary SMS already sent using messages table as durable marker
-            let aiSummaryAlreadySent = false
-            if (conversation?.id) {
-              const { data: existingAiSummary } = await supabase
-                .from('messages')
-                .select('id, body')
-                .eq('conversation_id', conversation.id)
-                .eq('direction', 'outbound')
-                .ilike('body', 'Hi, this is%')
-                .ilike('body', '%Thanks for calling — we received your request%')
-                .limit(1)
-                .maybeSingle()
-
-              aiSummaryAlreadySent = !!existingAiSummary
-
-              console.log('[AI SUMMARY SMS DURABLE CHECK]', {
-                conversationId: conversation.id,
-                aiSummaryAlreadySent,
-                existingAiSummaryId: existingAiSummary?.id
-              })
-            }
-
-            // Suppress standard SMS if AI record exists with intake data (completed OR has extracted_info OR has summary)
-            if (isCompleted || hasExtractedInfo || hasSummary) {
-              console.log('[STANDARD SMS SUPPRESSED AI RECORD EXISTS]', {
-                callSid: CallSid,
-                leadId: lead.id,
-                conversationId: conversation?.id,
-                aiCallRecordId: finalAiCheck.id,
-                outcome: finalAiCheck.outcome,
-                hasExtractedInfo,
-                hasSummary,
-                aiSummaryAlreadySent,
-                reason: isCompleted ? 'ai_intake_completed' : hasExtractedInfo ? 'ai_extracted_info_exists' : 'ai_summary_exists'
-              })
-              autoReplyMessage = null
-
-              // Fallback: Send AI summary SMS if not already sent
-              if (!aiSummaryAlreadySent && finalAiCheck.summary) {
-                console.log('[AI SUMMARY SMS FALLBACK SEND]', {
-                  callSid: CallSid,
-                  leadId: lead.id,
-                  conversationId: conversation?.id,
-                  aiCallRecordId: finalAiCheck.id
-                })
-
-                try {
-                  const aiSummaryMessageSid = await sendSms(business, From, finalAiCheck.summary, {
-                    lead_id: lead.id,
-                    conversation_id: conversation?.id,
-                  })
-
-                  if (aiSummaryMessageSid) {
-                    console.log('[AI SUMMARY SMS FALLBACK SUCCESS]', {
-                      messageSid: aiSummaryMessageSid,
-                      leadId: lead.id,
-                      conversationId: conversation?.id
-                    })
-                  } else {
-                    console.error('[AI SUMMARY SMS FALLBACK ERROR]', {
-                      leadId: lead.id,
-                      conversationId: conversation?.id,
-                      error: 'No message SID returned from sendSms'
-                    })
-                  }
-                } catch (fallbackError) {
-                  console.error('[AI SUMMARY SMS FALLBACK EXCEPTION]', {
-                    leadId: lead.id,
-                    conversationId: conversation?.id,
-                    error: fallbackError
-                  })
-                }
-              }
-            }
-          }
-        }
-
-        messageSid = await sendSms(business, From, personalizedMessage, {
-          lead_id: lead.id,
-          conversation_id: conversation?.id,
-        })
-
-        if (messageSid) {
-          console.log(`[Twilio Voice Status Webhook] Auto-reply SMS sent successfully - Twilio SID: ${messageSid}`)
-          autoReplySent = true
-
-          // Log AI summary SMS sent
-          if (messageTemplate === 'ai_intake_summary') {
-            console.log('[AI SUMMARY SMS SENT]', {
-              template: messageTemplate,
-              businessId: business.id,
-              aiCallRecordId: aiCallRecord?.id,
+            console.log('[VOICE STATUS SMS SEND]', {
+              conversationId: conversation?.id,
               leadId: lead.id,
+              template: messageTemplate,
               twilioSid: messageSid
             })
-          }
-          console.log('[VOICE STATUS SMS SEND]', {
-            conversationId: conversation?.id,
-            leadId: lead.id
-          })
 
-          // TEST SETUP: Update test_sms_sent_at for businesses in test setup
-          if (isTestSetup) {
-            console.log('[TEST SETUP] Test SMS sent for business in test setup', {
-              businessId: business.id
-            })
-
+            // Update lead status to contacted after SMS sent
             try {
-              const { error: testSmsUpdateError } = await supabase
-                .from('businesses')
-                .update({
-                  test_sms_sent_at: new Date().toISOString()
-                })
-                .eq('id', business.id)
+              const { error: updateError } = await supabase
+                .from('leads')
+                .update({ status: 'contacted' })
+                .eq('id', lead.id)
 
-              if (testSmsUpdateError) {
-                console.error('[TEST SETUP] Failed to update test_sms_sent_at:', testSmsUpdateError)
+              if (updateError) {
+                console.error('[Twilio Voice Status Webhook] Failed to update lead status:', updateError)
               } else {
-                console.log('[TEST SETUP] Successfully set test_sms_sent_at for business:', business.id)
-
-                // TEST SETUP: Check if both test flags are set, then mark onboarding complete
-                const { data: updatedBusiness } = await supabase
-                  .from('businesses')
-                  .select('test_call_received_at, test_sms_sent_at, call_forwarding_enabled')
-                  .eq('id', business.id)
-                  .single()
-
-                if (updatedBusiness && 
-                    updatedBusiness.test_call_received_at && 
-                    updatedBusiness.test_sms_sent_at &&
-                    updatedBusiness.call_forwarding_enabled) {
-                  console.log('[TEST SETUP] Both test flags set, marking onboarding complete', {
-                    businessId: business.id,
-                    test_call_received_at: updatedBusiness.test_call_received_at,
-                    test_sms_sent_at: updatedBusiness.test_sms_sent_at
-                  })
-
-                  try {
-                    const { error: completeError } = await supabase
-                      .from('businesses')
-                      .update({
-                        forwarding_verified: true,
-                        forwarding_verified_at: new Date().toISOString(),
-                        onboarding_status: 'completed',
-                        setup_completed: true,
-                        setup_completed_at: new Date().toISOString()
-                      })
-                      .eq('id', business.id)
-
-                    if (completeError) {
-                      console.error('[TEST SETUP] Failed to mark onboarding complete:', completeError)
-                    } else {
-                      console.log('[TEST SETUP] Successfully marked onboarding complete for business:', business.id)
-                    }
-                  } catch (completeException) {
-                    console.error('[TEST SETUP] Exception marking onboarding complete:', completeException)
-                  }
-                }
+                console.log(`[Twilio Voice Status Webhook] Lead status updated to 'contacted': ${lead.id}`)
               }
-            } catch (testSmsUpdateException) {
-              console.error('[TEST SETUP] Exception updating test_sms_sent_at:', testSmsUpdateException)
+            } catch (statusUpdateError) {
+              console.error('[Twilio Voice Status Webhook] Exception updating lead status:', statusUpdateError)
             }
+          } else {
+            console.error('[Twilio Voice Status Webhook] Failed to send auto-reply SMS - no SID returned')
           }
-
-          // Update lead status to contacted after SMS sent
-          try {
-            const { error: updateError } = await supabase
-              .from('leads')
-              .update({ status: 'contacted' })
-              .eq('id', lead.id)
-
-            if (updateError) {
-              console.error('[Twilio Voice Status Webhook] Failed to update lead status:', updateError)
-            } else {
-              console.log(`[Twilio Voice Status Webhook] Lead status updated to 'contacted': ${lead.id}`)
-            }
-          } catch (statusUpdateError) {
-            console.error('[Twilio Voice Status Webhook] Exception updating lead status:', statusUpdateError)
-          }
-        } else {
-          console.error('[Twilio Voice Status Webhook] Failed to send auto-reply SMS - no SID returned')
+        } catch (smsError) {
+          console.error('[Twilio Voice Status Webhook] Exception during SMS send:', smsError)
         }
-      } catch (smsError) {
-        console.error('[Twilio Voice Status Webhook] Exception during SMS send:', smsError)
-      }
       }
     } else {
       if (hasRecentOutbound) {
         console.log(`[Twilio Voice Status Webhook] Auto-reply skipped - recent outbound message found for lead: ${lead?.id}`)
       } else if (!lead) {
         console.log(`[Twilio Voice Status Webhook] Auto-reply skipped - no lead available`)
+      } else if (smsDecision && !smsDecision.shouldSend) {
+        console.log(`[Twilio Voice Status Webhook] Auto-reply skipped - SMS decision says should not send`, {
+          reason: smsDecision.reason,
+          template: smsDecision.template,
+          aiCompleted: smsDecision.aiCompleted
+        })
       }
     }
     
