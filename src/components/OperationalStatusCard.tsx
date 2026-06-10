@@ -45,6 +45,7 @@ export default function OperationalStatusCard({
   })
   const [showRecoveryInstructions, setShowRecoveryInstructions] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
+  const [showOnboardingChecklist, setShowOnboardingChecklist] = useState(true)
 
   // Detect mobile screen size
   useEffect(() => {
@@ -196,13 +197,33 @@ export default function OperationalStatusCard({
           </div>
         </div>
 
-        {/* Recovery Instructions - Show when not healthy */}
+        {/* Recovery Instructions - Collapsed by default with toggle */}
         {healthStatus !== 'healthy' && (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <h4 className="text-sm font-semibold text-amber-100 mb-2">Recovery Instructions</h4>
+            <button
+              onClick={() => setShowRecoveryInstructions(!showRecoveryInstructions)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-amber-100 mb-1">Recovery Instructions</h4>
+                  <p className="text-xs text-amber-200">
+                    {showRecoveryInstructions 
+                      ? 'Hide troubleshooting steps' 
+                      : 'Show troubleshooting steps'}
+                  </p>
+                </div>
+              </div>
+              {showRecoveryInstructions ? (
+                <ChevronUp className="w-4 h-4 text-amber-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-amber-400" />
+              )}
+            </button>
+            
+            {showRecoveryInstructions && (
+              <div className="mt-3 pt-3 border-t border-amber-500/30">
                 <p className="text-xs text-amber-200 mb-2">If calls are not reaching ReplyFlow:</p>
                 <ol className="text-xs text-amber-200 space-y-1 list-decimal list-inside">
                   <li>Verify your carrier forwarding settings</li>
@@ -212,282 +233,213 @@ export default function OperationalStatusCard({
                   <li>Contact support if the issue persists</li>
                 </ol>
               </div>
-            </div>
+            )}
           </div>
         )}
+      </div>
 
-      {/* Forwarding Verification Status - Always Visible */}
-      <div className={`border rounded-lg p-4 mb-6 ${
-        isForwardingActive
-          ? 'bg-green-500/10 border-green-500/30'
-          : business?.call_forwarding_enabled
-            ? 'bg-amber-500/10 border-amber-500/30'
-            : 'bg-red-500/10 border-red-500/30'
-      }`}>
-        <div className="flex items-start gap-3">
-          {isForwardingActive ? (
-            <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-          ) : (
-            <Clock className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          )}
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-semibold text-foreground">
-                Forwarding Status
-              </h4>
-              <span className={`text-xs font-medium ${
-                isForwardingActive
-                  ? 'text-green-300'
-                  : business?.call_forwarding_enabled
-                    ? 'text-amber-300'
-                    : 'text-red-300'
-              }`}>
-                {isForwardingActive ? '✅ Verified' :
-                 business?.call_forwarding_enabled ? '⏳ Awaiting Verification' :
-                 '❌ Not Configured'}
+      {/* Phone Configuration - Grouped */}
+      <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 mb-4">
+        <h4 className="text-sm font-semibold text-slate-300 mb-3">Phone Configuration</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <span className="text-xs text-slate-400 block mb-1">Business Phone</span>
+            <div className="text-sm font-mono text-white">
+              {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
+            </div>
+          </div>
+          <div>
+            <span className="text-xs text-slate-400 block mb-1">ReplyFlow Number</span>
+            <div className="text-sm font-mono text-white">
+              {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Onboarding Checklist - Simple and Clear */}
+      {!isOnboardingComplete && (
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+          <h4 className="text-sm font-semibold text-blue-100 mb-3">Setup Checklist</h4>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              {business?.twilio_phone_number ? (
+                <CheckCircle className="w-4 h-4 text-green-400" />
+              ) : (
+                <div className="w-4 h-4 rounded-full border-2 border-slate-500" />
+              )}
+              <span className={`text-sm ${business?.twilio_phone_number ? 'text-slate-300 line-through' : 'text-slate-300'}`}>
+                ReplyFlow number assigned
               </span>
             </div>
-            <p className="text-xs text-muted-foreground mb-3">
-              {isForwardingActive
-                ? 'Your phone forwarding has been successfully verified. ReplyFlow has received calls through your configured forwarding.'
-                : business?.call_forwarding_enabled
-                  ? 'We have not yet observed a successful forwarded call. Please place a quick test call to confirm your setup.'
-                  : 'We could not verify your forwarding. Review the instructions below and place another test call.'}
-            </p>
-            {business?.forwarding_verified_at && (
-              <p className="text-xs text-muted-foreground mb-3">
-                Last verified: {formatRelativeTime(business.forwarding_verified_at)}
-              </p>
-            )}
-            <button
-              onClick={() => setShowTestModal(true)}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              <Phone className="w-4 h-4" />
-              Run Test Call
-            </button>
-          </div>
-        </div>
-      </div>
-      </div>
-
-      {/* Core Status Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        {/* Business Phone */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-            </svg>
-            <span className="text-xs font-medium text-slate-300">Business Phone</span>
-          </div>
-          <div className="text-sm font-mono text-white">
-            {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
-          </div>
-        </div>
-
-        {/* ReplyFlow Number */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            <span className="text-xs font-medium text-slate-300">ReplyFlow Number</span>
-          </div>
-          <div className="text-sm font-mono text-white">
-            {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
-          </div>
-        </div>
-
-        {/* Monitoring Status */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-          <div className="flex items-center gap-2 mb-1">
-            {getStatusIndicator(healthStatus === 'healthy' ? 'active' : 'needs-attention')}
-            <span className="text-xs font-medium text-slate-300">Monitoring</span>
-          </div>
-          <div className="text-sm text-white">
-            {healthStatus === 'healthy' ? 'Active' : 'Needs Attention'}
-          </div>
-          
-          {/* Context for why attention is needed */}
-          {healthStatus !== 'healthy' && (
-            <div className="text-xs text-amber-400 mt-1">
-              {!isForwardingActive ? 'Call forwarding needs verification' : 
-               !isTextReplyActive ? 'Text messaging needs activation' : 
-               'System needs attention'}
-            </div>
-          )}
-        </div>
-
-        {/* Text Reply Status */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-          <div className="flex items-center gap-2 mb-1">
-            {getStatusIndicator(isTextReplyActive ? 'active' : 'inactive')}
-            <span className="text-xs font-medium text-slate-300">Text Replies</span>
-          </div>
-          <div className="text-sm text-white">
-            {getStatusText(isTextReplyActive ? 'active' : 'inactive')}
-          </div>
-        </div>
-      </div>
-
-      {/* Additional Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        {/* Forwarding Status */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {getStatusIndicator(isForwardingActive ? 'active' : 'warning')}
-              <span className="text-sm font-medium text-slate-300">Call Forwarding</span>
+              {business?.call_forwarding_enabled ? (
+                <CheckCircle className="w-4 h-4 text-green-400" />
+              ) : (
+                <div className="w-4 h-4 rounded-full border-2 border-slate-500" />
+              )}
+              <span className={`text-sm ${business?.call_forwarding_enabled ? 'text-slate-300 line-through' : 'text-slate-300'}`}>
+                Call forwarding enabled
+              </span>
             </div>
-            <div className="text-sm text-white">
-              {getStatusText(isForwardingActive ? 'active' : 'warning')}
-            </div>
-          </div>
-        </div>
-
-        {/* Last Forwarded Call */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-            </svg>
-            <span className="text-xs font-medium text-slate-300">Last Forwarded Call</span>
-          </div>
-          <div className="text-sm text-white">
-            {liveMetrics.lastForwardedCall ? formatRelativeTime(liveMetrics.lastForwardedCall) : 'Never'}
-          </div>
-        </div>
-
-        {/* Last Successful SMS */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-            <span className="text-xs font-medium text-slate-300">Last SMS Sent</span>
-          </div>
-          <div className="text-sm text-white">
-            {liveMetrics.lastSuccessfulSms ? formatRelativeTime(liveMetrics.lastSuccessfulSms) : 'Never'}
-          </div>
-        </div>
-      </div>
-
-      {/* Live Metrics Collapsible Section */}
-      <div className="mb-6">
-        <button
-          onClick={() => toggleSection('live-metrics')}
-          className="w-full flex items-center justify-between text-left p-3 bg-slate-800/50 border border-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <RefreshCw className="w-4 h-4 text-slate-400" />
-            <span className="text-sm font-medium text-slate-300">Live Operational Metrics</span>
-          </div>
-          {expandedSection === 'live-metrics' ? (
-            <ChevronUp className="w-4 h-4 text-slate-400" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
-          )}
-        </button>
-
-        {expandedSection === 'live-metrics' && (
-          <div className="mt-3 bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-3">
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <span className="text-slate-400 block mb-1">ReplyFlow Number Assigned</span>
-                <span className={`font-medium ${business?.twilio_phone_number ? 'text-green-400' : 'text-red-400'}`}>
-                  {business?.twilio_phone_number ? '✓ Yes' : '✗ No'}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-1">Twilio Configuration</span>
-                <span className={`font-medium ${business?.twilio_phone_number ? 'text-green-400' : 'text-amber-400'}`}>
-                  {business?.twilio_phone_number ? '✓ Healthy' : '⚠️ Pending'}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-1">Forwarding Verified</span>
-                <span className={`font-medium ${isForwardingActive ? 'text-green-400' : 'text-amber-400'}`}>
-                  {isForwardingActive ? '✓ Yes' : '⚠️ No'}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 block mb-1">Last AI Intake</span>
-                <span className="font-medium text-slate-300">
-                  {liveMetrics.lastAiIntake ? formatRelativeTime(liveMetrics.lastAiIntake) : 'Never'}
-                </span>
-              </div>
-            </div>
-
-            {liveMetrics.deliveryFailures > 0 && (
-              <div className="mt-3 pt-3 border-t border-slate-700">
-                <span className="text-slate-400 text-xs block mb-1">Recent Delivery Failures (24h)</span>
-                <span className={`font-medium ${liveMetrics.deliveryFailures > 5 ? 'text-red-400' : 'text-amber-400'}`}>
-                  {liveMetrics.deliveryFailures} failures
-                </span>
-                {liveMetrics.recentErrors.length > 0 && (
-                  <div className="mt-2 space-y-1">
-                    {liveMetrics.recentErrors.slice(0, 3).map((error, idx) => (
-                      <p key={idx} className="text-xs text-red-300 truncate">{error}</p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Trial Status */}
-      {business?.trial_ends_at && (
-        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 mb-6">
-          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-sm font-medium text-slate-300">Trial Status</span>
-            </div>
-            <div className="text-sm text-amber-400">
-              Ends {formatRelativeTime(business.trial_ends_at)}
+              {isForwardingActive ? (
+                <CheckCircle className="w-4 h-4 text-green-400" />
+              ) : (
+                <div className="w-4 h-4 rounded-full border-2 border-slate-500" />
+              )}
+              <span className={`text-sm ${isForwardingActive ? 'text-slate-300 line-through' : 'text-slate-300'}`}>
+                Forwarding verified
+              </span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Primary Actions */}
+      {/* Compact Status Chips */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
+          healthStatus === 'healthy' ? 'bg-green-500/15 text-green-300' : 'bg-amber-500/15 text-amber-300'
+        }`}>
+          {getStatusIndicator(healthStatus === 'healthy' ? 'active' : 'needs-attention')}
+          <span className="text-xs font-medium">Monitoring</span>
+        </div>
+        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
+          isTextReplyActive ? 'bg-green-500/15 text-green-300' : 'bg-slate-500/15 text-slate-300'
+        }`}>
+          {getStatusIndicator(isTextReplyActive ? 'active' : 'inactive')}
+          <span className="text-xs font-medium">Text Replies</span>
+        </div>
+        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
+          isForwardingActive ? 'bg-green-500/15 text-green-300' : 'bg-amber-500/15 text-amber-300'
+        }`}>
+          {getStatusIndicator(isForwardingActive ? 'active' : 'warning')}
+          <span className="text-xs font-medium">Call Forwarding</span>
+        </div>
+      </div>
+
+      {/* Live Metrics Collapsible Section - Collapsed by default */}
+      {(liveMetrics.lastForwardedCall || liveMetrics.lastSuccessfulSms || liveMetrics.deliveryFailures > 0) && (
+        <div className="mb-4">
+          <button
+            onClick={() => toggleSection('live-metrics')}
+            className="w-full flex items-center justify-between text-left p-3 bg-slate-800/50 border border-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-slate-400" />
+              <span className="text-sm font-medium text-slate-300">Live Operational Metrics</span>
+            </div>
+            {expandedSection === 'live-metrics' ? (
+              <ChevronUp className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+
+          {expandedSection === 'live-metrics' && (
+            <div className="mt-3 bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-slate-400 block mb-1">ReplyFlow Number Assigned</span>
+                  <span className={`font-medium ${business?.twilio_phone_number ? 'text-green-400' : 'text-red-400'}`}>
+                    {business?.twilio_phone_number ? '✓ Yes' : '✗ No'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block mb-1">Twilio Configuration</span>
+                  <span className={`font-medium ${business?.twilio_phone_number ? 'text-green-400' : 'text-amber-400'}`}>
+                    {business?.twilio_phone_number ? '✓ Healthy' : '⚠️ Pending'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block mb-1">Forwarding Verified</span>
+                  <span className={`font-medium ${isForwardingActive ? 'text-green-400' : 'text-amber-400'}`}>
+                    {isForwardingActive ? '✓ Yes' : '⚠️ No'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block mb-1">Last AI Intake</span>
+                  <span className="font-medium text-slate-300">
+                    {liveMetrics.lastAiIntake ? formatRelativeTime(liveMetrics.lastAiIntake) : 'Never'}
+                  </span>
+                </div>
+              </div>
+
+              {liveMetrics.deliveryFailures > 0 && (
+                <div className="mt-3 pt-3 border-t border-slate-700">
+                  <span className="text-slate-400 text-xs block mb-1">Recent Delivery Failures (24h)</span>
+                  <span className={`font-medium ${liveMetrics.deliveryFailures > 5 ? 'text-red-400' : 'text-amber-400'}`}>
+                    {liveMetrics.deliveryFailures} failures
+                  </span>
+                  {liveMetrics.recentErrors.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {liveMetrics.recentErrors.slice(0, 3).map((error, idx) => (
+                        <p key={idx} className="text-xs text-red-300 truncate">{error}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Trial Status - Improved wording */}
+      {business?.trial_ends_at && (
+        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-sm font-medium text-slate-300">Trial</span>
+            </div>
+            <div className="text-sm text-amber-400">
+              {new Date(business.trial_ends_at) > new Date()
+                ? `${Math.ceil((new Date(business.trial_ends_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days remaining`
+                : 'Expired'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Primary Actions - Set Up Call Forwarding as primary CTA */}
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-        {business?.forwarding_verified ? (
-          <Link
-            href="/dashboard/test-setup"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+        {!isForwardingActive ? (
+          <button
+            onClick={() => {
+              const setupGate = document.getElementById('setup-gate')
+              if (setupGate) {
+                setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }
+            }}
+            className="inline-flex items-center justify-center gap-1.5 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-semibold shadow-md"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.001 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Run Test Call
-          </Link>
-        ) : (
-          <Link
-            href="/setup/forwarding"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-            </svg>
+            <Phone className="w-4 h-4" />
             Set Up Call Forwarding
-          </Link>
+          </button>
+        ) : (
+          <button
+            onClick={() => setShowTestModal(true)}
+            className="inline-flex items-center justify-center gap-1.5 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-semibold shadow-md"
+          >
+            <Phone className="w-4 h-4" />
+            Run Test Call
+          </button>
         )}
         
-        <Link
-          href="/setup/forwarding"
-          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-lg transition-colors text-sm font-medium"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-          </svg>
-          Review Setup
-        </Link>
+        {!isForwardingActive && (
+          <button
+            onClick={() => setShowTestModal(true)}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-lg transition-colors text-sm font-medium"
+          >
+            <Phone className="w-4 h-4" />
+            Run Test Call
+          </button>
+        )}
       </div>
 
       {/* Test ReplyFlow Modal */}
