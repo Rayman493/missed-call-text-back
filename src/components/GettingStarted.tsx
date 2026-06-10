@@ -638,6 +638,10 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             : (step2Complete ? 'This usually takes less than 30 seconds' : 'Available once forwarding is enabled'),
         buttonText: step2Complete && !step3Complete ? 'Test Your Setup' : undefined,
         buttonOnClick: step2Complete && !step3Complete ? () => {
+          console.log('[RUN TEST CALL CLICKED]', {
+            source: 'primary',
+            action: 'scroll-to-setup-gate'
+          })
           // Scroll to test call section in Setup Gate
           const setupGate = document.getElementById('setup-gate')
           if (setupGate) {
@@ -652,6 +656,10 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         } : undefined,
         secondaryButtonText: step3Complete ? 'Run Another Test' : undefined,
         secondaryButtonOnClick: step3Complete ? () => {
+          console.log('[RUN TEST CALL CLICKED]', {
+            source: 'secondary',
+            action: 'scroll-to-setup-gate'
+          })
           // Scroll to test call section in Setup Gate
           const setupGate = document.getElementById('setup-gate')
           if (setupGate) {
@@ -1121,6 +1129,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     <div className="mt-4">
                       {item.buttonOnClick ? (
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation()
                             if (!isCompletingForwarding) {
@@ -1156,6 +1165,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                   {item.secondaryButtonText && item.secondaryButtonOnClick && (
                     <div className="mt-3">
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation()
                           if (!isCompletingForwarding) {
