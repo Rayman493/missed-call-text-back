@@ -395,44 +395,6 @@ export default function ForwardingHelpCenter() {
               </div>
             )}
           </div>
-
-          {/* FAQ - Collapsed by default */}
-          <div className="border-t border-slate-700/50 pt-2">
-            <button
-              onClick={() => toggleSection('faq')}
-              className="w-full flex items-center justify-between text-left py-1 text-xs font-medium text-slate-300 hover:text-slate-200"
-            >
-              Common Questions
-              {expandedSection === 'faq' ? (
-                <ChevronUp className="w-3 h-3 text-slate-500" />
-              ) : (
-                <ChevronDown className="w-3 h-3 text-slate-500" />
-              )}
-            </button>
-            
-            {expandedSection === 'faq' && (
-              <div className="mt-2 space-y-1.5">
-                {FAQS.map((faq, index) => (
-                  <div key={index} className="border-b border-slate-700/30 last:border-b-0 pb-1 last:pb-0">
-                    <button
-                      onClick={() => toggleSection(`faq-${index}`)}
-                      className="w-full text-left text-xs font-medium text-slate-300 hover:text-slate-200 flex items-center justify-between py-0.5"
-                    >
-                      {faq.question}
-                      {expandedSection === `faq-${index}` ? (
-                        <ChevronUp className="w-2.5 h-2.5 text-slate-500 flex-shrink-0 ml-1" />
-                      ) : (
-                        <ChevronDown className="w-2.5 h-2.5 text-slate-500 flex-shrink-0 ml-1" />
-                      )}
-                    </button>
-                    {expandedSection === `faq-${index}` && (
-                      <p className="mt-1 text-xs text-slate-400">{faq.answer}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>
