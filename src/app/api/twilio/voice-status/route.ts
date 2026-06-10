@@ -918,9 +918,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET handler - support Twilio calling with GET method
+// GET handler - support Twilio calling with GET method (legacy/debugging only, skips signature validation)
 export async function GET(req: NextRequest) {
-  console.log('[VOICE STATUS WEBHOOK GET] Handling GET request');
+  console.log('[VOICE STATUS WEBHOOK GET] Handling GET request (legacy/debugging mode, skipping signature validation)');
   console.log('[VOICE STATUS WEBHOOK GET KEY PARAMS]', {
     method: 'GET',
     url: req.url
@@ -937,17 +937,8 @@ export async function GET(req: NextRequest) {
     CallStatus: params.CallStatus || 'not_present'
   });
   
-  // Create a mock request with params in body format
-  const body = new URLSearchParams(params).toString();
-  const mockRequest = new Request(req.url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'X-Twilio-Signature': req.headers.get('X-Twilio-Signature') || '',
-    },
-    body: body
-  }) as NextRequest;
-  
-  // Delegate to POST handler
-  return POST(mockRequest);
+  // For GET requests, skip signature validation and return OK
+  // This is for debugging/legacy support only - production should use POST
+  console.log('[VOICE STATUS WEBHOOK GET] Returning OK for GET request (no signature validation)');
+  return new Response("OK", { status: 200 });
 }

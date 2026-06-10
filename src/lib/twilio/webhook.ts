@@ -73,7 +73,19 @@ function getPublicUrl(request: Request): string[] {
     const url = new URL(request.url)
     const configuredUrl = `${configuredBaseUrl}${url.pathname}`
     candidates.push(configuredUrl)
+    
+    // Candidate 4: Canonical www version of configured URL
+    if (configuredBaseUrl.startsWith('https://')) {
+      const wwwUrl = configuredBaseUrl.replace('https://', 'https://www.')
+      if (wwwUrl !== configuredUrl) {
+        candidates.push(`${wwwUrl}${url.pathname}`)
+      }
+    }
   }
+  
+  // Candidate 5: Default www.replyflowhq.com
+  const url = new URL(request.url)
+  candidates.push(`https://www.replyflowhq.com${url.pathname}`)
   
   return candidates
 }

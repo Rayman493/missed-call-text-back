@@ -1456,15 +1456,15 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET handler - support Twilio calling with GET method
+// GET handler - support Twilio calling with GET method (legacy/debugging only, skips signature validation)
 export async function GET(request: NextRequest) {
-  console.log('[VOICE WEBHOOK GET] Handling GET request');
+  console.log('[VOICE WEBHOOK GET] Handling GET request (legacy/debugging mode, skipping signature validation)');
   console.log('[VOICE WEBHOOK GET KEY PARAMS]', {
     method: 'GET',
     url: request.url
   });
   
-  // Extract params from query string
+  // Extract params from query string for logging
   const url = new URL(request.url);
   const params = Object.fromEntries(url.searchParams.entries());
   
@@ -1475,17 +1475,15 @@ export async function GET(request: NextRequest) {
     ForwardedFrom: params.ForwardedFrom || 'not_present'
   });
   
-  // Create a mock request with params in body format
-  const body = new URLSearchParams(params).toString();
-  const mockRequest = new Request(request.url, {
-    method: 'POST',
+  // For GET requests, return simple TwiML response without signature validation
+  // This is for debugging/legacy support only - production should use POST
+  const twiml = generateTwiMLResponse();
+  console.log('[VOICE WEBHOOK GET] Returning TwiML for GET request (no signature validation)');
+  return new NextResponse(twiml, {
+    status: 200,
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'X-Twilio-Signature': request.headers.get('X-Twilio-Signature') || '',
+      "Content-Type": "text/xml",
+      "X-ReplyFlow-Voice-Version": "v2"
     },
-    body: body
-  }) as NextRequest;
-  
-  // Delegate to POST handler
-  return POST(mockRequest);
+  });
 }

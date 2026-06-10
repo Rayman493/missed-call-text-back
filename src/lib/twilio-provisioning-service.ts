@@ -408,7 +408,9 @@ async function purchaseNumber(
   
   try {
     const client = Twilio(accountSid, authToken);
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com';
+    
+    console.log('[PURCHASE NUMBER] Using appUrl:', appUrl);
     
     // Search for available US local numbers
     console.log('[PURCHASE NUMBER] Searching for available local numbers');
@@ -434,6 +436,7 @@ async function purchaseNumber(
     const purchasedNumber = await client.incomingPhoneNumbers.create({
       phoneNumber: numberToPurchase.phoneNumber,
       voiceUrl: `${appUrl}/api/twilio/voice`,
+      voiceMethod: 'POST',
       statusCallback: `${appUrl}/api/twilio/voice-status`,
       statusCallbackMethod: 'POST',
       smsUrl: `${appUrl}/api/twilio/incoming-sms`,
