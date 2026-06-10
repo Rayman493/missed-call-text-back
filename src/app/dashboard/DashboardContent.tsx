@@ -1139,7 +1139,7 @@ export default function DashboardContent() {
                 {/* Setup Gate - Show when provisioning is ready but forwarding is not verified */}
                 {business?.provisioning_status === 'ready' && !business?.forwarding_verified && (
                   <SectionErrorBoundary sectionName="SetupGate">
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-800 dark:to-indigo-900 rounded-xl shadow-xl overflow-hidden">
+                    <div id="setup-gate" className="bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-800 dark:to-indigo-900 rounded-xl shadow-xl overflow-hidden">
                       <div className="p-4 sm:p-6">
                         {/* Header */}
                         <div className="flex items-start gap-4 mb-6">
@@ -1559,7 +1559,7 @@ export default function DashboardContent() {
 
                     {/* Permanent Forwarding Help Center - Priority 3 */}
                     <SectionErrorBoundary sectionName="ForwardingHelpCenter">
-                      <div className="mb-4 sm:mb-6 transition-opacity duration-300">
+                      <div id="forwarding-help-center" className="mb-4 sm:mb-6 transition-opacity duration-300">
                         <ForwardingHelpCenter />
                       </div>
                     </SectionErrorBoundary>

@@ -36,6 +36,27 @@ export function useTrialEligibility(): UseTrialEligibilityReturn {
 
   useEffect(() => {
     const checkTrialEligibility = async () => {
+      // Guard: Don't check eligibility if user already has active subscription
+      if (business?.subscription_status === 'trialing' || business?.subscription_status === 'active') {
+        console.log('[Trial Eligibility] User already has active subscription, skipping eligibility check', {
+          subscription_status: business.subscription_status,
+          stripe_subscription_id: business.stripe_subscription_id
+        })
+        setCheckoutMode('trial')
+        setIsLoading(false)
+        return
+      }
+
+      // Guard: Don't check eligibility if user already has stripe_subscription_id
+      if (business?.stripe_subscription_id) {
+        console.log('[Trial Eligibility] User already has Stripe subscription, skipping eligibility check', {
+          stripe_subscription_id: business.stripe_subscription_id
+        })
+        setCheckoutMode('paid')
+        setIsLoading(false)
+        return
+      }
+
       if (!business?.business_phone_number || !user?.email) {
         console.log('[Trial Eligibility] Missing required data for eligibility check')
         setCheckoutMode('paid')
@@ -59,6 +80,13 @@ export function useTrialEligibility(): UseTrialEligibilityReturn {
         })
 
         if (!response.ok) {
+          // Handle 429 rate limit gracefully
+          if (response.status === 429) {
+            console.warn('[Trial Eligibility] Rate limited by Stripe, defaulting to paid mode')
+            setCheckoutMode('paid')
+            setIsLoading(false)
+            return
+          }
           throw new Error('Failed to check trial eligibility')
         }
 
@@ -138,15 +166,18 @@ export function useTrialEligibility(): UseTrialEligibilityReturn {
       }
     }
 
-    // Only check eligibility if we have the required data
-    if (business?.id && user?.email && business?.business_phone_number) {
+    // Only check eligibility if we have the required data AND user doesn't already have active subscription
+    if (business?.id && user?.email && business?.business_phone_number && 
+        business.subscription_status !== 'trialing' && 
+        business.subscription_status !== 'active' && 
+        !business.stripe_subscription_id) {
       checkTrialEligibility()
     } else {
-      // If we don't have required data, set loading to false and mode to paid
+      // If we don't have required data or user already has subscription, set loading to false and mode to paid
       setIsLoading(false)
-      setCheckoutMode('paid')
+      setCheckoutMode(business?.subscription_status === 'trialing' ? 'trial' : 'paid')
     }
-  }, [business?.id, user?.email, business?.business_phone_number])
+  }, [business?.id, user?.email, business?.business_phone_number, business?.subscription_status, business?.stripe_subscription_id])
 
   return {
     checkoutMode: checkoutMode || 'paid', // Default to paid if null

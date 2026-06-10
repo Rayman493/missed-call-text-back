@@ -597,35 +597,22 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             : (step1Complete ? 'Follow the carrier-specific instructions to enable forwarding' : 'Available once ReplyFlow is ready'),
         // Always show button when number is ready and forwarding is not complete
         buttonText: step1Complete && !step2Complete ? 'Set Up Call Forwarding' : undefined,
-        buttonHref: (() => {
-          const wouldNavigate = step1Complete && !step2Complete
-          console.log('[GettingStarted] Forwarding buttonHref calculation', {
-            source: 'GettingStarted.tsx',
-            subscription_status: business?.subscription_status,
-            twilio_phone_number: business?.twilio_phone_number,
-            step1Complete,
-            step2Complete,
-            wouldNavigate,
-            targetRoute: wouldNavigate ? '/setup/forwarding' : undefined,
-            allowed: wouldNavigate ? 'Yes (subscription check via step1Complete)' : 'No'
-          })
-          return wouldNavigate ? '/setup/forwarding' : undefined
-        })(),
+        buttonOnClick: step1Complete && !step2Complete ? () => {
+          // Scroll to Setup Gate in dashboard instead of redirecting
+          const setupGate = document.getElementById('setup-gate')
+          if (setupGate) {
+            setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        } : undefined,
         // Secondary button for users who have already enabled forwarding
         secondaryButtonText: step1Complete && !step2Complete ? (isCompletingForwarding ? "Updating setup..." : "I've Enabled Forwarding") : (step2Complete ? 'Review Forwarding Setup' : undefined),
-        secondaryButtonOnClick: step1Complete && !step2Complete && !isCompletingForwarding ? handleCompleteForwarding : undefined,
-        secondaryButtonHref: (() => {
-          const wouldNavigate = step2Complete
-          console.log('[GettingStarted] Forwarding secondaryButtonHref calculation', {
-            source: 'GettingStarted.tsx',
-            subscription_status: business?.subscription_status,
-            step2Complete,
-            wouldNavigate,
-            targetRoute: wouldNavigate ? '/setup/forwarding' : undefined,
-            allowed: wouldNavigate ? 'Yes (forwarding already complete)' : 'No'
-          })
-          return wouldNavigate ? '/setup/forwarding' : undefined
-        })(),
+        secondaryButtonOnClick: step1Complete && !step2Complete && !isCompletingForwarding ? handleCompleteForwarding : (step2Complete ? () => {
+          // Scroll to ForwardingHelpCenter in dashboard
+          const forwardingHelp = document.getElementById('forwarding-help-center')
+          if (forwardingHelp) {
+            forwardingHelp.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        } : undefined),
       },
       {
         id: 'test',
@@ -638,9 +625,21 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             ? (realCallDataExists ? 'ReplyFlow is live and monitoring your business line.' : 'ReplyFlow is now monitoring your missed calls.')
             : (step2Complete ? 'This usually takes less than 30 seconds' : 'Available once forwarding is enabled'),
         buttonText: step2Complete && !step3Complete ? 'Test Your Setup' : undefined,
-        buttonHref: step2Complete && !step3Complete ? '/dashboard/test-setup' : undefined,
+        buttonOnClick: step2Complete && !step3Complete ? () => {
+          // Scroll to test call section in Setup Gate
+          const setupGate = document.getElementById('setup-gate')
+          if (setupGate) {
+            setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        } : undefined,
         secondaryButtonText: step3Complete ? 'Run Another Test' : undefined,
-        secondaryButtonHref: step3Complete ? '/dashboard/test-setup' : undefined,
+        secondaryButtonOnClick: step3Complete ? () => {
+          // Scroll to test call section in Setup Gate
+          const setupGate = document.getElementById('setup-gate')
+          if (setupGate) {
+            setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        } : undefined,
       },
     ]
   }
@@ -719,7 +718,12 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <button
-              onClick={() => window.location.href = '/dashboard/test-setup'}
+              onClick={() => {
+                const setupGate = document.getElementById('setup-gate')
+                if (setupGate) {
+                  setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+              }}
               className="text-[10px] sm:text-xs text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 transition-colors font-medium hover:underline"
             >
               Run test
