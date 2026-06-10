@@ -112,6 +112,20 @@ export async function GET(request: NextRequest) {
     let messages: any[] = []
     if (!messagesByLeadError && messagesByLead && messagesByLead.length > 0) {
       messages = messagesByLead
+
+      // Debug logging for message order from database
+      console.log('[LEAD DETAILS DEBUG] Messages from database (ordered by created_at asc):', {
+        count: messages.length,
+        messages: messages.map((m, idx) => ({
+          index: idx,
+          id: m.id,
+          created_at: m.created_at,
+          message_body: m.message_body?.substring(0, 30) || m.body?.substring(0, 30),
+          twilio_message_sid: m.twilio_message_sid,
+          direction: m.direction,
+          sender: m.sender
+        }))
+      })
     }
 
     // Fetch media for all messages

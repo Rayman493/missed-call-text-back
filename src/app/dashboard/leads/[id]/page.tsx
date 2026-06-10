@@ -516,7 +516,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const timeline = [...messageItems, ...voicemailItems, ...systemEvents].sort((a, b) => 
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     )
-    
+
+    // Debug logging for timeline order
+    console.log('[TIMELINE DEBUG] Timeline items after sorting:', {
+      total: timeline.length,
+      messages: messageItems.length,
+      voicemails: voicemailItems.length,
+      systemEvents: systemEvents.length,
+      items: timeline.map((item, idx) => ({
+        index: idx,
+        type: item.type,
+        id: item.id,
+        created_at: item.created_at,
+        message_preview: item.type === 'message' ? item.data?.message_body?.substring(0, 30) || item.data?.body?.substring(0, 30) : null
+      }))
+    })
+
     return timeline
   }, [allMessages, leadData?.voicemailRecordings, leadData?.aiCallRecords, leadData?.raw_metadata, leadData?.followUpJobs, leadData?.status, leadData?.updated_at, leadData?.id])
   
