@@ -265,10 +265,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Idempotency check - check if confirmation SMS already sent for this conversation
-    // Use metadata-free logic: check for outbound message starting with "Hi, this is" within last 5 minutes
+    // Use metadata-free logic: check for system message starting with "Hi, this is" within last 5 minutes
     console.log('[AI CONFIRMATION SMS DUPLICATE CHECK]', {
       conversationId,
-      direction: 'outbound',
       body_pattern: 'Hi, this is'
     })
 
@@ -277,8 +276,8 @@ export async function POST(request: NextRequest) {
       .from('messages')
       .select('id, created_at')
       .eq('conversation_id', conversationId)
-      .eq('direction', 'outbound')
-      .like('body', 'Hi, this is%')
+      .eq('sender', 'system')
+      .like('content', 'Hi, this is%')
       .gte('created_at', fiveMinutesAgo)
       .maybeSingle()
 

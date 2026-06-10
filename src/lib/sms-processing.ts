@@ -629,6 +629,39 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
             leadId: leadWithCorrection.id,
             rawMetadataAfterUpdate: leadWithCorrection.raw_metadata
           })
+
+          // Send correction acknowledgement SMS for real Twilio messages, not dev simulations
+          if (source === 'twilio') {
+            console.log('[CORRECTION ACKNOWLEDGEMENT SMS START]', {
+              leadId: leadWithCorrection.id,
+              fieldChanged: correctionResult.fieldChanged,
+              newValue: correctionResult.newValue
+            })
+
+            const acknowledgementMessage = `Thanks! We've updated your ${correctionResult.fieldChanged.replace(/([A-Z])/g, ' $1').toLowerCase().trim()} to "${correctionResult.newValue}".`
+            const messageSid = await sendSms(business, from, acknowledgementMessage, {
+              lead_id: leadWithCorrection.id,
+            })
+
+            if (messageSid) {
+              console.log('[CORRECTION ACKNOWLEDGEMENT SMS SUCCESS]', {
+                leadId: leadWithCorrection.id,
+                messageSid,
+                fieldChanged: correctionResult.fieldChanged,
+                newValue: correctionResult.newValue
+              })
+            } else {
+              console.error('[CORRECTION ACKNOWLEDGEMENT SMS FAILED]', {
+                leadId: leadWithCorrection.id,
+                fieldChanged: correctionResult.fieldChanged
+              })
+            }
+          } else {
+            console.log('[CORRECTION ACKNOWLEDGEMENT SMS SKIPPED]', {
+              reason: 'dev_simulation',
+              leadId: leadWithCorrection.id
+            })
+          }
         } else {
           console.error('[CORRECTION LEAD UPDATE ERROR]', {
             leadId: lead.id,
@@ -842,19 +875,28 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 
   // Cancel all pending follow-ups for this conversation when customer replies
   if (conversation) {
-    const cancelled = await db.cancelPendingFollowUpsForConversation(conversation.id)
-    
-    if (cancelled) {
-      console.log(`[SMS Processing] Cancelled follow-ups for conversation: ${conversation.id}`)
-    } else {
-      console.error(`[SMS Processing] Failed to cancel follow-ups`)
+    try {
+      const cancelled = await db.cancelPendingFollowUpsForConversation(conversation.id)
+      
+      if (cancelled) {
+        console.log(`[SMS Processing] Cancelled follow-ups for conversation: ${conversation.id}`)
+      } else {
+        console.log(`[SMS Processing] No follow-ups to cancel for conversation: ${conversation.id}`)
+      }
+    } catch (followUpError) {
+      console.error('[SMS Processing] Failed to cancel follow-ups for conversation (non-fatal):', followUpError)
+      // Continue processing - don't let follow-up cancellation failure block the rest
     }
   }
   
   // Cancel all pending follow-up jobs for this lead when customer replies
-  const jobsCancelledCount = await db.cancelPendingFollowUpJobsForLead(lead.id, 'customer_replied')
-  
-  console.log(`[SMS Processing] Cancelled ${jobsCancelledCount} follow-up jobs for lead: ${lead.id}`)
+  try {
+    const jobsCancelledCount = await db.cancelPendingFollowUpJobsForLead(lead.id, 'customer_replied')
+    console.log(`[SMS Processing] Cancelled ${jobsCancelledCount} follow-up jobs for lead: ${lead.id}`)
+  } catch (followUpError) {
+    console.error('[SMS Processing] Failed to cancel follow-up jobs for lead (non-fatal):', followUpError)
+    // Continue processing - don't let follow-up cancellation failure block the rest
+  }
   
   // At this point, conversation is guaranteed to exist
   // Save inbound message linked to conversation

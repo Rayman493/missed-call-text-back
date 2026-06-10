@@ -2350,7 +2350,7 @@ Return only JSON, no other text.`;
           recordId: newRecord.id
         });
 
-        // Create follow-up jobs directly using Supabase
+        // Create follow-up jobs for successful AI intake
         console.log('[ACTIVE PATH FOLLOWUP START]', {
           businessId: sessionBusinessId,
           leadId: lead.id,
@@ -2358,21 +2358,50 @@ Return only JSON, no other text.`;
           outcome: 'completed'
         });
 
-        // AI completed call suppression: Do not create follow-up jobs for completed AI intake
-        console.log('[AI SERVICE FOLLOWUPS SKIPPED]', {
-          reason: 'ai_intake_completed',
-          leadId: lead.id,
-          conversationId: conversation.id,
-          businessId: sessionBusinessId,
-          callSid: sessionCallSid,
-          note: 'Completed AI intake should not create follow-up jobs'
-        });
-
-        console.log('[ACTIVE PATH FOLLOWUP SUPPRESSED]', {
-          businessId: sessionBusinessId,
-          leadId: lead.id,
-          reason: 'AI intake completed - follow-up creation suppressed'
-        });
+        // Call follow-up creation API
+        try {
+          console.log('[FOLLOWUP DEBUG API START - ACTIVE] Fetching from follow-up API');
+          const followUpApiUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+          console.log('[FOLLOWUP DEBUG API URL - ACTIVE]', followUpApiUrl);
+          
+          const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              businessId: sessionBusinessId,
+              leadId: lead.id,
+              conversationId: conversation.id,
+              businessName: extractedFields.callerName || null
+            })
+          });
+          
+          console.log('[FOLLOWUP DEBUG API RESPONSE - ACTIVE]', response.status);
+          
+          if (response.ok) {
+            const result = await response.json() as { success: boolean; jobCount: number };
+            console.log('[FOLLOWUP DEBUG SUCCESS - ACTIVE]', { 
+              businessId: sessionBusinessId, 
+              leadId: lead.id,
+              jobCount: result.jobCount 
+            });
+          } else {
+            console.error('[FOLLOWUP DEBUG ERROR - ACTIVE]', { 
+              businessId: sessionBusinessId, 
+              leadId: lead.id,
+              status: response.status,
+              statusText: response.statusText
+            });
+          }
+        } catch (followUpError) {
+          console.error('[FOLLOWUP DEBUG ERROR - ACTIVE]', { 
+            businessId: sessionBusinessId, 
+            leadId: lead.id,
+            error: followUpError
+          });
+        }
+        console.log('[FOLLOWUP DEBUG COMPLETE - ACTIVE] Follow-up API call finished');
         
         // Create notification directly using Supabase
         console.log('[NOTIFICATION DIRECT INSERT START]', { 
@@ -5644,14 +5673,14 @@ async function sendAIConfirmationSMS(
 
   try {
     // Check for duplicate SMS to prevent multiple sends
+    // Use sender='system' for system-generated messages (no 'business' or 'direction' columns in schema)
     console.log('[AI CONFIRMATION SMS DUPLICATE CHECK]', { conversationId });
     const { data: existingSms, error: smsCheckError } = await supabase
       .from('messages')
       .select('id')
       .eq('conversation_id', conversationId)
-      .eq('message_type', 'sms')
-      .eq('sender', 'business')
-      .eq('direction', 'outbound')
+      .eq('sender', 'system')
+      .eq('message_type', 'text')
       .limit(1)
       .maybeSingle();
 
