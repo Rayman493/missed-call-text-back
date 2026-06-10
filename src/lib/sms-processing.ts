@@ -1071,18 +1071,15 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     // Continue processing - don't let follow-up cancellation failure block the rest
   }
   
-  // IMPORTANT: Insert inbound customer message BEFORE correction processing
-  // This ensures correct message ordering - inbound message always has earlier created_at than outbound acknowledgement
-  // At this point, conversation is guaranteed to exist
-  // Save inbound message linked to conversation
-  // Create notification for customer reply
-  try {
-    console.log('[NOTIFICATION CREATE ATTEMPT]', { 
-      businessId: business.id, 
-      type: 'customer_reply', 
-      leadId: lead.id,
-      messageId: inboundMessage.id
-    });
+  // Create notification for customer reply (only if message was inserted)
+  if (inboundMessage) {
+    try {
+      console.log('[NOTIFICATION CREATE ATTEMPT]', { 
+        businessId: business.id, 
+        type: 'customer_reply', 
+        leadId: lead.id,
+        messageId: inboundMessage.id
+      });
     
     // Get lead name from raw_metadata if available
     const leadName = lead.raw_metadata?.caller_name || lead.caller_phone || 'Customer';
