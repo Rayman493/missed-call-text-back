@@ -216,17 +216,17 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   const getMetricIcon = (type: string) => {
     switch (type) {
       case 'missedCalls':
-        return <PhoneMissed className="w-6 h-6" />
+        return <PhoneMissed className="w-5 h-5" />
       case 'leads':
-        return <Users className="w-6 h-6" />
+        return <Users className="w-5 h-5" />
       case 'messages':
-        return <MessageSquare className="w-6 h-6" />
+        return <MessageSquare className="w-5 h-5" />
       case 'conversations':
-        return <Activity className="w-6 h-6" />
+        return <Activity className="w-5 h-5" />
       case 'recovery':
-        return <TrendingUp className="w-6 h-6" />
+        return <TrendingUp className="w-5 h-5" />
       default:
-        return <TrendingUp className="w-6 h-6" />
+        return <TrendingUp className="w-5 h-5" />
     }
   }
 
@@ -335,9 +335,9 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           { type: 'leads', value: metrics.leadsGenerated },
           { type: 'recovery', value: metrics.recoveryRate }
         ].map((metric) => (
-          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div className={`w-12 h-12 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border shadow-sm`}>
+          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-4">
+            <div className="flex items-start justify-between mb-2">
+              <div className={`w-10 h-10 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border shadow-sm`}>
                 {getMetricIcon(metric.type)}
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
@@ -345,10 +345,10 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
               </div>
             </div>
             <div className="space-y-1">
-              <div className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
+              <div className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
                 {metric.type === 'recovery' ? `${metric.value}%` : metric.value.toLocaleString()}
               </div>
-              <div className="text-sm font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+              <div className="text-sm font-medium text-slate-600 dark:text-slate-400">
                 {getMetricLabel(metric.type)}
               </div>
               {metric.value === 0 && metric.type !== 'recovery' && (
@@ -368,17 +368,17 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           { type: 'messages', value: metrics.messagesSent },
           { type: 'conversations', value: metrics.activeConversations }
         ].map((metric) => (
-          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
+          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3">
             <div className="flex items-center justify-between mb-2">
               <div className={`w-8 h-8 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
                 {getMetricIcon(metric.type)}
               </div>
             </div>
             <div className="space-y-0.5">
-              <div className="text-2xl font-bold text-slate-900 dark:text-foreground leading-tight">
+              <div className="text-xl font-bold text-slate-900 dark:text-foreground leading-tight">
                 {metric.value.toLocaleString()}
               </div>
-              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
                 {getMetricLabel(metric.type)}
               </div>
             </div>
@@ -387,12 +387,12 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       </div>
 
       {/* Business Activity Card */}
-      <div className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-900/30 rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5">
-        <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground mb-4">Business Activity</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+      <div className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-900/30 rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
+        <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground mb-3">Business Activity</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Today */}
           <div>
-            <h4 className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3">Today</h4>
+            <h4 className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">Today</h4>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-600 dark:text-slate-400">Missed Calls</span>
@@ -410,7 +410,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           </div>
           {/* Last 30 Days */}
           <div>
-            <h4 className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3">Last 30 Days</h4>
+            <h4 className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">Last 30 Days</h4>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-600 dark:text-slate-400">Leads Captured</span>
