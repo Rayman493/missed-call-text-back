@@ -136,31 +136,46 @@ export default function OffboardingBanner({ business, subscriptionStatus, onDism
   if (isDisabled) return null
 
   return (
-    <div className="bg-amber-900/20 border border-amber-800 rounded-xl p-4 sm:p-6 mb-6">
+    <div className="bg-red-900/20 border border-red-800 rounded-xl p-4 sm:p-6 mb-6">
       {/* Header */}
       <div className="flex items-start gap-3 mb-4">
-        <div className="flex-shrink-0 w-10 h-10 bg-amber-900/30 rounded-full flex items-center justify-center">
-          <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex-shrink-0 w-10 h-10 bg-red-900/30 rounded-full flex items-center justify-center">
+          <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-amber-100">
-            ReplyFlow is no longer active
+          <h3 className="text-lg font-semibold text-red-100">
+            Action Required: Disable Call Forwarding
           </h3>
-          <p className="text-sm text-amber-200/80 mt-1">
-            Your subscription is {subscriptionStatus}. Your business phone may still be forwarding missed calls to ReplyFlow.
+          <p className="text-sm text-red-200/80 mt-1">
+            Your subscription is {subscriptionStatus}. You must disable call forwarding from your business phone to prevent missed calls from being sent to ReplyFlow.
           </p>
+        </div>
+      </div>
+
+      {/* Important Warning */}
+      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
+        <div className="flex items-start gap-2">
+          <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <div>
+            <h4 className="text-sm font-semibold text-red-100 mb-1">Why this is important</h4>
+            <p className="text-xs text-red-200/90">
+              If you don't disable call forwarding, missed calls to your business number will still be routed to ReplyFlow. This could cause customer calls to be handled incorrectly or not at all. Please complete this step now.
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Instructions */}
       <div className="bg-muted/50 rounded-lg p-4 mb-4 border border-border">
         <h4 className="text-sm font-medium text-foreground mb-2">
-          Stop forwarding calls to ReplyFlow
+          Disable call forwarding from your business phone
         </h4>
         <p className="text-sm text-muted-foreground mb-3">
-          To prevent missed calls from being sent to ReplyFlow, disable call forwarding from your business phone:
+          Use the code below to turn off call forwarding on your {carrierInfo.name} phone:
         </p>
 
         {/* Carrier Code Display */}
@@ -211,16 +226,23 @@ export default function OffboardingBanner({ business, subscriptionStatus, onDism
       </div>
 
       {/* Confirmation Button */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
         <button
           onClick={handleConfirmDisabled}
           disabled={isSubmitting}
-          className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-800 text-white text-sm font-medium rounded-lg transition-colors"
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 text-white text-sm font-medium rounded-lg transition-colors"
         >
-          {isSubmitting ? 'Saving...' : "I've disabled forwarding"}
+          {isSubmitting ? 'Saving...' : "I've disabled call forwarding"}
         </button>
         <p className="text-xs text-muted-foreground">
-          Click this after you've disabled forwarding from your business phone
+          Confirm after you've disabled forwarding from your business phone. This dismisses this warning.
+        </p>
+      </div>
+
+      {/* Additional Help */}
+      <div className="mt-4 pt-4 border-t border-red-800/30">
+        <p className="text-xs text-red-200/70">
+          Need help? Contact <a href="mailto:support@replyflowhq.com" className="text-red-300 hover:text-red-200 underline">support@replyflowhq.com</a> for assistance with disabling call forwarding.
         </p>
       </div>
     </div>
