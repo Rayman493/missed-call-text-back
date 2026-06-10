@@ -512,10 +512,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       data: message
     }))
     
-    // Combine and sort chronologically
-    const timeline = [...messageItems, ...voicemailItems, ...systemEvents].sort((a, b) => 
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    )
+    // Combine and sort chronologically with tie-breaker
+    const timeline = [...messageItems, ...voicemailItems, ...systemEvents].sort((a, b) => {
+      const timeDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      if (timeDiff !== 0) return timeDiff
+      
+      // Tie-breaker: inbound before outbound if same timestamp
+      const aDirection = a.type === 'message' ? a.data?.direction : null
+      const bDirection = b.type === 'message' ? b.data?.direction : null
+      if (aDirection === 'inbound' && bDirection === 'outbound') return -1
+      if (aDirection === 'outbound' && bDirection === 'inbound') return 1
+      
+      // Final tie-breaker: id ascending
+      return a.id.localeCompare(b.id)
+    })
 
     // Debug logging for timeline order
     console.log('[TIMELINE DEBUG] Timeline items after sorting:', {

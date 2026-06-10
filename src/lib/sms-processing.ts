@@ -942,6 +942,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     // Continue processing - don't let follow-up cancellation failure block the rest
   }
   
+  // IMPORTANT: Insert inbound customer message BEFORE correction processing
+  // This ensures correct message ordering - inbound message always has earlier created_at than outbound acknowledgement
   // At this point, conversation is guaranteed to exist
   // Save inbound message linked to conversation
   console.log('[INBOUND SMS MESSAGE INSERT START]', {
@@ -966,7 +968,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     leadId: lead.id
   })
   
-  const message = await db.createMessageWithConversation({
+  const inboundMessage = await db.createMessageWithConversation({
     lead_id: lead.id,
     conversation_id: conversation.id,
     direction: 'inbound',
@@ -980,7 +982,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     created_at: new Date().toISOString(),
   })
   
-  if (!message) {
+  if (!inboundMessage) {
     console.error('[INBOUND SMS ERROR]', {
       error: 'Failed to save message',
       leadId: lead.id,
@@ -988,33 +990,34 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     })
   } else {
     console.log('[INBOUND SMS MESSAGE INSERT SUCCESS]', {
-      messageId: message.id,
+      messageId: inboundMessage.id,
       leadId: lead.id,
-      conversationId: conversation.id
+      conversationId: conversation.id,
+      created_at: inboundMessage.created_at
     })
     
     // Store media attachments if present
     if (media && media.length > 0) {
-      console.log(`[INBOUND MMS MEDIA DETECTED] Storing ${media.length} media attachments for message: ${message.id}`)
+      console.log(`[INBOUND MMS MEDIA DETECTED] Storing ${media.length} media attachments for message: ${inboundMessage.id}`)
       console.log(`[INBOUND MMS MEDIA DETECTED] Lead ID: ${lead.id}`)
       console.log('[INBOUND MMS STORAGE START]', {
-        messageId: message.id,
+        messageId: inboundMessage.id,
         mediaCount: media.length
       })
       
       try {
         for (const mediaItem of media) {
           try {
-            console.log(`[INBOUND MMS STORING] message_id=${message.id}, type=${mediaItem.contentType}`)
+            console.log(`[INBOUND MMS STORING] message_id=${inboundMessage.id}, type=${mediaItem.contentType}`)
             
             // Download media from Twilio and store in Supabase Storage
-            const supabaseUrl = await downloadAndStoreMedia(mediaItem.url, message.id, media.indexOf(mediaItem))
+            const supabaseUrl = await downloadAndStoreMedia(mediaItem.url, inboundMessage.id, media.indexOf(mediaItem))
             
             // Use Supabase URL if download succeeded, otherwise fall back to Twilio URL
             const finalMediaUrl = supabaseUrl || mediaItem.url
             
             console.log(`[INBOUND MMS URL CHOICE]`, { 
-              messageId: message.id,
+              messageId: inboundMessage.id,
               supabaseUrl: supabaseUrl ? 'YES' : 'NO',
               finalUrl: finalMediaUrl.substring(0, 50) + '...'
             })
@@ -1022,7 +1025,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
             const { error: mediaError } = await supabaseAdmin
               .from('message_media')
               .insert({
-                message_id: message.id,
+                message_id: inboundMessage.id,
                 media_url: finalMediaUrl,
                 mime_type: mediaItem.contentType,
                 created_at: new Date().toISOString(),
@@ -1046,9 +1049,9 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
             // Continue with other media even if one fails
           }
         }
-        console.log(`[INBOUND MMS STORED] Media storage complete for message: ${message.id}`)
+        console.log(`[INBOUND MMS STORED] Media storage complete for message: ${inboundMessage.id}`)
         console.log('[INBOUND MMS STORAGE SUCCESS]', {
-          messageId: message.id,
+          messageId: inboundMessage.id,
           mediaCount: media.length
         })
       } catch (error: any) {
@@ -1056,7 +1059,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         // Don't fail the entire message if media storage fails
       }
     } else {
-      console.log(`[INBOUND MMS] No media attachments for message: ${message.id}`)
+      console.log(`[INBOUND MMS] No media attachments for message: ${inboundMessage.id}`)
     }
     
     // Create notification for customer reply
@@ -1065,7 +1068,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         businessId: business.id, 
         type: 'customer_reply', 
         leadId: lead.id,
-        messageId: message.id
+        messageId: inboundMessage.id
       });
       
       // Get lead name from raw_metadata if available
@@ -1087,37 +1090,30 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         leadName,
         notificationMessage,
         lead.id,
-        message.id
+        inboundMessage.id
       );
       
       if (notificationSuccess) {
         console.log('[NOTIFICATION CREATE SUCCESS]', { 
           businessId: business.id, 
-          type: 'customer_reply', 
-          leadId: lead.id 
+          leadId: lead.id,
+          messageId: inboundMessage.id
         });
       } else {
-        console.error('[NOTIFICATION CREATE FAILED]', { 
+        console.log('[NOTIFICATION CREATE FAILED]', { 
           businessId: business.id, 
-          type: 'customer_reply', 
-          leadId: lead.id 
+          leadId: lead.id,
+          messageId: inboundMessage.id
         });
       }
-    } catch (error) {
-      console.error('[NOTIFICATION CREATE ERROR]', { 
-        businessId: business.id, 
-        type: 'customer_reply', 
-        leadId: lead.id,
-        error 
-      });
-      // Don't let notification failures break webhook processing
+    } catch (error: any) {
+      console.error('[NOTIFICATION CREATE ERROR]', error);
     }
   }
   
-  
   // Return success response without TwiML message (since we already sent via sendSms)
   console.log('[INBOUND SMS SUCCESS]', {
-    messageId: message?.id,
+    messageId: inboundMessage?.id,
     conversationId: conversation?.id,
     leadId: lead?.id,
     businessId: business?.id,
@@ -1127,7 +1123,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     success: true,
     lead,
     conversation,
-    message,
+    message: inboundMessage,
     twiml: `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
 </Response>`
