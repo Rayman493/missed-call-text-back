@@ -2,12 +2,6 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
-  // TEMPORARILY DISABLED TO DEBUG 403 ISSUE
-  // Returning immediately to bypass all middleware logic
-  console.log('[MIDDLEWARE DISABLED] Bypassing all middleware logic for debugging')
-  return NextResponse.next()
-
-  /* DISABLED MIDDLEWARE CODE BELOW
   const res = NextResponse.next()
   const pathname = req.nextUrl.pathname
   const search = req.nextUrl.search
@@ -247,7 +241,6 @@ export async function middleware(req: NextRequest) {
   res.headers.set('Content-Security-Policy', csp)
 
   return res
-  END DISABLED MIDDLEWARE CODE */
 }
 
 export const config = {

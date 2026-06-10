@@ -136,9 +136,16 @@ export async function POST(request: Request) {
       // Only block checkout if this is a trial checkout
       // Paid checkouts should be allowed even if trial is not eligible
       if (checkoutMode === 'trial') {
-        console.error('[stripe-checkout] Trial checkout blocked - not eligible:', eligibilityResult);
+        console.error('[stripe-checkout] 403 FORBIDDEN - Trial checkout blocked due to ineligibility:', {
+          eligibilityResult,
+          phoneNumberForEligibility,
+          businessEmail: user.email,
+          businessId: business.id,
+          checkoutMode,
+          reason: 'User not eligible for trial based on phone number/email check'
+        });
         return NextResponse.json(
-          { 
+          {
             error: eligibilityResult.message || 'Trial eligibility check failed',
             reasons: eligibilityResult.reasons,
             support_email: eligibilityResult.support_email,
