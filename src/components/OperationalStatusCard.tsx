@@ -270,16 +270,7 @@ export default function OperationalStatusCard({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
-          {/* Test Call button - compact secondary action */}
-          <button
-            onClick={() => setShowTestModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-700/50 hover:bg-slate-700 text-slate-200 rounded-md transition-colors text-xs font-medium border border-slate-600"
-          >
-            <Phone className="w-3.5 h-3.5" />
-            Test Call
-          </button>
-          
+        <div className="flex items-center">
           {/* Expand/collapse toggle */}
           <button
             onClick={() => setShowSystemDetails(!showSystemDetails)}
