@@ -406,37 +406,40 @@ export async function POST(request: NextRequest) {
     if (shouldMarkForwardingVerified) {
       console.log('[Setup Progress] Marking forwarding_verified = true for business:', business.id);
       try {
-        const { error: updateError } = await supabase
-          .from('businesses')
-          .update({ 
-            forwarding_verified: true, 
-            forwarding_verified_at: new Date().toISOString(),
-            phone_setup_completed_at: new Date().toISOString(),
-            onboarding_status: 'completed'
-          })
-          .eq('id', business.id);
+        // Use the centralized markForwardingVerified function for consistency
+        const verified = await markForwardingVerified(business.id, 'voice_webhook_forwarded_call_received');
 
-        if (updateError) {
-          console.error('[Setup Progress] Error updating forwarding verification:', updateError);
-        } else {
-          console.log('[Setup Progress] Forwarding verified successfully for business:', business.id);
-          console.log('[ONBOARDING COMPLETE]', {
-            businessId: business.id,
-            reason: 'First missed-call received and forwarding verified',
-            updatedFields: {
-              forwarding_verified: true,
+        if (verified) {
+          // Update onboarding status when forwarding is verified
+          const { error: onboardingError } = await supabase
+            .from('businesses')
+            .update({
               phone_setup_completed_at: new Date().toISOString(),
               onboarding_status: 'completed'
-            }
-          });
-          console.log('[SETUP STEP 3 COMPLETE]', {
-            businessId: business.id,
-            reason: 'voice_webhook_success',
-            callSid: CallSid,
-            callStatus: 'completed',
-            smsStatus: 'pending_compliance',
-            smsFailureReason: 'A2P/campaign compliance not approved'
-          });
+            })
+            .eq('id', business.id);
+
+          if (onboardingError) {
+            console.error('[Setup Progress] Error updating onboarding status:', onboardingError);
+          } else {
+            console.log('[ONBOARDING COMPLETE]', {
+              businessId: business.id,
+              reason: 'First missed-call received and forwarding verified',
+              updatedFields: {
+                forwarding_verified: true,
+                phone_setup_completed_at: new Date().toISOString(),
+                onboarding_status: 'completed'
+              }
+            });
+            console.log('[SETUP STEP 3 COMPLETE]', {
+              businessId: business.id,
+              reason: 'voice_webhook_success',
+              callSid: CallSid,
+              callStatus: 'completed',
+              smsStatus: 'pending_compliance',
+              smsFailureReason: 'A2P/campaign compliance not approved'
+            });
+          }
           // Mark as verified so we don't try again in the SMS section
           shouldMarkForwardingVerified = false;
         }

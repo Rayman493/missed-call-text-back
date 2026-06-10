@@ -6,7 +6,7 @@ import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import TestReplyFlowModal from '@/components/TestReplyFlowModal'
-import { CheckCircle, AlertTriangle, XCircle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import { CheckCircle, AlertTriangle, XCircle, RefreshCw, ChevronDown, ChevronUp, Clock, Phone } from 'lucide-react'
 
 interface OperationalStatusCardProps {
   business: Business | null
@@ -215,6 +215,60 @@ export default function OperationalStatusCard({
             </div>
           </div>
         )}
+
+      {/* Forwarding Verification Status - Always Visible */}
+      <div className={`border rounded-lg p-4 mb-6 ${
+        isForwardingActive
+          ? 'bg-green-500/10 border-green-500/30'
+          : business?.call_forwarding_enabled
+            ? 'bg-amber-500/10 border-amber-500/30'
+            : 'bg-red-500/10 border-red-500/30'
+      }`}>
+        <div className="flex items-start gap-3">
+          {isForwardingActive ? (
+            <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+          ) : (
+            <Clock className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          )}
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-semibold text-foreground">
+                Forwarding Status
+              </h4>
+              <span className={`text-xs font-medium ${
+                isForwardingActive
+                  ? 'text-green-300'
+                  : business?.call_forwarding_enabled
+                    ? 'text-amber-300'
+                    : 'text-red-300'
+              }`}>
+                {isForwardingActive ? '✅ Verified' :
+                 business?.call_forwarding_enabled ? '⏳ Awaiting Verification' :
+                 '❌ Not Configured'}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              {isForwardingActive
+                ? 'Your phone forwarding has been successfully verified. ReplyFlow has received calls through your configured forwarding.'
+                : business?.call_forwarding_enabled
+                  ? 'We have not yet observed a successful forwarded call. Please place a quick test call to confirm your setup.'
+                  : 'We could not verify your forwarding. Review the instructions below and place another test call.'}
+            </p>
+            {business?.forwarding_verified_at && (
+              <p className="text-xs text-muted-foreground mb-3">
+                Last verified: {formatRelativeTime(business.forwarding_verified_at)}
+              </p>
+            )}
+            <button
+              onClick={() => setShowTestModal(true)}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <Phone className="w-4 h-4" />
+              Run Test Call
+            </button>
+          </div>
+        </div>
+      </div>
       </div>
 
       {/* Core Status Grid */}

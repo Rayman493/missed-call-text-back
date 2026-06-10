@@ -1,22 +1,20 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { CheckCircle, Phone, ChevronDown } from 'lucide-react'
+import { CheckCircle, Phone, ChevronDown, Clock, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
-import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber } from '@/lib/utils'
 
 export default function TestSetupPage() {
   const { business, refreshBusiness } = useBusiness()
   const router = useRouter()
-  const supabase = createBrowserClient()
-  const [isCompletingManually, setIsCompletingManually] = useState(false)
   const [troubleshootingOpen, setTroubleshootingOpen] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [isPolling, setIsPolling] = useState(false)
 
   // Guard: Redirect to forwarding setup if not configured
   if (business && !business.call_forwarding_enabled) {
@@ -30,31 +28,24 @@ export default function TestSetupPage() {
     return null
   }
 
-  const handleManualComplete = async () => {
-    if (!business) return
-    
-    setIsCompletingManually(true)
-    try {
-      const { error } = await supabase
-        .from('businesses')
-        .update({
-          forwarding_verified: true,
-          forwarding_verified_at: new Date().toISOString(),
-          onboarding_status: 'completed',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', business.id)
+  // Auto-poll for verification status every 5 seconds
+  useEffect(() => {
+    if (!business || business.forwarding_verified) return
 
-      if (error) throw error
+    const pollInterval = setInterval(async () => {
+      setIsPolling(true)
+      try {
+        await refreshBusiness()
+        // If forwarding becomes verified, the guard will redirect to dashboard
+      } catch (error) {
+        console.error('[TestSetup] Polling error:', error)
+      } finally {
+        setIsPolling(false)
+      }
+    }, 5000)
 
-      await refreshBusiness()
-      setShowSuccess(true)
-    } catch (error) {
-      console.error('[TestSetup] Manual completion failed:', error)
-    } finally {
-      setIsCompletingManually(false)
-    }
-  }
+    return () => clearInterval(pollInterval)
+  }, [business, refreshBusiness])
 
   const handleGoToDashboard = () => {
     router.push('/dashboard')
@@ -248,18 +239,16 @@ export default function TestSetupPage() {
 
             {/* Action Buttons */}
             <div className="space-y-4">
-              <button
-                onClick={handleManualComplete}
-                disabled={isCompletingManually}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-3 px-6 rounded-lg transition-colors"
-              >
-                {isCompletingManually ? 'Completing...' : 'Finish Setup'}
-              </button>
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Clock className="w-4 h-4" />
+                <span>Waiting for first successful test call...</span>
+                {isPolling && <RefreshCw className="w-4 h-4 animate-spin" />}
+              </div>
               <Link
                 href="/dashboard"
                 className="block w-full text-center text-muted-foreground hover:text-foreground text-sm py-2 transition-colors"
               >
-                Run Test Later
+                Continue to Dashboard
               </Link>
             </div>
               </>
