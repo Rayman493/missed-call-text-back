@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 import getStripe from '@/lib/stripe'
 import { getAppBaseUrl, logUrlResolution } from '@/lib/urls'
 import { db } from '@/lib/supabase/admin'
+import { checkTrialEligibility } from '@/lib/trial-eligibility'
 
 export const dynamic = 'force-dynamic'
 
@@ -93,7 +94,7 @@ export async function POST(request: Request) {
     const origin = request.headers.get('origin') || siteUrl
 
     // Check trial eligibility before creating checkout session
-    console.log('[stripe-checkout] Checking trial eligibility');
+    console.log('[stripe-checkout] Checking trial eligibility using direct helper call');
     
     // Use business_phone_number for eligibility check (not twilio_phone_number)
     // business_phone_number is the user's actual business phone number collected during onboarding
@@ -103,7 +104,9 @@ export async function POST(request: Request) {
     console.log('[stripe-checkout] Eligibility check input values:', {
       business_phone_number: phoneNumberForEligibility,
       business_email: user.email,
-      business_id: business.id
+      business_id: business.id,
+      user_id: user.id,
+      source: 'direct_helper'
     })
     
     if (!phoneNumberForEligibility) {
@@ -113,19 +116,16 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
     
-    const eligibilityCheck = await fetch(`${siteUrl}/api/trial/check-eligibility`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': request.headers.get('cookie') || '',
-      },
-      body: JSON.stringify({
-        business_phone_number: phoneNumberForEligibility,
-        business_email: user.email,
-      }),
+    // Call the shared helper function directly instead of making a server-to-server fetch
+    // This avoids authentication issues since we already have the authenticated user
+    const eligibilityResult = await checkTrialEligibility({
+      business_phone_number: phoneNumberForEligibility,
+      business_email: user.email,
+      userId: user.id,
+      businessId: business.id,
+      source: 'direct_helper'
     });
-
-    const eligibilityResult = await eligibilityCheck.json();
+    
     console.log('[stripe-checkout] Eligibility check result:', eligibilityResult);
     console.log('[stripe-checkout] About to check eligibility with mode:', checkoutMode);
 
