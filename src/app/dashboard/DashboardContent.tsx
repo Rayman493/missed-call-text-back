@@ -1504,7 +1504,7 @@ export default function DashboardContent() {
                   <>
                     {/* System Status Banner */}
                     <SectionErrorBoundary sectionName="OperationalStatusCard">
-                      <div className="mb-2 sm:mb-3">
+                      <div className="mb-2">
                         <OperationalStatusCard
                           business={business}
                           missedCallCount={missedCallCount}
@@ -1513,10 +1513,10 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Setup Progress - Show only when no leads yet AND setup is not complete */}
-                    {processedLeads.length === 0 && !isOnboardingComplete && (
+                    {/* Setup Progress - Show only when no leads yet */}
+                    {processedLeads.length === 0 && (
                       <SectionErrorBoundary sectionName="SetupProgress">
-                        <div className="mb-2 sm:mb-3">
+                        <div className="mb-2">
                           <SetupProgress
                             missedCallCount={missedCallCount}
                             setupHealth={setupHealth}
@@ -1527,23 +1527,16 @@ export default function DashboardContent() {
 
                     {/* Dashboard Metrics - Priority 1 */}
                     <SectionErrorBoundary sectionName="DashboardMetrics">
-                      <div className="mb-2 sm:mb-4 transition-opacity duration-300">
+                      <div className="mb-3 transition-opacity duration-300">
                         <DashboardMetrics business={business} />
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Needs Attention Card - Priority 2 */}
-                    <SectionErrorBoundary sectionName="NeedsAttentionCard">
-                      <div className="mb-4 sm:mb-6 transition-opacity duration-300">
-                        <NeedsAttentionCard business={business} />
-                      </div>
-                    </SectionErrorBoundary>
-
-                    {/* Latest Lead Section - Priority 3 - SECONDARY */}
+                    {/* Latest Lead Section - Priority 2 */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
                       {/* Hide RecentLeadsSection when onboarding is expanded to avoid duplicate messaging */}
                       {!(isOnboardingExpanded && !isOnboardingComplete && hasActiveAccess(business) && business?.twilio_phone_number) && (
-                        <div className="transition-opacity duration-300 mb-4 sm:mb-6">
+                        <div className="transition-opacity duration-300 mb-3">
                           {business?.id && (
                             <RecentLeadsSection
                               businessId={business.id}
@@ -1557,22 +1550,28 @@ export default function DashboardContent() {
                       )}
                     </SectionErrorBoundary>
 
+                    {/* Needs Attention Card - Priority 3 */}
+                    <SectionErrorBoundary sectionName="NeedsAttentionCard">
+                      <div className="mb-3 transition-opacity duration-300">
+                        <NeedsAttentionCard business={business} />
+                      </div>
+                    </SectionErrorBoundary>
 
-                    {/* Recent Activity Card - Priority 5 - SECONDARY */}
+                    {/* Recent Activity Card - Priority 4 */}
                     <SectionErrorBoundary sectionName="RecentActivityCard">
-                      <div className="mb-4 sm:mb-6 transition-opacity duration-300">
+                      <div className="mb-3 transition-opacity duration-300">
                         <RecentActivityCard business={business} />
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Follow-Up Activity Card - Priority 6 - TERTIARY */}
+                    {/* Follow-Up Activity Card - Priority 5 */}
                     <SectionErrorBoundary sectionName="FollowUpActivityCard">
-                      <div className="mb-2 sm:mb-3 transition-opacity duration-300 opacity-80 hover:opacity-100">
+                      <div className="mb-2 transition-opacity duration-300 opacity-80 hover:opacity-100">
                         <FollowUpActivityCard business={business} />
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Business Wins Card - Priority 7 - TERTIARY */}
+                    {/* Business Wins Card - Priority 6 */}
                     <SectionErrorBoundary sectionName="BusinessWinsCard">
                       <div className="opacity-80 hover:opacity-100 transition-opacity duration-300">
                         <BusinessWinsCard business={business} />

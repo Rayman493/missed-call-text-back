@@ -386,42 +386,23 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
         </div>
 
         {leads.length === 0 ? (
-          <div className="text-center py-4 px-4">
+          <div className="text-center py-6 px-4">
             {!isOnboardingExpanded && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                  No leads yet
+                  No leads captured yet
                 </p>
                 <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-                  ReplyFlow is active and waiting for your first missed call.
+                  Run a test call to verify your setup and capture your first lead
                 </p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-                  To test ReplyFlow, call your business number from another phone and let it ring.
-                </p>
-                <div className="text-left bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 mb-3">
-                  <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                    Expected result:
-                  </p>
-                  <ul className="space-y-1 text-xs text-blue-800 dark:text-blue-300">
-                    <li className="flex items-start gap-2">
-                      <span>•</span>
-                      <span>ReplyFlow answers</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span>•</span>
-                      <span>Customer receives a text</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span>•</span>
-                      <span>Lead appears here</span>
-                    </li>
-                  </ul>
-                </div>
                 <Link
                   href="/dashboard/test-setup"
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
                 >
-                  Test My Setup
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  Run Test Call
                 </Link>
               </div>
             )}
