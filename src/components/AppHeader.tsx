@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Navigation from './Navigation'
@@ -8,22 +8,17 @@ import MobileMenu from './MobileMenu'
 import UserDropdown from './UserDropdown'
 import NavbarNotifications from './NavbarNotifications'
 import BrandIcon from './BrandIcon'
-import SetupHealthModal from './SetupHealthModal'
-import { Activity } from 'lucide-react'
 
 interface AppHeaderProps {
   title?: string
   showNavigation?: boolean
-  setupHealth?: import('@/lib/setup-health').SetupHealth
 }
 
 export default function AppHeader({
   title,
-  showNavigation = true,
-  setupHealth
+  showNavigation = true
 }: AppHeaderProps) {
   const pathname = usePathname()
-  const [showHealthModal, setShowHealthModal] = useState(false)
   
   // Check if we're on a public/marketing page
   const isPublicPage = pathname === '/' || 
@@ -60,16 +55,6 @@ export default function AppHeader({
               {/* Notifications - visible on all screen sizes */}
               <NavbarNotifications />
               
-              {/* System Health - visible on desktop dashboard only (hidden on mobile) */}
-              {!isPublicPage && (
-                <button
-                  onClick={() => setShowHealthModal(true)}
-                  className="hidden md:flex h-9 w-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors"
-                  aria-label="System Health"
-                >
-                  <Activity className="w-4 h-4" />
-                </button>
-              )}
               
               {/* User dropdown - visible on desktop only (hidden on mobile) */}
               <div className="hidden md:block">
@@ -79,12 +64,6 @@ export default function AppHeader({
           </div>
         </div>
       </header>
-
-      <SetupHealthModal
-        isOpen={showHealthModal}
-        onClose={() => setShowHealthModal(false)}
-        setupHealth={setupHealth}
-      />
     </>
   )
 }

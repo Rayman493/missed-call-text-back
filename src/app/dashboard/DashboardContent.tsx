@@ -1077,7 +1077,7 @@ export default function DashboardContent() {
         <BusinessGuard>
           <div className="min-h-screen bg-[#f5f7fb] dark:bg-background flex flex-col relative">
             {/* App Header */}
-            <AppHeader showNavigation={true} setupHealth={setupHealth} />
+            <AppHeader showNavigation={true} />
 
             {/* Main Content */}
             <div className="flex-1 pt-1.5 sm:pt-2 lg:pt-2 px-3 sm:px-4 lg:px-6 pb-12 relative z-10">
