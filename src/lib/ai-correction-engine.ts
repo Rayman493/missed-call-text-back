@@ -2,10 +2,11 @@
  * AI Intake Correction Engine
  * 
  * Detects and applies customer corrections to AI intake data
- * RC1: Uses simple pattern matching (no OpenAI)
+ * Now includes AI-powered semantic analysis layer for intelligent correction detection
  */
 
 import { normalizeExtractedInfo, canonicalizeExtractedInfo } from './ai-field-mapping'
+import { analyzeSemanticCorrection, SemanticCorrectionResult } from './ai-semantic-correction'
 
 export interface CorrectionDetectionResult {
   isCorrection: boolean
@@ -190,31 +191,95 @@ function cleanExtractedValue(value: string, field: string): string {
 
 /**
  * Detect if an inbound SMS contains corrections to AI intake data
- * RC1: Simple pattern matching (no OpenAI)
- * Updated: Supports multiple corrections in a single message
+ * Now includes AI-powered semantic analysis layer for intelligent correction detection
+ * Falls back to regex pattern matching for backward compatibility
  */
 export async function detectCorrection(
   customerReply: string,
-  extractedInfo: ExtractedInfo
+  extractedInfo: ExtractedInfo,
+  conversationContext?: string
 ): Promise<CorrectionDetectionResult> {
   console.log('[CORRECTION DETECTION START]', {
     customerReply,
-    extractedInfo
+    extractedInfo,
+    conversationContext
   })
 
-  // Check if this is a conversational reply (not a correction)
-  if (isConversationalReply(customerReply)) {
-    console.log('[CONVERSATIONAL REPLY DETECTED]', {
+  // First, try AI-powered semantic analysis
+  console.log('[SEMANTIC ANALYSIS] Starting AI-powered analysis')
+  const semanticResult = await analyzeSemanticCorrection(customerReply, extractedInfo, conversationContext)
+  
+  console.log('[SEMANTIC ANALYSIS RESULT]', {
+    shouldUpdate: semanticResult.shouldUpdate,
+    updates: semanticResult.updates,
+    reason: semanticResult.reason,
+    confidence: semanticResult.confidence,
+    isConversational: semanticResult.isConversational
+  })
+
+  // If AI detected conversational reply, return early (no correction needed)
+  if (semanticResult.isConversational) {
+    console.log('[CONVERSATIONAL REPLY DETECTED BY AI]', {
       message: customerReply,
-      reason: 'Message appears to be a conversational acknowledgement, not a correction'
+      reason: semanticResult.reason
     })
     return {
       isCorrection: false,
-      confidence: 0,
+      confidence: semanticResult.confidence,
       requiresReview: false,
-      reason: 'Conversational reply detected - no correction needed'
+      reason: semanticResult.reason
     }
   }
+
+  // If AI detected updates with high confidence, use them
+  if (semanticResult.shouldUpdate && semanticResult.confidence >= 0.7) {
+    console.log('[SEMANTIC CORRECTION APPLIED]', {
+      updates: semanticResult.updates,
+      reason: semanticResult.reason,
+      confidence: semanticResult.confidence
+    })
+
+    // Convert semantic updates to correction format
+    const corrections = semanticResult.updates.map(update => ({
+      field: update.field,
+      oldValue: update.oldValue || (extractedInfo as any)[update.field] || '',
+      newValue: update.value
+    }))
+
+    return {
+      isCorrection: true,
+      fieldChanged: corrections[0]?.field,
+      oldValue: corrections[0]?.oldValue,
+      newValue: corrections[0]?.newValue,
+      confidence: semanticResult.confidence,
+      requiresReview: semanticResult.confidence < 0.85,
+      reason: semanticResult.reason,
+      corrections
+    }
+  }
+
+  // If AI didn't detect updates or confidence is low, fall back to regex pattern matching
+  console.log('[FALLBACK TO REGEX PATTERN MATCHING]', {
+    reason: semanticResult.shouldUpdate 
+      ? `AI confidence too low (${semanticResult.confidence}), falling back to regex`
+      : 'AI did not detect updates, falling back to regex'
+  })
+
+  return await detectCorrectionWithRegex(customerReply, extractedInfo)
+}
+
+/**
+ * Detect if an inbound SMS contains corrections using regex pattern matching
+ * This is the fallback method when AI semantic analysis is not available or has low confidence
+ */
+async function detectCorrectionWithRegex(
+  customerReply: string,
+  extractedInfo: ExtractedInfo
+): Promise<CorrectionDetectionResult> {
+  console.log('[REGEX CORRECTION DETECTION START]', {
+    customerReply,
+    extractedInfo
+  })
 
   const normalizedExtractedInfo = normalizeExtractedInfo(extractedInfo)
   const reply = customerReply.toLowerCase().trim()
@@ -575,11 +640,13 @@ export async function detectCorrection(
 
 /**
  * Update extracted_info with the corrected field using canonical keys
+ * Now supports intelligent Details field replacement/expansion
  */
 export function applyCorrection(
   extractedInfo: ExtractedInfo,
   fieldChanged: string,
-  newValue: string
+  newValue: string,
+  action?: 'correction' | 'addition' | 'clarification'
 ): ExtractedInfo {
   // Normalize input to canonical keys first
   const normalized = normalizeExtractedInfo(extractedInfo)
@@ -637,18 +704,42 @@ export function applyCorrection(
     mappedField,
     finalField,
     newValue,
+    action,
     fieldExistsInUpdated: finalField in updated,
     originalImportantDetails: updated.importantDetails,
     originalReasonForCalling: updated.reasonForCalling
   })
 
   if (finalField in updated) {
-    (updated as any)[finalField] = newValue
-    console.log('[CORRECTION FIELD UPDATED]', {
-      finalField,
-      newValue,
-      updatedValue: (updated as any)[finalField]
-    })
+    // Intelligent Details field handling
+    if (finalField === 'importantDetails' && action && updated.importantDetails) {
+      // Inline merge logic to avoid import issues
+      let mergedValue: string
+      if (action === 'correction') {
+        mergedValue = newValue
+      } else if (action === 'addition') {
+        mergedValue = `${updated.importantDetails}. ${newValue}`
+      } else if (action === 'clarification') {
+        mergedValue = `${updated.importantDetails} (${newValue})`
+      } else {
+        mergedValue = newValue
+      }
+      (updated as any)[finalField] = mergedValue
+      console.log('[CORRECTION DETAILS MERGED]', {
+        finalField,
+        originalValue: updated.importantDetails,
+        newValue,
+        action,
+        mergedValue
+      })
+    } else {
+      (updated as any)[finalField] = newValue
+      console.log('[CORRECTION FIELD UPDATED]', {
+        finalField,
+        newValue,
+        updatedValue: (updated as any)[finalField]
+      })
+    }
   } else {
     console.error('[CORRECTION FIELD UPDATE ERROR]', {
       finalField,
