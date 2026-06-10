@@ -33,6 +33,39 @@ export interface ExtractedInfo {
 }
 
 /**
+ * Detect if a message is a conversational reply (not a correction)
+ * These should be ignored and not trigger acknowledgements
+ */
+function isConversationalReply(message: string): boolean {
+  const reply = message.toLowerCase().trim()
+  
+  const conversationalPatterns = [
+    // Positive acknowledgements
+    /^(thanks|thank you|thx|ty|appreciate it|appreciated)\.?$/i,
+    /^(perfect|great|awesome|excellent|wonderful|fantastic)\.?$/i,
+    /^(sounds good|sounds great|that sounds good)\.?$/i,
+    /^(got it|gotcha|understood|understand)\.?$/i,
+    /^(ok|okay|okey|okie)\.?$/i,
+    /^(sure|no problem|no worries|no problemo)\.?$/i,
+    /^(cool|nice|sweet)\.?$/i,
+    /^(done|finished|complete)\.?$/i,
+    /^(yes|yeah|yep|yup|yay)\.?$/i,
+    /^(no|nope|nah)\.?$/i,
+    
+    // Emoji-only responses
+    /^(👍|👌|✅|🆗|✨|💯|🙌|👏|😊|😄|🙂)$/i,
+    
+    // Very short responses
+    /^(ok|yes|no|sure|fine|good|great|thanks|bye|hi|hello)\.?$/i,
+    
+    // Conversational fillers
+    /^(oh i see|i see|i understand|gotcha|alright|right)\.?$/i,
+  ]
+  
+  return conversationalPatterns.some(pattern => pattern.test(reply))
+}
+
+/**
  * Clean the extracted value by removing common prefixes
  * This ensures we store only the meaningful corrected value, not the entire sentence
  */
@@ -55,28 +88,45 @@ function cleanExtractedValue(value: string, field: string): string {
     /^my service address is\s+/i,
     /^service address is\s+/i,
 
-    // Project details/yard prefixes
-    /^the yard is\s+/i,
-    /^yard is\s+/i,
-    /^actually the yard is\s+/i,
-    /^yard is actually\s+/i,
-    /^the lot is\s+/i,
-    /^lot is\s+/i,
-    /^actually the lot is\s+/i,
-    /^the property is\s+/i,
-    /^property is\s+/i,
-    /^actually the property is\s+/i,
-    /^the project is\s+/i,
-    /^project is\s+/i,
-    /^actually the project is\s+/i,
-    /^oh and the yard is\s+/i,
-    /^oh and the lot is\s+/i,
-    /^oh and the property is\s+/i,
-    /^oh and\s+/i,
-    /^and the yard is\s+/i,
-    /^and the lot is\s+/i,
-    /^and the property is\s+/i,
-    /^and\s+/i,
+    // Business-agnostic details prefixes
+    /^the details are\s+/i,
+    /^actually the details are\s+/i,
+    /^the request is\s+/i,
+    /^request is\s+/i,
+    /^actually the request is\s+/i,
+    /^my request is\s+/i,
+    /^actually my request is\s+/i,
+    /^the service is for\s+/i,
+    /^service is for\s+/i,
+    /^actually the service is for\s+/i,
+    /^the appointment is for\s+/i,
+    /^appointment is for\s+/i,
+    /^actually the appointment is for\s+/i,
+    /^the session is for\s+/i,
+    /^session is for\s+/i,
+    /^actually the session is for\s+/i,
+    /^the lesson is for\s+/i,
+    /^lesson is for\s+/i,
+    /^actually the lesson is for\s+/i,
+    /^the consultation is for\s+/i,
+    /^consultation is for\s+/i,
+    /^actually the consultation is for\s+/i,
+    /^the visit is for\s+/i,
+    /^visit is for\s+/i,
+    /^actually the visit is for\s+/i,
+
+    // Specific entity/recipient patterns
+    /^it's for\s+/i,
+    /^its for\s+/i,
+    /^actually it's for\s+/i,
+    /^actually its for\s+/i,
+    /^this is for\s+/i,
+    /^actually this is for\s+/i,
+    /^it's really for\s+/i,
+    /^its really for\s+/i,
+    /^it's actually for\s+/i,
+    /^its actually for\s+/i,
+    /^for\s+/i,
 
     // Callback number prefixes
     /^my number is\s+/i,
@@ -92,6 +142,8 @@ function cleanExtractedValue(value: string, field: string): string {
     /^available after\s+/i,
     /^best time is\s+/i,
     /^callback time is\s+/i,
+    /^please call after\s+/i,
+    /^call me after\s+/i,
 
     // Name prefixes
     /^my name is\s+/i,
@@ -109,9 +161,6 @@ function cleanExtractedValue(value: string, field: string): string {
     // General cleanup
     /^actually\s+/i,
     /^it is actually\s+/i,
-    /^the details are\s+/i,
-    /^the project is actually\s+/i,
-    /^the issue is actually\s+/i,
     /^actually i need\s+/i,
     /^actually i want\s+/i,
     /^i meant\s+/i,
@@ -153,10 +202,24 @@ export async function detectCorrection(
     extractedInfo
   })
 
+  // Check if this is a conversational reply (not a correction)
+  if (isConversationalReply(customerReply)) {
+    console.log('[CONVERSATIONAL REPLY DETECTED]', {
+      message: customerReply,
+      reason: 'Message appears to be a conversational acknowledgement, not a correction'
+    })
+    return {
+      isCorrection: false,
+      confidence: 0,
+      requiresReview: false,
+      reason: 'Conversational reply detected - no correction needed'
+    }
+  }
+
   const normalizedExtractedInfo = normalizeExtractedInfo(extractedInfo)
   const reply = customerReply.toLowerCase().trim()
 
-  // Simple pattern matching for corrections
+  // Simple pattern matching for corrections - business-agnostic
   const patterns = [
     {
       field: 'callerName',
@@ -172,6 +235,34 @@ export async function detectCorrection(
     {
       field: 'importantDetails',
       patterns: [
+        // Business-agnostic entity/recipient patterns
+        /it's for\s+(.+)/i,
+        /its for\s+(.+)/i,
+        /actually it's for\s+(.+)/i,
+        /actually its for\s+(.+)/i,
+        /this is for\s+(.+)/i,
+        /actually this is for\s+(.+)/i,
+        /it's really for\s+(.+)/i,
+        /its really for\s+(.+)/i,
+        /it's actually for\s+(.+)/i,
+        /its actually for\s+(.+)/i,
+        /for\s+(.+)/i,
+        
+        // Service/appointment/session specific patterns
+        /the service is for\s+(.+)/i,
+        /service is for\s+(.+)/i,
+        /the appointment is for\s+(.+)/i,
+        /appointment is for\s+(.+)/i,
+        /the session is for\s+(.+)/i,
+        /session is for\s+(.+)/i,
+        /the lesson is for\s+(.+)/i,
+        /lesson is for\s+(.+)/i,
+        /the consultation is for\s+(.+)/i,
+        /consultation is for\s+(.+)/i,
+        /the visit is for\s+(.+)/i,
+        /visit is for\s+(.+)/i,
+        
+        // General clarification patterns
         /actually i need\s+(.+)/i,
         /actually i want\s+(.+)/i,
         /i meant\s+(.+)/i,
@@ -182,31 +273,33 @@ export async function detectCorrection(
         /(.+), not\s+(.+)/i,
         /it is actually\s+(.+)/i,
         /the details are\s+(.+)/i,
-        /the reason is\s+(.+)/i,
-        /the project is actually\s+(.+)/i,
-        /the issue is actually\s+(.+)/i,
-        /oh and the yard is\s+(.+)/i,
-        /oh and the lot is\s+(.+)/i,
-        /oh and the property is\s+(.+)/i,
-        /yard is\s+(.+)/i,
-        /lot is\s+(.+)/i,
-        /property is\s+(.+)/i,
-        /oh and (.+)/i,
-        /the yard is\s+(.+)/i,
-        /yard is actually\s+(.+)/i,
-        /project is\s+(.+)/i,
-        // Smarter details detection - detect project/issue clarification
-        /it's really for\s+(.+)/i,
-        /its really for\s+(.+)/i,
-        /it's actually for\s+(.+)/i,
-        /its actually for\s+(.+)/i,
-        /the issue is\s+(.+)/i,
-        /the problem is\s+(.+)/i,
+        /the request is\s+(.+)/i,
         /i need help with\s+(.+)/i,
         /i need\s+(.+)/i,
         /i want\s+(.+)/i,
         /looking for help with\s+(.+)/i,
-        /need help with\s+(.+)/i
+        /need help with\s+(.+)/i,
+        
+        // Specific location/unit patterns
+        /the (.+?) unit/i,
+        /(.+?) unit/i,
+        /the (.+?) floor/i,
+        /(.+?) floor/i,
+        /the (.+?) room/i,
+        /(.+?) room/i,
+        /the (.+?) office/i,
+        /(.+?) office/i,
+        /the (.+?) suite/i,
+        /(.+?) suite/i,
+        
+        // Skill/level patterns (for lessons/tutors)
+        /i only need\s+(.+)/i,
+        /i need\s+(.+)lessons/i,
+        /(.+?) lessons/i,
+        /(.+?) level/i,
+        /beginner/i,
+        /intermediate/i,
+        /advanced/i
       ]
     },
     {
@@ -222,7 +315,11 @@ export async function detectCorrection(
         /location is\s+(.+)/i,
         /my service address is\s+(.+)/i,
         /service address is\s+(.+)/i,
-        // Smarter location detection - detect home/residence references
+        /at\s+(.+)instead/i,
+        /actually at\s+(.+)/i,
+        /it's at\s+(.+)/i,
+        /its at\s+(.+)/i,
+        // Home/residence references
         /at my house/i,
         /come to my house/i,
         /at my home/i,
@@ -235,7 +332,12 @@ export async function detectCorrection(
         /at home/i,
         /come to my place/i,
         /lessons are at my house/i,
-        /lessons are at my home/i
+        /lessons are at my home/i,
+        // Unit/specific location patterns
+        /the (.+?) unit/i,
+        /(.+?) unit/i,
+        /the (.+?) floor/i,
+        /(.+?) floor/i
       ]
     },
     {
@@ -245,7 +347,8 @@ export async function detectCorrection(
         /call me at\s+(.+)/i,
         /my number is\s+(.+)/i,
         /callback number is\s+(.+)/i,
-        /my phone number is\s+(.+)/i
+        /my phone number is\s+(.+)/i,
+        /use\s+(.+)/i
       ]
     },
     {
@@ -253,12 +356,17 @@ export async function detectCorrection(
       patterns: [
         /best time is\s+(.+)/i,
         /callback time is\s+(.+)/i,
+        /please call after\s+(.+)/i,
+        /call me after\s+(.+)/i,
         /call me tomorrow morning/i,
         /call me tomorrow afternoon/i,
         /call me tomorrow evening/i,
         /call me in the morning/i,
         /call me in the afternoon/i,
-        /call me in the evening/i
+        /call me in the evening/i,
+        /available after\s+(.+)/i,
+        /after\s+(\d+[ap]m)/i,
+        /after\s+(\d+:\d+\s*[ap]m)/i
       ]
     },
     {
@@ -292,6 +400,7 @@ export async function detectCorrection(
         /nevermind not urgent/i,
         /flexible timing/i,
         /no rush/i,
+        /no rush anymore/i,
         /whenever you can/i,
         /this can wait/i,
         /take your time/i,
