@@ -72,8 +72,18 @@ export async function POST(request: NextRequest) {
   try {
     // Verify INTERNAL_API_SECRET for server-to-server authentication
     const authHeader = request.headers.get('authorization')
+    const altAuthHeader = request.headers.get('x-internal-api-secret')
+    
+    console.log('[AI CONFIRMATION SMS AUTH DEBUG]', {
+      hasAuthHeader: !!authHeader,
+      authHeaderScheme: authHeader?.startsWith('Bearer ') ? 'Bearer' : authHeader ? 'other' : 'none',
+      hasAltAuthHeader: !!altAuthHeader,
+      hasInternalApiSecret: !!process.env.INTERNAL_API_SECRET
+    })
+    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.error('[AI CONFIRMATION SMS ERROR] Missing or invalid authorization header')
+      console.error('[AI CONFIRMATION SMS ERROR] Expected: Authorization: Bearer <INTERNAL_API_SECRET>')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -87,8 +97,15 @@ export async function POST(request: NextRequest) {
 
     if (providedSecret !== expectedSecret) {
       console.error('[AI CONFIRMATION SMS ERROR] Invalid INTERNAL_API_SECRET')
+      console.log('[AI CONFIRMATION SMS AUTH DEBUG]', {
+        secretLengthProvided: providedSecret.length,
+        secretLengthExpected: expectedSecret.length,
+        secretsMatch: providedSecret === expectedSecret
+      })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    
+    console.log('[AI CONFIRMATION SMS AUTH SUCCESS] Authorization validated')
 
     const body: ConfirmationSMSRequest = await request.json()
 

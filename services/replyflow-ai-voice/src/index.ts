@@ -5674,6 +5674,13 @@ async function sendAIConfirmationSMS(
     console.log('[AI CONFIRMATION SMS URL]', { host: new URL(confirmationUrl).host, path: '/api/ai-confirmation-sms' });
 
     const internalApiSecret = process.env.INTERNAL_API_SECRET;
+    console.log('[AI CONFIRMATION SMS AUTH DEBUG]', {
+      hasInternalApiSecret: !!internalApiSecret,
+      secretLength: internalApiSecret?.length,
+      secretFirstChar: internalApiSecret?.[0],
+      secretLastChar: internalApiSecret?.[internalApiSecret.length - 1]
+    });
+    
     if (!internalApiSecret) {
       console.error('[AI CONFIRMATION SMS ERROR] INTERNAL_API_SECRET not configured');
       return;
@@ -5694,6 +5701,13 @@ async function sendAIConfirmationSMS(
         businessName,
         extractedInfo
       })
+    });
+
+    console.log('[AI CONFIRMATION SMS HTTP DEBUG]', {
+      url: confirmationUrl,
+      method: 'POST',
+      status: response.status,
+      statusText: response.statusText
     });
 
     if (!response.ok) {
