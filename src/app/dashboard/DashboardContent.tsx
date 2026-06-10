@@ -67,7 +67,6 @@ import OperationalStatusCard from '@/components/OperationalStatusCard'
 import RecentActivityCard from '@/components/RecentActivityCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { HelpContext } from '@/components/HelpAssistant'
-import ForwardingHelpCenter from '@/components/ForwardingHelpCenter'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
 import { getBusinessSetupCompletionState } from '@/lib/setup-completion-state'
@@ -1525,13 +1524,6 @@ export default function DashboardContent() {
                     <SectionErrorBoundary sectionName="NeedsAttentionCard">
                       <div className="mb-4 sm:mb-6 transition-opacity duration-300">
                         <NeedsAttentionCard business={business} />
-                      </div>
-                    </SectionErrorBoundary>
-
-                    {/* Permanent Forwarding Help Center - Priority 3 */}
-                    <SectionErrorBoundary sectionName="ForwardingHelpCenter">
-                      <div id="forwarding-help-center" className="mb-4 sm:mb-6 transition-opacity duration-300">
-                        <ForwardingHelpCenter />
                       </div>
                     </SectionErrorBoundary>
 

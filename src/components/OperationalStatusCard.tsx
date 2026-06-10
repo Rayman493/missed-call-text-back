@@ -6,6 +6,7 @@ import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import TestReplyFlowModal from '@/components/TestReplyFlowModal'
+import ForwardingHelpCenter from '@/components/ForwardingHelpCenter'
 import { CheckCircle, AlertTriangle, XCircle, RefreshCw, ChevronDown, ChevronUp, Clock, Phone } from 'lucide-react'
 
 interface OperationalStatusCardProps {
@@ -49,6 +50,7 @@ export default function OperationalStatusCard({
   const [showForwardingInstructions, setShowForwardingInstructions] = useState(false)
   const [showTestCallInstructions, setShowTestCallInstructions] = useState(false)
   const [selectedCarrier, setSelectedCarrier] = useState<string>('')
+  const [showCallForwardingSection, setShowCallForwardingSection] = useState(false)
 
   // Carrier-specific forwarding instructions
   const carrierInstructions: Record<string, {
@@ -589,6 +591,45 @@ export default function OperationalStatusCard({
                     )}
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* Call Forwarding Help Section - Nested Accordion */}
+          <div>
+            <button
+              onClick={() => setShowCallForwardingSection(!showCallForwardingSection)}
+              className="w-full flex items-center justify-between text-left p-2 bg-slate-800/50 border border-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Phone className="w-3.5 h-3.5 text-slate-400" />
+                <div className="flex flex-col items-start">
+                  <span className="text-xs font-medium text-slate-300">Call Forwarding</span>
+                  <span className="text-xs text-slate-500">Setup instructions and forwarding codes</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {isForwardingActive && (
+                  <span className="text-xs text-green-400 flex items-center gap-1">
+                    ✓ Configured
+                  </span>
+                )}
+                {!isForwardingActive && (
+                  <span className="text-xs text-amber-400 flex items-center gap-1">
+                    ⚠️ Not configured
+                  </span>
+                )}
+                {showCallForwardingSection ? (
+                  <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                )}
+              </div>
+            </button>
+
+            {showCallForwardingSection && (
+              <div className="mt-2">
+                <ForwardingHelpCenter />
               </div>
             )}
           </div>
