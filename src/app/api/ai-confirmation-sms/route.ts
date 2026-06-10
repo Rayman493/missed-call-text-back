@@ -327,6 +327,37 @@ export async function POST(request: NextRequest) {
       provisioningStatus: business.provisioning_status
     })
 
+    // Fetch the latest AI call record to get the most up-to-date extracted_info with customer corrections
+    console.log('[AI CONFIRMATION SMS FETCH LATEST AI RECORD]', {
+      leadId,
+      callSid
+    })
+
+    const { data: latestAiCallRecord, error: aiRecordError } = await supabaseAdmin
+      .from('ai_call_records')
+      .select('id, extracted_info, call_sid')
+      .eq('lead_id', leadId)
+      .eq('call_sid', callSid)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (aiRecordError) {
+      console.error('[AI CONFIRMATION SMS ERROR] Failed to fetch AI call record:', aiRecordError)
+    } else if (latestAiCallRecord && latestAiCallRecord.extracted_info) {
+      console.log('[AI CONFIRMATION SMS USING DATABASE EXTRACTED_INFO]', {
+        aiCallRecordId: latestAiCallRecord.id,
+        hasExtractedInfo: !!latestAiCallRecord.extracted_info,
+        extractedInfoKeys: latestAiCallRecord.extracted_info ? Object.keys(latestAiCallRecord.extracted_info) : []
+      })
+      // Use the database extracted_info which includes customer corrections
+      extractedInfo = latestAiCallRecord.extracted_info
+    } else {
+      console.log('[AI CONFIRMATION SMS USING PASSED EXTRACTED_INFO]', {
+        reason: !latestAiCallRecord ? 'no_ai_record_found' : 'no_extracted_info_in_record'
+      })
+    }
+
     // Build confirmation message with all extracted fields
     console.log('[AI SMS SOURCE RECORD]', {
       route: '/api/ai-confirmation-sms',
