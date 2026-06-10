@@ -285,16 +285,54 @@ async function detectCorrectionWithRegex(
   const reply = customerReply.toLowerCase().trim()
 
   // Simple pattern matching for corrections - business-agnostic
+  // Order matters: more specific patterns should come first
   const patterns = [
+    {
+      field: 'preferredCallbackTime',
+      patterns: [
+        // Callback time patterns - must come before name patterns to avoid misclassification
+        /you can call me back at?\s+(.+)/i,
+        /call me back at?\s+(.+)/i,
+        /call me back anytime/i,
+        /anytime is fine/i,
+        /whenever is fine/i,
+        /anytime works/i,
+        /whenever works/i,
+        /call me after\s+(\d+[ap]m)/i,
+        /call me after\s+(\d+:\d+\s*[ap]m)/i,
+        /call me after\s+(.+)/i,
+        /please call after\s+(.+)/i,
+        /call me tomorrow morning/i,
+        /call me tomorrow afternoon/i,
+        /call me tomorrow evening/i,
+        /call me in the morning/i,
+        /call me in the afternoon/i,
+        /call me in the evening/i,
+        /call me tomorrow/i,
+        /call me this morning/i,
+        /call me this afternoon/i,
+        /call me this evening/i,
+        /available after\s+(.+)/i,
+        /after\s+(\d+[ap]m)/i,
+        /after\s+(\d+:\d+\s*[ap]m)/i,
+        /best time is\s+(.+)/i,
+        /callback time is\s+(.+)/i,
+        /preferred callback time is\s+(.+)/i
+      ]
+    },
     {
       field: 'callerName',
       patterns: [
+        // Stricter name patterns - must avoid matching callback instructions
         /my name is\s+(.+)/i,
         /actually my name is\s+(.+)/i,
         /this is\s+(.+)/i,
         /i am\s+(.+)/i,
-        /call me\s+(.+)/i,
-        /name is\s+(.+)/i
+        /i'm\s+(.+)/i,
+        /name is\s+(.+)/i,
+        /the name is\s+(.+)/i,
+        /actually it's\s+(.+)/i,
+        /actually its\s+(.+)/i
       ]
     },
     {

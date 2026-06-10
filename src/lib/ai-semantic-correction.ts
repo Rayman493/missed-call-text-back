@@ -100,6 +100,12 @@ Guidelines:
 - Maintain the original structure and format of the information
 - Preserve high-confidence information unless clearly corrected
 
+IMPORTANT: Callback time detection must take priority over name detection
+- Phrases like "you can call me back at any time", "call me back anytime", "call me after 5", "anytime is fine" should update preferredCallbackTime
+- Extract the actual callback time value (e.g., "Anytime", "After 5 PM", "Tomorrow", "Morning")
+- Do NOT treat these as name corrections
+- Only update callerName from explicit patterns like "my name is Brian", "this is Brian", "I'm Brian"
+
 Output format (JSON only, no additional text):
 {
   "shouldUpdate": true or false,
