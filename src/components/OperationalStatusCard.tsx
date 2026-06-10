@@ -236,38 +236,19 @@ export default function OperationalStatusCard({
   }, [healthStatus])
 
   return (
-    <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-3 sm:p-4 hover:shadow-xl transition-all duration-300">
+    <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-2.5 sm:p-3 hover:shadow-xl transition-all duration-300">
       {/* Compact Status Row - Always Visible */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
-        {/* Status indicators */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="flex items-center gap-2">
-            <span className={healthIndicator.color}>{healthIndicator.icon}</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+        {/* Status indicator */}
+        <div className="flex items-center gap-2">
+          <span className={healthIndicator.color}>{healthIndicator.icon}</span>
+          <div className="flex flex-col">
             <span className={`text-sm font-semibold ${healthIndicator.color}`}>
               {healthStatus === 'healthy' ? 'ReplyFlow is Active' : healthIndicator.text}
             </span>
-          </div>
-          
-          {/* Status chips */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
-              healthStatus === 'healthy' ? 'bg-green-500/15 text-green-300' : 'bg-amber-500/15 text-amber-300'
-            }`}>
-              {getStatusIndicator(healthStatus === 'healthy' ? 'active' : 'needs-attention')}
-              <span className="font-medium">Monitoring</span>
-            </div>
-            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
-              isTextReplyActive ? 'bg-green-500/15 text-green-300' : 'bg-slate-500/15 text-slate-300'
-            }`}>
-              {getStatusIndicator(isTextReplyActive ? 'active' : 'inactive')}
-              <span className="font-medium">Text</span>
-            </div>
-            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
-              isForwardingActive ? 'bg-green-500/15 text-green-300' : 'bg-amber-500/15 text-amber-300'
-            }`}>
-              {getStatusIndicator(isForwardingActive ? 'active' : 'warning')}
-              <span className="font-medium">Forwarding</span>
-            </div>
+            <span className="text-xs text-slate-400">
+              {healthStatus === 'healthy' ? 'All systems operational' : 'Requires attention'}
+            </span>
           </div>
         </div>
 
@@ -311,10 +292,10 @@ export default function OperationalStatusCard({
 
       {/* Expanded Details - Only shown when unhealthy or manually expanded */}
       {showSystemDetails && (
-        <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Recovery Instructions - Only when unhealthy */}
           {healthStatus !== 'healthy' && (
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5">
               <button
                 onClick={() => setShowRecoveryInstructions(!showRecoveryInstructions)}
                 className="w-full flex items-center justify-between text-left"
@@ -352,7 +333,7 @@ export default function OperationalStatusCard({
 
           {/* Onboarding Checklist - Only shown when not complete */}
           {!isOnboardingComplete && (
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-2.5">
               <h4 className="text-sm font-semibold text-blue-100 mb-2">Setup Checklist</h4>
               
               {/* Reassurance message */}
@@ -548,24 +529,24 @@ export default function OperationalStatusCard({
             </button>
 
             {expandedSection === 'live-metrics' && (
-              <div className="mt-2 bg-slate-800/50 border border-slate-700 rounded-lg p-3 space-y-2.5">
+              <div className="mt-2 bg-slate-800/50 border border-slate-700 rounded-lg p-2.5 space-y-2">
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <span className="text-slate-400 block mb-0.5">ReplyFlow Number</span>
-                    <span className={`font-medium ${business?.twilio_phone_number ? 'text-green-400' : 'text-red-400'}`}>
-                      {business?.twilio_phone_number ? '✓ Yes' : '✗ No'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block mb-0.5">Twilio Config</span>
+                    <span className="text-slate-400 block mb-0.5">Twilio Configuration</span>
                     <span className={`font-medium ${business?.twilio_phone_number ? 'text-green-400' : 'text-amber-400'}`}>
-                      {business?.twilio_phone_number ? '✓ Healthy' : '⚠️ Pending'}
+                      {business?.twilio_phone_number ? 'Healthy' : 'Pending'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block mb-0.5">Forwarding</span>
+                    <span className="text-slate-400 block mb-0.5">SMS Service</span>
+                    <span className={`font-medium ${isTextReplyActive ? 'text-green-400' : 'text-amber-400'}`}>
+                      {isTextReplyActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block mb-0.5">Call Forwarding</span>
                     <span className={`font-medium ${isForwardingActive ? 'text-green-400' : 'text-amber-400'}`}>
-                      {isForwardingActive ? '✓ Yes' : '⚠️ No'}
+                      {isForwardingActive ? 'Verified' : 'Not Verified'}
                     </span>
                   </div>
                   <div>
@@ -628,8 +609,108 @@ export default function OperationalStatusCard({
             </button>
 
             {showCallForwardingSection && (
-              <div className="mt-2">
-                <ForwardingHelpCenter />
+              <div className="mt-2 p-2.5 bg-slate-800/50 border border-slate-700 rounded-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Left side: Forwarding codes */}
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-xs text-slate-400 block mb-1">ReplyFlow Number</span>
+                      <span className="font-mono text-xs text-slate-300">
+                        {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-slate-400 block mb-1">Carrier</span>
+                      <select 
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-300 text-xs"
+                        value={selectedCarrier}
+                        onChange={(e) => setSelectedCarrier(e.target.value)}
+                      >
+                        <option value="" disabled>Select carrier</option>
+                        <option value="verizon">Verizon</option>
+                        <option value="att">AT&T</option>
+                        <option value="tmobile">T-Mobile</option>
+                        <option value="sprint">Sprint</option>
+                        <option value="google-fi">Google Fi</option>
+                        <option value="cricket">Cricket Wireless</option>
+                        <option value="other">Other / VoIP</option>
+                      </select>
+                    </div>
+                    {selectedCarrier && carrierInstructions[selectedCarrier] && (
+                      <>
+                        <div>
+                          <span className="text-xs text-slate-400 block mb-1">Enable Code</span>
+                          <div className="flex items-center gap-2">
+                            <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono flex-1 text-xs">
+                              {carrierInstructions[selectedCarrier].enableCode}{business?.twilio_phone_number?.replace(/\D/g, '') || ''}#
+                            </code>
+                            <button
+                              onClick={() => {
+                                const code = `${carrierInstructions[selectedCarrier].enableCode}${business?.twilio_phone_number?.replace(/\D/g, '') || ''}#`
+                                navigator.clipboard.writeText(code)
+                              }}
+                              className="bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded text-xs"
+                              title="Copy code"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-xs text-slate-400 block mb-1">Disable Code</span>
+                          <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono text-xs">
+                            {carrierInstructions[selectedCarrier].disableCode}
+                          </code>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Right side: Actions */}
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setShowTestModal(true)}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 px-3 rounded transition-colors"
+                    >
+                      Run Test Call
+                    </button>
+                    <Link
+                      href="/dashboard/test-setup"
+                      className="block text-center text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      Watch Setup Demo
+                    </Link>
+                    <div className="pt-2 border-t border-slate-700">
+                      <button
+                        onClick={() => toggleSection('troubleshooting')}
+                        className="w-full flex items-center justify-between text-left text-xs text-slate-400 hover:text-slate-300"
+                      >
+                        <span>Troubleshooting</span>
+                        {expandedSection === 'troubleshooting' ? (
+                          <ChevronUp className="w-3 h-3" />
+                        ) : (
+                          <ChevronDown className="w-3 h-3" />
+                        )}
+                      </button>
+                      {expandedSection === 'troubleshooting' && (
+                        <div className="mt-2 space-y-1.5 text-xs text-slate-400">
+                          <p><strong className="text-slate-300">Calls not reaching ReplyFlow?</strong></p>
+                          <ul className="list-disc list-inside space-y-0.5 ml-2">
+                            <li>Verify carrier forwarding settings</li>
+                            <li>Confirm ReplyFlow number is accurate</li>
+                            <li>Try restarting your phone</li>
+                          </ul>
+                          <p className="mt-1.5"><strong className="text-slate-300">Forwarding not activating?</strong></p>
+                          <ul className="list-disc list-inside space-y-0.5 ml-2">
+                            <li>Ensure you pressed Send/Call</li>
+                            <li>Listen for confirmation tone</li>
+                            <li>Contact your carrier if needed</li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
