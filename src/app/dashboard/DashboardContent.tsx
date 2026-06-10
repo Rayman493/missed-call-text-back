@@ -256,6 +256,7 @@ export default function DashboardContent() {
   const [reconciliationResult, setReconciliationResult] = useState<any>(null)
   const [lastRenderedSection, setLastRenderedSection] = useState('')
   const [isRecoveringSession, setIsRecoveringSession] = useState(false)
+  const [troubleshootingOpen, setTroubleshootingOpen] = useState(false)
   
   const checkoutStatus = searchParams?.get('checkout')
   const supabase = createBrowserClient()
@@ -1135,46 +1136,171 @@ export default function DashboardContent() {
                   </SectionErrorBoundary>
                 )}
 
-                {/* Forwarding Verification Banner - Show when forwarding is not yet verified */}
-                {!setupMode && business?.provisioning_status === 'ready' && !business?.forwarding_verified && business?.call_forwarding_enabled && (
-                  <SectionErrorBoundary sectionName="ForwardingVerificationBanner">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 sm:p-6">
-                      <div className="flex flex-col gap-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {/* Setup Gate - Show when provisioning is ready but forwarding is not verified */}
+                {business?.provisioning_status === 'ready' && !business?.forwarding_verified && (
+                  <SectionErrorBoundary sectionName="SetupGate">
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-800 dark:to-indigo-900 rounded-xl shadow-xl overflow-hidden">
+                      <div className="p-4 sm:p-6">
+                        {/* Header */}
+                        <div className="flex items-start gap-4 mb-6">
+                          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                             </svg>
                           </div>
                           <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-1">Finish setup: verify call forwarding</h3>
-                            <p className="text-blue-700 dark:text-blue-300 text-sm">Call your business number from your phone to test forwarding. Once we receive the call, your setup will be complete.</p>
+                            <h3 className="text-xl font-bold text-white mb-1">Finish setup: verify call forwarding</h3>
+                            <p className="text-blue-100 text-sm">Complete this step to activate ReplyFlow and start capturing missed calls.</p>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                          <div className="bg-white dark:bg-blue-900/30 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
-                            <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Your business number</p>
-                            <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">{business.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}</p>
+                        {/* Setup Status */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                          <div className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20">
+                            <div className="flex items-center gap-2 mb-1">
+                              <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span className="text-xs text-green-300 font-medium">Account created</span>
+                            </div>
+                            <p className="text-white text-sm font-semibold">Active</p>
                           </div>
-                          <div className="bg-white dark:bg-blue-900/30 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
-                            <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">ReplyFlow forwarding number</p>
-                            <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">{business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not set'}</p>
+                          <div className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20">
+                            <div className="flex items-center gap-2 mb-1">
+                              <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span className="text-xs text-green-300 font-medium">Subscription active</span>
+                            </div>
+                            <p className="text-white text-sm font-semibold">{business.subscription_status}</p>
+                          </div>
+                          <div className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20">
+                            <div className="flex items-center gap-2 mb-1">
+                              <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span className="text-xs text-green-300 font-medium">ReplyFlow number</span>
+                            </div>
+                            <p className="text-white text-sm font-semibold">{business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Assigned'}</p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 pt-1">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                          <p className="text-sm text-blue-700 dark:text-blue-300">Waiting for first successful test call...</p>
+                        {/* Forwarding Instructions */}
+                        <div className="bg-white/5 backdrop-blur rounded-lg p-4 border border-white/10 mb-4">
+                          <h4 className="text-white font-semibold mb-3">Phone numbers</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <p className="text-blue-200 text-xs mb-1">Your business number</p>
+                              <p className="text-white text-lg font-semibold">{business.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}</p>
+                            </div>
+                            <div>
+                              <p className="text-blue-200 text-xs mb-1">Forward to this number</p>
+                              <p className="text-white text-lg font-semibold">{business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not set'}</p>
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="pt-2 border-t border-blue-200 dark:border-blue-800">
-                          <Link
-                            href="/setup/forwarding"
-                            className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                        {/* Carrier Selector */}
+                        <div className="bg-white/5 backdrop-blur rounded-lg p-4 border border-white/10 mb-4">
+                          <h4 className="text-white font-semibold mb-3">Step 1: Select your carrier</h4>
+                          <select 
+                            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
+                            defaultValue=""
                           >
-                            View carrier instructions & troubleshooting →
-                          </Link>
+                            <option value="" disabled className="bg-gray-800">Select your carrier</option>
+                            <option value="verizon" className="bg-gray-800">Verizon</option>
+                            <option value="att" className="bg-gray-800">AT&T</option>
+                            <option value="tmobile" className="bg-gray-800">T-Mobile</option>
+                            <option value="sprint" className="bg-gray-800">Sprint</option>
+                            <option value="google-fi" className="bg-gray-800">Google Fi</option>
+                            <option value="cricket" className="bg-gray-800">Cricket Wireless</option>
+                            <option value="other" className="bg-gray-800">Other / VoIP</option>
+                          </select>
+                        </div>
+
+                        {/* Carrier Instructions */}
+                        <div className="bg-white/5 backdrop-blur rounded-lg p-4 border border-white/10 mb-4">
+                          <h4 className="text-white font-semibold mb-3">Step 2: Forward your calls</h4>
+                          <div className="text-blue-100 text-sm space-y-2">
+                            <p>Call your business number and enter the forwarding code:</p>
+                            <code className="bg-white/10 px-2 py-1 rounded text-white font-mono">*71{business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number).replace(/\D/g, '') : ''}#</code>
+                            <p className="text-xs text-blue-200 mt-2">Wait for confirmation tone. Call forwarding is now active.</p>
+                          </div>
+                        </div>
+
+                        {/* Test Call Status */}
+                        <div className="bg-white/5 backdrop-blur rounded-lg p-4 border border-white/10 mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                            <div>
+                              <p className="text-white font-semibold">Step 3: Verify forwarding</p>
+                              <p className="text-blue-200 text-sm">Call your business number from your phone. We'll detect the call and verify automatically.</p>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex items-center gap-2">
+                            <p className="text-yellow-300 text-sm font-medium">Waiting for first successful test call...</p>
+                          </div>
+                        </div>
+
+                        {/* I've Forwarded Button */}
+                        <div className="mb-4">
+                          <button
+                            onClick={async () => {
+                              // Soft state: mark call_forwarding_enabled = true
+                              try {
+                                const response = await fetch('/api/business/forwarding-verify', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ businessId: business.id, action: 'forwarding_enabled' })
+                                })
+                                if (response.ok) {
+                                  await refreshBusiness()
+                                }
+                              } catch (error) {
+                                console.error('[Setup Gate] Failed to mark forwarding enabled:', error)
+                              }
+                            }}
+                            className="w-full bg-white text-blue-600 font-semibold py-3 px-4 rounded-lg hover:bg-blue-50 transition-colors"
+                          >
+                            I've forwarded my calls
+                          </button>
+                          <p className="text-blue-200 text-xs text-center mt-2">This marks that you've completed the forwarding step. Verification happens when we receive your first call.</p>
+                        </div>
+
+                        {/* Troubleshooting */}
+                        <div className="border-t border-white/20 pt-4">
+                          <button
+                            onClick={() => setTroubleshootingOpen(!troubleshootingOpen)}
+                            className="flex items-center gap-2 text-white text-sm hover:text-blue-200 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Troubleshooting & help
+                            <svg className={`w-4 h-4 transition-transform ${troubleshootingOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          {troubleshootingOpen && (
+                            <div className="mt-4 space-y-3 text-blue-100 text-sm">
+                              <div>
+                                <p className="font-semibold text-white mb-1">Verizon: Calls answer too quickly</p>
+                                <p className="text-xs">Call Verizon support and ask to "set conditional call forwarding/no-answer forwarding to your ReplyFlow number after 30 seconds." Do not use immediate forwarding.</p>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-white mb-1">AT&T: Forwarding not activating</p>
+                                <p className="text-xs">Verify you dialed the full code including the # at the end. Try dialing again and wait for confirmation tone.</p>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-white mb-1">T-Mobile: Calls go to voicemail</p>
+                                <p className="text-xs">T-Mobile may require deactivating voicemail first. Call T-Mobile support to disable conditional call forwarding voicemail.</p>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-white mb-1">VoIP (RingCentral, 8x8, etc.)</p>
+                                <p className="text-xs">Log into your VoIP provider dashboard and enable call forwarding in web settings instead of using dial codes.</p>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1388,7 +1514,6 @@ export default function DashboardContent() {
                 {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
                 {hasActiveSubscription(business) ? (
                   <>
-
                     {/* System Status Banner */}
                     <SectionErrorBoundary sectionName="OperationalStatusCard">
                       <div className="mb-2 sm:mb-3">
@@ -1461,7 +1586,7 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                                      </>
+                  </>
                 ) : null}
 
                 {/* Admin Tools - Only visible to admin users or development environment */}
