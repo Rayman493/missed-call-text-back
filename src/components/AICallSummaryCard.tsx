@@ -103,36 +103,6 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
     }
   }
 
-  const getOutcomeColor = (outcome: string) => {
-    switch (outcome) {
-      case 'completed':
-        return 'text-green-600 dark:text-green-400'
-      case 'caller_hung_up':
-        return 'text-yellow-600 dark:text-yellow-400'
-      case 'ai_failed':
-        return 'text-red-600 dark:text-red-400'
-      case 'voicemail_fallback':
-        return 'text-orange-600 dark:text-orange-400'
-      default:
-        return 'text-gray-600 dark:text-gray-400'
-    }
-  }
-
-  const getOutcomeLabel = (outcome: string) => {
-    switch (outcome) {
-      case 'completed':
-        return 'Completed'
-      case 'caller_hung_up':
-        return 'Caller Hung Up'
-      case 'ai_failed':
-        return 'AI Failed'
-      case 'voicemail_fallback':
-        return 'Voicemail Fallback'
-      default:
-        return 'Unknown'
-    }
-  }
-
   const getUrgencyColor = (urgency?: string) => {
     if (!urgency) return {
       bg: 'bg-gray-100 dark:bg-gray-800',
@@ -162,6 +132,25 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
     }
   }
 
+  const isPlaceholderValue = (value: string): boolean => {
+    if (!value) return false
+    const placeholders = [
+      'business location',
+      'location',
+      'address',
+      'service address',
+      'unknown',
+      'not provided',
+      'not specified',
+      'tbd',
+      'to be determined',
+      'n/a'
+    ]
+    return placeholders.some(placeholder => 
+      value.toLowerCase().trim() === placeholder.toLowerCase()
+    )
+  }
+
   if (loading) {
     return (
       <div className="bg-card border border-border rounded-xl p-4">
@@ -187,23 +176,15 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
   return (
     <div className="bg-card border border-border rounded-xl p-4">
-      <div className="flex items-center space-x-2 mb-3">
+      <div className="flex items-center space-x-2 mb-4">
         <Phone className="w-5 h-5 text-muted-foreground" />
-        <h3 className="text-sm font-semibold text-foreground">AI Call Summary</h3>
+        <h3 className="text-sm font-semibold text-foreground">AI Intake Summary</h3>
       </div>
 
       <div className="space-y-3">
-        {/* Call Outcome */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Outcome</span>
-          <span className={`text-sm font-medium ${getOutcomeColor(aiCallRecord.outcome)}`}>
-            {getOutcomeLabel(aiCallRecord.outcome)}
-          </span>
-        </div>
-
         {/* Call Time */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Call Time</span>
+        <div className="flex items-center justify-between py-2">
+          <span className="text-xs text-muted-foreground font-medium">Call Time</span>
           <span className="text-sm text-foreground">{formatRelativeTime(aiCallRecord.created_at)}</span>
         </div>
 
@@ -221,32 +202,36 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
           <>
             {/* Caller Name */}
             {extractedInfo.callerName && (
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Caller Name</span>
+                  <span className="text-xs text-muted-foreground font-medium">Name</span>
                 </div>
-                <span className="text-sm font-medium text-foreground">{extractedInfo.callerName}</span>
+                <span className={`text-sm font-medium ${isPlaceholderValue(extractedInfo.callerName) ? 'text-muted-foreground italic' : 'text-foreground'}`}>
+                  {extractedInfo.callerName}
+                </span>
               </div>
             )}
 
             {/* Reason for Calling */}
             {extractedInfo.reasonForCalling && (
-              <div>
+              <div className="py-2">
                 <div className="flex items-center gap-2 mb-1">
                   <Briefcase className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Reason for Calling</span>
+                  <span className="text-xs text-muted-foreground font-medium">Reason</span>
                 </div>
-                <p className="text-sm text-foreground mt-1 line-clamp-2 pl-6">{extractedInfo.reasonForCalling}</p>
+                <p className={`text-sm mt-1 line-clamp-2 pl-6 ${isPlaceholderValue(extractedInfo.reasonForCalling) ? 'text-muted-foreground italic' : 'text-foreground'}`}>
+                  {extractedInfo.reasonForCalling}
+                </p>
               </div>
             )}
 
             {/* Urgency Level */}
             {extractedInfo.urgencyLevel && (
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-2">
                   <TriangleAlert className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Urgency</span>
+                  <span className="text-xs text-muted-foreground font-medium">Urgency</span>
                 </div>
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getUrgencyColor(extractedInfo.urgencyLevel).bg} ${getUrgencyColor(extractedInfo.urgencyLevel).text} ${getUrgencyColor(extractedInfo.urgencyLevel).border}`}>
                   {extractedInfo.urgencyLevel}
@@ -256,34 +241,40 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
             {/* Address/Location */}
             {extractedInfo.addressOrLocation && (
-              <div>
+              <div className="py-2">
                 <div className="flex items-center gap-2 mb-1">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Location</span>
+                  <span className="text-xs text-muted-foreground font-medium">Location</span>
                 </div>
-                <p className="text-sm text-foreground mt-1 line-clamp-2 pl-6">{extractedInfo.addressOrLocation}</p>
+                <p className={`text-sm mt-1 line-clamp-2 pl-6 ${isPlaceholderValue(extractedInfo.addressOrLocation) ? 'text-muted-foreground italic' : 'text-foreground'}`}>
+                  {extractedInfo.addressOrLocation}
+                </p>
               </div>
             )}
 
             {/* Preferred Callback Time */}
             {extractedInfo.preferredCallbackTime && (
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Callback Time</span>
+                  <span className="text-xs text-muted-foreground font-medium">Callback Time</span>
                 </div>
-                <span className="text-sm text-foreground">{extractedInfo.preferredCallbackTime}</span>
+                <span className={`text-sm ${isPlaceholderValue(extractedInfo.preferredCallbackTime) ? 'text-muted-foreground italic' : 'text-foreground'}`}>
+                  {extractedInfo.preferredCallbackTime}
+                </span>
               </div>
             )}
 
             {/* Important Details */}
             {extractedInfo.importantDetails && (
-              <div>
+              <div className="py-2">
                 <div className="flex items-center gap-2 mb-1">
                   <FileText className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Details</span>
+                  <span className="text-xs text-muted-foreground font-medium">Project Details</span>
                 </div>
-                <p className="text-sm text-foreground mt-1 line-clamp-2 pl-6">{extractedInfo.importantDetails}</p>
+                <p className={`text-sm mt-1 line-clamp-2 pl-6 ${isPlaceholderValue(extractedInfo.importantDetails) ? 'text-muted-foreground italic' : 'text-foreground'}`}>
+                  {extractedInfo.importantDetails}
+                </p>
               </div>
             )}
           </>
