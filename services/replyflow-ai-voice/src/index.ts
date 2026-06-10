@@ -2446,6 +2446,16 @@ Return only JSON, no other text.`;
         console.log('[AI INGEST INSERT SUCCESS] ingestion completed successfully');
 
         // Send confirmation SMS after successful AI intake
+        console.log('[AI CONFIRMATION SMS CALL SITE]', {
+          businessId: sessionBusinessId,
+          leadId: lead.id,
+          conversationId: conversation.id,
+          callSid: sessionCallSid,
+          callerPhone: sessionCallerPhone,
+          hasExtractedInfo: !!extractedFields,
+          extractedInfoKeys: extractedFields ? Object.keys(extractedFields) : []
+        });
+        
         await sendAIConfirmationSMS(
           sessionBusinessId,
           lead.id,
@@ -2454,6 +2464,11 @@ Return only JSON, no other text.`;
           sessionCallerPhone || 'unknown',
           extractedFields
         );
+
+        console.log('[AI CONFIRMATION SMS CALL SITE COMPLETE]', {
+          businessId: sessionBusinessId,
+          leadId: lead.id
+        });
 
         return;
 
@@ -5618,16 +5633,18 @@ async function sendAIConfirmationSMS(
   callerPhone: string,
   extractedInfo?: any
 ): Promise<void> {
-  try {
-    console.log('[AI CONFIRMATION SMS START]', {
-      businessId,
-      leadId,
-      conversationId,
-      callSid,
-      callerPhone
-    });
+  console.log('[AI CONFIRMATION SMS START]', {
+    businessId,
+    leadId,
+    conversationId,
+    callSid,
+    callerPhone,
+    hasExtractedInfo: !!extractedInfo
+  });
 
+  try {
     // Check for duplicate SMS to prevent multiple sends
+    console.log('[AI CONFIRMATION SMS DUPLICATE CHECK]', { conversationId });
     const { data: existingSms, error: smsCheckError } = await supabase
       .from('messages')
       .select('id')
@@ -5637,6 +5654,11 @@ async function sendAIConfirmationSMS(
       .eq('direction', 'outbound')
       .limit(1)
       .maybeSingle();
+
+    console.log('[AI CONFIRMATION SMS DUPLICATE CHECK RESULT]', {
+      existingSmsId: existingSms?.id || null,
+      error: smsCheckError?.message || 'none'
+    });
 
     if (existingSms) {
       console.log('[AI POST CALL SMS ALREADY SENT SKIP] SMS already sent for this conversation', {
@@ -5651,11 +5673,17 @@ async function sendAIConfirmationSMS(
     }
 
     // Fetch business name
+    console.log('[AI CONFIRMATION SMS BUSINESS FETCH]', { businessId });
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('name')
       .eq('id', businessId)
       .single();
+
+    console.log('[AI CONFIRMATION SMS BUSINESS FETCH RESULT]', {
+      businessName: business?.name || null,
+      error: businessError?.message || 'none'
+    });
 
     if (businessError || !business) {
       console.error('[AI CONFIRMATION SMS ERROR] Failed to fetch business:', businessError);
@@ -5665,6 +5693,11 @@ async function sendAIConfirmationSMS(
     const businessName = business.name;
 
     // Call the confirmation SMS API endpoint
+    console.log('[AI CONFIRMATION SMS ENV CHECK]', {
+      hasMainAppUrl: !!process.env.MAIN_APP_URL,
+      hasInternalApiSecret: !!process.env.INTERNAL_API_SECRET
+    });
+
     if (!process.env.MAIN_APP_URL) {
       console.error('[AI CONFIRMATION SMS ERROR] MAIN_APP_URL not configured');
       return;
