@@ -575,48 +575,65 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       extractedValue: correctionResult.newValue
     })
 
-    if (correctionResult.isCorrection && correctionResult.fieldChanged && correctionResult.newValue) {
+    if (correctionResult.isCorrection && correctionResult.corrections && correctionResult.corrections.length > 0) {
       console.log('[AI REPLY CORRECTION DETECTED]', {
-        correctionType: correctionResult.fieldChanged,
-        oldValue: correctionResult.oldValue,
-        newValue: correctionResult.newValue,
+        totalCorrections: correctionResult.corrections.length,
+        corrections: correctionResult.corrections,
         incomingBody: body,
         confidence: correctionResult.confidence
       })
 
-      console.log('[CORRECTION DETECTED]', {
+      // Apply all corrections
+      let updatedExtractedInfo = { ...aiCallRecord.extracted_info }
+      const correctedFields: Array<{ field: string; oldValue: string; newValue: string }> = []
+
+      for (const correction of correctionResult.corrections) {
+        console.log('[CORRECTION DETECTED]', {
+          leadId: lead.id,
+          field: correction.field,
+          oldValue: correction.oldValue,
+          newValue: correction.newValue,
+          confidence: correctionResult.confidence
+        })
+
+        // Apply correction to extracted_info
+        updatedExtractedInfo = applyCorrection(
+          updatedExtractedInfo,
+          correction.field,
+          correction.newValue
+        )
+
+        correctedFields.push(correction)
+      }
+
+      console.log('[MULTI-FIELD CORRECTION APPLIED]', {
         leadId: lead.id,
-        field: correctionResult.fieldChanged,
-        oldValue: correctionResult.oldValue,
-        newValue: correctionResult.newValue,
-        confidence: correctionResult.confidence
+        totalCorrections: correctedFields.length,
+        correctedFields: correctedFields.map(c => c.field)
       })
 
       if (correctionResult.requiresReview) {
         console.log('[AI CORRECTION REVIEW REQUIRED]', {
           leadId: lead.id,
           aiCallRecordId: aiCallRecord.id,
-          fieldChanged: correctionResult.fieldChanged,
+          corrections: correctedFields,
           confidence: correctionResult.confidence,
           reason: correctionResult.reason
         })
       } else {
-        console.log('[CORRECTION FIELD]', {
-          fieldChanged: correctionResult.fieldChanged,
-          newValue: correctionResult.newValue
+        console.log('[CORRECTION FIELDS]', {
+          totalCorrections: correctedFields.length,
+          corrections: correctedFields
         })
 
-        console.log('[CORRECTION VALUE]', {
-          oldValue: correctionResult.oldValue,
-          newValue: correctionResult.newValue
+        console.log('[CORRECTION VALUES]', {
+          corrections: correctedFields
         })
 
         console.log('[AI CORRECTION APPLIED]', {
           leadId: lead.id,
           aiCallRecordId: aiCallRecord.id,
-          fieldChanged: correctionResult.fieldChanged,
-          oldValue: correctionResult.oldValue,
-          newValue: correctionResult.newValue,
+          corrections: correctedFields,
           confidence: correctionResult.confidence
         })
 
@@ -627,13 +644,6 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           aiCallRecordId: aiCallRecord.id,
           before: beforeCorrection
         })
-
-        // Apply correction to extracted_info
-        const updatedExtractedInfo = applyCorrection(
-          aiCallRecord.extracted_info,
-          correctionResult.fieldChanged,
-          correctionResult.newValue
-        )
 
         // Log normalized data after correction
         const afterCorrection = normalizeExtractedInfo(updatedExtractedInfo)
@@ -657,7 +667,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         if (!aiUpdateError && updatedAiRecord) {
           console.log('[AI RECORD UPDATED]', {
             callRecordId: updatedAiRecord.id,
-            fieldChanged: correctionResult.fieldChanged,
+            totalCorrections: correctedFields.length,
             extracted_info: updatedAiRecord.extracted_info
           })
         } else {
@@ -676,16 +686,9 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         console.log('[CORRECTION COUNT]', {
           leadId: lead.id,
           previousCount: currentCorrectionsCount,
-          newCount: currentCorrectionsCount + 1,
+          newCount: currentCorrectionsCount + correctedFields.length,
           currentMetadata
         })
-
-        const correctionNote = generateCorrectionNote(
-          correctionResult.fieldChanged,
-          correctionResult.oldValue || 'unknown',
-          correctionResult.newValue,
-          correctionResult.confidence
-        )
 
         // Map field name to corrected_fields key
         const fieldKeyMap: Record<string, string> = {
@@ -697,30 +700,41 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           'reasonForCalling': 'reason',
           'callerName': 'name'
         }
-        const correctedFieldKey = fieldKeyMap[correctionResult.fieldChanged] || correctionResult.fieldChanged
+
+        // Build updated corrected_fields and previous_values for all corrections
+        const updatedCorrectedFields = { ...currentCorrectedFields }
+        const updatedPreviousValues = { ...currentPreviousValues }
+
+        for (const correction of correctedFields) {
+          const correctedFieldKey = fieldKeyMap[correction.field] || correction.field
+          updatedCorrectedFields[correctedFieldKey] = correction.newValue
+          updatedPreviousValues[correctedFieldKey] = correction.oldValue || 'unknown'
+        }
+
+        const correctionNote = correctedFields.length === 1
+          ? generateCorrectionNote(
+              correctedFields[0].field,
+              correctedFields[0].oldValue || 'unknown',
+              correctedFields[0].newValue,
+              correctionResult.confidence
+            )
+          : `[AI CORRECTIONS APPLIED] ${correctedFields.length} fields updated: ${correctedFields.map(c => c.field).join(', ')}`
 
         const correctedMetadata = {
           ...currentMetadata,
           customer_corrected_info: true,
           last_correction_at: now,
-          last_correction_field: correctionResult.fieldChanged,
+          last_correction_field: correctedFields[correctedFields.length - 1].field,
           last_correction_note: correctionNote,
-          corrections_count: currentCorrectionsCount + 1,
-          corrected_fields: {
-            ...currentCorrectedFields,
-            [correctedFieldKey]: correctionResult.newValue
-          },
-          previous_values: {
-            ...currentPreviousValues,
-            [correctedFieldKey]: correctionResult.oldValue || 'unknown'
-          }
+          corrections_count: currentCorrectionsCount + correctedFields.length,
+          corrected_fields: updatedCorrectedFields,
+          previous_values: updatedPreviousValues
         }
 
         console.log('[AI CORRECTION SAVE]', {
           leadId: lead.id,
-          correctionType: correctedFieldKey,
-          oldValue: correctionResult.oldValue,
-          newValue: correctionResult.newValue,
+          totalCorrections: correctedFields.length,
+          corrections: correctedFields,
           correctedFieldsBefore: currentCorrectedFields,
           correctedFieldsAfter: correctedMetadata.corrected_fields
         })
@@ -733,16 +747,16 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           console.log('[CORRECTION SAVED]', {
             leadId: leadWithCorrection.id,
             corrections_count: correctedMetadata.corrections_count,
-            corrected_field: correctedFieldKey,
-            new_value: correctionResult.newValue,
-            previous_value: correctionResult.oldValue
+            totalCorrections: correctedFields.length,
+            correctedFields: correctedMetadata.corrected_fields,
+            raw_metadata: leadWithCorrection.raw_metadata
           })
 
           console.log('[LEAD METADATA UPDATED]', {
             leadId: leadWithCorrection.id,
             corrections_count: correctedMetadata.corrections_count,
-            corrected_field: correctedFieldKey,
-            new_value: correctionResult.newValue,
+            totalCorrections: correctedFields.length,
+            correctedFields: correctedMetadata.corrected_fields,
             raw_metadata: leadWithCorrection.raw_metadata
           })
 
@@ -755,8 +769,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           if (source === 'twilio') {
             console.log('[CORRECTION ACKNOWLEDGEMENT SMS START]', {
               leadId: leadWithCorrection.id,
-              fieldChanged: correctionResult.fieldChanged,
-              newValue: correctionResult.newValue,
+              totalCorrections: correctedFields.length,
+              corrections: correctedFields,
               aiConfirmationSmsSent: leadWithCorrection?.raw_metadata?.ai_confirmation_sms_sent
             })
 
@@ -764,8 +778,21 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
             const aiConfirmationSmsSent = leadWithCorrection?.raw_metadata?.ai_confirmation_sms_sent
 
             if (aiConfirmationSmsSent) {
-              // AI confirmation SMS exists, send acknowledgement immediately
-              const acknowledgementMessage = `Thanks! We've updated your ${correctionResult.fieldChanged.replace(/([A-Z])/g, ' $1').toLowerCase().trim()} to "${correctionResult.newValue}".`
+              // Build acknowledgement message for all corrections
+              let acknowledgementMessage: string
+              if (correctedFields.length === 1) {
+                const correction = correctedFields[0]
+                const fieldName = correction.field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()
+                acknowledgementMessage = `Thanks! We've updated your ${fieldName} to "${correction.newValue}".`
+              } else {
+                // Multi-field acknowledgement
+                const correctionsText = correctedFields.map(c => {
+                  const fieldName = c.field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()
+                  return `${fieldName} to "${c.newValue}"`
+                }).join(' and ')
+                acknowledgementMessage = `Thanks! We've updated your ${correctionsText}.`
+              }
+
               const messageSid = await sendSms(business, from, acknowledgementMessage, {
                 lead_id: leadWithCorrection.id,
               })
@@ -774,21 +801,22 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
                 console.log('[CORRECTION ACK SEND AFTER INBOUND INSERT]', {
                   leadId: leadWithCorrection.id,
                   messageSid,
-                  fieldChanged: correctionResult.fieldChanged,
-                  newValue: correctionResult.newValue,
+                  totalCorrections: correctedFields.length,
+                  corrections: correctedFields,
                   inboundMessageId: inboundMessage?.id,
                   inboundCreatedAt: inboundMessage?.created_at
                 })
                 console.log('[CORRECTION ACKNOWLEDGEMENT SMS SUCCESS]', {
                   leadId: leadWithCorrection.id,
                   messageSid,
-                  fieldChanged: correctionResult.fieldChanged,
-                  newValue: correctionResult.newValue
+                  totalCorrections: correctedFields.length,
+                  corrections: correctedFields
                 })
               } else {
                 console.error('[CORRECTION ACKNOWLEDGEMENT SMS FAILED]', {
                   leadId: leadWithCorrection.id,
-                  fieldChanged: correctionResult.fieldChanged
+                  totalCorrections: correctedFields.length,
+                  corrections: correctedFields
                 })
               }
             } else {
@@ -796,14 +824,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
               console.log('[CORRECTION ACKNOWLEDGEMENT DEFERRED]', {
                 leadId: leadWithCorrection.id,
                 reason: 'ai_confirmation_sms_not_sent',
-                fieldChanged: correctionResult.fieldChanged,
-                newValue: correctionResult.newValue
+                totalCorrections: correctedFields.length,
+                corrections: correctedFields
               })
 
               // Store pending acknowledgement in lead metadata
               const pendingAcknowledgement = {
-                field_changed: correctionResult.fieldChanged,
-                new_value: correctionResult.newValue,
+                corrections: correctedFields,
                 deferred_at: new Date().toISOString()
               }
 

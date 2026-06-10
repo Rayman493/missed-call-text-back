@@ -15,6 +15,11 @@ export interface CorrectionDetectionResult {
   confidence: number
   requiresReview: boolean
   reason?: string
+  corrections?: Array<{
+    field: string
+    oldValue: string
+    newValue: string
+  }>
 }
 
 export interface ExtractedInfo {
@@ -135,8 +140,9 @@ function cleanExtractedValue(value: string, field: string): string {
 }
 
 /**
- * Detect if an inbound SMS contains a correction to AI intake data
+ * Detect if an inbound SMS contains corrections to AI intake data
  * RC1: Simple pattern matching (no OpenAI)
+ * Updated: Supports multiple corrections in a single message
  */
 export async function detectCorrection(
   customerReply: string,
@@ -232,18 +238,78 @@ export async function detectCorrection(
     {
       field: 'urgencyLevel',
       patterns: [
-        /it is urgent/i,
+        // Urgent patterns
+        /it actually is urgent/i,
+        /actually this is urgent/i,
+        /actually it's urgent/i,
         /this is urgent/i,
+        /it's urgent/i,
+        /this became urgent/i,
+        /i'd classify it as urgent/i,
+        /need someone ASAP/i,
+        /can someone come today/i,
+        /this can't wait/i,
+        /it is urgent/i,
+        /urgent/i,
+        /as soon as possible/i,
+        /ASAP/i,
+        /right now/i,
+        /immediately/i,
+        /emergency/i,
+        /need help now/i,
+        /need someone now/i,
+
+        // Not urgent patterns
+        /it's not urgent/i,
+        /it is not urgent/i,
+        /never mind, not urgent/i,
+        /nevermind not urgent/i,
+        /flexible timing/i,
+        /no rush/i,
+        /whenever you can/i,
+        /this can wait/i,
+        /take your time/i,
+        /no hurry/i,
         /not urgent/i,
-        /actually it is not urgent/i
+        /whenever/i
       ]
     }
   ]
+
+  // Detect all corrections in the message
+  const detectedCorrections: Array<{
+    field: string
+    oldValue: string
+    newValue: string
+  }> = []
+
+  // Track which parts of the message have been matched to avoid overlapping matches
+  const matchedRanges: Array<{ start: number; end: number }> = []
 
   for (const { field, patterns: fieldPatterns } of patterns) {
     for (const pattern of fieldPatterns) {
       const match = reply.match(pattern)
       if (match) {
+        const matchStart = match.index || 0
+        const matchEnd = matchStart + match[0].length
+
+        // Check if this match overlaps with a previously matched range
+        const overlaps = matchedRanges.some(range =>
+          (matchStart >= range.start && matchStart < range.end) ||
+          (matchEnd > range.start && matchEnd <= range.end) ||
+          (matchStart <= range.start && matchEnd >= range.end)
+        )
+
+        if (overlaps) {
+          console.log('[CORRECTION SKIP OVERLAP]', {
+            field,
+            pattern: pattern.toString(),
+            match: match[0],
+            reason: 'Overlaps with previous match'
+          })
+          continue
+        }
+
         const oldValue = (normalizedExtractedInfo as any)[field]
         let newValue = match[1] || match[0]
 
@@ -261,10 +327,17 @@ export async function detectCorrection(
 
         // Handle urgency special case
         if (field === 'urgencyLevel') {
-          if (reply.includes('urgent')) {
-            newValue = 'urgent'
-          } else if (reply.includes('not urgent')) {
-            newValue = 'low'
+          if (reply.includes('urgent') && !reply.includes('not urgent')) {
+            newValue = 'Urgent'
+          } else if (reply.includes('not urgent') ||
+                     reply.includes('never mind') ||
+                     reply.includes('flexible') ||
+                     reply.includes('no rush') ||
+                     reply.includes('whenever') ||
+                     reply.includes('can wait') ||
+                     reply.includes('take your time') ||
+                     reply.includes('no hurry')) {
+            newValue = 'Not urgent'
           }
         }
 
@@ -287,16 +360,35 @@ export async function detectCorrection(
           pattern: pattern.toString()
         })
 
-        return {
-          isCorrection: true,
-          fieldChanged: field,
+        detectedCorrections.push({
+          field,
           oldValue,
-          newValue,
-          confidence: 0.9,
-          requiresReview: false,
-          reason: `Pattern match detected: ${pattern.toString()}`
-        }
+          newValue
+        })
+
+        // Mark this range as matched
+        matchedRanges.push({ start: matchStart, end: matchEnd })
       }
+    }
+  }
+
+  if (detectedCorrections.length > 0) {
+    console.log('[MULTI-FIELD CORRECTION]', {
+      totalCorrections: detectedCorrections.length,
+      updatedFields: detectedCorrections.map(c => c.field)
+    })
+
+    // Return the first correction for backward compatibility, but include all corrections
+    const firstCorrection = detectedCorrections[0]
+    return {
+      isCorrection: true,
+      fieldChanged: firstCorrection.field,
+      oldValue: firstCorrection.oldValue,
+      newValue: firstCorrection.newValue,
+      confidence: 0.9,
+      requiresReview: false,
+      reason: `Pattern match detected: ${detectedCorrections.length} correction(s)`,
+      corrections: detectedCorrections
     }
   }
 
