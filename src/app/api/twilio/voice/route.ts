@@ -1455,3 +1455,37 @@ export async function POST(request: NextRequest) {
     });
   }
 }
+
+// GET handler - support Twilio calling with GET method
+export async function GET(request: NextRequest) {
+  console.log('[VOICE WEBHOOK GET] Handling GET request');
+  console.log('[VOICE WEBHOOK GET KEY PARAMS]', {
+    method: 'GET',
+    url: request.url
+  });
+  
+  // Extract params from query string
+  const url = new URL(request.url);
+  const params = Object.fromEntries(url.searchParams.entries());
+  
+  console.log('[VOICE WEBHOOK GET] Params:', {
+    CallSid: params.CallSid || 'not_present',
+    From: params.From || 'not_present',
+    To: params.To || 'not_present',
+    ForwardedFrom: params.ForwardedFrom || 'not_present'
+  });
+  
+  // Create a mock request with params in body format
+  const body = new URLSearchParams(params).toString();
+  const mockRequest = new Request(request.url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-Twilio-Signature': request.headers.get('X-Twilio-Signature') || '',
+    },
+    body: body
+  }) as NextRequest;
+  
+  // Delegate to POST handler
+  return POST(mockRequest);
+}

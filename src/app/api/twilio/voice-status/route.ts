@@ -917,3 +917,37 @@ export async function POST(req: NextRequest) {
     return new Response("OK", { status: 200 })
   }
 }
+
+// GET handler - support Twilio calling with GET method
+export async function GET(req: NextRequest) {
+  console.log('[VOICE STATUS WEBHOOK GET] Handling GET request');
+  console.log('[VOICE STATUS WEBHOOK GET KEY PARAMS]', {
+    method: 'GET',
+    url: req.url
+  });
+  
+  // Extract params from query string
+  const url = new URL(req.url);
+  const params = Object.fromEntries(url.searchParams.entries());
+  
+  console.log('[VOICE STATUS WEBHOOK GET] Params:', {
+    CallSid: params.CallSid || 'not_present',
+    From: params.From || 'not_present',
+    To: params.To || 'not_present',
+    CallStatus: params.CallStatus || 'not_present'
+  });
+  
+  // Create a mock request with params in body format
+  const body = new URLSearchParams(params).toString();
+  const mockRequest = new Request(req.url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-Twilio-Signature': req.headers.get('X-Twilio-Signature') || '',
+    },
+    body: body
+  }) as NextRequest;
+  
+  // Delegate to POST handler
+  return POST(mockRequest);
+}
