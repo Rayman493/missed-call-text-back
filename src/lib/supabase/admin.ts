@@ -488,59 +488,127 @@ export const db = {
   async getBusinessByTwilioNumber(phone: string): Promise<{ business: Business | null; source: string } | null> {
     console.log('[getBusinessByTwilioNumber] Looking up business for phone:', phone)
 
-    // CRITICAL: Only use twilio_numbers table (dedicated number architecture)
-    // Legacy fallback removed for routing safety
+    // CRITICAL: Primary lookup via twilio_numbers table (dedicated number architecture)
     // Look up by phone_number + non-null business_id (not status, to handle inconsistent data)
     const { data: twilioNumber, error: twilioError } = await supabaseAdmin
       .from('twilio_numbers')
       .select('id, business_id, phone_number, status')
       .eq('phone_number', phone)
       .not('business_id', 'is', null)
-      .single()
+      .maybeSingle()
 
     if (twilioError) {
       console.error('[getBusinessByTwilioNumber] Error fetching twilio_number:', twilioError)
       if (twilioError.code === 'PGRST116') {
         console.log('[getBusinessByTwilioNumber] No valid twilio_number found for phone:', phone)
       }
-      return null
     }
 
-    if (!twilioNumber || !twilioNumber.business_id) {
-      console.error('[getBusinessByTwilioNumber] No valid twilio_number found for phone:', phone)
-      return null
+    if (twilioNumber && twilioNumber.business_id) {
+      // Warn if status is inconsistent (has business_id but not 'assigned' or 'active')
+      if (!['assigned', 'active'].includes(twilioNumber.status)) {
+        console.warn('[getBusinessByTwilioNumber] Assigned number has unexpected status', {
+          phone,
+          businessId: twilioNumber.business_id,
+          status: twilioNumber.status
+        })
+      }
+
+      console.log('[getBusinessByTwilioNumber] Found twilio_number:', twilioNumber.id, 'business_id:', twilioNumber.business_id, 'status:', twilioNumber.status)
+
+      // Fetch the business
+      const { data: business, error: businessError } = await supabaseAdmin
+        .from('businesses')
+        .select('*')
+        .eq('id', twilioNumber.business_id)
+        .single()
+
+      if (businessError) {
+        console.error('[getBusinessByTwilioNumber] Error fetching business:', businessError)
+        return null
+      }
+
+      if (!business) {
+        console.error('[getBusinessByTwilioNumber] Business not found for twilio_number.business_id:', twilioNumber.business_id)
+        return null
+      }
+
+      console.log('[getBusinessByTwilioNumber] Found business:', business.id, 'via twilio_numbers table')
+      return { business, source: 'twilio_numbers' }
     }
 
-    // Warn if status is inconsistent (has business_id but not 'assigned' or 'active')
-    if (twilioNumber && !['assigned', 'active'].includes(twilioNumber.status)) {
-      console.warn('[getBusinessByTwilioNumber] Assigned number has unexpected status', {
-        phone,
-        businessId: twilioNumber.business_id,
-        status: twilioNumber.status
-      })
-    }
-
-    console.log('[getBusinessByTwilioNumber] Found twilio_number:', twilioNumber.id, 'business_id:', twilioNumber.business_id, 'status:', twilioNumber.status)
-
-    // Fetch the business
+    // FALLBACK: Look up by businesses.twilio_phone_number (self-healing for provisioning mismatch)
+    console.log('[getBusinessByTwilioNumber] twilio_numbers lookup failed, trying businesses table as fallback')
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
       .select('*')
-      .eq('id', twilioNumber.business_id)
-      .single()
+      .eq('twilio_phone_number', phone)
+      .maybeSingle()
 
     if (businessError) {
-      console.error('[getBusinessByTwilioNumber] Error fetching business:', businessError)
+      console.error('[getBusinessByTwilioNumber] Error fetching business from businesses table:', businessError)
       return null
     }
 
     if (!business) {
-      console.error('[getBusinessByTwilioNumber] Business not found for twilio_number.business_id:', twilioNumber.business_id)
+      console.log('[getBusinessByTwilioNumber] No business found in businesses table for phone:', phone)
       return null
     }
 
-    console.log('[getBusinessByTwilioNumber] Found business:', business.id, 'via twilio_numbers table')
-    return { business, source: 'twilio_numbers' }
+    console.log('[getBusinessByTwilioNumber] Found business:', business.id, 'via businesses table (FALLBACK - PROVISIONING MISMATCH)')
+    console.log('[getBusinessByTwilioNumber] CRITICAL: twilio_numbers row missing for assigned number')
+
+    // Log provisioning mismatch for self-healing
+    console.log('[PROVISIONING MISMATCH DETECTED]', {
+      phone,
+      businessId: business.id,
+      businessTwilioPhoneNumber: business.twilio_phone_number,
+      businessTwilioNumberSid: business.twilio_phone_number_sid,
+      assignedTwilioNumberId: business.assigned_twilio_number_id,
+      issue: 'twilio_numbers row missing for assigned number'
+    })
+
+    // Attempt self-healing: create missing twilio_numbers row
+    if (business.twilio_phone_number && business.twilio_phone_number_sid) {
+      console.log('[getBusinessByTwilioNumber] Attempting self-healing: creating twilio_numbers row')
+      const { data: insertedTwilioNumber, error: insertError } = await supabaseAdmin
+        .from('twilio_numbers')
+        .insert({
+          business_id: business.id,
+          phone_number: business.twilio_phone_number,
+          twilio_sid: business.twilio_phone_number_sid,
+          number_type: 'both',
+          status: 'active',
+          sms_status: 'pending',
+          provisioning_status: 'ready',
+          last_provisioning_attempt_at: new Date().toISOString(),
+          assigned_at: new Date().toISOString(),
+        })
+        .select()
+        .maybeSingle()
+
+      if (insertError) {
+        console.error('[getBusinessByTwilioNumber] Self-healing failed to create twilio_numbers row:', insertError)
+      } else if (insertedTwilioNumber) {
+        console.log('[getBusinessByTwilioNumber] Self-healing successful: created twilio_numbers row with ID:', insertedTwilioNumber.id)
+
+        // Update businesses table with assigned_twilio_number_id if not set
+        if (!business.assigned_twilio_number_id) {
+          const { error: updateError } = await supabaseAdmin
+            .from('businesses')
+            .update({ assigned_twilio_number_id: insertedTwilioNumber.id })
+            .eq('id', business.id)
+
+          if (updateError) {
+            console.error('[getBusinessByTwilioNumber] Failed to update businesses with assigned_twilio_number_id:', updateError)
+          } else {
+            console.log('[getBusinessByTwilioNumber] Updated businesses.assigned_twilio_number_id:', insertedTwilioNumber.id)
+          }
+        }
+      }
+    }
+
+    return { business, source: 'businesses_fallback' }
   },
 
   // Validate Twilio number ownership consistency
