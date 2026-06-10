@@ -137,7 +137,7 @@ export function classifyOutcome(input: OutcomeClassificationInput): OutcomeClass
     extractedInfo
   })
 
-  // No speech detected
+  // No speech detected - no meaningful information captured
   if (!userSpoke) {
     console.log('[OUTCOME CLASSIFICATION] No speech detected')
     return {
@@ -150,7 +150,7 @@ export function classifyOutcome(input: OutcomeClassificationInput): OutcomeClass
 
   // Early hangup - user spoke but no meaningful information captured
   if (userSpoke && meaningfulFields === 0) {
-    console.log('[OUTCOME CLASSIFICATION] Early hangup detected')
+    console.log('[OUTCOME CLASSIFICATION] Early hangup detected (no fields)')
     return {
       outcome: 'early_hangup',
       reason: 'Caller disconnected before providing meaningful information',
@@ -159,15 +159,20 @@ export function classifyOutcome(input: OutcomeClassificationInput): OutcomeClass
     }
   }
 
-  // Completed intake - sufficient fields captured and confirmation completed
+  // Completed intake - requires BOTH meaningful information AND conversation completion
+  // The AI must have reached its designed end state (confirmation completed or explicitly marked successful)
   const requiredFields = ['callerName', 'reasonForCalling']
   const hasRequiredFields = requiredFields.every(field => {
     const value = extractedInfo?.[field as keyof typeof extractedInfo]
     return value && !isPlaceholderValue(value)
   })
 
+  // Only classify as completed if:
+  // 1. Confirmation was explicitly completed OR session was marked successful
+  // 2. Required fields were captured
+  // 3. Sufficient meaningful information was captured
   if (confirmationCompleted && hasRequiredFields && meaningfulFields >= 3) {
-    console.log('[OUTCOME CLASSIFICATION] Completed intake')
+    console.log('[OUTCOME CLASSIFICATION] Completed intake (confirmation completed)')
     return {
       outcome: 'completed_intake',
       reason: 'AI intake completed successfully with confirmation',
@@ -176,12 +181,13 @@ export function classifyOutcome(input: OutcomeClassificationInput): OutcomeClass
     }
   }
 
-  // Partial intake - some fields captured but not complete
+  // Partial intake - some fields captured but conversation did not complete naturally
+  // This includes cases where caller disconnected before AI reached its end state
   if (meaningfulFields > 0) {
-    console.log('[OUTCOME CLASSIFICATION] Partial intake')
+    console.log('[OUTCOME CLASSIFICATION] Partial intake (conversation did not complete)')
     return {
       outcome: 'partial_intake',
-      reason: `Partial intake captured: ${meaningfulFields} meaningful field(s)`,
+      reason: `Partial intake captured: ${meaningfulFields} meaningful field(s). Conversation did not complete naturally.`,
       fieldsCollected: meaningfulFields,
       hadUserSpeech: true
     }
