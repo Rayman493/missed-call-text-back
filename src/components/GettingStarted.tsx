@@ -601,7 +601,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           // Scroll to Setup Gate in dashboard instead of redirecting
           const setupGate = document.getElementById('setup-gate')
           if (setupGate) {
+            console.log('[GettingStarted] Scrolling to setup-gate element')
             setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          } else {
+            // Fallback: scroll to top of page and show alert
+            console.warn('[GettingStarted] Setup gate element not found, scrolling to top')
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            alert('Setup instructions are displayed at the top of the dashboard')
           }
         } : undefined,
         // Secondary button for users who have already enabled forwarding
@@ -610,7 +616,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           // Scroll to ForwardingHelpCenter in dashboard
           const forwardingHelp = document.getElementById('forwarding-help-center')
           if (forwardingHelp) {
+            console.log('[GettingStarted] Scrolling to forwarding-help-center element')
             forwardingHelp.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          } else {
+            // Fallback: scroll to top of page and show alert
+            console.warn('[GettingStarted] Forwarding help center element not found, scrolling to top')
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            alert('Forwarding instructions are displayed at the top of the dashboard')
           }
         } : undefined),
       },
@@ -629,7 +641,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           // Scroll to test call section in Setup Gate
           const setupGate = document.getElementById('setup-gate')
           if (setupGate) {
+            console.log('[GettingStarted] Scrolling to setup-gate element for test')
             setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          } else {
+            // Fallback: scroll to top of page and show alert
+            console.warn('[GettingStarted] Setup gate element not found, scrolling to top')
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            alert('Setup instructions are displayed at the top of the dashboard')
           }
         } : undefined,
         secondaryButtonText: step3Complete ? 'Run Another Test' : undefined,
@@ -637,7 +655,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           // Scroll to test call section in Setup Gate
           const setupGate = document.getElementById('setup-gate')
           if (setupGate) {
+            console.log('[GettingStarted] Scrolling to setup-gate element for another test')
             setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          } else {
+            // Fallback: scroll to top of page and show alert
+            console.warn('[GettingStarted] Setup gate element not found, scrolling to top')
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            alert('Setup instructions are displayed at the top of the dashboard')
           }
         } : undefined,
       },
