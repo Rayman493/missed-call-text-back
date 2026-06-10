@@ -276,12 +276,44 @@ export async function POST(request: Request) {
       console.log('[PROVISIONING FLOW] Phone SID to save:', provisioningResult.phoneNumberSid)
       
       try {
+        // First, create twilio_numbers row to ensure it exists before updating businesses
+        console.log('[PROVISIONING FLOW] Creating twilio_numbers row...')
+        const { data: twilioNumber, error: twilioNumberError } = await supabaseAdmin
+          .from('twilio_numbers')
+          .insert({
+            business_id: business.id,
+            phone_number: provisioningResult.phoneNumber,
+            twilio_sid: provisioningResult.phoneNumberSid,
+            number_type: 'both',
+            status: 'active',
+            sms_status: 'pending',
+            provisioning_status: 'ready',
+            last_provisioning_attempt_at: new Date().toISOString(),
+            assigned_at: new Date().toISOString(),
+          })
+          .select()
+          .maybeSingle()
+
+        if (twilioNumberError) {
+          console.error('[PROVISIONING FLOW] ✗ Failed to create twilio_numbers row:', twilioNumberError)
+          console.error('[PROVISIONING FLOW] PostgreSQL error details:', {
+            code: twilioNumberError.code,
+            message: twilioNumberError.message,
+            details: twilioNumberError.details,
+            hint: twilioNumberError.hint
+          })
+        } else if (twilioNumber) {
+          console.log('[PROVISIONING FLOW] ✓ twilio_numbers row created with ID:', twilioNumber.id)
+        }
+
         // Save Twilio phone number and SID to business record
+        console.log('[PROVISIONING FLOW] Updating businesses table...')
         const { error: saveError } = await supabaseAdmin
           .from('businesses')
           .update({
             twilio_phone_number: provisioningResult.phoneNumber,
             twilio_phone_number_sid: provisioningResult.phoneNumberSid,
+            assigned_twilio_number_id: twilioNumber?.id || null,
             provisioning_status: 'completed',
             provisioning_lock_id: null,
             provisioning_error: null,
@@ -318,54 +350,61 @@ export async function POST(request: Request) {
         console.log('[PROVISIONING FLOW] ✓ Database save successful')
         console.log('[PROVISIONING FLOW] ✓ twilio_phone_number saved:', provisioningResult.phoneNumber)
         console.log('[PROVISIONING FLOW] ✓ twilio_phone_number_sid saved:', provisioningResult.phoneNumberSid)
+        console.log('[PROVISIONING FLOW] ✓ twilio_numbers row created:', !!twilioNumber)
+        console.log('[PROVISIONING FLOW] ✓ assigned_twilio_number_id set:', twilioNumber?.id)
         console.log('[PROVISIONING FLOW] ✓ provisioning_status set to completed')
         console.log('[PROVISIONING FLOW] ✓ onboarding_status advanced to completed')
         
-        // Insert into twilio_numbers table for SMS fail-safe
-        console.log('[PROVISIONING FLOW] ===== TWILIO_NUMBERS UPSERT START =====')
-        console.log('[PROVISIONING FLOW] Inserting into twilio_numbers table for SMS fail-safe')
-        console.log('[PROVISIONING FLOW] Business ID:', business.id)
-        console.log('[PROVISIONING FLOW] Phone Number:', provisioningResult.phoneNumber)
-        console.log('[PROVISIONING FLOW] Phone SID:', provisioningResult.phoneNumberSid)
+        // Verification: Confirm both tables are updated
+        console.log('[PROVISIONING FLOW] ===== PROVISIONING VERIFICATION START =====')
+        const { data: verificationBusiness, error: verificationError } = await supabaseAdmin
+          .from('businesses')
+          .select('id, twilio_phone_number, twilio_phone_number_sid, assigned_twilio_number_id')
+          .eq('id', business.id)
+          .maybeSingle()
         
-        try {
-          const { error: twilioNumbersError } = await supabaseAdmin
+        const { data: verificationTwilioNumber, error: verificationTwilioError } = await supabaseAdmin
+          .from('twilio_numbers')
+          .select('id, phone_number, twilio_sid, business_id')
+          .eq('twilio_sid', provisioningResult.phoneNumberSid)
+          .maybeSingle()
+        
+        console.log('[PROVISIONING FLOW] Verification results:', {
+          business_updated: !!verificationBusiness,
+          business_has_phone: !!verificationBusiness?.twilio_phone_number,
+          business_has_sid: !!verificationBusiness?.twilio_phone_number_sid,
+          business_has_assigned_id: !!verificationBusiness?.assigned_twilio_number_id,
+          twilio_number_exists: !!verificationTwilioNumber,
+          twilio_number_matches: verificationTwilioNumber?.business_id === business.id
+        })
+        
+        if (!verificationTwilioNumber) {
+          console.error('[PROVISIONING FLOW] ✗ CRITICAL: twilio_numbers row missing after provisioning')
+          console.error('[PROVISIONING FLOW] Self-healing: attempting to create missing row')
+          
+          // Self-heal: create missing twilio_numbers row
+          const { error: healError } = await supabaseAdmin
             .from('twilio_numbers')
-            .upsert({
-              twilio_sid: provisioningResult.phoneNumberSid,
-              phone_number: provisioningResult.phoneNumber,
+            .insert({
               business_id: business.id,
-              messaging_service_sid: process.env.TWILIO_MESSAGING_SERVICE_SID || null,
+              phone_number: provisioningResult.phoneNumber,
+              twilio_sid: provisioningResult.phoneNumberSid,
+              number_type: 'both',
+              status: 'active',
+              sms_status: 'pending',
               provisioning_status: 'ready',
-              campaign_registered_at: new Date().toISOString(),
-              sender_pool_attached_at: provisioningResult.messagingServiceAttached ? new Date().toISOString() : null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }, {
-              onConflict: 'twilio_sid',
-              ignoreDuplicates: false
+              last_provisioning_attempt_at: new Date().toISOString(),
+              assigned_at: new Date().toISOString(),
             })
-
-          if (twilioNumbersError) {
-            console.error('[PROVISIONING FLOW] ✗ twilio_numbers upsert failed:', twilioNumbersError)
-            console.error('[PROVISIONING FLOW] PostgreSQL error details:', {
-              code: twilioNumbersError.code,
-              message: twilioNumbersError.message,
-              details: twilioNumbersError.details,
-              hint: twilioNumbersError.hint
-            })
-            // Don't fail the provisioning, but log the error for monitoring
-            console.warn('[PROVISIONING FLOW] ⚠ SMS fail-safe may not work until twilio_numbers row is manually added')
+          
+          if (healError) {
+            console.error('[PROVISIONING FLOW] ✗ Self-heal failed:', healError)
           } else {
-            console.log('[PROVISIONING FLOW] ✓ twilio_numbers upsert successful')
-            console.log('[PROVISIONING FLOW] ✓ SMS fail-safe will now recognize this number')
+            console.log('[PROVISIONING FLOW] ✓ Self-heal successful')
           }
-        } catch (twilioNumbersUpsertError) {
-          console.error('[PROVISIONING FLOW] ✗ twilio_numbers upsert error:', twilioNumbersUpsertError)
-          console.warn('[PROVISIONING FLOW] ⚠ SMS fail-safe may not work until twilio_numbers row is manually added')
         }
         
-        console.log('[PROVISIONING FLOW] ===== TWILIO_NUMBERS UPSERT END =====')
+        console.log('[PROVISIONING FLOW] ===== PROVISIONING VERIFICATION END =====')
         console.log('[PROVISIONING FLOW] ===== PROVISIONING FLOW COMPLETE =====')
 
         return NextResponse.json({
