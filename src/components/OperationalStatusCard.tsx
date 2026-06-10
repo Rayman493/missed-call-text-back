@@ -48,6 +48,58 @@ export default function OperationalStatusCard({
   const [showOnboardingChecklist, setShowOnboardingChecklist] = useState(true)
   const [showForwardingInstructions, setShowForwardingInstructions] = useState(false)
   const [showTestCallInstructions, setShowTestCallInstructions] = useState(false)
+  const [selectedCarrier, setSelectedCarrier] = useState<string>('')
+
+  // Carrier-specific forwarding instructions
+  const carrierInstructions: Record<string, {
+    enableCode: string
+    disableCode: string
+    notes: string
+    tested: boolean
+  }> = {
+    verizon: {
+      enableCode: '*71',
+      disableCode: '*73',
+      notes: 'Call your business number, enter the code, wait for confirmation tone. Forwarding is now active.',
+      tested: true
+    },
+    att: {
+      enableCode: '*71',
+      disableCode: '*73',
+      notes: 'Call your business number, enter the code, wait for confirmation tone. Forwarding is now active.',
+      tested: true
+    },
+    tmobile: {
+      enableCode: '*21',
+      disableCode: '#21#',
+      notes: 'Call your business number, enter the code, wait for confirmation tone. T-Mobile uses different codes than Verizon/AT&T.',
+      tested: true
+    },
+    sprint: {
+      enableCode: '*72',
+      disableCode: '*720',
+      notes: 'Call your business number, enter the code, wait for confirmation tone.',
+      tested: false
+    },
+    'google-fi': {
+      enableCode: '*21',
+      disableCode: '#21#',
+      notes: 'Open the Google Fi app, go to Settings > Calls, and enable call forwarding to your ReplyFlow number.',
+      tested: false
+    },
+    cricket: {
+      enableCode: '*72',
+      disableCode: '*720',
+      notes: 'Call your business number, enter the code, wait for confirmation tone.',
+      tested: false
+    },
+    other: {
+      enableCode: '*71',
+      disableCode: '*73',
+      notes: 'Carrier instructions may vary. Contact your carrier if this code does not work. Most carriers use *71 to enable forwarding.',
+      tested: false
+    }
+  }
 
   // Detect mobile screen size
   useEffect(() => {
@@ -337,12 +389,13 @@ export default function OperationalStatusCard({
                 {showForwardingInstructions && !business?.call_forwarding_enabled && business?.twilio_phone_number && (
                   <div className="mt-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
                     <p className="text-xs text-slate-300 mb-2 font-medium">Forwarding Instructions:</p>
-                    <div className="space-y-2 text-xs text-slate-400">
+                    <div className="space-y-3 text-xs text-slate-400">
                       <div>
                         <p className="font-medium text-slate-300 mb-1">Step 1: Select your carrier</p>
                         <select 
                           className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-300 text-xs"
-                          defaultValue=""
+                          value={selectedCarrier}
+                          onChange={(e) => setSelectedCarrier(e.target.value)}
                         >
                           <option value="" disabled>Select carrier</option>
                           <option value="verizon">Verizon</option>
@@ -354,34 +407,44 @@ export default function OperationalStatusCard({
                           <option value="other">Other / VoIP</option>
                         </select>
                       </div>
-                      <div>
-                        <p className="font-medium text-slate-300 mb-1">Step 2: Enable forwarding</p>
-                        <p className="mb-1">Call your business number and enter this code:</p>
-                        <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono">
-                          *71{business.twilio_phone_number.replace(/\D/g, '')}#
-                        </code>
-                        <p className="mt-2 text-xs text-slate-500">Wait for confirmation tone. Forwarding is now active.</p>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          try {
-                            const response = await fetch('/api/business/forwarding-verify', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ businessId: business.id, action: 'forwarding_enabled' })
-                            })
-                            if (response.ok) {
-                              window.location.reload()
-                            }
-                          } catch (error) {
-                            console.error('[OperationalStatusCard] Failed to mark forwarding enabled:', error)
-                            alert('Failed to save. Please try again.')
-                          }
-                        }}
-                        className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 px-3 rounded transition-colors"
-                      >
-                        I've enabled forwarding
-                      </button>
+                      
+                      {selectedCarrier && carrierInstructions[selectedCarrier] && (
+                        <>
+                          <div>
+                            <p className="font-medium text-slate-300 mb-1">Step 2: Enable forwarding</p>
+                            <p className="mb-1">Call your business number and enter this code:</p>
+                            <div className="flex items-center gap-2">
+                              <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono flex-1">
+                                {carrierInstructions[selectedCarrier].enableCode}{business.twilio_phone_number?.replace(/\D/g, '') || ''}#
+                              </code>
+                              <button
+                                onClick={() => {
+                                  const code = `${carrierInstructions[selectedCarrier].enableCode}${business.twilio_phone_number?.replace(/\D/g, '') || ''}#`
+                                  navigator.clipboard.writeText(code)
+                                  alert('Code copied to clipboard!')
+                                }}
+                                className="bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded text-xs"
+                                title="Copy code"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                            <p className="mt-2 text-xs text-slate-500">{carrierInstructions[selectedCarrier].notes}</p>
+                            {!carrierInstructions[selectedCarrier].tested && (
+                              <p className="mt-2 text-xs text-amber-400 font-medium">
+                                ⚠️ Carrier instructions may vary. Contact your carrier if this code does not work.
+                              </p>
+                            )}
+                          </div>
+                          
+                          <div className="pt-2 border-t border-slate-700">
+                            <p className="font-medium text-slate-300 mb-1">To disable forwarding later:</p>
+                            <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono text-xs">
+                              {carrierInstructions[selectedCarrier].disableCode}
+                            </code>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
