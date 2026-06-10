@@ -46,6 +46,8 @@ export default function OperationalStatusCard({
   const [showRecoveryInstructions, setShowRecoveryInstructions] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const [showOnboardingChecklist, setShowOnboardingChecklist] = useState(true)
+  const [showForwardingInstructions, setShowForwardingInstructions] = useState(false)
+  const [showTestCallInstructions, setShowTestCallInstructions] = useState(false)
 
   // Detect mobile screen size
   useEffect(() => {
@@ -257,40 +259,208 @@ export default function OperationalStatusCard({
         </div>
       </div>
 
-      {/* Onboarding Checklist - Simple and Clear */}
+      {/* Success State - Show after forwarding verified */}
+      {isForwardingActive && (
+        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-4">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-green-100 mb-2">ReplyFlow is Active</h4>
+              <p className="text-xs text-green-200 mb-2">
+                Your call forwarding has been successfully verified. ReplyFlow is now monitoring your missed calls.
+              </p>
+              {business?.forwarding_verified_at && (
+                <p className="text-xs text-green-300">
+                  Last verified: {formatRelativeTime(business.forwarding_verified_at)}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Onboarding Checklist - Comprehensive setup guide */}
       {!isOnboardingComplete && (
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
           <h4 className="text-sm font-semibold text-blue-100 mb-3">Setup Checklist</h4>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
+          <div className="space-y-3">
+            {/* Step 1: ReplyFlow number assigned */}
+            <div className="flex items-start gap-3">
               {business?.twilio_phone_number ? (
-                <CheckCircle className="w-4 h-4 text-green-400" />
+                <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
               ) : (
-                <div className="w-4 h-4 rounded-full border-2 border-slate-500" />
+                <div className="w-5 h-5 rounded-full border-2 border-slate-500 flex-shrink-0 mt-0.5" />
               )}
-              <span className={`text-sm ${business?.twilio_phone_number ? 'text-slate-300 line-through' : 'text-slate-300'}`}>
-                ReplyFlow number assigned
-              </span>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-medium ${business?.twilio_phone_number ? 'text-slate-300 line-through' : 'text-slate-300'}`}>
+                    ReplyFlow number assigned
+                  </span>
+                  {business?.twilio_phone_number && (
+                    <span className="text-xs text-green-400">Complete</span>
+                  )}
+                </div>
+                {!business?.twilio_phone_number && (
+                  <p className="text-xs text-slate-400 mt-1">Provisioning your ReplyFlow number...</p>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Step 2: Set up call forwarding */}
+            <div className="flex items-start gap-3">
               {business?.call_forwarding_enabled ? (
-                <CheckCircle className="w-4 h-4 text-green-400" />
+                <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
               ) : (
-                <div className="w-4 h-4 rounded-full border-2 border-slate-500" />
+                <div className="w-5 h-5 rounded-full border-2 border-blue-400 flex-shrink-0 mt-0.5" />
               )}
-              <span className={`text-sm ${business?.call_forwarding_enabled ? 'text-slate-300 line-through' : 'text-slate-300'}`}>
-                Call forwarding enabled
-              </span>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-medium ${business?.call_forwarding_enabled ? 'text-slate-300 line-through' : 'text-blue-300'}`}>
+                    Set up call forwarding
+                  </span>
+                  {business?.call_forwarding_enabled ? (
+                    <span className="text-xs text-green-400">Complete</span>
+                  ) : (
+                    <button
+                      onClick={() => setShowForwardingInstructions(!showForwardingInstructions)}
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      {showForwardingInstructions ? 'Hide' : 'Show'} instructions
+                    </button>
+                  )}
+                </div>
+                {!business?.call_forwarding_enabled && (
+                  <p className="text-xs text-slate-400 mt-1">Forward calls from your business number to ReplyFlow</p>
+                )}
+
+                {/* Carrier-specific forwarding instructions */}
+                {showForwardingInstructions && !business?.call_forwarding_enabled && business?.twilio_phone_number && (
+                  <div className="mt-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+                    <p className="text-xs text-slate-300 mb-2 font-medium">Forwarding Instructions:</p>
+                    <div className="space-y-2 text-xs text-slate-400">
+                      <div>
+                        <p className="font-medium text-slate-300 mb-1">Step 1: Select your carrier</p>
+                        <select 
+                          className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-300 text-xs"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>Select carrier</option>
+                          <option value="verizon">Verizon</option>
+                          <option value="att">AT&T</option>
+                          <option value="tmobile">T-Mobile</option>
+                          <option value="sprint">Sprint</option>
+                          <option value="google-fi">Google Fi</option>
+                          <option value="cricket">Cricket Wireless</option>
+                          <option value="other">Other / VoIP</option>
+                        </select>
+                      </div>
+                      <div>
+                        <p className="font-medium text-slate-300 mb-1">Step 2: Enable forwarding</p>
+                        <p className="mb-1">Call your business number and enter this code:</p>
+                        <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono">
+                          *71{business.twilio_phone_number.replace(/\D/g, '')}#
+                        </code>
+                        <p className="mt-2 text-xs text-slate-500">Wait for confirmation tone. Forwarding is now active.</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch('/api/business/forwarding-verify', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ businessId: business.id, action: 'forwarding_enabled' })
+                            })
+                            if (response.ok) {
+                              window.location.reload()
+                            }
+                          } catch (error) {
+                            console.error('[OperationalStatusCard] Failed to mark forwarding enabled:', error)
+                            alert('Failed to save. Please try again.')
+                          }
+                        }}
+                        className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 px-3 rounded transition-colors"
+                      >
+                        I've enabled forwarding
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {isForwardingActive ? (
-                <CheckCircle className="w-4 h-4 text-green-400" />
+
+            {/* Step 3: Run a test call */}
+            <div className="flex items-start gap-3">
+              {liveMetrics.lastForwardedCall ? (
+                <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
               ) : (
-                <div className="w-4 h-4 rounded-full border-2 border-slate-500" />
+                <div className="w-5 h-5 rounded-full border-2 border-blue-400 flex-shrink-0 mt-0.5" />
               )}
-              <span className={`text-sm ${isForwardingActive ? 'text-slate-300 line-through' : 'text-slate-300'}`}>
-                Forwarding verified
-              </span>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-medium ${liveMetrics.lastForwardedCall ? 'text-slate-300 line-through' : 'text-blue-300'}`}>
+                    Run a test call
+                  </span>
+                  {liveMetrics.lastForwardedCall ? (
+                    <span className="text-xs text-green-400">Complete</span>
+                  ) : (
+                    <button
+                      onClick={() => setShowTestCallInstructions(!showTestCallInstructions)}
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      {showTestCallInstructions ? 'Hide' : 'Show'} instructions
+                    </button>
+                  )}
+                </div>
+                {!liveMetrics.lastForwardedCall && (
+                  <p className="text-xs text-slate-400 mt-1">Verify your forwarding is working correctly</p>
+                )}
+
+                {/* Test call instructions */}
+                {showTestCallInstructions && !liveMetrics.lastForwardedCall && (
+                  <div className="mt-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+                    <p className="text-xs text-slate-300 mb-2 font-medium">Test Call Instructions:</p>
+                    <div className="space-y-2 text-xs text-slate-400">
+                      <ol className="list-decimal list-inside space-y-1">
+                        <li>Call your business number from another phone</li>
+                        <li>Let it ring until ReplyFlow answers</li>
+                        <li>Wait for dashboard to verify automatically</li>
+                      </ol>
+                      <button
+                        onClick={() => setShowTestModal(true)}
+                        className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 px-3 rounded transition-colors"
+                      >
+                        Mark test call complete
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Step 4: Forwarding verified */}
+            <div className="flex items-start gap-3">
+              {isForwardingActive ? (
+                <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+              ) : (
+                <div className="w-5 h-5 rounded-full border-2 border-slate-500 flex-shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-medium ${isForwardingActive ? 'text-slate-300 line-through' : 'text-slate-300'}`}>
+                    Forwarding verified
+                  </span>
+                  {isForwardingActive && (
+                    <span className="text-xs text-green-400">Complete</span>
+                  )}
+                </div>
+                {!isForwardingActive && (
+                  <p className="text-xs text-slate-400 mt-1">
+                    {business?.call_forwarding_enabled 
+                      ? 'Waiting for test call to verify...' 
+                      : 'Complete steps above first'}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -1083,7 +1083,7 @@ export default function DashboardContent() {
             <div className="flex-1 pt-1.5 sm:pt-2 lg:pt-2 px-3 sm:px-4 lg:px-6 pb-12 relative z-10">
               <div className="max-w-[1400px] mx-auto space-y-1 sm:space-y-1.5">
 
-                {/* Setup Mode Banner - Show when user has active subscription but forwarding is not verified */}
+                {/* Setup Mode Banner - De-emphasized CTA, System Health owns onboarding */}
                 {hasActiveSubscription(business) && !business?.forwarding_verified && (
                   <SectionErrorBoundary sectionName="SetupModeBanner">
                     <div className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 rounded-xl p-4 sm:p-6 shadow-lg">
@@ -1097,30 +1097,10 @@ export default function DashboardContent() {
                           <div>
                             <h2 className="text-xl font-bold text-white mb-1">Welcome to ReplyFlow!</h2>
                             <p className="text-blue-100 text-sm sm:text-base">
-                              Your account is ready. Complete these 3 steps to start capturing missed calls:
+                              Complete your setup in the System Health card below to start capturing missed calls.
                             </p>
-                            <div className="mt-3 space-y-2">
-                              <div className="flex items-center gap-2 text-white/90 text-sm">
-                                <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs font-semibold">1</span>
-                                <span>Connect your phone number</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-white/90 text-sm">
-                                <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs font-semibold">2</span>
-                                <span>Run a test call</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-white/90 text-sm">
-                                <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs font-semibold">3</span>
-                                <span>ReplyFlow is active</span>
-                              </div>
-                            </div>
                           </div>
                         </div>
-                        <Link
-                          href="/setup/forwarding"
-                          className="inline-flex items-center justify-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors shadow-md whitespace-nowrap"
-                        >
-                          Connect Phone Number
-                        </Link>
                       </div>
                     </div>
                   </SectionErrorBoundary>
