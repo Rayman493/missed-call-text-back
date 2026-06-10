@@ -7,69 +7,144 @@ import { formatForDisplay, generateForwardingCode } from '@/utils/phone-formatti
 import Link from 'next/link'
 
 // Carrier types and their specific forwarding instructions
+// TESTED CARRIERS: Verizon (✓), AT&T (✓), T-Mobile (✓), Comcast (✓)
+// UNTESTED CARRIERS: RingCentral, Grasshopper, Google Voice, Sprint, Spectrum, Cox, Frontier, Vonage, Ooma, Nextiva, 8x8
 const CARRIER_INSTRUCTIONS: Record<string, { 
   dialCode: string; 
   notes?: string;
   disableCode?: string;
   disableNotes?: string;
+  tested?: boolean;
 }> = {
   verizon: {
     dialCode: '*71 {{TWILIO_NUMBER}}',
     notes: 'Press Send/Call after entering the code',
     disableCode: '*73',
-    disableNotes: 'Press Send/Call to disable call forwarding'
+    disableNotes: 'Press Send/Call to disable call forwarding',
+    tested: true
   },
   att: {
     dialCode: '*004*{{TWILIO_NUMBER}}#',
     notes: 'Press Send/Call after entering the code',
     disableCode: '#004#',
-    disableNotes: 'Press Send/Call to disable call forwarding'
+    disableNotes: 'Press Send/Call to disable call forwarding',
+    tested: true
   },
   tmobile: {
     dialCode: '**61*{{TWILIO_NUMBER}}#',
     notes: 'Press Send/Call after entering the code',
     disableCode: '#61#',
-    disableNotes: 'Press Send/Call to disable call forwarding'
+    disableNotes: 'Press Send/Call to disable call forwarding',
+    tested: true
   },
   comcast: {
     dialCode: '*72 {{TWILIO_NUMBER}}',
     notes: 'Press Send/Call after entering the code',
     disableCode: '*73',
-    disableNotes: 'Press Send/Call to disable call forwarding'
+    disableNotes: 'Press Send/Call to disable call forwarding',
+    tested: true
+  },
+  sprint: {
+    dialCode: '*72 {{TWILIO_NUMBER}}',
+    notes: 'Press Send/Call after entering the code. Note: Sprint may have merged with T-Mobile',
+    disableCode: '*720',
+    disableNotes: 'Press Send/Call to disable call forwarding',
+    tested: false
+  },
+  spectrum: {
+    dialCode: '*72 {{TWILIO_NUMBER}}',
+    notes: 'Press Send/Call after entering the code',
+    disableCode: '*73',
+    disableNotes: 'Press Send/Call to disable call forwarding',
+    tested: false
+  },
+  cox: {
+    dialCode: '*72 {{TWILIO_NUMBER}}',
+    notes: 'Press Send/Call after entering the code',
+    disableCode: '*73',
+    disableNotes: 'Press Send/Call to disable call forwarding',
+    tested: false
+  },
+  frontier: {
+    dialCode: '*72 {{TWILIO_NUMBER}}',
+    notes: 'Press Send/Call after entering the code',
+    disableCode: '*73',
+    disableNotes: 'Press Send/Call to disable call forwarding',
+    tested: false
+  },
+  vonage: {
+    dialCode: '*72 {{TWILIO_NUMBER}}',
+    notes: 'Press Send/Call after entering the code',
+    disableCode: '*73',
+    disableNotes: 'Press Send/Call to disable call forwarding',
+    tested: false
+  },
+  ooma: {
+    dialCode: '*72 {{TWILIO_NUMBER}}',
+    notes: 'Press Send/Call after entering the code',
+    disableCode: '*73',
+    disableNotes: 'Press Send/Call to disable call forwarding',
+    tested: false
   },
   ringcentral: {
     dialCode: 'Configure in RingCentral portal settings',
     notes: 'Go to Settings → Phone System → Call Forwarding',
     disableCode: 'Disable in RingCentral portal',
-    disableNotes: 'Go to Settings → Phone System → Call Forwarding and turn off forwarding'
+    disableNotes: 'Go to Settings → Phone System → Call Forwarding and turn off forwarding',
+    tested: false
   },
   grasshopper: {
     dialCode: 'Configure in Grasshopper portal settings',
     notes: 'Go to Settings → Call Forwarding',
     disableCode: 'Disable in Grasshopper portal',
-    disableNotes: 'Go to Settings → Call Forwarding and turn off forwarding'
+    disableNotes: 'Go to Settings → Call Forwarding and turn off forwarding',
+    tested: false
+  },
+  nextiva: {
+    dialCode: 'Configure in Nextiva portal settings',
+    notes: 'Go to Features → Call Forwarding',
+    disableCode: 'Disable in Nextiva portal',
+    disableNotes: 'Go to Features → Call Forwarding and turn off forwarding',
+    tested: false
+  },
+  '8x8': {
+    dialCode: 'Configure in 8x8 portal settings',
+    notes: 'Go to Account Manager → Call Forwarding',
+    disableCode: 'Disable in 8x8 portal',
+    disableNotes: 'Go to Account Manager → Call Forwarding and turn off forwarding',
+    tested: false
   },
   google_voice: {
     dialCode: 'Configure in Google Voice settings',
     notes: 'Go to Settings → Calls → Call Forwarding and enable conditional forwarding',
     disableCode: 'Disable in Google Voice settings',
-    disableNotes: 'Go to Settings → Calls → Call Forwarding and turn off forwarding'
+    disableNotes: 'Go to Settings → Calls → Call Forwarding and turn off forwarding',
+    tested: false
   },
   other: {
     dialCode: 'Contact your phone provider',
     notes: 'Enable conditional call forwarding for missed calls',
     disableCode: 'Contact your phone provider',
-    disableNotes: 'Ask your provider to disable conditional call forwarding'
+    disableNotes: 'Ask your provider to disable conditional call forwarding',
+    tested: false
   }
 }
 
 const CARRIER_OPTIONS = [
-  { value: 'verizon', label: 'Verizon' },
-  { value: 'att', label: 'AT&T' },
-  { value: 'tmobile', label: 'T-Mobile' },
-  { value: 'comcast', label: 'Comcast' },
+  { value: 'verizon', label: 'Verizon (Tested ✓)' },
+  { value: 'att', label: 'AT&T (Tested ✓)' },
+  { value: 'tmobile', label: 'T-Mobile (Tested ✓)' },
+  { value: 'comcast', label: 'Comcast (Tested ✓)' },
+  { value: 'sprint', label: 'Sprint' },
+  { value: 'spectrum', label: 'Spectrum' },
+  { value: 'cox', label: 'Cox' },
+  { value: 'frontier', label: 'Frontier' },
+  { value: 'vonage', label: 'Vonage' },
+  { value: 'ooma', label: 'Ooma' },
   { value: 'ringcentral', label: 'RingCentral' },
   { value: 'grasshopper', label: 'Grasshopper' },
+  { value: 'nextiva', label: 'Nextiva' },
+  { value: '8x8', label: '8x8' },
   { value: 'google_voice', label: 'Google Voice' },
   { value: 'other', label: 'Other' }
 ]
