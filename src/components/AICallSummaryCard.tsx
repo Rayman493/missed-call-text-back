@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime } from '@/lib/utils'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
+import { Phone, User, Briefcase, FileText, MapPin, Clock, TriangleAlert, ChevronDown } from 'lucide-react'
 
 interface AICallRecord {
   id: string
@@ -133,15 +134,31 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
   }
 
   const getUrgencyColor = (urgency?: string) => {
-    if (!urgency) return 'text-gray-600 dark:text-gray-400'
+    if (!urgency) return {
+      bg: 'bg-gray-100 dark:bg-gray-800',
+      text: 'text-gray-600 dark:text-gray-400',
+      border: 'border-gray-200 dark:border-gray-700'
+    }
     
     const lowerUrgency = urgency.toLowerCase()
     if (lowerUrgency.includes('urgent') || lowerUrgency.includes('high')) {
-      return 'text-red-600 dark:text-red-400'
-    } else if (lowerUrgency.includes('medium')) {
-      return 'text-yellow-600 dark:text-yellow-400'
+      return {
+        bg: 'bg-red-100 dark:bg-red-900/20',
+        text: 'text-red-700 dark:text-red-300',
+        border: 'border-red-200 dark:border-red-800'
+      }
+    } else if (lowerUrgency.includes('medium') || lowerUrgency.includes('flexible')) {
+      return {
+        bg: 'bg-amber-100 dark:bg-amber-900/20',
+        text: 'text-amber-700 dark:text-amber-300',
+        border: 'border-amber-200 dark:border-amber-800'
+      }
     } else {
-      return 'text-green-600 dark:text-green-400'
+      return {
+        bg: 'bg-green-100 dark:bg-green-900/20',
+        text: 'text-green-700 dark:text-green-300',
+        border: 'border-green-200 dark:border-green-800'
+      }
     }
   }
 
@@ -171,7 +188,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
   return (
     <div className="bg-card border border-border rounded-xl p-4">
       <div className="flex items-center space-x-2 mb-3">
-        <span className="text-lg">📞</span>
+        <Phone className="w-5 h-5 text-muted-foreground" />
         <h3 className="text-sm font-semibold text-foreground">AI Call Summary</h3>
       </div>
 
@@ -205,7 +222,10 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
             {/* Caller Name */}
             {extractedInfo.callerName && (
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Caller Name</span>
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Caller Name</span>
+                </div>
                 <span className="text-sm font-medium text-foreground">{extractedInfo.callerName}</span>
               </div>
             )}
@@ -213,16 +233,22 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
             {/* Reason for Calling */}
             {extractedInfo.reasonForCalling && (
               <div>
-                <span className="text-xs text-muted-foreground">Reason for Calling</span>
-                <p className="text-sm text-foreground mt-1 line-clamp-2">{extractedInfo.reasonForCalling}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <Briefcase className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Reason for Calling</span>
+                </div>
+                <p className="text-sm text-foreground mt-1 line-clamp-2 pl-6">{extractedInfo.reasonForCalling}</p>
               </div>
             )}
 
             {/* Urgency Level */}
             {extractedInfo.urgencyLevel && (
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Urgency</span>
-                <span className={`text-sm font-medium ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
+                <div className="flex items-center gap-2">
+                  <TriangleAlert className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Urgency</span>
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getUrgencyColor(extractedInfo.urgencyLevel).bg} ${getUrgencyColor(extractedInfo.urgencyLevel).text} ${getUrgencyColor(extractedInfo.urgencyLevel).border}`}>
                   {extractedInfo.urgencyLevel}
                 </span>
               </div>
@@ -231,15 +257,21 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
             {/* Address/Location */}
             {extractedInfo.addressOrLocation && (
               <div>
-                <span className="text-xs text-muted-foreground">Location</span>
-                <p className="text-sm text-foreground mt-1 line-clamp-2">{extractedInfo.addressOrLocation}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <MapPin className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Location</span>
+                </div>
+                <p className="text-sm text-foreground mt-1 line-clamp-2 pl-6">{extractedInfo.addressOrLocation}</p>
               </div>
             )}
 
             {/* Preferred Callback Time */}
             {extractedInfo.preferredCallbackTime && (
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Callback Time</span>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Callback Time</span>
+                </div>
                 <span className="text-sm text-foreground">{extractedInfo.preferredCallbackTime}</span>
               </div>
             )}
@@ -247,8 +279,11 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
             {/* Important Details */}
             {extractedInfo.importantDetails && (
               <div>
-                <span className="text-xs text-muted-foreground">Details</span>
-                <p className="text-sm text-foreground mt-1 line-clamp-2">{extractedInfo.importantDetails}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Details</span>
+                </div>
+                <p className="text-sm text-foreground mt-1 line-clamp-2 pl-6">{extractedInfo.importantDetails}</p>
               </div>
             )}
           </>
@@ -272,14 +307,9 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
               className="flex items-center justify-between w-full text-left hover:bg-muted/50 rounded-lg p-2 transition-colors"
             >
               <span className="text-sm font-medium text-foreground">View Transcript</span>
-              <svg
+              <ChevronDown
                 className={`w-4 h-4 text-muted-foreground transition-transform ${transcriptExpanded ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              />
             </button>
 
             {transcriptExpanded && (
