@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Phone, Copy, ChevronDown, ChevronUp, ExternalLink, Video } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Phone, Copy, ChevronDown, ChevronUp, ExternalLink, Video, Check } from 'lucide-react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatForDisplay, generateForwardingCode } from '@/utils/phone-formatting'
 import Link from 'next/link'
@@ -183,6 +183,32 @@ export default function ForwardingHelpCenter() {
   const [copiedCode, setCopiedCode] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string | null>('forwarding')
   const [copiedNumber, setCopiedNumber] = useState(false)
+  const [isCardExpanded, setIsCardExpanded] = useState(false)
+
+  // Check if forwarding is verified
+  const isForwardingVerified = business?.forwarding_verified || false
+
+  // Persist expanded/collapsed state in localStorage
+  useEffect(() => {
+    const storageKey = `forwarding-card-expanded-${business?.id || 'default'}`
+    
+    // Auto-expand if forwarding not verified or first-time user
+    if (!isForwardingVerified) {
+      setIsCardExpanded(true)
+    } else {
+      // Otherwise, check localStorage for persisted state
+      const savedState = localStorage.getItem(storageKey)
+      setIsCardExpanded(savedState === 'true')
+    }
+  }, [business?.id, isForwardingVerified])
+
+  // Save expanded/collapsed state to localStorage
+  const toggleCardExpansion = () => {
+    const newState = !isCardExpanded
+    setIsCardExpanded(newState)
+    const storageKey = `forwarding-card-expanded-${business?.id || 'default'}`
+    localStorage.setItem(storageKey, String(newState))
+  }
 
   // Use business's dedicated Twilio number
   const twilioNumber = business?.twilio_phone_number || process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || '+18336584303'
@@ -306,158 +332,184 @@ export default function ForwardingHelpCenter() {
   }
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-border p-4 sm:p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+    <div className="bg-card rounded-xl shadow-sm border border-border">
+      {/* Collapsed State */}
+      <button
+        onClick={toggleCardExpansion}
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors rounded-xl"
+      >
+        <div className="flex items-center gap-3">
           <Phone className="w-4 h-4 text-blue-600" />
-          Call Forwarding Help
-        </h3>
-        <Link
-          href="/setup/forwarding"
-          className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-        >
-          Full Setup
-          <ExternalLink className="w-3 h-3" />
-        </Link>
-      </div>
-
-      {/* ReplyFlow Number */}
-      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 mb-4">
-        <p className="text-xs text-muted-foreground mb-1">Your ReplyFlow Number</p>
-        <div className="flex items-center justify-between">
-          <code className="text-sm font-mono text-foreground">{formattedTwilioNumber}</code>
-          <button
-            onClick={handleCopyNumber}
-            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
-            title="Copy number"
-          >
-            {copiedNumber ? (
-              <span className="text-green-600 dark:text-green-400 text-xs font-medium">Copied!</span>
-            ) : (
-              <Copy className="w-3 h-3 text-muted-foreground" />
-            )}
-          </button>
+          <div className="text-left">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              Call Forwarding
+              {isForwardingVerified && (
+                <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  Configured
+                </span>
+              )}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Setup instructions and forwarding codes
+            </p>
+          </div>
         </div>
-      </div>
-
-      {/* Carrier Selection */}
-      <div className="mb-4">
-        <label htmlFor="carrier" className="block text-xs font-medium text-foreground mb-2">
-          Your Phone Carrier
-        </label>
-        <select
-          id="carrier"
-          value={selectedCarrier}
-          onChange={(e) => setSelectedCarrier(e.target.value)}
-          className="w-full px-3 py-2 text-sm border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground"
-        >
-          <option value="">Select your carrier</option>
-          {CARRIER_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Collapsible Sections */}
-      {selectedCarrier && getCarrierInstructions()}
-
-      {/* Run Test Call Button */}
-      <Link
-        href="/dashboard/test-setup"
-        className="mt-4 w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-      >
-        <Phone className="w-4 h-4" />
-        Run Test Call Again
-      </Link>
-
-      {/* Watch Demo Link */}
-      <Link
-        href="/demo"
-        className="mt-2 w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-foreground text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-      >
-        <Video className="w-4 h-4" />
-        Watch Setup Demo
-      </Link>
-
-      {/* Troubleshooting Section */}
-      <div className="mt-4 pt-4 border-t border-border">
-        <button
-          onClick={() => toggleSection('troubleshooting')}
-          className="w-full flex items-center justify-between text-left"
-        >
-          <span className="text-sm font-medium text-foreground">Troubleshooting</span>
-          {expandedSection === 'troubleshooting' ? (
+        <div className="flex items-center gap-3">
+          {selectedCarrier && (
+            <span className="text-xs text-muted-foreground capitalize">
+              {selectedCarrier}
+            </span>
+          )}
+          {isCardExpanded ? (
             <ChevronUp className="w-4 h-4 text-muted-foreground" />
           ) : (
             <ChevronDown className="w-4 h-4 text-muted-foreground" />
           )}
-        </button>
-        
-        {expandedSection === 'troubleshooting' && (
-          <div className="mt-3 space-y-3">
-            <div className="text-xs text-muted-foreground space-y-2">
-              <p><strong className="text-foreground">Calls not reaching ReplyFlow?</strong></p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>Verify carrier forwarding settings are correct</li>
-                <li>Confirm the ReplyFlow number is accurate</li>
-                <li>Try restarting your phone (some carriers require this)</li>
-                <li>Wait 5-10 minutes for carrier changes to propagate</li>
-              </ul>
-              
-              <p className="mt-3"><strong className="text-foreground">Forwarding not activating?</strong></p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>Ensure you pressed Send/Call after entering the code</li>
-                <li>Listen for confirmation tone from your carrier</li>
-                <li>Contact your carrier if activation fails</li>
-              </ul>
+        </div>
+      </button>
 
-              <p className="mt-3"><strong className="text-foreground">Still having trouble?</strong></p>
-              <p>Contact <a href="mailto:support@replyflowhq.com" className="text-blue-600 hover:underline">support@replyflowhq.com</a> for help.</p>
+      {/* Expanded State */}
+      {isCardExpanded && (
+        <div className="px-4 pb-4 pt-0">
+          {/* ReplyFlow Number */}
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2.5 mb-3 mt-3">
+            <p className="text-xs text-muted-foreground mb-1">Your ReplyFlow Number</p>
+            <div className="flex items-center justify-between">
+              <code className="text-sm font-mono text-foreground">{formattedTwilioNumber}</code>
+              <button
+                onClick={handleCopyNumber}
+                className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
+                title="Copy number"
+              >
+                {copiedNumber ? (
+                  <span className="text-green-600 dark:text-green-400 text-xs font-medium">Copied!</span>
+                ) : (
+                  <Copy className="w-3 h-3 text-muted-foreground" />
+                )}
+              </button>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* FAQ Section */}
-      <div className="mt-4 pt-4 border-t border-border">
-        <button
-          onClick={() => toggleSection('faq')}
-          className="w-full flex items-center justify-between text-left"
-        >
-          <span className="text-sm font-medium text-foreground">Common Questions</span>
-          {expandedSection === 'faq' ? (
-            <ChevronUp className="w-4 h-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-          )}
-        </button>
-        
-        {expandedSection === 'faq' && (
-          <div className="mt-3 space-y-3">
-            {FAQS.map((faq, index) => (
-              <div key={index} className="border-b border-border last:border-b-0 pb-3 last:pb-0">
-                <button
-                  onClick={() => toggleSection(`faq-${index}`)}
-                  className="w-full text-left text-sm font-medium text-foreground flex items-center justify-between"
-                >
-                  {faq.question}
-                  {expandedSection === `faq-${index}` ? (
-                    <ChevronUp className="w-3 h-3 text-muted-foreground flex-shrink-0 ml-2" />
-                  ) : (
-                    <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0 ml-2" />
-                  )}
-                </button>
-                {expandedSection === `faq-${index}` && (
-                  <p className="mt-2 text-xs text-muted-foreground">{faq.answer}</p>
-                )}
-              </div>
-            ))}
+          {/* Carrier Selection */}
+          <div className="mb-3">
+            <label htmlFor="carrier" className="block text-xs font-medium text-foreground mb-1.5">
+              Your Phone Carrier
+            </label>
+            <select
+              id="carrier"
+              value={selectedCarrier}
+              onChange={(e) => setSelectedCarrier(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-foreground"
+            >
+              <option value="">Select your carrier</option>
+              {CARRIER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
-        )}
-      </div>
+
+          {/* Collapsible Sections */}
+          {selectedCarrier && getCarrierInstructions()}
+
+          {/* Run Test Call Button - Primary CTA */}
+          <Link
+            href="/dashboard/test-setup"
+            className="mt-3 w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <Phone className="w-4 h-4" />
+            Run Test Call Again
+          </Link>
+
+          {/* Watch Demo Link - Secondary Button */}
+          <Link
+            href="/demo"
+            className="mt-2 w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-muted-foreground text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <Video className="w-4 h-4" />
+            Watch Setup Demo
+          </Link>
+
+          {/* Troubleshooting Section - Nested Accordion */}
+          <div className="mt-3 pt-3 border-t border-border">
+            <button
+              onClick={() => toggleSection('troubleshooting')}
+              className="w-full flex items-center justify-between text-left py-1"
+            >
+              <span className="text-sm font-medium text-foreground">Troubleshooting</span>
+              {expandedSection === 'troubleshooting' ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            
+            {expandedSection === 'troubleshooting' && (
+              <div className="mt-2 space-y-2">
+                <div className="text-xs text-muted-foreground space-y-1.5">
+                  <p><strong className="text-foreground">Calls not reaching ReplyFlow?</strong></p>
+                  <ul className="list-disc list-inside space-y-0.5 ml-2">
+                    <li>Verify carrier forwarding settings are correct</li>
+                    <li>Confirm the ReplyFlow number is accurate</li>
+                    <li>Try restarting your phone (some carriers require this)</li>
+                    <li>Wait 5-10 minutes for carrier changes to propagate</li>
+                  </ul>
+                  
+                  <p className="mt-2"><strong className="text-foreground">Forwarding not activating?</strong></p>
+                  <ul className="list-disc list-inside space-y-0.5 ml-2">
+                    <li>Ensure you pressed Send/Call after entering the code</li>
+                    <li>Listen for confirmation tone from your carrier</li>
+                    <li>Contact your carrier if activation fails</li>
+                  </ul>
+
+                  <p className="mt-2"><strong className="text-foreground">Still having trouble?</strong></p>
+                  <p>Contact <a href="mailto:support@replyflowhq.com" className="text-blue-600 hover:underline">support@replyflowhq.com</a> for help.</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* FAQ Section - Nested Accordion */}
+          <div className="mt-2 pt-3 border-t border-border">
+            <button
+              onClick={() => toggleSection('faq')}
+              className="w-full flex items-center justify-between text-left py-1"
+            >
+              <span className="text-sm font-medium text-foreground">Common Questions</span>
+              {expandedSection === 'faq' ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            
+            {expandedSection === 'faq' && (
+              <div className="mt-2 space-y-2">
+                {FAQS.map((faq, index) => (
+                  <div key={index} className="border-b border-border last:border-b-0 pb-2 last:pb-0">
+                    <button
+                      onClick={() => toggleSection(`faq-${index}`)}
+                      className="w-full text-left text-sm font-medium text-foreground flex items-center justify-between py-1"
+                    >
+                      {faq.question}
+                      {expandedSection === `faq-${index}` ? (
+                        <ChevronUp className="w-3 h-3 text-muted-foreground flex-shrink-0 ml-2" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0 ml-2" />
+                      )}
+                    </button>
+                    {expandedSection === `faq-${index}` && (
+                      <p className="mt-1.5 text-xs text-muted-foreground">{faq.answer}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
