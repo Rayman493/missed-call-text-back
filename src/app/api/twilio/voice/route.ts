@@ -145,16 +145,22 @@ function generateTwiMLResponse(businessName?: string, hasCustomGreeting: boolean
 
 export async function POST(request: NextRequest) {
   console.log('[MAIN VOICE WEBHOOK HIT]', {
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    url: request.url,
+    method: request.method
   });
   console.log('[ROUTE HIT - TWILIO VOICE] routeName=/api/twilio/voice');
   
   try {
-    console.log('VOICE WEBHOOK HIT - PRODUCTION');
+    console.log('[VOICE WEBHOOK] Starting call processing');
+    console.log('[VOICE WEBHOOK] Headers:', Object.fromEntries(request.headers.entries()));
     
     // Read raw body exactly once for validation
     const rawBody = await request.text();
     const contentType = request.headers.get('content-type') || '';
+    
+    console.log('[VOICE WEBHOOK] Body length:', rawBody.length);
+    console.log('[VOICE WEBHOOK] Content type:', contentType);
     
     // Parse body into params using URLSearchParams
     const params = Object.fromEntries(new URLSearchParams(rawBody));
@@ -167,8 +173,11 @@ export async function POST(request: NextRequest) {
     })
     
     // Validate Twilio signature with params object
+    console.log('[VOICE WEBHOOK] Validating Twilio signature...');
     const isValid = requireTwilioAuth(request, params, rawBody.length, contentType);
+    console.log('[VOICE WEBHOOK] Signature valid:', isValid);
     if (!isValid) {
+      console.error('[VOICE WEBHOOK] Invalid signature - rejecting request');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
     
@@ -268,6 +277,7 @@ export async function POST(request: NextRequest) {
     
     // Lookup business by businesses.twilio_phone_number IN candidateNumbers
     console.log('[Voice] Business lookup query started');
+    console.log('[VOICE WEBHOOK] Looking up business with candidate numbers:', uniqueCandidates);
     logCallTrace({
       route: 'voice',
       action: 'business_lookup_start',
@@ -282,14 +292,21 @@ export async function POST(request: NextRequest) {
     let lookupSource = null;
     
     for (const candidate of uniqueCandidates) {
+      console.log('[VOICE WEBHOOK] Trying candidate number:', candidate);
       const result = await db.getBusinessByTwilioNumber(candidate);
+      console.log('[VOICE WEBHOOK] Lookup result for candidate:', candidate, '=>', result ? 'found' : 'not found');
       if (result && result.business) {
         business = result.business;
         lookupSource = result.source;
         console.log('[Voice] Business found:', business.id, business.name, 'via', lookupSource, 'using', candidate);
         console.log('[MAIN BUSINESS LOADED]', {
           businessId: business.id,
-          businessName: business.name
+          businessName: business.name,
+          twilioPhone: business.twilio_phone_number,
+          businessPhone: business.business_phone_number,
+          forwardingVerified: business.forwarding_verified,
+          onboardingStatus: business.onboarding_status,
+          provisioningStatus: business.provisioning_status
         });
         
         logCallTrace({
