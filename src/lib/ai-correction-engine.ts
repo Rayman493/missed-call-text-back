@@ -194,7 +194,19 @@ export async function detectCorrection(
         /oh and (.+)/i,
         /the yard is\s+(.+)/i,
         /yard is actually\s+(.+)/i,
-        /project is\s+(.+)/i
+        /project is\s+(.+)/i,
+        // Smarter details detection - detect project/issue clarification
+        /it's really for\s+(.+)/i,
+        /its really for\s+(.+)/i,
+        /it's actually for\s+(.+)/i,
+        /its actually for\s+(.+)/i,
+        /the issue is\s+(.+)/i,
+        /the problem is\s+(.+)/i,
+        /i need help with\s+(.+)/i,
+        /i need\s+(.+)/i,
+        /i want\s+(.+)/i,
+        /looking for help with\s+(.+)/i,
+        /need help with\s+(.+)/i
       ]
     },
     {
@@ -209,7 +221,21 @@ export async function detectCorrection(
         /the location is\s+(.+)/i,
         /location is\s+(.+)/i,
         /my service address is\s+(.+)/i,
-        /service address is\s+(.+)/i
+        /service address is\s+(.+)/i,
+        // Smarter location detection - detect home/residence references
+        /at my house/i,
+        /come to my house/i,
+        /at my home/i,
+        /come to my home/i,
+        /my place/i,
+        /at my place/i,
+        /my residence/i,
+        /at my residence/i,
+        /my home/i,
+        /at home/i,
+        /come to my place/i,
+        /lessons are at my house/i,
+        /lessons are at my home/i
       ]
     },
     {
@@ -341,6 +367,34 @@ export async function detectCorrection(
           }
         }
 
+        // Handle location special case - only update if current value is a placeholder
+        if (field === 'addressOrLocation') {
+          const isHomeRef = /at my house|come to my house|at my home|come to my home|my place|at my place|my residence|at my residence|my home|at home|come to my place|lessons are at my house|lessons are at my home/i.test(match[0])
+          if (isHomeRef && oldValue && !isPlaceholderValue(oldValue)) {
+            console.log('[LOCATION CORRECTION SKIPPED]', {
+              field,
+              pattern: pattern.toString(),
+              match: match[0],
+              oldValue,
+              reason: 'Current location is not a placeholder, not updating',
+              isPlaceholder: false
+            })
+            continue
+          }
+          if (isHomeRef) {
+            newValue = 'Home'
+            console.log('[LOCATION CORRECTION APPLIED]', {
+              field,
+              pattern: pattern.toString(),
+              match: match[0],
+              oldValue,
+              newValue,
+              reason: 'Home reference detected and current value is placeholder, updating to Home',
+              isPlaceholder: oldValue ? isPlaceholderValue(oldValue) : 'no value'
+            })
+          }
+        }
+
         // Clean the extracted value by removing common prefixes
         const originalNewValue = newValue
         newValue = cleanExtractedValue(newValue, field)
@@ -350,14 +404,20 @@ export async function detectCorrection(
           originalMessage: customerReply,
           extractedValue: originalNewValue,
           cleanedValue: newValue,
-          pattern: pattern.toString()
+          pattern: pattern.toString(),
+          classifierReasoning: field === 'addressOrLocation' && /at my house|come to my house|at my home/i.test(match[0])
+            ? 'Home reference pattern matched'
+            : 'Pattern match detected'
         })
 
         console.log('[CORRECTION DETECTED]', {
           field,
           oldValue,
           newValue,
-          pattern: pattern.toString()
+          pattern: pattern.toString(),
+          classifierReasoning: field === 'addressOrLocation' 
+            ? (oldValue && !isPlaceholderValue(oldValue) ? 'Skipped - current value is not placeholder' : 'Updated - home reference detected')
+            : 'Pattern match'
         })
 
         detectedCorrections.push({
@@ -494,6 +554,130 @@ export function applyCorrection(
     after: canonicalized
   })
   return canonicalized
+}
+
+/**
+ * Generate field-specific acknowledgement message
+ */
+export function generateFieldAcknowledgement(
+  field: string,
+  newValue: string
+): string {
+  const fieldLower = field.toLowerCase()
+  
+  // Map field names to human-readable names and acknowledgement templates
+  const fieldTemplates: Record<string, { name: string; template: (value: string) => string }> = {
+    'callername': {
+      name: 'name',
+      template: (value) => `Thanks! We've updated your name to '${value}'.`
+    },
+    'addressorlocation': {
+      name: 'address',
+      template: (value) => `Thanks! We've updated your address to '${value}'.`
+    },
+    'callbacknumber': {
+      name: 'callback number',
+      template: (value) => `Thanks! We've updated your callback number.`
+    },
+    'preferredcallbacktime': {
+      name: 'preferred callback time',
+      template: (value) => `Thanks! We've updated your preferred callback time.`
+    },
+    'urgencylevel': {
+      name: 'urgency',
+      template: (value) => `Thanks! We've updated your urgency to '${value}'.`
+    },
+    'importantdetails': {
+      name: 'project details',
+      template: (value) => `Thanks! We've updated the project details.`
+    },
+    'reasonforcalling': {
+      name: 'reason',
+      template: (value) => `Thanks! We've updated the reason.`
+    }
+  }
+
+  // Find matching field template
+  for (const [key, config] of Object.entries(fieldTemplates)) {
+    if (fieldLower.includes(key)) {
+      return config.template(newValue)
+    }
+  }
+
+  // Fallback to generic acknowledgement
+  return `Thanks! We've updated your ${field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.`
+}
+
+/**
+ * Generate multi-field acknowledgement message
+ */
+export function generateMultiFieldAcknowledgement(
+  corrections: Array<{ field: string; newValue: string }>
+): string {
+  if (corrections.length === 0) {
+    return 'Thanks for your update!'
+  }
+
+  if (corrections.length === 1) {
+    return generateFieldAcknowledgement(corrections[0].field, corrections[0].newValue)
+  }
+
+  // Generate acknowledgements for each field
+  const acknowledgements = corrections.map(c => {
+    const fieldLower = c.field.toLowerCase()
+    
+    // Map field names to human-readable phrases
+    const fieldPhrases: Record<string, string> = {
+      'callername': 'name',
+      'addressorlocation': 'address',
+      'callbacknumber': 'callback number',
+      'preferredcallbacktime': 'preferred callback time',
+      'urgencylevel': 'urgency',
+      'importantdetails': 'project details',
+      'reasonforcalling': 'reason'
+    }
+
+    for (const [key, phrase] of Object.entries(fieldPhrases)) {
+      if (fieldLower.includes(key)) {
+        return phrase
+      }
+    }
+    
+    return c.field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()
+  })
+
+  // Natural language combination
+  if (acknowledgements.length === 2) {
+    return `Thanks! We've updated your ${acknowledgements[0]} and ${acknowledgements[1]}.`
+  } else {
+    const last = acknowledgements.pop()
+    const others = acknowledgements.join(', ')
+    return `Thanks! We've updated your ${others}, and ${last}.`
+  }
+}
+
+/**
+ * Check if a value is a placeholder/generic value
+ */
+function isPlaceholderValue(value: string): boolean {
+  if (!value) return false
+  
+  const placeholders = [
+    'business location',
+    'location',
+    'address',
+    'service address',
+    'your address',
+    'your location',
+    'tbd',
+    'to be determined',
+    'unknown',
+    'not specified'
+  ]
+  
+  return placeholders.some(placeholder => 
+    value.toLowerCase().trim() === placeholder.toLowerCase()
+  )
 }
 
 /**

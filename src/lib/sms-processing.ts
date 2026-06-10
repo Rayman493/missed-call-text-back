@@ -4,7 +4,7 @@ import { sanitizeMessageContent } from '@/lib/security'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizePunctuation } from '@/lib/utils'
-import { detectCorrection, applyCorrection, generateCorrectionNote } from '@/lib/ai-correction-engine'
+import { detectCorrection, applyCorrection, generateCorrectionNote, generateMultiFieldAcknowledgement } from '@/lib/ai-correction-engine'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 
 // Helper function to download MMS media from Twilio and store in Supabase Storage
@@ -778,20 +778,15 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
             const aiConfirmationSmsSent = leadWithCorrection?.raw_metadata?.ai_confirmation_sms_sent
 
             if (aiConfirmationSmsSent) {
-              // Build acknowledgement message for all corrections
-              let acknowledgementMessage: string
-              if (correctedFields.length === 1) {
-                const correction = correctedFields[0]
-                const fieldName = correction.field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()
-                acknowledgementMessage = `Thanks! We've updated your ${fieldName} to "${correction.newValue}".`
-              } else {
-                // Multi-field acknowledgement
-                const correctionsText = correctedFields.map(c => {
-                  const fieldName = c.field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()
-                  return `${fieldName} to "${c.newValue}"`
-                }).join(' and ')
-                acknowledgementMessage = `Thanks! We've updated your ${correctionsText}.`
-              }
+              // Build acknowledgement message for all corrections using field-specific function
+              const acknowledgementMessage = generateMultiFieldAcknowledgement(correctedFields)
+
+              console.log('[CORRECTION ACKNOWLEDGEMENT GENERATED]', {
+                leadId: leadWithCorrection.id,
+                totalCorrections: correctedFields.length,
+                corrections: correctedFields,
+                acknowledgementMessage
+              })
 
               const messageSid = await sendSms(business, from, acknowledgementMessage, {
                 lead_id: leadWithCorrection.id,
