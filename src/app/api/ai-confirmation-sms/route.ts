@@ -276,7 +276,6 @@ export async function POST(request: NextRequest) {
       .from('messages')
       .select('id, created_at')
       .eq('conversation_id', conversationId)
-      .eq('sender', 'system')
       .like('content', 'Hi, this is%')
       .gte('created_at', fiveMinutesAgo)
       .maybeSingle()
@@ -503,8 +502,89 @@ export async function POST(request: NextRequest) {
       if (twilioMessageSid) {
         console.log('[AI CONFIRMATION SMS SUCCESS]', {
           twilioMessageSid,
-          conversationId
+          conversationId,
+          leadId
         })
+
+        // Update lead metadata with AI confirmation SMS sent flag
+        const { error: metadataUpdateError } = await supabaseAdmin
+          .from('leads')
+          .update({
+            raw_metadata: {
+              ...(lead?.raw_metadata || {}),
+              ai_confirmation_sms_sent: true,
+              ai_confirmation_sms_sent_at: new Date().toISOString(),
+              ai_confirmation_sms_message_sid: twilioMessageSid
+            }
+          })
+          .eq('id', leadId)
+
+        if (metadataUpdateError) {
+          console.error('[AI CONFIRMATION SMS METADATA UPDATE ERROR]', {
+            leadId,
+            error: metadataUpdateError
+          })
+        } else {
+          console.log('[AI CONFIRMATION SMS METADATA UPDATED]', {
+            leadId,
+            ai_confirmation_sms_sent: true,
+            ai_confirmation_sms_sent_at: new Date().toISOString()
+          })
+        }
+
+        // Check for pending correction acknowledgement
+        const pendingAcknowledgement = lead?.raw_metadata?.pending_correction_acknowledgement
+        if (pendingAcknowledgement) {
+          console.log('[PENDING CORRECTION ACKNOWLEDGEMENT FOUND]', {
+            leadId,
+            pendingAcknowledgement
+          })
+
+          // Send the pending correction acknowledgement
+          const acknowledgementMessage = `Thanks! We've updated your ${pendingAcknowledgement.field_changed.replace(/([A-Z])/g, ' $1').toLowerCase().trim()} to "${pendingAcknowledgement.new_value}".`
+          const acknowledgementSid = await sendSms(business, callerPhone, acknowledgementMessage, {
+            lead_id: leadId,
+          })
+
+          if (acknowledgementSid) {
+            console.log('[PENDING CORRECTION ACKNOWLEDGEMENT SENT]', {
+              leadId,
+              acknowledgementSid,
+              fieldChanged: pendingAcknowledgement.field_changed,
+              newValue: pendingAcknowledgement.new_value
+            })
+
+            // Clear pending acknowledgement from metadata
+            const { error: clearPendingError } = await supabaseAdmin
+              .from('leads')
+              .update({
+                raw_metadata: {
+                  ...((lead?.raw_metadata || {})),
+                  ai_confirmation_sms_sent: true,
+                  ai_confirmation_sms_sent_at: (lead?.raw_metadata || {}).ai_confirmation_sms_sent_at,
+                  ai_confirmation_sms_message_sid: (lead?.raw_metadata || {}).ai_confirmation_sms_message_sid,
+                  pending_correction_acknowledgement: null
+                }
+              })
+              .eq('id', leadId)
+
+            if (clearPendingError) {
+              console.error('[PENDING CORRECTION ACKNOWLEDGEMENT CLEAR ERROR]', {
+                leadId,
+                error: clearPendingError
+              })
+            } else {
+              console.log('[PENDING CORRECTION ACKNOWLEDGEMENT CLEARED]', {
+                leadId
+              })
+            }
+          } else {
+            console.error('[PENDING CORRECTION ACKNOWLEDGEMENT SEND FAILED]', {
+              leadId,
+              pendingAcknowledgement
+            })
+          }
+        }
 
         return NextResponse.json({
           success: true,

@@ -635,26 +635,70 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
             console.log('[CORRECTION ACKNOWLEDGEMENT SMS START]', {
               leadId: leadWithCorrection.id,
               fieldChanged: correctionResult.fieldChanged,
-              newValue: correctionResult.newValue
+              newValue: correctionResult.newValue,
+              aiConfirmationSmsSent: leadWithCorrection?.raw_metadata?.ai_confirmation_sms_sent
             })
 
-            const acknowledgementMessage = `Thanks! We've updated your ${correctionResult.fieldChanged.replace(/([A-Z])/g, ' $1').toLowerCase().trim()} to "${correctionResult.newValue}".`
-            const messageSid = await sendSms(business, from, acknowledgementMessage, {
-              lead_id: leadWithCorrection.id,
-            })
+            // Check if AI confirmation SMS has been sent
+            const aiConfirmationSmsSent = leadWithCorrection?.raw_metadata?.ai_confirmation_sms_sent
 
-            if (messageSid) {
-              console.log('[CORRECTION ACKNOWLEDGEMENT SMS SUCCESS]', {
+            if (aiConfirmationSmsSent) {
+              // AI confirmation SMS exists, send acknowledgement immediately
+              const acknowledgementMessage = `Thanks! We've updated your ${correctionResult.fieldChanged.replace(/([A-Z])/g, ' $1').toLowerCase().trim()} to "${correctionResult.newValue}".`
+              const messageSid = await sendSms(business, from, acknowledgementMessage, {
+                lead_id: leadWithCorrection.id,
+              })
+
+              if (messageSid) {
+                console.log('[CORRECTION ACKNOWLEDGEMENT SMS SUCCESS]', {
+                  leadId: leadWithCorrection.id,
+                  messageSid,
+                  fieldChanged: correctionResult.fieldChanged,
+                  newValue: correctionResult.newValue
+                })
+              } else {
+                console.error('[CORRECTION ACKNOWLEDGEMENT SMS FAILED]', {
+                  leadId: leadWithCorrection.id,
+                  fieldChanged: correctionResult.fieldChanged
+                })
+              }
+            } else {
+              // AI confirmation SMS not yet sent, store pending acknowledgement
+              console.log('[CORRECTION ACKNOWLEDGEMENT DEFERRED]', {
                 leadId: leadWithCorrection.id,
-                messageSid,
+                reason: 'ai_confirmation_sms_not_sent',
                 fieldChanged: correctionResult.fieldChanged,
                 newValue: correctionResult.newValue
               })
-            } else {
-              console.error('[CORRECTION ACKNOWLEDGEMENT SMS FAILED]', {
-                leadId: leadWithCorrection.id,
-                fieldChanged: correctionResult.fieldChanged
-              })
+
+              // Store pending acknowledgement in lead metadata
+              const pendingAcknowledgement = {
+                field_changed: correctionResult.fieldChanged,
+                new_value: correctionResult.newValue,
+                deferred_at: new Date().toISOString()
+              }
+
+              const { error: pendingError } = await supabaseAdmin
+                .from('leads')
+                .update({
+                  raw_metadata: {
+                    ...(leadWithCorrection.raw_metadata || {}),
+                    pending_correction_acknowledgement: pendingAcknowledgement
+                  }
+                })
+                .eq('id', leadWithCorrection.id)
+
+              if (pendingError) {
+                console.error('[CORRECTION ACKNOWLEDGEMENT PENDING STORE ERROR]', {
+                  leadId: leadWithCorrection.id,
+                  error: pendingError
+                })
+              } else {
+                console.log('[CORRECTION ACKNOWLEDGEMENT PENDING STORED]', {
+                  leadId: leadWithCorrection.id,
+                  pendingAcknowledgement
+                })
+              }
             }
           } else {
             console.log('[CORRECTION ACKNOWLEDGEMENT SMS SKIPPED]', {
