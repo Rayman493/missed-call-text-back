@@ -6,6 +6,7 @@ import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import TestReplyFlowModal from '@/components/TestReplyFlowModal'
+import { CheckCircle, AlertTriangle, XCircle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface OperationalStatusCardProps {
   business: Business | null
@@ -13,6 +14,16 @@ interface OperationalStatusCardProps {
   lastActivity?: string
   onReviewSetup?: () => void
   setupHealth?: import('@/lib/setup-health').SetupHealth
+}
+
+type HealthStatus = 'healthy' | 'needs-attention' | 'action-required'
+
+interface LiveMetrics {
+  lastForwardedCall: string | null
+  lastSuccessfulSms: string | null
+  lastAiIntake: string | null
+  deliveryFailures: number
+  recentErrors: string[]
 }
 
 export default function OperationalStatusCard({ 
@@ -25,6 +36,15 @@ export default function OperationalStatusCard({
   const [showSystemDetails, setShowSystemDetails] = useState(false)
   const [showTestModal, setShowTestModal] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [liveMetrics, setLiveMetrics] = useState<LiveMetrics>({
+    lastForwardedCall: null,
+    lastSuccessfulSms: null,
+    lastAiIntake: null,
+    deliveryFailures: 0,
+    recentErrors: []
+  })
+  const [showRecoveryInstructions, setShowRecoveryInstructions] = useState(false)
+  const [expandedSection, setExpandedSection] = useState<string | null>(null)
 
   // Detect mobile screen size
   useEffect(() => {
@@ -36,6 +56,95 @@ export default function OperationalStatusCard({
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  // Fetch live operational metrics
+  useEffect(() => {
+    const fetchLiveMetrics = async () => {
+      if (!business?.id) return
+
+      try {
+        const supabase = createBrowserClient()
+        
+        // Get last forwarded call
+        const { data: lastCall } = await supabase
+          .from('call_events')
+          .select('created_at')
+          .eq('business_id', business.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        // Get last successful SMS
+        const { data: lastSms } = await supabase
+          .from('messages')
+          .select('created_at')
+          .eq('business_id', business.id)
+          .eq('direction', 'outbound')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        // Get last AI intake
+        const { data: lastAiCall } = await supabase
+          .from('ai_call_records')
+          .select('created_at')
+          .eq('business_id', business.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        // Get recent delivery failures
+        const { data: failedMessages } = await supabase
+          .from('messages')
+          .select('error, created_at')
+          .eq('business_id', business.id)
+          .not('error', 'is', null)
+          .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+          .limit(5)
+
+        setLiveMetrics({
+          lastForwardedCall: lastCall?.created_at || null,
+          lastSuccessfulSms: lastSms?.created_at || null,
+          lastAiIntake: lastAiCall?.created_at || null,
+          deliveryFailures: failedMessages?.length || 0,
+          recentErrors: failedMessages?.map((m: any) => m.error) || []
+        })
+      } catch (error) {
+        console.error('[OperationalStatusCard] Failed to fetch live metrics:', error)
+      }
+    }
+
+    fetchLiveMetrics()
+  }, [business?.id])
+
+  // Calculate overall health status
+  const calculateHealthStatus = (): HealthStatus => {
+    if (!business?.twilio_phone_number) return 'action-required'
+    if (!setupHealth?.forwardingVerified) return 'needs-attention'
+    if (business.messaging_status !== 'active') return 'needs-attention'
+    if (liveMetrics.deliveryFailures > 5) return 'action-required'
+    if (liveMetrics.deliveryFailures > 0) return 'needs-attention'
+    return 'healthy'
+  }
+
+  const healthStatus = calculateHealthStatus()
+
+  const getHealthIndicator = () => {
+    switch (healthStatus) {
+      case 'healthy':
+        return { icon: '🟢', text: 'Healthy', color: 'text-green-400', bg: 'bg-green-500/15', border: 'border-green-400/25' }
+      case 'needs-attention':
+        return { icon: '🟡', text: 'Needs Attention', color: 'text-amber-400', bg: 'bg-amber-500/15', border: 'border-amber-400/25' }
+      case 'action-required':
+        return { icon: '🔴', text: 'Action Required', color: 'text-red-400', bg: 'bg-red-500/15', border: 'border-red-400/25' }
+    }
+  }
+
+  const healthIndicator = getHealthIndicator()
+
+  const toggleSection = (section: string) => {
+    setExpandedSection(expandedSection === section ? null : section)
+  }
 
   const getStatusIndicator = (status: 'active' | 'inactive' | 'warning' | 'needs-attention') => {
     const colors = {
@@ -59,225 +168,53 @@ export default function OperationalStatusCard({
   }
 
   const isTextReplyActive = business?.messaging_status === 'active'
-  
-  console.log('[SETUP HEALTH]', setupHealth)
-  
-  // ONLY use setupHealth forwardingVerified - no other logic
   const isForwardingActive = setupHealth?.forwardingVerified === true
-  
-  // Check if onboarding is complete - all required steps done
   const isOnboardingComplete = business?.onboarding_status === 'completed' && isForwardingActive
-  
-  // Clear monitoring status logic - only consider monitoring healthy if onboarding is complete
-  const isMonitoringHealthy = isOnboardingComplete && isTextReplyActive
-  const monitoringStatus = isMonitoringHealthy ? 'active' : 'needs-attention'
-  
-  // Context for why attention is needed
-  const getMonitoringContext = () => {
-    if (!isForwardingActive && !isTextReplyActive) {
-      return 'Call forwarding and text messaging need to be activated'
-    }
-    if (!isForwardingActive) {
-      return 'Call forwarding needs to be verified'
-    }
-    if (!isTextReplyActive) {
-      return 'Text messaging needs to be activated'
-    }
-    return null
-  }
-
-  // Show compact version when setup is complete (both mobile and desktop)
-  // Show full version when setup needs attention or onboarding is incomplete
-  if (monitoringStatus === 'active' && isOnboardingComplete) {
-    return (
-      <>
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-3 sm:p-3.5">
-          {/* Compact Header */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🟢</span>
-              <h3 className="text-base font-bold text-white">ReplyFlow Active</h3>
-            </div>
-            <p className="text-xs text-slate-400">All systems operational</p>
-          </div>
-
-          {/* Status Pills */}
-          <div className="flex flex-wrap gap-1.5">
-            <div className="inline-flex items-center px-2 py-0.5 bg-green-500/15 border border-green-400/25 rounded-full">
-              <div className="w-1 h-1 bg-green-400 rounded-full mr-1.5"></div>
-              <span className="text-[10px] text-green-300 font-medium">SMS Enabled</span>
-            </div>
-            <div className="inline-flex items-center px-2 py-0.5 bg-green-500/15 border border-green-400/25 rounded-full">
-              <div className="w-1 h-1 bg-green-400 rounded-full mr-1.5"></div>
-              <span className="text-[10px] text-green-300 font-medium">Forwarding Verified</span>
-            </div>
-            <div className="inline-flex items-center px-2 py-0.5 bg-green-500/15 border border-green-400/25 rounded-full">
-              <div className="w-1 h-1 bg-green-400 rounded-full mr-1.5"></div>
-              <span className="text-[10px] text-green-300 font-medium">Monitoring Calls</span>
-            </div>
-          </div>
-        </div>
-
-        {/* System Details Modal */}
-        {showSystemDetails && (
-          <div className="fixed inset-0 z-50 overflow-hidden">
-            {/* Backdrop */}
-            <div 
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => setShowSystemDetails(false)}
-            />
-
-            {/* Modal */}
-            <div className="absolute inset-0 flex items-center justify-center p-4">
-              <div className="bg-slate-900 dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md border border-slate-700">
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-slate-700">
-                  <h3 className="text-lg font-semibold text-white">System Details</h3>
-                  <button
-                    onClick={() => setShowSystemDetails(false)}
-                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Content */}
-                <div className="p-4 space-y-4">
-                  {/* Phone Numbers Section */}
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Business Number</span>
-                      <span className="text-white font-medium">
-                        {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">ReplyFlow Number</span>
-                      <span className="text-white font-medium">
-                        {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Forwarding Status</span>
-                      <span className={`font-medium flex items-center gap-1 ${
-                        business?.forwarding_verified 
-                          ? 'text-green-400' 
-                          : business?.business_phone_number && business?.twilio_phone_number
-                          ? 'text-amber-400'
-                          : 'text-slate-400'
-                      }`}>
-                        {business?.forwarding_verified ? (
-                          <>
-                            Connected ✅
-                          </>
-                        ) : business?.business_phone_number && business?.twilio_phone_number ? (
-                          <>
-                            Needs Setup ⚠️
-                          </>
-                        ) : (
-                          <>
-                            Not Set ⚠️
-                          </>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* System Status Section */}
-                  <div className="space-y-3 border-t border-slate-700 pt-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Monitoring:</span>
-                      <span className="text-green-400 font-medium">Active</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Text Replies:</span>
-                      <span className="text-green-400 font-medium">Active</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Status:</span>
-                    <span className="text-white font-medium">
-                      {isForwardingActive ? 'Active' : 'Setup'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Forwarding:</span>
-                    <span className="text-white font-medium">
-                      {isForwardingActive ? 'Verified' : 'Pending'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Messaging:</span>
-                    <span className="text-white font-medium">
-                      {isTextReplyActive ? 'Active' : 'Setup'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    )
-  }
 
   return (
     <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300">
-      {/* Header with Operational Summary */}
+      {/* Header with Health Status */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            {getStatusIndicator(monitoringStatus)}
+            <span className="text-2xl">{healthIndicator.icon}</span>
             <div>
               <h3 className="text-xl font-bold text-white">
-                {isOnboardingComplete ? 'ReplyFlow Status' : 'Setup Progress'}
+                System Health
               </h3>
               <p className="text-sm text-slate-300">
-                 {isOnboardingComplete ? 'All systems operational' : 'Setup Required'}
+                {healthIndicator.text}
               </p>
             </div>
           </div>
           
-          {/* Health Indicator */}
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isOnboardingComplete ? 'bg-green-500' : 'bg-amber-500'}`}></div>
-            <span className={`text-xs font-medium ${isOnboardingComplete ? 'text-green-400' : 'text-amber-400'}`}>
-              {isOnboardingComplete ? 'All Systems Operational' : 'Attention Needed'}
+          {/* Health Badge */}
+          <div className={`inline-flex items-center px-3 py-1 rounded-full ${healthIndicator.bg} ${healthIndicator.border} border`}>
+            <span className={`text-xs font-semibold ${healthIndicator.color}`}>
+              {healthIndicator.text}
             </span>
           </div>
         </div>
 
-        {/* Operational Summary */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-          <p className="text-sm text-slate-300 mb-3">
-            Complete setup to start monitoring your business line and capturing missed calls.
-          </p>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400">Status:</span>
-              <span className="text-white font-medium">
-                {isForwardingActive ? 'Active' : 'Setup'}
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400">Forwarding:</span>
-              <span className="text-white font-medium">
-                {isForwardingActive ? 'Verified' : 'Pending'}
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400">Messaging:</span>
-              <span className="text-white font-medium">
-                {isTextReplyActive ? 'Active' : 'Setup'}
-              </span>
+        {/* Recovery Instructions - Show when not healthy */}
+        {healthStatus !== 'healthy' && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-amber-100 mb-2">Recovery Instructions</h4>
+                <p className="text-xs text-amber-200 mb-2">If calls are not reaching ReplyFlow:</p>
+                <ol className="text-xs text-amber-200 space-y-1 list-decimal list-inside">
+                  <li>Verify your carrier forwarding settings</li>
+                  <li>Confirm the correct ReplyFlow number is configured</li>
+                  <li>Run a test call</li>
+                  <li>Restart your phone if forwarding changes were just made</li>
+                  <li>Contact support if the issue persists</li>
+                </ol>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Core Status Grid */}
@@ -311,17 +248,19 @@ export default function OperationalStatusCard({
         {/* Monitoring Status */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
-            {getStatusIndicator(monitoringStatus)}
+            {getStatusIndicator(healthStatus === 'healthy' ? 'active' : 'needs-attention')}
             <span className="text-xs font-medium text-slate-300">Monitoring</span>
           </div>
           <div className="text-sm text-white">
-            {getStatusText('warning')}
+            {healthStatus === 'healthy' ? 'Active' : 'Needs Attention'}
           </div>
           
           {/* Context for why attention is needed */}
-          {monitoringStatus === 'needs-attention' && (
+          {healthStatus !== 'healthy' && (
             <div className="text-xs text-amber-400 mt-1">
-              {getMonitoringContext()}
+              {!isForwardingActive ? 'Call forwarding needs verification' : 
+               !isTextReplyActive ? 'Text messaging needs activation' : 
+               'System needs attention'}
             </div>
           )}
         </div>
@@ -353,16 +292,16 @@ export default function OperationalStatusCard({
           </div>
         </div>
 
-        {/* Last Lead Activity */}
+        {/* Last Forwarded Call */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-1">
             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
             </svg>
-            <span className="text-xs font-medium text-slate-300">Total Leads</span>
+            <span className="text-xs font-medium text-slate-300">Last Forwarded Call</span>
           </div>
           <div className="text-sm text-white">
-            {isForwardingActive ? 'Active' : 'Setup'}
+            {liveMetrics.lastForwardedCall ? formatRelativeTime(liveMetrics.lastForwardedCall) : 'Never'}
           </div>
         </div>
 
@@ -372,12 +311,77 @@ export default function OperationalStatusCard({
             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
-            <span className="text-xs font-medium text-slate-300">Messaging</span>
+            <span className="text-xs font-medium text-slate-300">Last SMS Sent</span>
           </div>
           <div className="text-sm text-white">
-            {isTextReplyActive ? 'Active' : 'Setup'}
+            {liveMetrics.lastSuccessfulSms ? formatRelativeTime(liveMetrics.lastSuccessfulSms) : 'Never'}
           </div>
         </div>
+      </div>
+
+      {/* Live Metrics Collapsible Section */}
+      <div className="mb-6">
+        <button
+          onClick={() => toggleSection('live-metrics')}
+          className="w-full flex items-center justify-between text-left p-3 bg-slate-800/50 border border-slate-700 rounded-lg hover:bg-slate-800 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4 text-slate-400" />
+            <span className="text-sm font-medium text-slate-300">Live Operational Metrics</span>
+          </div>
+          {expandedSection === 'live-metrics' ? (
+            <ChevronUp className="w-4 h-4 text-slate-400" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-slate-400" />
+          )}
+        </button>
+
+        {expandedSection === 'live-metrics' && (
+          <div className="mt-3 bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-slate-400 block mb-1">ReplyFlow Number Assigned</span>
+                <span className={`font-medium ${business?.twilio_phone_number ? 'text-green-400' : 'text-red-400'}`}>
+                  {business?.twilio_phone_number ? '✓ Yes' : '✗ No'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block mb-1">Twilio Configuration</span>
+                <span className={`font-medium ${business?.twilio_phone_number ? 'text-green-400' : 'text-amber-400'}`}>
+                  {business?.twilio_phone_number ? '✓ Healthy' : '⚠️ Pending'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block mb-1">Forwarding Verified</span>
+                <span className={`font-medium ${isForwardingActive ? 'text-green-400' : 'text-amber-400'}`}>
+                  {isForwardingActive ? '✓ Yes' : '⚠️ No'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block mb-1">Last AI Intake</span>
+                <span className="font-medium text-slate-300">
+                  {liveMetrics.lastAiIntake ? formatRelativeTime(liveMetrics.lastAiIntake) : 'Never'}
+                </span>
+              </div>
+            </div>
+
+            {liveMetrics.deliveryFailures > 0 && (
+              <div className="mt-3 pt-3 border-t border-slate-700">
+                <span className="text-slate-400 text-xs block mb-1">Recent Delivery Failures (24h)</span>
+                <span className={`font-medium ${liveMetrics.deliveryFailures > 5 ? 'text-red-400' : 'text-amber-400'}`}>
+                  {liveMetrics.deliveryFailures} failures
+                </span>
+                {liveMetrics.recentErrors.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {liveMetrics.recentErrors.slice(0, 3).map((error, idx) => (
+                      <p key={idx} className="text-xs text-red-300 truncate">{error}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Trial Status */}
