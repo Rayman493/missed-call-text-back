@@ -1513,8 +1513,8 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Setup Progress - Show only when no leads yet */}
-                    {processedLeads.length === 0 && (
+                    {/* Setup Progress - Show only when no leads yet AND setup is not complete */}
+                    {processedLeads.length === 0 && !isOnboardingComplete && (
                       <SectionErrorBoundary sectionName="SetupProgress">
                         <div className="mb-2 sm:mb-3">
                           <SetupProgress
