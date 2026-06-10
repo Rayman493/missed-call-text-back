@@ -187,11 +187,11 @@ export default function OperationalStatusCard({
   const getHealthIndicator = () => {
     switch (healthStatus) {
       case 'healthy':
-        return { icon: '🟢', text: 'Healthy', color: 'text-green-400', bg: 'bg-green-500/15', border: 'border-green-400/25' }
+        return { icon: <CheckCircle className="w-5 h-5" />, text: 'Healthy', color: 'text-green-400', bg: 'bg-green-500/15', border: 'border-green-400/25' }
       case 'needs-attention':
-        return { icon: '🟡', text: 'Needs Attention', color: 'text-amber-400', bg: 'bg-amber-500/15', border: 'border-amber-400/25' }
+        return { icon: <AlertTriangle className="w-5 h-5" />, text: 'Needs Attention', color: 'text-amber-400', bg: 'bg-amber-500/15', border: 'border-amber-400/25' }
       case 'action-required':
-        return { icon: '🔴', text: 'Action Required', color: 'text-red-400', bg: 'bg-red-500/15', border: 'border-red-400/25' }
+        return { icon: <XCircle className="w-5 h-5" />, text: 'Action Required', color: 'text-red-400', bg: 'bg-red-500/15', border: 'border-red-400/25' }
     }
   }
 
@@ -240,7 +240,7 @@ export default function OperationalStatusCard({
         {/* Status indicators */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-lg">{healthIndicator.icon}</span>
+            <span className={healthIndicator.color}>{healthIndicator.icon}</span>
             <span className={`text-sm font-semibold ${healthIndicator.color}`}>
               {healthStatus === 'healthy' ? 'ReplyFlow is Active' : healthIndicator.text}
             </span>
