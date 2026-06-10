@@ -5,6 +5,7 @@
  */
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { classifyOutcome, OutcomeClassificationInput } from './outcome-classifier'
 
 export interface AICallSession {
   id: string
@@ -13,6 +14,7 @@ export interface AICallSession {
   call_sid: string
   openai_session_id: string | null
   status: 'started' | 'connected' | 'in_conversation' | 'completed' | 'failed' | 'timed_out' | 'fallback_voicemail' | 'caller_hungup'
+  outcome: 'completed_intake' | 'partial_intake' | 'early_hangup' | 'no_speech' | 'ai_connection_failed' | null
   fallback_stage: string | null
   started_at: string
   connected_at: string | null
@@ -40,6 +42,7 @@ export interface CreateSessionParams {
 
 export interface UpdateSessionParams {
   status?: AICallSession['status']
+  outcome?: AICallSession['outcome']
   fallback_stage?: string
   connected_at?: string
   ended_at?: string
@@ -178,8 +181,26 @@ export async function completeAISession(
 ): Promise<AICallSession | null> {
   const duration = await calculateSessionDuration(sessionId)
 
+  // Prepare extracted info for outcome classification
+  const extractedInfo = {
+    callerName: extractedData.caller_name,
+    reasonForCalling: extractedData.reason_for_call,
+    urgencyLevel: extractedData.urgency,
+    callbackNumber: extractedData.callback_number
+  }
+
+  // Classify the outcome based on actual data collected
+  const classification = classifyOutcome({
+    extractedInfo,
+    transcript: transcript ? JSON.parse(transcript) : null,
+    confirmationCompleted: true
+  })
+
+  console.log('[OUTCOME CLASSIFICATION RESULT]', classification)
+
   return updateAISession(sessionId, {
     status: 'completed',
+    outcome: classification.outcome,
     ended_at: new Date().toISOString(),
     duration_seconds: duration || undefined,
     transcript,
@@ -199,8 +220,18 @@ export async function failAISession(
   fallbackStage: string,
   errorMessage?: string
 ): Promise<AICallSession | null> {
+  // Determine outcome based on error type
+  let outcome: AICallSession['outcome'] = 'ai_connection_failed'
+  
+  if (fallbackStage === 'caller_hangup') {
+    outcome = 'early_hangup'
+  } else if (fallbackStage === 'no_speech') {
+    outcome = 'no_speech'
+  }
+
   return updateAISession(sessionId, {
     status: 'fallback_voicemail',
+    outcome,
     fallback_stage: fallbackStage,
     ended_at: new Date().toISOString(),
     error_message: errorMessage,

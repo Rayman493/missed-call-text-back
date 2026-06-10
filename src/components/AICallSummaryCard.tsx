@@ -204,6 +204,9 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
   const extractedInfo = normalizeExtractedInfo(aiCallRecord.extracted_info || {})
 
+  // Check if outcome is early_hangup or no_speech
+  const isNoIntakeOutcome = aiCallRecord.outcome === 'early_hangup' || aiCallRecord.outcome === 'no_speech'
+
   return (
     <div className="bg-card border border-border rounded-xl p-4">
       <div className="flex items-center justify-between mb-4">
@@ -225,8 +228,20 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
           <span className="text-sm text-foreground">{formatRelativeTime(aiCallRecord.created_at)}</span>
         </div>
 
+        {/* No Intake Information Message for early_hangup and no_speech */}
+        {isNoIntakeOutcome && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+            <p className="text-sm text-amber-900 dark:text-amber-100 font-medium">
+              No intake information captured.
+            </p>
+            <p className="text-xs text-amber-800 dark:text-amber-200 mt-1">
+              The caller disconnected before providing any useful information. A recovery text message was sent automatically.
+            </p>
+          </div>
+        )}
+
         {/* Extraction Failed Notice */}
-        {aiCallRecord.extraction_failed && (
+        {!isNoIntakeOutcome && aiCallRecord.extraction_failed && (
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2">
             <p className="text-xs text-amber-800 dark:text-amber-200">
               AI call completed, but structured extraction failed.
@@ -234,37 +249,37 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
           </div>
         )}
 
-        {/* Extracted Information */}
-        {!aiCallRecord.extraction_failed && extractedInfo && (
+        {/* Extracted Information - only show for non-no-intake outcomes */}
+        {!isNoIntakeOutcome && !aiCallRecord.extraction_failed && extractedInfo && (
           <>
-            {/* Caller Name */}
-            {extractedInfo.callerName && (
+            {/* Caller Name - only show if not a placeholder */}
+            {extractedInfo.callerName && !isPlaceholderValue(extractedInfo.callerName) && (
               <div className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">Name</span>
                 </div>
-                <span className={`text-sm font-medium ${isPlaceholderValue(extractedInfo.callerName) ? 'text-muted-foreground italic' : 'text-foreground'}`}>
+                <span className="text-sm font-medium text-foreground">
                   {extractedInfo.callerName}
                 </span>
               </div>
             )}
 
-            {/* Reason for Calling */}
-            {extractedInfo.reasonForCalling && (
+            {/* Reason for Calling - only show if not a placeholder */}
+            {extractedInfo.reasonForCalling && !isPlaceholderValue(extractedInfo.reasonForCalling) && (
               <div className="py-2">
                 <div className="flex items-center gap-2 mb-1">
                   <Briefcase className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">Reason</span>
                 </div>
-                <p className={`text-sm mt-1 line-clamp-2 pl-6 ${isPlaceholderValue(extractedInfo.reasonForCalling) ? 'text-muted-foreground italic' : 'text-foreground'}`}>
+                <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground">
                   {extractedInfo.reasonForCalling}
                 </p>
               </div>
             )}
 
-            {/* Urgency Level */}
-            {extractedInfo.urgencyLevel && (
+            {/* Urgency Level - only show if not a placeholder */}
+            {extractedInfo.urgencyLevel && !isPlaceholderValue(extractedInfo.urgencyLevel) && (
               <div className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-2">
                   <TriangleAlert className="w-4 h-4 text-muted-foreground" />
@@ -276,40 +291,40 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
               </div>
             )}
 
-            {/* Address/Location */}
-            {extractedInfo.addressOrLocation && (
+            {/* Address/Location - only show if not a placeholder */}
+            {extractedInfo.addressOrLocation && !isPlaceholderValue(extractedInfo.addressOrLocation) && (
               <div className="py-2">
                 <div className="flex items-center gap-2 mb-1">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">Location</span>
                 </div>
-                <p className={`text-sm mt-1 line-clamp-2 pl-6 ${isPlaceholderValue(extractedInfo.addressOrLocation) ? 'text-muted-foreground italic' : 'text-foreground'}`}>
+                <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground">
                   {extractedInfo.addressOrLocation}
                 </p>
               </div>
             )}
 
-            {/* Preferred Callback Time */}
-            {extractedInfo.preferredCallbackTime && (
+            {/* Preferred Callback Time - only show if not a placeholder */}
+            {extractedInfo.preferredCallbackTime && !isPlaceholderValue(extractedInfo.preferredCallbackTime) && (
               <div className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">Callback Time</span>
                 </div>
-                <span className={`text-sm ${isPlaceholderValue(extractedInfo.preferredCallbackTime) ? 'text-muted-foreground italic' : 'text-foreground'}`}>
+                <span className="text-sm text-foreground">
                   {extractedInfo.preferredCallbackTime}
                 </span>
               </div>
             )}
 
-            {/* Important Details */}
-            {extractedInfo.importantDetails && (
+            {/* Important Details - only show if not a placeholder */}
+            {extractedInfo.importantDetails && !isPlaceholderValue(extractedInfo.importantDetails) && (
               <div className="py-2">
                 <div className="flex items-center gap-2 mb-1">
                   <FileText className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">Project Details</span>
                 </div>
-                <p className={`text-sm mt-1 line-clamp-2 pl-6 ${isPlaceholderValue(extractedInfo.importantDetails) ? 'text-muted-foreground italic' : 'text-foreground'}`}>
+                <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground">
                   {extractedInfo.importantDetails}
                 </p>
               </div>
