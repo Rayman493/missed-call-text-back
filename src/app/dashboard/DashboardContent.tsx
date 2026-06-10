@@ -1513,6 +1513,18 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
+                    {/* Setup Progress - Show only when no leads yet */}
+                    {processedLeads.length === 0 && (
+                      <SectionErrorBoundary sectionName="SetupProgress">
+                        <div className="mb-2 sm:mb-3">
+                          <SetupProgress
+                            missedCallCount={missedCallCount}
+                            setupHealth={setupHealth}
+                          />
+                        </div>
+                      </SectionErrorBoundary>
+                    )}
+
                     {/* Dashboard Metrics - Priority 1 */}
                     <SectionErrorBoundary sectionName="DashboardMetrics">
                       <div className="mb-2 sm:mb-4 transition-opacity duration-300">
