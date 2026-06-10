@@ -898,8 +898,8 @@ export default function DashboardContent() {
   })
 
   if (businessFetchComplete && !businessLoading && business && !isAdmin) {
-    // If setup is incomplete, route to the correct next step
-    // NOTE: All onboarding now routes through canonical /setup/forwarding
+    // If setup is incomplete, stay on dashboard and show Setup Gate
+    // All onboarding now lives in the dashboard - no redirects to separate setup pages
     if (!isSetupComplete) {
       const targetRoute = (() => {
         switch (setupState) {
@@ -921,17 +921,38 @@ export default function DashboardContent() {
             })
             return null  // Stay on dashboard, show billing prompt
           case 'provisioning_or_number_pending':
-            // Route to canonical forwarding setup (will handle provisioning state)
-            return '/setup/forwarding'
+            // Stay on dashboard, show provisioning status
+            console.log('[DASHBOARD GATE DECISION]', {
+              businessId: business?.id,
+              setupState,
+              redirectTarget: '/dashboard',
+              reason: 'Provisioning in progress - stay on dashboard'
+            })
+            return null  // Stay on dashboard
           case 'needs_forwarding':
-            return '/setup/forwarding'
+            // Stay on dashboard, show Setup Gate
+            console.log('[DASHBOARD GATE DECISION]', {
+              businessId: business?.id,
+              setupState,
+              redirectTarget: '/dashboard',
+              reason: 'Forwarding needed - stay on dashboard and show Setup Gate'
+            })
+            return null  // Stay on dashboard
           case 'needs_final_test':
-            return '/dashboard/test-setup'
+            // Stay on dashboard, show test call section in Setup Gate
+            console.log('[DASHBOARD GATE DECISION]', {
+              businessId: business?.id,
+              setupState,
+              redirectTarget: '/dashboard',
+              reason: 'Test needed - stay on dashboard and show test section'
+            })
+            return null  // Stay on dashboard
           default:
             return null
         }
       })()
 
+      // No redirects - all setup happens in dashboard
       if (targetRoute && targetRoute !== pathname) {
         console.log('[DASHBOARD GATE DECISION]', {
           businessId: business?.id,
