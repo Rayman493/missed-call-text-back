@@ -276,18 +276,31 @@ export async function POST(request: NextRequest) {
       .from('messages')
       .select('id, created_at')
       .eq('conversation_id', conversationId)
-      .ilike('message_body', 'Hi, this is%')
+      .ilike('body', 'Hi, this is%')
       .gte('created_at', fiveMinutesAgo)
+      .limit(1)
       .maybeSingle()
 
     if (checkError && checkError.code !== 'PGRST116') {
-      console.error('[AI CONFIRMATION SMS DB ERROR]', {
+      console.error('[AI CONFIRMATION SMS DUPLICATE CHECK ERROR]', {
         operation: 'duplicate check select',
+        selected_columns: ['id', 'created_at'],
+        filters: {
+          conversation_id: conversationId,
+          body_pattern: 'Hi, this is%',
+          created_at: `>= ${fiveMinutesAgo}`
+        },
         code: checkError.code,
         message: checkError.message,
         details: checkError.details,
         hint: checkError.hint
       })
+      // Make duplicate-check failure non-fatal - continue with send
+      console.log('[AI CONFIRMATION SMS DUPLICATE CHECK] Continuing despite duplicate check error')
+    } else if (checkError) {
+      console.log('[AI CONFIRMATION SMS DUPLICATE CHECK] No results (PGRST116)')
+    } else {
+      console.log('[AI CONFIRMATION SMS DUPLICATE CHECK] Query successful')
     }
 
     if (existingMessage) {

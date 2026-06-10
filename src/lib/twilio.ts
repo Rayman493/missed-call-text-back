@@ -64,7 +64,6 @@ export async function sendSms(
       .from('messages')
       .select('id, created_at, body')
       .eq('lead_id', options.lead_id)
-      .eq('direction', 'outbound')
       .eq('body', message)
       .gte('created_at', fiveMinutesAgo)
       .limit(1)
