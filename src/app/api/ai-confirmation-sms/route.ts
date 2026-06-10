@@ -98,9 +98,10 @@ export async function POST(request: NextRequest) {
       conversationId,
       callSid,
       callerPhone,
-      businessName,
-      extractedInfo
+      businessName
     } = body
+
+    let extractedInfo = body.extractedInfo
 
     console.log('[AI POST CALL SMS LEAD ID]', { leadId })
     console.log('[AI POST CALL SMS CONVERSATION ID]', { conversationId })
