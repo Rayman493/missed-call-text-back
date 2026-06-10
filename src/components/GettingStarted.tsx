@@ -708,6 +708,11 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const complete = isFullyComplete
   const isOnTestStep = currentOnboardingState === 'testing_needed'
 
+  // Hide the entire onboarding card if onboarding is complete or if the business has captured at least one lead
+  if (isOnboardingComplete || missedCallCount > 0) {
+    return null
+  }
+
   // Show loading state while onboarding state is resolving
   if (currentOnboardingState === 'loading') {
     return (
