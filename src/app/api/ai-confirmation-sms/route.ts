@@ -276,7 +276,7 @@ export async function POST(request: NextRequest) {
       .from('messages')
       .select('id, created_at')
       .eq('conversation_id', conversationId)
-      .like('content', 'Hi, this is%')
+      .ilike('message_body', 'Hi, this is%')
       .gte('created_at', fiveMinutesAgo)
       .maybeSingle()
 
