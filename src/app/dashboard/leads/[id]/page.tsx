@@ -359,6 +359,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }, [leadData?.messages, supabase])
 
   // Merge messages by ID to prevent overwriting local state with stale data
+  // Always re-sort by chronological timestamp with tie-breakers
   const mergeMessagesById = (existingMessages: any[], newMessages: any[]) => {
     const messageMap = new Map()
     
@@ -375,9 +376,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const merged = Array.from(messageMap.values())
     console.log('[Merge] Final merged messages count:', merged.length)
     
-    return merged.sort((a: any, b: any) => 
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    )
+    // Sort by created_at ascending, then inbound before outbound if same timestamp, then id ascending
+    return merged.sort((a: any, b: any) => {
+      const timeDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      if (timeDiff !== 0) return timeDiff
+      
+      // Tie-breaker: inbound before outbound if same timestamp
+      if (a.direction === 'inbound' && b.direction === 'outbound') return -1
+      if (a.direction === 'outbound' && b.direction === 'inbound') return 1
+      
+      // Final tie-breaker: id ascending
+      return a.id.localeCompare(b.id)
+    })
   }
 
   // Combine real messages with optimistic message, but avoid duplicates and maintain stable ordering

@@ -387,6 +387,127 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     })
   }
 
+  // CRITICAL: Insert inbound customer message BEFORE any correction detection
+  // This ensures inbound message has earlier created_at than outbound acknowledgement
+  console.log('[INBOUND MESSAGE INSERT BEFORE CORRECTION]', {
+    leadId: lead.id,
+    conversationId: conversation.id,
+    fromPhone: normalizedCustomerPhone,
+    toPhone: to
+  })
+
+  const sanitizedBody = sanitizeMessageContent(body)
+  
+  // Determine message type and media count
+  const hasMedia = media && media.length > 0
+  const hasText = sanitizedBody && sanitizedBody.trim().length > 0
+  const message_type = hasMedia && hasText ? 'mixed' : (hasMedia ? 'image' : 'text')
+  const media_count = hasMedia ? media.length : 0
+  
+  console.log('[INBOUND MMS RECEIVED]', {
+    hasMedia,
+    media_count,
+    hasText,
+    message_type,
+    leadId: lead.id
+  })
+  
+  const inboundMessage = await db.createMessageWithConversation({
+    lead_id: lead.id,
+    conversation_id: conversation.id,
+    direction: 'inbound',
+    body: sanitizedBody,
+    from_phone: normalizedCustomerPhone,
+    to_phone: to,
+    twilio_message_sid: messageSid,
+    status: 'received',
+    message_type,
+    media_count,
+    created_at: new Date().toISOString(),
+  })
+  
+  if (!inboundMessage) {
+    console.error('[INBOUND SMS ERROR]', {
+      error: 'Failed to save message',
+      leadId: lead.id,
+      conversationId: conversation.id
+    })
+  } else {
+    console.log('[INBOUND MESSAGE INSERTED BEFORE CORRECTION]', {
+      messageId: inboundMessage.id,
+      leadId: lead.id,
+      conversationId: conversation.id,
+      created_at: inboundMessage.created_at,
+      body: sanitizedBody.substring(0, 50)
+    })
+    
+    // Store media attachments if present
+    if (media && media.length > 0) {
+      console.log(`[INBOUND MMS MEDIA DETECTED] Storing ${media.length} media attachments for message: ${inboundMessage.id}`)
+      console.log(`[INBOUND MMS MEDIA DETECTED] Lead ID: ${lead.id}`)
+      console.log('[INBOUND MMS STORAGE START]', {
+        messageId: inboundMessage.id,
+        mediaCount: media.length
+      })
+      
+      try {
+        for (const mediaItem of media) {
+          try {
+            console.log(`[INBOUND MMS STORING] message_id=${inboundMessage.id}, type=${mediaItem.contentType}`)
+            
+            // Download media from Twilio and store in Supabase Storage
+            const supabaseUrl = await downloadAndStoreMedia(mediaItem.url, inboundMessage.id, media.indexOf(mediaItem))
+            
+            // Use Supabase URL if download succeeded, otherwise fall back to Twilio URL
+            const finalMediaUrl = supabaseUrl || mediaItem.url
+            
+            console.log(`[INBOUND MMS URL CHOICE]`, { 
+              messageId: inboundMessage.id,
+              supabaseUrl: supabaseUrl ? 'YES' : 'NO',
+              finalUrl: finalMediaUrl.substring(0, 50) + '...'
+            })
+            
+            const { error: mediaError } = await supabaseAdmin
+              .from('message_media')
+              .insert({
+                message_id: inboundMessage.id,
+                media_url: finalMediaUrl,
+                mime_type: mediaItem.contentType,
+                created_at: new Date().toISOString(),
+              })
+            
+            if (mediaError) {
+              console.error(`[INBOUND MMS ERROR] Insert failure:`, mediaError)
+              // Check if table doesn't exist
+              if (mediaError.message.includes('does not exist') || mediaError.code === '42P01') {
+                console.error('[INBOUND MMS ERROR] message_media table does not exist. Please run migration.')
+              }
+            } else {
+              console.log(`[INBOUND MMS STORED] type=${mediaItem.contentType}, url_type=${supabaseUrl ? 'supabase' : 'twilio'}`)
+            }
+          } catch (error: any) {
+            console.error(`[INBOUND MMS ERROR] Insert exception:`, error)
+            // Check if table doesn't exist
+            if (error.message?.includes('does not exist') || error.code === '42P01') {
+              console.error('[INBOUND MMS ERROR] message_media table does not exist. Please run migration.')
+            }
+            // Continue with other media even if one fails
+          }
+        }
+        console.log(`[INBOUND MMS STORED] Media storage complete for message: ${inboundMessage.id}`)
+        console.log('[INBOUND MMS STORAGE SUCCESS]', {
+          messageId: inboundMessage.id,
+          mediaCount: media.length
+        })
+      } catch (error: any) {
+        console.error('[INBOUND MMS ERROR] Error during media storage:', error)
+        // Don't fail the entire message if media storage fails
+      }
+    } else {
+      console.log(`[INBOUND MMS] No media attachments for message: ${inboundMessage.id}`)
+    }
+  }
+
   // Look for AI call record for this lead (needed for correction updates)
   console.log('[INBOUND SMS AI CALL RECORD LOOKUP START]', {
     businessId: business.id,
@@ -650,6 +771,14 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
               })
 
               if (messageSid) {
+                console.log('[CORRECTION ACK SEND AFTER INBOUND INSERT]', {
+                  leadId: leadWithCorrection.id,
+                  messageSid,
+                  fieldChanged: correctionResult.fieldChanged,
+                  newValue: correctionResult.newValue,
+                  inboundMessageId: inboundMessage?.id,
+                  inboundCreatedAt: inboundMessage?.created_at
+                })
                 console.log('[CORRECTION ACKNOWLEDGEMENT SMS SUCCESS]', {
                   leadId: leadWithCorrection.id,
                   messageSid,
@@ -946,146 +1075,30 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   // This ensures correct message ordering - inbound message always has earlier created_at than outbound acknowledgement
   // At this point, conversation is guaranteed to exist
   // Save inbound message linked to conversation
-  console.log('[INBOUND SMS MESSAGE INSERT START]', {
-    leadId: lead.id,
-    conversationId: conversation.id,
-    fromPhone: normalizedCustomerPhone,
-    toPhone: to
-  })
-  const sanitizedBody = sanitizeMessageContent(body)
-  
-  // Determine message type and media count
-  const hasMedia = media && media.length > 0
-  const hasText = sanitizedBody && sanitizedBody.trim().length > 0
-  const message_type = hasMedia && hasText ? 'mixed' : (hasMedia ? 'image' : 'text')
-  const media_count = hasMedia ? media.length : 0
-  
-  console.log('[INBOUND MMS RECEIVED]', {
-    hasMedia,
-    media_count,
-    hasText,
-    message_type,
-    leadId: lead.id
-  })
-  
-  const inboundMessage = await db.createMessageWithConversation({
-    lead_id: lead.id,
-    conversation_id: conversation.id,
-    direction: 'inbound',
-    body: sanitizedBody,
-    from_phone: normalizedCustomerPhone,
-    to_phone: to,
-    twilio_message_sid: messageSid,
-    status: 'received',
-    message_type,
-    media_count,
-    created_at: new Date().toISOString(),
-  })
-  
-  if (!inboundMessage) {
-    console.error('[INBOUND SMS ERROR]', {
-      error: 'Failed to save message',
+  // Create notification for customer reply
+  try {
+    console.log('[NOTIFICATION CREATE ATTEMPT]', { 
+      businessId: business.id, 
+      type: 'customer_reply', 
       leadId: lead.id,
-      conversationId: conversation.id
-    })
-  } else {
-    console.log('[INBOUND SMS MESSAGE INSERT SUCCESS]', {
-      messageId: inboundMessage.id,
-      leadId: lead.id,
-      conversationId: conversation.id,
-      created_at: inboundMessage.created_at
-    })
+      messageId: inboundMessage.id
+    });
     
-    // Store media attachments if present
-    if (media && media.length > 0) {
-      console.log(`[INBOUND MMS MEDIA DETECTED] Storing ${media.length} media attachments for message: ${inboundMessage.id}`)
-      console.log(`[INBOUND MMS MEDIA DETECTED] Lead ID: ${lead.id}`)
-      console.log('[INBOUND MMS STORAGE START]', {
-        messageId: inboundMessage.id,
-        mediaCount: media.length
-      })
-      
-      try {
-        for (const mediaItem of media) {
-          try {
-            console.log(`[INBOUND MMS STORING] message_id=${inboundMessage.id}, type=${mediaItem.contentType}`)
-            
-            // Download media from Twilio and store in Supabase Storage
-            const supabaseUrl = await downloadAndStoreMedia(mediaItem.url, inboundMessage.id, media.indexOf(mediaItem))
-            
-            // Use Supabase URL if download succeeded, otherwise fall back to Twilio URL
-            const finalMediaUrl = supabaseUrl || mediaItem.url
-            
-            console.log(`[INBOUND MMS URL CHOICE]`, { 
-              messageId: inboundMessage.id,
-              supabaseUrl: supabaseUrl ? 'YES' : 'NO',
-              finalUrl: finalMediaUrl.substring(0, 50) + '...'
-            })
-            
-            const { error: mediaError } = await supabaseAdmin
-              .from('message_media')
-              .insert({
-                message_id: inboundMessage.id,
-                media_url: finalMediaUrl,
-                mime_type: mediaItem.contentType,
-                created_at: new Date().toISOString(),
-              })
-            
-            if (mediaError) {
-              console.error(`[INBOUND MMS ERROR] Insert failure:`, mediaError)
-              // Check if table doesn't exist
-              if (mediaError.message.includes('does not exist') || mediaError.code === '42P01') {
-                console.error('[INBOUND MMS ERROR] message_media table does not exist. Please run migration.')
-              }
-            } else {
-              console.log(`[INBOUND MMS STORED] type=${mediaItem.contentType}, url_type=${supabaseUrl ? 'supabase' : 'twilio'}`)
-            }
-          } catch (error: any) {
-            console.error(`[INBOUND MMS ERROR] Insert exception:`, error)
-            // Check if table doesn't exist
-            if (error.message?.includes('does not exist') || error.code === '42P01') {
-              console.error('[INBOUND MMS ERROR] message_media table does not exist. Please run migration.')
-            }
-            // Continue with other media even if one fails
-          }
-        }
-        console.log(`[INBOUND MMS STORED] Media storage complete for message: ${inboundMessage.id}`)
-        console.log('[INBOUND MMS STORAGE SUCCESS]', {
-          messageId: inboundMessage.id,
-          mediaCount: media.length
-        })
-      } catch (error: any) {
-        console.error('[INBOUND MMS ERROR] Error during media storage:', error)
-        // Don't fail the entire message if media storage fails
-      }
+    // Get lead name from raw_metadata if available
+    const leadName = lead.raw_metadata?.caller_name || lead.caller_phone || 'Customer';
+    
+    // Determine message text for notification
+    let notificationMessage = sanitizedBody;
+    if (!sanitizedBody || sanitizedBody.trim() === '') {
+      notificationMessage = 'sent a photo';
     } else {
-      console.log(`[INBOUND MMS] No media attachments for message: ${inboundMessage.id}`)
+      // Truncate long messages
+      notificationMessage = sanitizedBody.length > 60 
+        ? sanitizedBody.substring(0, 60) + '...'
+        : sanitizedBody;
     }
     
-    // Create notification for customer reply
-    try {
-      console.log('[NOTIFICATION CREATE ATTEMPT]', { 
-        businessId: business.id, 
-        type: 'customer_reply', 
-        leadId: lead.id,
-        messageId: inboundMessage.id
-      });
-      
-      // Get lead name from raw_metadata if available
-      const leadName = lead.raw_metadata?.caller_name || lead.caller_phone || 'Customer';
-      
-      // Determine message text for notification
-      let notificationMessage = sanitizedBody;
-      if (!sanitizedBody || sanitizedBody.trim() === '') {
-        notificationMessage = 'sent a photo';
-      } else {
-        // Truncate long messages
-        notificationMessage = sanitizedBody.length > 60 
-          ? sanitizedBody.substring(0, 60) + '...'
-          : sanitizedBody;
-      }
-      
-      const notificationSuccess = await notificationServiceServer.notifyCustomerReply(
+    const notificationSuccess = await notificationServiceServer.notifyCustomerReply(
         business.id,
         leadName,
         notificationMessage,
