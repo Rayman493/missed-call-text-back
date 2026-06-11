@@ -1781,7 +1781,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
-              ) : messagesArray.length === 0 ? (
+              ) : conversationTimeline.length === 0 ? (
                 <div className="text-center py-8 sm:py-12 animate-fadeIn">
                   <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
                     <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1792,40 +1792,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">Send a message to start the conversation with this customer.</p>
                 </div>
               ) : (
-                <div className="space-y-3 sm:space-y-4">
-                  {messagesArray.map((message: any, index: number) => {
-                    const isLatest = index === messagesArray.length - 1
-                    const media = messageMedia[message.id]
-                    
-                    return (
-                      <div
-                        key={message.id}
-                        ref={isLatest ? latestMessageRef : null}
-                        className={`flex ${message.direction === 'inbound' ? 'justify-start' : 'justify-end'} animate-fadeIn`}
-                      >
-                        <div className={`max-w-[85%] sm:max-w-[75%] ${message.direction === 'inbound' ? 'bg-slate-100 dark:bg-slate-800' : 'bg-blue-600'} rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 shadow-sm`}>
-                          {message.body && (
-                            <p className={`text-xs sm:text-sm ${message.direction === 'inbound' ? 'text-slate-900 dark:text-white' : 'text-white'}`}>{message.body}</p>
-                          )}
-                          {media && media.urls.length > 0 && (
-                            <ImageMessage 
-                              mediaUrls={media.urls} 
-                              mediaTypes={media.types} 
-                              onImageLoad={() => {
-                                scrollToBottom('smooth', true)
-                              }}
-                            />
-                          )}
-                          <p className={`text-[10px] sm:text-xs mt-0.5 sm:mt-1 ${message.direction === 'inbound' ? 'text-slate-500 dark:text-slate-400' : 'text-blue-100'}`}>
-                            {formatRelativeTime(message.created_at)}
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {/* Bottom sentinel for scroll targeting */}
-                  <div ref={bottomSentinelRef} className="h-1" />
-                </div>
+                <DesktopConversationMessageList
+                  messagesArray={messagesArray}
+                  conversationTimeline={conversationTimeline}
+                  sending={sending}
+                  handleRetry={handleRetry}
+                  getErrorMessage={getErrorMessage}
+                  onImageLoad={() => scrollToBottom('smooth', true)}
+                />
               )}
             </div>
 
@@ -2096,7 +2070,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
-            ) : messagesArray.length === 0 ? (
+            ) : conversationTimeline.length === 0 ? (
               <div className="text-center py-8 sm:py-12 animate-fadeIn">
                 <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
                   <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2107,27 +2081,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">Send a message to start the conversation with this customer.</p>
               </div>
             ) : (
-              <div className="space-y-4 sm:space-y-6">
-                {messagesArray.map((message: any, index: number) => {
-                  const isLatest = index === messagesArray.length - 1
-                  return (
-                    <div
-                      key={message.id}
-                      ref={isLatest ? latestMessageRef : null}
-                      className={`flex ${message.direction === 'inbound' ? 'justify-start' : 'justify-end'} animate-fadeIn`}
-                    >
-                      <div className={`max-w-[85%] sm:max-w-[75%] ${message.direction === 'inbound' ? 'bg-slate-100 dark:bg-slate-800' : 'bg-blue-600'} rounded-2xl px-4 py-3 shadow-sm`}>
-                        <p className={`text-sm sm:text-base ${message.direction === 'inbound' ? 'text-slate-900 dark:text-white' : 'text-white'}`}>{message.body}</p>
-                        <p className={`text-xs mt-1 ${message.direction === 'inbound' ? 'text-slate-500 dark:text-slate-400' : 'text-blue-100'}`}>
-                          {formatRelativeTime(message.created_at)}
-                        </p>
-                      </div>
-                    </div>
-                  )
-                })}
-                {/* Bottom sentinel for scroll targeting */}
-                <div ref={bottomSentinelRef} className="h-1" />
-              </div>
+              <MobileConversationMessageList
+                messagesArray={messagesArray}
+                conversationTimeline={conversationTimeline}
+                sending={sending}
+                handleRetry={handleRetry}
+                getErrorMessage={getErrorMessage}
+              />
             )}
           </div>
           

@@ -635,11 +635,24 @@ export async function POST(request: NextRequest) {
     // Phase 1A POC: Direct TwiML return (routes to Fly.io)
     // This is a minimal, safe check that does NOT affect production customers
     console.log('[AI CALL ASSISTANT] Checking if AI should handle this call');
+    console.log('[AI ROUTING GUARD CHECK] Starting guard checks', {
+      businessId: business.id,
+      ai_assistant_enabled: business.ai_assistant_enabled,
+      onboarding_status: business.onboarding_status,
+      provisioning_status: business.provisioning_status,
+      forwarding_verified: business.forwarding_verified,
+      env_AI_CALL_ASSISTANT_ENABLED: process.env.AI_CALL_ASSISTANT_ENABLED,
+      env_NEXT_PUBLIC_AI_CALL_ASSISTANT_ENABLED: process.env.NEXT_PUBLIC_AI_CALL_ASSISTANT_ENABLED,
+      env_AI_ASSISTANT_USE_POC: process.env.AI_ASSISTANT_USE_POC,
+      env_AI_VOICE_FLY_WS_URL: process.env.AI_VOICE_FLY_WS_URL ? 'configured' : 'missing',
+      env_OPENAI_API_KEY: process.env.OPENAI_API_KEY ? 'configured' : 'missing'
+    });
+
     const guardResult = checkAllGuards(business.id, business);
     const usePOC = process.env.AI_ASSISTANT_USE_POC === 'true';
-    
+
     let aiRoutingSucceeded = false;
-    
+
     console.log('[MAIN VOICE MODE DECISION]', {
       aiVoiceEnabled: guardResult.passed,
       useAiVoice: usePOC,
@@ -653,6 +666,14 @@ export async function POST(request: NextRequest) {
       isForwardedCall,
       guardReason: guardResult.reason
     });
+
+    if (!guardResult.passed) {
+      console.log('[AI ROUTING FAILED] Guards did not pass - using voicemail fallback', {
+        guardReason: guardResult.reason,
+        businessId: business.id,
+        callSid: CallSid
+      });
+    }
     
     if (guardResult.passed) {
       console.log('[AI CALL ASSISTANT] All guards passed', {
@@ -1419,13 +1440,29 @@ export async function POST(request: NextRequest) {
         callerPhone: From,
         timestamp: new Date().toISOString()
       })
-      console.log('[MISSED CALL TIMING] SMS scheduled for voicemail completion', {
+      console.log('[MISSED CALL TIMING] Setting sms_pending=true on call_events for voicemail callback', {
         businessId: business.id,
         callSid: CallSid,
         leadId: lead.id,
         callerPhone: From,
         timestamp: new Date().toISOString()
       });
+
+      // CRITICAL: Set sms_pending flag on call_events so voicemail callback knows to send SMS
+      try {
+        await supabaseAdmin
+          .from('call_events')
+          .update({ sms_pending: true })
+          .eq('twilio_call_sid', CallSid);
+
+        console.log('[MISSED CALL TIMING] sms_pending flag set successfully on call_events', {
+          callSid: CallSid,
+          leadId: lead.id
+        });
+      } catch (smsPendingError) {
+        console.error('[MISSED CALL TIMING] Failed to set sms_pending flag:', smsPendingError);
+        // Continue anyway - don't block call intake
+      }
     } else {
       console.log('[MISSED CALL TIMING] SMS not scheduled - conditions not met:', {
         shouldSendSms,

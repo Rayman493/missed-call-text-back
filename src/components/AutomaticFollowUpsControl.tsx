@@ -38,11 +38,42 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, leadDa
 
   // Check if auto reply was sent (step 1 job with status 'sent')
   const autoReplySent = followUpJobs.some((job) => job.step === 1 && job.status === 'sent')
-  
+
   // Check if customer replied (direct check for inbound messages)
   const customerReplied = leadData?.messages?.some(
     (message: any) => message.direction === 'inbound'
   ) ?? false
+
+  // Determine automation status with more granular states
+  const getAutomationStatus = () => {
+    if (followUpJobs.length === 0) {
+      return { label: 'Not Configured', variant: 'neutral' as const }
+    }
+
+    if (allCancelledAfterReply) {
+      return { label: 'Customer Replied', variant: 'success' as const }
+    }
+
+    if (hasAnyActiveJobs) {
+      return { label: 'Active', variant: 'success' as const }
+    }
+
+    if (autoReplySent) {
+      return { label: 'SMS Sent', variant: 'success' as const }
+    }
+
+    if (cancelledJobs.length === followUpJobs.length) {
+      return { label: 'Cancelled', variant: 'neutral' as const }
+    }
+
+    if (sentJobs.length > 0) {
+      return { label: 'Complete', variant: 'success' as const }
+    }
+
+    return { label: 'Inactive', variant: 'neutral' as const }
+  }
+
+  const automationStatus = getAutomationStatus()
 
   const handleSendFollowUp = async (jobId: string) => {
     setLoading(true)
@@ -139,18 +170,12 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, leadDa
       <div className="flex items-center gap-3 mb-4">
         <span className="text-xs text-muted-foreground">Automation Status</span>
         <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-          hasAnyActiveJobs
+          automationStatus.variant === 'success'
             ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-100 dark:border-green-800/30'
             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
         }`}>
-          {hasAnyActiveJobs ? 'Active' : 'Inactive'}
+          {automationStatus.label}
         </span>
-        {autoReplySent && (
-          <>
-            <span>•</span>
-            <span className="text-xs text-muted-foreground">Auto Reply Sent</span>
-          </>
-        )}
       </div>
 
       {/* Compact Follow-Up Jobs */}

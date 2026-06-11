@@ -440,10 +440,11 @@ export async function POST(request: NextRequest) {
     }
 
     // MISSED CALL TIMING: Check if SMS needs to be sent after voicemail completion
-    console.log('[MISSED CALL TIMING] voicemail completed', {
+    console.log('[VOICEMAIL SMS] Checking if initial SMS should be sent', {
       businessId: business.id,
       callSid: callSid,
       recordingSid: recordingSid,
+      leadId: lead.id,
       timestamp: new Date().toISOString()
     });
 
@@ -456,14 +457,27 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!callEventError && callEvent) {
-      console.log('[MISSED CALL TIMING] Processing pending SMS from voice webhook');
+      console.log('[VOICEMAIL SMS] sms_pending flag found - sending initial missed-call SMS', {
+        callSid: callSid,
+        leadId: lead.id,
+        businessId: business.id
+      });
       
       // Prevent duplicate SMS by checking if already sent
       if (callEvent.sms_sent_at) {
-        console.log('[MISSED CALL TIMING] SMS already sent for this call, skipping');
+        console.log('[VOICEMAIL SMS] Skipped - SMS already sent for this call', {
+          callSid: callSid,
+          smsSentAt: callEvent.sms_sent_at
+        });
       } else {
         // Send the delayed SMS
         try {
+          console.log('[VOICEMAIL SMS] Sending initial missed-call SMS', {
+            to: from,
+            leadId: lead.id,
+            businessId: business.id
+          });
+
           // Get business details for SMS sending
           const { data: businessDetails } = await supabaseAdmin
             .from('businesses')
@@ -471,61 +485,80 @@ export async function POST(request: NextRequest) {
             .eq('id', business.id)
             .single();
 
-          if (businessDetails) {
-            // Ensure conversation exists
-            let conversation = await db.getOpenConversationForLead(lead.id, business.id);
-            
-            if (!conversation) {
-              conversation = await db.createConversation({
-                lead_id: lead.id,
-                business_id: business.id,
-                status: 'open',
-                source: 'missed_call',
-                started_at: new Date().toISOString(),
-                last_activity_at: new Date().toISOString(),
-              });
-            }
+          if (!businessDetails) {
+            console.error('[VOICEMAIL SMS] Failed to fetch business details for SMS sending');
+            return;
+          }
 
-            // Prepare SMS message
-            let messageToSend: string;
-            
-            if (businessDetails.auto_reply_message && businessDetails.auto_reply_message.trim()) {
-              messageToSend = businessDetails.auto_reply_message;
-            } else {
-              messageToSend = `Hi, this is {{business_name}}. We received your call and will get back to you shortly. You can also reply to this text with any additional details. Reply STOP to opt out.`;
-            }
+          console.log('[VOICEMAIL SMS] Business details fetched', {
+            businessId: businessDetails.id,
+            twilioPhoneNumber: businessDetails.twilio_phone_number,
+            messagingServiceSid: businessDetails.twilio_messaging_service_sid,
+            hasAutoReply: !!businessDetails.auto_reply_message
+          });
 
-            const personalizedMessage = messageToSend.replace('{{business_name}}', businessDetails.name || 'My Business');
+          // Ensure conversation exists
+          let conversation = await db.getOpenConversationForLead(lead.id, business.id);
 
-            console.log('[MISSED CALL TIMING] Sending delayed SMS:', {
-              to: from,
-              leadId: lead.id,
-              conversationId: conversation?.id,
-              businessId: business.id
-            });
-
-            // Send SMS
-            const result = await sendSms(businessDetails, from, personalizedMessage, {
+          if (!conversation) {
+            console.log('[VOICEMAIL SMS] Creating conversation for SMS');
+            conversation = await db.createConversation({
               lead_id: lead.id,
-              conversation_id: conversation?.id,
+              business_id: business.id,
+              status: 'open',
+              source: 'missed_call',
+              started_at: new Date().toISOString(),
+              last_activity_at: new Date().toISOString(),
             });
-
-            const messageSid = result?.sid || null;
-
-            // Log message link debug
-            console.log('[MESSAGE LINK DEBUG]', {
-              messageId: messageSid,
-              businessId: business.id,
-              leadId: lead.id,
-              conversationId: conversation?.id,
-              direction: 'outbound',
-              bodyPresent: !!personalizedMessage,
-              createdAt: new Date().toISOString(),
-              reason: 'SMS sent from voicemail callback with delayed auto-reply'
+          } else {
+            console.log('[VOICEMAIL SMS] Using existing conversation', {
+              conversationId: conversation.id
             });
+          }
 
-            if (messageSid) {
-              console.log('[MISSED CALL TIMING] SMS sent successfully:', messageSid);
+          // Prepare SMS message
+          let messageToSend: string;
+
+          if (businessDetails.auto_reply_message && businessDetails.auto_reply_message.trim()) {
+            messageToSend = businessDetails.auto_reply_message;
+          } else {
+            messageToSend = `Hi, this is {{business_name}}. We received your call and will get back to you shortly. You can also reply to this text with any additional details. Reply STOP to opt out.`;
+          }
+
+          const personalizedMessage = messageToSend.replace('{{business_name}}', businessDetails.name || 'My Business');
+
+          console.log('[VOICEMAIL SMS] SMS prepared', {
+            to: from,
+            fromNumber: businessDetails.twilio_phone_number,
+            messageLength: personalizedMessage.length,
+            conversationId: conversation?.id
+          });
+
+          // Send SMS
+          const result = await sendSms(businessDetails, from, personalizedMessage, {
+            lead_id: lead.id,
+            conversation_id: conversation?.id,
+          });
+
+          const messageSid = result?.sid || null;
+
+          // Log message link debug
+          console.log('[VOICEMAIL SMS] Twilio send result', {
+            messageId: messageSid,
+            businessId: business.id,
+            leadId: lead.id,
+            conversationId: conversation?.id,
+            direction: 'outbound',
+            bodyPresent: !!personalizedMessage,
+            createdAt: new Date().toISOString(),
+            reason: 'SMS sent from voicemail callback with delayed auto-reply'
+          });
+
+          if (messageSid) {
+            console.log('[VOICEMAIL SMS] Twilio send success', {
+              messageSid,
+              callSid: callSid
+            });
               
               // Update call_event to mark SMS as sent
               await supabaseAdmin
@@ -540,31 +573,45 @@ export async function POST(request: NextRequest) {
               // Create timeline events
               await timelineEvents.messageSent(business.id, lead.id, conversation?.id || '', '', messageSid);
 
+              console.log('[VOICEMAIL SMS] Outbound message saved to database', {
+                messageSid,
+                leadId: lead.id,
+                conversationId: conversation?.id
+              });
+
               // Create follow-up jobs
               try {
+                console.log('[VOICEMAIL SMS] Creating follow-up jobs', {
+                  businessId: business.id,
+                  leadId: lead.id,
+                  conversationId: conversation?.id
+                });
+
                 const followUpJobs = await createFollowUpJobs({
                   businessId: business.id,
                   leadId: lead.id,
                   conversationId: conversation?.id,
                   businessName: businessDetails.name
                 });
-                
-                console.log(`[MISSED CALL TIMING] Created ${followUpJobs.length} follow-up jobs`);
+
+                console.log(`[VOICEMAIL SMS] Created ${followUpJobs.length} follow-up jobs`);
               } catch (followUpError) {
-                console.error('[MISSED CALL TIMING] Error creating follow-up jobs:', followUpError);
+                console.error('[VOICEMAIL SMS] Error creating follow-up jobs:', followUpError);
               }
 
             } else {
-              console.log('[MISSED CALL TIMING] SMS sending failed');
+              console.log('[VOICEMAIL SMS] Twilio send failed - no messageSid returned');
             }
+          } catch (smsError) {
+            console.error('[VOICEMAIL SMS] Error sending delayed SMS:', smsError);
           }
-        } catch (smsError) {
-          console.error('[MISSED CALL TIMING] Error sending delayed SMS:', smsError);
         }
+      } else {
+        console.log('[VOICEMAIL SMS] Skipped - no pending SMS flag found for this call', {
+          callSid: callSid,
+          callEventError: callEventError?.message
+        });
       }
-    } else {
-      console.log('[MISSED CALL TIMING] No pending SMS found for this call');
-    }
 
     // Return thank you TwiML
     const thankYouTwiml = `<?xml version="1.0" encoding="UTF-8"?>
