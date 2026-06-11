@@ -1793,14 +1793,16 @@ export default function DashboardContent() {
       </AuthGuard>
       <RoutingDebugBanner />
       <BottomNavigation />
-      <FloatingHelpButton context={{
-        currentPage: 'dashboard',
-        hasLeads: processedLeads.length > 0,
-        hasRecentActivity: processedLeads.length > 0,
-        forwardingVerified: business?.forwarding_verified ?? false,
-        calendarConnected: undefined,
-        isTrial: business?.subscription_status === 'trial'
-      }} />
+      {pathname === '/dashboard' && (
+        <FloatingHelpButton context={{
+          currentPage: 'dashboard',
+          hasLeads: processedLeads.length > 0,
+          hasRecentActivity: processedLeads.length > 0,
+          forwardingVerified: business?.forwarding_verified ?? false,
+          calendarConnected: undefined,
+          isTrial: business?.subscription_status === 'trial'
+        }} />
+      )}
     </DashboardErrorBoundary>
   )
 }

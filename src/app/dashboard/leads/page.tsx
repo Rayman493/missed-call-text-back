@@ -1293,14 +1293,6 @@ export default function LeadsPage() {
         </div>
       </BusinessGuard>
     </AuthGuard>
-    <FloatingHelpButton context={{
-        currentPage: 'leads',
-        hasLeads: leads.length > 0,
-        hasRecentActivity: leads.length > 0,
-        forwardingVerified: business?.forwarding_verified ?? undefined,
-        calendarConnected: undefined,
-        isTrial: business?.subscription_status === 'trial'
-      }} />
     <BottomNavigation />
     <TestReplyFlowModal
       isOpen={showTestModal}

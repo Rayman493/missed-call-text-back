@@ -1921,14 +1921,6 @@ export default function SettingsContent() {
         </div>
       </BusinessGuard>
     </AuthGuard>
-    <FloatingHelpButton context={{
-        currentPage: 'settings',
-        hasLeads: undefined,
-        hasRecentActivity: undefined,
-        forwardingVerified: business?.forwarding_verified ?? undefined,
-        calendarConnected: undefined,
-        isTrial: business?.subscription_status === 'trial'
-      }} />
     <BottomNavigation />
     </DashboardErrorBoundary>
   )

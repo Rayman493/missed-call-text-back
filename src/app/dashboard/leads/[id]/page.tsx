@@ -2715,14 +2715,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
     </main>
-    <FloatingHelpButton context={{
-        currentPage: 'lead-detail',
-        hasLeads: true,
-        hasRecentActivity: true,
-        forwardingVerified: business?.forwarding_verified ?? undefined,
-        calendarConnected: undefined,
-        isTrial: business?.subscription_status === 'trial'
-      }} />
     <PhotoModal
       imageUrl={selectedPhotoUrl}
       isOpen={photoModalOpen}

@@ -825,14 +825,6 @@ export default function CalendarPage() {
         </div>
       </BusinessGuard>
       <BottomNavigation />
-      <FloatingHelpButton context={{
-        currentPage: 'calendar',
-        hasLeads: undefined,
-        hasRecentActivity: undefined,
-        forwardingVerified: business?.forwarding_verified ?? undefined,
-        calendarConnected: calendarConnected,
-        isTrial: business?.subscription_status === 'trial'
-      }} />
     </AuthGuard>
     </DashboardErrorBoundary>
   )
