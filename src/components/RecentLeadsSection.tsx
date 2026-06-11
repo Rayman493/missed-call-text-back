@@ -372,32 +372,32 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
   return (
     <DashboardErrorBoundary>
       {/* Recent Leads List */}
-      <div className="bg-white dark:bg-card border border-slate-300 dark:border-slate-700/60 rounded-xl shadow-sm dark:shadow-md hover:shadow-md dark:hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 p-4">
+      <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm">
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-foreground">Recent Leads</h2>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">Recent Leads</h2>
           </div>
-          <p className="text-sm text-slate-600 dark:text-muted-foreground">{leads.length} lead{leads.length !== 1 ? 's' : ''} recovered</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400">{leads.length} lead{leads.length !== 1 ? 's' : ''} recovered</p>
         </div>
 
         {leads.length === 0 ? (
-          <div className="text-center py-6 px-4">
+          <div className="text-center py-8 px-4">
             {!isOnboardingExpanded && (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <p className="text-sm font-medium text-slate-900 dark:text-foreground">
                   No leads captured yet
                 </p>
                 <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-                  Run a test call to verify your setup and capture your first lead
+                  Run a test call to verify your setup
                 </p>
                 <Link
                   href="/dashboard/test-setup"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -418,7 +418,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
 
                   return (
                     <Link key={lead.id} href={`/dashboard/leads/${lead.id}`} className="block">
-                      <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-lg p-3 hover:shadow-sm hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
+                      <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-3 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">

@@ -280,8 +280,8 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
 
   return (
     <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Needs Attention</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Needs Attention</h3>
         {totalCount > 0 && (
           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
             items.some(i => i.priority === 'high') 
@@ -296,12 +296,8 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
       </div>
 
       {visibleItems.length === 0 ? (
-        <div className="text-center py-8">
-          <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
-          </div>
-          <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">All caught up</p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">No outstanding actions. Your account is fully configured.</p>
+        <div className="text-center py-6">
+          <p className="text-sm text-slate-500 dark:text-slate-400">All caught up</p>
         </div>
       ) : (
         <div className="space-y-4">

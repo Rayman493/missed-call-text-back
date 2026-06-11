@@ -107,10 +107,10 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
   }
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-slate-300 dark:border-slate-700/60 rounded-xl p-2 sm:p-2.5 shadow-sm dark:shadow-md hover:shadow-md dark:hover:shadow-lg transition-all duration-300">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-foreground">Follow-Ups</h3>
-        <div className="text-[10px] text-muted-foreground">
+    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Follow-Ups</h3>
+        <div className="text-[10px] text-slate-500 dark:text-slate-400">
           {hasActivity ? 'Active' : 'None'}
         </div>
       </div>
@@ -119,20 +119,20 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
         <div className="flex items-center gap-3 sm:gap-4">
           <div className="flex items-center gap-1.5">
             <MessageSquare className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm font-semibold text-foreground">{metrics.pending}</span>
-            <span className="text-[10px] text-muted-foreground hidden sm:inline">pending</span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-foreground">{metrics.pending}</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:inline">pending</span>
           </div>
 
           <div className="flex items-center gap-1.5">
             <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-            <span className="text-sm font-semibold text-foreground">{metrics.sentThisWeek}</span>
-            <span className="text-[10px] text-muted-foreground hidden sm:inline">sent</span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-foreground">{metrics.sentThisWeek}</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:inline">sent</span>
           </div>
 
           <div className="flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            <span className="text-sm font-semibold text-foreground">{metrics.scheduled}</span>
-            <span className="text-[10px] text-muted-foreground hidden sm:inline">scheduled</span>
+            <span className="text-sm font-semibold text-slate-900 dark:text-foreground">{metrics.scheduled}</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:inline">scheduled</span>
           </div>
 
           <Link

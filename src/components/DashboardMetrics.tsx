@@ -335,7 +335,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           { type: 'leads', value: metrics.leadsGenerated },
           { type: 'recovery', value: metrics.recoveryRate }
         ].map((metric) => (
-          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-4">
+          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-4 h-32 flex flex-col">
             <div className="flex items-start justify-between mb-2">
               <div className={`w-10 h-10 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border shadow-sm`}>
                 {getMetricIcon(metric.type)}
@@ -344,7 +344,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
                 {metrics.period}
               </div>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 flex-1">
               <div className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
                 {metric.type === 'recovery' ? `${metric.value}%` : metric.value.toLocaleString()}
               </div>
@@ -368,13 +368,16 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           { type: 'messages', value: metrics.messagesSent },
           { type: 'conversations', value: metrics.activeConversations }
         ].map((metric) => (
-          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3">
+          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 h-28 flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <div className={`w-8 h-8 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
                 {getMetricIcon(metric.type)}
               </div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                {metrics.period}
+              </div>
             </div>
-            <div className="space-y-0.5">
+            <div className="space-y-0.5 flex-1">
               <div className="text-xl font-bold text-slate-900 dark:text-foreground leading-tight">
                 {metric.value.toLocaleString()}
               </div>
