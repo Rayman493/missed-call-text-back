@@ -106,7 +106,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                     <>
                       <Link
                         href="/dashboard"
-                        className={`text-base font-semibold ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-200 hover:text-white'} transition-colors hidden sm:block py-1`}
+                        className="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow whitespace-nowrap hidden sm:block"
                       >
                         Dashboard
                       </Link>
