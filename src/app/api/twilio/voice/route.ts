@@ -144,6 +144,13 @@ function generateTwiMLResponse(businessName?: string, hasCustomGreeting: boolean
 
 
 export async function POST(request: NextRequest) {
+  console.log('[VOICE ROUTE START] Beginning voice webhook processing', {
+    timestamp: new Date().toISOString(),
+    url: request.url,
+    method: request.method,
+    deploymentVersion: process.env.VERCEL_GIT_COMMIT_SHA || 'unknown'
+  });
+
   console.log('[MAIN VOICE WEBHOOK HIT]', {
     timestamp: new Date().toISOString(),
     url: request.url,
@@ -179,6 +186,11 @@ export async function POST(request: NextRequest) {
     console.log('[VOICE WEBHOOK] Signature valid:', isValid);
     if (!isValid) {
       console.error('[VOICE WEBHOOK] Invalid signature - rejecting request');
+      console.log('[VOICE ROUTE RETURN]', {
+        path: 'INVALID_SIGNATURE',
+        reason: 'Twilio signature validation failed',
+        callSid: params.CallSid || 'unknown'
+      });
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
     
@@ -187,9 +199,15 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await checkTwilioVoiceRateLimit(clientIp);
     if (!rateLimitResult.success) {
       console.warn('[Twilio Voice] Rate limit exceeded for IP:', clientIp);
+      console.log('[VOICE ROUTE RETURN]', {
+        path: 'RATE_LIMIT',
+        reason: 'IP rate limit exceeded',
+        callSid: params.CallSid || 'unknown',
+        clientIp: clientIp
+      });
       return NextResponse.json(
         { error: 'Too many requests', retryAfter: rateLimitResult.reset },
-        { 
+        {
           status: 429,
           headers: {
             'Retry-After': rateLimitResult.reset.toString(),
@@ -256,6 +274,13 @@ export async function POST(request: NextRequest) {
       console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=normal-voicemail');
       console.log('[AI POC FINAL TWIML]', twiml);
       console.log('[VOICE PATH] VOICEMAIL');
+      console.log('[VOICE ROUTE RETURN]', {
+        path: 'MISSING_FIELDS',
+        reason: 'From or To is missing',
+        callSid: CallSid || 'unknown',
+        From: From || 'missing',
+        To: To || 'missing'
+      });
       return new NextResponse(twiml, {
         status: 200,
         headers: {
@@ -356,6 +381,12 @@ export async function POST(request: NextRequest) {
       console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=no-business-found');
       console.log('[AI POC FINAL TWIML]', twiml);
       console.log('[VOICE PATH] EMERGENCY');
+      console.log('[VOICE ROUTE RETURN]', {
+        path: 'NO_BUSINESS',
+        reason: 'Business lookup failed for all candidate numbers',
+        callSid: CallSid || 'unknown',
+        candidates: uniqueCandidates
+      });
       return new NextResponse(twiml, {
         status: 200,
         headers: {
@@ -390,6 +421,12 @@ export async function POST(request: NextRequest) {
       console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-early')
       console.log('[AI POC FINAL TWIML]', twiml)
       console.log('[VOICE PATH] EMERGENCY')
+      console.log('[VOICE ROUTE RETURN]', {
+        path: 'IGNORED_CONTACT',
+        reason: 'Caller is in ignored contacts list',
+        callSid: CallSid || 'unknown',
+        phoneNumber: normalizedFrom
+      });
       return new NextResponse(twiml, {
         status: 200,
         headers: {
@@ -1030,6 +1067,12 @@ export async function POST(request: NextRequest) {
         callSid: CallSid,
         businessId: business.id
       });
+      console.log('[VOICE ROUTE RETURN]', {
+        path: 'AI_STREAM',
+        reason: 'AI routing succeeded - returning Hangup TwiML',
+        callSid: CallSid,
+        businessId: business.id
+      });
       return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>', {
         status: 200,
         headers: {
@@ -1529,10 +1572,10 @@ export async function POST(request: NextRequest) {
     console.log('[Twilio Voice] Voice webhook processed successfully');
     console.log('[VOICE] Returning voicemail TwiML for call:', CallSid);
     console.log('[VOICE PATH] MISSED_CALL');
-    
+
     // DEBUG LOGS
     console.log('[Twilio Voice] DEBUG: About to generate final TwiML with business name:', business.name);
-    
+
     const twiml = generateTwiMLResponse(business.name);
 
     console.log('[Twilio Voice] ===== TWIML RESPONSE LOGGING =====');
@@ -1546,6 +1589,12 @@ export async function POST(request: NextRequest) {
     console.log('[Twilio Voice] Generated final TwiML response');
     console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=main-fallback');
     console.log('[AI POC FINAL TWIML]', twiml);
+    console.log('[VOICE ROUTE RETURN]', {
+      path: 'LEGACY_VOICEMAIL',
+      reason: 'AI routing not succeeded - falling through to legacy voicemail path',
+      callSid: CallSid,
+      businessId: business.id
+    });
     return new NextResponse(twiml, {
       status: 200,
       headers: {
@@ -1555,13 +1604,19 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[VOICE ROUTE ERROR]', error);
-    
+
     const twiml = generateTwiMLResponse();
 
     console.log('[Twilio Voice] Returning fallback TwiML due to error');
     console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=error-catch-all');
     console.log('[AI POC FINAL TWIML]', twiml);
     console.log('[VOICE PATH] EMERGENCY');
+    console.log('[VOICE ROUTE RETURN]', {
+      path: 'ERROR',
+      reason: 'Exception caught in voice webhook',
+      callSid: 'unknown',
+      error: error instanceof Error ? error.message : String(error)
+    });
     return new NextResponse(twiml, {
       status: 200,
       headers: {
