@@ -50,6 +50,7 @@ import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel } from
 import StatCard from '@/components/StatCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { HelpContext } from '@/components/HelpAssistant'
+import TestReplyFlowModal from '@/components/TestReplyFlowModal'
 
 // Helper to get compact summary for lead card
 function getCompactSummary(lead: any): string {
@@ -184,6 +185,7 @@ export default function LeadsPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [showTestModal, setShowTestModal] = useState(false)
   const { checkoutMode, isLoading: eligibilityLoading } = useTrialEligibility()
 
   const supabase = createBrowserClient()
@@ -948,7 +950,7 @@ export default function LeadsPage() {
 
                         {/* Test Setup CTA */}
                         <button
-                          onClick={() => router.push('/dashboard/test-setup')}
+                          onClick={() => setShowTestModal(true)}
                           className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base font-medium rounded-xl transition-colors shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30"
                         >
                           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1300,6 +1302,10 @@ export default function LeadsPage() {
         isTrial: business?.subscription_status === 'trial'
       }} />
     <BottomNavigation />
+    <TestReplyFlowModal
+      isOpen={showTestModal}
+      onClose={() => setShowTestModal(false)}
+    />
     </DashboardErrorBoundary>
   )
 }
