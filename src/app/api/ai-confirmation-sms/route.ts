@@ -491,7 +491,7 @@ export async function POST(request: NextRequest) {
     })
 
     try {
-      const twilioMessageSid = await sendSms(
+      const sendResult = await sendSms(
         business,
         callerPhone,
         messageBody,
@@ -501,15 +501,19 @@ export async function POST(request: NextRequest) {
         }
       )
 
+      const twilioMessageSid = sendResult.sid
+
       console.log('[AI COPOST CALL SMS SENT]', {
           twilioMessageSid,
+          messageId: sendResult.messageId,
           leadId,
           conversationId,
           callerPhone
         })
         console.log('[AI NFIRMATION SMS TWILIO SEND RESULT]', {
         success: !!twilioMessageSid,
-        twilioMessageSid
+        twilioMessageSid,
+        messageId: sendResult.messageId
       })
 
       if (twilioMessageSid) {
@@ -555,9 +559,10 @@ export async function POST(request: NextRequest) {
 
           // Send the pending correction acknowledgement
           const acknowledgementMessage = `Thanks! We've updated your ${pendingAcknowledgement.field_changed.replace(/([A-Z])/g, ' $1').toLowerCase().trim()} to "${pendingAcknowledgement.new_value}".`
-          const acknowledgementSid = await sendSms(business, callerPhone, acknowledgementMessage, {
+          const acknowledgementResult = await sendSms(business, callerPhone, acknowledgementMessage, {
             lead_id: leadId,
           })
+          const acknowledgementSid = acknowledgementResult.sid
 
           if (acknowledgementSid) {
             console.log('[PENDING CORRECTION ACKNOWLEDGEMENT SENT]', {
