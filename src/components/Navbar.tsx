@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useRef } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusinessSafe } from '@/contexts/BusinessContext'
+import { Home } from 'lucide-react'
 import UserDropdown from '@/components/UserDropdown'
 import BrandIcon from '@/components/BrandIcon'
 
@@ -16,85 +17,8 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   const { user, loading, signOut } = useAuth()
   const { business, loading: businessLoading } = useBusinessSafe()
   const pathname = usePathname()
-  const router = useRouter()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const mobileMenuRef = useRef<HTMLDivElement>(null)
-  const previousPathname = useRef(pathname)
 
   const isLoggedIn = user && !loading
-
-  // Close mobile menu when route changes
-  useEffect(() => {
-    if (pathname !== previousPathname.current) {
-      setIsMobileMenuOpen(false)
-      previousPathname.current = pathname
-    }
-  }, [pathname])
-
-  // Close mobile menu on Escape key
-  useEffect(() => {
-    const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isMobileMenuOpen) {
-        setIsMobileMenuOpen(false)
-      }
-    }
-
-    if (isMobileMenuOpen) {
-      document.addEventListener('keydown', handleEscapeKey)
-      // Prevent body scroll when menu is open
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscapeKey)
-      document.body.style.overflow = ''
-    }
-  }, [isMobileMenuOpen])
-
-  // Close mobile menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
-        // Check if the click is outside the mobile menu and not on the hamburger button
-        const hamburgerButton = event.target as HTMLElement
-        if (!hamburgerButton.closest('[aria-label="Toggle menu"]')) {
-          setIsMobileMenuOpen(false)
-        }
-      }
-    }
-
-    if (isMobileMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isMobileMenuOpen])
-
-  // Close mobile menu when scrolling
-  useEffect(() => {
-    const handleScroll = () => {
-      if (isMobileMenuOpen) {
-        setIsMobileMenuOpen(false)
-      }
-    }
-
-    if (isMobileMenuOpen) {
-      window.addEventListener('scroll', handleScroll, { passive: true })
-    }
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-    }
-  }, [isMobileMenuOpen])
-
-  // Unified close menu function
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false)
-  }
   
   // Check if we're on a public/marketing page
   const isPublicPage = pathname === '/' || 
@@ -138,22 +62,22 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   return (
     <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-[#0b1220] backdrop-blur-sm border-b border-white/10 dark:border-slate-700' : 'bg-[#0b1220] border-b border-slate-800 dark:border-slate-700'}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between">
-        {/* Group hamburger and logo together on the left */}
+        {/* Group Home button and logo together on the left */}
         <div className="flex items-center gap-1">
-          {/* Mobile Hamburger Menu - Always on left for mobile */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className={`sm:hidden p-3 rounded-md ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-white'} transition-colors`}
-            aria-label="Toggle menu"
+          {/* Mobile Home/Dashboard Button - Only on mobile */}
+          <Link
+            href={isLoggedIn ? '/dashboard' : '/auth?mode=signin'}
+            className={`sm:hidden flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 ${
+              pathname === '/dashboard' && isLoggedIn
+                ? 'bg-blue-600/20 text-blue-400'
+                : isPublicPage && !forceDark
+                ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                : 'text-gray-300 hover:text-white hover:bg-slate-800/50'
+            }`}
+            aria-label={isLoggedIn ? 'Dashboard' : 'Sign In'}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {isMobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
+            <Home className="w-5 h-5" />
+          </Link>
 
           {/* Logo */}
           <Link 
@@ -318,125 +242,6 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           )}
         </nav>
       </div>
-      
-      {/* Mobile Menu Backdrop */}
-      {isMobileMenuOpen && (
-        <div 
-          className="sm:hidden fixed inset-0 bg-black/50 z-40"
-          onClick={closeMobileMenu}
-          aria-label="Close menu"
-        />
-      )}
-
-      {/* Mobile Menu Dropdown */}
-      {isMobileMenuOpen && (
-        <div 
-          ref={mobileMenuRef}
-          className="sm:hidden fixed top-0 left-0 right-0 bg-[#0b1220] border-b border-slate-800 z-50 max-h-[80vh] overflow-y-auto"
-        >
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
-            {isLoggedIn ? (
-              // Signed-in users: Simplified navigation on homepage, full app navigation elsewhere
-              <nav className="flex flex-col space-y-3">
-                {isHomepage ? (
-                  // Homepage: show only Dashboard
-                  <>
-                    <Link
-                      href="/dashboard"
-                      onClick={closeMobileMenu}
-                      className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                    >
-                      Dashboard
-                    </Link>
-                  </>
-                ) : (
-                  // Other pages: show full app navigation
-                  <>
-                    <Link
-                      href="/dashboard"
-                      onClick={closeMobileMenu}
-                      className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                    >
-                      Dashboard
-                    </Link>
-                    <Link
-                      href="/dashboard/leads"
-                      onClick={closeMobileMenu}
-                      className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                    >
-                      Leads
-                    </Link>
-                    <Link
-                      href="/dashboard/calendar"
-                      onClick={closeMobileMenu}
-                      className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                    >
-                      Calendar
-                    </Link>
-                    <Link
-                      href="/dashboard/settings"
-                      onClick={closeMobileMenu}
-                      className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                    >
-                      Settings
-                    </Link>
-                    <Link
-                      href="/home"
-                      onClick={closeMobileMenu}
-                      className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                    >
-                      View Public Site
-                    </Link>
-                  </>
-                )}
-              </nav>
-            ) : (
-              // Signed-out users: Marketing navigation
-              <nav className="flex flex-col space-y-3">
-                <Link
-                  href="/"
-                  onClick={closeMobileMenu}
-                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                >
-                  Home
-                </Link>
-                <Link
-                  href="/demo"
-                  onClick={closeMobileMenu}
-                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                >
-                  Demo
-                </Link>
-                <Link
-                  href="/faq"
-                  onClick={closeMobileMenu}
-                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors py-2"
-                >
-                  FAQ
-                </Link>
-                
-                {/* Auth actions at bottom for signed-out users */}
-                <div className="pt-4 mt-4 border-t border-slate-700 space-y-2">
-                  <Link
-                    href="/auth?mode=signin"
-                    onClick={closeMobileMenu}
-                    className="w-full text-gray-300 hover:text-white font-medium rounded-lg px-4 py-3 text-center transition-colors"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/auth?mode=signup"
-                    onClick={closeMobileMenu}
-                    className="w-full bg-blue-600 text-white font-semibold rounded-lg px-4 py-3 text-center hover:bg-blue-700 transition-colors"
-                  >
-                    Start Your 14-Day Free Trial
-                  </Link>
-                </div>
-              </nav>
-            )}
-          </div>
-        </div>
-      )}
     </header>
   )
 }
