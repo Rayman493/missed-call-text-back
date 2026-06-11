@@ -32,7 +32,7 @@ export default function HelpAssistant({ className = '', defaultCategory, context
   const handleSearch = () => {
     if (!query.trim()) return
 
-    const searchResult = searchKnowledgeBase(query)
+    const searchResult = searchKnowledgeBase(query, context)
     
     if (searchResult === null) {
       // Check if it's account-specific
@@ -42,11 +42,15 @@ export default function HelpAssistant({ className = '', defaultCategory, context
       if (isAccountIssue) {
         setIsAccountSpecific(true)
         setResult(null)
-        setRelated([])
+        // Show contextual suggestions for account issues
+        const contextualSuggestions = getSuggestedQuestions(undefined, context)
+        setRelated(contextualSuggestions.slice(0, 3))
       } else {
         setIsAccountSpecific(false)
         setResult(null)
-        setRelated([])
+        // Show closest matches as suggestions
+        const allSuggestions = getSuggestedQuestions(undefined, context)
+        setRelated(allSuggestions.slice(0, 3))
       }
     } else {
       setIsAccountSpecific(false)
@@ -137,8 +141,27 @@ export default function HelpAssistant({ className = '', defaultCategory, context
             {/* Account-specific fallback */}
             {isAccountSpecific && (
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+                <p className="text-amber-800 dark:text-amber-200 text-sm mb-3">
+                  This may require account-specific support. Here are some related troubleshooting steps:
+                </p>
+                {related.length > 0 && (
+                  <div className="space-y-2 mb-3">
+                    {related.map(article => (
+                      <button
+                        key={article.id}
+                        onClick={() => handleRelatedClick(article)}
+                        className="w-full text-left p-2 bg-white dark:bg-slate-600 hover:bg-slate-100 dark:hover:bg-slate-500 rounded-lg transition-colors flex items-center gap-2 group"
+                      >
+                        <ChevronRight className="w-4 h-4 text-amber-600 dark:text-amber-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" />
+                        <span className="text-sm text-amber-900 dark:text-amber-100 group-hover:text-slate-900 dark:group-hover:text-white">
+                          {article.question}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <p className="text-amber-800 dark:text-amber-200 text-sm">
-                  This may require account-specific support. Please contact support at{' '}
+                  For direct assistance, contact support at{' '}
                   <a href="mailto:support@replyflowhq.com" className="font-semibold underline">
                     support@replyflowhq.com
                   </a>.
@@ -149,8 +172,27 @@ export default function HelpAssistant({ className = '', defaultCategory, context
             {/* No results fallback */}
             {!result && !isAccountSpecific && (
               <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4">
+                <p className="text-slate-600 dark:text-slate-400 text-sm mb-3">
+                  I couldn't find an exact answer. Here are some related questions that might help:
+                </p>
+                {related.length > 0 && (
+                  <div className="space-y-2 mb-3">
+                    {related.map(article => (
+                      <button
+                        key={article.id}
+                        onClick={() => handleRelatedClick(article)}
+                        className="w-full text-left p-2 bg-white dark:bg-slate-600 hover:bg-slate-100 dark:hover:bg-slate-500 rounded-lg transition-colors flex items-center gap-2 group"
+                      >
+                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" />
+                        <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
+                          {article.question}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <p className="text-slate-600 dark:text-slate-400 text-sm">
-                  I couldn't find an exact answer. Contact support at{' '}
+                  Still need help? Contact support at{' '}
                   <a href="mailto:support@replyflowhq.com" className="text-blue-600 dark:text-blue-400 underline">
                     support@replyflowhq.com
                   </a>.
