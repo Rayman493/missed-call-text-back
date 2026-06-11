@@ -267,9 +267,9 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   const getMetricLabel = (type: string) => {
     switch (type) {
       case 'missedCalls':
-        return 'Missed Calls Captured'
+        return 'Missed Calls'
       case 'leads':
-        return 'Leads Generated'
+        return 'Leads'
       case 'messages':
         return 'Messages Sent'
       case 'conversations':
