@@ -29,7 +29,7 @@ export default function StatCard({
     bg-card
     border border-slate-300 dark:border-border/60 
     rounded-xl shadow-sm hover:shadow-md
-    p-2 sm:p-4 
+    p-1.5 sm:p-2.5 md:p-4 
     h-full
     transition-all duration-200
     hover:-translate-y-[2px]
@@ -67,30 +67,30 @@ export default function StatCard({
     <div className={`${baseClasses} ${interactiveClasses} ${className}`}>
       {/* Icon and Label Header */}
       {(icon || label) && (
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
           {icon && (
             <span className={`
-              w-8 h-8 sm:w-10 sm:h-10 
+              w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 
               bg-gradient-to-br ${iconGradients[iconColor]} 
               rounded-lg sm:rounded-xl 
               flex items-center justify-center 
-              text-lg sm:text-xl 
+              text-sm sm:text-lg md:text-xl 
               shadow-sm border
               ${isInteractive && href ? '' : ''}
             `}>
               {icon}
             </span>
           )}
-          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-300 uppercase tracking-wide leading-tight">
+          <h3 className="text-[10px] sm:text-xs font-bold text-slate-800 dark:text-slate-300 uppercase tracking-wide leading-tight">
             {label}
           </h3>
         </div>
       )}
 
       {/* Primary Metric */}
-      <div className="mb-2">
+      <div className="mb-1.5 sm:mb-2">
         <p className={`
-          text-3xl sm:text-4xl lg:text-5xl 
+          text-2xl sm:text-3xl md:text-4xl lg:text-5xl 
           font-black 
           ${iconTextColors[iconColor]} 
           tracking-tight 
@@ -102,7 +102,7 @@ export default function StatCard({
 
       {/* Description */}
       {description && (
-        <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-tight">
+        <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium leading-tight">
           {description}
         </p>
       )}

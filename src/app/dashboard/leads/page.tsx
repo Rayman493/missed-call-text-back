@@ -514,8 +514,8 @@ export default function LeadsPage() {
             <AppHeader title="Leads" />
 
           {/* Main Content */}
-          <main className="flex-1 pt-5 sm:pt-6 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-16 relative z-10">
-            <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-6">
+          <main className="flex-1 pt-4 sm:pt-5 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-16 relative z-10">
+            <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-4 lg:space-y-6">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
 
@@ -1040,44 +1040,44 @@ export default function LeadsPage() {
                           'bg-slate-400'
                         }`}></div>
 
-                        <div className="p-5">
+                        <div className="p-3.5 sm:p-4 md:p-5">
                           {/* Header: Name, Phone, Status */}
-                          <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-start justify-between mb-2.5 sm:mb-3 md:mb-4">
                             <div className="flex-1 min-w-0">
-                              <h3 className={`text-lg font-semibold text-slate-900 dark:text-white mb-1 truncate ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                              <h3 className={`text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-0.5 sm:mb-1 truncate ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
                                 {getLeadDisplayName(lead)}
                               </h3>
-                              <p className="text-sm text-slate-500 dark:text-slate-400">
+                              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                                 {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                               </p>
                             </div>
-                            <span className={`px-3 py-1 rounded-full text-sm font-semibold flex-shrink-0 ml-3 ${statusClasses}`}>
+                            <span className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-semibold flex-shrink-0 ml-2 sm:ml-3 ${statusClasses}`}>
                               {statusBadge}
                             </span>
                           </div>
 
                           {/* Compact Preview */}
-                          <div className="mb-4 space-y-2">
+                          <div className="mb-2.5 sm:mb-3 md:mb-4 space-y-1.5 sm:space-y-2">
                             {aiData.reason && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">📋</span>
-                                <p className="text-sm text-slate-700 dark:text-slate-300">
+                              <div className="flex items-center gap-1.5 sm:gap-2">
+                                <span className="text-xs sm:text-sm">📋</span>
+                                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
                                   {sentenceCase(aiData.reason)}
                                 </p>
                               </div>
                             )}
                             {aiData.details && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">📝</span>
-                                <p className="text-sm text-slate-700 dark:text-slate-300">
+                              <div className="flex items-center gap-1.5 sm:gap-2">
+                                <span className="text-xs sm:text-sm">📝</span>
+                                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
                                   {sentenceCase(aiData.details)}
                                 </p>
                               </div>
                             )}
                             {aiData.urgency && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">🔥</span>
-                                <span className={`text-sm font-medium ${
+                              <div className="flex items-center gap-1.5 sm:gap-2">
+                                <span className="text-xs sm:text-sm">🔥</span>
+                                <span className={`text-xs sm:text-sm font-medium ${
                                   aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
                                     ? 'text-red-600 dark:text-red-400'
                                     : 'text-slate-700 dark:text-slate-300'
@@ -1087,50 +1087,50 @@ export default function LeadsPage() {
                               </div>
                             )}
                             {!aiData.reason && !aiData.details && !aiData.urgency && (
-                              <p className="text-sm text-slate-700 dark:text-slate-300">
+                              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
                                 {getCompactSummary(lead)}
                               </p>
                             )}
                           </div>
 
                           {/* Metadata */}
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                              <span className={`w-2.5 h-2.5 rounded-full ${
+                          <div className="flex items-center justify-between mb-2.5 sm:mb-3 md:mb-4">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                              <span className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${
                                 isNewLead ? 'bg-orange-500' :
                                 getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-500' :
                                 getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-500' :
                                 'bg-slate-400'
                               }`}></span>
-                              <span className="text-sm text-slate-500 dark:text-slate-400">
+                              <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                                 {formatRelativeTime(lead.created_at)}
                               </span>
                             </div>
                             {isNewLead && (
-                              <span className="px-3 py-1 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-xs font-semibold rounded-full">
+                              <span className="px-2 sm:px-3 py-0.5 sm:py-1 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] sm:text-xs font-semibold rounded-full">
                                 New
                               </span>
                             )}
                           </div>
 
                           {/* Action Buttons */}
-                          <div className="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+                          <div className="flex items-center gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-slate-100 dark:border-slate-700/50">
                             {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
                               <a
                                 href={`tel:${lead.caller_phone}`}
                                 onClick={(e) => e.stopPropagation()}
-                                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg transition-colors group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                                className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-medium rounded-lg transition-colors group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-600 dark:group-hover:text-blue-400"
                                 title="Call"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                 </svg>
                                 Call
                               </a>
                             )}
-                            <div className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            <div className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors">
                               View Conversation
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>
                             </div>
@@ -1180,44 +1180,44 @@ export default function LeadsPage() {
                               'bg-slate-400'
                             }`}></div>
 
-                            <div className="p-4">
+                            <div className="p-3 sm:p-3.5 md:p-4">
                               {/* Header: Name, Phone, Status */}
-                              <div className="flex items-start justify-between mb-3">
+                              <div className="flex items-start justify-between mb-2 sm:mb-2.5 md:mb-3">
                                 <div className="flex-1 min-w-0">
-                                  <h3 className={`text-base font-semibold text-slate-900 dark:text-white mb-1 truncate ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                                  <h3 className={`text-sm sm:text-base font-semibold text-slate-900 dark:text-white mb-0.5 sm:mb-1 truncate ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
                                     {getLeadDisplayName(lead)}
                                   </h3>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
                                     {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                                   </p>
                                 </div>
-                                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ml-2 ${statusClasses}`}>
+                                <span className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold flex-shrink-0 ml-1.5 sm:ml-2 ${statusClasses}`}>
                                   {statusBadge}
                                 </span>
                               </div>
 
                               {/* Compact Preview */}
-                              <div className="mb-3 space-y-1.5">
+                              <div className="mb-2 sm:mb-2.5 md:mb-3 space-y-1 sm:space-y-1.5">
                                 {aiData.reason && (
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs">📋</span>
-                                    <p className="text-xs text-slate-700 dark:text-slate-300">
+                                  <div className="flex items-center gap-1.5 sm:gap-2">
+                                    <span className="text-[10px] sm:text-xs">📋</span>
+                                    <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
                                       {aiData.reason}
                                     </p>
                                   </div>
                                 )}
                                 {aiData.details && (
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs">📝</span>
-                                    <p className="text-xs text-slate-700 dark:text-slate-300">
+                                  <div className="flex items-center gap-1.5 sm:gap-2">
+                                    <span className="text-[10px] sm:text-xs">📝</span>
+                                    <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
                                       {aiData.details}
                                     </p>
                                   </div>
                                 )}
                                 {aiData.urgency && (
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs">🔥</span>
-                                    <span className={`text-xs font-medium ${
+                                  <div className="flex items-center gap-1.5 sm:gap-2">
+                                    <span className="text-[10px] sm:text-xs">🔥</span>
+                                    <span className={`text-[10px] sm:text-xs font-medium ${
                                       aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
                                         ? 'text-red-600 dark:text-red-400'
                                         : 'text-slate-700 dark:text-slate-300'
@@ -1227,50 +1227,50 @@ export default function LeadsPage() {
                                   </div>
                                 )}
                                 {!aiData.reason && !aiData.details && !aiData.urgency && (
-                                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
                                     {getCompactSummary(lead)}
                                   </p>
                                 )}
                               </div>
 
                               {/* Metadata */}
-                              <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2">
-                                  <span className={`w-2 h-2 rounded-full ${
+                              <div className="flex items-center justify-between mb-2.5 sm:mb-3 md:mb-4">
+                                <div className="flex items-center gap-1.5 sm:gap-2">
+                                  <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
                                     isNewLead ? 'bg-orange-500' :
                                     getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-500' :
                                     getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-500' :
                                     'bg-slate-400'
                                   }`}></span>
-                                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                                  <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
                                     {formatRelativeTime(lead.created_at)}
                                   </span>
                                 </div>
                                 {isNewLead && (
-                                  <span className="px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] font-semibold rounded-full">
+                                  <span className="px-1.5 sm:px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[9px] sm:text-[10px] font-semibold rounded-full">
                                     New
                                   </span>
                                 )}
                               </div>
 
                               {/* Action Buttons */}
-                              <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                              <div className="flex items-center gap-1.5 sm:gap-2 pt-2.5 sm:pt-3 border-t border-slate-100 dark:border-slate-700/50">
                                 {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
                                   <a
                                     href={`tel:${lead.caller_phone}`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                                    className="flex-1 inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] sm:text-xs font-medium rounded-lg transition-colors group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-600 dark:group-hover:text-blue-400"
                                     title="Call"
                                   >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                     </svg>
                                     Call
                                   </a>
                                 )}
-                                <div className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors">
-                                  View Conversation
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="flex-1 inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-medium rounded-lg transition-colors">
+                                  View
+                                  <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                   </svg>
                                 </div>

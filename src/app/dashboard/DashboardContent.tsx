@@ -1079,8 +1079,8 @@ export default function DashboardContent() {
             <AppHeader showNavigation={true} />
 
             {/* Main Content */}
-            <div className="flex-1 pt-1.5 sm:pt-2 lg:pt-2 px-3 sm:px-4 lg:px-6 pb-12 relative z-10">
-              <div className="max-w-[1400px] mx-auto space-y-1 sm:space-y-1.5">
+            <div className="flex-1 pt-3 sm:pt-4 lg:pt-5 px-3 sm:px-4 lg:px-6 pb-12 relative z-10">
+              <div className="max-w-[1400px] mx-auto space-y-2 sm:space-y-3 lg:space-y-4">
 
                 {/* Setup Mode Banner - De-emphasized CTA, System Health owns onboarding */}
                 {hasActiveSubscription(business) && !business?.forwarding_verified && (

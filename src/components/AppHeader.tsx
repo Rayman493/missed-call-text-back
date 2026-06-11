@@ -34,8 +34,8 @@ export default function AppHeader({
   return (
     <>
       <header className="sticky top-0 z-50 bg-[#0b1220] dark:bg-[#0b1220] flex-shrink-0 shadow-none border-b-0 border-b border-slate-800 dark:border-slate-700">
-        <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 py-2 border-0">
-          <div className="flex items-center justify-between h-9">
+        <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 py-1.5 sm:py-2 border-0">
+          <div className="flex items-center justify-between h-8 sm:h-9">
             {/* Left side - Home button for authenticated users */}
             <div className="flex items-center gap-2 md:gap-8">
               {/* Home/Dashboard button - only for authenticated users on dashboard pages */}

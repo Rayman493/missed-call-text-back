@@ -787,23 +787,23 @@ export default function SettingsContent() {
               <div className="max-w-[1400px] mx-auto">
 
             {/* Settings Header Block - Sticky */}
-            <div className="sticky top-[52px] z-40 bg-background dark:bg-background border-b border-slate-200 dark:border-slate-800 pb-6 mb-8">
+            <div className="sticky top-[52px] z-40 bg-background dark:bg-background border-b border-slate-200 dark:border-slate-800 pb-4 sm:pb-5 md:pb-6 mb-4 sm:mb-6 md:mb-8">
               {/* Page Header */}
-              <div className="mb-6">
-                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-foreground mb-2">
+              <div className="mb-4 sm:mb-5 md:mb-6">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">
                   Settings
                 </h1>
-                <p className="text-base text-slate-600 dark:text-slate-400">
+                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
                   Manage your business settings and automation preferences.
                 </p>
               </div>
 
               {/* Settings Navigation Tabs */}
-              <div className="py-2">
-                <nav className="flex items-center gap-2 overflow-x-auto">
+              <div className="py-1.5 sm:py-2">
+                <nav className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto">
                   <button
                     onClick={() => handleSectionClick('general')}
-                    className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
+                    className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap ${
                       activeSection === 'general'
                         ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
@@ -813,7 +813,7 @@ export default function SettingsContent() {
                 </button>
                 <button
                   onClick={() => handleSectionClick('automation')}
-                  className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
+                  className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'automation'
                       ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
@@ -823,7 +823,7 @@ export default function SettingsContent() {
                 </button>
                 <button
                   onClick={() => handleSectionClick('integrations')}
-                  className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
+                  className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'integrations'
                       ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
@@ -833,7 +833,7 @@ export default function SettingsContent() {
                 </button>
                 <button
                   onClick={() => handleSectionClick('contacts')}
-                  className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
+                  className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'contacts'
                       ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
@@ -843,7 +843,7 @@ export default function SettingsContent() {
                 </button>
                 <button
                   onClick={() => handleSectionClick('account')}
-                  className={`px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 whitespace-nowrap ${
+                  className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap ${
                     activeSection === 'account'
                       ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
