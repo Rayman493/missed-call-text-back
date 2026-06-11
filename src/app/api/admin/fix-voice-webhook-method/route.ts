@@ -63,38 +63,61 @@ export async function POST(request: Request) {
     console.log('[Fix Voice Webhook Method] Using appUrl:', appUrl)
     console.log('[Fix Voice Webhook Method] Voice webhook URL:', voiceWebhookUrl)
 
-    // Fetch all businesses with Twilio numbers
-    const { data: businesses, error: businessesError } = await serviceSupabase
-      .from('businesses')
-      .select('id, twilio_phone_number, twilio_phone_number_sid, business_name')
-      .not('twilio_phone_number_sid', 'is', null)
-      .not('twilio_phone_number', 'is', null)
+    // Fetch all Twilio numbers from twilio_numbers table (source of truth)
+    const { data: twilioNumbers, error: twilioNumbersError } = await serviceSupabase
+      .from('twilio_numbers')
+      .select('id, phone_number, twilio_sid, business_id, status')
+      .in('status', ['active', 'assigned'])
+      .not('twilio_sid', 'is', null)
+      .not('phone_number', 'is', null)
 
-    if (businessesError) {
-      console.error('[Fix Voice Webhook Method] Failed to fetch businesses:', businessesError)
-      return NextResponse.json({ error: 'Failed to fetch businesses' }, { status: 500 })
+    if (twilioNumbersError) {
+      console.error('[Fix Voice Webhook Method] Failed to fetch twilio_numbers:', JSON.stringify(twilioNumbersError, null, 2))
+      return NextResponse.json({
+        error: 'Failed to fetch twilio_numbers',
+        details: twilioNumbersError
+      }, { status: 500 })
     }
 
-    console.log('[Fix Voice Webhook Method] Found', businesses.length, 'businesses with Twilio numbers')
+    console.log('[Fix Voice Webhook Method] Found', twilioNumbers.length, 'Twilio numbers to process')
 
     const results = {
-      total: businesses.length,
+      total: twilioNumbers.length,
       fixed: 0,
+      skipped: 0,
       failed: 0,
       errors: [] as any[]
     }
 
-    for (const business of businesses) {
-      console.log('[Fix Voice Webhook Method] Processing business:', {
-        id: business.id,
-        name: business.business_name,
-        phone: business.twilio_phone_number,
-        sid: business.twilio_phone_number_sid
+    for (const twilioNumber of twilioNumbers) {
+      console.log('[Fix Voice Webhook Method] Processing Twilio number:', {
+        id: twilioNumber.id,
+        phone: twilioNumber.phone_number,
+        sid: twilioNumber.twilio_sid,
+        businessId: twilioNumber.business_id,
+        status: twilioNumber.status
       })
 
       try {
+        // Fetch current Twilio number configuration
+        const currentNumber = await client.incomingPhoneNumbers(twilioNumber.twilio_sid).fetch()
+
+        console.log('[Fix Voice Webhook Method] Current configuration:', {
+          voiceUrl: currentNumber.voiceUrl,
+          voiceMethod: currentNumber.voiceMethod,
+          smsUrl: currentNumber.smsUrl,
+          smsMethod: currentNumber.smsMethod
+        })
+
+        // Check if already configured correctly
+        if (currentNumber.voiceMethod === 'POST' && currentNumber.smsMethod === 'POST') {
+          console.log('[Fix Voice Webhook Method] ✓ Already configured with POST - skipping')
+          results.skipped++
+          continue
+        }
+
         // Update Twilio number webhook configuration
-        await client.incomingPhoneNumbers(business.twilio_phone_number_sid).update({
+        const updatedNumber = await client.incomingPhoneNumbers(twilioNumber.twilio_sid).update({
           voiceUrl: voiceWebhookUrl,
           voiceMethod: 'POST',
           statusCallback: voiceStatusWebhookUrl,
@@ -103,14 +126,21 @@ export async function POST(request: Request) {
           smsMethod: 'POST'
         })
 
-        console.log('[Fix Voice Webhook Method] ✓ Fixed:', business.twilio_phone_number)
+        console.log('[Fix Voice Webhook Method] ✓ Fixed:', twilioNumber.phone_number)
+        console.log('[Fix Voice Webhook Method] New configuration:', {
+          voiceUrl: updatedNumber.voiceUrl,
+          voiceMethod: updatedNumber.voiceMethod,
+          smsUrl: updatedNumber.smsUrl,
+          smsMethod: updatedNumber.smsMethod
+        })
         results.fixed++
       } catch (error: any) {
-        console.error('[Fix Voice Webhook Method] ✗ Failed:', business.twilio_phone_number, error)
+        console.error('[Fix Voice Webhook Method] ✗ Failed:', twilioNumber.phone_number, error)
         results.failed++
         results.errors.push({
-          businessId: business.id,
-          phoneNumber: business.twilio_phone_number,
+          twilioNumberId: twilioNumber.id,
+          businessId: twilioNumber.business_id,
+          phoneNumber: twilioNumber.phone_number,
           error: error.message
         })
       }
