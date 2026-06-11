@@ -3,8 +3,8 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Home } from 'lucide-react'
 import Navigation from './Navigation'
-import MobileMenu from './MobileMenu'
 import UserDropdown from './UserDropdown'
 import NavbarNotifications from './NavbarNotifications'
 import BrandIcon from './BrandIcon'
@@ -28,13 +28,31 @@ export default function AppHeader({
                        pathname === '/compliance' || 
                        pathname === '/demo'
 
+  // Check if we're on the dashboard
+  const isDashboard = pathname === '/dashboard' || pathname?.startsWith('/dashboard')
+
   return (
     <>
       <header className="sticky top-0 z-50 bg-[#0b1220] dark:bg-[#0b1220] flex-shrink-0 shadow-none border-b-0 border-b border-slate-800 dark:border-slate-700">
         <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 py-2 border-0">
           <div className="flex items-center justify-between h-9">
-            {/* Left side - Logo only on mobile */}
+            {/* Left side - Home button for authenticated users */}
             <div className="flex items-center gap-2 md:gap-8">
+              {/* Home/Dashboard button - only for authenticated users on dashboard pages */}
+              {isDashboard && (
+                <Link
+                  href="/dashboard"
+                  className={`flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 ${
+                    pathname === '/dashboard'
+                      ? 'bg-blue-600/20 text-blue-400'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  }`}
+                  aria-label="Dashboard"
+                >
+                  <Home className="w-5 h-5" />
+                </Link>
+              )}
+
               {/* Logo */}
               <Link href={isPublicPage ? '/' : '/dashboard'} className="flex items-center gap-2 hover:opacity-90 transition">
                 <BrandIcon size={36} className="sm:size-36" />
@@ -50,7 +68,7 @@ export default function AppHeader({
               </div>
             </div>
             
-            {/* UPDATED HEADER COMPONENT - Right side - Utility actions grouped together */}
+            {/* Right side - Utility actions grouped together */}
             <div className="flex items-center gap-2">
               {/* Notifications - visible on all screen sizes */}
               <NavbarNotifications />
