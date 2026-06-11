@@ -651,11 +651,11 @@ export default function CalendarPage() {
                       </div>
 
                       {/* Mobile: View Mode Toggle immediately after header */}
-                      <div className="md:hidden mb-3">
-                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 shadow-sm">
+                      <div className="md:hidden mb-1.5">
+                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5 shadow-sm">
                           <button
                             onClick={() => setViewMode('month')}
-                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+                            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
                               viewMode === 'month'
                                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
                                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
@@ -665,7 +665,7 @@ export default function CalendarPage() {
                           </button>
                           <button
                             onClick={() => setViewMode('agenda')}
-                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+                            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
                               viewMode === 'agenda'
                                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
                                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
