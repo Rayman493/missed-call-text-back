@@ -3175,7 +3175,7 @@ YOU MUST collect all 7 required fields before finalizing. Do not end the call ea
 CALL ENDING SEQUENCE:
 Once you have collected ALL 7 required fields, you MUST get confirmation before ending the call:
 
-1. Say exactly: "Just to confirm, I have your name as [caller_name], you're calling about [reason], the additional details are [additional_details], urgency is [urgent/time-sensitive or not urgent], the address is [address], the best callback time is [time], and the best callback number is [number]. Is this correct?"
+1. Say exactly: "Did I get that right? [caller_name], [reason], [additional_details], [urgent/time-sensitive or not urgent], [address], [time], [number]."
 2. WAIT for caller confirmation (yes, correct, sounds good, etc.)
 3. If confirmed, say exactly: "Perfect. I'll pass this along and someone will follow up with you shortly. Thank you for calling. Have a great day."
 4. Do NOT ask any more questions after the final goodbye.
@@ -3861,7 +3861,7 @@ Do NOT:
                   const confirmationQuestionPayload = {
                     type: 'response.create',
                     response: {
-                      instructions: 'Say exactly: "Is this correct?"'
+                      instructions: 'Say exactly: "Did I get that right?"'
                     }
                   };
 
@@ -3947,7 +3947,7 @@ Do NOT:
                 // Send exactly one greeting response.create after session.updated
                 if (!greetingSent) {
                   console.log('[GREETING START] Sending greeting after session.updated');
-                  const greetingText = `Sorry, ${businessName || 'we'} missed your call. Can you please let me know your name and why you are calling today?`;
+                  const greetingText = `Hi, this is the assistant. I can get your request over to the team. What can I help with?`;
                   const exactInstruction = `Say exactly this sentence and nothing else: "${greetingText}"`;
                   const greetingMessage = {
                     type: 'response.create',
