@@ -54,6 +54,17 @@ export async function POST(request: NextRequest) {
     const testPhoneNumber = `+1555${Math.floor(1000000 + Math.random() * 9000000)}`
     const testContactName = `Test Lead ${new Date().toLocaleTimeString()}`
 
+    // DEFENSIVE GUARD: Log test lead creation with full context
+    console.log('[LEAD CREATION ATTEMPT]', {
+      source: 'admin-create-test-lead',
+      business_id: businessId,
+      caller_phone: testPhoneNumber,
+      user_id: user.id,
+      is_demo: true,
+      is_test: true,
+      timestamp: new Date().toISOString()
+    })
+
     const { data: lead, error: leadError } = await supabase
       .from('leads')
       .insert({

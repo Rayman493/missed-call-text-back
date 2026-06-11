@@ -123,6 +123,17 @@ export async function POST(request: Request) {
     } else {
       // Create new demo lead
       console.log('[demo-send-text] Creating new demo lead for phone:', normalizedDemoPhone)
+      
+      // DEFENSIVE GUARD: Log demo lead creation with full context
+      console.log('[LEAD CREATION ATTEMPT]', {
+        source: 'demo-send-text',
+        business_id: business.id,
+        caller_phone: normalizedDemoPhone,
+        user_id: user.id,
+        is_demo: true,
+        timestamp: new Date().toISOString()
+      })
+      
       demoLead = await db.createLead({
         business_id: business.id,
         caller_phone: normalizedDemoPhone,

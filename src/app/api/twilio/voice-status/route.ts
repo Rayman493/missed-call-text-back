@@ -353,108 +353,31 @@ export async function POST(req: NextRequest) {
       lead = existingLead
       console.log("[Twilio Voice Status Webhook] Using existing lead:", lead.id)
     } else {
-      // Check if caller is in ignored contacts before creating lead
-      console.log('[IGNORED CONTACT CHECK VOICE-STATUS]', {
+      // CRITICAL FIX: Do NOT create leads from status callbacks
+      // Status callbacks are for updating existing call events, not creating new leads
+      // Only the voice webhook should create leads when a call actually arrives
+      console.error('[PHANTOM LEAD PREVENTED] voice-status webhook attempting to create lead without existing lead')
+      console.error('[PHANTOM LEAD PREVENTED]', {
+        callSid: CallSid,
         businessId: business.id,
         callerPhone: normalizedCallerPhone,
-        timestamp: new Date().toISOString()
-      })
-      
-      const isIgnored = await isIgnoredContact(business.id, normalizedCallerPhone)
-      
-      if (isIgnored) {
-        console.log('[IGNORED CONTACT BLOCKED DB WRITE]', {
-          businessId: business.id,
-          phoneNumber: normalizedCallerPhone,
-          source: 'voice-status',
-          timestamp: new Date().toISOString()
-        })
-        
-        // Return success without creating lead or any other database writes
-        return new Response("OK", { status: 200 })
-      }
-      
-      // Insert new lead with safe error handling - use shared helper for canonical records
-      console.log(`[Twilio Voice Status Webhook] Using shared helper for canonical lead/conversation`)
-      console.log('[DB WRITE ATTEMPT - LEADS]', {
-        route: '/api/twilio/voice-status',
-        businessId: business.id,
-        fromPhone: normalizedCallerPhone,
-        toPhone: normalizedTo,
-        callSid: CallSid,
-        timestamp: new Date().toISOString()
+        callStatus: CallStatus,
+        reason: 'voice-status webhook cannot create leads - only the voice webhook can create leads for actual calls'
       })
       
       logCallTrace({
         route: 'voice-status',
-        action: 'call_intake_start',
+        action: 'lead_creation_blocked',
         callSid: CallSid,
         from: From,
         to: To,
         businessId: business.id,
         businessName: business.name,
-        reason: 'Getting/creating canonical lead and conversation for voice-status webhook'
+        reason: 'voice-status webhook blocked from creating new lead - status callbacks cannot create leads'
       })
       
-      try {
-        const intakeRecords = await db.getOrCreateCallIntakeRecords({
-          callSid: CallSid,
-          businessId: business.id,
-          callerPhone: normalizedCallerPhone,
-          to: To
-        })
-        
-        if (!intakeRecords.leadId || !intakeRecords.conversationId) {
-          console.error("[Twilio Voice Status Webhook] Failed to get or create intake records")
-          
-          logCallTrace({
-            route: 'voice-status',
-            action: 'call_intake_failed',
-            callSid: CallSid,
-            from: From,
-            to: To,
-            businessId: business.id,
-            businessName: business.name,
-            reason: 'Failed to get or create intake records'
-          })
-        } else {
-          console.log('[Twilio Voice Status Webhook] Intake records obtained:', {
-            leadId: intakeRecords.leadId,
-            conversationId: intakeRecords.conversationId,
-            isNew: intakeRecords.isNew
-          })
-          
-          logCallTrace({
-            route: 'voice-status',
-            action: 'call_intake_success',
-            callSid: CallSid,
-            from: From,
-            to: To,
-            businessId: business.id,
-            businessName: business.name,
-            leadId: intakeRecords.leadId,
-            conversationId: intakeRecords.conversationId,
-            existingOrCreated: intakeRecords.isNew ? 'created' : 'existing',
-            reason: 'Successfully obtained canonical lead and conversation'
-          })
-          
-          lead = { id: intakeRecords.leadId, status: 'new' } as any
-          canonicalConversationId = intakeRecords.conversationId
-        }
-      } catch (intakeError) {
-        console.error("[Twilio Voice Status Webhook] Exception during intake:", intakeError)
-        
-        logCallTrace({
-          route: 'voice-status',
-          action: 'call_intake_failed',
-          callSid: CallSid,
-          from: From,
-          to: To,
-          businessId: business.id,
-          businessName: business.name,
-          reason: `Exception during intake: ${intakeError}`
-        })
-      }
+      // Return early without creating lead - this prevents phantom leads
+      return new Response("OK", { status: 200 })
     }
 
     // If we still don't have a lead, continue with processing but log the issue

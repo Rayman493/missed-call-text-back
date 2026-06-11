@@ -928,6 +928,15 @@ export const db = {
   },
 
   async createLead(lead: Omit<Lead, 'id' | 'created_at' | 'updated_at'>): Promise<Lead | null> {
+    // DEFENSIVE GUARD: Validate required fields
+    if (!lead.business_id || !lead.caller_phone) {
+      console.error('[LEAD CREATION BLOCKED] Missing required fields:', {
+        business_id: lead.business_id,
+        caller_phone: lead.caller_phone
+      })
+      return null
+    }
+    
     const normalizedLead = {
       ...lead,
       caller_phone: normalizePhoneNumberForStorage(lead.caller_phone || '')
@@ -939,6 +948,17 @@ export const db = {
       source: 'createLead'
     })
     
+    // DEFENSIVE GUARD: Log all lead creation attempts with full context
+    console.log('[LEAD CREATION ATTEMPT]', {
+      source: 'createLead',
+      business_id: lead.business_id,
+      caller_phone: normalizedLead.caller_phone,
+      status: lead.status,
+      is_demo: lead.is_demo,
+      raw_metadata_source: lead.raw_metadata?.source,
+      timestamp: new Date().toISOString()
+    })
+    
     const { data, error } = await supabaseAdmin
       .from('leads')
       .insert(normalizedLead)
@@ -946,9 +966,23 @@ export const db = {
       .single()
     
     if (error) {
-      console.error('Error creating lead:', error)
+      console.error('[LEAD CREATION FAILED]', {
+        business_id: lead.business_id,
+        caller_phone: normalizedLead.caller_phone,
+        error: error.message,
+        code: error.code
+      })
       return null
     }
+    
+    console.log('[LEAD CREATED]', {
+      lead_id: data.id,
+      business_id: data.business_id,
+      caller_phone: data.caller_phone,
+      status: data.status,
+      is_demo: data.is_demo,
+      timestamp: new Date().toISOString()
+    })
     
     return data
   },
@@ -1052,14 +1086,38 @@ export const db = {
   },
 
   // Shared helper to get or create canonical lead and conversation for a CallSid
+  // CRITICAL: Only creates leads for legitimate calls, not status callbacks
   async getOrCreateCallIntakeRecords(params: {
     callSid: string
     businessId: string
     callerPhone: string
     to?: string
     forwardedFrom?: string
+    requireValidCall?: boolean // New parameter to enforce call validation
   }): Promise<{ leadId: string | null; conversationId: string | null; isNew: boolean }> {
     console.log('[CALL INTAKE] Getting/creating canonical records for CallSid:', params.callSid)
+    
+    // DEFENSIVE GUARD: Validate required parameters
+    if (!params.callSid || !params.businessId || !params.callerPhone) {
+      console.error('[CALL INTAKE] Missing required parameters:', {
+        callSid: params.callSid,
+        businessId: params.businessId,
+        callerPhone: params.callerPhone
+      })
+      return { leadId: null, conversationId: null, isNew: false }
+    }
+    
+    // DEFENSIVE GUARD: Log lead creation attempt with full context
+    console.log('[LEAD CREATION ATTEMPT]', {
+      source: 'getOrCreateCallIntakeRecords',
+      callSid: params.callSid,
+      businessId: params.businessId,
+      callerPhone: params.callerPhone,
+      to: params.to,
+      forwardedFrom: params.forwardedFrom,
+      requireValidCall: params.requireValidCall,
+      timestamp: new Date().toISOString()
+    })
     
     const normalizedPhone = normalizePhoneNumberForStorage(params.callerPhone)
     
@@ -1152,6 +1210,24 @@ export const db = {
       }
     } else {
       // Step 4: Create new lead if no existing lead found
+      // DEFENSIVE GUARD: Only create lead if call event exists (prevents phantom leads from status callbacks)
+      const { data: callEventForValidation } = await supabaseAdmin
+        .from('call_events')
+        .select('id, call_status')
+        .eq('twilio_call_sid', params.callSid)
+        .maybeSingle()
+      
+      if (!callEventForValidation && params.requireValidCall !== false) {
+        console.error('[CALL INTAKE] Refusing to create lead - no call event found for CallSid:', params.callSid)
+        console.error('[PHANTOM LEAD PREVENTED]', {
+          callSid: params.callSid,
+          businessId: params.businessId,
+          callerPhone: normalizedPhone,
+          reason: 'No call event exists - this appears to be a status callback without a real call'
+        })
+        return { leadId: null, conversationId: null, isNew: false }
+      }
+      
       console.log('[CALL INTAKE] No existing lead found, creating new lead')
       const { data: newLead, error: leadError } = await supabaseAdmin
         .from('leads')
@@ -1169,7 +1245,14 @@ export const db = {
         return { leadId: null, conversationId: null, isNew: false }
       }
       
-      console.log('[CALL INTAKE] Created new lead:', newLead.id)
+      console.log('[LEAD CREATED]', {
+        leadId: newLead.id,
+        businessId: params.businessId,
+        callerPhone: normalizedPhone,
+        callSid: params.callSid,
+        source: 'call_intake',
+        timestamp: new Date().toISOString()
+      })
       leadId = newLead.id
       isNewLead = true
     }

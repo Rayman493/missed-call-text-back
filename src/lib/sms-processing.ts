@@ -256,6 +256,18 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     
     // Create new lead with status 'contacted' since customer replied
     console.log(`[SMS Processing] No existing lead, creating new lead`)
+    
+    // DEFENSIVE GUARD: Log lead creation attempt with full context
+    console.log('[LEAD CREATION ATTEMPT]', {
+      source: 'sms-processing',
+      business_id: business.id,
+      caller_phone: normalizedCustomerPhone,
+      message_sid: messageSid,
+      source_type: source,
+      is_demo: source === 'dev_simulation',
+      timestamp: new Date().toISOString()
+    })
+    
     lead = await db.createLead({
       business_id: business.id,
       caller_phone: normalizedCustomerPhone,
