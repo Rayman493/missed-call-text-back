@@ -15,6 +15,10 @@ export type BusinessCategory =
   | 'real_estate'         // real estate agents, inspectors
   | 'travel_agent'        // travel agents
   | 'salon_appointment'   // salons, appointment-based services
+  | 'pet_grooming'        // pet grooming services
+  | 'lessons_tutoring'    // lessons, tutoring
+  | 'medical_dental'      // medical, dental practices
+  | 'legal_consulting'    // legal, consulting services
   | 'general_service'     // fallback for other local services
 
 /**
@@ -31,115 +35,262 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   confirmationFormat: (data: any) => string
 }> = {
   home_services: {
-    greeting: "Hi, this is the assistant. I can help get your request over to the team. What can I help with?",
-    reasonQuestion: "What type of service are you looking for today?",
+    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
+    reasonQuestion: "What can I help with?",
     followUpQuestions: [
-      "Could you describe the issue or project in a bit more detail?",
-      "Do you have a preferred date or time for the service?"
+      "Can you tell me a little more about that?",
+      "Where is the service location?"
     ],
-    urgencyQuestion: "How soon do you need this taken care of? Is it urgent, or can it wait a few days?",
-    locationQuestion: "What's the service address?",
-    callbackTimeQuestion: "What's the best time for us to reach you?",
-    callbackNumberQuestion: "What's the best callback number for you?",
-    confirmationFormat: (data) => `Name: ${data.caller_name}, service: ${data.reason_for_call}, urgency: ${data.urgency}, address: ${data.address || 'not provided'}, callback: ${data.callback_number}`
+    urgencyQuestion: "Is this urgent or time-sensitive?",
+    locationQuestion: "Where is the service location?",
+    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackNumberQuestion: "What's the best callback number?",
+    confirmationFormat: (data) => {
+      const parts = []
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`Service: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`Address: ${data.address}`)
+      if (data.callback_number) parts.push(`Callback: ${data.callback_number}`)
+      return parts.join(', ')
+    }
   },
   
   plumbing_hvac: {
-    greeting: "Hi, this is the assistant. I can help get your request over to the plumbing team. What can I help with?",
-    reasonQuestion: "Are you calling about a plumbing issue or HVAC service?",
+    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
+    reasonQuestion: "What can I help with?",
     followUpQuestions: [
-      "Could you describe the problem briefly?",
-      "Is this an emergency situation?"
+      "Can you tell me a little more about that?",
+      "Where is the service location?"
     ],
-    urgencyQuestion: "Is this an emergency that needs immediate attention, or can it wait for a scheduled appointment?",
-    locationQuestion: "What's the service address?",
-    callbackTimeQuestion: "When would be the best time for a technician to reach you?",
-    callbackNumberQuestion: "What's the best callback number for you?",
-    confirmationFormat: (data) => `Name: ${data.caller_name}, service: ${data.reason_for_call}, urgency: ${data.urgency}, address: ${data.address || 'not provided'}, callback: ${data.callback_number}`
+    urgencyQuestion: "Is this urgent or time-sensitive?",
+    locationQuestion: "Where is the service location?",
+    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackNumberQuestion: "What's the best callback number?",
+    confirmationFormat: (data) => {
+      const parts = []
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`Service: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`Address: ${data.address}`)
+      if (data.callback_number) parts.push(`Callback: ${data.callback_number}`)
+      return parts.join(', ')
+    }
   },
   
   cleaning: {
-    greeting: "Hi, this is the assistant. I can help get your request over to the cleaning team. What can I help with?",
-    reasonQuestion: "What type of cleaning service are you looking for?",
+    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
+    reasonQuestion: "What can I help with?",
     followUpQuestions: [
-      "What's the size of the space?",
-      "Do you have a preferred day for the cleaning?"
+      "What type of cleaning do you need, and where is it?",
+      "Can you tell me a little more about that?"
     ],
-    urgencyQuestion: "How soon do you need cleaning service?",
-    locationQuestion: "What's the cleaning address?",
-    callbackTimeQuestion: "What's the best time for us to reach you?",
-    callbackNumberQuestion: "What's the best callback number for you?",
-    confirmationFormat: (data) => `Name: ${data.caller_name}, service: ${data.reason_for_call}, urgency: ${data.urgency}, address: ${data.address || 'not provided'}, callback: ${data.callback_number}`
+    urgencyQuestion: "Is this urgent or time-sensitive?",
+    locationQuestion: "What type of cleaning do you need, and where is it?",
+    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackNumberQuestion: "What's the best callback number?",
+    confirmationFormat: (data) => {
+      const parts = []
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`Service: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`Address: ${data.address}`)
+      if (data.callback_number) parts.push(`Callback: ${data.callback_number}`)
+      return parts.join(', ')
+    }
   },
   
   landscaping: {
-    greeting: "Hi, this is the assistant. I can help get your request over to the landscaping team. What can I help with?",
-    reasonQuestion: "What type of landscaping or lawn care do you need?",
+    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
+    reasonQuestion: "What can I help with?",
     followUpQuestions: [
-      "Could you tell me a bit more about what you're looking for?",
-      "Do you have a preferred timeline?"
+      "Can you tell me a little more about that?",
+      "Where is the service location?"
     ],
-    urgencyQuestion: "Is this time-sensitive, or can we schedule for a later date?",
-    locationQuestion: "What's the property address?",
-    callbackTimeQuestion: "What's the best time for us to reach you?",
-    callbackNumberQuestion: "What's the best callback number for you?",
-    confirmationFormat: (data) => `Name: ${data.caller_name}, service: ${data.reason_for_call}, urgency: ${data.urgency}, address: ${data.address || 'not provided'}, callback: ${data.callback_number}`
+    urgencyQuestion: "Is this urgent or time-sensitive?",
+    locationQuestion: "Where is the service location?",
+    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackNumberQuestion: "What's the best callback number?",
+    confirmationFormat: (data) => {
+      const parts = []
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`Service: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`Address: ${data.address}`)
+      if (data.callback_number) parts.push(`Callback: ${data.callback_number}`)
+      return parts.join(', ')
+    }
   },
   
   real_estate: {
-    greeting: "Hi, this is the assistant. I can help get your request over to the team. What can I help with?",
-    reasonQuestion: "Are you calling about buying, selling, or a property inspection?",
+    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
+    reasonQuestion: "What can I help with?",
     followUpQuestions: [
-      "Could you share a bit more about what you're looking for?",
-      "Do you have a specific property in mind?"
+      "Can you tell me a little more about that?",
+      "Where is the property location?"
     ],
-    urgencyQuestion: "How soon are you looking to move forward with this?",
-    locationQuestion: "What's the property address or area you're interested in?",
-    callbackTimeQuestion: "What's the best time for us to reach you?",
-    callbackNumberQuestion: "What's the best callback number for you?",
-    confirmationFormat: (data) => `Name: ${data.caller_name}, interest: ${data.reason_for_call}, urgency: ${data.urgency}, property: ${data.address || 'not provided'}, callback: ${data.callback_number}`
+    urgencyQuestion: "Is this urgent or time-sensitive?",
+    locationQuestion: "Where is the property location?",
+    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackNumberQuestion: "What's the best callback number?",
+    confirmationFormat: (data) => {
+      const parts = []
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`Interest: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`Property: ${data.address}`)
+      if (data.callback_number) parts.push(`Callback: ${data.callback_number}`)
+      return parts.join(', ')
+    }
   },
   
   travel_agent: {
-    greeting: "Hi, this is the assistant. I can help get your request over to the travel team. What can I help with?",
-    reasonQuestion: "What's your travel destination or trip idea?",
+    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
+    reasonQuestion: "What can I help with?",
     followUpQuestions: [
-      "Do you have approximate travel dates in mind?",
-      "How many travelers will be going?"
+      "Can you tell me a little more about that?",
+      "When are you looking to travel?"
     ],
-    urgencyQuestion: "How soon are you planning to travel? Is this time-sensitive?",
-    locationQuestion: null, // Don't ask for address for travel
-    callbackTimeQuestion: "What's the best time for us to reach you?",
-    callbackNumberQuestion: "What's the best callback number for you?",
-    confirmationFormat: (data) => `Name: ${data.caller_name}, destination: ${data.reason_for_call}, urgency: ${data.urgency}, travelers: ${data.travelers || 'not specified'}, callback: ${data.callback_number}`
+    urgencyQuestion: "Is this urgent or time-sensitive?",
+    locationQuestion: null,
+    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackNumberQuestion: "What's the best callback number?",
+    confirmationFormat: (data) => {
+      const parts = []
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`Destination: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}`)
+      if (data.travelers) parts.push(`Travelers: ${data.travelers}`)
+      if (data.callback_number) parts.push(`Callback: ${data.callback_number}`)
+      return parts.join(', ')
+    }
   },
   
   salon_appointment: {
-    greeting: "Hi, this is the assistant. I can help get your request over to the team. What can I help with?",
-    reasonQuestion: "What type of appointment are you looking to book?",
+    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
+    reasonQuestion: "What can I help with?",
     followUpQuestions: [
-      "Do you have a preferred date or time?",
-      "What services are you interested in?"
+      "Can you tell me a little more about that?",
+      "When would you like to come in?"
     ],
-    urgencyQuestion: "How soon would you like to get in?",
-    locationQuestion: null, // Don't ask for address for appointments
-    callbackTimeQuestion: "What's the best time for us to reach you?",
-    callbackNumberQuestion: "What's the best callback number for you?",
-    confirmationFormat: (data) => `Name: ${data.caller_name}, appointment: ${data.reason_for_call}, urgency: ${data.urgency}, preferred time: ${data.preferred_time || 'not specified'}, callback: ${data.callback_number}`
+    urgencyQuestion: "Is this urgent or time-sensitive?",
+    locationQuestion: null,
+    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackNumberQuestion: "What's the best callback number?",
+    confirmationFormat: (data) => {
+      const parts = []
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`Appointment: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}`)
+      if (data.preferred_time) parts.push(`Preferred time: ${data.preferred_time}`)
+      if (data.callback_number) parts.push(`Callback: ${data.callback_number}`)
+      return parts.join(', ')
+    }
+  },
+  
+  pet_grooming: {
+    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
+    reasonQuestion: "What can I help with?",
+    followUpQuestions: [
+      "What kind of pet is it, and what service do they need?",
+      "Can you tell me a little more about that?"
+    ],
+    urgencyQuestion: "Is this urgent or time-sensitive?",
+    locationQuestion: null,
+    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackNumberQuestion: "What's the best callback number?",
+    confirmationFormat: (data) => {
+      const parts = []
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`Service: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}`)
+      if (data.callback_number) parts.push(`Callback: ${data.callback_number}`)
+      return parts.join(', ')
+    }
+  },
+  
+  lessons_tutoring: {
+    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
+    reasonQuestion: "What can I help with?",
+    followUpQuestions: [
+      "Who are the lessons for, and what level are they at?",
+      "Can you tell me a little more about that?"
+    ],
+    urgencyQuestion: "Is this urgent or time-sensitive?",
+    locationQuestion: null,
+    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackNumberQuestion: "What's the best callback number?",
+    confirmationFormat: (data) => {
+      const parts = []
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`Service: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}`)
+      if (data.callback_number) parts.push(`Callback: ${data.callback_number}`)
+      return parts.join(', ')
+    }
+  },
+  
+  medical_dental: {
+    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
+    reasonQuestion: "What can I help with?",
+    followUpQuestions: [
+      "What kind of appointment or issue are you calling about?",
+      "Can you tell me a little more about that?"
+    ],
+    urgencyQuestion: "Is this urgent or time-sensitive?",
+    locationQuestion: null,
+    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackNumberQuestion: "What's the best callback number?",
+    confirmationFormat: (data) => {
+      const parts = []
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`Appointment: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}`)
+      if (data.callback_number) parts.push(`Callback: ${data.callback_number}`)
+      return parts.join(', ')
+    }
+  },
+  
+  legal_consulting: {
+    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
+    reasonQuestion: "What can I help with?",
+    followUpQuestions: [
+      "What would you like to discuss?",
+      "Can you tell me a little more about that?"
+    ],
+    urgencyQuestion: "Is this urgent or time-sensitive?",
+    locationQuestion: null,
+    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackNumberQuestion: "What's the best callback number?",
+    confirmationFormat: (data) => {
+      const parts = []
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`Topic: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}`)
+      if (data.callback_number) parts.push(`Callback: ${data.callback_number}`)
+      return parts.join(', ')
+    }
   },
   
   general_service: {
-    greeting: "Hi, this is the assistant. I can help get your request over to the team. What can I help with?",
-    reasonQuestion: "What's the reason for your call today?",
+    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
+    reasonQuestion: "What can I help with?",
     followUpQuestions: [
-      "Could you tell me a bit more about what you need?",
+      "Can you tell me a little more about that?",
       "Is there anything else I should know?"
     ],
-    urgencyQuestion: "How urgent is this matter?",
+    urgencyQuestion: "Is this urgent or time-sensitive?",
     locationQuestion: null,
     callbackTimeQuestion: null,
-    callbackNumberQuestion: "What's the best callback number for the team to reach you?",
-    confirmationFormat: (data) => `Name: ${data.caller_name}, reason: ${data.reason_for_call}, urgency: ${data.urgency}, callback: ${data.callback_number}`
+    callbackNumberQuestion: "What's the best callback number?",
+    confirmationFormat: (data) => {
+      const parts = []
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}`)
+      if (data.callback_number) parts.push(`Callback: ${data.callback_number}`)
+      return parts.join(', ')
+    }
   }
 }
 
@@ -149,6 +300,34 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
 export function detectBusinessCategory(businessName: string, businessDescription?: string): BusinessCategory {
   const lowerName = businessName.toLowerCase()
   const lowerDesc = (businessDescription || '').toLowerCase()
+  
+  // Pet grooming keywords
+  if (lowerName.includes('pet') || lowerName.includes('groom') || lowerName.includes('dog') || lowerName.includes('cat') ||
+      lowerName.includes('veterinary') || lowerName.includes('vet') || lowerName.includes('animal') ||
+      lowerDesc.includes('pet') || lowerDesc.includes('groom') || lowerDesc.includes('dog') || lowerDesc.includes('cat')) {
+    return 'pet_grooming'
+  }
+  
+  // Lessons/tutoring keywords
+  if (lowerName.includes('lesson') || lowerName.includes('tutor') || lowerName.includes('teach') || lowerName.includes('education') ||
+      lowerName.includes('music') || lowerName.includes('piano') || lowerName.includes('guitar') || lowerName.includes('dance') ||
+      lowerDesc.includes('lesson') || lowerDesc.includes('tutor') || lowerDesc.includes('teach') || lowerDesc.includes('education')) {
+    return 'lessons_tutoring'
+  }
+  
+  // Medical/dental keywords
+  if (lowerName.includes('medical') || lowerName.includes('dental') || lowerName.includes('dentist') || lowerName.includes('doctor') ||
+      lowerName.includes('clinic') || lowerName.includes('health') || lowerName.includes('physician') ||
+      lowerDesc.includes('medical') || lowerDesc.includes('dental') || lowerDesc.includes('dentist') || lowerDesc.includes('doctor')) {
+    return 'medical_dental'
+  }
+  
+  // Legal/consulting keywords
+  if (lowerName.includes('legal') || lowerName.includes('law') || lowerName.includes('attorney') || lowerName.includes('lawyer') ||
+      lowerName.includes('consult') || lowerName.includes('consulting') || lowerName.includes('firm') ||
+      lowerDesc.includes('legal') || lowerDesc.includes('law') || lowerDesc.includes('attorney') || lowerDesc.includes('lawyer')) {
+    return 'legal_consulting'
+  }
   
   // Travel agent keywords
   if (lowerName.includes('travel') || lowerName.includes('vacation') || lowerName.includes('cruise') ||
@@ -219,27 +398,28 @@ LANGUAGE REQUIREMENTS:
 
 Your role is to:
 1. Greet the caller professionally in English
-2. Collect the following information in a natural conversation:
-   - Caller's name
+2. Start by asking what they need help with (reason for calling)
+3. Ask for their name naturally if not already provided
+4. Collect the following information in a natural conversation:
    - Reason for calling (ask naturally: "${config.reasonQuestion}")
    - Urgency level (ask naturally: "${config.urgencyQuestion}")
    - Callback number (ask naturally: "${config.callbackNumberQuestion}")
    ${config.locationQuestion ? `- Location/address (ask naturally: "${config.locationQuestion}")` : ''}
    ${config.callbackTimeQuestion ? `- Best callback time (ask naturally: "${config.callbackTimeQuestion}")` : ''}
-3. Ask relevant follow-up questions naturally based on the caller's responses
-4. Read back a concise summary of what you captured
-5. Ask for final confirmation: "Is that all correct?"
-6. If caller confirms (yes, correct, that's right, etc.):
+5. Ask relevant follow-up questions naturally based on the caller's responses
+6. Read back a concise summary of what you captured (only include fields that were actually provided)
+7. Ask for final confirmation: "Did I get that right?"
+8. If caller confirms (yes, correct, that's right, etc.):
    - Thank the caller
    - End the call
-7. If caller corrects something:
+9. If caller corrects something:
    - Update the corrected field
    - Regenerate summary
    - Ask confirmation again
-8. Only complete intake after caller confirms the information is correct
+10. Only complete intake after caller confirms the information is correct
 
 Important guidelines:
-- Be polite and professional
+- Be friendly, concise, calm, and professional
 - Keep responses brief (1-2 sentences)
 - Do not make up information you don't have
 - If the caller is unclear, ask for clarification in English
@@ -248,30 +428,36 @@ Important guidelines:
 - If caller provides corrections, acknowledge them and ask confirmation again
 - Adapt your questions naturally based on the caller's responses
 - Don't sound robotic - ask follow-up questions naturally when appropriate
+- Extract any fields mentioned opportunistically from caller responses
+- Do not ask redundant questions if the caller already provided the information
+- Aim to finish the call in 60-90 seconds
+- Ask one question at a time
+- Avoid long filler
+- If caller says "just have them call me", capture callback number/time and end gracefully
 
 Greeting: "${config.greeting}"
 
-Confirmation question: "Let me confirm what I have. [read summary]. Is that all correct?"
+Confirmation question: "Did I get that right?"
 
 Closing (after confirmation): "Thank you. I've shared this information with the team and someone will contact you shortly. Goodbye."`
 }
 
 /**
- * Intake questions in order - now category-aware
+ * Intake questions in order - now adaptive (reason before name)
  */
 export function getIntakeQuestions(category: BusinessCategory = 'general_service') {
   const config = CATEGORY_INTAKE_CONFIG[category]
   
   const questions = [
     {
-      field: 'name',
-      question: "May I get your name?",
-      prompt: "Ask for the caller's name"
-    },
-    {
       field: 'reason',
       question: config.reasonQuestion,
-      prompt: "Ask for the reason for the call"
+      prompt: "Ask for the reason for the call first"
+    },
+    {
+      field: 'name',
+      question: "Can I get your name?",
+      prompt: "Ask for the caller's name if not already provided"
     }
   ]
   
@@ -374,7 +560,7 @@ export function getClosing(): string {
 }
 
 /**
- * Generate confirmation question with summary - now category-aware
+ * Generate confirmation question with summary - now category-aware and excludes placeholders
  */
 export function getConfirmationQuestion(data: any, category: BusinessCategory = 'general_service'): string {
   console.log('[AI FINAL CONFIRMATION ASKED]', {
@@ -387,7 +573,7 @@ export function getConfirmationQuestion(data: any, category: BusinessCategory = 
   
   const config = CATEGORY_INTAKE_CONFIG[category]
   const summary = config.confirmationFormat(data)
-  return `Let me confirm what I have. ${summary}. Is that all correct?`
+  return `Did I get that right? ${summary}`
 }
 
 /**
