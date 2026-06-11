@@ -335,8 +335,8 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           { type: 'leads', value: metrics.leadsGenerated },
           { type: 'recovery', value: metrics.recoveryRate }
         ].map((metric) => (
-          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 h-28 sm:h-32 flex flex-col">
-            <div className="flex items-start justify-between mb-1.5 sm:mb-2">
+          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
+            <div className="flex items-start justify-between mb-2 sm:mb-3">
               <div className={`w-8 h-8 sm:w-10 sm:h-10 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border shadow-sm`}>
                 {getMetricIcon(metric.type)}
               </div>
@@ -344,7 +344,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
                 {metrics.period}
               </div>
             </div>
-            <div className="space-y-0.5 sm:space-y-1 flex-1">
+            <div className="space-y-1 sm:space-y-1.5 flex-1">
               <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
                 {metric.type === 'recovery' ? `${metric.value}%` : metric.value.toLocaleString()}
               </div>
@@ -352,7 +352,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
                 {getMetricLabel(metric.type)}
               </div>
               {metric.value === 0 && metric.type !== 'recovery' && (
-                <div className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 mt-0.5 sm:mt-1">
+                <div className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500">
                   {getEmptyStateText(metric.type)}
                 </div>
               )}
@@ -368,8 +368,8 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           { type: 'messages', value: metrics.messagesSent },
           { type: 'conversations', value: metrics.activeConversations }
         ].map((metric) => (
-          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-2.5 sm:p-3 h-24 sm:h-28 flex flex-col">
-            <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-2.5 sm:p-3 min-h-[6rem] sm:min-h-[7rem] flex flex-col">
+            <div className="flex items-center justify-between mb-2 sm:mb-2.5">
               <div className={`w-7 h-7 sm:w-8 sm:h-8 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
                 {getMetricIcon(metric.type)}
               </div>
@@ -377,7 +377,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
                 {metrics.period}
               </div>
             </div>
-            <div className="space-y-0.5 flex-1">
+            <div className="space-y-1 flex-1">
               <div className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground leading-tight">
                 {metric.value.toLocaleString()}
               </div>
