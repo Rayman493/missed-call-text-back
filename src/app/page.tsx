@@ -234,10 +234,10 @@ export default async function Home() {
               <div className="mt-2 sm:mt-3 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
                 {/* Primary CTA */}
                 <Link
-                  href="/auth?mode=signup"
+                  href={session?.user ? "/dashboard" : "/auth?mode=signup"}
                   className="inline-flex items-center justify-center h-10 sm:h-12 px-4 sm:px-8 w-[260px] sm:w-auto sm:min-w-[240px] bg-blue-600 text-white font-bold text-sm sm:text-base rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 hover:scale-105"
                 >
-                  Start Your 14-Day Free Trial
+                  {session?.user ? "Go to Dashboard" : "Start Your 14-Day Free Trial"}
                 </Link>
               </div>
 
@@ -954,10 +954,10 @@ export default async function Home() {
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 md:gap-6">
                 <Link
-                  href="/auth?mode=signup"
+                  href={session?.user ? "/dashboard" : "/auth?mode=signup"}
                   className="h-12 sm:h-14 px-6 sm:px-8 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center text-base sm:text-lg"
                 >
-                  Start Your 14-Day Free Trial
+                  {session?.user ? "Go to Dashboard" : "Start Your 14-Day Free Trial"}
                 </Link>
                 <Link
                   href="/demo"

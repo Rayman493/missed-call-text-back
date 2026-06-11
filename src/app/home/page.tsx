@@ -6,6 +6,7 @@ import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 
 // Structured Data for Google Search
 function StructuredData() {
@@ -140,6 +141,7 @@ function HomepageFooter() {
 
 export default function PublicHome() {
   const [activeTab, setActiveTab] = useState('ai')
+  const { user } = useAuth()
   console.log('[PUBLIC HOME ROUTE RENDER] Rendering public homepage at /home - NO AUTH CHECK')
   
   // Render public homepage for all users (no auth check)
@@ -250,10 +252,10 @@ export default function PublicHome() {
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
               {/* Primary CTA */}
               <Link
-                href="/signup"
+                href={user ? "/dashboard" : "/signup"}
                 className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
               >
-                Start Free Trial
+                {user ? "Go to Dashboard" : "Start Free Trial"}
               </Link>
             </div>
 
