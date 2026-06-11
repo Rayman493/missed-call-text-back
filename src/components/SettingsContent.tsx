@@ -19,6 +19,7 @@ import PageBackground from '@/components/PageBackground'
 import UserDropdown from '@/components/UserDropdown'
 import MobileMenu from '@/components/MobileMenu'
 import AppHeader from '@/components/AppHeader'
+import BottomNavigation from '@/components/BottomNavigation'
 import {
   getSubscriptionStatusText,
   getSubscriptionStatusDescription,
@@ -1913,6 +1914,7 @@ export default function SettingsContent() {
         calendarConnected: undefined,
         isTrial: business?.subscription_status === 'trial'
       }} />
+    <BottomNavigation />
     </DashboardErrorBoundary>
   )
 }

@@ -236,17 +236,17 @@ export default function OperationalStatusCard({
   }, [healthStatus])
 
   return (
-    <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-2.5 sm:p-3 hover:shadow-xl transition-all duration-300">
+    <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 border border-slate-700 rounded-xl p-2 sm:p-2.5 md:p-3 hover:shadow-xl transition-all duration-300">
       {/* Compact Status Row - Always Visible */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-1.5">
         {/* Status indicator */}
         <div className="flex items-center gap-2">
           <span className={healthIndicator.color}>{healthIndicator.icon}</span>
           <div className="flex flex-col">
-            <span className={`text-sm font-semibold ${healthIndicator.color}`}>
+            <span className={`text-xs sm:text-sm font-semibold ${healthIndicator.color}`}>
               {healthStatus === 'healthy' ? 'ReplyFlow is Active' : healthIndicator.text}
             </span>
-            <span className="text-xs text-slate-400">
+            <span className="text-[10px] sm:text-xs text-slate-400">
               {healthStatus === 'healthy' ? 'All systems operational' : 'Requires attention'}
             </span>
           </div>
@@ -257,7 +257,8 @@ export default function OperationalStatusCard({
           {/* Expand/collapse toggle */}
           <button
             onClick={() => setShowSystemDetails(!showSystemDetails)}
-            className="inline-flex items-center justify-center w-7 h-7 bg-slate-700/30 hover:bg-slate-700 text-slate-400 rounded-md transition-colors"
+            className="inline-flex items-center justify-center w-10 h-10 sm:w-7 sm:h-7 bg-slate-700/30 hover:bg-slate-700 text-slate-400 rounded-md transition-colors"
+            aria-label={showSystemDetails ? 'Collapse details' : 'Expand details'}
           >
             {showSystemDetails ? (
               <ChevronUp className="w-4 h-4" />
@@ -269,21 +270,21 @@ export default function OperationalStatusCard({
       </div>
 
       {/* Phone Configuration - Inline compact row */}
-      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-slate-400 pb-2 mb-2 border-b border-slate-700/50">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 md:gap-4 text-[10px] sm:text-xs text-slate-400 pb-1.5 mb-1.5 border-b border-slate-700/50">
+        <div className="flex items-center gap-1.5">
           <span className="text-slate-500">Business:</span>
           <span className="font-mono text-slate-300">
             {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <span className="text-slate-500">ReplyFlow:</span>
           <span className="font-mono text-slate-300">
             {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
           </span>
         </div>
         {business?.forwarding_verified_at && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="text-slate-500">Last verified:</span>
             <span className="text-slate-300">{formatRelativeTime(business.forwarding_verified_at)}</span>
           </div>
@@ -292,7 +293,7 @@ export default function OperationalStatusCard({
 
       {/* Expanded Details - Only shown when unhealthy or manually expanded */}
       {showSystemDetails && (
-        <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="space-y-2 sm:space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Recovery Instructions - Only when unhealthy */}
           {healthStatus !== 'healthy' && (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5">

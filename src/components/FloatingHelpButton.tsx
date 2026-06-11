@@ -25,9 +25,10 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
       {/* Mobile Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="md:hidden fixed bottom-20 right-4 z-50 flex items-center justify-center w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+        className="md:hidden fixed bottom-20 right-4 z-50 flex items-center justify-center w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 pb-safe"
+        aria-label="Ask ReplyFlow for help"
       >
-        <MessageCircle className="w-6 h-6" />
+        <MessageCircle className="w-5 h-5" />
       </button>
 
       {/* Modal */}

@@ -1299,6 +1299,7 @@ export default function LeadsPage() {
         calendarConnected: undefined,
         isTrial: business?.subscription_status === 'trial'
       }} />
+    <BottomNavigation />
     </DashboardErrorBoundary>
   )
 }
