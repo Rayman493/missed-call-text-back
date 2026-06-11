@@ -31,6 +31,7 @@ function logCallTrace(data: {
 
 export async function POST(request: NextRequest) {
   console.log('[VOICEMAIL CALLBACK RECEIVED]');
+  console.log('[CALL INTAKE FLOW] Voicemail callback received - trusted path for intake record creation');
 
   try {
     console.log('[VOICEMAIL] Recording callback received');
@@ -198,8 +199,8 @@ export async function POST(request: NextRequest) {
     }
     
     if (!lead) {
-      console.log('[VOICEMAIL] No existing lead found, using shared helper for canonical records')
-      
+      console.log('[VOICEMAIL] No existing lead found, using trusted voicemail path for canonical records')
+
       logCallTrace({
         route: 'voicemail',
         action: 'call_intake_start',
@@ -208,15 +209,23 @@ export async function POST(request: NextRequest) {
         to,
         businessId: business.id,
         businessName: business.name,
-        reason: 'Getting/creating canonical lead and conversation for voicemail'
+        reason: 'Getting/creating canonical lead and conversation for trusted voicemail callback'
       })
-      
+
       try {
+        // TRUSTED VOICEMAIL PATH: Allow voicemail callback to create intake records
+        // This is safe because we've already verified:
+        // - Valid Twilio signature (line 63)
+        // - RecordingSid and RecordingUrl present (line 88-96)
+        // - Business lookup succeeded (line 110-129)
+        // - Caller normalization succeeded (line 146)
+        // - Not an ignored contact (line 156-167)
         const intakeRecords = await db.getOrCreateCallIntakeRecords({
           callSid,
           businessId: business.id,
           callerPhone: normalizedCallerPhone,
-          to
+          to,
+          requireValidCall: false // Trusted voicemail callback bypasses call event requirement
         })
         
         if (!intakeRecords.leadId || !intakeRecords.conversationId) {
@@ -238,7 +247,7 @@ export async function POST(request: NextRequest) {
             conversationId: intakeRecords.conversationId,
             isNew: intakeRecords.isNew
           })
-          
+
           logCallTrace({
             route: 'voicemail',
             action: 'call_intake_success',
@@ -250,7 +259,14 @@ export async function POST(request: NextRequest) {
             leadId: intakeRecords.leadId,
             conversationId: intakeRecords.conversationId,
             existingOrCreated: intakeRecords.isNew ? 'created' : 'existing',
-            reason: 'Successfully obtained canonical lead and conversation for voicemail'
+            reason: 'Successfully obtained canonical lead and conversation for trusted voicemail callback'
+          })
+
+          console.log('[TRUSTED VOICEMAIL PATH] Lead/conversation created for voicemail callback', {
+            callSid,
+            leadId: intakeRecords.leadId,
+            conversationId: intakeRecords.conversationId,
+            isNew: intakeRecords.isNew
           })
           
           lead = { id: intakeRecords.leadId } as any

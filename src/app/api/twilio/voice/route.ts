@@ -150,7 +150,8 @@ export async function POST(request: NextRequest) {
     method: request.method
   });
   console.log('[ROUTE HIT - TWILIO VOICE] routeName=/api/twilio/voice');
-  
+  console.log('[CALL INTAKE FLOW] Initial voice webhook received - starting canonical intake process');
+
   try {
     console.log('[VOICE WEBHOOK] Starting call processing');
     console.log('[VOICE WEBHOOK] Headers:', Object.fromEntries(request.headers.entries()));
@@ -572,6 +573,63 @@ export async function POST(request: NextRequest) {
       timestamp: callArrivalTimestamp.toISOString()
     });
 
+    // CRITICAL FIX: Create call_events record EARLY, before any branching
+    // This ensures canonical intake record exists for AI path, voicemail fallback, and status callbacks
+    // Phantom lead protection requires call_events to exist before creating leads
+    const normalizedCallerPhone = normalizePhoneNumberForStorage(From);
+    console.log('[CALL EVENTS EARLY CREATION]', {
+      businessId: business.id,
+      callerPhone: normalizedCallerPhone,
+      callSid: CallSid,
+      callType,
+      timestamp: new Date().toISOString()
+    });
+
+    let callEventCreated = false;
+    try {
+      const callEvent = await db.createCallEvent({
+        business_id: business.id,
+        caller_phone: normalizedCallerPhone,
+        call_status: 'ringing', // Will be updated by status callbacks
+        twilio_call_sid: CallSid,
+        raw_payload: Object.fromEntries(Object.entries(params)),
+        created_at: new Date().toISOString(),
+      });
+
+      if (callEvent) {
+        console.log('[CALL EVENTS EARLY CREATION SUCCESS]', {
+          callEventId: callEvent.id,
+          callSid: CallSid,
+          businessId: business.id
+        });
+        callEventCreated = true;
+      } else {
+        console.log('[CALL EVENTS EARLY CREATION SKIPPED]', {
+          callSid: CallSid,
+          reason: 'Duplicate call SID detected'
+        });
+        // Not an error - duplicate is expected for retries
+      }
+    } catch (callEventError: any) {
+      // Handle duplicate key error gracefully
+      if (callEventError.message?.includes('duplicate key') || callEventError.code === '23505') {
+        console.log('[CALL EVENTS EARLY CREATION DUPLICATE]', {
+          callSid: CallSid,
+          reason: 'DB index prevented duplicate'
+        });
+        callEventCreated = true; // Treat as success - record exists
+      } else {
+        console.error('[CALL EVENTS EARLY CREATION ERROR]', callEventError);
+        // Continue anyway - don't block call intake on call event failure
+      }
+    }
+
+    console.log('[CALL EVENTS EARLY CREATION COMPLETE]', {
+      callSid: CallSid,
+      callEventCreated,
+      businessId: business.id
+    });
+
     // AI CALL ASSISTANT: Check if AI should handle this call
     // Phase 0: /api/twilio/ai-assistant/start (fallback to voicemail)
     // Phase 1A POC: Direct TwiML return (routes to Fly.io)
@@ -919,7 +977,6 @@ export async function POST(request: NextRequest) {
     });
 
     // Check if this is a setup completion call (caller matches business phone number)
-    const normalizedCallerPhone = normalizePhoneNumberForStorage(From);
     const businessPhoneNumber = business.business_phone_number ? normalizePhoneNumberForStorage(business.business_phone_number) : null;
     
     if (businessPhoneNumber && normalizedCallerPhone === businessPhoneNumber) {
@@ -939,38 +996,6 @@ export async function POST(request: NextRequest) {
         }
       } catch (error) {
         console.error('[Twilio Voice] Error updating business setup status:', error);
-      }
-    }
-    
-    // Create call event for analytics (every call counts)
-    const callSid = params.CallSid
-    console.log('[CALL EVENTS WRITE ATTEMPT]', {
-      businessId: business.id,
-      callerPhone: normalizedCallerPhone,
-      callSid,
-      timestamp: new Date().toISOString()
-    })
-    try {
-      const callEvent = await db.createCallEvent({
-        business_id: business.id,
-        caller_phone: normalizedCallerPhone,
-        call_status: 'missed',
-        twilio_call_sid: callSid,
-        raw_payload: Object.fromEntries(Object.entries(params)),
-        created_at: new Date().toISOString(),
-      });
-      
-      if (callEvent) {
-        console.log('[call_events] Created call event:', callEvent.id);
-      } else {
-        console.log('[call_events] Duplicate call SID detected, skipping insert:', callSid);
-      }
-    } catch (callEventError: any) {
-      // Handle duplicate key error gracefully
-      if (callEventError.message?.includes('duplicate key') || callEventError.code === '23505') {
-        console.log('[call_events] Duplicate prevented by DB index:', callSid);
-      } else {
-        console.error('[call_events] Error creating call event:', callEventError);
       }
     }
 
@@ -1327,7 +1352,7 @@ export async function POST(request: NextRequest) {
       const filteringResult = await shouldSendAutoText({
         businessId: business.id,
         callerPhone: From,
-        callSid: callSid || undefined,
+        callSid: CallSid || undefined,
         business: business
       });
       
@@ -1411,7 +1436,7 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('[Twilio Voice] Voice webhook processed successfully');
-    console.log('[VOICE] Returning voicemail TwiML for call:', callSid);
+    console.log('[VOICE] Returning voicemail TwiML for call:', CallSid);
     console.log('[VOICE PATH] MISSED_CALL');
     
     // DEBUG LOGS

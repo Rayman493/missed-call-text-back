@@ -31,6 +31,7 @@ function logCallTrace(data: {
 
 export async function POST(req: NextRequest) {
   console.log('[ROUTE HIT - TWILIO VOICE-STATUS]')
+  console.log('[CALL INTAKE FLOW] Voice status callback received - cannot create leads (phantom protection)')
   
   try {
     // Read raw body exactly once for validation
