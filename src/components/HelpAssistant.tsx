@@ -86,8 +86,8 @@ export default function HelpAssistant({ className = '', defaultCategory, context
   }
 
   return (
-    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 ${className}`}>
-      <div className="p-6">
+    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full ${className}`}>
+      <div className="p-4 sm:p-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">

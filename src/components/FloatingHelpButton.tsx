@@ -25,7 +25,7 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
       {/* Mobile Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="md:hidden fixed bottom-24 right-4 z-50 flex items-center justify-center w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 pb-safe"
+        className="md:hidden fixed bottom-20 right-4 z-50 flex items-center justify-center w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 pb-safe"
         aria-label="Ask ReplyFlow for help"
       >
         <MessageCircle className="w-5 h-5" />
@@ -33,16 +33,34 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
 
       {/* Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-end justify-center md:items-center md:justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
-          <div className="relative bg-transparent max-w-lg w-full">
-            <button
-              onClick={() => setIsOpen(false)}
-              className="absolute -top-10 right-0 text-white hover:text-slate-200 transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <HelpAssistant context={context} />
+          <div className="relative bg-transparent max-w-lg w-full md:max-w-lg">
+            {/* Mobile: Bottom sheet style */}
+            <div className="md:hidden mb-20">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="absolute -top-12 right-0 text-white hover:text-slate-200 transition-colors bg-blue-600/90 backdrop-blur-sm rounded-full p-2"
+                aria-label="Close help"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-h-[70vh] overflow-hidden">
+                <div className="overflow-y-auto max-h-[70vh] pb-safe">
+                  <HelpAssistant context={context} />
+                </div>
+              </div>
+            </div>
+            {/* Desktop: Centered modal */}
+            <div className="hidden md:block">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="absolute -top-10 right-0 text-white hover:text-slate-200 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <HelpAssistant context={context} />
+            </div>
           </div>
         </div>
       )}
