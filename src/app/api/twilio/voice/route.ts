@@ -759,7 +759,8 @@ export async function POST(request: NextRequest) {
             businessId: business.id,
             callerPhone: normalizedCallerPhone,
             to: To,
-            forwardedFrom: ForwardedFrom
+            forwardedFrom: ForwardedFrom,
+            requireValidCall: false // Trusted path - voice webhook already created call_event
           })
           
           if (!intakeRecords.leadId || !intakeRecords.conversationId) {
