@@ -12,7 +12,7 @@ import AppHeader from '@/components/AppHeader'
 import Toast, { ToastContainer } from '@/components/Toast'
 import BottomNavigation from '@/components/BottomNavigation'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventComposer from '@/components/calendar/EventComposer'
@@ -524,118 +524,37 @@ export default function CalendarPage() {
                   {/* Connected State */}
                   {calendarConnected && (
                     <div>
-                      {/* Calendar Summary Row */}
-                      <div className="mb-4 sm:mb-6">
-                        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
-                          <div className="flex items-center gap-4 sm:gap-6">
-                            <div className="flex items-center gap-3">
-                              <div className="w-2.5 h-2.5 bg-red-500 rounded-full shadow-sm shadow-red-500/30"></div>
-                              <div>
-                                <p className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">Today</p>
-                                <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground">{getTodayEvents()}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div className="w-2.5 h-2.5 bg-green-500 rounded-full shadow-sm shadow-green-500/30"></div>
-                              <div>
-                                <p className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">This Week</p>
-                                <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground">{getThisWeekEvents()}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div className="w-2.5 h-2.5 bg-purple-500 rounded-full shadow-sm shadow-purple-500/30"></div>
-                              <div>
-                                <p className="text-[10px] sm:text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">This Month</p>
-                                <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground">{getThisMonthEvents()}</p>
-                              </div>
-                            </div>
-                          </div>
-                          <button
-                            onClick={handleAddEvent}
-                            className="hidden md:flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors active:scale-95 shadow-md"
-                          >
-                            <Plus className="w-4 h-4" />
-                            <span>New Appointment</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Connection StatusCard */}
-                      <div className="mb-4 sm:mb-6">
-                        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-3 h-3 bg-green-500 rounded-full shadow-sm shadow-green-500/30 flex-shrink-0"></div>
-                              <div>
-                                <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground">Google Calendar Connected</h3>
-                                {calendarEmail && (
-                                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Connected as: {calendarEmail}</p>
-                                )}
-                                {lastSyncTime && (
-                                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">
-                                    Last synced: {formatTimeAgo(lastSyncTime)}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            <button
-                              onClick={handleSync}
-                              disabled={isSyncing}
-                              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex-shrink-0"
-                            >
-                              {isSyncing ? (
-                                <>
-                                  <div className="w-4 h-4 border-2 border-slate-600 dark:border-slate-400 border-t-transparent rounded-full animate-spin" />
-                                  <span>Syncing...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                  </svg>
-                                  <span>Sync Now</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Token Expired Warning Banner */}
+                      {/* Token Expired Warning Banner - show first if needed */}
                       {tokenExpired && (
-                        <div className="mb-4 sm:mb-6">
-                          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 sm:p-6">
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                              <div className="flex items-start gap-3">
-                                <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/40 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                  </svg>
+                        <div className="mb-4">
+                          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 sm:p-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                              <div className="flex items-start gap-2">
+                                <div className="w-6 h-6 bg-amber-100 dark:bg-amber-900/40 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                                 </div>
                                 <div>
-                                  <h3 className="text-sm sm:text-base font-semibold text-amber-900 dark:text-amber-100 mb-1">
-                                    Google Calendar connection requires reauthentication
+                                  <h3 className="text-xs sm:text-sm font-semibold text-amber-900 dark:text-amber-100 mb-0.5">
+                                    Reauthentication required
                                   </h3>
-                                  <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
-                                    Your Google Calendar access token has expired. Please reconnect to continue syncing your calendar.
+                                  <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300">
+                                    Google Calendar access expired. Please reconnect.
                                   </p>
                                 </div>
                               </div>
                               <button
                                 onClick={handleConnectCalendar}
                                 disabled={isConnecting}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex-shrink-0"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex-shrink-0"
                               >
                                 {isConnecting ? (
                                   <>
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                     <span>Connecting...</span>
                                   </>
                                 ) : (
                                   <>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
+                                    <RefreshCw className="w-3.5 h-3.5" />
                                     <span>Reconnect</span>
                                   </>
                                 )}
@@ -645,12 +564,72 @@ export default function CalendarPage() {
                         </div>
                       )}
 
-                      {/* View Mode Toggle */}
-                      <div className="mb-6">
-                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1.5 shadow-sm">
+                      {/* Compact Status Bar - Desktop: combines metrics + calendar status + sync + new appointment */}
+                      <div className="hidden md:flex items-center justify-between gap-4 mb-4 p-3 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
+                        {/* Metrics */}
+                        <div className="flex items-center gap-6">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-red-500 rounded-full shadow-sm shadow-red-500/30"></div>
+                            <div>
+                              <p className="text-[9px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">Today</p>
+                              <p className="text-sm font-bold text-slate-900 dark:text-foreground">{getTodayEvents()}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm shadow-green-500/30"></div>
+                            <div>
+                              <p className="text-[9px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">This Week</p>
+                              <p className="text-sm font-bold text-slate-900 dark:text-foreground">{getThisWeekEvents()}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full shadow-sm shadow-purple-500/30"></div>
+                            <div>
+                              <p className="text-[9px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">This Month</p>
+                              <p className="text-sm font-bold text-slate-900 dark:text-foreground">{getThisMonthEvents()}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Calendar Status & Actions */}
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                            <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm shadow-green-500/30"></div>
+                            <span className="text-xs font-medium text-green-700 dark:text-green-300">Connected</span>
+                          </div>
+                          <button
+                            onClick={handleSync}
+                            disabled={isSyncing}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                          >
+                            {isSyncing ? (
+                              <>
+                                <div className="w-3 h-3 border-2 border-slate-600 dark:border-slate-400 border-t-transparent rounded-full animate-spin" />
+                                <span>Syncing...</span>
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                <span>Sync</span>
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={handleAddEvent}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-95 shadow-md"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>New Appointment</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* View Mode Toggle - Desktop */}
+                      <div className="hidden md:block mb-4">
+                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 shadow-sm w-fit">
                           <button
                             onClick={() => setViewMode('month')}
-                            className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                               viewMode === 'month'
                                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
                                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
@@ -660,7 +639,33 @@ export default function CalendarPage() {
                           </button>
                           <button
                             onClick={() => setViewMode('agenda')}
-                            className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                              viewMode === 'agenda'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
+                            }`}
+                          >
+                            Agenda
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Mobile: View Mode Toggle immediately after header */}
+                      <div className="md:hidden mb-3">
+                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 shadow-sm">
+                          <button
+                            onClick={() => setViewMode('month')}
+                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+                              viewMode === 'month'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
+                            }`}
+                          >
+                            Month
+                          </button>
+                          <button
+                            onClick={() => setViewMode('agenda')}
+                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
                               viewMode === 'agenda'
                                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
                                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
@@ -702,9 +707,9 @@ export default function CalendarPage() {
 
                           {/* Upcoming Agenda Sidebar - takes 1 column on large screens, below calendar on mobile */}
                           <div className="lg:col-span-1 order-2 lg:order-2">
-                            <UpcomingAgenda 
-                              events={events} 
-                              maxEvents={8} 
+                            <UpcomingAgenda
+                              events={events}
+                              maxEvents={8}
                               onRefresh={handleSync}
                               calendarConnected={calendarConnected}
                             />
@@ -712,14 +717,74 @@ export default function CalendarPage() {
                         </div>
                       ) : (
                         <div>
-                          <UpcomingAgenda 
-                            events={events} 
-                            maxEvents={20} 
+                          <UpcomingAgenda
+                            events={events}
+                            maxEvents={20}
                             onRefresh={handleSync}
                             calendarConnected={calendarConnected}
                           />
                         </div>
                       )}
+
+                      {/* Mobile: Compact Metrics + Google Calendar Controls - below calendar content */}
+                      <div className="md:hidden mt-6 space-y-3">
+                        {/* Compact Metrics Row */}
+                        <div className="flex items-center justify-around p-3 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                            <div>
+                              <p className="text-[8px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">Today</p>
+                              <p className="text-xs font-bold text-slate-900 dark:text-foreground">{getTodayEvents()}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                            <div>
+                              <p className="text-[8px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">Week</p>
+                              <p className="text-xs font-bold text-slate-900 dark:text-foreground">{getThisWeekEvents()}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                            <div>
+                              <p className="text-[8px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">Month</p>
+                              <p className="text-xs font-bold text-slate-900 dark:text-foreground">{getThisMonthEvents()}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Google Calendar Controls */}
+                        <div className="p-4 bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 bg-green-500 rounded-full shadow-sm shadow-green-500/30"></div>
+                              <div>
+                                <p className="text-xs font-semibold text-slate-900 dark:text-foreground">Google Calendar</p>
+                                {calendarEmail && (
+                                  <p className="text-[10px] text-slate-600 dark:text-slate-400">{calendarEmail}</p>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={handleSync}
+                              disabled={isSyncing}
+                              className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                            >
+                              {isSyncing ? (
+                                <>
+                                  <div className="w-3 h-3 border-2 border-slate-600 dark:border-slate-400 border-t-transparent rounded-full animate-spin" />
+                                  <span>Syncing...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                  <span>Sync</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
 
                       {/* Floating Add Event button for mobile */}
                       <button
