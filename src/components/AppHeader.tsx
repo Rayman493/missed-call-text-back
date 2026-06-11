@@ -38,11 +38,11 @@ export default function AppHeader({
           <div className="flex items-center justify-between h-8 sm:h-9">
             {/* Left side - Home button for authenticated users */}
             <div className="flex items-center gap-2 md:gap-8">
-              {/* Home/Dashboard button - only for authenticated users on dashboard pages */}
+              {/* Home/Dashboard button - only for authenticated users on dashboard pages, desktop only (mobile uses bottom nav) */}
               {isDashboard && (
                 <Link
                   href="/dashboard"
-                  className={`flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 ${
+                  className={`hidden md:flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 ${
                     pathname === '/dashboard'
                       ? 'bg-blue-600/20 text-blue-400'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
