@@ -384,7 +384,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert voicemail recording
-    console.log('[VOICEMAIL] Saving voicemail recording');
+    console.log('[VOICEMAIL RECORDING] Preparing to save voicemail recording', {
+      businessId: business.id,
+      leadId: lead.id,
+      conversationId: conversation.id,
+      callSid: callSid,
+      recordingSid: recordingSid,
+      recordingUrl: recordingUrl,
+      recordingDuration: recordingDuration,
+      recordingStatus: recordingStatus
+    });
+
     const { data: voicemail, error: voicemailError } = await supabaseAdmin
       .from('voicemail_recordings')
       .insert({
@@ -406,7 +416,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (voicemailError) {
-      console.error('[VOICEMAIL] Failed to save voicemail recording:', voicemailError);
+      console.error('[VOICEMAIL RECORDING] Failed to save voicemail recording:', voicemailError);
       // FAIL-SAFE: Return 200 with TwiML instead of 500 to prevent "server unreachable"
       const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -421,6 +431,16 @@ export async function POST(request: NextRequest) {
         },
       });
     }
+
+    console.log('[VOICEMAIL RECORDING] Row created successfully', {
+      voicemailId: voicemail.id,
+      recordingUrl: voicemail.recording_url,
+      recordingSid: voicemail.recording_sid,
+      recordingDuration: voicemail.recording_duration,
+      leadId: voicemail.lead_id,
+      conversationId: voicemail.conversation_id,
+      businessId: voicemail.business_id
+    });
 
     console.log('[VOICEMAIL NOTIFICATION CREATED]', { voicemailId: voicemail.id, leadId: lead.id, businessId: business.id });
     console.log('[VOICEMAIL INGEST COMPLETE]', { leadId: lead.id, conversationId: conversation.id, voicemailId: voicemail.id, businessId: business.id });

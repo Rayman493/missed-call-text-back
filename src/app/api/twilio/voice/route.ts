@@ -630,6 +630,13 @@ export async function POST(request: NextRequest) {
       businessId: business.id
     });
 
+    // CRITICAL: Log that we are about to check AI routing
+    console.log('[AI ROUTING ENTRYPOINT] About to check AI routing guards', {
+      callSid: CallSid,
+      businessId: business.id,
+      timestamp: new Date().toISOString()
+    });
+
     // AI CALL ASSISTANT: Check if AI should handle this call
     // Phase 0: /api/twilio/ai-assistant/start (fallback to voicemail)
     // Phase 1A POC: Direct TwiML return (routes to Fly.io)
@@ -671,7 +678,17 @@ export async function POST(request: NextRequest) {
       console.log('[AI ROUTING FAILED] Guards did not pass - using voicemail fallback', {
         guardReason: guardResult.reason,
         businessId: business.id,
-        callSid: CallSid
+        callSid: CallSid,
+        willProceedToVoicemail: true
+      });
+    } else {
+      console.log('[AI ROUTING PASSED] All guards passed - will attempt AI routing', {
+        guardReason: guardResult.reason,
+        businessId: business.id,
+        callSid: CallSid,
+        usePOC,
+        isDirectCall,
+        isForwardedCall
       });
     }
     
@@ -724,14 +741,15 @@ export async function POST(request: NextRequest) {
         const callPath = isDirectCall ? 'direct_test' : 'forwarded_production'
         const aiActivationTimestamp = new Date();
         const timeFromWebhookToAI = aiActivationTimestamp.getTime() - callArrivalTimestamp.getTime();
-        
+
         console.log(`[AI ACTIVATION START] AI being activated for ${callPath}`, {
           callPath,
           timeFromWebhookToAI: `${timeFromWebhookToAI}ms`,
           aiActivationTimestamp: aiActivationTimestamp.toISOString(),
           callArrivalTimestamp: callArrivalTimestamp.toISOString(),
           businessId: business.id,
-          callSid: CallSid
+          callSid: CallSid,
+          enteringAIPath: true
         });
         
         console.log('[CALL TIMING] AI GREETING STARTED', aiActivationTimestamp.toISOString());
@@ -762,7 +780,15 @@ export async function POST(request: NextRequest) {
             forwardedFrom: ForwardedFrom,
             requireValidCall: false // Trusted path - voice webhook already created call_event
           })
-          
+
+          console.log('[AI INTAKE RECORDS RESULT]', {
+            leadId: intakeRecords.leadId,
+            conversationId: intakeRecords.conversationId,
+            isNew: intakeRecords.isNew,
+            callSid: CallSid,
+            businessId: business.id
+          });
+
           if (!intakeRecords.leadId || !intakeRecords.conversationId) {
             console.error('[AI CALL ASSISTANT] Failed to get or create intake records')
             
@@ -975,12 +1001,21 @@ export async function POST(request: NextRequest) {
         isForwardedCall
       });
       console.log('[VOICE PATH] VOICEMAIL (GUARDS FAILED)');
+      console.log('[FINAL TWIML PATH] VOICEMAIL_FALLBACK - AI guards failed', {
+        guardReason: guardResult.reason,
+        callSid: CallSid,
+        businessId: business.id
+      });
     }
     // END AI CALL ASSISTANT CHECK
 
     // Skip legacy voice path if AI routing succeeded
     if (aiRoutingSucceeded) {
       console.log('[AI ROUTING SUCCEEDED] Skipping legacy voice path - canonical records already created')
+      console.log('[FINAL TWIML PATH] AI_STREAM - AI routing succeeded', {
+        callSid: CallSid,
+        businessId: business.id
+      });
       return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>', {
         status: 200,
         headers: {
@@ -996,6 +1031,10 @@ export async function POST(request: NextRequest) {
       callSid: CallSid,
       callerPhone: From,
       timestamp: new Date().toISOString()
+    });
+    console.log('[FINAL TWIML PATH] LEGACY_VOICEMAIL - falling through to legacy voicemail path', {
+      callSid: CallSid,
+      businessId: business.id
     });
 
     // Check if this is a setup completion call (caller matches business phone number)
