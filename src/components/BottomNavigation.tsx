@@ -74,9 +74,6 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   }`}
                 >
                   <Icon className="w-6 h-6 mb-1 transition-transform duration-200" />
-                  {isActive(item.href) && (
-                    <div className="absolute top-9 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse" />
-                  )}
                   <span className={`text-[10px] font-medium transition-colors ${
                     isActive(item.href) ? 'font-semibold' : ''
                   }`}>{item.label}</span>
@@ -94,9 +91,6 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
               }`}
             >
               <Settings className="w-6 h-6 mb-1 transition-transform duration-200" />
-              {isMoreMenuOpen && (
-                <div className="absolute top-9 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse" />
-              )}
               <span className={`text-[10px] font-medium transition-colors ${
                 isMoreMenuOpen ? 'font-semibold' : ''
               }`}>More</span>
