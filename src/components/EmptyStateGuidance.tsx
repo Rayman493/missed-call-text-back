@@ -18,7 +18,7 @@ export default function EmptyStateGuidance({
       case 'leads':
         return {
           title: 'No leads captured yet',
-          description: 'Get started by enabling ReplyFlow to protect your business line',
+          description: 'Enable call forwarding to start capturing missed calls',
           steps: [
             {
               icon: Phone,
@@ -27,7 +27,7 @@ export default function EmptyStateGuidance({
             },
             {
               icon: Phone,
-              title: 'Place a missed test call',
+              title: 'Place a test call',
               description: 'Call your business line and let it go to voicemail'
             },
             {
@@ -41,7 +41,7 @@ export default function EmptyStateGuidance({
       case 'activity':
         return {
           title: 'No recent activity',
-          description: 'Activity will appear here as ReplyFlow protects your business',
+          description: 'Activity will appear as ReplyFlow protects your business',
           steps: [
             {
               icon: Phone,

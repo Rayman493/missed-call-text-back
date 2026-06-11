@@ -34,57 +34,50 @@ export default function DashboardEmptyState() {
   const hasTwilioNumber = !!business?.twilio_phone_number
 
   return (
-    <div className="flex flex-col items-center justify-center py-4 sm:py-10 px-6">
+    <div className="flex flex-col items-center justify-center py-8 px-6">
       {/* Empty State Icon */}
-      <div className="inline-flex items-center justify-center mb-3 sm:mb-7">
-        <BrandIcon size={72} className="sm:size-96" />
+      <div className="inline-flex items-center justify-center mb-4">
+        <BrandIcon size={64} />
       </div>
 
       {/* Empty State Message */}
-      <h2 className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3 text-center">
+      <h2 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-2 text-center">
         Recovered leads will appear here
       </h2>
-      <p className="text-sm sm:text-lg text-slate-800 dark:text-muted-foreground text-center mb-4 sm:mb-7 max-w-md leading-relaxed font-medium">
-        After your first missed call, customer conversations and follow-up messages will be displayed in this dashboard.
+      <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-6 max-w-md">
+        Your missed calls and customer conversations will appear here after your first missed call.
       </p>
 
       {/* SMS Status */}
       {!hasTwilioNumber && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 sm:p-4 mb-4 sm:mb-7 max-w-md">
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-6 max-w-md">
           <div className="flex items-center">
             <svg className="w-5 h-5 text-green-600 dark:text-green-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
             <p className="text-sm text-green-800 dark:text-green-200">
-              Your ReplyFlow texting is ready. Most messages arrive within 5–15 seconds.
+              Your ReplyFlow texting is ready
             </p>
           </div>
         </div>
       )}
 
       {/* CTA Buttons */}
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+      <div className="flex flex-col sm:flex-row gap-3">
         {canShowTestSetup && (
           <button
             onClick={handleTestSetup}
-            className="bg-blue-600 text-white py-2.5 sm:py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
           >
-            Optional Real-World Test
+            Test Your Setup
           </button>
         )}
         <button
           onClick={handleViewInstructions}
-          className="bg-secondary text-foreground py-2.5 sm:py-3 px-6 rounded-lg hover:bg-secondary/80 transition-colors font-medium"
+          className="bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-foreground py-2.5 px-4 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-medium text-sm"
         >
           View Setup Instructions
         </button>
-      </div>
-
-      {/* Additional Help */}
-      <div className="mt-6 sm:mt-8 text-center max-w-md">
-        <p className="text-sm text-muted-foreground">
-          Your missed calls and customer replies will appear here.
-        </p>
       </div>
 
       {/* Test My Setup Modal */}
