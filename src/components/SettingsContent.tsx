@@ -637,11 +637,8 @@ export default function SettingsContent() {
       const contactsTop = contactsSection.offsetTop
       const accountTop = accountSection.offsetTop
       
-      // Calculate offset for header and tabs
-      const header = document.querySelector('header')
-      const headerHeight = header ? header.offsetHeight : 0
-      const tabsHeight = 60 // Approximate height of tab navigation
-      const offset = headerHeight + tabsHeight + 120
+      // Calculate offset for header and tabs using shared helper
+      const offset = getScrollOffset()
       
       // Calculate which section should be active
       let computedActiveSection = 'general'
@@ -692,9 +689,9 @@ export default function SettingsContent() {
       if (sections.includes(hash)) {
         const element = document.getElementById(hash)
         if (element) {
-          // Manual offset scrolling to account for sticky header
-          const HEADER_OFFSET = 180 // Adjust based on actual header + tabs height
-          const targetTop = element.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET
+          // Use shared scroll helper
+          const offset = getScrollOffset()
+          const targetTop = element.getBoundingClientRect().top + window.scrollY - offset
           
           window.scrollTo({
             top: targetTop,
@@ -730,6 +727,30 @@ export default function SettingsContent() {
     }
   }, []) // No dependencies to prevent stuck state
 
+  // Shared helper to calculate scroll offset based on actual header height
+  const getScrollOffset = () => {
+    const header = document.querySelector('header') as HTMLElement | null
+    const headerHeight = header ? header.offsetHeight : 0
+    const settingsHeader = document.querySelector('.sticky.top-\\[52px\\]') as HTMLElement | null
+    const settingsHeaderHeight = settingsHeader ? settingsHeader.offsetHeight : 0
+    // Add extra padding for comfortable spacing
+    return headerHeight + settingsHeaderHeight + 20
+  }
+
+  // Shared scroll-to-section helper
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId)
+    if (element) {
+      const offset = getScrollOffset()
+      const targetTop = element.getBoundingClientRect().top + window.scrollY - offset
+      
+      window.scrollTo({
+        top: targetTop,
+        behavior: 'smooth'
+      })
+    }
+  }
+
   // Smooth scroll handler
   const handleSectionClick = (sectionId: string) => {
     console.log('[Settings] Manual section click:', sectionId)
@@ -743,14 +764,8 @@ export default function SettingsContent() {
       url.hash = sectionId
       window.history.replaceState({}, '', url.toString())
       
-      // Manual offset scrolling to account for sticky header
-      const HEADER_OFFSET = 220 // Adjust based on actual header + tabs height
-      const targetTop = element.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET
-      
-      window.scrollTo({
-        top: targetTop,
-        behavior: 'smooth'
-      })
+      // Use shared scroll helper
+      scrollToSection(sectionId)
     }
   }
 
@@ -858,7 +873,7 @@ export default function SettingsContent() {
             {/* Settings Sections */}
             <div className="space-y-6 sm:space-y-8 pb-40">
               {/* Business Info Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-5 sm:p-8 scroll-mt-[220px]">
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-5 sm:p-8">
                 <div className="mb-8">
                   <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-foreground mb-2">Business Info</h2>
                   <p className="text-sm text-slate-600 dark:text-slate-400">Your business identity and contact information.</p>
@@ -938,7 +953,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[220px]">
+              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5">
                 <div className="mb-1 sm:mb-2">
                   <div className="flex items-center justify-between mb-0.5 sm:mb-1">
                     <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Instant Response Settings</h2>
@@ -1271,7 +1286,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Integrations Section */}
-              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[220px]">
+              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Integrations</h2>
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Connect third-party services to extend ReplyFlow's capabilities.</p>
                 
@@ -1338,7 +1353,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Ignored Contacts Section */}
-              <div id="contacts" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-2 sm:p-3.5 scroll-mt-[220px]">
+              <div id="contacts" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-2 sm:p-3.5">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div>
                     <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Ignored Contacts</h2>
@@ -1422,7 +1437,7 @@ export default function SettingsContent() {
               )}
 
               {/* Account Section - Merged Profile and Account Access */}
-              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6 scroll-mt-[220px]">
+              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Account</h2>
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-4">Your account details and status.</p>
                 <div className="bg-slate-50/50 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40 overflow-hidden">
