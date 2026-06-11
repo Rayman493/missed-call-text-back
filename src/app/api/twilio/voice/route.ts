@@ -1629,28 +1629,49 @@ export async function POST(request: NextRequest) {
 
 // GET handler - support Twilio calling with GET method (legacy/debugging only, skips signature validation)
 export async function GET(request: NextRequest) {
+  console.log('[VOICE ROUTE START] Beginning voice webhook processing', {
+    timestamp: new Date().toISOString(),
+    url: request.url,
+    method: request.method,
+    deploymentVersion: process.env.VERCEL_GIT_COMMIT_SHA || 'unknown'
+  });
+
   console.log('[VOICE WEBHOOK GET] Handling GET request (legacy/debugging mode, skipping signature validation)');
   console.log('[VOICE WEBHOOK GET KEY PARAMS]', {
     method: 'GET',
     url: request.url
   });
-  
+
   // Extract params from query string for logging
   const url = new URL(request.url);
   const params = Object.fromEntries(url.searchParams.entries());
-  
+
   console.log('[VOICE WEBHOOK GET] Params:', {
     CallSid: params.CallSid || 'not_present',
     From: params.From || 'not_present',
     To: params.To || 'not_present',
     ForwardedFrom: params.ForwardedFrom || 'not_present'
   });
-  
-  // For GET requests, return simple TwiML response without signature validation
-  // This is for debugging/legacy support only - production should use POST
-  const twiml = generateTwiMLResponse();
-  console.log('[VOICE WEBHOOK GET] Returning TwiML for GET request (no signature validation)');
-  return new NextResponse(twiml, {
+
+  // SAFETY GUARD: GET requests should not be used in production
+  // Return error TwiML to prevent silent AI bypass
+  const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="alice">Configuration error. This number is not properly configured. Please contact support.</Say>
+  <Hangup/>
+</Response>`;
+
+  console.log('[VOICE WEBHOOK GET] WARNING - GET method detected in production');
+  console.log('[VOICE WEBHOOK GET] This bypasses AI routing and signature validation');
+  console.log('[VOICE WEBHOOK GET] Twilio webhook should be configured to use POST method');
+  console.log('[VOICE ROUTE RETURN]', {
+    path: 'GET_METHOD_UNSUPPORTED',
+    reason: 'GET method is not supported for production voice webhooks - bypasses AI routing',
+    callSid: params.CallSid || 'unknown',
+    deploymentVersion: process.env.VERCEL_GIT_COMMIT_SHA || 'unknown'
+  });
+
+  return new NextResponse(errorTwiml, {
     status: 200,
     headers: {
       "Content-Type": "text/xml",
