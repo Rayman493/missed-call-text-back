@@ -246,7 +246,12 @@ export async function POST(request: NextRequest) {
     
     if (!From || !To) {
       console.error('[Twilio Voice] Missing required fields:', { From, To });
-      
+      console.log('[FINAL TWIML PATH] MISSING_FIELDS - From or To is missing', {
+        callSid: CallSid,
+        From: From || 'missing',
+        To: To || 'missing'
+      });
+
       const twiml = generateTwiMLResponse();
       console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=normal-voicemail');
       console.log('[AI POC FINAL TWIML]', twiml);
@@ -329,7 +334,7 @@ export async function POST(request: NextRequest) {
     
     if (!business) {
       console.warn('[Voice] No business found for candidates:', uniqueCandidates);
-      
+
       logCallTrace({
         route: 'voice',
         action: 'business_lookup_failed',
@@ -339,7 +344,12 @@ export async function POST(request: NextRequest) {
         forwardedFrom: ForwardedFrom,
         reason: `No business found for candidates: ${uniqueCandidates.join(', ')}`
       })
-      
+
+      console.log('[FINAL TWIML PATH] NO_BUSINESS - business lookup failed', {
+        callSid: CallSid,
+        candidates: uniqueCandidates
+      });
+
       const twiml = generateTwiMLResponse();
 
       console.log('[Voice] Returning fallback TwiML for no business found');
@@ -361,16 +371,20 @@ export async function POST(request: NextRequest) {
       callerPhone: normalizedFrom,
       timestamp: new Date().toISOString()
     })
-    
+
     const isIgnored = await isIgnoredContact(business.id, normalizedFrom)
-    
+
     if (isIgnored) {
       console.log('[IGNORED CONTACT SKIP ALL AUTOMATION]', {
         businessId: business.id,
         phoneNumber: normalizedFrom,
         timestamp: new Date().toISOString()
       })
-      
+      console.log('[FINAL TWIML PATH] IGNORED_CONTACT - caller is in ignored list', {
+        callSid: CallSid,
+        businessId: business.id
+      })
+
       // Return minimal TwiML - no Record, no voicemail callback, no recordingStatusCallback, no timeline logging
       const twiml = `<Response><Hangup/></Response>`
       console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-early')
