@@ -21,6 +21,7 @@ import OperationalStatusCard from '@/components/OperationalStatusCard'
 import SetupReviewPanel from '@/components/SetupReviewPanel'
 import BusinessSnapshot from '@/components/BusinessSnapshot'
 import OperationalTrustIndicators from '@/components/OperationalTrustIndicators'
+import TestReplyFlowModal from '@/components/TestReplyFlowModal'
 
 type OnboardingState = 
   | 'loading'
@@ -66,6 +67,7 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
   const [isMobile, setIsMobile] = useState(false)
   const [realCallDataExists, setRealCallDataExists] = useState(false)
   const [showSetupReviewPanel, setShowSetupReviewPanel] = useState(false)
+  const [showTestModal, setShowTestModal] = useState(false)
   const cardRefs = useRef<{ [key: string]: HTMLLIElement | null }>({})
 
   // Mobile detection
@@ -372,9 +374,9 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
       description: 'Verify your setup by running a test call to ensure everything is working correctly.',
       status: testComplete ? 'complete' : (forwardingSetupComplete ? 'needs-action' : 'not-tested-yet'),
       buttonText: testComplete ? undefined : (forwardingSetupComplete ? 'Test Your Setup' : undefined),
-      buttonHref: testComplete ? undefined : (forwardingSetupComplete ? '/dashboard/test-setup' : undefined),
+      buttonOnClick: testComplete ? undefined : (forwardingSetupComplete ? () => setShowTestModal(true) : undefined),
       secondaryButtonText: testComplete ? 'Run Another Test' : undefined,
-      secondaryButtonHref: testComplete ? '/dashboard/test-setup' : undefined
+      secondaryButtonOnClick: testComplete ? () => setShowTestModal(true) : undefined
     }
   ]
 
@@ -521,20 +523,38 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
                   {(item.buttonText || item.secondaryButtonText) && (
                     <div className="flex flex-wrap gap-2">
                       {item.buttonText && (
-                        <Link
-                          href={item.buttonHref!}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors text-xs sm:text-sm font-medium"
-                        >
-                          {item.buttonText}
-                        </Link>
+                        item.buttonHref ? (
+                          <Link
+                            href={item.buttonHref}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors text-xs sm:text-sm font-medium"
+                          >
+                            {item.buttonText}
+                          </Link>
+                        ) : item.buttonOnClick ? (
+                          <button
+                            onClick={item.buttonOnClick}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors text-xs sm:text-sm font-medium"
+                          >
+                            {item.buttonText}
+                          </button>
+                        ) : null
                       )}
                       {item.secondaryButtonText && (
-                        <Link
-                          href={item.secondaryButtonHref!}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors text-xs sm:text-sm font-medium"
-                        >
-                          {item.secondaryButtonText}
-                        </Link>
+                        item.secondaryButtonHref ? (
+                          <Link
+                            href={item.secondaryButtonHref}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors text-xs sm:text-sm font-medium"
+                          >
+                            {item.secondaryButtonText}
+                          </Link>
+                        ) : item.secondaryButtonOnClick ? (
+                          <button
+                            onClick={item.secondaryButtonOnClick}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors text-xs sm:text-sm font-medium"
+                          >
+                            {item.secondaryButtonText}
+                          </button>
+                        ) : null
                       )}
                     </div>
                   )}
@@ -580,6 +600,12 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
           })}
         </ul>
       )}
+
+      {/* Test ReplyFlow Modal */}
+      <TestReplyFlowModal
+        isOpen={showTestModal}
+        onClose={() => setShowTestModal(false)}
+      />
     </div>
   )
 }

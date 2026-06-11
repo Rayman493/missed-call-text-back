@@ -12,6 +12,7 @@ interface SetupReviewPanelProps {
   isOpen: boolean
   onClose: () => void
   business: Business | null
+  onTestCall?: () => void
 }
 
 interface SetupStep {
@@ -31,7 +32,7 @@ interface SetupStep {
   }
 }
 
-export default function SetupReviewPanel({ isOpen, onClose, business }: SetupReviewPanelProps) {
+export default function SetupReviewPanel({ isOpen, onClose, business, onTestCall }: SetupReviewPanelProps) {
   const [setupSteps, setSetupSteps] = useState<SetupStep[]>([])
   const [loading, setLoading] = useState(true)
   const [completedSteps, setCompletedSteps] = useState(0)
@@ -546,13 +547,25 @@ export default function SetupReviewPanel({ isOpen, onClose, business }: SetupRev
               >
                 Close
               </button>
-              <Link
-                href="/dashboard/test-setup"
-                onClick={onClose}
-                className="flex-1 inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
-              >
-                Test Setup
-              </Link>
+              {onTestCall ? (
+                <button
+                  onClick={() => {
+                    onTestCall()
+                    onClose()
+                  }}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                >
+                  Test Setup
+                </button>
+              ) : (
+                <Link
+                  href="/dashboard/test-setup"
+                  onClick={onClose}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                >
+                  Test Setup
+                </Link>
+              )}
             </div>
           </div>
         </div>

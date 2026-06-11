@@ -61,7 +61,9 @@ export default function TestReplyFlowModal({ isOpen, onClose }: TestReplyFlowMod
 
   if (!isOpen) return null
 
-  const modalContent = (
+  if (typeof window === 'undefined') return null
+
+  return createPortal(
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
@@ -343,6 +345,7 @@ export default function TestReplyFlowModal({ isOpen, onClose }: TestReplyFlowMod
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
