@@ -143,7 +143,9 @@ function generateTwiMLResponse(businessName?: string, hasCustomGreeting: boolean
 }
 
 
-export async function POST(request: NextRequest) {
+// Shared voice webhook handler - used by both GET and POST
+// This ensures AI routing cannot be bypassed by HTTP method differences
+async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation: boolean = false) {
   console.log('[VOICE ROUTE START] Beginning voice webhook processing', {
     timestamp: new Date().toISOString(),
     url: request.url,
@@ -163,15 +165,27 @@ export async function POST(request: NextRequest) {
     console.log('[VOICE WEBHOOK] Starting call processing');
     console.log('[VOICE WEBHOOK] Headers:', Object.fromEntries(request.headers.entries()));
     
-    // Read raw body exactly once for validation
-    const rawBody = await request.text();
-    const contentType = request.headers.get('content-type') || '';
+    // Extract params based on HTTP method
+    let params: any;
+    let rawBody: string = '';
+    let contentType: string = '';
     
-    console.log('[VOICE WEBHOOK] Body length:', rawBody.length);
-    console.log('[VOICE WEBHOOK] Content type:', contentType);
-    
-    // Parse body into params using URLSearchParams
-    const params = Object.fromEntries(new URLSearchParams(rawBody));
+    if (request.method === 'POST') {
+      // Read raw body for signature validation
+      rawBody = await request.text();
+      contentType = request.headers.get('content-type') || '';
+      
+      console.log('[VOICE WEBHOOK] Body length:', rawBody.length);
+      console.log('[VOICE WEBHOOK] Content type:', contentType);
+      
+      // Parse body into params using URLSearchParams
+      params = Object.fromEntries(new URLSearchParams(rawBody));
+    } else {
+      // GET: Extract params from query string
+      const url = new URL(request.url);
+      params = Object.fromEntries(url.searchParams.entries());
+      console.log('[VOICE WEBHOOK] GET request - params from query string');
+    }
     
     console.log('[ROUTE HIT - TWILIO VOICE]', {
       routeName: '/api/twilio/voice',
@@ -180,18 +194,22 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
     
-    // Validate Twilio signature with params object
-    console.log('[VOICE WEBHOOK] Validating Twilio signature...');
-    const isValid = requireTwilioAuth(request, params, rawBody.length, contentType);
-    console.log('[VOICE WEBHOOK] Signature valid:', isValid);
-    if (!isValid) {
-      console.error('[VOICE WEBHOOK] Invalid signature - rejecting request');
-      console.log('[VOICE ROUTE RETURN]', {
-        path: 'INVALID_SIGNATURE',
-        reason: 'Twilio signature validation failed',
-        callSid: params.CallSid || 'unknown'
-      });
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    // Validate Twilio signature with params object (only for POST unless skipped)
+    if (!skipSignatureValidation) {
+      console.log('[VOICE WEBHOOK] Validating Twilio signature...');
+      const isValid = requireTwilioAuth(request, params, rawBody.length, contentType);
+      console.log('[VOICE WEBHOOK] Signature valid:', isValid);
+      if (!isValid) {
+        console.error('[VOICE WEBHOOK] Invalid signature - rejecting request');
+        console.log('[VOICE ROUTE RETURN]', {
+          path: 'INVALID_SIGNATURE',
+          reason: 'Twilio signature validation failed',
+          callSid: params.CallSid || 'unknown'
+        });
+        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+      }
+    } else {
+      console.log('[VOICE WEBHOOK] Signature validation skipped (GET or explicitly disabled)');
     }
     
     // Rate limiting check (IP-based)
@@ -1627,55 +1645,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET handler - support Twilio calling with GET method (legacy/debugging only, skips signature validation)
+export async function POST(request: NextRequest) {
+  return handleVoiceWebhook(request, false); // POST requires signature validation
+}
+
+// GET handler - now uses shared handler with signature validation skipped
 export async function GET(request: NextRequest) {
-  console.log('[VOICE ROUTE START] Beginning voice webhook processing', {
-    timestamp: new Date().toISOString(),
-    url: request.url,
-    method: request.method,
-    deploymentVersion: process.env.VERCEL_GIT_COMMIT_SHA || 'unknown'
-  });
-
-  console.log('[VOICE WEBHOOK GET] Handling GET request (legacy/debugging mode, skipping signature validation)');
-  console.log('[VOICE WEBHOOK GET KEY PARAMS]', {
-    method: 'GET',
-    url: request.url
-  });
-
-  // Extract params from query string for logging
-  const url = new URL(request.url);
-  const params = Object.fromEntries(url.searchParams.entries());
-
-  console.log('[VOICE WEBHOOK GET] Params:', {
-    CallSid: params.CallSid || 'not_present',
-    From: params.From || 'not_present',
-    To: params.To || 'not_present',
-    ForwardedFrom: params.ForwardedFrom || 'not_present'
-  });
-
-  // SAFETY GUARD: GET requests should not be used in production
-  // Return error TwiML to prevent silent AI bypass
-  const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="alice">Configuration error. This number is not properly configured. Please contact support.</Say>
-  <Hangup/>
-</Response>`;
-
-  console.log('[VOICE WEBHOOK GET] WARNING - GET method detected in production');
-  console.log('[VOICE WEBHOOK GET] This bypasses AI routing and signature validation');
-  console.log('[VOICE WEBHOOK GET] Twilio webhook should be configured to use POST method');
-  console.log('[VOICE ROUTE RETURN]', {
-    path: 'GET_METHOD_UNSUPPORTED',
-    reason: 'GET method is not supported for production voice webhooks - bypasses AI routing',
-    callSid: params.CallSid || 'unknown',
-    deploymentVersion: process.env.VERCEL_GIT_COMMIT_SHA || 'unknown'
-  });
-
-  return new NextResponse(errorTwiml, {
-    status: 200,
-    headers: {
-      "Content-Type": "text/xml",
-      "X-ReplyFlow-Voice-Version": "v2"
-    },
-  });
+  return handleVoiceWebhook(request, true); // GET skips signature validation
 }
