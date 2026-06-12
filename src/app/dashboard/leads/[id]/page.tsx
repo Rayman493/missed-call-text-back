@@ -106,13 +106,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { business } = useBusiness()
 
-  // Explicit navigation to leads list
-  const handleBack = () => {
-    // Always navigate to leads page regardless of browser history
-    // The button says "Back to Leads" so it should always go to /dashboard/leads
-    router.push('/dashboard/leads')
-  }
-  const [leadData, setLeadData] = useState<any>(null)
+    const [leadData, setLeadData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState('')
@@ -1561,14 +1555,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="flex items-center justify-between">
               {/* Back + Phone */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <button
-                  onClick={handleBack}
+                <Link 
+                  href="/dashboard/leads"
                   className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors p-1"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
-                </button>
+                </Link>
                 <div className="flex-1 min-w-0">
                   <h1 className="text-base font-semibold text-slate-900 dark:text-white leading-tight truncate">
                     {formatPhoneNumber(lead?.caller_phone || '')}
@@ -1599,15 +1593,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="hidden md:block">
             {/* Back to Leads */}
             <div className="mb-3 sm:mb-4">
-              <button
-                onClick={handleBack}
+              <Link
+                href="/dashboard/leads"
                 className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 Back to Leads
-              </button>
+              </Link>
             </div>
 
             {/* Lead Identity Section - Desktop Enhanced */}
