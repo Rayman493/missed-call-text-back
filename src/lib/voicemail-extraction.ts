@@ -1,11 +1,24 @@
 /**
  * Voicemail Structured Extraction
  * 
- * Extracts structured information from voicemail transcripts
+ * Extracts structured information from voicemail transcripts using LLM
  * Reuses existing AI intake field mapping and normalization logic
  */
 
 import { normalizeExtractedInfo, CANONICAL_FIELDS } from './ai-field-mapping'
+import OpenAI from 'openai'
+
+/**
+ * Get OpenAI client (lazy initialization to avoid build-time errors)
+ */
+function getOpenAIClient(): OpenAI {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not set');
+  }
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+}
 
 export interface VoicemailExtractedInfo {
   callerName?: string
@@ -25,174 +38,105 @@ export interface VoicemailExtractionResult {
 }
 
 /**
- * Extract structured information from voicemail transcript
- * Uses pattern matching and heuristics to identify key information
+ * Extract structured information from voicemail transcript using LLM
+ * Uses OpenAI to extract business-useful information
  */
-export function extractFromVoicemailTranscript(transcript: string): VoicemailExtractionResult {
-  const extracted: VoicemailExtractedInfo = {}
-  let confidenceScore = 0
-  let fieldsExtracted = 0
+export async function extractFromVoicemailTranscript(transcript: string): Promise<VoicemailExtractionResult> {
+  console.log('[VOICEMAIL EXTRACTION] Starting LLM-based extraction:', {
+    transcriptLength: transcript.length,
+    transcriptPreview: transcript.substring(0, 100) + '...'
+  });
 
   if (!transcript || typeof transcript !== 'string') {
     return {
-      extractedInfo: extracted,
+      extractedInfo: {},
       confidence: 0,
       source: 'voicemail',
       extractedAt: new Date().toISOString()
     }
   }
 
-  const text = transcript.toLowerCase().trim()
+  try {
+    const openai = getOpenAIClient();
 
-  // Extract caller name
-  const namePatterns = [
-    /(?:this is|i'm|i am|my name is|calling from|it's|its)\s+([a-z][a-z\s]+?)(?:,|\.|and|i'm|i need|i want|i'm looking)/i,
-    /(?:hi|hello|hey),?\s*(?:this is|i'm|i am)?\s*([a-z][a-z]+?)(?:,|\.|and|i need|i want|i'm looking)/i,
-    /([a-z][a-z]+)\s+(?:calling|here)/i
-  ]
-  
-  for (const pattern of namePatterns) {
-    const match = text.match(pattern)
-    if (match && match[1]) {
-      const name = match[1].trim()
-      // Validate name looks reasonable (2+ chars, no numbers, reasonable length)
-      if (name.length >= 2 && name.length <= 50 && !/\d/.test(name) && name.split(' ').length <= 4) {
-        extracted.callerName = capitalizeWords(name)
-        confidenceScore += 0.15
-        fieldsExtracted++
-        break
+    const systemPrompt = `You are a voicemail transcription assistant. Extract structured information from voicemail transcripts for a business.
+
+Rules:
+- Extract the ACTUAL service/problem, not conversational filler
+- Prefer concise summaries
+- Never hallucinate information not present in the transcript
+- Leave unknown values as null
+- Ignore greetings and polite language
+- For "reasonForCalling", capture the core service request (e.g., "Cut my grass", "Air conditioner not working", "Pressure washing estimate")
+- For "importantDetails", capture relevant context like timing, specific requirements, or additional context
+
+Return JSON only with these fields:
+{
+  "callerName": string | null,
+  "reasonForCalling": string | null,
+  "importantDetails": string | null,
+  "urgencyLevel": "high" | "medium" | "low" | null,
+  "addressOrLocation": string | null,
+  "preferredCallbackTime": string | null,
+  "callbackNumber": string | null
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: transcript }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) {
+      console.error('[VOICEMAIL EXTRACTION] No content in response');
+      return {
+        extractedInfo: {},
+        confidence: 0,
+        source: 'voicemail',
+        extractedAt: new Date().toISOString()
+      };
+    }
+
+    const extracted = JSON.parse(content) as VoicemailExtractedInfo;
+    
+    // Filter out null/undefined values
+    const filteredExtracted: VoicemailExtractedInfo = {};
+    for (const [key, value] of Object.entries(extracted)) {
+      if (value && typeof value === 'string' && value.trim().length > 0) {
+        filteredExtracted[key as keyof VoicemailExtractedInfo] = value.trim();
       }
     }
-  }
 
-  // Extract reason for calling
-  const reasonPatterns = [
-    /(?:i'm|i am|looking for|need|want|would like|calling about|calling for)\s+(.+?)(?:\.|,|and|because|since|my|the|it's|its)/i,
-    /(?:service|help|question|issue|problem|request)\s+(?:is|about|regarding)\s+(.+?)(?:\.|,|and)/i,
-    /(?:can you|could you)\s+(?:help with|assist with|handle)\s+(.+?)(?:\.|,|and)/i
-  ]
-  
-  for (const pattern of reasonPatterns) {
-    const match = text.match(pattern)
-    if (match && match[1]) {
-      const reason = match[1].trim()
-      if (reason.length >= 3 && reason.length <= 200) {
-        extracted.reasonForCalling = capitalizeWords(reason)
-        confidenceScore += 0.2
-        fieldsExtracted++
-        break
-      }
-    }
-  }
+    // Calculate confidence based on number of fields extracted
+    const fieldsExtracted = Object.keys(filteredExtracted).length;
+    const confidence = fieldsExtracted > 0 ? Math.min(1, 0.2 + (fieldsExtracted * 0.15)) : 0;
 
-  // Extract urgency
-  const urgencyPatterns = [
-    /(?:urgent|emergency|asap|as soon as possible|right away|immediately|hurry|quickly)/i,
-    /(?:not urgent|no rush|whenever|take your time|no hurry)/i
-  ]
-  
-  for (const pattern of urgencyPatterns) {
-    const match = text.match(pattern)
-    if (match) {
-      const urgency = match[0].toLowerCase()
-      if (urgency.includes('not') || urgency.includes('no rush') || urgency.includes('whenever')) {
-        extracted.urgencyLevel = 'not urgent'
-      } else {
-        extracted.urgencyLevel = 'urgent'
-      }
-      confidenceScore += 0.1
-      fieldsExtracted++
-      break
-    }
-  }
+    console.log('[VOICEMAIL EXTRACTION] LLM extraction successful:', {
+      fieldsExtracted,
+      confidence,
+      extracted: filteredExtracted
+    });
 
-  // Extract address/location
-  const addressPatterns = [
-    /(?:at|located at|address is|my address is|location is|my location is|service address is)\s+(\d+\s+[a-z][a-z\s]+?)(?:\.|,|and|my|the|please|call)/i,
-    /(\d+\s+[a-z][a-z\s]+?)(?:\.|,|and|please|call|i'm|i need)/i
-  ]
-  
-  for (const pattern of addressPatterns) {
-    const match = text.match(pattern)
-    if (match && match[1]) {
-      const address = match[1].trim()
-      // Validate address looks reasonable (starts with number, has street name)
-      if (/^\d+/.test(address) && address.length >= 5 && address.length <= 100) {
-        extracted.addressOrLocation = capitalizeWords(address)
-        confidenceScore += 0.15
-        fieldsExtracted++
-        break
-      }
-    }
-  }
-
-  // Extract preferred callback time
-  const timePatterns = [
-    /(?:best time|prefer|when|available)\s+(?:to call|callback|reach me)\s+(.+?)(?:\.|,|and|my|the|please|call)/i,
-    /(?:call me|callback)\s+(?:in|at|around|by)\s+(.+?)(?:\.|,|and|my|the|please)/i,
-    /(?:morning|afternoon|evening|today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s*(?:at|around)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i
-  ]
-  
-  for (const pattern of timePatterns) {
-    const match = text.match(pattern)
-    if (match && match[1]) {
-      const time = match[1].trim()
-      if (time.length >= 2 && time.length <= 50) {
-        extracted.preferredCallbackTime = capitalizeWords(time)
-        confidenceScore += 0.1
-        fieldsExtracted++
-        break
-      }
-    }
-  }
-
-  // Extract callback number (if different from caller ID)
-  const phonePatterns = [
-    /(?:callback|call me back|reach me|contact me)\s+(?:at|on)\s*(?:\+?1[-.\s]?)?\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})/i,
-    /(?:my number is|number is|phone is|phone number is)\s*(?:\+?1[-.\s]?)?\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})/i
-  ]
-  
-  for (const pattern of phonePatterns) {
-    const match = text.match(pattern)
-    if (match && (match[1] || match[0])) {
-      // Extract the phone number from the match
-      const phoneMatch = match[0].match(/(?:\+?1[-.\s]?)?\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})/)
-      if (phoneMatch) {
-        const phone = `${phoneMatch[1]}${phoneMatch[2]}${phoneMatch[3]}`
-        extracted.callbackNumber = phone
-        confidenceScore += 0.1
-        fieldsExtracted++
-        break
-      }
-    }
-  }
-
-  // Extract additional details (anything that doesn't match other patterns)
-  const detailsPatterns = [
-    /(?:details|more information|specifically|it's|its|the issue is|the problem is)\s+(.+?)(?:\.|,|and|please|call|thank)/i
-  ]
-  
-  for (const pattern of detailsPatterns) {
-    const match = text.match(pattern)
-    if (match && match[1]) {
-      const details = match[1].trim()
-      if (details.length >= 5 && details.length <= 300) {
-        extracted.importantDetails = capitalizeWords(details)
-        confidenceScore += 0.2
-        fieldsExtracted++
-        break
-      }
-    }
-  }
-
-  // Calculate overall confidence based on fields extracted
-  const overallConfidence = fieldsExtracted > 0 ? Math.min(1, confidenceScore) : 0
-
-  return {
-    extractedInfo: extracted,
-    confidence: overallConfidence,
-    source: 'voicemail',
-    extractedAt: new Date().toISOString()
+    return {
+      extractedInfo: filteredExtracted,
+      confidence,
+      source: 'voicemail',
+      extractedAt: new Date().toISOString()
+    };
+  } catch (error: any) {
+    console.error('[VOICEMAIL EXTRACTION] Error during LLM extraction:', error);
+    // Fallback to empty result on error
+    return {
+      extractedInfo: {},
+      confidence: 0,
+      source: 'voicemail',
+      extractedAt: new Date().toISOString()
+    };
   }
 }
 

@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
               if (transcriptionResult.transcript.trim()) {
                 console.log('[RECORDING STATUS] Transcript available, attempting structured extraction');
                 
-                const extractionResult = extractFromVoicemailTranscript(transcriptionResult.transcript);
+                const extractionResult = await extractFromVoicemailTranscript(transcriptionResult.transcript);
                 console.log('[RECORDING STATUS] Extraction result:', {
                   confidence: extractionResult.confidence,
                   fieldsExtracted: Object.keys(extractionResult.extractedInfo).filter(k => extractionResult.extractedInfo[k as keyof typeof extractionResult.extractedInfo]).length,

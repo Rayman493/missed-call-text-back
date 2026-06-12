@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       console.log('[TRANSCRIPTION] Transcript available, attempting structured extraction');
       
       try {
-        const extractionResult = extractFromVoicemailTranscript(transcriptionText);
+        const extractionResult = await extractFromVoicemailTranscript(transcriptionText);
         console.log('[TRANSCRIPTION] Extraction result:', {
           confidence: extractionResult.confidence,
           fieldsExtracted: Object.keys(extractionResult.extractedInfo).filter(k => extractionResult.extractedInfo[k as keyof typeof extractionResult.extractedInfo]).length,
