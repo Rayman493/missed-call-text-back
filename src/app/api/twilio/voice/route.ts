@@ -98,17 +98,16 @@ function generateVoiceGreeting(): string {
   // Static, polished voicemail greeting for all businesses
   const voicemailMessage = "Thank you for calling. We're sorry we missed your call. Please leave your name, your phone number, and a brief message after the tone, and we'll get back to you as soon as possible.";
   
-  // Get absolute URLs for callbacks
+  // Use absolute URL only for transcribeCallback (Twilio requires absolute for transcription callbacks)
+  // Keep relative URLs for action and recordingStatusCallback (they were working before)
   const appBaseUrl = getAppBaseUrl();
-  const voicemailCallback = `${appBaseUrl}/api/twilio/voicemail`;
-  const recordingStatusCallback = `${appBaseUrl}/api/twilio/recording-status`;
   const transcriptionCallback = `${appBaseUrl}/api/twilio/transcription`;
   
-  console.log('[VOICE TWIML] Using absolute callback URLs:', {
-    appBaseUrl,
-    voicemailCallback,
-    recordingStatusCallback,
-    transcriptionCallback
+  console.log('[VOICE TWIML] Callback URLs:', {
+    action: '/api/twilio/voicemail (relative)',
+    recordingStatusCallback: '/api/twilio/recording-status (relative)',
+    transcribeCallback: transcriptionCallback,
+    appBaseUrl
   });
   
   // Voicemail TwiML with recording capability and transcription enabled
@@ -119,9 +118,9 @@ function generateVoiceGreeting(): string {
       maxLength="60"
       playBeep="true"
       trim="trim-silence"
-      action="${voicemailCallback}"
+      action="/api/twilio/voicemail"
       method="POST"
-      recordingStatusCallback="${recordingStatusCallback}"
+      recordingStatusCallback="/api/twilio/recording-status"
       recordingStatusCallbackMethod="POST"
       transcribe="true"
       transcribeCallback="${transcriptionCallback}"
@@ -135,10 +134,9 @@ function generateVoiceGreeting(): string {
 
 // Helper to generate voicemail with pre-recorded greeting
 function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): string {
-  // Get absolute URLs for callbacks
+  // Use absolute URL only for transcribeCallback (Twilio requires absolute for transcription callbacks)
+  // Keep relative URLs for action and recordingStatusCallback (they were working before)
   const appBaseUrl = getAppBaseUrl();
-  const voicemailCallback = `${appBaseUrl}/api/twilio/voicemail`;
-  const recordingStatusCallback = `${appBaseUrl}/api/twilio/recording-status`;
   const transcriptionCallback = `${appBaseUrl}/api/twilio/transcription`;
   
   const voicemailTwiml = `
@@ -147,9 +145,9 @@ function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): strin
       maxLength="60"
       playBeep="true"
       trim="trim-silence"
-      action="${voicemailCallback}"
+      action="/api/twilio/voicemail"
       method="POST"
-      recordingStatusCallback="${recordingStatusCallback}"
+      recordingStatusCallback="/api/twilio/recording-status"
       recordingStatusCallbackMethod="POST"
       transcribe="true"
       transcribeCallback="${transcriptionCallback}"
@@ -166,10 +164,9 @@ function generateIgnoredContactVoicemail(): string {
   // Neutral, simple greeting without business name or AI references
   const voicemailMessage = "Sorry we missed your call. Please leave a message after the tone.";
   
-  // Get absolute URLs for callbacks
+  // Use absolute URL only for transcribeCallback (Twilio requires absolute for transcription callbacks)
+  // Keep relative URLs for action and recordingStatusCallback (they were working before)
   const appBaseUrl = getAppBaseUrl();
-  const voicemailCallback = `${appBaseUrl}/api/twilio/voicemail`;
-  const recordingStatusCallback = `${appBaseUrl}/api/twilio/recording-status`;
   const transcriptionCallback = `${appBaseUrl}/api/twilio/transcription`;
   
   // Voicemail TwiML with recording capability and transcription enabled
@@ -180,9 +177,9 @@ function generateIgnoredContactVoicemail(): string {
       maxLength="60"
       playBeep="true"
       trim="trim-silence"
-      action="${voicemailCallback}"
+      action="/api/twilio/voicemail"
       method="POST"
-      recordingStatusCallback="${recordingStatusCallback}"
+      recordingStatusCallback="/api/twilio/recording-status"
       recordingStatusCallbackMethod="POST"
       transcribe="true"
       transcribeCallback="${transcriptionCallback}"
