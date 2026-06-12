@@ -6,6 +6,7 @@ import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizePunctuation } from '@/lib/utils'
 import { detectCorrection, applyCorrection, generateCorrectionNote, generateMultiFieldAcknowledgement } from '@/lib/ai-correction-engine'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
+import { extractFromSmsBody, safeMergeSmsExtraction } from '@/lib/voicemail-extraction'
 
 // Helper function to download MMS media from Twilio and store in Supabase Storage
 async function downloadAndStoreMedia(twilioMediaUrl: string, messageId: string, index: number): Promise<string | null> {
@@ -518,6 +519,96 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     } else {
       console.log(`[INBOUND MMS] No media attachments for message: ${inboundMessage.id}`)
     }
+  }
+
+  // SMS Enrichment: Extract structured information from inbound SMS body
+  console.log('[SMS ENRICHMENT START]', {
+    leadId: lead.id,
+    smsBodyLength: body.length,
+    smsBodyPreview: body.substring(0, 50) + '...'
+  })
+
+  try {
+    const smsExtraction = await extractFromSmsBody(body)
+    
+    if (smsExtraction.confidence > 0) {
+      console.log('[SMS ENRICHMENT EXTRACTION SUCCESS]', {
+        leadId: lead.id,
+        confidence: smsExtraction.confidence,
+        fieldsExtracted: Object.keys(smsExtraction.extractedInfo).filter(k => smsExtraction.extractedInfo[k as keyof typeof smsExtraction.extractedInfo]).length,
+        extractedInfo: smsExtraction.extractedInfo
+      })
+
+      // Get current lead metadata
+      const { data: currentLead } = await supabaseAdmin
+        .from('leads')
+        .select('raw_metadata')
+        .eq('id', lead.id)
+        .single()
+
+      const currentMetadata = currentLead?.raw_metadata || {}
+
+      console.log('[SMS ENRICHMENT CURRENT METADATA]', {
+        leadId: lead.id,
+        hasCurrentMetadata: !!currentLead,
+        currentExtractedInfo: currentMetadata.extracted_info,
+        currentIntakeSources: currentMetadata.intake_sources
+      })
+
+      // Safely merge SMS extraction with existing metadata
+      const updatedMetadata = safeMergeSmsExtraction(currentMetadata, smsExtraction)
+
+      console.log('[SMS ENRICHMENT UPDATED METADATA]', {
+        leadId: lead.id,
+        updatedExtractedInfo: updatedMetadata.extracted_info,
+        updatedIntakeSources: updatedMetadata.intake_sources,
+        smsExtraction: updatedMetadata.sms_extraction
+      })
+
+      // Update lead with merged metadata
+      const { error: updateError } = await supabaseAdmin
+        .from('leads')
+        .update({ raw_metadata: updatedMetadata })
+        .eq('id', lead.id)
+
+      if (updateError) {
+        console.error('[SMS ENRICHMENT UPDATE ERROR]', {
+          leadId: lead.id,
+          error: updateError
+        })
+      } else {
+        console.log('[SMS ENRICHMENT UPDATE SUCCESS]', {
+          leadId: lead.id,
+          fieldsUpdated: Object.keys(smsExtraction.extractedInfo).filter(k => smsExtraction.extractedInfo[k as keyof typeof smsExtraction.extractedInfo]).length
+        })
+
+        // Verify persistence by re-reading the lead
+        const { data: verifiedLead } = await supabaseAdmin
+          .from('leads')
+          .select('raw_metadata')
+          .eq('id', lead.id)
+          .single()
+
+        console.log('[SMS ENRICHMENT VERIFICATION]', {
+          leadId: lead.id,
+          hasVerifiedLead: !!verifiedLead,
+          verifiedExtractedInfo: verifiedLead?.raw_metadata?.extracted_info,
+          verifiedIntakeSources: verifiedLead?.raw_metadata?.intake_sources,
+          verifiedSmsExtraction: verifiedLead?.raw_metadata?.sms_extraction
+        })
+      }
+    } else {
+      console.log('[SMS ENRICHMENT NO EXTRACTION]', {
+        leadId: lead.id,
+        reason: 'Low confidence or no fields extracted'
+      })
+    }
+  } catch (error: any) {
+    console.error('[SMS ENRICHMENT ERROR]', {
+      leadId: lead.id,
+      error: error.message
+    })
+    // Don't let SMS enrichment errors break the inbound SMS flow
   }
 
   // Look for AI call record for this lead (needed for correction updates)
