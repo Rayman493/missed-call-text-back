@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
 
     // Extract transcription data using params.get()
     const recordingSid = params.get('RecordingSid') as string;
+    const transcriptionSid = params.get('TranscriptionSid') as string;
     const transcriptionText = params.get('TranscriptionText') as string;
     const transcriptionStatus = params.get('TranscriptionStatus') as string;
     const callSid = params.get('CallSid') as string;
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[TRANSCRIPTION] Transcription data:', {
       recordingSid,
+      transcriptionSid,
       transcriptionStatus,
       transcriptionTextLength: transcriptionText ? transcriptionText.length : 0,
       transcriptionTextPreview: transcriptionText ? transcriptionText.substring(0, 100) : '[NONE]',
@@ -123,8 +125,25 @@ export async function POST(request: NextRequest) {
 
           const currentMetadata = currentLead?.raw_metadata || {};
           
+          console.log('[TRANSCRIPTION] Current lead metadata before merge:', {
+            leadId: voicemail.lead_id,
+            hasCurrentMetadata: !!currentLead,
+            currentMetadataKeys: Object.keys(currentMetadata),
+            currentExtractedInfo: currentMetadata.extracted_info,
+            currentIntakeSources: currentMetadata.intake_sources,
+            currentVoicemailExtraction: currentMetadata.voicemail_extraction
+          });
+          
           // Safely merge voicemail extraction with existing metadata
           const updatedMetadata = safeMergeVoicemailExtraction(currentMetadata, extractionResult);
+          
+          console.log('[TRANSCRIPTION] Updated metadata after merge:', {
+            updatedMetadataKeys: Object.keys(updatedMetadata),
+            updatedExtractedInfo: updatedMetadata.extracted_info,
+            updatedIntakeSources: updatedMetadata.intake_sources,
+            updatedVoicemailExtraction: updatedMetadata.voicemail_extraction,
+            updatePayload: { raw_metadata: updatedMetadata }
+          });
           
           // Update lead with merged metadata
           const { error: updateError } = await supabaseAdmin
@@ -135,9 +154,25 @@ export async function POST(request: NextRequest) {
           if (updateError) {
             console.error('[TRANSCRIPTION] Failed to update lead metadata:', updateError);
           } else {
-            console.log('[TRANSCRIPTION] Lead metadata updated successfully', {
+            console.log('[TRANSCRIPTION] Lead metadata update successful', {
               leadId: voicemail.lead_id,
               fieldsUpdated: Object.keys(extractionResult.extractedInfo).filter(k => extractionResult.extractedInfo[k as keyof typeof extractionResult.extractedInfo]).length
+            });
+            
+            // Verify persistence by re-reading the lead
+            const { data: verifiedLead } = await supabaseAdmin
+              .from('leads')
+              .select('raw_metadata')
+              .eq('id', voicemail.lead_id)
+              .single();
+            
+            console.log('[TRANSCRIPTION] Verification - re-read lead metadata:', {
+              leadId: voicemail.lead_id,
+              hasVerifiedLead: !!verifiedLead,
+              verifiedExtractedInfo: verifiedLead?.raw_metadata?.extracted_info,
+              verifiedIntakeSources: verifiedLead?.raw_metadata?.intake_sources,
+              verifiedVoicemailExtraction: verifiedLead?.raw_metadata?.voicemail_extraction,
+              metadataMatches: JSON.stringify(verifiedLead?.raw_metadata) === JSON.stringify(updatedMetadata)
             });
           }
         } else {
