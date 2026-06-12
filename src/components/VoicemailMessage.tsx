@@ -140,6 +140,10 @@ export default function VoicemailMessage({
     
     setDuration(recording.id, audioDuration)
     setCanSeek(true)
+    
+    // Apply saved volume to audio element when metadata loads
+    const normalizedVolume = isMuted ? 0 : Math.min(1, Math.max(0, volume))
+    audio.volume = normalizedVolume
   }
 
   const handleTimeUpdate = () => {
@@ -265,6 +269,10 @@ export default function VoicemailMessage({
               audio.src = objectUrl
               audio.load()
               
+              // Apply saved volume to audio element when source changes
+              const normalizedVolume = isMuted ? 0 : Math.min(1, Math.max(0, volume))
+              audio.volume = normalizedVolume
+              
               // Clean up object URL when audio finishes
               const handleEnded = () => {
                 URL.revokeObjectURL(objectUrl)
@@ -346,9 +354,10 @@ export default function VoicemailMessage({
     const audio = audioRef.current
     if (!audio) return
 
-    // Apply volume and mute state
-    audio.volume = isMuted ? 0 : volume
-  }, [volume, isMuted])
+    // Clamp volume between 0 and 1 and apply with mute state
+    const normalizedVolume = isMuted ? 0 : Math.min(1, Math.max(0, volume))
+    audio.volume = normalizedVolume
+  }, [volume, isMuted, audioRef.current])
 
   // Register voicemail with audio manager when audio element is ready
   useEffect(() => {
