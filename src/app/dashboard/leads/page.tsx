@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -169,6 +169,7 @@ function getLeadMessageStatus(latestMessage: any) {
 export default function LeadsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
   const { business, refreshBusiness } = useBusiness()
   const { user, signOut } = useAuth()
   const [leads, setLeads] = useState<any[]>([])
@@ -373,8 +374,29 @@ export default function LeadsPage() {
   )
 
   useEffect(() => {
+    console.log('[LEADS PAGE] Mounted - leads page component loaded')
+    console.log('[LEADS PAGE] Current pathname:', typeof window !== 'undefined' ? window.location.pathname : 'server')
+    console.log('[LEADS PAGE] Fetching leads', {
+      pathname: typeof window !== 'undefined' ? window.location.pathname : 'server',
+      businessId: business?.id,
+      userId: user?.id
+    })
     fetchLeads()
   }, [fetchLeads])
+
+  // Navigation-away diagnostic: watch pathname for unexpected transitions into a lead detail route
+  useEffect(() => {
+    if (!pathname) return
+    const isLeadDetail = pathname.startsWith('/dashboard/leads/') && pathname !== '/dashboard/leads'
+    if (isLeadDetail) {
+      console.log('[LEADS PAGE] Auto navigation attempted', {
+        source: 'pathname changed while LeadsPage mounted',
+        destination: pathname,
+        routerAction: 'unexpected - no router.push from LeadsPage',
+        timestamp: new Date().toISOString()
+      })
+    }
+  }, [pathname])
 
   // Handle conversation click
   const handleConversationClick = (leadId: string) => {
@@ -1031,6 +1053,7 @@ export default function LeadsPage() {
                       <Link
                         key={lead.id}
                         href={`/dashboard/leads/${lead.id}`}
+                        prefetch={false}
                         onClick={() => handleConversationClick(lead.id)}
                         className="w-full max-w-2xl bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all duration-300 hover:-translate-y-0.5 overflow-hidden group cursor-pointer"
                       >
@@ -1171,6 +1194,7 @@ export default function LeadsPage() {
                           <Link
                             key={lead.id}
                             href={`/dashboard/leads/${lead.id}`}
+                            prefetch={false}
                             onClick={() => handleConversationClick(lead.id)}
                             className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all duration-300 hover:-translate-y-0.5 overflow-hidden group cursor-pointer"
                           >

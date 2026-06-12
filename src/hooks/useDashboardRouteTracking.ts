@@ -13,6 +13,12 @@ export function useDashboardRouteTracking() {
     const isDashboardRoute = DASHBOARD_ROUTES.some(route => pathname.startsWith(route))
 
     if (isDashboardRoute) {
+      // Never store lead detail routes - only list-level routes
+      if (pathname.startsWith('/dashboard/leads/') && pathname !== '/dashboard/leads') {
+        console.log('[Dashboard Route Tracking] Skipped detail route:', pathname)
+        return
+      }
+
       // Save to cookie with 30 day expiration
       const expires = new Date()
       expires.setDate(expires.getDate() + 30)
