@@ -338,7 +338,8 @@ export function safeMergeVoicemailExtraction(
  */
 export function safeMergeSmsExtraction(
   existingMetadata: any,
-  smsExtraction: VoicemailExtractionResult
+  smsExtraction: VoicemailExtractionResult,
+  originalSmsBody?: string
 ): any {
   console.log('[SMS MERGE START]', {
     hasExistingMetadata: !!existingMetadata,
@@ -346,7 +347,8 @@ export function safeMergeSmsExtraction(
     hasIntakeSources: !!existingMetadata?.intake_sources,
     smsExtractionSource: smsExtraction.source,
     smsConfidence: smsExtraction.confidence,
-    smsExtractedInfo: smsExtraction.extractedInfo
+    smsExtractedInfo: smsExtraction.extractedInfo,
+    originalSmsBody: originalSmsBody?.substring(0, 100) + '...'
   })
 
   const metadata = existingMetadata || {}
@@ -356,6 +358,18 @@ export function safeMergeSmsExtraction(
 
   console.log('[SMS MERGE] Existing extracted info:', existingExtractedInfo)
   console.log('[SMS MERGE] SMS extracted info:', smsExtractedInfo)
+
+  // Detect correction phrases in the original SMS body
+  const correctionPhrases = ['actually', 'i meant', 'meant', 'instead', 'change', 'changed', 'never mind', 'rather', 'not that', 'wait']
+  const smsBodyLower = originalSmsBody?.toLowerCase() || ''
+  const detectedCorrectionPhrase = correctionPhrases.find(phrase => smsBodyLower.includes(phrase))
+  const hasCorrectionIntent = !!detectedCorrectionPhrase
+
+  console.log('[SMS MERGE] Correction intent detection', {
+    hasCorrectionIntent,
+    detectedCorrectionPhrase,
+    smsBodyPreview: originalSmsBody?.substring(0, 100)
+  })
 
   // Helper to determine if SMS value is better than existing
   const isSmsBetter = (
@@ -403,14 +417,14 @@ export function safeMergeSmsExtraction(
       return false
     }
 
-    // Detect correction words in SMS - these indicate the customer is changing their request
-    const correctionWords = ['actually', 'instead', 'change', 'changed', 'rather', 'not that', 'never mind', 'wait', 'meant', 'need']
-    const smsLower = smsValue.toLowerCase()
-    const hasCorrectionWord = correctionWords.some(word => smsLower.includes(word))
-    
-    // If SMS contains correction words, allow it to override existing reason/details
-    if (hasCorrectionWord && (fieldName === 'reasonForCalling' || fieldName === 'importantDetails')) {
-      console.log(`[SMS MERGE DECISION] ${fieldName}: ACCEPTED - correction word detected`)
+    // Check for correction intent in the original SMS body (not just the extracted value)
+    // This allows phrases like "I meant help installing a shower" to override existing values
+    if (hasCorrectionIntent && (fieldName === 'reasonForCalling' || fieldName === 'importantDetails')) {
+      console.log(`[SMS MERGE DECISION] ${fieldName}: OVERRIDDEN due to correction phrase`, {
+        detectedCorrectionPhrase,
+        oldValue: existingValue,
+        newValue: smsValue
+      })
       return true
     }
 
@@ -452,29 +466,42 @@ export function safeMergeSmsExtraction(
 
   const mergedExtractedInfo = {
     ...existingExtractedInfo,
-    callerName: isSmsBetter('callerName', smsExtractedInfo.callerName, existingExtractedInfo.callerName) 
-      ? smsExtractedInfo.callerName 
+    callerName: isSmsBetter('callerName', smsExtractedInfo.callerName, existingExtractedInfo.callerName)
+      ? smsExtractedInfo.callerName
       : existingExtractedInfo.callerName,
-    reasonForCalling: isSmsBetter('reasonForCalling', smsExtractedInfo.reasonForCalling, existingExtractedInfo.reasonForCalling) 
-      ? smsExtractedInfo.reasonForCalling 
+    reasonForCalling: isSmsBetter('reasonForCalling', smsExtractedInfo.reasonForCalling, existingExtractedInfo.reasonForCalling)
+      ? smsExtractedInfo.reasonForCalling
       : existingExtractedInfo.reasonForCalling,
-    importantDetails: isSmsBetter('importantDetails', smsExtractedInfo.importantDetails, existingExtractedInfo.importantDetails) 
+    importantDetails: isSmsBetter('importantDetails', smsExtractedInfo.importantDetails, existingExtractedInfo.importantDetails)
       ? (existingExtractedInfo.importantDetails && !existingExtractedInfo.importantDetails.toLowerCase().includes(smsExtractedInfo.importantDetails?.toLowerCase() || '')
           ? `${existingExtractedInfo.importantDetails}. ${smsExtractedInfo.importantDetails}`
           : smsExtractedInfo.importantDetails)
       : existingExtractedInfo.importantDetails,
-    urgencyLevel: isSmsBetter('urgencyLevel', smsExtractedInfo.urgencyLevel, existingExtractedInfo.urgencyLevel) 
-      ? smsExtractedInfo.urgencyLevel 
+    urgencyLevel: isSmsBetter('urgencyLevel', smsExtractedInfo.urgencyLevel, existingExtractedInfo.urgencyLevel)
+      ? smsExtractedInfo.urgencyLevel
       : existingExtractedInfo.urgencyLevel,
-    addressOrLocation: isSmsBetter('addressOrLocation', smsExtractedInfo.addressOrLocation, existingExtractedInfo.addressOrLocation) 
-      ? smsExtractedInfo.addressOrLocation 
+    addressOrLocation: isSmsBetter('addressOrLocation', smsExtractedInfo.addressOrLocation, existingExtractedInfo.addressOrLocation)
+      ? smsExtractedInfo.addressOrLocation
       : existingExtractedInfo.addressOrLocation,
-    preferredCallbackTime: isSmsBetter('preferredCallbackTime', smsExtractedInfo.preferredCallbackTime, existingExtractedInfo.preferredCallbackTime) 
-      ? smsExtractedInfo.preferredCallbackTime 
+    preferredCallbackTime: isSmsBetter('preferredCallbackTime', smsExtractedInfo.preferredCallbackTime, existingExtractedInfo.preferredCallbackTime)
+      ? smsExtractedInfo.preferredCallbackTime
       : existingExtractedInfo.preferredCallbackTime,
-    callbackNumber: isSmsBetter('callbackNumber', smsExtractedInfo.callbackNumber, existingExtractedInfo.callbackNumber) 
-      ? smsExtractedInfo.callbackNumber 
+    callbackNumber: isSmsBetter('callbackNumber', smsExtractedInfo.callbackNumber, existingExtractedInfo.callbackNumber)
+      ? smsExtractedInfo.callbackNumber
       : existingExtractedInfo.callbackNumber
+  }
+
+  // Clear stale importantDetails when reasonForCalling is corrected
+  // This prevents keeping details that are specific to the previous request
+  if (hasCorrectionIntent &&
+      mergedExtractedInfo.reasonForCalling !== existingExtractedInfo.reasonForCalling &&
+      existingExtractedInfo.importantDetails) {
+    console.log('[SMS MERGE] Clearing stale importantDetails due to reasonForCalling correction', {
+      oldReason: existingExtractedInfo.reasonForCalling,
+      newReason: mergedExtractedInfo.reasonForCalling,
+      oldDetails: existingExtractedInfo.importantDetails
+    })
+    mergedExtractedInfo.importantDetails = smsExtractedInfo.importantDetails || undefined
   }
 
   // Update sources for fields that were updated from SMS
