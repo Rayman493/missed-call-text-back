@@ -12,9 +12,9 @@ import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 
 const CARRIERS = [
-  { id: 'verizon', name: 'Verizon', noAnswerCode: '*71' },
-  { id: 'at&t', name: 'AT&T', noAnswerCode: '*61', noAnswerSuffix: '#' },
-  { id: 't-mobile', name: 'T-Mobile', noAnswerCode: '**61*', noAnswerSuffix: '#' },
+  { id: 'verizon', name: 'Verizon', noAnswerCode: '*71', requiresLeadingOne: false, deactivationCode: '*73' },
+  { id: 'at&t', name: 'AT&T', noAnswerCode: null, deactivationCode: null, manualSetupRecommended: true },
+  { id: 't-mobile', name: 'T-Mobile', noAnswerCode: '*61*', noAnswerSuffix: '**20#', deactivationCode: '##61#' },
   { id: 'other', name: 'Other', noAnswerCode: null }
 ]
 
@@ -119,13 +119,15 @@ export default function PhoneForwardingPage() {
     // Handle different carrier formats for no-answer forwarding
     let code = ''
     if (carrier.id === 'verizon') {
-      // Verizon: *71 + 1 + number (no trailing #)
-      code = carrier.noAnswerCode + '1' + phoneNumber
+      // Verizon: *71 + 10-digit number (no leading 1, no trailing #)
+      // Conditional forwarding for no-answer/busy
+      code = carrier.noAnswerCode + phoneNumber
     } else if (carrier.id === 'at&t') {
-      // AT&T: *61 + number + # (no-answer forwarding)
-      code = carrier.noAnswerCode + phoneNumber + carrier.noAnswerSuffix
+      // AT&T: Manual setup recommended due to wireless vs landline differences
+      return 'Contact your carrier to enable call forwarding'
     } else if (carrier.id === 't-mobile') {
-      // T-Mobile: **61* + number + # (conditional forwarding)
+      // T-Mobile: *61* + number + **20# (GSM standard for conditional forwarding with 20s delay)
+      // Format: *61*number**seconds# where seconds is the delay before forwarding
       code = carrier.noAnswerCode + phoneNumber + carrier.noAnswerSuffix
     } else {
       // Default format for other carriers
@@ -148,13 +150,13 @@ export default function PhoneForwardingPage() {
     // Handle different carrier formats for no-answer forwarding
     let code = ''
     if (carrier.id === 'verizon') {
-      // Verizon: *71 + 1 + number (no trailing #)
-      code = carrier.noAnswerCode + '1' + formattedNumber
+      // Verizon: *71 + 10-digit number (no leading 1, no trailing #)
+      code = carrier.noAnswerCode + formattedNumber
     } else if (carrier.id === 'at&t') {
-      // AT&T: *61 + number + # (no-answer forwarding)
-      code = carrier.noAnswerCode + formattedNumber + carrier.noAnswerSuffix
+      // AT&T: Manual setup recommended
+      return ''
     } else if (carrier.id === 't-mobile') {
-      // T-Mobile: **61* + number + # (conditional forwarding)
+      // T-Mobile: *61* + number + **20# (GSM standard for conditional forwarding with 20s delay)
       code = carrier.noAnswerCode + formattedNumber + carrier.noAnswerSuffix
     } else {
       // Default format for other carriers
@@ -436,12 +438,12 @@ export default function PhoneForwardingPage() {
                       {/* Deactivation helper */}
                       {selectedCarrier === 'verizon' && (
                         <p className="text-xs text-muted-foreground/60 text-center mt-3">
-                          To disable forwarding later: *73
+                          To disable forwarding later: {CARRIERS.find(c => c.id === 'verizon')?.deactivationCode}
                         </p>
                       )}
-                      {selectedCarrier === 'at&t' && (
+                      {selectedCarrier === 't-mobile' && (
                         <p className="text-xs text-muted-foreground/60 text-center mt-3">
-                          To disable forwarding later: #004#
+                          To disable forwarding later: {CARRIERS.find(c => c.id === 't-mobile')?.deactivationCode}
                         </p>
                       )}
                     </div>

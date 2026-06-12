@@ -129,12 +129,12 @@ export default function DesktopConversationMessageList({
             <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isOutbound ? 'max-w-[75%]' : 'max-w-[85%]'} ${!isInbound && !shouldShowAvatar ? 'ml-11' : ''}`}>
               {/* Message Bubble - Desktop styling */}
               <div
-                className={`rounded-2xl shadow-md transition-all duration-200 hover:shadow-lg ${
+                className={`rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
                   isInbound
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200 dark:border-slate-700/50'
+                    ? 'bg-white dark:bg-slate-800/95 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200 dark:border-slate-700'
                     : isOptimistic && isSending
-                    ? 'bg-blue-600 text-white rounded-br-md opacity-90 shadow-lg border border-blue-700'
-                    : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 shadow-lg border border-blue-700'
+                    ? 'bg-blue-600 text-white rounded-br-md opacity-90 shadow-md border border-blue-700'
+                    : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 shadow-md border border-blue-700'
                 }`}
               >
                 <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : 'px-6 py-4'}`}>

@@ -590,53 +590,28 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         title: 'Connect your business line',
         description: 'Customers still call your normal business number. Missed calls are automatically forwarded to ReplyFlow so you never lose the lead.',
         status: forwardingActionNeeded ? 'action-needed' : (step2Complete ? 'complete' : 'needs-action'),
-        details: forwardingActionNeeded
-          ? 'Forwarding disabled - re-enable to continue'
-          : step2Complete
-            ? 'Your business phone is connected to ReplyFlow. You can review your forwarding instructions anytime.'
-            : (step1Complete ? 'Follow the carrier-specific instructions to enable forwarding' : 'Available once ReplyFlow is ready'),
+        details: step2Complete
+          ? `Verified • Carrier: ${business?.business_phone_carrier || 'Not set'} • ReplyFlow: ${business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Loading...'}`
+          : (business?.business_phone_carrier ? `Carrier: ${business.business_phone_carrier}` : undefined),
         // Always show button when number is ready and forwarding is not complete
         buttonText: step1Complete && !step2Complete ? 'Set Up Call Forwarding' : undefined,
-        buttonOnClick: step1Complete && !step2Complete ? () => {
-          // Scroll to Setup Gate in dashboard instead of redirecting
-          const setupGate = document.getElementById('setup-gate')
-          if (setupGate) {
-            console.log('[GettingStarted] Scrolling to setup-gate element')
-            setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          } else {
-            // Fallback: scroll to top of page and show alert
-            console.warn('[GettingStarted] Setup gate element not found, scrolling to top')
-            window.scrollTo({ top: 0, behavior: 'smooth' })
-            alert('Setup instructions are displayed at the top of the dashboard')
-          }
-        } : undefined,
+        buttonHref: step1Complete && !step2Complete ? '/setup/phone-forwarding' : undefined,
         // Secondary button for users who have already enabled forwarding
         secondaryButtonText: step1Complete && !step2Complete ? (isCompletingForwarding ? "Updating setup..." : "I've Enabled Forwarding") : (step2Complete ? 'Review Forwarding Setup' : undefined),
-        secondaryButtonOnClick: step1Complete && !step2Complete && !isCompletingForwarding ? handleCompleteForwarding : (step2Complete ? () => {
-          // Scroll to ForwardingHelpCenter in dashboard
-          const forwardingHelp = document.getElementById('forwarding-help-center')
-          if (forwardingHelp) {
-            console.log('[GettingStarted] Scrolling to forwarding-help-center element')
-            forwardingHelp.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          } else {
-            // Fallback: scroll to top of page and show alert
-            console.warn('[GettingStarted] Forwarding help center element not found, scrolling to top')
-            window.scrollTo({ top: 0, behavior: 'smooth' })
-            alert('Forwarding instructions are displayed at the top of the dashboard')
-          }
-        } : undefined),
+        secondaryButtonOnClick: step1Complete && !step2Complete && !isCompletingForwarding ? handleCompleteForwarding : (step2Complete ? undefined : undefined),
+        secondaryButtonHref: step2Complete ? '/setup/phone-forwarding' : undefined,
       },
       {
         id: 'test',
-        title: 'Test Your Setup',
+        title: 'Verify Setup',
         description: 'Place a test call to confirm ReplyFlow is live.',
         status: testActionNeeded ? 'action-needed' : (step3Complete ? 'complete' : 'needs-action'),
         details: testActionNeeded
-          ? 'Test failed - try again'
+          ? 'Verification failed - try again'
           : step3Complete
             ? (realCallDataExists ? 'ReplyFlow is live and monitoring your business line.' : 'ReplyFlow is now monitoring your missed calls.')
             : (step2Complete ? 'This usually takes less than 30 seconds' : 'Available once forwarding is enabled'),
-        buttonText: step2Complete && !step3Complete ? 'Test Your Setup' : undefined,
+        buttonText: step2Complete && !step3Complete ? 'Run Test Call' : undefined,
         buttonOnClick: step2Complete && !step3Complete ? () => {
           console.log('[RUN TEST CALL CLICKED]', {
             source: 'primary',
@@ -654,7 +629,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             alert('Setup instructions are displayed at the top of the dashboard')
           }
         } : undefined,
-        secondaryButtonText: step3Complete ? 'Run Another Test' : undefined,
+        secondaryButtonText: step3Complete ? 'Run Another Test Call' : undefined,
         secondaryButtonOnClick: step3Complete ? () => {
           console.log('[RUN TEST CALL CLICKED]', {
             source: 'secondary',
@@ -763,7 +738,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
               }}
               className="text-[10px] sm:text-xs text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 transition-colors font-medium hover:underline"
             >
-              Run test
+              Run Test Call
             </button>
             <button
               onClick={handleToggle}

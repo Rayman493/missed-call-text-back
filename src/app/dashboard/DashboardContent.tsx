@@ -1127,87 +1127,35 @@ export default function DashboardContent() {
                 {/* Setup Gate - Show when provisioning is ready but forwarding is not verified */}
                 {business?.provisioning_status === 'ready' && !business?.forwarding_verified && (
                   <SectionErrorBoundary sectionName="SetupGate">
-                    <div id="setup-gate" className="bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-800 dark:to-indigo-900 rounded-xl shadow-xl overflow-hidden">
-                      <div className="p-4 sm:p-6">
-                        {/* Header */}
-                        <div className="flex items-start gap-4 mb-6">
-                          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                            </svg>
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="text-xl font-bold text-white mb-1">Finish setup: verify call forwarding</h3>
-                            <p className="text-blue-100 text-sm">Complete this step to activate ReplyFlow and start capturing missed calls.</p>
-                          </div>
+                    <div id="setup-gate" className="bg-card border border-border rounded-xl shadow-sm p-4 sm:p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                          <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
                         </div>
-
-                        {/* Setup Status */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                          <div className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20">
-                            <div className="flex items-center gap-2 mb-1">
-                              <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              <span className="text-xs text-green-300 font-medium">Account created</span>
-                            </div>
-                            <p className="text-white text-sm font-semibold">Active</p>
-                          </div>
-                          <div className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20">
-                            <div className="flex items-center gap-2 mb-1">
-                              <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              <span className="text-xs text-green-300 font-medium">Subscription active</span>
-                            </div>
-                            <p className="text-white text-sm font-semibold">{business.subscription_status}</p>
-                          </div>
-                          <div className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20">
-                            <div className="flex items-center gap-2 mb-1">
-                              <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              <span className="text-xs text-green-300 font-medium">ReplyFlow number</span>
-                            </div>
-                            <p className="text-white text-sm font-semibold">{business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Assigned'}</p>
-                          </div>
-                        </div>
-
-                        {/* Forwarding Summary */}
-                        <div className="bg-white/5 backdrop-blur rounded-lg p-4 border border-white/10 mb-4">
-                          <h4 className="text-white font-semibold mb-3">Call Forwarding Status</h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                            <div>
-                              <p className="text-blue-200 text-xs mb-1">Your business number</p>
-                              <p className="text-white text-lg font-semibold">{business.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}</p>
-                            </div>
-                            <div>
-                              <p className="text-blue-200 text-xs mb-1">ReplyFlow number</p>
-                              <p className="text-white text-lg font-semibold">{business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not set'}</p>
-                            </div>
-                          </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Call Forwarding Setup</h3>
                           <div className="flex items-center gap-2 mb-3">
                             <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                            <p className="text-yellow-300 text-sm font-medium">Not Verified</p>
+                            <p className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">Not Verified</p>
                           </div>
-                          <p className="text-blue-200 text-sm mb-4">Forward your business phone to ReplyFlow to start capturing missed calls.</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Business Number</p>
+                              <p className="text-sm font-semibold text-foreground">{business.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">ReplyFlow Number</p>
+                              <p className="text-sm font-semibold text-foreground">{business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not set'}</p>
+                            </div>
+                          </div>
                           <Link
                             href="/setup/phone-forwarding"
-                            className="inline-flex items-center justify-center w-full bg-white text-blue-600 font-semibold py-3 px-4 rounded-lg hover:bg-blue-50 transition-colors"
+                            className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
                           >
                             Set Up Call Forwarding
                           </Link>
-                        </div>
-
-                        {/* Test Call Status */}
-                        <div className="bg-white/5 backdrop-blur rounded-lg p-4 border border-white/10">
-                          <div className="flex items-center gap-3">
-                            <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
-                            <div>
-                              <p className="text-white font-semibold">Step 2: Verify forwarding</p>
-                              <p className="text-blue-200 text-sm">After setting up forwarding, call your business number. We'll detect the call and verify automatically.</p>
-                            </div>
-                          </div>
                         </div>
                       </div>
                     </div>

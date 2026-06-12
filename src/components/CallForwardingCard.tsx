@@ -17,10 +17,10 @@ export default function CallForwardingCard({ business }: CallForwardingCardProps
   
   // Determine forwarding status (simplified for now)
   const getForwardingStatus = () => {
-    if (!replyFlowNumber) return { status: 'Not set up', color: 'gray' }
-    if (!businessNumber) return { status: 'Not set up', color: 'gray' }
-    // TODO: Add actual forwarding test logic
-    return { status: 'Needs test', color: 'yellow' }
+    if (!replyFlowNumber) return { status: 'Not Configured', color: 'gray' }
+    if (!businessNumber) return { status: 'Not Configured', color: 'gray' }
+    // TODO: Add actual forwarding verification logic
+    return { status: 'Needs Verification', color: 'yellow' }
   }
 
   const forwardingStatus = getForwardingStatus()

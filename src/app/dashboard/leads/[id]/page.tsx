@@ -1566,29 +1566,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Lead Identity Section - Desktop Enhanced */}
-            <div className="flex items-start gap-4 flex-1 min-w-0">
+            <div className="flex items-start gap-5 flex-1 min-w-0">
               {/* Lead Details */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-4 mb-3">
                   {/* Name and Phone */}
                   <div className="flex-1 min-w-0">
-                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-tight truncate">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight truncate">
                       {getLeadDisplayName(leadData || lead)}
                     </h1>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                    <p className="text-base text-muted-foreground mt-1">
                       {formatPhoneNumber(lead?.caller_phone || '')}
                     </p>
                   </div>
 
                   {/* Status Badge */}
-                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))} flex-shrink-0`}>
+                  <span className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold border ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))} flex-shrink-0`}>
                     {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
                   </span>
 
                   {/* Correction Badge */}
                   {leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0 && (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex-shrink-0">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex-shrink-0">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
                       <span>{Object.keys(leadData.raw_metadata.corrected_fields).length}</span>
@@ -1597,8 +1597,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   {/* Appointment Badge */}
                   {leadData?.raw_metadata?.appointment && (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 flex-shrink-0">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 flex-shrink-0">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                       <span>Appointment</span>
@@ -1606,22 +1606,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   )}
 
                   {/* Quick Actions */}
-                  <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => window.open(`tel:${lead?.caller_phone}`, '_self')}
-                      className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+                      className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors border border-slate-200 dark:border-slate-700"
                       title="Call"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
                     </button>
                     <button
                       onClick={() => setIsAppointmentModalOpen(true)}
-                      className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 transition-colors"
+                      className="p-2 rounded-lg bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 transition-colors border border-green-200 dark:border-green-800"
                       title="Schedule Appointment"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </button>
@@ -1630,10 +1630,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         const composer = document.querySelector('textarea[name="message"]') as HTMLTextAreaElement
                         if (composer) composer.focus()
                       }}
-                      className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/20 hover:bg-blue-200 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 transition-colors"
+                      className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20 hover:bg-blue-200 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 transition-colors border border-blue-200 dark:border-blue-800"
                       title="Send Text"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                     </button>
@@ -1647,25 +1647,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
 
                 {/* Compact Meta Row */}
-                <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400 flex-wrap">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
-                    <span className="text-green-600 dark:text-green-400 font-medium">
+                    <span className="text-green-600 dark:text-green-400 font-semibold flex items-center gap-1.5">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                       AI Intake Complete
                     </span>
                   )}
-                  <span>•</span>
+                  <span className="text-muted-foreground/50">•</span>
                   <span>Created {formatRelativeTime(lead?.created_at)}</span>
                   {lead?.last_message_at && (
                     <>
-                      <span>•</span>
+                      <span className="text-muted-foreground/50">•</span>
                       <span>Last Activity {formatRelativeTime(lead.last_message_at)}</span>
                     </>
                   )}
-                  <span>•</span>
+                  <span className="text-muted-foreground/50">•</span>
                   <span>{messagesArray.length} Messages</span>
                   {leadData?.company_name && (
                     <>
-                      <span>•</span>
+                      <span className="text-muted-foreground/50">•</span>
                       <span className="truncate">{leadData.company_name}</span>
                     </>
                   )}
@@ -1678,13 +1681,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   onClick={handleRefresh}
                   disabled={refreshing}
-                  className="w-10 h-10 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50 hover:shadow-md border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 flex items-center justify-center"
+                  className="w-11 h-11 text-muted-foreground hover:text-foreground dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50 border border-border hover:border-border flex items-center justify-center"
                   title="Refresh conversation"
                 >
                   {refreshing ? (
                     <div className="w-4 h-4 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600"></div>
                   ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   )}
@@ -1694,10 +1697,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="relative">
                   <button
                     onClick={() => setShowMoreActions(!showMoreActions)}
-                    className="w-10 h-10 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 hover:shadow-md border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 flex items-center justify-center"
+                    className="w-11 h-11 text-muted-foreground hover:text-foreground dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 border border-border hover:border-border flex items-center justify-center"
                     title="More actions"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                     </svg>
                   </button>
@@ -1769,14 +1772,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread - CSS-based Layout */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
         
         {/* Desktop Layout */}
-        <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
+        <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_420px] gap-6 items-start">
           {/* Desktop Conversation Section */}
-          <section className="flex flex-col min-h-0 bg-card rounded-xl border border-border shadow-sm overflow-hidden h-[calc(100vh-320px)]">
+          <section className="flex flex-col min-h-0 bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden h-[calc(100vh-350px)]">
             {/* Desktop Message Thread */}
-            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth p-4 sm:p-5 lg:p-6 min-h-0" style={{ minHeight: '200px' }}>
+            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth p-6 sm:p-7 lg:p-8 min-h-0 bg-background/20" style={{ minHeight: '200px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1804,7 +1807,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Desktop Message Composer */}
-            <div className="shrink-0 border-t border-border bg-background/50">
+            <div className="shrink-0 border-t border-border/50 bg-background/90 backdrop-blur-sm">
               <ConversationComposer
                 message={message}
                 setMessage={setMessage}
@@ -1818,13 +1821,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </section>
           
           {/* Desktop Sidebar */}
-          <aside className="overflow-y-auto max-h-[calc(100vh-200px)]" data-sidebar>
-            <div className="space-y-3">
+          <aside className="overflow-y-auto max-h-[calc(100vh-230px)]" data-sidebar>
+            <div className="space-y-4">
               {/* AI Intake Summary Card - Sticky on Desktop */}
               {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                <div className="sticky top-0 bg-background z-10 pb-3">
-                  <div className="bg-card border border-border rounded-xl p-3 shadow-sm">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">AI Intake</h3>
+                <div className="sticky top-0 bg-background z-10 pb-4">
+                  <div className="bg-card border border-border/50 rounded-2xl p-4 shadow-sm">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">AI Intake</h3>
                     <AICallDetails
                       leadId={params.id}
                       businessId={business.id}
@@ -1836,10 +1839,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               )}
               {/* Lead Health Card */}
-              <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+              <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                 <button
                   onClick={() => setCollapsedSections(prev => ({ ...prev, leadHealth: !prev.leadHealth }))}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lead Health</h3>
                   <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.leadHealth ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1847,8 +1850,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </svg>
                 </button>
                 {!collapsedSections.leadHealth && (
-                  <div className="px-4 pb-4">
-                    <div className="space-y-2">
+                  <div className="px-4 pb-4 pt-2">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">AI Intake</span>
                         <span className="text-xs font-medium text-foreground">
@@ -1881,10 +1884,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Photos Received Card */}
               {Object.keys(messageMedia).length > 0 && (
-                <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+                <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                   <button
                     onClick={() => setCollapsedSections(prev => ({ ...prev, photos: !prev.photos }))}
-                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Photos Received</h3>
                     <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.photos ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1928,10 +1931,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               )}
 
               {/* Quick Actions Card */}
-              <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+              <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                 <button
                   onClick={() => setCollapsedSections(prev => ({ ...prev, quickActions: !prev.quickActions }))}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quick Actions</h3>
                   <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.quickActions ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1939,8 +1942,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </svg>
                 </button>
                 {!collapsedSections.quickActions && (
-                  <div className="px-4 pb-4">
-                    <div className="flex flex-wrap gap-1.5">
+                  <div className="px-4 pb-4 pt-2">
+                    <div className="flex flex-wrap gap-2">
                       {/* Primary Actions */}
                       <button
                         onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
@@ -1994,10 +1997,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
 
               {/* Automatic Follow-ups */}
-              <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+              <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                 <button
                   onClick={() => setCollapsedSections(prev => ({ ...prev, automation: !prev.automation }))}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Follow-Up Status</h3>
                   <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.automation ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2005,7 +2008,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </svg>
                 </button>
                 {!collapsedSections.automation && (
-                  <div className="px-4 pb-4">
+                  <div className="px-4 pb-4 pt-2">
                     <AutomaticFollowUpsControl
                       followUpJobs={followUpJobs}
                       leadId={params.id}
@@ -2024,7 +2027,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {/* Mobile Layout */}
         <div className="lg:hidden space-y-4">
           {/* Mobile Quick Actions */}
-          <div className="bg-card border border-border rounded-xl p-3">
+          <div className="bg-card border border-border/50 rounded-2xl p-4 shadow-sm">
             <div className="flex items-center gap-2 overflow-x-auto">
               {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
                 <a
@@ -2065,7 +2068,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           
           {/* Mobile Message Thread */}
-          <div ref={mobileConversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth" style={{ minHeight: '200px', maxHeight: 'calc(100vh-280px)' }}>
+          <div ref={mobileConversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth bg-card rounded-2xl border border-border/50 shadow-sm" style={{ minHeight: '200px', maxHeight: 'calc(100vh-280px)' }}>
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -2092,7 +2095,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           
           {/* Mobile Message Composer */}
-          <div className="border-t border-border/50 px-4 sm:px-5 lg:px-6 py-4 bg-background/50">
+          <div className="border-t border-border/50 px-4 sm:px-5 lg:px-6 py-4 bg-background/90 backdrop-blur-sm">
             {/* Image Previews */}
             {mobileImages.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">

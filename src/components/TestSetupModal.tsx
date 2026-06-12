@@ -137,7 +137,7 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
       <div className="bg-card rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-start mb-6">
-            <h2 className="text-2xl font-bold text-foreground">Test Your ReplyFlow Setup</h2>
+            <h2 className="text-2xl font-bold text-foreground">Verify Your ReplyFlow Setup</h2>
             <button
               onClick={onClose}
               className="text-muted-foreground hover:text-foreground transition-colors"
@@ -166,7 +166,7 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
                   <span className={`font-medium ${
                     business?.forwarding_verified ? 'text-green-400' : 'text-yellow-400'
                   }`}>
-                    {business?.forwarding_verified ? 'Verified' : 'Awaiting Test'}
+                    {business?.forwarding_verified ? 'Verified' : 'Awaiting Verification'}
                   </span>
                 </div>
               </div>
@@ -200,9 +200,9 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
               </div>
             </div>
 
-            {/* Test Instructions */}
+            {/* Verification Instructions */}
             <div>
-              <h3 className="text-lg font-semibold text-foreground mb-3">Test Instructions</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-3">Verification Instructions</h3>
               <ol className="space-y-3 text-muted-foreground">
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-sm font-medium">1</span>
@@ -238,7 +238,7 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
                 disabled={isCompleting}
                 className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isCompleting ? 'Refreshing...' : 'I Completed the Test'}
+                {isCompleting ? 'Refreshing...' : 'I Completed the Verification'}
               </button>
               <button
                 onClick={onClose}

@@ -145,10 +145,10 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
       })
     } else {
       items.push({
-        title: 'Test your call forwarding',
+        title: 'Verify Call Forwarding',
         description: 'Call your business number from another phone to verify setup works',
         status: 'warning',
-        details: 'One test call needed to complete setup'
+        details: 'One verification call needed to complete setup'
       })
     }
 
@@ -350,7 +350,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
               onClick={() => setShowTestModal(true)}
               className="px-2 py-1 bg-green-100 hover:bg-green-200 dark:bg-green-600 dark:hover:bg-green-700 text-green-900 dark:text-white text-xs font-medium rounded transition-colors"
             >
-              Test
+              Run Test Call
             </button>
             <button
               type="button"
