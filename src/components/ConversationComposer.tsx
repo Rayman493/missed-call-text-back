@@ -129,24 +129,24 @@ export default function ConversationComposer({
   const hasContent = message.trim() || images.length > 0
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 p-2 sm:p-6 bg-gray-50 dark:bg-gray-900/50">
-      <div className="flex flex-col gap-2 sm:gap-3">
+    <div className="border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6 bg-gray-50 dark:bg-gray-900/50">
+      <div className="flex flex-col gap-3 sm:gap-4">
         {/* Image Previews */}
         {images.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {images.map(img => (
               <div key={img.id} className="relative group">
                 <img
                   src={img.preview}
                   alt="Preview"
-                  className="w-20 h-20 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                  className="w-24 h-24 object-cover rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm"
                 />
                 <button
                   onClick={() => removeImage(img.id)}
-                  className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
                   type="button"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             ))}
@@ -155,7 +155,7 @@ export default function ConversationComposer({
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-3 py-2 rounded-lg text-sm">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-sm shadow-sm">
             {error}
           </div>
         )}
@@ -164,13 +164,13 @@ export default function ConversationComposer({
           ref={dropZoneRef}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          className="flex items-center gap-2 sm:gap-3"
+          className="flex items-center gap-3 sm:gap-4"
         >
           {/* Image Upload Button */}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors flex-shrink-0"
+            className="p-2.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors flex-shrink-0 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
             disabled={sending}
           >
             <ImageIcon className="w-5 h-5" />
@@ -190,25 +190,25 @@ export default function ConversationComposer({
               setMessage(e.target.value)
               const textarea = e.target
               textarea.style.height = 'auto'
-              textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px'
+              textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'
             }}
             placeholder="Send a text message..."
-            className="flex-1 p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all duration-200"
+            className="flex-1 p-3.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base transition-all duration-200 shadow-sm"
             rows={1}
-            style={{ minHeight: '36px', maxHeight: '100px' }}
+            style={{ minHeight: '44px', maxHeight: '120px' }}
             disabled={sending}
           />
           <button
             type="button"
             onClick={handleSend}
             disabled={sending || !hasContent}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors flex items-center gap-2 flex-shrink-0"
+            className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 flex-shrink-0"
           >
             {sending ? (
               <>
                 <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.001 0 01-15.357-2m15.357 2H15" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 <span className="hidden sm:inline">Sending...</span>
               </>
@@ -217,7 +217,7 @@ export default function ConversationComposer({
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
-                <span>Send Message</span>
+                <span>Send</span>
               </>
             )}
           </button>

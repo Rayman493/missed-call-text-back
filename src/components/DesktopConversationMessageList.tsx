@@ -37,7 +37,7 @@ export default function DesktopConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-6 pb-24" data-desktop-layout data-active-conversation-list>
+    <div className="space-y-8 pb-24" data-desktop-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle system events
         if (item.type === 'system_event') {
@@ -116,30 +116,30 @@ export default function DesktopConversationMessageList({
         return (
           <div
             key={msg.id}
-            className={`flex items-start gap-3 ${msg.media && msg.media.length > 0 ? 'mb-6' : 'mb-4'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-4 ${msg.media && msg.media.length > 0 ? 'mb-8' : 'mb-6'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Avatar - Only show customer avatar for inbound messages */}
             {shouldShowAvatar && isInbound && (
-              <div className={`flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-medium shadow-sm ${msg.media && msg.media.length > 0 ? 'w-7 h-7 text-xs' : 'w-10 h-10 text-sm'}`}>
+              <div className={`flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-medium shadow-md ${msg.media && msg.media.length > 0 ? 'w-8 h-8 text-xs' : 'w-11 h-11 text-sm'}`}>
                 👤
               </div>
             )}
             
             {/* Message Content */}
-            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isOutbound ? 'max-w-[70%]' : 'max-w-[85%]'} ${!isInbound && !shouldShowAvatar ? 'ml-10' : ''}`}>
+            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isOutbound ? 'max-w-[75%]' : 'max-w-[85%]'} ${!isInbound && !shouldShowAvatar ? 'ml-11' : ''}`}>
               {/* Message Bubble - Desktop styling */}
               <div
-                className={`rounded-2xl shadow-sm ${
+                className={`rounded-2xl shadow-md transition-all duration-200 hover:shadow-lg ${
                   isInbound
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-sm border border-slate-200 dark:border-slate-700/50'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200 dark:border-slate-700/50'
                     : isOptimistic && isSending
-                    ? 'bg-blue-600 text-white rounded-br-sm opacity-90 shadow-md border border-blue-700'
-                    : 'bg-blue-600 text-white rounded-br-sm hover:bg-blue-700 shadow-md border border-blue-700'
+                    ? 'bg-blue-600 text-white rounded-br-md opacity-90 shadow-lg border border-blue-700'
+                    : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 shadow-lg border border-blue-700'
                 }`}
               >
-                <div className={`${msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-5 py-3'}`}>
+                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : 'px-6 py-4'}`}>
                   {msg.body && (
-                    <p className="text-sm leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
+                    <p className="text-base leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
                       {msg.body}
                     </p>
                   )}
@@ -155,36 +155,36 @@ export default function DesktopConversationMessageList({
               </div>
               
               {/* Message Status/Timestamp - Beneath bubble, aligned with bubble */}
-              <div className={`mt-1 flex items-center gap-2 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+              <div className={`mt-2 flex items-center gap-2 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                 {isOutbound && (
                   <>
                     {msg.status === 'delivered' && (
                       <>
-                        <span className="text-[11px] text-muted-foreground/70">Delivered</span>
-                        <span className="text-[11px] text-muted-foreground/70">•</span>
+                        <span className="text-[11px] text-muted-foreground/60">Delivered</span>
+                        <span className="text-[11px] text-muted-foreground/60">•</span>
                       </>
                     )}
                     {msg.status === 'sent' && (
                       <>
-                        <span className="text-[11px] text-muted-foreground/70">Sent</span>
-                        <span className="text-[11px] text-muted-foreground/70">•</span>
+                        <span className="text-[11px] text-muted-foreground/60">Sent</span>
+                        <span className="text-[11px] text-muted-foreground/60">•</span>
                       </>
                     )}
                     {msg.status === 'failed' && (
                       <>
-                        <span className="text-[11px] text-red-500/80">Failed</span>
-                        <span className="text-[11px] text-muted-foreground/70">•</span>
+                        <span className="text-[11px] text-red-500/70">Failed</span>
+                        <span className="text-[11px] text-muted-foreground/60">•</span>
                       </>
                     )}
                     {isOptimistic && (
                       <>
-                        <span className="text-[11px] text-blue-500/80">Sending</span>
-                        <span className="text-[11px] text-muted-foreground/70">•</span>
+                        <span className="text-[11px] text-blue-500/70">Sending</span>
+                        <span className="text-[11px] text-muted-foreground/60">•</span>
                       </>
                     )}
                   </>
                 )}
-                <span className="text-[11px] text-muted-foreground/70" title={new Date(msg.created_at).toLocaleString()}>
+                <span className="text-[11px] text-muted-foreground/60" title={new Date(msg.created_at).toLocaleString()}>
                   {formatRelativeTime(msg.created_at)}
                 </span>
               </div>

@@ -208,33 +208,35 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
   const isNoIntakeOutcome = aiCallRecord.outcome === 'early_hangup' || aiCallRecord.outcome === 'no_speech'
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <Phone className="w-5 h-5 text-muted-foreground" />
+    <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center space-x-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+            <Phone className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          </div>
           <h3 className="text-sm font-semibold text-foreground">AI Intake Summary</h3>
         </div>
         {aiCallRecord.outcome && (
-          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getOutcomeStatus(aiCallRecord.outcome).color}`}>
+          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getOutcomeStatus(aiCallRecord.outcome).color}`}>
             {getOutcomeStatus(aiCallRecord.outcome).label}
           </span>
         )}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {/* Call Time */}
-        <div className="flex items-center justify-between py-2">
+        <div className="flex items-center justify-between py-2 border-b border-border/50">
           <span className="text-xs text-muted-foreground font-medium">Call Time</span>
           <span className="text-sm text-foreground">{formatRelativeTime(aiCallRecord.created_at)}</span>
         </div>
 
         {/* No Intake Information Message for early_hangup and no_speech */}
         {isNoIntakeOutcome && (
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
             <p className="text-sm text-amber-900 dark:text-amber-100 font-medium">
               No intake information captured.
             </p>
-            <p className="text-xs text-amber-800 dark:text-amber-200 mt-1">
+            <p className="text-xs text-amber-800 dark:text-amber-200 mt-1.5 leading-relaxed">
               The caller disconnected before providing any useful information. A recovery text message was sent automatically.
             </p>
           </div>
@@ -242,8 +244,8 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
         {/* Extraction Failed Notice */}
         {!isNoIntakeOutcome && aiCallRecord.extraction_failed && (
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2">
-            <p className="text-xs text-amber-800 dark:text-amber-200">
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
+            <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
               AI call completed, but structured extraction failed.
             </p>
           </div>
@@ -254,8 +256,8 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
           <>
             {/* Caller Name - only show if not a placeholder */}
             {extractedInfo.callerName && !isPlaceholderValue(extractedInfo.callerName) && (
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between py-2.5 border-b border-border/50">
+                <div className="flex items-center gap-2.5">
                   <User className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">Name</span>
                 </div>
@@ -267,12 +269,12 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
             {/* Reason for Calling - only show if not a placeholder */}
             {extractedInfo.reasonForCalling && !isPlaceholderValue(extractedInfo.reasonForCalling) && (
-              <div className="py-2">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="py-2.5 border-b border-border/50">
+                <div className="flex items-center gap-2.5 mb-1.5">
                   <Briefcase className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">Reason</span>
                 </div>
-                <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground">
+                <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground leading-relaxed">
                   {extractedInfo.reasonForCalling}
                 </p>
               </div>
@@ -280,12 +282,12 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
             {/* Urgency Level - only show if not a placeholder */}
             {extractedInfo.urgencyLevel && !isPlaceholderValue(extractedInfo.urgencyLevel) && (
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between py-2.5 border-b border-border/50">
+                <div className="flex items-center gap-2.5">
                   <TriangleAlert className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">Urgency</span>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getUrgencyColor(extractedInfo.urgencyLevel).bg} ${getUrgencyColor(extractedInfo.urgencyLevel).text} ${getUrgencyColor(extractedInfo.urgencyLevel).border}`}>
+                <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(extractedInfo.urgencyLevel).bg} ${getUrgencyColor(extractedInfo.urgencyLevel).text} ${getUrgencyColor(extractedInfo.urgencyLevel).border}`}>
                   {extractedInfo.urgencyLevel}
                 </span>
               </div>
@@ -293,12 +295,12 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
             {/* Address/Location - only show if not a placeholder */}
             {extractedInfo.addressOrLocation && !isPlaceholderValue(extractedInfo.addressOrLocation) && (
-              <div className="py-2">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="py-2.5 border-b border-border/50">
+                <div className="flex items-center gap-2.5 mb-1.5">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">Location</span>
                 </div>
-                <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground">
+                <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground leading-relaxed">
                   {extractedInfo.addressOrLocation}
                 </p>
               </div>
@@ -306,8 +308,8 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
             {/* Preferred Callback Time - only show if not a placeholder */}
             {extractedInfo.preferredCallbackTime && !isPlaceholderValue(extractedInfo.preferredCallbackTime) && (
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between py-2.5 border-b border-border/50">
+                <div className="flex items-center gap-2.5">
                   <Clock className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">Callback Time</span>
                 </div>
@@ -319,12 +321,12 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
             {/* Important Details - only show if not a placeholder */}
             {extractedInfo.importantDetails && !isPlaceholderValue(extractedInfo.importantDetails) && (
-              <div className="py-2">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="py-2.5 border-b border-border/50">
+                <div className="flex items-center gap-2.5 mb-1.5">
                   <FileText className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">Project Details</span>
                 </div>
-                <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground">
+                <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground leading-relaxed">
                   {extractedInfo.importantDetails}
                 </p>
               </div>
@@ -334,9 +336,9 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
         {/* AI-Generated Summary */}
         {(extractedInfo?.summary || aiCallRecord.summary) && (
-          <div>
-            <span className="text-xs text-muted-foreground">AI Summary</span>
-            <p className="text-sm text-foreground mt-1 line-clamp-3">
+          <div className="pt-2">
+            <span className="text-xs text-muted-foreground font-medium">AI Summary</span>
+            <p className="text-sm text-foreground mt-1.5 line-clamp-3 leading-relaxed">
               {extractedInfo?.summary || aiCallRecord.summary}
             </p>
           </div>
@@ -344,10 +346,10 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
         {/* Collapsible Transcript Section */}
         {aiCallRecord.transcript && aiCallRecord.transcript.length > 0 && (
-          <div className="pt-3 border-t border-border">
+          <div className="pt-4 border-t border-border">
             <button
               onClick={() => setTranscriptExpanded(!transcriptExpanded)}
-              className="flex items-center justify-between w-full text-left hover:bg-muted/50 rounded-lg p-2 transition-colors"
+              className="flex items-center justify-between w-full text-left hover:bg-muted/50 rounded-lg p-2.5 transition-colors"
             >
               <span className="text-sm font-medium text-foreground">View Transcript</span>
               <ChevronDown
@@ -356,13 +358,13 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
             </button>
 
             {transcriptExpanded && (
-              <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
+              <div className="mt-3 space-y-2.5 max-h-60 overflow-y-auto">
                 {aiCallRecord.transcript.map((entry, index) => (
                   <div key={index} className="text-sm">
                     <span className={`font-medium ${entry.role === 'user' ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'}`}>
                       {entry.role === 'user' ? 'Caller:' : 'Assistant:'}
                     </span>
-                    <p className="text-foreground mt-1">{entry.text}</p>
+                    <p className="text-foreground mt-1 leading-relaxed">{entry.text}</p>
                   </div>
                 ))}
               </div>
