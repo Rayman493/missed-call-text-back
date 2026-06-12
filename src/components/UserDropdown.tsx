@@ -118,14 +118,14 @@ export default function UserDropdown() {
           {/* UPDATED HEADER COMPONENT - Account button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`group flex items-center justify-center gap-2 h-9 px-3 text-sm font-medium rounded-lg transition-all duration-200 text-center relative ${
+            className={`group flex items-center justify-center gap-2 h-10 px-3 text-sm font-medium rounded-lg transition-all duration-200 text-center relative ${
               isOpen 
                 ? 'text-white bg-slate-800/70' 
                 : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
             }`}
           >
             {/* User Icon - always visible */}
-            <User className="w-4 h-4 text-inherit group-hover:text-inherit transition-colors duration-200" />
+            <User className="w-5 h-5 text-inherit group-hover:text-inherit transition-colors duration-200" />
             
             {/* Business name - desktop only */}
             <span className="hidden md:inline transition-colors duration-200 max-w-32 truncate">
@@ -133,7 +133,7 @@ export default function UserDropdown() {
             </span>
             
             {/* Chevron icon - desktop only */}
-            <ChevronDown className={`hidden md:inline w-3 h-3 text-inherit transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`hidden md:inline w-4 h-4 text-inherit transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {isOpen && (

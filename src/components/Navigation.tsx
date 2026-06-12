@@ -40,7 +40,7 @@ export default function Navigation() {
     <nav className="flex items-center gap-1">
       <Link
         href="/dashboard"
-        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 text-center relative ${
+        className={`px-4 py-2 text-base font-semibold rounded-md transition-all duration-200 text-center relative ${
           pathname === '/dashboard'
             ? 'text-white'
             : 'text-gray-400 hover:text-white'
@@ -48,12 +48,12 @@ export default function Navigation() {
       >
         Dashboard
         {pathname === '/dashboard' && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 rounded-full"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-400 rounded-full"></div>
         )}
       </Link>
       <Link
         href="/dashboard/leads"
-        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 text-center relative ${
+        className={`px-4 py-2 text-base font-semibold rounded-md transition-all duration-200 text-center relative ${
           isActive('/dashboard/leads')
             ? 'text-white'
             : 'text-gray-400 hover:text-white'
@@ -61,12 +61,12 @@ export default function Navigation() {
       >
         Leads
         {isActive('/dashboard/leads') && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 rounded-full"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-400 rounded-full"></div>
         )}
       </Link>
       <Link
         href="/dashboard/calendar"
-        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 text-center relative ${
+        className={`px-4 py-2 text-base font-semibold rounded-md transition-all duration-200 text-center relative ${
           isActive('/dashboard/calendar')
             ? 'text-white'
             : 'text-gray-400 hover:text-white'
@@ -74,12 +74,12 @@ export default function Navigation() {
       >
         Calendar
         {isActive('/dashboard/calendar') && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 rounded-full"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-400 rounded-full"></div>
         )}
       </Link>
       <Link
         href="/dashboard/settings"
-        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 text-center relative ${
+        className={`px-4 py-2 text-base font-semibold rounded-md transition-all duration-200 text-center relative ${
           isActive('/dashboard/settings')
             ? 'text-white'
             : 'text-gray-400 hover:text-white'
@@ -87,7 +87,7 @@ export default function Navigation() {
       >
         Settings
         {isActive('/dashboard/settings') && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 rounded-full"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-400 rounded-full"></div>
         )}
       </Link>
     </nav>
