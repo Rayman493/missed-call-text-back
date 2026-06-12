@@ -8,6 +8,7 @@ import { createFollowUpJobs } from '@/lib/follow-ups';
 import { notificationServiceServer } from '@/lib/notifications-server';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
+import { extractFromVoicemailTranscript, safeMergeVoicemailExtraction } from '@/lib/voicemail-extraction';
 
 // CALL TRACE logging function
 function logCallTrace(data: {
@@ -445,6 +446,57 @@ export async function POST(request: NextRequest) {
     console.log('[VOICEMAIL NOTIFICATION CREATED]', { voicemailId: voicemail.id, leadId: lead.id, businessId: business.id });
     console.log('[VOICEMAIL INGEST COMPLETE]', { leadId: lead.id, conversationId: conversation.id, voicemailId: voicemail.id, businessId: business.id });
     console.log('[VOICEMAIL] Recording saved:', voicemail.id);
+
+    // Extract structured information from voicemail transcript if available
+    if (voicemail.transcription_text && voicemail.transcription_text.trim()) {
+      console.log('[VOICEMAIL EXTRACTION] Transcript available, attempting structured extraction');
+      
+      try {
+        const extractionResult = extractFromVoicemailTranscript(voicemail.transcription_text);
+        console.log('[VOICEMAIL EXTRACTION] Extraction result:', {
+          confidence: extractionResult.confidence,
+          fieldsExtracted: Object.keys(extractionResult.extractedInfo).filter(k => extractionResult.extractedInfo[k as keyof typeof extractionResult.extractedInfo]).length,
+          extractedInfo: extractionResult.extractedInfo
+        });
+
+        // Only update lead if we extracted meaningful information
+        if (extractionResult.confidence > 0) {
+          // Get current lead metadata
+          const { data: currentLead } = await supabaseAdmin
+            .from('leads')
+            .select('raw_metadata')
+            .eq('id', lead.id)
+            .single();
+
+          const currentMetadata = currentLead?.raw_metadata || {};
+          
+          // Safely merge voicemail extraction with existing metadata
+          const updatedMetadata = safeMergeVoicemailExtraction(currentMetadata, extractionResult);
+          
+          // Update lead with merged metadata
+          const { error: updateError } = await supabaseAdmin
+            .from('leads')
+            .update({ raw_metadata: updatedMetadata })
+            .eq('id', lead.id);
+
+          if (updateError) {
+            console.error('[VOICEMAIL EXTRACTION] Failed to update lead metadata:', updateError);
+          } else {
+            console.log('[VOICEMAIL EXTRACTION] Lead metadata updated successfully', {
+              leadId: lead.id,
+              fieldsUpdated: Object.keys(extractionResult.extractedInfo).filter(k => extractionResult.extractedInfo[k as keyof typeof extractionResult.extractedInfo]).length
+            });
+          }
+        } else {
+          console.log('[VOICEMAIL EXTRACTION] Low confidence extraction, skipping lead update');
+        }
+      } catch (extractionError) {
+        console.error('[VOICEMAIL EXTRACTION] Error during extraction:', extractionError);
+        // Don't let extraction errors break the voicemail flow
+      }
+    } else {
+      console.log('[VOICEMAIL EXTRACTION] No transcript available, skipping extraction');
+    }
 
     // Create notification for voicemail
     try {
