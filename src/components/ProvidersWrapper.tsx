@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 
 interface ProvidersWrapperProps {
   children: React.ReactNode
 }
 
 export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
+  const pathname = usePathname()
   const [isClient, setIsClient] = useState(false)
   const [providersLoaded, setProvidersLoaded] = useState(false)
   const [AuthProvider, setAuthProvider] = useState<any>(null)
@@ -77,7 +79,7 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
         <BusinessProvider>
           <VoicemailVolumeProvider>
             <VoicemailPlaybackManagerProvider>
-              <VoicemailProgressProvider>{children}</VoicemailProgressProvider>
+              <VoicemailProgressProvider key={pathname}>{children}</VoicemailProgressProvider>
             </VoicemailPlaybackManagerProvider>
           </VoicemailVolumeProvider>
         </BusinessProvider>

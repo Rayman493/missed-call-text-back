@@ -374,7 +374,7 @@ export default function LeadsPage() {
   )
 
   useEffect(() => {
-    console.log('[LEADS PAGE] Mounted - leads page component loaded')
+    console.log('[LEADS PAGE] MOUNTED - leads page component loaded')
     console.log('[LEADS PAGE] Current pathname:', typeof window !== 'undefined' ? window.location.pathname : 'server')
     console.log('[LEADS PAGE] Fetching leads', {
       pathname: typeof window !== 'undefined' ? window.location.pathname : 'server',
@@ -382,6 +382,9 @@ export default function LeadsPage() {
       userId: user?.id
     })
     fetchLeads()
+    return () => {
+      console.log('[LEADS PAGE] UNMOUNTED')
+    }
   }, [fetchLeads])
 
   // Navigation-away diagnostic: watch pathname for unexpected transitions into a lead detail route

@@ -888,6 +888,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     automationStatus = 'Follow-ups completed'
   }
 
+  // Mount/unmount tracking
+  useEffect(() => {
+    console.log('[LEAD DETAIL PAGE] MOUNTED for leadId:', params.id, 'pathname:', typeof window !== 'undefined' ? window.location.pathname : 'server')
+    return () => {
+      console.log('[LEAD DETAIL PAGE] UNMOUNTED for leadId:', params.id)
+    }
+  }, [params.id])
+
   // Fetch lead data on mount
   useEffect(() => {
     console.log('[LEAD DETAIL LOAD] Opening lead details for leadId:', params.id)

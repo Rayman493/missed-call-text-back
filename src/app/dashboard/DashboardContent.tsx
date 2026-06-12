@@ -466,6 +466,14 @@ export default function DashboardContent() {
         setIsRecoveringSession(false)
         
         // Clean URL params
+        console.error('[DASHBOARD REDIRECT]', {
+          file: 'src/app/dashboard/DashboardContent.tsx',
+          line: 469,
+          reason: 'Checkout recovery - session restored, cleaning URL params',
+          from: pathname,
+          to: '/dashboard',
+          stack: new Error().stack
+        })
         router.replace('/dashboard')
       }
     }, RETRY_INTERVAL)
@@ -480,6 +488,14 @@ export default function DashboardContent() {
         router.push('/auth/signin?redirect=/dashboard')
       } else {
         setIsRecoveringSession(false)
+        console.error('[DASHBOARD REDIRECT]', {
+          file: 'src/app/dashboard/DashboardContent.tsx',
+          line: 483,
+          reason: 'Checkout recovery - timeout fallback with session restored',
+          from: pathname,
+          to: '/dashboard',
+          stack: new Error().stack
+        })
         router.replace('/dashboard')
       }
     }, RECOVERY_TIMEOUT)

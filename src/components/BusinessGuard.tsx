@@ -75,6 +75,15 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       return
     }
     
+    // CRITICAL FIX: Never redirect from leads pages - they must stay accessible
+    if (pathname?.startsWith('/dashboard/leads')) {
+      console.log('[Routing] On leads page, skipping ALL redirects', {
+        pathname,
+        reason: 'Leads pages must remain accessible regardless of setup state'
+      })
+      return
+    }
+    
     // IMPORTANT: Don't redirect from dashboard subpages due to setup issues
     // Only apply setup-based redirects on the main dashboard page (/dashboard)
     // This allows users to access leads, calendar, settings, etc. even with incomplete setup
