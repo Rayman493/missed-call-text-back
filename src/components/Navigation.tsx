@@ -77,19 +77,6 @@ export default function Navigation() {
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-400 rounded-full"></div>
         )}
       </Link>
-      <Link
-        href="/dashboard/settings"
-        className={`px-4 py-2 text-base font-semibold rounded-md transition-all duration-200 text-center relative ${
-          isActive('/dashboard/settings')
-            ? 'text-white'
-            : 'text-gray-400 hover:text-white'
-        }`}
-      >
-        Settings
-        {isActive('/dashboard/settings') && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-400 rounded-full"></div>
-        )}
-      </Link>
     </nav>
   )
 }
