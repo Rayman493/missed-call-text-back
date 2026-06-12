@@ -2090,6 +2090,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 sending={sending}
                 handleRetry={handleRetry}
                 getErrorMessage={getErrorMessage}
+                renderAudio={false}
               />
             )}
           </div>
