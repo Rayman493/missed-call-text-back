@@ -144,7 +144,7 @@ Return JSON only with these fields:
  * Intelligently merge SMS correction with existing extraction using LLM
  * Preserves context while applying corrections
  */
-async function intelligentCorrectionMerge(
+export async function intelligentCorrectionMerge(
   existingExtractedInfo: VoicemailExtractedInfo,
   smsBody: string,
   smsExtractedInfo: VoicemailExtractedInfo
@@ -162,11 +162,18 @@ async function intelligentCorrectionMerge(
 
 Your task:
 - Update ONLY the fields that the customer is correcting
-- PRESERVE all other existing information (name, address, callback number, urgency, etc.)
-- If the customer changes the requested service (e.g., "shower" to "toilet"), regenerate reasonForCalling to be specific (e.g., "Help installing a toilet" not "Toilet issue")
-- If the customer adds clarification, enrich importantDetails with the new context
-- Never lose valid information from the original voicemail
-- If a field wasn't mentioned in the SMS, keep the original value
+- PRESERVE unrelated metadata: callerName, callbackNumber, addressOrLocation, urgencyLevel, preferredCallbackTime
+- If the customer changes the requested service (e.g., "shower" to "toilet", "lawn mowing" to "flower planting"):
+  * Regenerate reasonForCalling to be specific (e.g., "Help installing a toilet" not "Toilet issue")
+  * CRITICAL: Re-evaluate importantDetails in the context of the NEW service
+  * If old details are specific to the old service (e.g., "shower is leaking" when now it's a toilet), CLEAR importantDetails instead of preserving stale info
+  * If details are still relevant (e.g., "upstairs bathroom"), preserve them
+  * If no valid details remain after re-evaluation, set importantDetails to null
+- If the customer only adds clarification without changing the service (e.g., "it's the upstairs bathroom"):
+  * Enrich importantDetails with the new context
+  * Preserve existing details that are still relevant
+- NEVER fabricate details. It is better to leave importantDetails empty than to display contradictory information.
+- If a field wasn't mentioned in the SMS and is not service-specific, keep the original value
 
 Return JSON only with these fields:
 {
