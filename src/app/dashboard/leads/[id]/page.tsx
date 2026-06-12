@@ -106,16 +106,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { business } = useBusiness()
 
-  // Intelligent back navigation handler
+  // Explicit navigation to leads list
   const handleBack = () => {
-    // Check if we have browser history and the previous page was within the app
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      // Try to go back if we have history
-      router.back()
-    } else {
-      // Fallback to leads list if no reliable history
-      router.push('/dashboard/leads')
-    }
+    // Always navigate to leads page regardless of browser history
+    // The button says "Back to Leads" so it should always go to /dashboard/leads
+    router.push('/dashboard/leads')
   }
   const [leadData, setLeadData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
