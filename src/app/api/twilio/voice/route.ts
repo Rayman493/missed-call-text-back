@@ -15,6 +15,7 @@ import { createAISession } from '@/lib/ai-call-assistant/session';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 import { notificationServiceServer } from '@/lib/notifications-server';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
+import { getAppBaseUrl } from '@/lib/urls';
 
 // Constants for repeat caller behavior
 const AUTO_REPLY_REPEAT_WINDOW_MINUTES = 30;
@@ -97,6 +98,19 @@ function generateVoiceGreeting(): string {
   // Static, polished voicemail greeting for all businesses
   const voicemailMessage = "Thank you for calling. We're sorry we missed your call. Please leave your name, your phone number, and a brief message after the tone, and we'll get back to you as soon as possible.";
   
+  // Get absolute URLs for callbacks
+  const appBaseUrl = getAppBaseUrl();
+  const voicemailCallback = `${appBaseUrl}/api/twilio/voicemail`;
+  const recordingStatusCallback = `${appBaseUrl}/api/twilio/recording-status`;
+  const transcriptionCallback = `${appBaseUrl}/api/twilio/transcription`;
+  
+  console.log('[VOICE TWIML] Using absolute callback URLs:', {
+    appBaseUrl,
+    voicemailCallback,
+    recordingStatusCallback,
+    transcriptionCallback
+  });
+  
   // Voicemail TwiML with recording capability and transcription enabled
   const voicemailTwiml = `
     <Pause length="1"/>
@@ -105,12 +119,12 @@ function generateVoiceGreeting(): string {
       maxLength="60"
       playBeep="true"
       trim="trim-silence"
-      action="/api/twilio/voicemail"
+      action="${voicemailCallback}"
       method="POST"
-      recordingStatusCallback="/api/twilio/recording-status"
+      recordingStatusCallback="${recordingStatusCallback}"
       recordingStatusCallbackMethod="POST"
       transcribe="true"
-      transcribeCallback="/api/twilio/transcription"
+      transcribeCallback="${transcriptionCallback}"
       transcribeCallbackMethod="POST"
     />
     <Hangup/>
@@ -121,18 +135,24 @@ function generateVoiceGreeting(): string {
 
 // Helper to generate voicemail with pre-recorded greeting
 function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): string {
+  // Get absolute URLs for callbacks
+  const appBaseUrl = getAppBaseUrl();
+  const voicemailCallback = `${appBaseUrl}/api/twilio/voicemail`;
+  const recordingStatusCallback = `${appBaseUrl}/api/twilio/recording-status`;
+  const transcriptionCallback = `${appBaseUrl}/api/twilio/transcription`;
+  
   const voicemailTwiml = `
     <Play>${customGreetingUrl}</Play>
     <Record
       maxLength="60"
       playBeep="true"
       trim="trim-silence"
-      action="/api/twilio/voicemail"
+      action="${voicemailCallback}"
       method="POST"
-      recordingStatusCallback="/api/twilio/recording-status"
+      recordingStatusCallback="${recordingStatusCallback}"
       recordingStatusCallbackMethod="POST"
       transcribe="true"
-      transcribeCallback="/api/twilio/transcription"
+      transcribeCallback="${transcriptionCallback}"
       transcribeCallbackMethod="POST"
     />
     <Hangup/>
@@ -146,6 +166,12 @@ function generateIgnoredContactVoicemail(): string {
   // Neutral, simple greeting without business name or AI references
   const voicemailMessage = "Sorry we missed your call. Please leave a message after the tone.";
   
+  // Get absolute URLs for callbacks
+  const appBaseUrl = getAppBaseUrl();
+  const voicemailCallback = `${appBaseUrl}/api/twilio/voicemail`;
+  const recordingStatusCallback = `${appBaseUrl}/api/twilio/recording-status`;
+  const transcriptionCallback = `${appBaseUrl}/api/twilio/transcription`;
+  
   // Voicemail TwiML with recording capability and transcription enabled
   const voicemailTwiml = `
     <Pause length="1"/>
@@ -154,12 +180,12 @@ function generateIgnoredContactVoicemail(): string {
       maxLength="60"
       playBeep="true"
       trim="trim-silence"
-      action="/api/twilio/voicemail"
+      action="${voicemailCallback}"
       method="POST"
-      recordingStatusCallback="/api/twilio/recording-status"
+      recordingStatusCallback="${recordingStatusCallback}"
       recordingStatusCallbackMethod="POST"
       transcribe="true"
-      transcribeCallback="/api/twilio/transcription"
+      transcribeCallback="${transcriptionCallback}"
       transcribeCallbackMethod="POST"
     />
     <Hangup/>
@@ -1652,6 +1678,16 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     console.log('[Twilio Voice] Generated TwiML:');
     console.log('[Twilio Voice]', twiml);
     console.log('[Twilio Voice] ===== TWIML RESPONSE LOGGING END =====');
+    
+    // Verify transcription callback is in TwiML
+    const hasTranscribe = twiml.includes('transcribe="true"');
+    const hasTranscribeCallback = twiml.includes('transcribeCallback=');
+    console.log('[Twilio Voice] Transcription verification:', {
+      hasTranscribe,
+      hasTranscribeCallback,
+      transcriptionEnabled: hasTranscribe && hasTranscribeCallback
+    });
+    
     console.log('[Twilio Voice] Generated final TwiML response');
     console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=main-fallback');
     console.log('[AI POC FINAL TWIML]', twiml);
