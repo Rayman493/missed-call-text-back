@@ -75,6 +75,20 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       return
     }
     
+    // IMPORTANT: Don't redirect from dashboard subpages due to setup issues
+    // Only apply setup-based redirects on the main dashboard page (/dashboard)
+    // This allows users to access leads, calendar, settings, etc. even with incomplete setup
+    const isMainDashboardPage = pathname === '/dashboard'
+    const isDashboardSubpage = pathname?.startsWith('/dashboard/') && !isMainDashboardPage
+    
+    if (isDashboardSubpage) {
+      console.log('[Routing] On dashboard subpage, skipping setup-based redirects', {
+        pathname,
+        reason: 'Dashboard subpages should remain accessible regardless of setup state'
+      })
+      return
+    }
+    
     // Don't redirect if checkout=success is present (waiting for webhook)
     if (checkoutStatus === 'success') {
       console.log('[BusinessGuard] ===== CHECKOUT SUCCESS MODE ACTIVE =====')
@@ -99,6 +113,14 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
           component: 'BusinessGuard',
         })
         console.log('[Routing] No user authenticated, redirecting to sign in')
+        console.error('[DASHBOARD REDIRECT]', {
+          file: 'src/components/BusinessGuard.tsx',
+          line: 103,
+          reason: 'No user authenticated',
+          from: pathname,
+          to: '/auth/signin?redirect=/dashboard',
+          stack: new Error().stack
+        })
         hasRedirectedRef.current = pathname
         router.push('/auth/signin?redirect=/dashboard')
         return
@@ -158,6 +180,14 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
               component: 'BusinessGuard',
             })
             console.error('[Routing] No session exists, redirecting to sign in instead of onboarding')
+            console.error('[DASHBOARD REDIRECT]', {
+              file: 'src/components/BusinessGuard.tsx',
+              line: 170,
+              reason: 'No session exists, redirecting to sign in instead of onboarding',
+              from: pathname,
+              to: '/auth/signin?redirect=/dashboard',
+              stack: new Error().stack
+            })
             hasRedirectedRef.current = pathname
             router.push('/auth/signin?redirect=/dashboard')
             return
@@ -313,6 +343,14 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
               component: 'BusinessGuard',
             })
             console.error('[Routing] No session exists, redirecting to sign in instead of onboarding')
+            console.error('[DASHBOARD REDIRECT]', {
+              file: 'src/components/BusinessGuard.tsx',
+              line: 332,
+              reason: 'No session exists, redirecting to sign in instead of onboarding',
+              from: pathname,
+              to: '/auth/signin?redirect=/dashboard',
+              stack: new Error().stack
+            })
             router.push('/auth/signin?redirect=/dashboard')
             return
           }
@@ -387,14 +425,16 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   const isOnboardingComplete = business.onboarding_status === 'completed'
   const hasActiveSubscription = isActiveSubscription(business.subscription_status)
   const hasBasicProfile = business.name && business.business_phone_number
+  const isMainDashboardPage = pathname === '/dashboard'
   
-  // Only show the "finish setup" message if user has no basic profile
+  // Only show the "finish setup" message if user has no basic profile AND is on main dashboard
   // Users with a profile but no subscription should see the dashboard with Start Free Trial state
-  if (!hasBasicProfile && !hasActiveSubscription && pathname?.startsWith('/dashboard')) {
+  if (!hasBasicProfile && !hasActiveSubscription && isMainDashboardPage) {
     console.log('[BusinessGuard] Showing setup required message - no basic profile', {
       reason: 'Missing basic profile data (name or business_phone_number)',
       hasBasicProfile,
-      hasActiveSubscription
+      hasActiveSubscription,
+      pathname
     })
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
