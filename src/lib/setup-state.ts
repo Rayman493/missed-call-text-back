@@ -86,7 +86,13 @@ export function deriveSetupState(business: Business | null, realCallDataExists: 
   const step1Complete = hasValidAccess && twilioReady
 
   // Step 2: Forwarding is enabled
-  const step2Complete = Boolean(business.phone_setup_completed_at && business.call_forwarding_enabled)
+  // CRITICAL: forwarding_verified is the DEFINITIVE source of truth.
+  // If the forwarding has been verified, step 2 is complete regardless of
+  // phone_setup_completed_at or call_forwarding_enabled transient values.
+  const step2Complete = Boolean(
+    business.forwarding_verified === true ||
+    (business.phone_setup_completed_at && business.call_forwarding_enabled)
+  )
 
   // Step 3: Test is complete
   // Test is complete when missedCallCount > 0 OR there's real call data OR explicit test completion

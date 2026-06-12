@@ -176,10 +176,13 @@ export function getBusinessOnboardingState(
   }
 
   // STATE 4: AWAITING_FORWARDING - ReplyFlow-side ready, forwarding not enabled
-  const forwardingEnabled = business.call_forwarding_enabled === true
-  const phoneSetupComplete = Boolean(business.phone_setup_completed_at)
+  // CRITICAL: forwarding_verified is the DEFINITIVE source of truth.
+  // If forwarding has been verified, forwarding IS enabled regardless of
+  // transient call_forwarding_enabled or phone_setup_completed_at values.
+  const forwardingEnabled = business.forwarding_verified === true || business.call_forwarding_enabled === true
+  const phoneSetupComplete = Boolean(business.forwarding_verified === true || business.phone_setup_completed_at)
   
-  console.log('[getBusinessOnboardingState] Forwarding check:', { hasNumber, isMessagingReady, forwardingEnabled, phoneSetupComplete })
+  console.log('[getBusinessOnboardingState] Forwarding check:', { hasNumber, isMessagingReady, forwardingEnabled, phoneSetupComplete, forwardingVerified: business.forwarding_verified, callForwardingEnabled: business.call_forwarding_enabled, phoneSetupCompletedAt: business.phone_setup_completed_at })
   
   if (hasNumber && isMessagingReady && (!forwardingEnabled || !phoneSetupComplete)) {
     console.log('[getBusinessOnboardingState] Ready but forwarding not enabled - returning AWAITING_FORWARDING')
