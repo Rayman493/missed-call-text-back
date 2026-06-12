@@ -12,10 +12,31 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
   const extractedInfo = leadData?.raw_metadata?.extracted_info
   const intakeSources = leadData?.raw_metadata?.intake_sources
 
+  // DEBUG LOGGING
+  console.log('[VoicemailSummary] Component received data:', {
+    hasLeadData: !!leadData,
+    hasRawMetadata: !!leadData?.raw_metadata,
+    voicemailExtraction,
+    extractedInfo,
+    intakeSources,
+    hasVoicemailExtraction: !!voicemailExtraction,
+    hasExtractedInfo: !!extractedInfo,
+    hasIntakeSources: !!intakeSources,
+    confidence: voicemailExtraction?.confidence
+  })
+
   // Check if any voicemail-derived fields exist
   const hasVoicemailData = voicemailExtraction && voicemailExtraction.confidence > 0 && extractedInfo
 
+  console.log('[VoicemailSummary] hasVoicemailData check:', {
+    hasVoicemailData,
+    voicemailExtractionExists: !!voicemailExtraction,
+    confidenceGreaterThanZero: voicemailExtraction?.confidence > 0,
+    extractedInfoExists: !!extractedInfo
+  })
+
   if (!hasVoicemailData) {
+    console.log('[VoicemailSummary] Returning null - no voicemail data')
     return null
   }
 
@@ -24,7 +45,15 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
     field => intakeSources[field] === 'voicemail' && extractedInfo[field]
   )
 
+  console.log('[VoicemailSummary] voicemailFields check:', {
+    voicemailFields,
+    voicemailFieldsLength: voicemailFields.length,
+    intakeSourcesKeys: Object.keys(intakeSources || {}),
+    extractedInfoKeys: Object.keys(extractedInfo || {})
+  })
+
   if (voicemailFields.length === 0) {
+    console.log('[VoicemailSummary] Returning null - no voicemail fields')
     return null
   }
 
