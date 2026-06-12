@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 import { normalizePhoneNumber } from '@/lib/twilio';
+import { extractFromVoicemailTranscript, safeMergeVoicemailExtraction } from '@/lib/voicemail-extraction';
 
 export async function POST(request: NextRequest) {
   console.log('[RECORDING STATUS ROUTE HIT]')
@@ -143,6 +144,57 @@ export async function POST(request: NextRequest) {
       console.log('[RECORDING STATUS] Continuing despite update failure');
     } else if (voicemail) {
       console.log('[RECORDING STATUS] Recording status updated successfully:', voicemail.id);
+      
+      // Check if transcription is available and run extraction
+      if (voicemail.transcription_text && voicemail.transcription_text.trim()) {
+        console.log('[RECORDING STATUS] Transcript available, attempting structured extraction');
+        
+        try {
+          const extractionResult = extractFromVoicemailTranscript(voicemail.transcription_text);
+          console.log('[RECORDING STATUS] Extraction result:', {
+            confidence: extractionResult.confidence,
+            fieldsExtracted: Object.keys(extractionResult.extractedInfo).filter(k => extractionResult.extractedInfo[k as keyof typeof extractionResult.extractedInfo]).length,
+            extractedInfo: extractionResult.extractedInfo
+          });
+
+          // Only update lead if we extracted meaningful information
+          if (extractionResult.confidence > 0 && voicemail.lead_id) {
+            // Get current lead metadata
+            const { data: currentLead } = await supabaseAdmin
+              .from('leads')
+              .select('raw_metadata')
+              .eq('id', voicemail.lead_id)
+              .single();
+
+            const currentMetadata = currentLead?.raw_metadata || {};
+            
+            // Safely merge voicemail extraction with existing metadata
+            const updatedMetadata = safeMergeVoicemailExtraction(currentMetadata, extractionResult);
+            
+            // Update lead with merged metadata
+            const { error: updateError } = await supabaseAdmin
+              .from('leads')
+              .update({ raw_metadata: updatedMetadata })
+              .eq('id', voicemail.lead_id);
+
+            if (updateError) {
+              console.error('[RECORDING STATUS] Failed to update lead metadata:', updateError);
+            } else {
+              console.log('[RECORDING STATUS] Lead metadata updated successfully', {
+                leadId: voicemail.lead_id,
+                fieldsUpdated: Object.keys(extractionResult.extractedInfo).filter(k => extractionResult.extractedInfo[k as keyof typeof extractionResult.extractedInfo]).length
+              });
+            }
+          } else {
+            console.log('[RECORDING STATUS] Low confidence extraction or no lead_id, skipping lead update');
+          }
+        } catch (extractionError) {
+          console.error('[RECORDING STATUS] Error during extraction:', extractionError);
+          // Don't let extraction errors break the recording status flow
+        }
+      } else {
+        console.log('[RECORDING STATUS] No transcript available, skipping extraction');
+      }
     } else {
       console.log('[RECORDING STATUS] No voicemail recording found for sid:', recordingSid);
     }
