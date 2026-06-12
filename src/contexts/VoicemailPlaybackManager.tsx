@@ -53,8 +53,11 @@ export function VoicemailPlaybackManagerProvider({ children }: { children: React
       try {
         currentAudioElement.pause()
         // Trigger state update for the paused voicemail by dispatching a custom event
-        const pauseEvent = new CustomEvent('voicemail-pause', { detail: { voicemailId: currentPlayingVoicemailId } })
-        window.dispatchEvent(pauseEvent)
+        // Guard against SSR
+        if (typeof window !== 'undefined') {
+          const pauseEvent = new CustomEvent('voicemail-pause', { detail: { voicemailId: currentPlayingVoicemailId } })
+          window.dispatchEvent(pauseEvent)
+        }
       } catch (error) {
         console.error('[VoicemailPlaybackManager] Error pausing current voicemail:', error)
       }

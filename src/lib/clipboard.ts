@@ -11,6 +11,12 @@ export function copyToClipboard(text: string, label: string = 'Copied to clipboa
     return Promise.resolve(false);
   }
 
+  // Inject styles on first use
+  if (!stylesInjected) {
+    injectToastStyles();
+    stylesInjected = true;
+  }
+
   return new Promise((resolve) => {
     if (navigator.clipboard && window.isSecureContext) {
       // Use modern clipboard API
@@ -86,9 +92,15 @@ function showToast(message: string) {
   }, 2000);
 }
 
-// Add CSS animations (only on client side)
-if (isClient) {
+// Add CSS animations (only on client side, deferred to avoid SSR)
+function injectToastStyles() {
+  if (!isClient) return;
+  
+  // Check if styles already injected
+  if (document.getElementById('toast-styles')) return;
+  
   const style = document.createElement('style');
+  style.id = 'toast-styles';
   style.textContent = `
     @keyframes fade-in {
       from { opacity: 0; transform: translateY(10px); }
@@ -107,3 +119,6 @@ if (isClient) {
   `;
   document.head.appendChild(style);
 }
+
+// Inject styles on first call to copyToClipboard
+let stylesInjected = false;

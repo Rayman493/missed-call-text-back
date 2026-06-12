@@ -134,25 +134,28 @@ class VoicemailAudioManager {
     });
 
     // DOM-level safety fallback: pause any other audio elements in the DOM
-    const allAudioElements = document.querySelectorAll('audio');
-    console.log('[VoicemailAudioManager] DOM safety fallback: found', allAudioElements.length, 'audio elements in DOM');
-    
-    allAudioElements.forEach((audioElement) => {
-      const htmlAudio = audioElement as HTMLAudioElement;
-      const elementVoicemailId = htmlAudio.dataset.voicemailId;
+    // Guard against SSR
+    if (typeof document !== 'undefined') {
+      const allAudioElements = document.querySelectorAll('audio');
+      console.log('[VoicemailAudioManager] DOM safety fallback: found', allAudioElements.length, 'audio elements in DOM');
       
-      if (elementVoicemailId && elementVoicemailId !== voicemailId) {
-        try {
-          if (!htmlAudio.paused) {
-            console.log('[VoicemailAudioManager] DOM safety fallback: pausing voicemail:', elementVoicemailId);
-            htmlAudio.pause();
-            pausedCount++;
+      allAudioElements.forEach((audioElement) => {
+        const htmlAudio = audioElement as HTMLAudioElement;
+        const elementVoicemailId = htmlAudio.dataset.voicemailId;
+        
+        if (elementVoicemailId && elementVoicemailId !== voicemailId) {
+          try {
+            if (!htmlAudio.paused) {
+              console.log('[VoicemailAudioManager] DOM safety fallback: pausing voicemail:', elementVoicemailId);
+              htmlAudio.pause();
+              pausedCount++;
+            }
+          } catch (error) {
+            console.error('[VoicemailAudioManager] Error in DOM safety fallback pause:', elementVoicemailId, error);
           }
-        } catch (error) {
-          console.error('[VoicemailAudioManager] Error in DOM safety fallback pause:', elementVoicemailId, error);
         }
-      }
-    });
+      });
+    }
     
     console.log('[VoicemailAudioManager] Total paused', pausedCount, 'audio elements, keeping:', voicemailId);
   }

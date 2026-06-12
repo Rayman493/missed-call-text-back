@@ -376,6 +376,17 @@ export function safeMergeSmsExtraction(
       return false
     }
 
+    // Detect correction words in SMS - these indicate the customer is changing their request
+    const correctionWords = ['actually', 'instead', 'change', 'changed', 'rather', 'not that', 'never mind', 'wait']
+    const smsLower = smsValue.toLowerCase()
+    const hasCorrectionWord = correctionWords.some(word => smsLower.includes(word))
+    
+    // If SMS contains correction words, allow it to override existing reason/details
+    if (hasCorrectionWord && (fieldName === 'reasonForCalling' || fieldName === 'importantDetails')) {
+      console.log('[SMS MERGE] Correction word detected, allowing SMS to override:', fieldName, smsValue)
+      return true
+    }
+
     // Improve weak/generic voicemail fields
     const weakPatterns = [
       'someone to come out',

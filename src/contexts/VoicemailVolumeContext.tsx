@@ -23,6 +23,11 @@ export function VoicemailVolumeProvider({ children }: { children: ReactNode }) {
 
   // Load volume from localStorage on mount
   useEffect(() => {
+    // Guard against SSR
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return
+    }
+    
     try {
       const savedVolume = localStorage.getItem(VOLUME_STORAGE_KEY)
       const savedMuted = localStorage.getItem(MUTED_STORAGE_KEY)
