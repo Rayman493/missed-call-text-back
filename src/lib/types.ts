@@ -67,6 +67,9 @@ export interface Business {
   business_type?: string | null;
   business_type_other?: string | null;
   
+  // Voicemail greeting
+  voicemail_greeting_url?: string | null;
+  
   // Test setup fields
   test_call_received_at?: string | null;
   test_sms_sent_at?: string | null;

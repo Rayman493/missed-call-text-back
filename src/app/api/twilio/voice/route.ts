@@ -93,12 +93,11 @@ async function hasRecentAutoReply(businessId: string, callerPhone: string): Prom
 }
 
 // Helper to generate voice greeting with dynamic business name
-function generateVoiceGreeting(businessName?: string): string {
-  // Convert business name to speech-friendly format
+function generateVoiceGreeting(businessName?: string, customGreetingUrl?: string): string {
   const spokenBusinessName = getSpokenBusinessName(businessName);
   
-  // Generate clear voicemail greeting with speech-friendly business name
-  const voicemailMessage = `Thanks for calling ${spokenBusinessName}. Sorry we missed your call. Please leave a message after the beep. You can hang up when you're finished, and we'll get back to you shortly.`;
+  // Improved natural TTS fallback wording
+  const voicemailMessage = `Thanks for calling ${spokenBusinessName}. Sorry we missed you. Please leave your name, phone number, and a quick message after the beep, and we'll get back to you as soon as we can.`;
   
   // Voicemail TwiML with recording capability
   const voicemailTwiml = `
@@ -119,15 +118,32 @@ function generateVoiceGreeting(businessName?: string): string {
   return voicemailTwiml;
 }
 
+// Helper to generate voicemail with pre-recorded greeting
+function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): string {
+  const voicemailTwiml = `
+    <Play>${customGreetingUrl}</Play>
+    <Record
+      maxLength="60"
+      playBeep="true"
+      trim="trim-silence"
+      action="/api/twilio/voicemail"
+      method="POST"
+      recordingStatusCallback="/api/twilio/recording-status"
+      recordingStatusCallbackMethod="POST"
+    />
+    <Hangup/>
+  `.trim();
+  
+  return voicemailTwiml;
+}
+
 // Helper to generate complete TwiML response with fallback structure
-function generateTwiMLResponse(businessName?: string, hasCustomGreeting: boolean = false): string {
+function generateTwiMLResponse(businessName?: string, customGreetingUrl?: string | null): string {
   let voiceContent: string;
   
-  // Future-ready structure for custom audio greetings
-  if (hasCustomGreeting) {
-    // TODO: Implement custom audio greeting support
-    // voiceContent = `<Play>${customGreetingUrl}</Play>`;
-    voiceContent = generateVoiceGreeting(businessName); // Fallback to generated for now
+  // Use pre-recorded greeting if available, with TTS fallback
+  if (customGreetingUrl) {
+    voiceContent = generateVoicemailWithRecordedGreeting(customGreetingUrl);
   } else {
     voiceContent = generateVoiceGreeting(businessName);
   }
@@ -135,7 +151,6 @@ function generateTwiMLResponse(businessName?: string, hasCustomGreeting: boolean
   const twiml = `
 <Response>
   ${voiceContent}
-  <Hangup/>
 </Response>
 `.trim();
   
@@ -1396,7 +1411,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         console.error('[Voice] Persistence failed: Lead creation returned null');
         console.error('[Voice] Returning safe TwiML response without SMS');
 
-        const twiml = generateTwiMLResponse(business.name);
+        const twiml = generateTwiMLResponse(business.name, business.voicemail_greeting_url);
         console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=persistence-failed');
         console.log('[AI POC FINAL TWIML]', twiml);
         console.log('[VOICE PATH] EMERGENCY');
@@ -1594,7 +1609,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     // DEBUG LOGS
     console.log('[Twilio Voice] DEBUG: About to generate final TwiML with business name:', business.name);
 
-    const twiml = generateTwiMLResponse(business.name);
+    const twiml = generateTwiMLResponse(business.name, business.voicemail_greeting_url);
 
     console.log('[Twilio Voice] ===== TWIML RESPONSE LOGGING =====');
     console.log('[Twilio Voice] Business ID:', business.id);
