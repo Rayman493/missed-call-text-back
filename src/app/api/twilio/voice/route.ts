@@ -15,7 +15,6 @@ import { createAISession } from '@/lib/ai-call-assistant/session';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 import { notificationServiceServer } from '@/lib/notifications-server';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
-import { getAppBaseUrl } from '@/lib/urls';
 
 // Constants for repeat caller behavior
 const AUTO_REPLY_REPEAT_WINDOW_MINUTES = 30;
@@ -98,19 +97,9 @@ function generateVoiceGreeting(): string {
   // Static, polished voicemail greeting for all businesses
   const voicemailMessage = "Thank you for calling. We're sorry we missed your call. Please leave your name, your phone number, and a brief message after the tone, and we'll get back to you as soon as possible.";
   
-  // Use absolute URL only for transcribeCallback (Twilio requires absolute for transcription callbacks)
-  // Keep relative URLs for action and recordingStatusCallback (they were working before)
-  const appBaseUrl = getAppBaseUrl();
-  const transcriptionCallback = `${appBaseUrl}/api/twilio/transcription`;
+  // Note: Transcription is now fetched via REST API in recording-status callback
+  // instead of using Twilio's transcribeCallback (account-level restrictions prevent callbacks)
   
-  console.log('[VOICE TWIML] Callback URLs:', {
-    action: '/api/twilio/voicemail (relative)',
-    recordingStatusCallback: '/api/twilio/recording-status (relative)',
-    transcribeCallback: transcriptionCallback,
-    appBaseUrl
-  });
-  
-  // Voicemail TwiML with recording capability and transcription enabled
   const voicemailTwiml = `
     <Pause length="1"/>
     <Say voice="alice">${voicemailMessage}</Say>
@@ -122,26 +111,17 @@ function generateVoiceGreeting(): string {
       method="POST"
       recordingStatusCallback="/api/twilio/recording-status"
       recordingStatusCallbackMethod="POST"
-      transcribe="true"
-      transcribeCallback="${transcriptionCallback}"
-      transcribeCallbackMethod="POST"
     />
     <Hangup/>
   `.trim();
-  
-  console.log('[VOICE TWIML] Full TwiML returned:', voicemailTwiml);
-  console.log('[VOICE TWIML] Contains transcribe attribute:', voicemailTwiml.includes('transcribe="true"'));
-  console.log('[VOICE TWIML] Contains transcribeCallback attribute:', voicemailTwiml.includes('transcribeCallback='));
   
   return voicemailTwiml;
 }
 
 // Helper to generate voicemail with pre-recorded greeting
 function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): string {
-  // Use absolute URL only for transcribeCallback (Twilio requires absolute for transcription callbacks)
-  // Keep relative URLs for action and recordingStatusCallback (they were working before)
-  const appBaseUrl = getAppBaseUrl();
-  const transcriptionCallback = `${appBaseUrl}/api/twilio/transcription`;
+  // Note: Transcription is now fetched via REST API in recording-status callback
+  // instead of using Twilio's transcribeCallback (account-level restrictions prevent callbacks)
   
   const voicemailTwiml = `
     <Play>${customGreetingUrl}</Play>
@@ -153,16 +133,9 @@ function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): strin
       method="POST"
       recordingStatusCallback="/api/twilio/recording-status"
       recordingStatusCallbackMethod="POST"
-      transcribe="true"
-      transcribeCallback="${transcriptionCallback}"
-      transcribeCallbackMethod="POST"
     />
     <Hangup/>
   `.trim();
-  
-  console.log('[VOICE TWIML] Full TwiML returned (custom greeting):', voicemailTwiml);
-  console.log('[VOICE TWIML] Contains transcribe attribute:', voicemailTwiml.includes('transcribe="true"'));
-  console.log('[VOICE TWIML] Contains transcribeCallback attribute:', voicemailTwiml.includes('transcribeCallback='));
   
   return voicemailTwiml;
 }
@@ -172,12 +145,10 @@ function generateIgnoredContactVoicemail(): string {
   // Neutral, simple greeting without business name or AI references
   const voicemailMessage = "Sorry we missed your call. Please leave a message after the tone.";
   
-  // Use absolute URL only for transcribeCallback (Twilio requires absolute for transcription callbacks)
-  // Keep relative URLs for action and recordingStatusCallback (they were working before)
-  const appBaseUrl = getAppBaseUrl();
-  const transcriptionCallback = `${appBaseUrl}/api/twilio/transcription`;
+  // Note: Transcription is now fetched via REST API in recording-status callback
+  // instead of using Twilio's transcribeCallback (account-level restrictions prevent callbacks)
   
-  // Voicemail TwiML with recording capability and transcription enabled
+  // Voicemail TwiML with recording capability
   const voicemailTwiml = `
     <Pause length="1"/>
     <Say voice="alice">${voicemailMessage}</Say>
@@ -189,16 +160,9 @@ function generateIgnoredContactVoicemail(): string {
       method="POST"
       recordingStatusCallback="/api/twilio/recording-status"
       recordingStatusCallbackMethod="POST"
-      transcribe="true"
-      transcribeCallback="${transcriptionCallback}"
-      transcribeCallbackMethod="POST"
     />
     <Hangup/>
   `.trim();
-  
-  console.log('[VOICE TWIML] Full TwiML returned (ignored contact):', voicemailTwiml);
-  console.log('[VOICE TWIML] Contains transcribe attribute:', voicemailTwiml.includes('transcribe="true"'));
-  console.log('[VOICE TWIML] Contains transcribeCallback attribute:', voicemailTwiml.includes('transcribeCallback='));
   
   return voicemailTwiml;
 }

@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 import { normalizePhoneNumber } from '@/lib/twilio';
+import { extractFromVoicemailTranscript, safeMergeVoicemailExtraction } from '@/lib/voicemail-extraction';
+import { Twilio } from 'twilio';
 
 export async function POST(request: NextRequest) {
   console.log('[RECORDING STATUS ROUTE HIT]')
@@ -143,7 +145,128 @@ export async function POST(request: NextRequest) {
       console.log('[RECORDING STATUS] Continuing despite update failure');
     } else if (voicemail) {
       console.log('[RECORDING STATUS] Recording status updated successfully:', voicemail.id);
-      console.log('[RECORDING STATUS] Note: Structured extraction will run in transcription callback when transcript becomes available');
+      
+      // Attempt to fetch transcription via Twilio REST API (callback approach not working)
+      if (recordingStatus === 'completed' && voicemail.lead_id) {
+        console.log('[RECORDING STATUS] Attempting to fetch transcription via REST API');
+        
+        try {
+          const twilioClient = new Twilio(
+            process.env.TWILIO_ACCOUNT_SID,
+            process.env.TWILIO_AUTH_TOKEN
+          );
+          
+          // Fetch transcription for this recording
+          const transcription = await twilioClient.recordings(recordingSid).transcriptions.list({ limit: 1 });
+          
+          if (transcription && transcription.length > 0) {
+            const transcriptionText = transcription[0].transcriptionText;
+            const transcriptionStatus = transcription[0].status;
+            
+            console.log('[RECORDING STATUS] Transcription fetched via REST API:', {
+              transcriptionSid: transcription[0].sid,
+              transcriptionStatus,
+              transcriptionTextLength: transcriptionText ? transcriptionText.length : 0,
+              transcriptionTextPreview: transcriptionText ? transcriptionText.substring(0, 100) : '[NONE]'
+            });
+            
+            // Update voicemail recording with transcription
+            await supabaseAdmin
+              .from('voicemail_recordings')
+              .update({
+                transcription_text: transcriptionText || null,
+                transcription_status: transcriptionStatus || 'unknown',
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', voicemail.id);
+            
+            console.log('[RECORDING STATUS] Voicemail transcription updated successfully');
+            
+            // Run structured extraction if we have transcription text
+            if (transcriptionText && transcriptionText.trim()) {
+              console.log('[RECORDING STATUS] Transcript available, attempting structured extraction');
+              
+              const extractionResult = extractFromVoicemailTranscript(transcriptionText);
+              console.log('[RECORDING STATUS] Extraction result:', {
+                confidence: extractionResult.confidence,
+                fieldsExtracted: Object.keys(extractionResult.extractedInfo).filter(k => extractionResult.extractedInfo[k as keyof typeof extractionResult.extractedInfo]).length,
+                extractedInfo: extractionResult.extractedInfo
+              });
+              
+              // Only update lead if we extracted meaningful information
+              if (extractionResult.confidence > 0) {
+                // Get current lead metadata
+                const { data: currentLead } = await supabaseAdmin
+                  .from('leads')
+                  .select('raw_metadata')
+                  .eq('id', voicemail.lead_id)
+                  .single();
+                
+                const currentMetadata = currentLead?.raw_metadata || {};
+                
+                console.log('[RECORDING STATUS] Current lead metadata before merge:', {
+                  leadId: voicemail.lead_id,
+                  hasCurrentMetadata: !!currentLead,
+                  currentMetadataKeys: Object.keys(currentMetadata),
+                  currentExtractedInfo: currentMetadata.extracted_info,
+                  currentIntakeSources: currentMetadata.intake_sources,
+                  currentVoicemailExtraction: currentMetadata.voicemail_extraction
+                });
+                
+                // Safely merge voicemail extraction with existing metadata
+                const updatedMetadata = safeMergeVoicemailExtraction(currentMetadata, extractionResult);
+                
+                console.log('[RECORDING STATUS] Updated metadata after merge:', {
+                  updatedMetadataKeys: Object.keys(updatedMetadata),
+                  updatedExtractedInfo: updatedMetadata.extracted_info,
+                  updatedIntakeSources: updatedMetadata.intake_sources,
+                  updatedVoicemailExtraction: updatedMetadata.voicemail_extraction
+                });
+                
+                // Update lead with merged metadata
+                const { error: updateError } = await supabaseAdmin
+                  .from('leads')
+                  .update({ raw_metadata: updatedMetadata })
+                  .eq('id', voicemail.lead_id);
+                
+                if (updateError) {
+                  console.error('[RECORDING STATUS] Failed to update lead metadata:', updateError);
+                } else {
+                  console.log('[RECORDING STATUS] Lead metadata updated successfully', {
+                    leadId: voicemail.lead_id,
+                    fieldsUpdated: Object.keys(extractionResult.extractedInfo).filter(k => extractionResult.extractedInfo[k as keyof typeof extractionResult.extractedInfo]).length
+                  });
+                  
+                  // Verify persistence by re-reading the lead
+                  const { data: verifiedLead } = await supabaseAdmin
+                    .from('leads')
+                    .select('raw_metadata')
+                    .eq('id', voicemail.lead_id)
+                    .single();
+                  
+                  console.log('[RECORDING STATUS] Verification - re-read lead metadata:', {
+                    leadId: voicemail.lead_id,
+                    hasVerifiedLead: !!verifiedLead,
+                    verifiedExtractedInfo: verifiedLead?.raw_metadata?.extracted_info,
+                    verifiedIntakeSources: verifiedLead?.raw_metadata?.intake_sources,
+                    verifiedVoicemailExtraction: verifiedLead?.raw_metadata?.voicemail_extraction,
+                    metadataMatches: JSON.stringify(verifiedLead?.raw_metadata) === JSON.stringify(updatedMetadata)
+                  });
+                }
+              } else {
+                console.log('[RECORDING STATUS] Low confidence extraction, skipping lead update');
+              }
+            } else {
+              console.log('[RECORDING STATUS] No transcript text available, skipping extraction');
+            }
+          } else {
+            console.log('[RECORDING STATUS] No transcription found via REST API');
+          }
+        } catch (transcriptionError) {
+          console.error('[RECORDING STATUS] Error fetching transcription via REST API:', transcriptionError);
+          // Don't let transcription errors break the recording status flow
+        }
+      }
     } else {
       console.log('[RECORDING STATUS] No voicemail recording found for sid:', recordingSid);
     }
