@@ -404,7 +404,7 @@ export function safeMergeSmsExtraction(
     }
 
     // Detect correction words in SMS - these indicate the customer is changing their request
-    const correctionWords = ['actually', 'instead', 'change', 'changed', 'rather', 'not that', 'never mind', 'wait']
+    const correctionWords = ['actually', 'instead', 'change', 'changed', 'rather', 'not that', 'never mind', 'wait', 'meant', 'need']
     const smsLower = smsValue.toLowerCase()
     const hasCorrectionWord = correctionWords.some(word => smsLower.includes(word))
     
