@@ -97,7 +97,7 @@ function generateVoiceGreeting(): string {
   // Static, polished voicemail greeting for all businesses
   const voicemailMessage = "Thank you for calling. We're sorry we missed your call. Please leave your name, your phone number, and a brief message after the tone, and we'll get back to you as soon as possible.";
   
-  // Voicemail TwiML with recording capability
+  // Voicemail TwiML with recording capability and transcription enabled
   const voicemailTwiml = `
     <Pause length="1"/>
     <Say voice="alice">${voicemailMessage}</Say>
@@ -109,6 +109,9 @@ function generateVoiceGreeting(): string {
       method="POST"
       recordingStatusCallback="/api/twilio/recording-status"
       recordingStatusCallbackMethod="POST"
+      transcribe="true"
+      transcribeCallback="/api/twilio/transcription"
+      transcribeCallbackMethod="POST"
     />
     <Hangup/>
   `.trim();
@@ -128,6 +131,9 @@ function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): strin
       method="POST"
       recordingStatusCallback="/api/twilio/recording-status"
       recordingStatusCallbackMethod="POST"
+      transcribe="true"
+      transcribeCallback="/api/twilio/transcription"
+      transcribeCallbackMethod="POST"
     />
     <Hangup/>
   `.trim();
@@ -140,7 +146,7 @@ function generateIgnoredContactVoicemail(): string {
   // Neutral, simple greeting without business name or AI references
   const voicemailMessage = "Sorry we missed your call. Please leave a message after the tone.";
   
-  // Voicemail TwiML with recording capability
+  // Voicemail TwiML with recording capability and transcription enabled
   const voicemailTwiml = `
     <Pause length="1"/>
     <Say voice="alice">${voicemailMessage}</Say>
@@ -152,6 +158,9 @@ function generateIgnoredContactVoicemail(): string {
       method="POST"
       recordingStatusCallback="/api/twilio/recording-status"
       recordingStatusCallbackMethod="POST"
+      transcribe="true"
+      transcribeCallback="/api/twilio/transcription"
+      transcribeCallbackMethod="POST"
     />
     <Hangup/>
   `.trim();

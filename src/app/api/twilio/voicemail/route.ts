@@ -601,7 +601,7 @@ export async function POST(request: NextRequest) {
           if (businessDetails.auto_reply_message && businessDetails.auto_reply_message.trim()) {
             messageToSend = businessDetails.auto_reply_message;
           } else {
-            messageToSend = `Hi, this is {{business_name}}. We received your call and will get back to you shortly. You can also reply to this text with any additional details. Reply STOP to opt out.`;
+            messageToSend = `Hi, this is {{business_name}}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`;
           }
 
           const personalizedMessage = messageToSend.replace('{{business_name}}', businessDetails.name || 'My Business');
