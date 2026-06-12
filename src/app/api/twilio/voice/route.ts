@@ -92,12 +92,10 @@ async function hasRecentAutoReply(businessId: string, callerPhone: string): Prom
   }
 }
 
-// Helper to generate voice greeting with dynamic business name
-function generateVoiceGreeting(businessName?: string, customGreetingUrl?: string): string {
-  const spokenBusinessName = getSpokenBusinessName(businessName);
-  
-  // Improved natural TTS fallback wording
-  const voicemailMessage = `Thanks for calling ${spokenBusinessName}. Sorry we missed you. Please leave your name, phone number, and a quick message after the beep, and we'll get back to you as soon as we can.`;
+// Helper to generate voice greeting with static polished wording
+function generateVoiceGreeting(): string {
+  // Static, polished voicemail greeting for all businesses
+  const voicemailMessage = "Thank you for calling. We're sorry we missed your call. Please leave your name, your phone number, and a brief message after the tone, and we'll get back to you as soon as possible.";
   
   // Voicemail TwiML with recording capability
   const voicemailTwiml = `
@@ -138,14 +136,14 @@ function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): strin
 }
 
 // Helper to generate complete TwiML response with fallback structure
-function generateTwiMLResponse(businessName?: string, customGreetingUrl?: string | null): string {
+function generateTwiMLResponse(customGreetingUrl?: string | null): string {
   let voiceContent: string;
   
   // Use pre-recorded greeting if available, with TTS fallback
   if (customGreetingUrl) {
     voiceContent = generateVoicemailWithRecordedGreeting(customGreetingUrl);
   } else {
-    voiceContent = generateVoiceGreeting(businessName);
+    voiceContent = generateVoiceGreeting();
   }
   
   const twiml = `
@@ -1411,7 +1409,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         console.error('[Voice] Persistence failed: Lead creation returned null');
         console.error('[Voice] Returning safe TwiML response without SMS');
 
-        const twiml = generateTwiMLResponse(business.name, business.voicemail_greeting_url);
+        const twiml = generateTwiMLResponse(business.voicemail_greeting_url);
         console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=persistence-failed');
         console.log('[AI POC FINAL TWIML]', twiml);
         console.log('[VOICE PATH] EMERGENCY');
@@ -1609,7 +1607,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     // DEBUG LOGS
     console.log('[Twilio Voice] DEBUG: About to generate final TwiML with business name:', business.name);
 
-    const twiml = generateTwiMLResponse(business.name, business.voicemail_greeting_url);
+    const twiml = generateTwiMLResponse(business.voicemail_greeting_url);
 
     console.log('[Twilio Voice] ===== TWIML RESPONSE LOGGING =====');
     console.log('[Twilio Voice] Business ID:', business.id);
