@@ -29,6 +29,7 @@ export interface AICallSession {
   error_message: string | null
   raw_metadata: any
   business_category: string | null
+  custom_business_type: string | null
   created_at: string
   updated_at: string
 }
