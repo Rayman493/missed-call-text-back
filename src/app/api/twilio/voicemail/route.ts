@@ -77,6 +77,11 @@ export async function POST(request: NextRequest) {
     const from = params.get('From') as string;
     const to = params.get('To') as string;
 
+    // Check if this is an ignored contact voicemail
+    // We need to check this early to skip all automation
+    let isCallerIgnored = false;
+    let businessId: string | null = null;
+
     console.log('[VOICEMAIL] Recording data:', {
       callSid,
       recordingSid,
@@ -131,6 +136,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[VOICEMAIL] Business found:', business.id, business.name);
+    businessId = business.id;
     
     logCallTrace({
       route: 'voicemail',
@@ -155,17 +161,69 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
     
-    const isIgnored = await isIgnoredContact(business.id, normalizedCallerPhone)
+    isCallerIgnored = await isIgnoredContact(business.id, normalizedCallerPhone)
     
-    if (isIgnored) {
-      console.log('[IGNORED CONTACT VOICEMAIL SKIP]', {
+    if (isCallerIgnored) {
+      console.log('[IGNORED CONTACT VOICEMAIL BYPASS]', {
         businessId: business.id,
         phoneNumber: normalizedCallerPhone,
         timestamp: new Date().toISOString()
       })
       
-      // Return success without creating lead, conversation, message, or voicemail
-      return new NextResponse('OK', { status: 200 })
+      // For ignored contacts, we still want to save the recording for review
+      // But skip all automation (lead creation, SMS, follow-ups, extraction, notifications)
+      // Create a minimal internal record marked as ignored
+      console.log('[IGNORED CONTACT] Creating minimal internal record for traceability');
+      
+      const { data: ignoredVoicemail, error: ignoredError } = await supabaseAdmin
+        .from('voicemail_recordings')
+        .insert({
+          business_id: business.id,
+          lead_id: null, // No lead for ignored contacts
+          conversation_id: null, // No conversation for ignored contacts
+          call_sid: callSid,
+          recording_sid: recordingSid,
+          recording_url: recordingUrl,
+          recording_duration: recordingDuration ? parseInt(recordingDuration) : null,
+          recording_status: recordingStatus || 'unknown',
+          transcription_text: null,
+          transcription_status: null,
+          caller_phone: normalizedCallerPhone,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          raw_metadata: {
+            is_ignored_contact: true,
+            automation_skipped: true,
+            skip_reason: 'Caller is in ignored contacts list'
+          }
+        })
+        .select()
+        .single();
+
+      if (ignoredError) {
+        console.error('[IGNORED CONTACT] Failed to save voicemail recording:', ignoredError);
+      } else {
+        console.log('[IGNORED CONTACT] Voicemail recording saved for review (no automation)', {
+          voicemailId: ignoredVoicemail.id,
+          recordingUrl: ignoredVoicemail.recording_url,
+          callerPhone: normalizedCallerPhone,
+          metadata: ignoredVoicemail.raw_metadata
+        });
+      }
+
+      // Return success without any automation
+      const thankYouTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="alice">Thank you. Goodbye.</Say>
+  <Hangup/>
+</Response>`;
+      
+      return new NextResponse(thankYouTwiml, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/xml",
+        },
+      });
     }
 
     // Find or create lead

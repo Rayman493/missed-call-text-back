@@ -135,6 +135,30 @@ function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): strin
   return voicemailTwiml;
 }
 
+// Helper to generate neutral voicemail greeting for ignored contacts
+function generateIgnoredContactVoicemail(): string {
+  // Neutral, simple greeting without business name or AI references
+  const voicemailMessage = "Sorry we missed your call. Please leave a message after the tone.";
+  
+  // Voicemail TwiML with recording capability
+  const voicemailTwiml = `
+    <Pause length="1"/>
+    <Say voice="alice">${voicemailMessage}</Say>
+    <Record
+      maxLength="60"
+      playBeep="true"
+      trim="trim-silence"
+      action="/api/twilio/voicemail"
+      method="POST"
+      recordingStatusCallback="/api/twilio/recording-status"
+      recordingStatusCallbackMethod="POST"
+    />
+    <Hangup/>
+  `.trim();
+  
+  return voicemailTwiml;
+}
+
 // Helper to generate complete TwiML response with fallback structure
 function generateTwiMLResponse(customGreetingUrl?: string | null): string {
   let voiceContent: string;
@@ -437,7 +461,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     const isIgnored = await isIgnoredContact(business.id, normalizedFrom)
 
     if (isIgnored) {
-      console.log('[IGNORED CONTACT SKIP ALL AUTOMATION]', {
+      console.log('[IGNORED CONTACT VOICEMAIL BYPASS]', {
         businessId: business.id,
         phoneNumber: normalizedFrom,
         timestamp: new Date().toISOString()
@@ -447,14 +471,15 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         businessId: business.id
       })
 
-      // Return minimal TwiML - no Record, no voicemail callback, no recordingStatusCallback, no timeline logging
-      const twiml = `<Response><Hangup/></Response>`
-      console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-early')
+      // Return neutral voicemail greeting for ignored contacts
+      // This allows recording without triggering business automation
+      const twiml = generateIgnoredContactVoicemail()
+      console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-voicemail')
       console.log('[AI POC FINAL TWIML]', twiml)
-      console.log('[VOICE PATH] EMERGENCY')
+      console.log('[VOICE PATH] IGNORED_CONTACT_VOICEMAIL')
       console.log('[VOICE ROUTE RETURN]', {
-        path: 'IGNORED_CONTACT',
-        reason: 'Caller is in ignored contacts list',
+        path: 'IGNORED_CONTACT_VOICEMAIL',
+        reason: 'Caller is in ignored contacts list - using neutral voicemail',
         callSid: CallSid || 'unknown',
         phoneNumber: normalizedFrom
       });
@@ -462,7 +487,8 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         status: 200,
         headers: {
           "Content-Type": "text/xml",
-          "X-ReplyFlow-Voice-Version": "v2"
+          "X-ReplyFlow-Voice-Version": "v2",
+          "X-ReplyFlow-Ignored-Contact": "true"
         },
       })
     }
