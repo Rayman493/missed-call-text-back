@@ -1563,18 +1563,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="flex items-center justify-between">
               {/* Back + Phone */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <a
-                  href="/dashboard/leads"
+                <button
+                  type="button"
                   onClick={(e) => {
-                    console.log('[BACK BUTTON] Mobile back arrow clicked, stopping propagation')
+                    e.preventDefault()
                     e.stopPropagation()
+                    console.log('[BACK BUTTON] Hard navigating to /dashboard/leads')
+                    window.location.assign('/dashboard/leads')
                   }}
                   className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors p-1"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
-                </a>
+                </button>
                 <div className="flex-1 min-w-0">
                   <h1 className="text-base font-semibold text-slate-900 dark:text-white leading-tight truncate">
                     {formatPhoneNumber(lead?.caller_phone || '')}
@@ -1605,11 +1607,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="hidden md:block">
             {/* Back to Leads */}
             <div className="mb-3 sm:mb-4">
-              <a
-                href="/dashboard/leads"
+              <button
+                type="button"
                 onClick={(e) => {
-                  console.log('[BACK BUTTON] Desktop Back to Leads clicked, stopping propagation')
+                  e.preventDefault()
                   e.stopPropagation()
+                  console.log('[BACK BUTTON] Hard navigating to /dashboard/leads')
+                  window.location.assign('/dashboard/leads')
                 }}
                 className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
               >
@@ -1617,7 +1621,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 Back to Leads
-              </a>
+              </button>
             </div>
 
             {/* Lead Identity Section - Desktop Enhanced */}
