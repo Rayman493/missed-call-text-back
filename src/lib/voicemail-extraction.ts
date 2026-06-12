@@ -495,11 +495,24 @@ export async function safeMergeSmsExtraction(
     const fieldsPreserved: string[] = []
     const fieldsUpdated: string[] = []
 
+    // Track correction metadata
+    const fieldCorrections: Record<string, { from: string; to: string; source: string; correctedAt: string }> = {}
+    const existingCorrections = metadata.field_corrections || {}
+
     for (const key of Object.keys(existingExtractedInfo) as (keyof VoicemailExtractedInfo)[]) {
       if (intelligentlyMerged[key] === existingExtractedInfo[key]) {
         fieldsPreserved.push(key)
       } else {
         fieldsUpdated.push(key)
+        // Record correction metadata only if there was an actual value change
+        if (existingExtractedInfo[key] && intelligentlyMerged[key] && existingExtractedInfo[key] !== intelligentlyMerged[key]) {
+          fieldCorrections[key] = {
+            from: existingExtractedInfo[key]!,
+            to: intelligentlyMerged[key]!,
+            source: 'sms',
+            correctedAt: new Date().toISOString()
+          }
+        }
       }
     }
 
@@ -507,7 +520,8 @@ export async function safeMergeSmsExtraction(
       fieldsPreserved,
       fieldsUpdated,
       original: existingExtractedInfo,
-      merged: intelligentlyMerged
+      merged: intelligentlyMerged,
+      fieldCorrections
     })
 
     // Update sources for fields that were updated
@@ -525,12 +539,17 @@ export async function safeMergeSmsExtraction(
         extractedAt: smsExtraction.extractedAt,
         confidence: smsExtraction.confidence,
         fieldsExtracted: Object.keys(smsExtractedInfo).filter(k => smsExtractedInfo[k as keyof VoicemailExtractedInfo]).length
+      },
+      field_corrections: {
+        ...existingCorrections,
+        ...fieldCorrections
       }
     }
 
     console.log('[SMS MERGE END] Intelligent merge complete', {
       resultExtractedInfo: result.extracted_info,
-      resultIntakeSources: result.intake_sources
+      resultIntakeSources: result.intake_sources,
+      fieldCorrections: result.field_corrections
     })
 
     return result
@@ -629,31 +648,101 @@ export async function safeMergeSmsExtraction(
     return false
   }
 
+  // Track correction metadata for regular merge path
+  const fieldCorrections: Record<string, { from: string; to: string; source: string; correctedAt: string }> = {}
+  const existingCorrections = metadata.field_corrections || {}
+
   const mergedExtractedInfo = {
     ...existingExtractedInfo,
-    callerName: isSmsBetter('callerName', smsExtractedInfo.callerName, existingExtractedInfo.callerName)
-      ? smsExtractedInfo.callerName
-      : existingExtractedInfo.callerName,
-    reasonForCalling: isSmsBetter('reasonForCalling', smsExtractedInfo.reasonForCalling, existingExtractedInfo.reasonForCalling)
-      ? smsExtractedInfo.reasonForCalling
-      : existingExtractedInfo.reasonForCalling,
-    importantDetails: isSmsBetter('importantDetails', smsExtractedInfo.importantDetails, existingExtractedInfo.importantDetails)
-      ? (existingExtractedInfo.importantDetails && !existingExtractedInfo.importantDetails.toLowerCase().includes(smsExtractedInfo.importantDetails?.toLowerCase() || '')
-          ? `${existingExtractedInfo.importantDetails}. ${smsExtractedInfo.importantDetails}`
-          : smsExtractedInfo.importantDetails)
-      : existingExtractedInfo.importantDetails,
-    urgencyLevel: isSmsBetter('urgencyLevel', smsExtractedInfo.urgencyLevel, existingExtractedInfo.urgencyLevel)
-      ? smsExtractedInfo.urgencyLevel
-      : existingExtractedInfo.urgencyLevel,
-    addressOrLocation: isSmsBetter('addressOrLocation', smsExtractedInfo.addressOrLocation, existingExtractedInfo.addressOrLocation)
-      ? smsExtractedInfo.addressOrLocation
-      : existingExtractedInfo.addressOrLocation,
-    preferredCallbackTime: isSmsBetter('preferredCallbackTime', smsExtractedInfo.preferredCallbackTime, existingExtractedInfo.preferredCallbackTime)
-      ? smsExtractedInfo.preferredCallbackTime
-      : existingExtractedInfo.preferredCallbackTime,
-    callbackNumber: isSmsBetter('callbackNumber', smsExtractedInfo.callbackNumber, existingExtractedInfo.callbackNumber)
-      ? smsExtractedInfo.callbackNumber
-      : existingExtractedInfo.callbackNumber
+    callerName: (() => {
+      const shouldUse = isSmsBetter('callerName', smsExtractedInfo.callerName, existingExtractedInfo.callerName)
+      if (shouldUse && existingExtractedInfo.callerName && smsExtractedInfo.callerName && existingExtractedInfo.callerName !== smsExtractedInfo.callerName) {
+        fieldCorrections.callerName = {
+          from: existingExtractedInfo.callerName,
+          to: smsExtractedInfo.callerName,
+          source: 'sms',
+          correctedAt: new Date().toISOString()
+        }
+      }
+      return shouldUse ? smsExtractedInfo.callerName : existingExtractedInfo.callerName
+    })(),
+    reasonForCalling: (() => {
+      const shouldUse = isSmsBetter('reasonForCalling', smsExtractedInfo.reasonForCalling, existingExtractedInfo.reasonForCalling)
+      if (shouldUse && existingExtractedInfo.reasonForCalling && smsExtractedInfo.reasonForCalling && existingExtractedInfo.reasonForCalling !== smsExtractedInfo.reasonForCalling) {
+        fieldCorrections.reasonForCalling = {
+          from: existingExtractedInfo.reasonForCalling,
+          to: smsExtractedInfo.reasonForCalling,
+          source: 'sms',
+          correctedAt: new Date().toISOString()
+        }
+      }
+      return shouldUse ? smsExtractedInfo.reasonForCalling : existingExtractedInfo.reasonForCalling
+    })(),
+    importantDetails: (() => {
+      const shouldUse = isSmsBetter('importantDetails', smsExtractedInfo.importantDetails, existingExtractedInfo.importantDetails)
+      const newValue = shouldUse
+        ? (existingExtractedInfo.importantDetails && !existingExtractedInfo.importantDetails.toLowerCase().includes(smsExtractedInfo.importantDetails?.toLowerCase() || '')
+            ? `${existingExtractedInfo.importantDetails}. ${smsExtractedInfo.importantDetails}`
+            : smsExtractedInfo.importantDetails)
+        : existingExtractedInfo.importantDetails
+      if (shouldUse && existingExtractedInfo.importantDetails && newValue && existingExtractedInfo.importantDetails !== newValue) {
+        fieldCorrections.importantDetails = {
+          from: existingExtractedInfo.importantDetails,
+          to: newValue,
+          source: 'sms',
+          correctedAt: new Date().toISOString()
+        }
+      }
+      return newValue
+    })(),
+    urgencyLevel: (() => {
+      const shouldUse = isSmsBetter('urgencyLevel', smsExtractedInfo.urgencyLevel, existingExtractedInfo.urgencyLevel)
+      if (shouldUse && existingExtractedInfo.urgencyLevel && smsExtractedInfo.urgencyLevel && existingExtractedInfo.urgencyLevel !== smsExtractedInfo.urgencyLevel) {
+        fieldCorrections.urgencyLevel = {
+          from: existingExtractedInfo.urgencyLevel,
+          to: smsExtractedInfo.urgencyLevel,
+          source: 'sms',
+          correctedAt: new Date().toISOString()
+        }
+      }
+      return shouldUse ? smsExtractedInfo.urgencyLevel : existingExtractedInfo.urgencyLevel
+    })(),
+    addressOrLocation: (() => {
+      const shouldUse = isSmsBetter('addressOrLocation', smsExtractedInfo.addressOrLocation, existingExtractedInfo.addressOrLocation)
+      if (shouldUse && existingExtractedInfo.addressOrLocation && smsExtractedInfo.addressOrLocation && existingExtractedInfo.addressOrLocation !== smsExtractedInfo.addressOrLocation) {
+        fieldCorrections.addressOrLocation = {
+          from: existingExtractedInfo.addressOrLocation,
+          to: smsExtractedInfo.addressOrLocation,
+          source: 'sms',
+          correctedAt: new Date().toISOString()
+        }
+      }
+      return shouldUse ? smsExtractedInfo.addressOrLocation : existingExtractedInfo.addressOrLocation
+    })(),
+    preferredCallbackTime: (() => {
+      const shouldUse = isSmsBetter('preferredCallbackTime', smsExtractedInfo.preferredCallbackTime, existingExtractedInfo.preferredCallbackTime)
+      if (shouldUse && existingExtractedInfo.preferredCallbackTime && smsExtractedInfo.preferredCallbackTime && existingExtractedInfo.preferredCallbackTime !== smsExtractedInfo.preferredCallbackTime) {
+        fieldCorrections.preferredCallbackTime = {
+          from: existingExtractedInfo.preferredCallbackTime,
+          to: smsExtractedInfo.preferredCallbackTime,
+          source: 'sms',
+          correctedAt: new Date().toISOString()
+        }
+      }
+      return shouldUse ? smsExtractedInfo.preferredCallbackTime : existingExtractedInfo.preferredCallbackTime
+    })(),
+    callbackNumber: (() => {
+      const shouldUse = isSmsBetter('callbackNumber', smsExtractedInfo.callbackNumber, existingExtractedInfo.callbackNumber)
+      if (shouldUse && existingExtractedInfo.callbackNumber && smsExtractedInfo.callbackNumber && existingExtractedInfo.callbackNumber !== smsExtractedInfo.callbackNumber) {
+        fieldCorrections.callbackNumber = {
+          from: existingExtractedInfo.callbackNumber,
+          to: smsExtractedInfo.callbackNumber,
+          source: 'sms',
+          correctedAt: new Date().toISOString()
+        }
+      }
+      return shouldUse ? smsExtractedInfo.callbackNumber : existingExtractedInfo.callbackNumber
+    })()
   }
 
   // Clear stale importantDetails when reasonForCalling is corrected
@@ -700,6 +789,10 @@ export async function safeMergeSmsExtraction(
       extractedAt: smsExtraction.extractedAt,
       confidence: smsExtraction.confidence,
       fieldsExtracted: Object.keys(smsExtractedInfo).filter(k => smsExtractedInfo[k as keyof VoicemailExtractedInfo]).length
+    },
+    field_corrections: {
+      ...existingCorrections,
+      ...fieldCorrections
     }
   }
 
@@ -707,7 +800,8 @@ export async function safeMergeSmsExtraction(
     mergedExtractedInfo,
     updatedSources: sources,
     smsExtractionRecord: result.sms_extraction,
-    fieldsChanged: Object.keys(mergedExtractedInfo).filter(key => 
+    fieldCorrections: result.field_corrections,
+    fieldsChanged: Object.keys(mergedExtractedInfo).filter(key =>
       mergedExtractedInfo[key as keyof VoicemailExtractedInfo] !== existingExtractedInfo[key as keyof VoicemailExtractedInfo]
     )
   })

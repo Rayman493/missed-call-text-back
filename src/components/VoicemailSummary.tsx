@@ -12,6 +12,7 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
   const smsExtraction = leadData?.raw_metadata?.sms_extraction
   const extractedInfo = leadData?.raw_metadata?.extracted_info
   const intakeSources = leadData?.raw_metadata?.intake_sources
+  const fieldCorrections = leadData?.raw_metadata?.field_corrections
 
   // Check if any extracted info exists (from voicemail or SMS)
   const hasExtractedData = extractedInfo && Object.keys(extractedInfo).some(k => extractedInfo[k])
@@ -60,6 +61,30 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
   if (hasSms) sourceParts.push('SMS')
   const sourceText = sourceParts.length > 0 ? `Extracted from ${sourceParts.join(' + ')}` : 'Extracted from messages'
 
+  // Helper to get badge text and style for a field
+  const getFieldBadge = (field: string) => {
+    const source = intakeSources?.[field]
+    const correction = fieldCorrections?.[field]
+
+    if (correction && source === 'sms') {
+      return {
+        text: 'SMS correction',
+        className: 'text-[9px] px-1.5 py-0.5 rounded bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800 uppercase font-medium'
+      }
+    } else if (source === 'sms') {
+      return {
+        text: 'SMS',
+        className: 'text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase'
+      }
+    } else if (source === 'voicemail') {
+      return {
+        text: 'Voicemail',
+        className: 'text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase'
+      }
+    }
+    return null
+  }
+
   return (
     <div className="bg-card border border-border/50 rounded-2xl p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
@@ -68,29 +93,35 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
           {sourceText}
         </span>
       </div>
-      
+
       <div className="space-y-2">
         {extractedFields.map((field) => {
           const Icon = fieldIcons[field] || MessageCircle
           const label = fieldLabels[field] || field
           const value = extractedInfo[field]
-          const source = intakeSources?.[field]
-          
+          const badge = getFieldBadge(field)
+          const correction = fieldCorrections?.[field]
+
           if (!value) return null
-          
+
           return (
             <div key={field} className="flex items-start gap-2">
               <Icon className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground block">{label}:</span>
-                  {source && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase">
-                      {source}
+                  {badge && (
+                    <span className={badge.className}>
+                      {badge.text}
                     </span>
                   )}
                 </div>
                 <span className="text-xs font-medium text-foreground break-words">{value}</span>
+                {correction && correction.from && (
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    Previously: {correction.from}
+                  </div>
+                )}
               </div>
             </div>
           )
