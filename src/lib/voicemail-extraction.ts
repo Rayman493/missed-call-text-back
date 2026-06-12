@@ -141,6 +141,87 @@ Return JSON only with these fields:
 }
 
 /**
+ * Intelligently merge SMS correction with existing extraction using LLM
+ * Preserves context while applying corrections
+ */
+async function intelligentCorrectionMerge(
+  existingExtractedInfo: VoicemailExtractedInfo,
+  smsBody: string,
+  smsExtractedInfo: VoicemailExtractedInfo
+): Promise<VoicemailExtractedInfo> {
+  console.log('[INTELLIGENT CORRECTION MERGE] Starting LLM-based merge', {
+    existingInfo: existingExtractedInfo,
+    smsBody: smsBody.substring(0, 100),
+    smsExtractedInfo
+  })
+
+  try {
+    const openai = getOpenAIClient()
+
+    const systemPrompt = `You are a customer information correction assistant. A customer sent an SMS to correct or clarify their previous voicemail.
+
+Your task:
+- Update ONLY the fields that the customer is correcting
+- PRESERVE all other existing information (name, address, callback number, urgency, etc.)
+- If the customer changes the requested service (e.g., "shower" to "toilet"), regenerate reasonForCalling to be specific (e.g., "Help installing a toilet" not "Toilet issue")
+- If the customer adds clarification, enrich importantDetails with the new context
+- Never lose valid information from the original voicemail
+- If a field wasn't mentioned in the SMS, keep the original value
+
+Return JSON only with these fields:
+{
+  "callerName": string | null,
+  "reasonForCalling": string | null,
+  "importantDetails": string | null,
+  "urgencyLevel": "high" | "medium" | "low" | null,
+  "addressOrLocation": string | null,
+  "preferredCallbackTime": string | null,
+  "callbackNumber": string | null
+}`
+
+    const userPrompt = `Original voicemail extraction:
+${JSON.stringify(existingExtractedInfo, null, 2)}
+
+Customer SMS correction:
+"${smsBody}"
+
+SMS extraction:
+${JSON.stringify(smsExtractedInfo, null, 2)}
+
+Please merge these, preserving all original information and only updating what the customer is correcting.`
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+    })
+
+    const content = response.choices[0].message.content
+    if (!content) {
+      console.error('[INTELLIGENT CORRECTION MERGE] No content in response')
+      return existingExtractedInfo
+    }
+
+    const merged = JSON.parse(content) as VoicemailExtractedInfo
+
+    console.log('[INTELLIGENT CORRECTION MERGE] LLM merge successful:', {
+      merged,
+      fieldsChanged: Object.keys(merged).filter(key => merged[key as keyof VoicemailExtractedInfo] !== existingExtractedInfo[key as keyof VoicemailExtractedInfo])
+    })
+
+    return merged
+  } catch (error: any) {
+    console.error('[INTELLIGENT CORRECTION MERGE] Error during LLM merge:', error)
+    // Fallback to existing extraction on error
+    return existingExtractedInfo
+  }
+}
+
+/**
  * Extract structured information from SMS body using LLM
  * Uses OpenAI to extract business-useful information from customer SMS replies
  */
@@ -336,11 +417,11 @@ export function safeMergeVoicemailExtraction(
  * Improves weak/generic voicemail fields when SMS is clearly better
  * Preserves manually corrected fields and completed AI intake
  */
-export function safeMergeSmsExtraction(
+export async function safeMergeSmsExtraction(
   existingMetadata: any,
   smsExtraction: VoicemailExtractionResult,
   originalSmsBody?: string
-): any {
+): Promise<any> {
   console.log('[SMS MERGE START]', {
     hasExistingMetadata: !!existingMetadata,
     hasExtractedInfo: !!existingMetadata?.extracted_info,
@@ -360,7 +441,30 @@ export function safeMergeSmsExtraction(
   console.log('[SMS MERGE] SMS extracted info:', smsExtractedInfo)
 
   // Detect correction phrases in the original SMS body
-  const correctionPhrases = ['actually', 'i meant', 'meant', 'instead', 'change', 'changed', 'never mind', 'rather', 'not that', 'wait']
+  const correctionPhrases = [
+    'actually',
+    'i meant',
+    'meant',
+    'instead',
+    'change',
+    'changed',
+    'never mind',
+    'rather',
+    'not that',
+    'wait',
+    'no, it\'s',
+    'no its',
+    'change that to',
+    'it\'s a',
+    'its a',
+    'just to clarify',
+    'correction',
+    'i need',
+    'rather than',
+    'not',
+    'sorry',
+    'wrong'
+  ]
   const smsBodyLower = originalSmsBody?.toLowerCase() || ''
   const detectedCorrectionPhrase = correctionPhrases.find(phrase => smsBodyLower.includes(phrase))
   const hasCorrectionIntent = !!detectedCorrectionPhrase
@@ -370,6 +474,60 @@ export function safeMergeSmsExtraction(
     detectedCorrectionPhrase,
     smsBodyPreview: originalSmsBody?.substring(0, 100)
   })
+
+  // If correction intent is detected, use intelligent LLM-based merge
+  if (hasCorrectionIntent && originalSmsBody) {
+    console.log('[SMS MERGE] Using intelligent correction merge')
+    const intelligentlyMerged = await intelligentCorrectionMerge(
+      existingExtractedInfo,
+      originalSmsBody,
+      smsExtractedInfo
+    )
+
+    // Log what was preserved vs updated
+    const fieldsPreserved: string[] = []
+    const fieldsUpdated: string[] = []
+
+    for (const key of Object.keys(existingExtractedInfo) as (keyof VoicemailExtractedInfo)[]) {
+      if (intelligentlyMerged[key] === existingExtractedInfo[key]) {
+        fieldsPreserved.push(key)
+      } else {
+        fieldsUpdated.push(key)
+      }
+    }
+
+    console.log('[SMS MERGE] Intelligent merge results', {
+      fieldsPreserved,
+      fieldsUpdated,
+      original: existingExtractedInfo,
+      merged: intelligentlyMerged
+    })
+
+    // Update sources for fields that were updated
+    for (const key of fieldsUpdated as (keyof VoicemailExtractedInfo)[]) {
+      if (intelligentlyMerged[key]) {
+        sources[key] = 'sms'
+      }
+    }
+
+    const result = {
+      ...metadata,
+      extracted_info: intelligentlyMerged,
+      intake_sources: sources,
+      sms_extraction: {
+        extractedAt: smsExtraction.extractedAt,
+        confidence: smsExtraction.confidence,
+        fieldsExtracted: Object.keys(smsExtractedInfo).filter(k => smsExtractedInfo[k as keyof VoicemailExtractedInfo]).length
+      }
+    }
+
+    console.log('[SMS MERGE END] Intelligent merge complete', {
+      resultExtractedInfo: result.extracted_info,
+      resultIntakeSources: result.intake_sources
+    })
+
+    return result
+  }
 
   // Helper to determine if SMS value is better than existing
   const isSmsBetter = (

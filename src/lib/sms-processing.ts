@@ -562,7 +562,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       })
 
       // Safely merge SMS extraction with existing metadata
-      const updatedMetadata = safeMergeSmsExtraction(currentMetadata, smsExtraction, body)
+      const updatedMetadata = await safeMergeSmsExtraction(currentMetadata, smsExtraction, body)
 
       console.log('[SMS ENRICHMENT UPDATED METADATA]', {
         leadId: lead.id,
