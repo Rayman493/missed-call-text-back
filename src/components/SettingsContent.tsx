@@ -128,6 +128,7 @@ export default function SettingsContent() {
         .update({
           name: businessData.name,
           business_phone_number: businessData.business_phone_number,
+          business_type: businessData.business_type,
           auto_reply_message: businessData.auto_reply_message,
           call_forwarding_enabled: businessData.call_forwarding_enabled,
           business_hours_enabled: businessData.business_hours_enabled,
@@ -901,6 +902,38 @@ export default function SettingsContent() {
                       placeholder="(555) 123-4567"
                       className="w-full px-4 py-3 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-2">
+                      Business Type
+                    </label>
+                    <select
+                      value={formBusiness.business_type || ''}
+                      onChange={(e) => updateBusiness({ business_type: e.target.value })}
+                      className="w-full px-4 py-3 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                    >
+                      <option value="">Select your business type</option>
+                      <option value="HVAC">HVAC</option>
+                      <option value="Plumber">Plumber</option>
+                      <option value="Electrician">Electrician</option>
+                      <option value="Landscaper">Landscaper</option>
+                      <option value="Dog Groomer">Dog Groomer</option>
+                      <option value="Cleaner">Cleaner</option>
+                      <option value="Roofer">Roofer</option>
+                      <option value="Painter">Painter</option>
+                      <option value="Attorney">Attorney</option>
+                      <option value="Dentist">Dentist</option>
+                      <option value="General Contractor">General Contractor</option>
+                      <option value="Locksmith">Locksmith</option>
+                      <option value="Pest Control">Pest Control</option>
+                      <option value="Handyman">Handyman</option>
+                      <option value="Appliance Repair">Appliance Repair</option>
+                      <option value="Auto Repair">Auto Repair</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      This helps our AI assistant ask more relevant questions during calls.
+                    </p>
                   </div>
                 </div>
               </div>

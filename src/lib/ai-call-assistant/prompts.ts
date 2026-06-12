@@ -295,9 +295,46 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
 }
 
 /**
- * Detect business category from business name or description
+ * Map business_type from database to BusinessCategory
  */
-export function detectBusinessCategory(businessName: string, businessDescription?: string): BusinessCategory {
+export function mapBusinessTypeToCategory(businessType: string | null | undefined): BusinessCategory {
+  if (!businessType) return 'general_service'
+  
+  const lowerType = businessType.toLowerCase()
+  
+  // Direct mappings from business_type field
+  if (lowerType.includes('hvac') || lowerType.includes('plumber')) return 'plumbing_hvac'
+  if (lowerType.includes('electrician')) return 'home_services'
+  if (lowerType.includes('landscaper')) return 'landscaping'
+  if (lowerType.includes('dog groomer') || lowerType.includes('groomer')) return 'pet_grooming'
+  if (lowerType.includes('cleaner')) return 'cleaning'
+  if (lowerType.includes('roofer')) return 'home_services'
+  if (lowerType.includes('painter')) return 'home_services'
+  if (lowerType.includes('attorney') || lowerType.includes('lawyer')) return 'legal_consulting'
+  if (lowerType.includes('dentist') || lowerType.includes('dental')) return 'medical_dental'
+  if (lowerType.includes('general contractor') || lowerType.includes('contractor')) return 'home_services'
+  if (lowerType.includes('locksmith')) return 'home_services'
+  if (lowerType.includes('pest control')) return 'home_services'
+  if (lowerType.includes('handyman')) return 'home_services'
+  if (lowerType.includes('appliance repair') || lowerType.includes('auto repair')) return 'home_services'
+  
+  // Default to general service
+  return 'general_service'
+}
+
+/**
+ * Detect business category from business name or description
+ * Falls back to keyword detection if business_type is not set
+ */
+export function detectBusinessCategory(businessName: string, businessDescription?: string, businessType?: string | null): BusinessCategory {
+  // First, try to map from business_type if available
+  if (businessType) {
+    const mappedCategory = mapBusinessTypeToCategory(businessType)
+    if (mappedCategory !== 'general_service') {
+      return mappedCategory
+    }
+  }
+  
   const lowerName = businessName.toLowerCase()
   const lowerDesc = (businessDescription || '').toLowerCase()
   
@@ -385,8 +422,15 @@ export function detectBusinessCategory(businessName: string, businessDescription
 /**
  * System prompt for OpenAI Realtime API
  */
-export function getSystemPrompt(businessName: string, category: BusinessCategory = 'general_service'): string {
+export function getSystemPrompt(businessName: string, category: BusinessCategory = 'general_service', businessType?: string | null): string {
   const config = CATEGORY_INTAKE_CONFIG[category]
+  
+  // Add business type context to the prompt
+  const businessTypeContext = businessType 
+    ? `Business Type: ${businessType}. Use this context to ask more relevant follow-up questions. For example:`
+    : `Business Type: General service.`
+  
+  const categorySpecificGuidance = getCategorySpecificGuidance(category)
   
   return `You are ReplyFlow's phone assistant for ${businessName}. Always speak in clear, natural American English. Never switch languages. If the caller speaks another language or the audio is unclear, continue in English.
 
@@ -395,6 +439,10 @@ LANGUAGE REQUIREMENTS:
 - If the caller speaks another language, politely respond in English and say you can help in English.
 - Never infer or switch language based on accent, background noise, short utterances, silence, or unclear audio.
 - All responses must be in English regardless of caller's language or audio quality.
+
+BUSINESS CONTEXT:
+${businessTypeContext}
+${categorySpecificGuidance}
 
 Your role is to:
 1. Greet the caller professionally in English
@@ -406,7 +454,7 @@ Your role is to:
    - Callback number (ask naturally: "${config.callbackNumberQuestion}")
    ${config.locationQuestion ? `- Location/address (ask naturally: "${config.locationQuestion}")` : ''}
    ${config.callbackTimeQuestion ? `- Best callback time (ask naturally: "${config.callbackTimeQuestion}")` : ''}
-5. Ask relevant follow-up questions naturally based on the caller's responses
+5. Ask relevant follow-up questions naturally based on the caller's responses and business type
 6. Read back a concise summary of what you captured (only include fields that were actually provided)
 7. Ask for final confirmation: "Did I get that right?"
 8. If caller confirms (yes, correct, that's right, etc.):
@@ -426,7 +474,7 @@ Important guidelines:
 - Do not promise anything beyond taking a message
 - Always get final confirmation before ending the call
 - If caller provides corrections, acknowledge them and ask confirmation again
-- Adapt your questions naturally based on the caller's responses
+- Adapt your questions naturally based on the caller's responses and business type
 - Don't sound robotic - ask follow-up questions naturally when appropriate
 - Extract any fields mentioned opportunistically from caller responses
 - Do not ask redundant questions if the caller already provided the information
@@ -434,12 +482,55 @@ Important guidelines:
 - Ask one question at a time
 - Avoid long filler
 - If caller says "just have them call me", capture callback number/time and end gracefully
+- Use business type context to ask smarter, more relevant questions
+- Do not blindly ask every possible question - adapt to what the caller tells you
+- Move to confirmation naturally once you have sufficient information
 
 Greeting: "${config.greeting}"
 
 Confirmation question: "Did I get that right?"
 
 Closing (after confirmation): "Thank you. I've shared this information with the team and someone will contact you shortly. Goodbye."`
+}
+
+/**
+ * Get category-specific guidance for the AI
+ */
+function getCategorySpecificGuidance(category: BusinessCategory): string {
+  switch (category) {
+    case 'plumbing_hvac':
+      return `- For HVAC: Ask if the issue is heating or cooling related and whether it's urgent
+- For plumbing: Ask if there is an active leak or water damage
+- Prioritize urgency for these time-sensitive issues`
+    case 'pet_grooming':
+      return `- Ask about pet type and what service they need
+- Ask if they prefer mobile service or will come to the shop (if relevant)
+- Ask about pet size/age for scheduling purposes`
+    case 'medical_dental':
+      return `- Ask what type of appointment or issue they're calling about
+- Ask if this is urgent or routine
+- Be sensitive to health-related concerns`
+    case 'legal_consulting':
+      return `- Ask what type of legal matter they need help with
+- Ask if this is time-sensitive (court dates, deadlines)
+- Do not provide legal advice, just take the message`
+    case 'cleaning':
+      return `- Ask what type of cleaning they need and where
+- Ask about property size if relevant for quoting
+- Ask if this is a one-time or recurring service`
+    case 'landscaping':
+      return `- Ask what type of landscaping service they need
+- Ask about property size if relevant
+- Ask if this is maintenance or a new project`
+    case 'home_services':
+      return `- Ask for details about the service needed
+- Ask about the scope of work if relevant
+- Ask if this is urgent or can be scheduled`
+    default:
+      return `- Ask for relevant details based on their reason for calling
+- Adapt your follow-up questions to what they tell you
+- Focus on getting enough information for an effective callback`
+  }
 }
 
 /**

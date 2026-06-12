@@ -63,6 +63,9 @@ export interface Business {
   // AI assistant settings
   ai_assistant_enabled?: boolean | null;
   
+  // Business type for AI context
+  business_type?: string | null;
+  
   // Test setup fields
   test_call_received_at?: string | null;
   test_sms_sent_at?: string | null;
