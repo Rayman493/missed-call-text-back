@@ -129,6 +129,10 @@ function generateVoiceGreeting(): string {
     <Hangup/>
   `.trim();
   
+  console.log('[VOICE TWIML] Full TwiML returned:', voicemailTwiml);
+  console.log('[VOICE TWIML] Contains transcribe attribute:', voicemailTwiml.includes('transcribe="true"'));
+  console.log('[VOICE TWIML] Contains transcribeCallback attribute:', voicemailTwiml.includes('transcribeCallback='));
+  
   return voicemailTwiml;
 }
 
@@ -155,6 +159,10 @@ function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): strin
     />
     <Hangup/>
   `.trim();
+  
+  console.log('[VOICE TWIML] Full TwiML returned (custom greeting):', voicemailTwiml);
+  console.log('[VOICE TWIML] Contains transcribe attribute:', voicemailTwiml.includes('transcribe="true"'));
+  console.log('[VOICE TWIML] Contains transcribeCallback attribute:', voicemailTwiml.includes('transcribeCallback='));
   
   return voicemailTwiml;
 }
@@ -187,6 +195,10 @@ function generateIgnoredContactVoicemail(): string {
     />
     <Hangup/>
   `.trim();
+  
+  console.log('[VOICE TWIML] Full TwiML returned (ignored contact):', voicemailTwiml);
+  console.log('[VOICE TWIML] Contains transcribe attribute:', voicemailTwiml.includes('transcribe="true"'));
+  console.log('[VOICE TWIML] Contains transcribeCallback attribute:', voicemailTwiml.includes('transcribeCallback='));
   
   return voicemailTwiml;
 }

@@ -4,7 +4,10 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { extractFromVoicemailTranscript, safeMergeVoicemailExtraction } from '@/lib/voicemail-extraction';
 
 export async function POST(request: NextRequest) {
-  console.log('[TRANSCRIPTION ROUTE HIT]')
+  console.log('[TRANSCRIPTION ROUTE HIT] - Transcription callback invoked')
+  console.log('[TRANSCRIPTION] Timestamp:', new Date().toISOString())
+  console.log('[TRANSCRIPTION] Request URL:', request.url)
+  console.log('[TRANSCRIPTION] Request method:', request.method)
   
   try {
     console.log('[TRANSCRIPTION] Transcription callback received');
