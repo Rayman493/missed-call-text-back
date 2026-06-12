@@ -393,6 +393,18 @@ export function safeMergeSmsExtraction(
       return true
     }
 
+    // For importantDetails: always allow SMS to add/append if it contains new information
+    if (fieldName === 'importantDetails') {
+      // If SMS has importantDetails and existing doesn't, use SMS
+      if (!existingValue || existingValue.length === 0) {
+        return true
+      }
+      // If SMS has different content than existing, append it
+      if (existingLower !== smsValue.toLowerCase() && !existingLower.includes(smsValue.toLowerCase())) {
+        return true
+      }
+    }
+
     return false
   }
 
@@ -405,7 +417,9 @@ export function safeMergeSmsExtraction(
       ? smsExtractedInfo.reasonForCalling 
       : existingExtractedInfo.reasonForCalling,
     importantDetails: isSmsBetter('importantDetails', smsExtractedInfo.importantDetails, existingExtractedInfo.importantDetails) 
-      ? smsExtractedInfo.importantDetails 
+      ? (existingExtractedInfo.importantDetails && !existingExtractedInfo.importantDetails.toLowerCase().includes(smsExtractedInfo.importantDetails?.toLowerCase() || '')
+          ? `${existingExtractedInfo.importantDetails}. ${smsExtractedInfo.importantDetails}`
+          : smsExtractedInfo.importantDetails)
       : existingExtractedInfo.importantDetails,
     urgencyLevel: isSmsBetter('urgencyLevel', smsExtractedInfo.urgencyLevel, existingExtractedInfo.urgencyLevel) 
       ? smsExtractedInfo.urgencyLevel 

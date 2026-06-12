@@ -386,6 +386,11 @@ export default function VoicemailMessage({
 
   // Additional cleanup when component unmounts or page unloads
   useEffect(() => {
+    // Guard against SSR
+    if (typeof window === 'undefined') {
+      return
+    }
+    
     const handleBeforeUnload = () => {
       console.log('[VoicemailMessage] Page unloading, pausing voicemail:', recording.id);
       const audio = audioRef.current;
@@ -406,6 +411,11 @@ export default function VoicemailMessage({
 
   // Debug logging function for all audio elements
   const logAllAudioElements = () => {
+    // Guard against SSR
+    if (typeof document === 'undefined') {
+      return
+    }
+
     const allAudio = document.querySelectorAll("audio")
     
     // Enhanced debug table to identify source of extra audio elements
@@ -497,12 +507,15 @@ export default function VoicemailMessage({
       }
     }
 
-    if (showVolumeSlider) {
+    // Guard against SSR
+    if (showVolumeSlider && typeof document !== 'undefined') {
       document.addEventListener('mousedown', handleClickOutside)
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
     }
   }, [showVolumeSlider])
 

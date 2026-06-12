@@ -163,11 +163,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }
     }
     
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    // Guard against SSR
+    if (typeof document !== 'undefined') {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [showMoreActions])
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth', force = false, isInitialLoad = false) => {
+    // Guard against SSR
+    if (typeof window === 'undefined') {
+      return
+    }
+
     // Get the correct container based on viewport size
     const isDesktop = window.innerWidth >= 1024
     const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
@@ -568,6 +576,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // Set initial scroll not ready to hide message pane during scroll
       setInitialScrollReady(false)
       
+      // Guard against SSR
+      if (typeof window === 'undefined') {
+        return
+      }
+      
       const isDesktop = window.innerWidth >= 1024
       const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
       
@@ -594,6 +607,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     // Only run final scroll during initial auto-scrolling phase
     if (isInitialAutoScrollingRef.current && Object.keys(messageMedia).length > 0 && !hasScrolledToBottomOnLoad) {
+      // Guard against SSR
+      if (typeof window === 'undefined') {
+        return
+      }
+      
       const isDesktop = window.innerWidth >= 1024
       const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
       
@@ -620,6 +638,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Scroll to bottom when messages array changes (for MMS refresh and realtime updates)
   useEffect(() => {
     if (hasScrolledToBottomOnLoad && messagesArray.length > 0) {
+      // Guard against SSR
+      if (typeof window === 'undefined') {
+        return
+      }
+      
       // Only scroll if we're near bottom or if this is after a refresh
       const isDesktop = window.innerWidth >= 1024
       const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
@@ -642,6 +665,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Check scroll position to show/hide jump button
   useEffect(() => {
+    // Guard against SSR
+    if (typeof window === 'undefined') {
+      return
+    }
+    
     const isDesktop = window.innerWidth >= 1024
     const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
     
@@ -670,6 +698,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Track viewport size for conditional rendering
   useEffect(() => {
+    // Guard against SSR
+    if (typeof window === 'undefined') {
+      return
+    }
+    
     const checkViewport = () => {
       setIsMobileView(window.innerWidth < 1024) // lg breakpoint
     }
@@ -731,7 +764,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       
       // Redirect to dashboard after a short delay
       setTimeout(() => {
-        window.location.href = '/dashboard'
+        if (typeof window !== 'undefined') {
+          window.location.href = '/dashboard'
+        }
       }, 2000)
     } catch (error) {
       console.error('Error ignoring contact:', error)
@@ -831,7 +866,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       
       // Redirect to dashboard after a short delay
       setTimeout(() => {
-        window.location.href = '/dashboard'
+        if (typeof window !== 'undefined') {
+          window.location.href = '/dashboard'
+        }
       }, 1500)
     } catch (error) {
       console.error('Error removing lead:', error)

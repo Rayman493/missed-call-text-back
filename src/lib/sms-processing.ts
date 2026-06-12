@@ -524,21 +524,25 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   // SMS Enrichment: Extract structured information from inbound SMS body
   console.log('[SMS ENRICHMENT START]', {
     leadId: lead.id,
-    smsBodyLength: body.length,
-    smsBodyPreview: body.substring(0, 50) + '...'
+    conversationId: conversation.id,
+    inboundMessageId: inboundMessage?.id,
+    smsBody: body,
+    smsBodyLength: body.length
   })
 
   try {
     const smsExtraction = await extractFromSmsBody(body)
     
+    console.log('[SMS ENRICHMENT EXTRACTION RESULT]', {
+      leadId: lead.id,
+      confidence: smsExtraction.confidence,
+      source: smsExtraction.source,
+      extractedAt: smsExtraction.extractedAt,
+      fieldsExtracted: Object.keys(smsExtraction.extractedInfo).filter(k => smsExtraction.extractedInfo[k as keyof typeof smsExtraction.extractedInfo]).length,
+      extractedInfo: smsExtraction.extractedInfo
+    })
+    
     if (smsExtraction.confidence > 0) {
-      console.log('[SMS ENRICHMENT EXTRACTION SUCCESS]', {
-        leadId: lead.id,
-        confidence: smsExtraction.confidence,
-        fieldsExtracted: Object.keys(smsExtraction.extractedInfo).filter(k => smsExtraction.extractedInfo[k as keyof typeof smsExtraction.extractedInfo]).length,
-        extractedInfo: smsExtraction.extractedInfo
-      })
-
       // Get current lead metadata
       const { data: currentLead } = await supabaseAdmin
         .from('leads')
@@ -552,7 +556,9 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         leadId: lead.id,
         hasCurrentMetadata: !!currentLead,
         currentExtractedInfo: currentMetadata.extracted_info,
-        currentIntakeSources: currentMetadata.intake_sources
+        currentIntakeSources: currentMetadata.intake_sources,
+        currentVoicemailExtraction: currentMetadata.voicemail_extraction,
+        currentSmsExtraction: currentMetadata.sms_extraction
       })
 
       // Safely merge SMS extraction with existing metadata
@@ -562,7 +568,9 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         leadId: lead.id,
         updatedExtractedInfo: updatedMetadata.extracted_info,
         updatedIntakeSources: updatedMetadata.intake_sources,
-        smsExtraction: updatedMetadata.sms_extraction
+        updatedVoicemailExtraction: updatedMetadata.voicemail_extraction,
+        updatedSmsExtraction: updatedMetadata.sms_extraction,
+        metadataChanged: JSON.stringify(currentMetadata) !== JSON.stringify(updatedMetadata)
       })
 
       // Update lead with merged metadata
@@ -574,12 +582,14 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       if (updateError) {
         console.error('[SMS ENRICHMENT UPDATE ERROR]', {
           leadId: lead.id,
-          error: updateError
+          error: updateError.message,
+          errorDetails: updateError
         })
       } else {
         console.log('[SMS ENRICHMENT UPDATE SUCCESS]', {
           leadId: lead.id,
-          fieldsUpdated: Object.keys(smsExtraction.extractedInfo).filter(k => smsExtraction.extractedInfo[k as keyof typeof smsExtraction.extractedInfo]).length
+          fieldsUpdated: Object.keys(smsExtraction.extractedInfo).filter(k => smsExtraction.extractedInfo[k as keyof typeof smsExtraction.extractedInfo]).length,
+          updatePayloadSize: JSON.stringify(updatedMetadata).length
         })
 
         // Verify persistence by re-reading the lead
@@ -594,19 +604,22 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           hasVerifiedLead: !!verifiedLead,
           verifiedExtractedInfo: verifiedLead?.raw_metadata?.extracted_info,
           verifiedIntakeSources: verifiedLead?.raw_metadata?.intake_sources,
-          verifiedSmsExtraction: verifiedLead?.raw_metadata?.sms_extraction
+          verifiedSmsExtraction: verifiedLead?.raw_metadata?.sms_extraction,
+          metadataMatches: JSON.stringify(verifiedLead?.raw_metadata) === JSON.stringify(updatedMetadata)
         })
       }
     } else {
       console.log('[SMS ENRICHMENT NO EXTRACTION]', {
         leadId: lead.id,
+        confidence: smsExtraction.confidence,
         reason: 'Low confidence or no fields extracted'
       })
     }
   } catch (error: any) {
     console.error('[SMS ENRICHMENT ERROR]', {
       leadId: lead.id,
-      error: error.message
+      error: error.message,
+      stack: error.stack
     })
     // Don't let SMS enrichment errors break the inbound SMS flow
   }
