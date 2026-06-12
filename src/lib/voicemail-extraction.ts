@@ -340,10 +340,22 @@ export function safeMergeSmsExtraction(
   existingMetadata: any,
   smsExtraction: VoicemailExtractionResult
 ): any {
+  console.log('[SMS MERGE START]', {
+    hasExistingMetadata: !!existingMetadata,
+    hasExtractedInfo: !!existingMetadata?.extracted_info,
+    hasIntakeSources: !!existingMetadata?.intake_sources,
+    smsExtractionSource: smsExtraction.source,
+    smsConfidence: smsExtraction.confidence,
+    smsExtractedInfo: smsExtraction.extractedInfo
+  })
+
   const metadata = existingMetadata || {}
   const existingExtractedInfo = normalizeExtractedInfo(metadata.extracted_info || {})
   const smsExtractedInfo = smsExtraction.extractedInfo
   const sources = metadata.intake_sources || {}
+
+  console.log('[SMS MERGE] Existing extracted info:', existingExtractedInfo)
+  console.log('[SMS MERGE] SMS extracted info:', smsExtractedInfo)
 
   // Helper to determine if SMS value is better than existing
   const isSmsBetter = (
@@ -351,8 +363,21 @@ export function safeMergeSmsExtraction(
     smsValue: string | undefined,
     existingValue: string | undefined
   ): boolean => {
-    if (!smsValue) return false
-    if (!existingValue) return true
+    console.log(`[SMS MERGE DECISION] Field: ${fieldName}`, {
+      smsValue,
+      existingValue,
+      hasSmsValue: !!smsValue,
+      hasExistingValue: !!existingValue
+    })
+
+    if (!smsValue) {
+      console.log(`[SMS MERGE DECISION] ${fieldName}: REJECTED - no SMS value`)
+      return false
+    }
+    if (!existingValue) {
+      console.log(`[SMS MERGE DECISION] ${fieldName}: ACCEPTED - no existing value`)
+      return true
+    }
     
     // Don't overwrite manually corrected fields
     if (metadata.customer_corrected_info && metadata.corrected_fields) {
@@ -367,12 +392,14 @@ export function safeMergeSmsExtraction(
       }
       const correctedFieldKey = fieldKeyMap[fieldName] || fieldName
       if (metadata.corrected_fields[correctedFieldKey]) {
+        console.log(`[SMS MERGE DECISION] ${fieldName}: REJECTED - manually corrected field`)
         return false
       }
     }
 
     // Don't overwrite completed AI intake
     if (metadata.ai_intake_completed) {
+      console.log(`[SMS MERGE DECISION] ${fieldName}: REJECTED - AI intake completed`)
       return false
     }
 
@@ -383,7 +410,7 @@ export function safeMergeSmsExtraction(
     
     // If SMS contains correction words, allow it to override existing reason/details
     if (hasCorrectionWord && (fieldName === 'reasonForCalling' || fieldName === 'importantDetails')) {
-      console.log('[SMS MERGE] Correction word detected, allowing SMS to override:', fieldName, smsValue)
+      console.log(`[SMS MERGE DECISION] ${fieldName}: ACCEPTED - correction word detected`)
       return true
     }
 
@@ -401,6 +428,7 @@ export function safeMergeSmsExtraction(
     const isWeak = weakPatterns.some(pattern => existingLower.includes(pattern))
     
     if (isWeak && smsValue.length > existingValue.length) {
+      console.log(`[SMS MERGE DECISION] ${fieldName}: ACCEPTED - existing is weak/generic`)
       return true
     }
 
@@ -408,14 +436,17 @@ export function safeMergeSmsExtraction(
     if (fieldName === 'importantDetails') {
       // If SMS has importantDetails and existing doesn't, use SMS
       if (!existingValue || existingValue.length === 0) {
+        console.log(`[SMS MERGE DECISION] ${fieldName}: ACCEPTED - no existing importantDetails`)
         return true
       }
       // If SMS has different content than existing, append it
       if (existingLower !== smsValue.toLowerCase() && !existingLower.includes(smsValue.toLowerCase())) {
+        console.log(`[SMS MERGE DECISION] ${fieldName}: ACCEPTED - new information to append`)
         return true
       }
     }
 
+    console.log(`[SMS MERGE DECISION] ${fieldName}: REJECTED - no improvement criteria met`)
     return false
   }
 
@@ -469,7 +500,7 @@ export function safeMergeSmsExtraction(
     sources.callbackNumber = 'sms'
   }
 
-  return {
+  const result = {
     ...metadata,
     extracted_info: mergedExtractedInfo,
     intake_sources: sources,
@@ -479,6 +510,17 @@ export function safeMergeSmsExtraction(
       fieldsExtracted: Object.keys(smsExtractedInfo).filter(k => smsExtractedInfo[k as keyof VoicemailExtractedInfo]).length
     }
   }
+
+  console.log('[SMS MERGE FINAL RESULT]', {
+    mergedExtractedInfo,
+    updatedSources: sources,
+    smsExtractionRecord: result.sms_extraction,
+    fieldsChanged: Object.keys(mergedExtractedInfo).filter(key => 
+      mergedExtractedInfo[key as keyof VoicemailExtractedInfo] !== existingExtractedInfo[key as keyof VoicemailExtractedInfo]
+    )
+  })
+
+  return result
 }
 
 /**
