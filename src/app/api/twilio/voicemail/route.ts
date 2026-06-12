@@ -597,11 +597,24 @@ export async function POST(request: NextRequest) {
 
           // Prepare SMS message
           let messageToSend: string;
+          let templateSource: 'custom' | 'stale_default_replaced' | 'voicemail_default';
+
+          // Define old stale default template
+          const staleDefaultTemplate = 'Sorry we missed your call—how can we help?';
 
           if (businessDetails.auto_reply_message && businessDetails.auto_reply_message.trim()) {
-            messageToSend = businessDetails.auto_reply_message;
+            // Check if the custom message is actually the old stale default
+            if (businessDetails.auto_reply_message.includes(staleDefaultTemplate)) {
+              console.log('[VOICEMAIL SMS] Detected stale default auto_reply_message, replacing with new voicemail template');
+              messageToSend = `Hi, this is {{business_name}}. We just missed your call and received your voicemail. If there's anything you'd like to add or clarify, reply to this text and we'll include it with your request before getting back to you. Reply STOP to opt out.`;
+              templateSource = 'stale_default_replaced';
+            } else {
+              messageToSend = businessDetails.auto_reply_message;
+              templateSource = 'custom';
+            }
           } else {
             messageToSend = `Hi, this is {{business_name}}. We just missed your call and received your voicemail. If there's anything you'd like to add or clarify, reply to this text and we'll include it with your request before getting back to you. Reply STOP to opt out.`;
+            templateSource = 'voicemail_default';
           }
 
           const personalizedMessage = messageToSend.replace('{{business_name}}', businessDetails.name || 'My Business');
@@ -610,7 +623,9 @@ export async function POST(request: NextRequest) {
             to: from,
             fromNumber: businessDetails.twilio_phone_number,
             messageLength: personalizedMessage.length,
-            conversationId: conversation?.id
+            conversationId: conversation?.id,
+            templateSource,
+            messagePreview: personalizedMessage.substring(0, 100)
           });
 
           // Send SMS

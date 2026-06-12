@@ -40,7 +40,7 @@ async function seedDemoBusiness() {
     const demoBusiness = {
       name: 'Joe\'s Plumbing',
       twilio_phone_number: '+15551234567',
-      auto_reply_message: 'Hi, this is Joe\'s Plumbing. Sorry we missed your call—how can we help? Reply STOP to opt out.',
+      auto_reply_message: null, // No default - use context-specific templates in SMS routes
     }
 
     const { data: business, error } = await supabaseAdmin
@@ -104,7 +104,7 @@ async function seedDemoBusiness() {
           {
             lead_id: lead.id,
             direction: 'outbound' as const,
-            body: demoBusiness.auto_reply_message,
+            body: `Hi, this is ${business.name || 'My Business'}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`,
             from_phone: business.twilio_phone_number,
             to_phone: lead.caller_phone,
           },
@@ -118,7 +118,7 @@ async function seedDemoBusiness() {
           {
             lead_id: lead.id,
             direction: 'outbound' as const,
-            body: `Hi, this is ${business.name || 'My Business'}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
+            body: `Hi, this is ${business.name || 'My Business'}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`,
             from_phone: business.twilio_phone_number,
             to_phone: lead.caller_phone,
           },

@@ -568,23 +568,42 @@ export async function POST(req: NextRequest) {
       // Select message based on business hours
       let autoReplyMessage
       let messageTemplate = smsDecision.template
+      let templateSource: 'custom' | 'stale_default_replaced' | 'missed_call_default' | 'after_hours'
+
+      // Define old stale default template
+      const staleDefaultTemplate = 'Sorry we missed your call—how can we help?'
 
       if (businessHoursEnabled && !withinBusinessHours && afterHoursMessage) {
         autoReplyMessage = afterHoursMessage
         messageTemplate = 'after_hours'
+        templateSource = 'after_hours'
         console.log('[AFTER HOURS MESSAGE SELECTED]', {
           template: messageTemplate,
           businessId: business.id,
-          messageBody: autoReplyMessage?.substring(0, 100)
+          messageBody: autoReplyMessage?.substring(0, 100),
+          templateSource
         })
       } else {
-        autoReplyMessage = business.auto_reply_message ||
-          `Hi, this is {{business_name}}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`
+        if (business.auto_reply_message && business.auto_reply_message.trim()) {
+          // Check if the custom message is actually the old stale default
+          if (business.auto_reply_message.includes(staleDefaultTemplate)) {
+            console.log('[VOICE STATUS] Detected stale default auto_reply_message, replacing with new missed call template')
+            autoReplyMessage = `Hi, this is {{business_name}}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`
+            templateSource = 'stale_default_replaced'
+          } else {
+            autoReplyMessage = business.auto_reply_message
+            templateSource = 'custom'
+          }
+        } else {
+          autoReplyMessage = `Hi, this is {{business_name}}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`
+          templateSource = 'missed_call_default'
+        }
         messageTemplate = 'missed_call'
         console.log('[NORMAL MISSED CALL MESSAGE SELECTED]', {
           template: messageTemplate,
           businessId: business.id,
-          messageBody: autoReplyMessage?.substring(0, 100)
+          messageBody: autoReplyMessage?.substring(0, 100),
+          templateSource
         })
       }
 
@@ -601,6 +620,7 @@ export async function POST(req: NextRequest) {
         conversationId: conversation?.id,
         businessId: business.id,
         template: messageTemplate,
+        templateSource,
         reason: smsDecision.reason,
         aiCompleted: smsDecision.aiCompleted,
         voicemailCompleted: smsDecision.voicemailCompleted,

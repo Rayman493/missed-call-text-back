@@ -6,7 +6,7 @@ export interface Business {
   twilio_phone_number_sid?: string | null;
   personal_phone_number?: string | null;
   twilio_messaging_service_sid?: string | null;
-  auto_reply_message: string;
+  auto_reply_message: string | null;
   sms_type?: 'toll_free' | 'local_a2p' | string | null;
   a2p_status?: string | null;
   messaging_status?: 'not_assigned' | 'pending_verification' | 'active' | 'failed' | string | null;
