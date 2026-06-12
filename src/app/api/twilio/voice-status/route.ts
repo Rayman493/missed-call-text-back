@@ -579,7 +579,7 @@ export async function POST(req: NextRequest) {
         })
       } else {
         autoReplyMessage = business.auto_reply_message ||
-          `Hi, this is {{business_name}}. Sorry we missed your call-how can we help? Reply STOP to opt out.`
+          `Hi, this is {{business_name}}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`
         messageTemplate = 'missed_call'
         console.log('[NORMAL MISSED CALL MESSAGE SELECTED]', {
           template: messageTemplate,
