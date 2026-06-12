@@ -14,6 +14,7 @@ import PasswordInput from '@/components/PasswordInput'
 import { useSettingsFormState } from '@/hooks/useSettingsFormState'
 import Link from 'next/link'
 import { formatPhoneNumber } from '@/lib/utils'
+import { validateBusinessTypeOther } from '@/lib/validation'
 import Navigation from '@/components/Navigation'
 import PageBackground from '@/components/PageBackground'
 import UserDropdown from '@/components/UserDropdown'
@@ -122,6 +123,14 @@ export default function SettingsContent() {
       // Use automation_settings directly from businessData (already updated via updateBusiness)
       const automationSettings = businessData.automation_settings || {}
 
+      // Validate business_type_other if "Other" is selected
+      if (businessData.business_type === 'Other') {
+        const validation = validateBusinessTypeOther(businessData.business_type_other)
+        if (!validation.valid) {
+          throw new Error(validation.error || 'Invalid business type')
+        }
+      }
+
       // Only save real business columns that exist in the database schema
       const { error } = await supabase
         .from('businesses')
@@ -129,6 +138,7 @@ export default function SettingsContent() {
           name: businessData.name,
           business_phone_number: businessData.business_phone_number,
           business_type: businessData.business_type,
+          business_type_other: businessData.business_type === 'Other' ? businessData.business_type_other?.trim() : null,
           auto_reply_message: businessData.auto_reply_message,
           call_forwarding_enabled: businessData.call_forwarding_enabled,
           business_hours_enabled: businessData.business_hours_enabled,
@@ -935,6 +945,23 @@ export default function SettingsContent() {
                       This helps our AI assistant ask more relevant questions during calls.
                     </p>
                   </div>
+                  {formBusiness.business_type === 'Other' && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-2">
+                        Specify Business Type <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formBusiness.business_type_other || ''}
+                        onChange={(e) => updateBusiness({ business_type_other: e.target.value })}
+                        placeholder="e.g., Pool Service, Wedding Photographer, Piano Teacher"
+                        className="w-full px-4 py-3 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                      />
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Describe your business type (2-60 characters). Examples: Pool Service, Wedding Photographer, Martial Arts Studio.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

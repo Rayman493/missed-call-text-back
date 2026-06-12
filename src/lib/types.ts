@@ -65,6 +65,7 @@ export interface Business {
   
   // Business type for AI context
   business_type?: string | null;
+  business_type_other?: string | null;
   
   // Test setup fields
   test_call_received_at?: string | null;

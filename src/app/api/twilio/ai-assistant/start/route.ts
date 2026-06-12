@@ -4,7 +4,7 @@ import { db } from '@/lib/supabase/admin'
 import { normalizePhoneNumber } from '@/lib/twilio'
 import { checkAllGuards } from '@/lib/ai-call-assistant/config'
 import { createAISession, failAISession } from '@/lib/ai-call-assistant/session'
-import { getGreeting, detectBusinessCategory } from '@/lib/ai-call-assistant/prompts'
+import { getGreeting, detectBusinessCategory, getCustomBusinessType } from '@/lib/ai-call-assistant/prompts'
 
 /**
  * AI Call Assistant Start Route (Phase 0 - QA Only)
@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
     console.log('[AI CALL ASSISTANT] Business found', {
       business_id: business.business.id,
       business_name: business.business.name,
-      business_type: business.business.business_type
+      business_type: business.business.business_type,
+      business_type_other: business.business.business_type_other
     })
 
     // Detect business category from business_type
@@ -81,9 +82,16 @@ export async function POST(request: NextRequest) {
       business.business.business_type
     )
 
+    // Get custom business type if applicable
+    const customBusinessType = getCustomBusinessType(
+      business.business.business_type,
+      business.business.business_type_other
+    )
+
     console.log('[AI CALL ASSISTANT] Business category detected', {
       category,
-      business_type: business.business.business_type
+      business_type: business.business.business_type,
+      custom_business_type: customBusinessType
     })
 
     // Check all guards
@@ -106,6 +114,7 @@ export async function POST(request: NextRequest) {
       lead_id: lead?.id || null,
       call_sid: CallSid,
       business_category: category,
+      custom_business_type: customBusinessType,
     })
 
     if (!session) {
