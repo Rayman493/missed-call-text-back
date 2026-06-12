@@ -47,61 +47,9 @@ export default function OperationalStatusCard({
   const [showRecoveryInstructions, setShowRecoveryInstructions] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const [showOnboardingChecklist, setShowOnboardingChecklist] = useState(true)
-  const [showForwardingInstructions, setShowForwardingInstructions] = useState(false)
-  const [showTestCallInstructions, setShowTestCallInstructions] = useState(false)
-  const [selectedCarrier, setSelectedCarrier] = useState<string>('')
-  const [showCallForwardingSection, setShowCallForwardingSection] = useState(false)
 
-  // Carrier-specific forwarding instructions
-  const carrierInstructions: Record<string, {
-    enableCode: string
-    disableCode: string
-    notes: string
-    tested: boolean
-  }> = {
-    verizon: {
-      enableCode: '*71',
-      disableCode: '*73',
-      notes: 'Call your business number, enter the code, wait for confirmation tone. Forwarding is now active.',
-      tested: true
-    },
-    att: {
-      enableCode: '*71',
-      disableCode: '*73',
-      notes: 'Call your business number, enter the code, wait for confirmation tone. Forwarding is now active.',
-      tested: true
-    },
-    tmobile: {
-      enableCode: '*21',
-      disableCode: '#21#',
-      notes: 'Call your business number, enter the code, wait for confirmation tone. T-Mobile uses different codes than Verizon/AT&T.',
-      tested: true
-    },
-    sprint: {
-      enableCode: '*72',
-      disableCode: '*720',
-      notes: 'Call your business number, enter the code, wait for confirmation tone.',
-      tested: false
-    },
-    'google-fi': {
-      enableCode: '*21',
-      disableCode: '#21#',
-      notes: 'Open the Google Fi app, go to Settings > Calls, and enable call forwarding to your ReplyFlow number.',
-      tested: false
-    },
-    cricket: {
-      enableCode: '*72',
-      disableCode: '*720',
-      notes: 'Call your business number, enter the code, wait for confirmation tone.',
-      tested: false
-    },
-    other: {
-      enableCode: '*71',
-      disableCode: '*73',
-      notes: 'Carrier instructions may vary. Contact your carrier if this code does not work. Most carriers use *71 to enable forwarding.',
-      tested: false
-    }
-  }
+  // Carrier-specific forwarding instructions - REMOVED
+  // Forwarding setup now handled at /setup/phone-forwarding with verified codes
 
   // Detect mobile screen size
   useEffect(() => {
@@ -382,80 +330,16 @@ export default function OperationalStatusCard({
                       {business?.call_forwarding_enabled ? (
                         <span className="text-xs text-green-400">Complete</span>
                       ) : (
-                        <button
-                          onClick={() => setShowForwardingInstructions(!showForwardingInstructions)}
+                        <Link
+                          href="/setup/phone-forwarding"
                           className="text-xs text-blue-400 hover:text-blue-300"
                         >
-                          {showForwardingInstructions ? 'Hide' : 'Show'} instructions
-                        </button>
+                          Go to setup page
+                        </Link>
                       )}
                     </div>
                     {!business?.call_forwarding_enabled && business?.twilio_phone_number && (
                       <p className="text-xs text-blue-200 mt-0.5">Forward calls from your business number to ReplyFlow</p>
-                    )}
-
-                    {/* Carrier-specific forwarding instructions */}
-                    {showForwardingInstructions && !business?.call_forwarding_enabled && business?.twilio_phone_number && (
-                      <div className="mt-2 p-2 bg-slate-800/50 rounded-lg border border-slate-700">
-                        <p className="text-xs text-slate-300 mb-1.5 font-medium">Forwarding Instructions:</p>
-                        <div className="space-y-2 text-xs text-slate-400">
-                          <div>
-                            <p className="font-medium text-slate-300 mb-1">Step 1: Select your carrier</p>
-                            <select 
-                              className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-300 text-xs"
-                              value={selectedCarrier}
-                              onChange={(e) => setSelectedCarrier(e.target.value)}
-                            >
-                              <option value="" disabled>Select carrier</option>
-                              <option value="verizon">Verizon</option>
-                              <option value="att">AT&T</option>
-                              <option value="tmobile">T-Mobile</option>
-                              <option value="sprint">Sprint</option>
-                              <option value="google-fi">Google Fi</option>
-                              <option value="cricket">Cricket Wireless</option>
-                              <option value="other">Other / VoIP</option>
-                            </select>
-                          </div>
-                          
-                          {selectedCarrier && carrierInstructions[selectedCarrier] && (
-                            <>
-                              <div>
-                                <p className="font-medium text-slate-300 mb-1">Step 2: Enable forwarding</p>
-                                <p className="mb-1">Call your business number and enter this code:</p>
-                                <div className="flex items-center gap-2">
-                                  <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono flex-1 text-xs">
-                                    {carrierInstructions[selectedCarrier].enableCode}{business?.twilio_phone_number?.replace(/\D/g, '') || ''}#
-                                  </code>
-                                  <button
-                                    onClick={() => {
-                                      const code = `${carrierInstructions[selectedCarrier].enableCode}${business?.twilio_phone_number?.replace(/\D/g, '') || ''}#`
-                                      navigator.clipboard.writeText(code)
-                                      alert('Code copied to clipboard!')
-                                    }}
-                                    className="bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded text-xs"
-                                    title="Copy code"
-                                  >
-                                    Copy
-                                  </button>
-                                </div>
-                                <p className="mt-1 text-xs text-slate-500">{carrierInstructions[selectedCarrier].notes}</p>
-                                {!carrierInstructions[selectedCarrier].tested && (
-                                  <p className="mt-1 text-xs text-amber-400 font-medium">
-                                    ⚠️ Carrier instructions may vary. Contact your carrier if this code does not work.
-                                  </p>
-                                )}
-                              </div>
-                              
-                              <div className="pt-1.5 border-t border-slate-700">
-                                <p className="font-medium text-slate-300 mb-1">To disable forwarding later:</p>
-                                <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono text-xs">
-                                  {carrierInstructions[selectedCarrier].disableCode}
-                                </code>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
                     )}
                   </div>
                 </div>
@@ -476,35 +360,15 @@ export default function OperationalStatusCard({
                         <span className="text-xs text-green-400">Complete</span>
                       ) : (
                         <button
-                          onClick={() => setShowTestCallInstructions(!showTestCallInstructions)}
+                          onClick={() => setShowTestModal(true)}
                           className="text-xs text-blue-400 hover:text-blue-300"
                         >
-                          {showTestCallInstructions ? 'Hide' : 'Show'} instructions
+                          Run Test Call
                         </button>
                       )}
                     </div>
                     {business?.call_forwarding_enabled && !liveMetrics.lastForwardedCall && (
                       <p className="text-xs text-blue-200 mt-0.5">Verify your forwarding is working correctly</p>
-                    )}
-
-                    {/* Test call instructions */}
-                    {showTestCallInstructions && !liveMetrics.lastForwardedCall && (
-                      <div className="mt-2 p-2 bg-slate-800/50 rounded-lg border border-slate-700">
-                        <p className="text-xs text-slate-300 mb-1.5 font-medium">Test Call Instructions:</p>
-                        <div className="space-y-1.5 text-xs text-slate-400">
-                          <ol className="list-decimal list-inside space-y-1">
-                            <li>Call your business number from another phone</li>
-                            <li>Let it ring until ReplyFlow answers</li>
-                            <li>Return here and confirm it worked</li>
-                          </ol>
-                          <button
-                            onClick={() => setShowTestModal(true)}
-                            className="mt-1.5 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-1.5 px-3 rounded transition-colors"
-                          >
-                            Mark test call complete
-                          </button>
-                        </div>
-                      </div>
                     )}
                   </div>
                 </div>
@@ -562,166 +426,58 @@ export default function OperationalStatusCard({
             )}
           </div>
 
-          {/* Call Forwarding Setup Card */}
+          {/* Call Forwarding Status Card - Simplified summary */}
           <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-3">
               <Phone className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-xs font-medium text-slate-300">Call Forwarding Setup</span>
+              <span className="text-xs font-medium text-slate-300">Call Forwarding Status</span>
             </div>
 
-            {/* Carrier selector inline */}
-            <div className="flex items-center gap-2 mb-3 pb-3 border-b border-slate-700">
-              <span className="text-xs text-slate-400">Carrier:</span>
-              <select 
-                className="bg-slate-700 border border-slate-600 rounded px-2 py-0.5 text-slate-300 text-xs"
-                value={selectedCarrier}
-                onChange={(e) => setSelectedCarrier(e.target.value)}
-              >
-                <option value="" disabled>Select carrier</option>
-                <option value="verizon">Verizon</option>
-                <option value="att">AT&T</option>
-                <option value="tmobile">T-Mobile</option>
-                <option value="sprint">Sprint</option>
-                <option value="google-fi">Google Fi</option>
-                <option value="cricket">Cricket Wireless</option>
-                <option value="other">Other / VoIP</option>
-              </select>
-              {selectedCarrier && carrierInstructions[selectedCarrier] && (
-                <span className="text-xs text-slate-500">
-                  {carrierInstructions[selectedCarrier].tested ? '(Tested)' : '(Untested)'}
+            <div className="space-y-2">
+              {/* Status indicator */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-400">Status:</span>
+                <span className={`text-xs font-medium ${isForwardingActive ? 'text-green-400' : 'text-amber-400'}`}>
+                  {isForwardingActive ? 'Verified' : 'Not Verified'}
                 </span>
-              )}
-            </div>
+              </div>
 
-            {/* 3-step layout */}
-            <div className="space-y-3">
-              {/* Step 1: Confirm number */}
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 bg-blue-500/20 border border-blue-500/30 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-xs font-medium text-blue-400">1</span>
+              {/* Numbers display */}
+              <div className="space-y-1.5 pt-2 border-t border-slate-700">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400">Business:</span>
+                  <span className="text-xs font-mono text-slate-300">
+                    {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
+                  </span>
                 </div>
-                <div className="flex-1">
-                  <span className="text-xs text-slate-400 block mb-1">Confirm your ReplyFlow number</span>
-                  <div className="flex items-center gap-2">
-                    <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono text-xs">
-                      {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
-                    </code>
-                    <button
-                      onClick={() => {
-                        if (business?.twilio_phone_number) {
-                          navigator.clipboard.writeText(business.twilio_phone_number)
-                        }
-                      }}
-                      className="bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded text-xs"
-                      title="Copy number"
-                    >
-                      Copy
-                    </button>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400">ReplyFlow:</span>
+                  <span className="text-xs font-mono text-slate-300">
+                    {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
+                  </span>
                 </div>
               </div>
 
-              {/* Step 2: Enable forwarding */}
-              {selectedCarrier && carrierInstructions[selectedCarrier] && (
-                <div className="flex items-start gap-3">
-                  <div className="w-5 h-5 bg-blue-500/20 border border-blue-500/30 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-medium text-blue-400">2</span>
-                  </div>
-                  <div className="flex-1">
-                    <span className="text-xs text-slate-400 block mb-1">Enable call forwarding</span>
-                    <div className="flex items-center gap-2 mb-1">
-                      <code className="bg-slate-700 px-2 py-1 rounded text-white font-mono text-xs">
-                        {carrierInstructions[selectedCarrier].enableCode}{business?.twilio_phone_number?.replace(/\D/g, '') || ''}#
-                      </code>
-                      <button
-                        onClick={() => {
-                          const code = `${carrierInstructions[selectedCarrier].enableCode}${business?.twilio_phone_number?.replace(/\D/g, '') || ''}#`
-                          navigator.clipboard.writeText(code)
-                        }}
-                        className="bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded text-xs"
-                        title="Copy code"
-                      >
-                        Copy
-                      </button>
-                      <a
-                        href={`tel:${carrierInstructions[selectedCarrier].enableCode}${business?.twilio_phone_number?.replace(/\D/g, '') || ''}#`}
-                        className="bg-slate-600 hover:bg-slate-500 text-white px-2 py-1 rounded text-xs"
-                        title="Dial code"
-                      >
-                        Dial
-                      </a>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <span>Disable:</span>
-                      <code className="bg-slate-700 px-1.5 py-0.5 rounded text-slate-300 font-mono text-xs">
-                        {carrierInstructions[selectedCarrier].disableCode}
-                      </code>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(carrierInstructions[selectedCarrier].disableCode)
-                        }}
-                        className="text-slate-400 hover:text-slate-300 text-xs"
-                        title="Copy disable code"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  </div>
+              {/* CTA button */}
+              {!isForwardingActive && (
+                <div className="pt-2">
+                  <Link
+                    href="/setup/phone-forwarding"
+                    className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 px-3 rounded transition-colors"
+                  >
+                    Set Up Call Forwarding
+                  </Link>
                 </div>
               )}
 
-              {/* Step 3: Test */}
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 bg-blue-500/20 border border-blue-500/30 rounded flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-xs font-medium text-blue-400">3</span>
-                </div>
-                <div className="flex-1">
-                  <span className="text-xs text-slate-400 block mb-1">Test your setup</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setShowTestModal(true)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-1.5 px-3 rounded transition-colors"
-                    >
-                      Run Test Call
-                    </button>
-                    <Link
-                      href="/dashboard/test-setup"
-                      className="text-xs text-blue-400 hover:text-blue-300"
-                    >
-                      Watch Setup Demo
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Troubleshooting accordion */}
-            <div className="mt-3 pt-3 border-t border-slate-700">
-              <button
-                onClick={() => toggleSection('troubleshooting')}
-                className="w-full flex items-center justify-between text-left text-xs text-slate-400 hover:text-slate-300"
-              >
-                <span>Troubleshooting</span>
-                {expandedSection === 'troubleshooting' ? (
-                  <ChevronUp className="w-3 h-3" />
-                ) : (
-                  <ChevronDown className="w-3 h-3" />
-                )}
-              </button>
-              {expandedSection === 'troubleshooting' && (
-                <div className="mt-2 space-y-1.5 text-xs text-slate-400">
-                  <p><strong className="text-slate-300">Calls not reaching ReplyFlow?</strong></p>
-                  <ul className="list-disc list-inside space-y-0.5 ml-2">
-                    <li>Verify carrier forwarding settings</li>
-                    <li>Confirm ReplyFlow number is accurate</li>
-                    <li>Try restarting your phone</li>
-                  </ul>
-                  <p className="mt-1.5"><strong className="text-slate-300">Forwarding not activating?</strong></p>
-                  <ul className="list-disc list-inside space-y-0.5 ml-2">
-                    <li>Ensure you pressed Send/Call</li>
-                    <li>Listen for confirmation tone</li>
-                    <li>Contact your carrier if needed</li>
-                  </ul>
+              {isForwardingActive && (
+                <div className="pt-2">
+                  <Link
+                    href="/setup/phone-forwarding"
+                    className="block w-full text-center bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium py-2 px-3 rounded transition-colors"
+                  >
+                    Review Forwarding Setup
+                  </Link>
                 </div>
               )}
             </div>
