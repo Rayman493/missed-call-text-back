@@ -21,6 +21,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AICallDetails from '@/components/AICallDetails'
+import VoicemailSummary from '@/components/VoicemailSummary'
 import { ImageMessage } from '@/components/ImageMessage'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
@@ -1838,6 +1839,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
               )}
+
+              {/* Voicemail Summary Card - Show when voicemail extraction exists */}
+              <VoicemailSummary leadData={leadData} />
               {/* Lead Health Card */}
               <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                 <button
