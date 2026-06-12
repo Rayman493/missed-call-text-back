@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
-import { Clock, User, Phone, MapPin, AlertCircle, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Clock, User, Phone, MapPin, AlertCircle, MessageCircle, ChevronDown, ChevronUp, Briefcase, FileText, TriangleAlert } from 'lucide-react'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 
 interface AICallRecord {
@@ -144,11 +144,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
         <div className="animate-pulse">
-          <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-          <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-xl mt-4"></div>
-          <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded-xl mt-4"></div>
+          <div className="h-32 bg-muted rounded-xl"></div>
+          <div className="h-48 bg-muted rounded-xl mt-4"></div>
+          <div className="h-64 bg-muted rounded-xl mt-4"></div>
         </div>
       </div>
     )
@@ -156,11 +156,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   if (!aiCallRecord) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
         <div className="text-center py-8">
-          <MessageCircle className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
-          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">No AI call records yet</h3>
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-medium text-foreground">No AI call records yet</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
             When AI handles a call, summaries and caller information will appear here.
           </p>
         </div>
@@ -198,9 +198,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
     <div className="space-y-4">
       {/* Customer Correction Badge */}
       {hasCustomerCorrections && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
               <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
               <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
                 Corrections Made: {correctionsCount}
@@ -210,99 +210,99 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
           {/* Last Correction */}
           {lastCorrectionField && (
-            <div className="text-xs text-amber-700 dark:text-amber-300 mb-2">
+            <div className="text-xs text-amber-700 dark:text-amber-300 mb-2.5 leading-relaxed">
               Last Correction: {getFieldName(lastCorrectionField)} updated by customer
             </div>
           )}
 
           {/* Display corrected fields */}
           {correctedFields && Object.keys(correctedFields).length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {correctedFields.address && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-amber-200 dark:border-amber-700">
-                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
+                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                     Location
                   </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
                     {correctedFields.address}
                   </div>
                   {previousValues?.address && previousValues.address !== correctedFields.address && (
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                       Previous: {previousValues.address}
                     </div>
                   )}
                 </div>
               )}
               {correctedFields.details && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-amber-200 dark:border-amber-700">
-                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
+                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                     Details
                   </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
                     {correctedFields.details}
                   </div>
                   {previousValues?.details && previousValues.details !== correctedFields.details && (
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                       Previous: {previousValues.details}
                     </div>
                   )}
                 </div>
               )}
               {correctedFields.phone && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-amber-200 dark:border-amber-700">
-                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
+                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                     Phone
                   </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
                     {correctedFields.phone}
                   </div>
                   {previousValues?.phone && previousValues.phone !== correctedFields.phone && (
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                       Previous: {previousValues.phone}
                     </div>
                   )}
                 </div>
               )}
               {correctedFields.callback_time && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-amber-200 dark:border-amber-700">
-                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
+                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                     Callback Time
                   </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
                     {correctedFields.callback_time}
                   </div>
                   {previousValues?.callback_time && previousValues.callback_time !== correctedFields.callback_time && (
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                       Previous: {previousValues.callback_time}
                     </div>
                   )}
                 </div>
               )}
               {correctedFields.urgency && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-amber-200 dark:border-amber-700">
-                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
+                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                     Urgency
                   </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
                     {correctedFields.urgency}
                   </div>
                   {previousValues?.urgency && previousValues.urgency !== correctedFields.urgency && (
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                       Previous: {previousValues.urgency}
                     </div>
                   )}
                 </div>
               )}
               {correctedFields.reason && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 border border-amber-200 dark:border-amber-700">
-                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
+                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                     Reason
                   </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
                     {correctedFields.reason}
                   </div>
                   {previousValues?.reason && previousValues.reason !== correctedFields.reason && (
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                       Previous: {previousValues.reason}
                     </div>
                   )}
@@ -314,109 +314,115 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       )}
 
       {/* AI Summary Card - Compact and Collapsible */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         <button
           onClick={() => setSummaryExpanded(!summaryExpanded)}
-          className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+          className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-colors"
         >
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span className="text-xs font-semibold text-green-700 dark:text-green-400">
-              ✓ AI Intake Summary
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span className="text-sm font-semibold text-foreground">
+              AI Intake Summary
             </span>
           </div>
-          <svg className={`w-4 h-4 text-muted-foreground transition-transform ${summaryExpanded ? 'rotate-180' : 'rotate-0'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${summaryExpanded ? 'rotate-180' : 'rotate-0'}`} />
         </button>
         
         {summaryExpanded && (
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4 pt-2">
             {/* AI Status Badge */}
-            <div className="flex items-center justify-between mb-3">
-              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${getOutcomeColor(aiCallRecord.outcome)}`}>
+            <div className="flex items-center justify-between mb-4">
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getOutcomeColor(aiCallRecord.outcome)}`}>
                 {aiCallRecord.outcome.replace('_', ' ').toUpperCase()}
               </span>
               <button
                 onClick={() => setSummaryExpanded(false)}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
               >
                 Collapse
               </button>
             </div>
 
             {/* Structured Information */}
-            <div className="space-y-2">
+            <div className="space-y-3">
           {/* Customer Information */}
-          <div className="flex items-center gap-2">
-            <span className="text-base">👤</span>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {extractedInfo?.callerName || 'Not Provided'}
-              </p>
+          <div className="flex items-center justify-between py-2.5 border-b border-border/50">
+            <div className="flex items-center gap-2.5">
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium">Name</span>
             </div>
+            <span className="text-sm font-medium text-foreground">
+              {extractedInfo?.callerName || 'Not Provided'}
+            </span>
           </div>
 
           {/* Service Requested */}
-          <div className="flex items-center gap-2">
-            <span className="text-base">🌱</span>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
-              </p>
+          <div className="py-2.5 border-b border-border/50">
+            <div className="flex items-center gap-2.5 mb-1.5">
+              <Briefcase className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium">Reason</span>
             </div>
+            <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
+              {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
+            </p>
           </div>
 
           {/* Details */}
           {(extractedInfo?.importantDetails || correctedFields?.details) && (
-            <div className="flex items-center gap-2">
-              <span className="text-base">📝</span>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {correctedFields?.details ? sentenceCase(correctedFields.details) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : ''}
-                </p>
+            <div className="py-2.5 border-b border-border/50">
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground font-medium">Details</span>
               </div>
+              <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
+                {correctedFields?.details ? sentenceCase(correctedFields.details) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : ''}
+              </p>
             </div>
           )}
 
           {/* Location */}
           {(extractedInfo?.addressOrLocation || correctedFields?.address) && (
-            <div className="flex items-center gap-2">
-              <span className="text-base">📍</span>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {correctedFields?.address || extractedInfo?.addressOrLocation}
-                </p>
+            <div className="py-2.5 border-b border-border/50">
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <MapPin className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground font-medium">Location</span>
               </div>
+              <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
+                {correctedFields?.address || extractedInfo?.addressOrLocation}
+              </p>
             </div>
           )}
 
           {/* Callback Time */}
           {extractedInfo?.preferredCallbackTime && (
-            <div className="flex items-center gap-2">
-              <span className="text-base">⏰</span>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {sentenceCase(extractedInfo.preferredCallbackTime)}
-                </p>
+            <div className="flex items-center justify-between py-2.5 border-b border-border/50">
+              <div className="flex items-center gap-2.5">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground font-medium">Callback Time</span>
               </div>
+              <span className="text-sm text-foreground">
+                {sentenceCase(extractedInfo.preferredCallbackTime)}
+              </span>
             </div>
           )}
 
           {/* Urgency */}
-          <div className="flex items-center gap-2">
-            <span className="text-base">🚨</span>
-            <div className="flex-1">
-              {extractedInfo?.urgencyLevel ? (
-                <span className={`text-sm font-medium ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
-                  {sentenceCase(extractedInfo.urgencyLevel)}
-                </span>
-              ) : (
-                <span className="text-sm text-gray-500 dark:text-gray-400">Unknown</span>
-              )}
+          <div className="flex items-center justify-between py-2.5">
+            <div className="flex items-center gap-2.5">
+              <TriangleAlert className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium">Urgency</span>
             </div>
+            {extractedInfo?.urgencyLevel ? (
+              <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
+                {sentenceCase(extractedInfo.urgencyLevel)}
+              </span>
+            ) : (
+              <span className="text-sm text-muted-foreground">Unknown</span>
+            )}
           </div>
             </div>
           </div>

@@ -366,7 +366,11 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
       status: forwardingSetupComplete ? 'complete' : (subscriptionActive && twilioReady ? 'needs-action' : 'not-tested-yet'),
       buttonText: forwardingSetupComplete ? undefined : (subscriptionActive && twilioReady ? 'Setup Call Forwarding' : undefined),
       buttonHref: forwardingSetupComplete ? undefined : (subscriptionActive && twilioReady ? '/setup/phone-forwarding' : undefined),
-      details: currentBusiness?.business_phone_number ? `Forwarding from: ${formatPhoneNumber(currentBusiness.business_phone_number)}` : undefined
+      secondaryButtonText: forwardingSetupComplete ? 'Review Forwarding Setup' : undefined,
+      secondaryButtonHref: forwardingSetupComplete ? '/setup/phone-forwarding' : undefined,
+      details: forwardingSetupComplete 
+        ? `Verified • Carrier: ${currentBusiness?.business_phone_carrier || 'Not set'} • ReplyFlow: ${currentBusiness?.twilio_phone_number ? formatPhoneNumber(currentBusiness.twilio_phone_number) : 'Loading...'}`
+        : (currentBusiness?.business_phone_carrier ? `Carrier: ${currentBusiness.business_phone_carrier}` : undefined)
     },
     {
       id: 'test',
@@ -559,41 +563,6 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
                     </div>
                   )}
 
-                  {/* Expanded card details for forwarding setup */}
-                  {isForwardingCard && isExpandedCard && (isComplete || !isComplete && (isCurrent || isActionNeeded)) && (
-                    <div className="mt-3 pt-3 border-t border-border/50">
-                      <div className="space-y-3">
-                        <div className="text-sm">
-                          <div className="font-medium text-foreground mb-1">Why call forwarding?</div>
-                          <p className="text-muted-foreground">
-                            When customers call your business number and it's busy or unanswered, the call is automatically forwarded to ReplyFlow. 
-                            We then capture the caller's information and send them a follow-up text message.
-                          </p>
-                        </div>
-                        
-                        <div className="text-sm">
-                          <div className="font-medium text-foreground mb-1">Setup Instructions</div>
-                          <ol className="text-muted-foreground space-y-1 list-decimal list-inside">
-                            <li>Dial <span className="font-mono bg-muted px-1 rounded">*90</span> on your business phone</li>
-                            <li>Enter your ReplyFlow number: <span className="font-mono bg-muted px-1 rounded">{currentBusiness?.twilio_phone_number ? formatPhoneNumber(currentBusiness.twilio_phone_number) : 'Loading...'}</span></li>
-                            <li>Press <span className="font-mono bg-muted px-1 rounded">#</span> to save</li>
-                            <li>Wait for the confirmation tone</li>
-                          </ol>
-                        </div>
-
-                        {!isComplete && (
-                          <div className="flex gap-2">
-                            <Link
-                              href="/setup/phone-forwarding"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors text-xs sm:text-sm font-medium"
-                            >
-                              View Detailed Instructions
-                            </Link>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </li>
             )

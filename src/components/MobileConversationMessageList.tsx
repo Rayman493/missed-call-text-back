@@ -39,7 +39,7 @@ export default function MobileConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-2.5 pb-24" data-mobile-layout data-active-conversation-list>
+    <div className="space-y-4 pb-24" data-mobile-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle system events
         if (item.type === 'system_event') {
@@ -158,30 +158,30 @@ export default function MobileConversationMessageList({
         return (
           <div
             key={msg.id}
-            className={`flex items-start gap-2 ${msg.media && msg.media.length > 0 ? 'mb-3' : 'mb-2'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-3 ${msg.media && msg.media.length > 0 ? 'mb-4' : 'mb-6'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Avatar - Only show customer avatar for inbound messages */}
             {shouldShowAvatar && isInbound && (
-              <div className={`flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-medium shadow-sm ${msg.media && msg.media.length > 0 ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'}`}>
+              <div className={`flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-medium shadow-md ${msg.media && msg.media.length > 0 ? 'w-9 h-9 text-xs' : 'w-11 h-11 text-sm'}`}>
                 👤
               </div>
             )}
             
             {/* Message Content */}
-            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-[75%] ${!isInbound && !shouldShowAvatar ? 'ml-10' : ''}`}>
+            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-[75%] ${!isInbound && !shouldShowAvatar ? 'ml-14' : ''}`}>
               {/* Message Bubble - Modern messaging app styling */}
               <div
-                className={`rounded-2xl shadow-sm ${
+                className={`rounded-2xl shadow-md transition-all duration-200 ${
                   isInbound
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-sm border border-slate-200 dark:border-slate-700/50'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200 dark:border-slate-700/50 hover:shadow-lg'
                     : isOptimistic && isSending
-                    ? 'bg-blue-600 text-white rounded-br-sm opacity-90 shadow-md border border-blue-700'
-                    : 'bg-blue-600 text-white rounded-br-sm hover:bg-blue-700 shadow-md border border-blue-700'
+                    ? 'bg-blue-600 text-white rounded-br-md opacity-90 shadow-md border border-blue-700'
+                    : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 shadow-md hover:shadow-lg border border-blue-700'
                 }`}
               >
-                <div className={`${msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-3 py-2'}`}>
+                <div className={`${msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-5 py-3'}`}>
                   {msg.body && (
-                    <p className="text-sm leading-snug break-words overflow-wrap-anywhere whitespace-pre-wrap">
+                    <p className="text-base leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
                       {msg.body}
                     </p>
                   )}
@@ -197,7 +197,7 @@ export default function MobileConversationMessageList({
               </div>
               
               {/* Message Status/Timestamp - Beneath bubble, aligned with bubble */}
-              <div className={`mt-0.5 flex items-center gap-1 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+              <div className={`mt-2 flex items-center gap-1.5 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                 {isOutbound && (
                   <>
                     {msg.status === 'delivered' && (
@@ -226,7 +226,7 @@ export default function MobileConversationMessageList({
                     )}
                   </>
                 )}
-                <span className="text-[10px] text-muted-foreground/70" title={new Date(msg.created_at).toLocaleString()}>
+                <span className="text-[11px] text-muted-foreground/60" title={new Date(msg.created_at).toLocaleString()}>
                   {formatRelativeTime(msg.created_at)}
                 </span>
               </div>
