@@ -1173,122 +1173,41 @@ export default function DashboardContent() {
                           </div>
                         </div>
 
-                        {/* Forwarding Instructions */}
+                        {/* Forwarding Summary */}
                         <div className="bg-white/5 backdrop-blur rounded-lg p-4 border border-white/10 mb-4">
-                          <h4 className="text-white font-semibold mb-3">Phone numbers</h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <h4 className="text-white font-semibold mb-3">Call Forwarding Status</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                             <div>
                               <p className="text-blue-200 text-xs mb-1">Your business number</p>
                               <p className="text-white text-lg font-semibold">{business.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}</p>
                             </div>
                             <div>
-                              <p className="text-blue-200 text-xs mb-1">Forward to this number</p>
+                              <p className="text-blue-200 text-xs mb-1">ReplyFlow number</p>
                               <p className="text-white text-lg font-semibold">{business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not set'}</p>
                             </div>
                           </div>
-                        </div>
-
-                        {/* Carrier Selector */}
-                        <div className="bg-white/5 backdrop-blur rounded-lg p-4 border border-white/10 mb-4">
-                          <h4 className="text-white font-semibold mb-3">Step 1: Select your carrier</h4>
-                          <select 
-                            className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
-                            defaultValue=""
-                          >
-                            <option value="" disabled className="bg-gray-800">Select your carrier</option>
-                            <option value="verizon" className="bg-gray-800">Verizon</option>
-                            <option value="att" className="bg-gray-800">AT&T</option>
-                            <option value="tmobile" className="bg-gray-800">T-Mobile</option>
-                            <option value="sprint" className="bg-gray-800">Sprint</option>
-                            <option value="google-fi" className="bg-gray-800">Google Fi</option>
-                            <option value="cricket" className="bg-gray-800">Cricket Wireless</option>
-                            <option value="other" className="bg-gray-800">Other / VoIP</option>
-                          </select>
-                        </div>
-
-                        {/* Carrier Instructions */}
-                        <div className="bg-white/5 backdrop-blur rounded-lg p-4 border border-white/10 mb-4">
-                          <h4 className="text-white font-semibold mb-3">Step 2: Forward your calls</h4>
-                          <div className="text-blue-100 text-sm space-y-2">
-                            <p>Call your business number and enter the forwarding code:</p>
-                            <code className="bg-white/10 px-2 py-1 rounded text-white font-mono">*71{business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number).replace(/\D/g, '') : ''}#</code>
-                            <p className="text-xs text-blue-200 mt-2">Wait for confirmation tone. Call forwarding is now active.</p>
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                            <p className="text-yellow-300 text-sm font-medium">Not Verified</p>
                           </div>
+                          <p className="text-blue-200 text-sm mb-4">Forward your business phone to ReplyFlow to start capturing missed calls.</p>
+                          <Link
+                            href="/setup/phone-forwarding"
+                            className="inline-flex items-center justify-center w-full bg-white text-blue-600 font-semibold py-3 px-4 rounded-lg hover:bg-blue-50 transition-colors"
+                          >
+                            Set Up Call Forwarding
+                          </Link>
                         </div>
 
                         {/* Test Call Status */}
-                        <div className="bg-white/5 backdrop-blur rounded-lg p-4 border border-white/10 mb-4">
+                        <div className="bg-white/5 backdrop-blur rounded-lg p-4 border border-white/10">
                           <div className="flex items-center gap-3">
                             <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
                             <div>
-                              <p className="text-white font-semibold">Step 3: Verify forwarding</p>
-                              <p className="text-blue-200 text-sm">Call your business number from your phone. We'll detect the call and verify automatically.</p>
+                              <p className="text-white font-semibold">Step 2: Verify forwarding</p>
+                              <p className="text-blue-200 text-sm">After setting up forwarding, call your business number. We'll detect the call and verify automatically.</p>
                             </div>
                           </div>
-                          <div className="mt-3 flex items-center gap-2">
-                            <p className="text-yellow-300 text-sm font-medium">Waiting for first successful test call...</p>
-                          </div>
-                        </div>
-
-                        {/* I've Forwarded Button */}
-                        <div className="mb-4">
-                          <button
-                            onClick={async () => {
-                              // Soft state: mark call_forwarding_enabled = true
-                              try {
-                                const response = await fetch('/api/business/forwarding-verify', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ businessId: business.id, action: 'forwarding_enabled' })
-                                })
-                                if (response.ok) {
-                                  await refreshBusiness()
-                                }
-                              } catch (error) {
-                                console.error('[Setup Gate] Failed to mark forwarding enabled:', error)
-                              }
-                            }}
-                            className="w-full bg-white text-blue-600 font-semibold py-3 px-4 rounded-lg hover:bg-blue-50 transition-colors"
-                          >
-                            I've forwarded my calls
-                          </button>
-                          <p className="text-blue-200 text-xs text-center mt-2">This marks that you've completed the forwarding step. Verification happens when we receive your first call.</p>
-                        </div>
-
-                        {/* Troubleshooting */}
-                        <div className="border-t border-white/20 pt-4">
-                          <button
-                            onClick={() => setTroubleshootingOpen(!troubleshootingOpen)}
-                            className="flex items-center gap-2 text-white text-sm hover:text-blue-200 transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Troubleshooting & help
-                            <svg className={`w-4 h-4 transition-transform ${troubleshootingOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </button>
-                          {troubleshootingOpen && (
-                            <div className="mt-4 space-y-3 text-blue-100 text-sm">
-                              <div>
-                                <p className="font-semibold text-white mb-1">Verizon: Calls answer too quickly</p>
-                                <p className="text-xs">Call Verizon support and ask to "set conditional call forwarding/no-answer forwarding to your ReplyFlow number after 30 seconds." Do not use immediate forwarding.</p>
-                              </div>
-                              <div>
-                                <p className="font-semibold text-white mb-1">AT&T: Forwarding not activating</p>
-                                <p className="text-xs">Verify you dialed the full code including the # at the end. Try dialing again and wait for confirmation tone.</p>
-                              </div>
-                              <div>
-                                <p className="font-semibold text-white mb-1">T-Mobile: Calls go to voicemail</p>
-                                <p className="text-xs">T-Mobile may require deactivating voicemail first. Call T-Mobile support to disable conditional call forwarding voicemail.</p>
-                              </div>
-                              <div>
-                                <p className="font-semibold text-white mb-1">VoIP (RingCentral, 8x8, etc.)</p>
-                                <p className="text-xs">Log into your VoIP provider dashboard and enable call forwarding in web settings instead of using dial codes.</p>
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>

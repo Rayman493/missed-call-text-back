@@ -45,12 +45,12 @@ export default function MobileConversationComposer({
   }
 
   return (
-    <div className="border-t-2 border-border/60 bg-card/95 backdrop-blur-md p-4 sm:p-5 lg:p-6 pb-5 sm:pb-7 z-50" style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
+    <div className="border-t-2 border-border/60 bg-card/95 backdrop-blur-md p-4 sm:p-5 lg:p-6 pb-6 sm:pb-8 z-50" style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
       <div className="max-w-5xl mx-auto">
         {/* Composer Container */}
         <div className="relative">
           {/* iPhone-style Composer Row */}
-          <div className="flex items-end gap-3 bg-background border border-border rounded-2xl px-4 py-3 shadow-md hover:shadow-lg transition-shadow duration-200">
+          <div className="flex items-end gap-3 bg-background border border-border/80 rounded-2xl px-4 py-3.5 shadow-md hover:shadow-lg transition-all duration-200">
             {/* Message Input */}
             <div className="flex-1 relative">
               <textarea
@@ -60,9 +60,9 @@ export default function MobileConversationComposer({
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
                 disabled={sending}
-                className="w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-muted-foreground/60 text-base leading-relaxed py-2 px-1 max-h-28 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-muted-foreground/50 text-base leading-relaxed py-2.5 px-1 max-h-32 disabled:opacity-50 disabled:cursor-not-allowed"
                 rows={1}
-                style={{ fieldSizing: 'content' }}
+                style={{ fieldSizing: 'content', minHeight: '44px' }}
               />
               
               {/* Character Count (optional) */}
@@ -77,16 +77,16 @@ export default function MobileConversationComposer({
             <button
               onClick={handleSendMessage}
               disabled={sending || !message.trim()}
-              className={`flex-shrink-0 w-10 h-10 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed ${
+              className={`flex-shrink-0 w-11 h-11 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed ${
                 message.trim() && !sending
                   ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg'
                   : 'bg-muted hover:bg-muted/80 text-muted-foreground'
               }`}
             >
               {sending ? (
-                <div className="w-4.5 h-4.5 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
+                <div className="w-5 h-5 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
               ) : (
-                <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
               )}

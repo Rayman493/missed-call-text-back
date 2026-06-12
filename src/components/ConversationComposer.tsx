@@ -129,7 +129,7 @@ export default function ConversationComposer({
   const hasContent = message.trim() || images.length > 0
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6 bg-gray-50 dark:bg-gray-900/50">
+    <div className="border-t border-border/60 p-4 sm:p-6 bg-muted/30 backdrop-blur-sm">
       <div className="flex flex-col gap-3 sm:gap-4">
         {/* Image Previews */}
         {images.length > 0 && (
@@ -170,7 +170,7 @@ export default function ConversationComposer({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-2.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors flex-shrink-0 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="p-3 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 rounded-xl hover:bg-muted/50"
             disabled={sending}
           >
             <ImageIcon className="w-5 h-5" />
@@ -190,19 +190,19 @@ export default function ConversationComposer({
               setMessage(e.target.value)
               const textarea = e.target
               textarea.style.height = 'auto'
-              textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'
+              textarea.style.height = Math.min(textarea.scrollHeight, 140) + 'px'
             }}
             placeholder="Send a text message..."
-            className="flex-1 p-3.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base transition-all duration-200 shadow-sm"
+            className="flex-1 p-4 border border-border/60 rounded-2xl bg-card text-foreground resize-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-base leading-relaxed transition-all duration-200 shadow-sm hover:shadow-md"
             rows={1}
-            style={{ minHeight: '44px', maxHeight: '120px' }}
+            style={{ minHeight: '52px', maxHeight: '140px' }}
             disabled={sending}
           />
           <button
             type="button"
             onClick={handleSend}
             disabled={sending || !hasContent}
-            className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 flex-shrink-0"
+            className="px-5 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed text-white rounded-2xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 flex-shrink-0"
           >
             {sending ? (
               <>
