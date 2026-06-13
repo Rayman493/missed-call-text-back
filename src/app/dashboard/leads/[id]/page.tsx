@@ -130,7 +130,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     activity: true,
     automation: true,
     leadHealth: false,
-    quickActions: true
+    quickActions: true,
+    aiIntake: false
   })
   const [photoModalOpen, setPhotoModalOpen] = useState(false)
   const [selectedPhotoUrl, setSelectedPhotoUrl] = useState('')
@@ -1828,15 +1829,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {/* AI Intake Summary Card - Sticky on Desktop */}
               {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
                 <div className="sticky top-0 bg-background z-10 pb-4">
-                  <div className="bg-card border border-border/50 rounded-2xl p-4 shadow-sm">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">AI Intake</h3>
-                    <AICallDetails
-                      leadId={params.id}
-                      businessId={business.id}
-                      conversationId={leadData?.conversation?.id}
-                      callerPhone={leadData?.phone_number || lead?.phone}
-                      leadData={leadData}
-                    />
+                  <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
+                    <button
+                      onClick={() => setCollapsedSections(prev => ({ ...prev, aiIntake: !prev.aiIntake }))}
+                      className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    >
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">AI Intake Summary</h3>
+                      <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {!collapsedSections.aiIntake && (
+                      <div className="px-4 pb-4 pt-2">
+                        <AICallDetails
+                          leadId={params.id}
+                          businessId={business.id}
+                          conversationId={leadData?.conversation?.id}
+                          callerPhone={leadData?.phone_number || lead?.phone}
+                          leadData={leadData}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
