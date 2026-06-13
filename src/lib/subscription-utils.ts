@@ -89,8 +89,10 @@ export function hasActiveSubscriptionOnly(business: Business | null | undefined)
 export function isForwardingComplete(business: Business | null | undefined): boolean {
   if (!business) return false;
   
+  // CRITICAL: forwarding_verified is the definitive source of truth.
   return Boolean(
-    business.forwarding_enabled && 
+    business.forwarding_verified === true ||
+    business.forwarding_enabled || 
     business.phone_setup_completed_at
   );
 }
@@ -199,16 +201,30 @@ export function deriveSetupState(business: Business | null | undefined): SetupSt
     console.log('[deriveSetupState] Number provisioned - checking forwarding status')
   }
 
-  // Check if forwarding is enabled but not yet verified (needs final test)
+  // CRITICAL: forwarding_verified is the definitive source of truth.
+  // If forwarding has been verified, forwarding IS complete regardless of
+  // transient call_forwarding_enabled or phone_setup_completed_at values.
+  const forwardingComplete =
+    business.forwarding_verified === true ||
+    business.call_forwarding_enabled === true ||
+    Boolean(business.phone_setup_completed_at);
+
+  console.log('[deriveSetupState] Forwarding check:', {
+    forwardingComplete,
+    forwarding_verified: business.forwarding_verified,
+    call_forwarding_enabled: business.call_forwarding_enabled,
+    phone_setup_completed_at: business.phone_setup_completed_at
+  })
+
+  if (!forwardingComplete) {
+    console.log('[deriveSetupState] Forwarding not enabled - returning needs_forwarding')
+    return 'needs_forwarding'
+  }
+
+  // If forwarding is complete but not yet verified, needs final test
   if (business.call_forwarding_enabled && !business.forwarding_verified) {
     console.log('[deriveSetupState] Forwarding enabled but not verified - returning needs_final_test')
     return 'needs_final_test'
-  }
-
-  // Check if forwarding is not enabled at all
-  if (!business.call_forwarding_enabled) {
-    console.log('[deriveSetupState] Forwarding not enabled - returning needs_forwarding')
-    return 'needs_forwarding'
   }
 
   // Forwarding is verified - setup is complete
