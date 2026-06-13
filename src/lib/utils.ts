@@ -117,10 +117,15 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 
 /**
  * Get lead display name with graceful fallback
- * Priority: lead.raw_metadata?.callerName → lead.raw_metadata?.caller_name → lead.raw_metadata?.extracted_info?.callerName → lead.raw_metadata?.extracted_info?.name → ai_call_records extracted info → caller_phone / phone → "Unknown Caller"
+ * Priority: lead.contact_name → lead.raw_metadata?.callerName → lead.raw_metadata?.caller_name → lead.raw_metadata?.extracted_info?.callerName → lead.raw_metadata?.extracted_info?.name → ai_call_records extracted info → caller_phone / phone → "Unknown Caller"
  */
 export function getLeadDisplayName(lead: any): string {
-  // Try raw_metadata.callerName first (camelCase)
+  // Try direct contact_name first (highest priority)
+  if (lead.contact_name && lead.contact_name.trim()) {
+    return lead.contact_name.trim()
+  }
+
+  // Try raw_metadata.callerName (camelCase)
   if (lead.raw_metadata?.callerName && lead.raw_metadata.callerName.trim()) {
     return lead.raw_metadata.callerName.trim()
   }

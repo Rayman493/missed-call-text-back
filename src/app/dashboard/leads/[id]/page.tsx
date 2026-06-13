@@ -1507,7 +1507,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Mobile Layout: Messaging App Header */}
           <div className="md:hidden">
             <div className="flex items-center justify-between">
-              {/* Back + Phone */}
+              {/* Back + Name/Phone */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <button
                   type="button"
@@ -1522,8 +1522,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </button>
                 <div className="flex-1 min-w-0">
                   <h1 className="text-base font-semibold text-slate-900 dark:text-white leading-tight truncate">
-                    {formatPhoneNumber(lead?.caller_phone || '')}
+                    {getLeadDisplayName(leadData || lead)}
                   </h1>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    {formatPhoneNumber(lead?.caller_phone || '')}
+                  </p>
                   {/* Small Status Badge */}
                   <div className="mt-0.5">
                     <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
