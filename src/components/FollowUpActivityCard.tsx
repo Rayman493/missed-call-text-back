@@ -52,8 +52,8 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
           .from('follow_up_jobs')
           .select('id')
           .eq('business_id', business.id)
-          .eq('status', 'completed')
-          .gte('updated_at', weekStartISO)
+          .eq('status', 'sent')
+          .gte('created_at', weekStartISO)
 
         // Fetch pending follow-ups
         const { data: pendingFollowUps } = await supabase

@@ -36,10 +36,15 @@ export default function RecentActivity({ businessId }: RecentActivityProps) {
           .order('created_at', { ascending: false })
           .limit(10)
 
-        if (error) throw error
+        if (error) {
+          // Table may not exist; silently ignore
+          setActivities([])
+          return
+        }
         setActivities(data || [])
-      } catch (error) {
-        console.error('Error fetching activities:', error)
+      } catch {
+        // Table may not exist; silently ignore
+        setActivities([])
       } finally {
         setLoading(false)
       }

@@ -39,7 +39,6 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
 
         // Helper to get lead display name
         const getLeadDisplayName = (lead: any) => {
-          if (lead.name) return lead.name
           if (lead.raw_metadata?.name) return lead.raw_metadata.name
           if (lead.raw_metadata?.caller_name) return lead.raw_metadata.caller_name
           if (lead.caller_phone) return lead.caller_phone
@@ -49,7 +48,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
         // Fetch leads from last 7 days
         const { data: leads } = await supabase
           .from('leads')
-          .select('id, business_id, caller_phone, status, raw_metadata, created_at, updated_at, name, is_demo')
+          .select('id, business_id, caller_phone, status, raw_metadata, created_at, updated_at, is_demo')
           .eq('business_id', business.id)
           .eq('is_demo', false)
           .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())

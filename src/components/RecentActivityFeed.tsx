@@ -53,7 +53,7 @@ export default function RecentActivityFeed({ business }: RecentActivityFeedProps
         // Fetch follow-up jobs
         const { data: followUpJobs } = await supabase
           .from('follow_up_jobs')
-          .select('lead_id, scheduled_at, status, created_at')
+          .select('lead_id, scheduled_for, status, created_at')
           .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })

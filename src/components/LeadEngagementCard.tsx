@@ -38,11 +38,13 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
           .select('id, created_at')
           .eq('business_id', business.id)
 
-        // Get leads with replies (inbound messages)
+        const businessPhone = business.twilio_phone_number || ''
+
+        // Get leads with replies (inbound messages to business phone)
         const { data: leadsWithReplies } = await supabase
           .from('messages')
           .select('lead_id')
-          .eq('business_id', business.id)
+          .eq('to_phone', businessPhone)
           .eq('direction', 'inbound')
 
         // Get recent replies (last 7 days)
@@ -50,7 +52,7 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
         const { data: recentReplies } = await supabase
           .from('messages')
           .select('lead_id')
-          .eq('business_id', business.id)
+          .eq('to_phone', businessPhone)
           .eq('direction', 'inbound')
           .gte('created_at', sevenDaysAgo)
 

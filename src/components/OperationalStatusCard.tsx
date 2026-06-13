@@ -77,7 +77,7 @@ export default function OperationalStatusCard({
           .eq('business_id', business.id)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single()
+          .maybeSingle()
 
         // Get last successful SMS (use from_phone since messages has no business_id)
         const businessPhone = business.twilio_phone_number || ''

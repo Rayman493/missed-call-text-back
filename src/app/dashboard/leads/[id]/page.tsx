@@ -308,18 +308,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const messagesWithMedia = leadData.messages.filter((msg: any) => msg.media_count && msg.media_count > 0)
       if (messagesWithMedia.length === 0) return
 
-      console.log('[Media Fetch DEBUG] Messages with media_count > 0:', {
-        totalMessages: leadData.messages.length,
-        messagesWithMediaCount: messagesWithMedia.length,
-        messages: messagesWithMedia.map((msg: any) => ({
-          id: msg.id,
-          direction: msg.direction,
-          media_count: msg.media_count,
-          message_type: msg.message_type,
-          body: msg.body?.substring(0, 30) + '...'
-        }))
-      })
-
       const mediaMap: Record<string, { urls: string[]; types: string[] }> = {}
 
       for (const message of messagesWithMedia) {
@@ -330,39 +318,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             headers['Authorization'] = `Bearer ${session.access_token}`
           }
 
-          console.log('[Media Fetch] Fetching media for message:', {
-            messageId: message.id,
-            direction: message.direction,
-            mediaCount: message.media_count
-          })
-
           const response = await fetch(`/api/message-media?messageId=${message.id}`, { headers })
           if (response.ok) {
             const mediaData = await response.json()
-            console.log('[Media Fetch] Media data received:', {
-              messageId: message.id,
-              mediaCount: mediaData.length,
-              mediaUrls: mediaData.map((m: any) => m.media_url?.substring(0, 50) + '...')
-            })
             mediaMap[message.id] = {
               urls: mediaData.map((m: any) => m.media_url),
               types: mediaData.map((m: any) => m.mime_type)
             }
-          } else {
-            console.error('[Media Fetch] Failed to fetch media:', {
-              messageId: message.id,
-              status: response.status
-            })
           }
-        } catch (error) {
-          console.error('Error fetching message media:', error)
+        } catch {
+          // Continue without media for this message
         }
       }
-
-      console.log('[Media Fetch] Final media map:', {
-        messageCount: Object.keys(mediaMap).length,
-        messageIds: Object.keys(mediaMap)
-      })
 
       setMessageMedia(mediaMap)
     }
@@ -888,25 +855,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     automationStatus = 'Follow-ups completed'
   }
 
-  // Mount/unmount tracking
-  useEffect(() => {
-    console.log('[LEAD DETAIL PAGE] MOUNTED for leadId:', params.id, 'pathname:', typeof window !== 'undefined' ? window.location.pathname : 'server')
-    return () => {
-      console.log('[LEAD DETAIL PAGE] UNMOUNTED for leadId:', params.id)
-    }
-  }, [params.id])
-
   // Fetch lead data on mount
   useEffect(() => {
-    console.log('[LEAD DETAIL LOAD] Opening lead details for leadId:', params.id)
-    console.log('[LEAD DETAIL LOAD] LeadId type:', typeof params.id)
-    console.log('[LEAD DETAIL LOAD] LeadId length:', params.id?.length)
-    
     getLeadDetails(params.id).then(result => {
-      console.log('[LEAD DETAIL LOAD] API response:', result)
-      
       if (!result) {
-        console.log('[LEAD DETAIL LOAD] No response returned from API - this is the issue!')
         setLeadData(null)
         setLoading(false)
         return
@@ -916,13 +868,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         // Read messages and conversationId from either top-level or nested location
         const messages = result.messages || result.lead.messages || []
         const conversationId = result.conversationId || result.lead.conversationId || result.lead.conversation_id || null
-        
-        console.log('[LEAD DETAIL LOAD] API returned lead data:', result.lead)
-        console.log('[LEAD DETAIL LOAD] Message count:', messages.length)
-        console.log('[LEAD DETAIL LOAD] Conversation ID:', conversationId)
-        console.log('[LEAD DETAIL LOAD] Lead ID:', result.lead.id)
-        console.log('[LEAD DETAIL LOAD] Business ID:', result.lead.business_id)
-        
+
         // Merge top-level data into lead object for consistency
         const leadWithMergedData = {
           ...result.lead,
@@ -931,18 +877,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           messages: messages,
           conversation: result.conversation || result.lead.conversation
         }
-        
+
         setLeadData(leadWithMergedData)
         setLoading(false)
         return
       }
 
-      console.log('[LEAD DETAIL LOAD] API returned error:', result)
       setError(result.error || "Lead not found")
       setLeadData(null)
       setLoading(false)
     }).catch(error => {
-      console.error('[LEAD DETAIL LOAD] Error fetching lead details:', error)
       setError('Failed to fetch lead details')
       setLeadData(null)
       setLoading(false)

@@ -55,24 +55,12 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         todayStart.setHours(0, 0, 0, 0)
         const todayStartISO = todayStart.toISOString()
         
-        console.log('[DASHBOARD METRICS QUERY]', { 
-          businessId: business.id, 
-          thirtyDaysAgo, 
-          todayStartISO 
-        })
-        
         // Fetch leads (missed calls captured) - 30 days
-        const { data: leads, error: leadsError } = await supabase
+        const { data: leads } = await supabase
           .from('leads')
           .select('id, created_at, caller_phone')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
-
-        console.log('[DASHBOARD LEAD COUNT]', { 
-          count: leads?.length || 0, 
-          leads, 
-          error: leadsError 
-        })
 
         // Fetch leads (missed calls captured) - today
         const { data: leadsToday } = await supabase
@@ -91,52 +79,19 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
 
         const leadIds = businessLeads?.map((l: any) => l.id) || []
 
-        console.log('[DASHBOARD LEAD IDS]', {
-          businessId: business.id,
-          leadIds,
-          count: leadIds.length
-        })
-
         // Then fetch messages for those leads
-        const { data: messages, error: messagesError } = await supabase
+        const { data: messages } = await supabase
           .from('messages')
           .select('*')
           .in('lead_id', leadIds)
           .gte('created_at', thirtyDaysAgo)
 
-        console.log('[DASHBOARD ALL MESSAGES RAW]', {
-          businessId: business.id,
-          leadIds,
-          totalMessages: messages?.length || 0,
-          messages: messages,
-          error: messagesError
-        })
-
         // Filter outbound messages more robustly
         const outboundMessages = messages?.filter((m: any) => {
           const isDirectionOutbound = m.direction === 'outbound' || m.direction?.startsWith?.('outbound')
           const isFromBusinessPhone = m.from_phone === business.twilio_phone_number
-          const result = isDirectionOutbound || isFromBusinessPhone
-          console.log('[DASHBOARD MESSAGE FILTER]', {
-            messageId: m.id,
-            direction: m.direction,
-            fromPhone: m.from_phone,
-            toPhone: m.to_phone,
-            isDirectionOutbound,
-            isFromBusinessPhone,
-            result,
-            businessPhone: business.twilio_phone_number
-          })
-          return result
+          return isDirectionOutbound || isFromBusinessPhone
         }) || []
-
-        console.log('[DASHBOARD MESSAGE COUNT]', {
-          totalCount: messages?.length || 0,
-          outboundCount: outboundMessages.length,
-          businessPhone: business.twilio_phone_number,
-          outboundSample: outboundMessages.slice(0, 3),
-          error: messagesError
-        })
 
         // Fetch messages sent - today
         const { data: businessLeadsToday } = await supabase
@@ -161,11 +116,6 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
 
-        console.log('[DASHBOARD ACTIVE CONVERSATIONS]', { 
-          count: activeConversations?.length || 0, 
-          sevenDaysAgo 
-        })
-
         // Calculate metrics - 30 days
         const missedCallsCaptured = leads?.length || 0
         const leadsGenerated = missedCallsCaptured
@@ -173,12 +123,6 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         const activeConversationsCount = activeConversations?.length || 0
         // Recovery rate should be recovered leads / captured leads, not messages sent / captured leads
         const recoveryRate = missedCallsCaptured > 0 ? Math.min(100, Math.max(0, Math.round((activeConversationsCount / missedCallsCaptured) * 100))) : 0
-
-        console.log('[DASHBOARD RECOVERY RATE]', {
-          numerator: activeConversationsCount,
-          denominator: missedCallsCaptured,
-          finalRate: recoveryRate
-        })
 
         // Calculate metrics - today
         const missedCallsToday = leadsToday?.length || 0
