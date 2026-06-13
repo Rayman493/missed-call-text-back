@@ -474,7 +474,7 @@ export default function OperationalStatusCard({
               {isForwardingActive && (
                 <div className="pt-2">
                   <Link
-                    href="/setup/phone-forwarding"
+                    href="/setup/phone-forwarding?mode=review"
                     className="block w-full text-center bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium py-2 px-3 rounded transition-colors"
                   >
                     Review Forwarding Setup

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber } from '@/lib/utils'
@@ -21,8 +21,12 @@ const CARRIERS = [
 export default function PhoneForwardingPage() {
   const { business, refreshBusiness } = useBusiness()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createBrowserClient()
-  
+
+  // Check if in review mode
+  const isReviewMode = searchParams?.get('mode') === 'review'
+
   // All hooks must be called before any early returns
   const [selectedCarrier, setSelectedCarrier] = useState('')
   const [loading, setLoading] = useState(false)
@@ -39,14 +43,10 @@ export default function PhoneForwardingPage() {
       setSelectedCarrier(business.business_phone_carrier)
     }
   }, [business?.business_phone_carrier, selectedCarrier])
-  
-  console.log('[Phone Forwarding Route] Component mounted')
-  console.log('[Phone Forwarding Route] Current pathname:', typeof window !== 'undefined' ? window.location.pathname : 'unknown')
 
   // HARD GUARD: Check subscription status BEFORE any UI rendering
   // This prevents flash of forwarding UI when subscription is not active
   if (!business) {
-    console.log('[Phone Forwarding Route] Business data not loaded - showing loading')
     return (
       <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -57,28 +57,11 @@ export default function PhoneForwardingPage() {
     )
   }
 
-  console.log('[Phone Forwarding Route] Business state loaded:', {
-    id: business.id,
-    subscription_status: business.subscription_status,
-    twilio_phone_number: business.twilio_phone_number,
-    forwarding_verified: business.forwarding_verified,
-  })
-
   const setupState = deriveSetupState(business)
-  console.log('[Phone Forwarding Route] Derived setup state:', setupState)
-  console.log('[Phone Forwarding Route] Route decision:', {
-    canAccess: setupState === 'needs_forwarding' || setupState === 'needs_final_test',
-    reason: setupState === 'needs_trial' ? 'Subscription not active' :
-             setupState === 'loading' ? 'Business data not loaded' :
-             setupState === 'provisioning_or_number_pending' ? 'Number not ready' :
-             setupState === 'complete' ? 'Setup already complete' :
-             'Unknown state',
-    redirectTarget: '/dashboard'
-  })
 
   // HARD GUARD: If subscription is not active, immediately redirect without rendering any UI
-  if (setupState !== 'needs_forwarding' && setupState !== 'needs_final_test') {
-    console.log('[Phone Forwarding Route] Blocking access - redirecting to dashboard (no UI rendered)')
+  // REVIEW MODE EXCEPTION: Allow access when mode=review is present, even if setup is complete
+  if (!isReviewMode && setupState !== 'needs_forwarding' && setupState !== 'needs_final_test') {
     router.replace('/dashboard')
     return (
       <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center">
@@ -89,8 +72,6 @@ export default function PhoneForwardingPage() {
       </div>
     )
   }
-
-  console.log('[Phone Forwarding Route] Access granted - rendering forwarding UI')
 
   const handleCopyCode = () => {
     const code = getForwardingCode()
@@ -241,12 +222,10 @@ export default function PhoneForwardingPage() {
         
         // Redirect to test setup after showing success confirmation
         setTimeout(() => {
-          console.log('[Phone Forwarding] Navigating to final test step')
           router.push('/dashboard/test-setup')
         }, 1500)
       }
     } catch (error) {
-      console.error('[Phone Forwarding] Failed to complete setup:', error)
       setSaveError('Failed to save. Please try again.')
     } finally {
       setLoading(false)
@@ -260,31 +239,35 @@ export default function PhoneForwardingPage() {
           <div className="max-w-4xl mx-auto">
             {/* Header */}
             <div className="mb-8">
-              <Link 
-                href="/dashboard" 
+              <Link
+                href="/dashboard"
                 className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Dashboard
               </Link>
               <h1 className="text-3xl font-bold text-foreground mb-2">
-                Replace voicemail with AI
+                {isReviewMode ? 'Review Call Forwarding Setup' : 'Replace voicemail with AI'}
               </h1>
               <p className="text-muted-foreground">
-                ReplyFlow answers missed calls instead of voicemail and texts customers back instantly.
+                {isReviewMode
+                  ? 'Review and update your call forwarding configuration. Your business phone and ReplyFlow number are shown below.'
+                  : 'ReplyFlow answers missed calls instead of voicemail and texts customers back instantly.'}
               </p>
             </div>
 
-            {/* Progress indicator */}
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-muted-foreground">Step 3 of 4</p>
-                <p className="text-xs text-muted-foreground">Almost ready — about 1 minute left</p>
+            {/* Progress indicator - only show in first-time setup mode */}
+            {!isReviewMode && (
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-muted-foreground">Step 3 of 4</p>
+                  <p className="text-xs text-muted-foreground">Almost ready — about 1 minute left</p>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: '75%' }}></div>
+                </div>
               </div>
-              <div className="w-full bg-muted rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '75%' }}></div>
-              </div>
-            </div>
+            )}
 
             {/* Main card */}
             <div className="bg-card rounded-xl shadow-lg p-6 sm:p-8 mb-8 border border-border min-h-[600px]">
@@ -502,9 +485,9 @@ export default function PhoneForwardingPage() {
               <div className="mt-8 space-y-3">
                 <button
                   onClick={handleCompleteSetup}
-                  disabled={loading || forwardingCompleted}
+                  disabled={loading || forwardingCompleted || isReviewMode}
                   className={`w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 dark:bg-blue-500 dark:hover:bg-blue-600 dark:disabled:bg-blue-400/50 text-white font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 ${
-                    loading ? 'opacity-70 cursor-not-allowed' : forwardingCompleted ? 'bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600' : 'hover:shadow-lg'
+                    loading ? 'opacity-70 cursor-not-allowed' : forwardingCompleted ? 'bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600' : isReviewMode ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'
                   } ${ctaHighlighted ? 'ring-2 ring-green-400 ring-offset-2 ring-offset-white dark:ring-offset-card' : ''}`}
                 >
                   {loading ? (
@@ -520,6 +503,11 @@ export default function PhoneForwardingPage() {
                       <CheckCircle2 className="w-5 h-5" />
                       Forwarding enabled
                     </>
+                  ) : isReviewMode ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5" />
+                      Setup Complete
+                    </>
                   ) : (
                     <>
                       I've enabled call forwarding
@@ -527,7 +515,11 @@ export default function PhoneForwardingPage() {
                   )}
                 </button>
                 <p className="text-xs text-center text-muted-foreground">
-                  {forwardingCompleted ? 'Proceeding to final test step...' : 'Only click after you\'ve dialed the code on your phone'}
+                  {isReviewMode
+                    ? 'Your forwarding setup is complete. You can review your configuration above.'
+                    : forwardingCompleted
+                      ? 'Proceeding to final test step...'
+                      : 'Only click after you\'ve dialed the code on your phone'}
                 </p>
               </div>
             </div>

@@ -367,7 +367,7 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
       buttonText: forwardingSetupComplete ? undefined : (subscriptionActive && twilioReady ? 'Setup Call Forwarding' : undefined),
       buttonHref: forwardingSetupComplete ? undefined : (subscriptionActive && twilioReady ? '/setup/phone-forwarding' : undefined),
       secondaryButtonText: forwardingSetupComplete ? 'Review Forwarding Setup' : undefined,
-      secondaryButtonHref: forwardingSetupComplete ? '/setup/phone-forwarding' : undefined,
+      secondaryButtonHref: forwardingSetupComplete ? '/setup/phone-forwarding?mode=review' : undefined,
       details: forwardingSetupComplete 
         ? `Verified • Carrier: ${currentBusiness?.business_phone_carrier || 'Not set'} • ReplyFlow: ${currentBusiness?.twilio_phone_number ? formatPhoneNumber(currentBusiness.twilio_phone_number) : 'Loading...'}`
         : (currentBusiness?.business_phone_carrier ? `Carrier: ${currentBusiness.business_phone_carrier}` : undefined)

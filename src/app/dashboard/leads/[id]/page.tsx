@@ -129,7 +129,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     photos: true,
     activity: true,
     automation: true,
-    leadHealth: true,
+    leadHealth: false,
     quickActions: true
   })
   const [photoModalOpen, setPhotoModalOpen] = useState(false)
