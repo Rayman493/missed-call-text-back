@@ -1,7 +1,5 @@
 'use client'
 
-console.log('[LEAD DETAIL PAGE LOADED - BUILD 91374]')
-
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import ConversationComposer from '@/components/ConversationComposer'
 import MobileConversationComposer from '@/components/MobileConversationComposer'
@@ -141,47 +139,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const clearComposerImagesRef = useRef<(() => void) | null>(null)
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
 
-  // Global click capture diagnostics
-  useEffect(() => {
-    const captureHandler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      console.log('[GLOBAL CLICK CAPTURE]', {
-        tagName: target?.tagName,
-        className: target?.className,
-        id: target?.id,
-        textContent: target?.textContent?.substring(0, 50),
-        parentTag: target?.parentElement?.tagName,
-        parentClass: target?.parentElement?.className,
-        time: Date.now()
-      })
-      console.trace()
-    }
-
-    const bubbleHandler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      console.log('[GLOBAL CLICK BUBBLE]', {
-        tagName: target?.tagName,
-        className: target?.className,
-        id: target?.id,
-        textContent: target?.textContent?.substring(0, 50),
-        parentTag: target?.parentElement?.tagName,
-        parentClass: target?.parentElement?.className,
-        time: Date.now()
-      })
-      console.trace()
-    }
-
-    document.addEventListener('click', captureHandler, true)
-    document.addEventListener('click', bubbleHandler, false)
-
-    console.log('[DIAGNOSTIC] Global click listeners mounted on document')
-
-    return () => {
-      document.removeEventListener('click', captureHandler, true)
-      document.removeEventListener('click', bubbleHandler, false)
-    }
-  }, [])
-  
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
   const supabase = createBrowserClient()
@@ -1600,11 +1557,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Standard App Header */}
       <AppHeader />
 
-      {/* BUILD MARKER - confirms this file is executing */}
-      <div style={{ background: 'red', color: 'white', padding: '20px', textAlign: 'center', fontSize: '24px', fontWeight: 'bold', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99999 }}>
-        BUILD MARKER 91374 — If you see this, src/app/dashboard/leads/[id]/page.tsx IS executing
-      </div>
-
       {/* Conversation Sub-Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3">
@@ -1616,16 +1568,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   type="button"
                   onClick={() => {
-                    alert('MOBILE BACK v2 clicked')
-                    console.log('[BACK TEST] Executing fake route navigation')
-                    window.location.href = '/THIS_IS_A_TEST_ROUTE_12345'
+                    window.location.href = '/dashboard/leads'
                   }}
-                  className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors p-1 flex items-center gap-1"
+                  className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors p-1"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
-                  <span className="text-[10px] text-red-600 font-bold">MOBILE FAKE</span>
                 </button>
                 <div className="flex-1 min-w-0">
                   <h1 className="text-base font-semibold text-slate-900 dark:text-white leading-tight truncate">
@@ -1660,17 +1609,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 type="button"
                 onClick={() => {
-                  alert('DESKTOP BACK v2 clicked')
-                  console.log('[BACK TEST] Executing fake route navigation')
-                  window.location.href = '/THIS_IS_A_TEST_ROUTE_12345'
+                  window.location.href = '/dashboard/leads'
                 }}
                 className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                <span>Back to Leads</span>
-                <span className="text-[10px] text-red-600 font-bold ml-1">FAKE ROUTE TEST</span>
+                Back to Leads
               </button>
             </div>
 
