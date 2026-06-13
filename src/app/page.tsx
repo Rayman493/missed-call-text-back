@@ -141,17 +141,11 @@ function HomepageFooter() {
 }
 
 export default async function Home() {
-  console.log('[ROOT REDIRECT SIGNED IN TO DASHBOARD] Starting auth check')
-  console.log('[ROOT PAGE] rendering homepage')
-  
-  let cookieStore
+  let cookieStore: ReturnType<typeof cookies> | undefined
   try {
     cookieStore = cookies()
-    console.log('[ROOT PAGE] cookies type:', typeof cookieStore)
-    console.log('[ROOT PAGE] cookies has getAll:', typeof cookieStore.getAll)
-  } catch (error) {
-    console.error('[ROOT PAGE] cookies() error:', error)
-    throw error
+  } catch {
+    // Cookies not available (e.g., during static generation)
   }
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -161,16 +155,13 @@ export default async function Home() {
         getAll() {
           try {
             if (!cookieStore) {
-              console.warn('[ROOT PAGE] cookieStore is not available')
               return []
             }
             if (typeof cookieStore.getAll !== 'function') {
-              console.warn('[ROOT PAGE] cookieStore.getAll is not a function, type:', typeof cookieStore)
               return []
             }
             return cookieStore.getAll()
-          } catch (error) {
-            console.error('[ROOT PAGE] cookieStore.getAll() error:', error)
+          } catch {
             return []
           }
         },
@@ -184,45 +175,18 @@ export default async function Home() {
   // DISABLED: Auto-redirect for logged-in users
   // Homepage is now always public - logged-in users can access it
   // Dashboard button will take logged-in users to dashboard
-  if (session?.user) {
-    console.log('[ROUTING AUDIT DEBUG]', {
-      location: 'src/app/page.tsx',
-      guardName: 'RootPage',
-      currentPath: '/',
-      userId: session.user.id,
-      sessionExists: true,
-      authLoading: false,
-      businessLoading: 'disabled',
-      businessId: null,
-      businessFound: null,
-      twilioNumberFound: null,
-      setupComplete: null,
-      redirectTarget: 'stay on homepage',
-      reason: 'Homepage auto-redirect disabled - always render public homepage'
-    })
-  }
-
-  console.log('[ROOT PAGE] Rendering public homepage')
-  
   // Render public homepage for unauthenticated users
   return (
     <>
-      {(() => { console.log('[ROOT PAGE] before StructuredData'); return null; })()}
       <StructuredData />
-      {(() => { console.log('[ROOT PAGE] after StructuredData'); return null; })()}
-      {(() => { console.log('[ROOT PAGE] before PageBackground'); return null; })()}
       <PageBackground>
-        {(() => { console.log('[ROOT PAGE] before SSRSafeNavbar'); return null; })()}
         <SSRSafeNavbar forceDark={true} />
-        {(() => { console.log('[ROOT PAGE] after SSRSafeNavbar'); return null; })()}
-      
+
       {/* Hero Section - SAFE VERSION WITHOUT FRAMER-MOTION */}
-      {(() => { console.log('[ROOT PAGE] before safe Hero Section'); return null; })()}
       <HomepageErrorBoundary>
         <section className="relative flex flex-col items-center justify-center py-5 sm:py-6 md:py-20 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-transparent dark:from-transparent dark:via-muted/30 dark:to-transparent"></div>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-2 sm:space-y-3 relative z-10">
-            {(() => { console.log('[ROOT PAGE] before hero content'); return null; })()}
             <div className="flex flex-col items-center text-center">
               <h1 className="text-2xl sm:text-3xl md:text-6xl font-bold tracking-tight leading-[1.1] sm:leading-[1.15] text-slate-900 dark:text-foreground">
                 Never Miss a Lead Again
@@ -295,15 +259,10 @@ export default async function Home() {
                 </div>
               </div>
             </div>
-            {(() => { console.log('[ROOT PAGE] after hero content'); return null; })()}
           </div>
         </section>
       </HomepageErrorBoundary>
-      {(() => { console.log('[ROOT PAGE] after safe Hero Section'); return null; })()}
 
-      
-      
-      
       {/* How It Works */}
       <HomepageErrorBoundary>
         <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-5 sm:py-6 md:py-8 border-t border-slate-200 dark:border-border">

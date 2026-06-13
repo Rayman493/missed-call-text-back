@@ -56,32 +56,28 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       setLoading(true)
       
       // Try to find AI call record by lead_id first
-      let { data, error } = await supabase
+      let { data } = await supabase
         .from('ai_call_records')
         .select('*')
         .eq('lead_id', leadId)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
       // If not found by lead_id, try by caller_phone and business_id
-      if (error && error.code === 'PGRST116') {
-        const { data: fallbackData, error: fallbackError } = await supabase
+      if (!data) {
+        const { data: fallbackData } = await supabase
           .from('ai_call_records')
           .select('*')
           .eq('caller_phone', callerPhone)
           .eq('business_id', businessId)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single()
+          .maybeSingle()
 
-        if (!fallbackError) {
+        if (fallbackData) {
           data = fallbackData
         }
-      }
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching AI call record:', error)
       }
 
       setAiCallRecord(data)

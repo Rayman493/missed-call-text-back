@@ -118,7 +118,7 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           .eq('business_id', business.id)
           .order('created_at', { ascending: true })
           .limit(1)
-          .single()
+          .maybeSingle()
 
         if (firstLead) {
           earnedAchievements.push({
@@ -128,15 +128,16 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           })
         }
 
-        // Check for first customer reply
+        // Check for first customer reply (messages has no business_id)
+        const businessPhone = business.twilio_phone_number || ''
         const { data: firstReply } = await supabase
           .from('messages')
           .select('created_at')
-          .eq('business_id', business.id)
+          .eq('to_phone', businessPhone)
           .eq('direction', 'inbound')
           .order('created_at', { ascending: true })
           .limit(1)
-          .single()
+          .maybeSingle()
 
         if (firstReply) {
           earnedAchievements.push({
@@ -215,7 +216,7 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           .eq('status', 'completed')
           .order('created_at', { ascending: true })
           .limit(1)
-          .single()
+          .maybeSingle()
 
         if (firstFollowUp) {
           earnedAchievements.push({
@@ -225,11 +226,11 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           })
         }
 
-        // Check for 5 customer replies
+        // Check for 5 customer replies (messages has no business_id)
         const { count: replyCount } = await supabase
           .from('messages')
           .select('*', { count: 'exact', head: true })
-          .eq('business_id', business.id)
+          .eq('to_phone', businessPhone)
           .eq('direction', 'inbound')
 
         if (replyCount && replyCount >= 5) {

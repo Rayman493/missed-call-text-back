@@ -118,127 +118,40 @@ function AuthContent() {
     setError('')
 
     try {
-      console.log('[AUTH CREATE CALLED]', {
-        source: 'handleSignIn',
-        trigger: 'submit',
-      })
-      console.log('[Auth] Starting sign in process')
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      console.log('[Auth] Sign in API call completed')
-      console.log('[Auth] User exists:', !!data.user)
-      console.log('[Auth] User ID:', data.user?.id)
-      console.log('[Auth] Session exists:', !!data.session)
-      console.log('[Auth] Session user ID:', data.session?.user?.id)
-      console.log('[Auth] Error:', error)
-
       if (error) throw error
 
-      console.log('[Auth] Sign in successful, session exists:', !!data.session)
-      console.log('[Auth] User ID:', data.user?.id)
-      
       // Listen for SIGNED_IN event
-      console.log('[Auth] Setting up SIGNED_IN event listener')
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
-        console.log('[Auth] Auth state change:', event)
-        console.log('[Auth] Session after event:', !!session)
         if (event === 'SIGNED_IN' && session) {
-          console.log('[Auth] SIGNED_IN event received with session')
-          console.log('[Auth] User ID:', session.user?.id)
+          // Session established
         }
       })
 
       // Wait for session to be persisted to localStorage (mobile delay)
-      console.log('[Auth] Waiting for session persistence...')
       await new Promise(resolve => setTimeout(resolve, 500))
 
       // Verify session is actually persisted
-      const { data: { session: persistedSession }, error: sessionError } = await supabase.auth.getSession()
-      console.log('[Auth] Session persistence check:', {
-        sessionExists: !!persistedSession,
-        userId: persistedSession?.user?.id,
-        sessionError: sessionError?.message
-      })
+      const { data: { session: persistedSession } } = await supabase.auth.getSession()
 
       if (!persistedSession) {
-        console.error('[Auth] Session not persisted after sign in')
         setError('Sign in successful but session not saved. Please try again.')
         subscription.unsubscribe()
         return
       }
 
-      // Check for auth-related localStorage keys
-      const localStorageKeys: string[] = []
-      if (typeof window !== 'undefined') {
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i)
-          if (key && (key.includes('supabase') || key.includes('auth') || key.includes('sb-'))) {
-            localStorageKeys.push(key)
-          }
-        }
-      }
-      console.log('[Auth] Auth-related localStorage keys:', localStorageKeys)
-
       subscription.unsubscribe()
-      
-      // Fetch business row from database using authenticated user.id
-      console.log('[ROUTING AUDIT DEBUG]', {
-        location: 'src/app/auth/page.tsx',
-        guardName: 'AuthPage',
-        currentPath: window.location.pathname,
-        userId: persistedSession.user.id,
-        sessionExists: !!persistedSession,
-        authLoading: false,
-        businessLoading: 'fetching...',
-        businessId: 'fetching...',
-        businessFound: 'fetching...',
-        businessName: 'fetching...',
-        businessPhone: 'fetching...',
-        twilioNumberFound: 'fetching...',
-        setupComplete: 'fetching...',
-        redirectTarget: 'determining...',
-        reason: 'Fetching business row for routing decision'
-      })
 
+      // Fetch business row from database using authenticated user.id
       const { data: business, error: businessError } = await supabase
         .from('businesses')
         .select('*')
         .eq('user_id', persistedSession.user.id)
         .single()
-
-      console.log('[POST LOGIN BUSINESS QUERY RESULT]', {
-        location: 'src/app/auth/page.tsx',
-        userId: persistedSession.user.id,
-        sessionExists: !!persistedSession,
-        businessId: business?.id,
-        businessFound: !!business,
-        errorCode: businessError?.code,
-        errorMessage: businessError?.message,
-        redirectTarget: business ? '/dashboard' : (businessError?.code === 'PGRST116' ? '/onboarding' : '/dashboard?setup_check=failed'),
-        reason: business ? 'Business row exists' : (businessError?.code === 'PGRST116' ? 'No business row (PGRST116)' : 'Business query error')
-      })
-
-      console.log('[ROUTING AUDIT DEBUG]', {
-        location: 'src/app/auth/page.tsx',
-        guardName: 'AuthPage',
-        currentPath: window.location.pathname,
-        userId: persistedSession.user.id,
-        sessionExists: !!persistedSession,
-        authLoading: false,
-        businessLoading: 'complete',
-        businessId: business?.id,
-        businessFound: !!business,
-        businessName: business?.name,
-        businessPhone: business?.business_phone_number,
-        twilioNumberFound: !!business?.twilio_phone_number,
-        setupComplete: business?.onboarding_status === 'completed',
-        redirectTarget: business ? '/dashboard' : '/onboarding',
-        reason: business ? 'Business row exists' : 'No business row exists'
-      })
 
       // Clear stale localStorage keys
       if (typeof window !== 'undefined') {
@@ -246,13 +159,12 @@ function AuthContent() {
         keysToClear.forEach(key => {
           localStorage.removeItem(key)
         })
-        console.log('[POST LOGIN ROUTING DEBUG] Cleared stale localStorage keys')
       }
-      
+
       // Show redirecting state
       setRedirecting(true)
       setLoading(false)
-      
+
       // Determine redirect target based on business query result
       let redirectTarget: string
       if (business) {
@@ -264,29 +176,8 @@ function AuthContent() {
       } else {
         // Business query error - go to dashboard with setup check failed, not onboarding
         redirectTarget = '/dashboard?setup_check=failed'
-        console.warn('[Auth] Business query error, routing to dashboard instead of onboarding:', businessError)
       }
-      
-      console.log('[POST LOGIN BUSINESS QUERY]', {
-        location: 'src/app/auth/page.tsx',
-        userId: persistedSession.user.id,
-        sessionExists: !!persistedSession,
-        businessFound: !!business,
-        businessId: business?.id,
-        errorCode: businessError?.code,
-        errorMessage: businessError?.message,
-        redirectTarget: redirectTarget
-      })
-      
-      // Use returnTo parameter if present (for post-Stripe recovery), otherwise use redirectParam
-      console.log('[Auth] Session persisted and business fetched, redirecting to:', redirectTarget, {
-        returnToParam,
-        redirectParam,
-        chosen: redirectTarget,
-        businessId: business?.id,
-        hasBusiness: !!business
-      })
-      
+
       await new Promise(resolve => setTimeout(resolve, 800))
       router.push(redirectTarget)
     } catch (err: any) {
@@ -298,11 +189,6 @@ function AuthContent() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    console.log('[SIGNUP] submit clicked')
-    console.log('[SIGNUP] isSubmitting:', isSubmitting)
-    console.log('[SIGNUP] isSubmittingRef.current:', isSubmittingRef.current)
-    console.trace('[SIGNUP] submit invoked from')
 
     // IMPORTANT: For MVP/testing mode, email confirmation should be disabled in Supabase
     // Supabase Dashboard → Authentication → Providers → Email → Confirm email = OFF
@@ -323,7 +209,6 @@ function AuthContent() {
 
     // Hard submit lock - prevent double-submit
     if (isSubmitting || isSubmittingRef.current) {
-      console.log('[SIGNUP] Submit already in progress, blocking duplicate submit')
       return
     }
     setIsSubmitting(true)
@@ -333,15 +218,6 @@ function AuthContent() {
     setExistingAccount(false)
 
     try {
-      console.log('[SIGNUP] signUp starting')
-      console.log('[AUTH CREATE CALLED]', {
-        source: 'handleSignUp',
-        trigger: 'submit',
-        email,
-      })
-      console.log('[Auth] Starting sign up process')
-      console.log('[Auth] Email:', email)
-      
       // Step 1: Attempt sign up
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -351,53 +227,25 @@ function AuthContent() {
         }
       })
 
-      console.log('[Auth] Sign up API call completed')
-      console.log('[SIGNUP LOG] signUp error:', error?.message || 'none')
-      console.log('[SIGNUP LOG] signUp user exists:', !!data.user)
-      console.log('[SIGNUP LOG] signUp session exists:', !!data.session)
-      console.log('[SIGNUP RESULT]', {
-        hasUser: !!data.user,
-        hasSession: !!data.session,
-        emailConfirmed: !!data.user?.email_confirmed_at,
-      })
-      console.log('[Auth] Full response:', JSON.stringify(data, null, 2))
-      console.log('[Auth] User created:', !!data.user)
-      console.log('[Auth] User ID:', data.user?.id)
-      console.log('[Auth] User email:', data.user?.email)
-      console.log('[Auth] User email_confirmed_at:', data.user?.email_confirmed_at)
-      console.log('[Auth] User confirmation_sent_at:', data.user?.confirmation_sent_at)
-      console.log('[Auth] User identities length:', data.user?.identities?.length)
-      console.log('[Auth] Session created:', !!data.session)
-      console.log('[Auth] Session user ID:', data.session?.user?.id)
-      console.log('[Auth] Session access token exists:', !!data.session?.access_token)
-      console.log('[Auth] Error:', error)
-
       if (error) {
-        console.log('[SIGNUP] signUp error:', error)
-        console.error('[Auth] Sign up API returned error:', error.message)
-        console.error('[Auth] Error status:', error.status)
-        console.error('[Auth] Error code/name:', error.name || error.code || 'unknown')
-        
         const errorMessage = error.message || 'Failed to sign up'
         const errorCode = error.name || error.code || ''
-        
+
         // Only show "account already exists" for specific duplicate auth errors
-        const isDuplicateError = 
+        const isDuplicateError =
           errorCode === 'UserAlreadyExists' ||
           errorCode === 'DuplicateUser' ||
           errorMessage.toLowerCase().includes('user already registered') ||
           errorMessage.toLowerCase().includes('already exists') ||
           errorMessage.toLowerCase().includes('duplicate email')
-        
+
         if (isDuplicateError) {
-          console.log('[Auth] Duplicate auth error detected')
           setExistingAccount(true)
           setError('Account already exists. Please sign in.')
         } else {
-          console.log('[Auth] Non-duplicate auth error, showing real message')
           setError(errorMessage)
         }
-        
+
         // Store debug info for display
         setDebugError({
           message: errorMessage,
@@ -406,22 +254,17 @@ function AuthContent() {
           hasUser: !!data.user,
           hasSession: !!data.session,
         })
-        
+
         setLoading(false)
         setIsSubmitting(false)
         isSubmittingRef.current = false
         return
       }
 
-      console.log('[SIGNUP] signUp completed successfully')
       // Success path 1: Email confirmation is required (user exists but no session)
       if (data.user && !data.session) {
-        console.log('[Auth] Email confirmation required - user created but no session')
-        console.log('[Auth] User email_confirmed_at:', data.user?.email_confirmed_at)
-        
         // Explicit handling for unconfirmed users - do NOT continue without session
         if (!data.user?.email_confirmed_at) {
-          console.log('[Auth] Email not confirmed, showing confirmation message')
           setError('Please check your email to confirm your account before continuing.')
           setIsSignIn(true)
           setDebugError({
@@ -435,33 +278,20 @@ function AuthContent() {
           isSubmittingRef.current = false
           return
         }
-        
-        console.log('[Auth] This indicates email confirmation is enabled in Supabase')
-        console.log('[Auth] Attempting auto sign-in to bypass email confirmation for MVP')
-        
+
         // Auto sign-in to bypass email confirmation for MVP
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
-        console.log('[SIGNUP LOG] signInWithPassword error:', signInError?.message || 'none')
-        console.log('[Auth] Auto sign-in result:', {
-          success: !signInError,
-          sessionExists: !!signInData.session,
-          userId: signInData.session?.user?.id,
-          error: signInError?.message
-        })
 
         if (signInError || !signInData.session) {
-          console.error('[Auth] Auto sign-in failed')
           const signInErrorMessage = signInError?.message || 'Unknown error'
-          console.error('[Auth] Auto sign-in error:', signInErrorMessage)
-          
+
           // Only redirect to sign-in if error clearly indicates email confirmation is required
           if (signInErrorMessage.toLowerCase().includes('email not confirmed') ||
               signInErrorMessage.toLowerCase().includes('confirm your email') ||
               signInErrorMessage.toLowerCase().includes('email confirmation')) {
-            console.log('[Auth] Email confirmation required, redirecting to sign-in')
             setError('Account created! Please check your email to confirm, then sign in.')
             setIsSignIn(true)
             setDebugError({
@@ -476,7 +306,7 @@ function AuthContent() {
             router.push(`/auth/signin?email=${encodeURIComponent(email)}`)
             return
           }
-          
+
           // For any other error, show the error but don't redirect
           setError(`Account created but could not establish session: ${signInErrorMessage}. Please try signing in.`)
           setIsSignIn(true)
@@ -492,19 +322,13 @@ function AuthContent() {
           return
         }
 
-        console.log('[Auth] Auto sign-in succeeded, using this session')
         // Continue with the signInData.session
       }
 
       // Success path 3: Verify session exists before proceeding
-      console.log('[Auth] Verifying session exists before redirect...')
       const { data: { session: verifiedSession } } = await supabase.auth.getSession()
-      console.log('[SIGNUP LOG] final getSession session exists:', !!verifiedSession)
-      console.log('[Auth] Verified session exists:', !!verifiedSession)
-      console.log('[Auth] Verified session user ID:', verifiedSession?.user?.id)
-      
+
       if (!verifiedSession) {
-        console.error('[Auth] No session after signup and auto sign-in attempt')
         setError('Account created but session could not be established. Please sign in.')
         setIsSignIn(true)
         setLoading(false)
@@ -512,53 +336,15 @@ function AuthContent() {
         return
       }
 
-      console.log('[Auth] Session established, redirecting to dashboard')
-      console.log('[SIGNUP LOG] final redirect target: /dashboard')
-      console.log('[REDIRECT]', {
-        from: window.location.pathname,
-        to: '/dashboard',
-        reason: 'Signup successful with verified session',
-        hasSession: true,
-        component: 'Auth',
-        userId: verifiedSession?.user?.id,
-        email: verifiedSession?.user?.email,
-        emailConfirmed: !!verifiedSession?.user?.email_confirmed_at
-      })
-      
-      // Log final session state for debugging
-      console.log('[SIGNUP FINAL SESSION STATE]', {
-        sessionExists: !!verifiedSession,
-        userId: verifiedSession?.user?.id,
-        email: verifiedSession?.user?.email,
-        accessTokenExists: !!verifiedSession?.access_token,
-        refreshTokenExists: !!verifiedSession?.refresh_token,
-        expiresAt: verifiedSession?.expires_at,
-        emailConfirmedAt: verifiedSession?.user?.email_confirmed_at
-      })
-      
-      // Log localStorage state
-      const localStorageKeys: string[] = []
-      if (typeof window !== 'undefined') {
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i)
-          if (key && (key.includes('supabase') || key.includes('auth') || key.includes('sb-'))) {
-            localStorageKeys.push(key)
-          }
-        }
-      }
-      console.log('[SIGNUP AUTH STORAGE] localStorage keys:', localStorageKeys)
-      
       setLoading(false)
       isSubmittingRef.current = false
-      
+
       // Show redirecting state
       setRedirecting(true)
-      
+
       await new Promise(resolve => setTimeout(resolve, 800))
       router.replace('/dashboard')
     } catch (err: any) {
-      console.error('[Auth] Unexpected sign up error:', err)
-      console.log('[SIGNUP] signUp error in catch block:', err)
       setError(err.message || 'Failed to sign up')
     } finally {
       // Only set loading false if not already set in success/error paths
@@ -567,18 +353,10 @@ function AuthContent() {
       }
       setIsSubmitting(false)
       isSubmittingRef.current = false
-      console.log('[SIGNUP] submit lock released')
     }
   }
 
   const handleBackToHomepage = () => {
-    console.log('[SIGNIN HOME NAV DEBUG]', {
-      currentPath: window.location.pathname,
-      targetPath: '/',
-      userId: null,
-      authLoading: loading,
-      reason: 'User clicked Back to Homepage'
-    })
     // No cookie needed since homepage auto-redirect is disabled
     router.push('/')
   }

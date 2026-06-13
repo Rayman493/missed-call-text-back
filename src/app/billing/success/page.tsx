@@ -55,20 +55,7 @@ export default function BillingSuccessPage() {
 
   // Trace log on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-      const mountData = {
-        pathname: window.location.pathname,
-        search: window.location.search,
-        sessionId,
-        referrer: document.referrer,
-        isMobile,
-        userAgent: navigator.userAgent,
-        timestamp: new Date().toISOString()
-      }
-      
-      console.log('[Billing Success Mount]', mountData)
-    }
+    // Mount tracking removed
   }, [sessionId])
 
   // Validate session_id
@@ -84,35 +71,16 @@ export default function BillingSuccessPage() {
     if (!sessionId) return
 
     const checkSession = async () => {
-      console.log('[Stripe Return Auth] Checking session restoration', {
-        sessionId,
-        timestamp: new Date().toISOString()
-      })
-
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        
-        if (sessionError) {
-          console.error('[Stripe Return Auth] Session check error:', sessionError)
-        }
+        const { data: { session } } = await supabase.auth.getSession()
 
         if (session && session.user) {
-          console.log('[Stripe Return Auth] Session restored', {
-            userId: session.user.id,
-            email: session.user.email,
-            timestamp: new Date().toISOString()
-          })
           setSessionUser(session.user)
           setSessionRestorationState('restored')
         } else {
-          console.log('[Stripe Return Auth] Session missing', {
-            sessionId,
-            timestamp: new Date().toISOString()
-          })
           setSessionRestorationState('missing')
         }
-      } catch (error) {
-        console.error('[Stripe Return Auth] Session check failed:', error)
+      } catch {
         setSessionRestorationState('missing')
       }
     }
@@ -126,12 +94,6 @@ export default function BillingSuccessPage() {
 
     const pollStatus = async () => {
       try {
-        console.log('[Billing Success Poll]', { 
-          sessionId, 
-          pollCount: pollCount + 1,
-          timestamp: new Date().toISOString()
-        })
-
         const response = await fetch('/api/billing/checkout-status', {
           method: 'POST',
           headers: {
@@ -143,36 +105,14 @@ export default function BillingSuccessPage() {
         const data: CheckoutStatus = await response.json()
 
         if (!response.ok) {
-          console.error('[Billing Success Poll API Error]', {
-            status: response.status,
-            data,
-            pollCount: pollCount + 1
-          })
           throw new Error(data.error || 'Failed to check status')
         }
 
-        console.log('[Billing Success Poll Response]', {
-          ok: data.ok,
-          checkoutStatus: data.checkoutStatus,
-          subscriptionStatus: data.subscriptionStatus,
-          provisioningStatus: data.provisioningStatus,
-          hasTwilioNumber: data.hasTwilioNumber,
-          redirectReady: data.redirectReady,
-          pollCount: pollCount + 1
-        })
         setStatus(data)
         setPollCount(prev => prev + 1)
 
         // Check if subscription is ready for reauth
         if (data.ok && ['trialing', 'active'].includes(data.subscriptionStatus)) {
-          console.log('[Billing Success Ready For Reauth]', {
-            sessionId,
-            subscriptionStatus: data.subscriptionStatus,
-            provisioningStatus: data.provisioningStatus,
-            hasTwilioNumber: data.hasTwilioNumber,
-            timestamp: new Date().toISOString()
-          })
-          
           // Show success state instead of auto-redirecting
           setStatus({
             ...data,
@@ -182,11 +122,6 @@ export default function BillingSuccessPage() {
         }
 
       } catch (err) {
-        console.error('[Billing Success Poll Error]', {
-          error: err instanceof Error ? err.message : String(err),
-          pollCount: pollCount + 1,
-          timestamp: new Date().toISOString()
-        })
         if (pollCount >= 5) { // Allow some retries before showing error
           setError(err instanceof Error ? err.message : 'Failed to check status')
         }
@@ -216,11 +151,6 @@ export default function BillingSuccessPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!status?.ok || !['trialing', 'active'].includes(status.subscriptionStatus)) {
-        console.log('[Billing Success Timeout]', {
-          sessionId,
-          pollCount,
-          finalStatus: status
-        })
         setIsTimeout(true)
       }
     }, TIMEOUT_DURATION)
@@ -307,15 +237,6 @@ export default function BillingSuccessPage() {
             {sessionRestorationState === 'restored' ? (
               <button
                 onClick={() => {
-                  const clickData = {
-                    sessionId,
-                    subscriptionStatus: status.subscriptionStatus,
-                    destination: '/dashboard?setup=1',
-                    sessionUser: sessionUser?.id,
-                    timestamp: new Date().toISOString()
-                  }
-                  console.log('[Billing Success Continue to Dashboard]', clickData)
-                  console.log('[Billing Success] Performing hard navigation to force clean state initialization')
                   window.location.href = '/dashboard?setup=1'
                 }}
                 className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 w-full"
@@ -379,7 +300,6 @@ export default function BillingSuccessPage() {
           {sessionRestorationState === 'restored' ? (
             <button
               onClick={() => {
-                console.log('[Billing Success Timeout] Performing hard navigation to dashboard with setup mode')
                 window.location.href = '/dashboard?setup=1'
               }}
               className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"

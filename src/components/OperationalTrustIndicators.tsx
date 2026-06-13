@@ -28,23 +28,23 @@ export default function OperationalTrustIndicators() {
       try {
         const supabase = createBrowserClient()
 
-        // Check calendar connection
+        // Check calendar connection (defensive: may not exist)
         const { data: calendarData } = await supabase
           .from('calendar_integrations')
           .select('id')
           .eq('business_id', business.id)
           .eq('provider', 'google')
-          .single()
+          .maybeSingle()
         
         setCalendarConnected(!!calendarData)
 
-        // Check SMS active (has sent SMS successfully recently)
+        // Check SMS active (messages has no business_id; filter by from_phone)
+        const businessPhone = business.twilio_phone_number || ''
         const { count: recentSmsCount } = await supabase
           .from('messages')
           .select('*', { count: 'exact', head: true })
-          .eq('business_id', business.id)
+          .eq('from_phone', businessPhone)
           .eq('direction', 'outbound')
-          .in('status', ['sent', 'delivered'])
           .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Last 7 days
 
         setSmsActive((recentSmsCount || 0) > 0)

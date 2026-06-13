@@ -223,12 +223,6 @@ export default function DashboardContent() {
 
   // Setup mode detection - check if user came from billing success
   const setupMode = searchParams?.get('setup') === '1'
-  console.log('[Dashboard Setup Mode]', {
-    setupMode,
-    hasBusiness: !!business,
-    businessLoading,
-    businessFetchComplete
-  })
 
   // Check if user is admin based on user ID
   const isAdmin = isAdminUserById(user?.id)
@@ -269,8 +263,6 @@ export default function DashboardContent() {
       missedCallsCaptured: missedCallCount
     }
   })
-
-  console.log('[SETUP HEALTH]', setupHealth)
 
   // Determine if onboarding is fully complete
   const isOnboardingComplete = Boolean(business?.phone_setup_completed_at && business?.forwarding_verified)
@@ -451,8 +443,7 @@ export default function DashboardContent() {
         }
 
         return false
-      } catch (error) {
-        console.error('[Checkout Recovery] getSession exception:', error)
+      } catch {
         return false
       }
     }
@@ -462,18 +453,7 @@ export default function DashboardContent() {
       
       if (restored) {
         clearInterval(recoveryInterval)
-        console.log('[Checkout Recovery] Session restored, ending recovery mode')
         setIsRecoveringSession(false)
-        
-        // Clean URL params
-        console.error('[DASHBOARD REDIRECT]', {
-          file: 'src/app/dashboard/DashboardContent.tsx',
-          line: 469,
-          reason: 'Checkout recovery - session restored, cleaning URL params',
-          from: pathname,
-          to: '/dashboard',
-          stack: new Error().stack
-        })
         router.replace('/dashboard')
       }
     }, RETRY_INTERVAL)
@@ -481,21 +461,12 @@ export default function DashboardContent() {
     // Fallback timeout
     const recoveryTimeout = setTimeout(() => {
       clearInterval(recoveryInterval)
-      
+
       if (!sessionRestored) {
-        console.log('[Checkout Recovery] Recovery failed after timeout, redirecting to signin')
         setIsRecoveringSession(false)
         router.push('/auth/signin?redirect=/dashboard')
       } else {
         setIsRecoveringSession(false)
-        console.error('[DASHBOARD REDIRECT]', {
-          file: 'src/app/dashboard/DashboardContent.tsx',
-          line: 483,
-          reason: 'Checkout recovery - timeout fallback with session restored',
-          from: pathname,
-          to: '/dashboard',
-          stack: new Error().stack
-        })
         router.replace('/dashboard')
       }
     }, RECOVERY_TIMEOUT)
@@ -510,7 +481,6 @@ export default function DashboardContent() {
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (businessLoading || webhookConfirming) {
-        console.log('[Dashboard] Loading timeout reached after 8 seconds, forcing render')
         setLoadingTimeout(true)
         setWebhookConfirming(false)
       }
@@ -831,41 +801,7 @@ export default function DashboardContent() {
   // This prevents flash of previous setup/onboarding screens during dashboard load
   // Release loading gate when: auth resolved, business fetch resolved, AND (business exists OR no business profile)
   if (authLoading || businessLoading || webhookConfirming || !businessFetchComplete) {
-    console.log('[Dashboard Gate] loading - waiting for auth/business/subscription/state to resolve', {
-      authLoading,
-      businessLoading,
-      webhookConfirming,
-      businessFetchComplete,
-      hasBusiness: !!business,
-      onboardingState: onboardingState?.state,
-      subscription_status: business?.subscription_status
-    })
     return <AppLoadingScreen />
-  }
-
-  // State is resolved - log which dashboard state we're rendering
-  if (!isSubscriptionActive) {
-    console.log('[Dashboard Gate] rendering pre-trial dashboard', {
-      subscription_status: business?.subscription_status,
-      isSubscriptionActive
-    })
-  } else {
-    console.log('[Dashboard Gate] rendering active setup dashboard', {
-      subscription_status: business?.subscription_status,
-      isSubscriptionActive
-    })
-  }
-
-  console.log('[Dashboard Gate] resolved - state fully loaded', {
-    subscription_status: business?.subscription_status,
-    isSubscriptionActive,
-    onboardingState: onboardingState.state,
-    hasBusiness: !!business
-  })
-
-  // If loading timeout reached, show dashboard anyway (don't render blank)
-  if (loadingTimeout) {
-    console.log('[Dashboard] Loading timeout, rendering dashboard anyway')
   }
 
   // CENTRAL DASHBOARD GUARD: Prevent incomplete users from accessing full dashboard
@@ -885,20 +821,6 @@ export default function DashboardContent() {
                          business?.stripe_subscription_id
   const hasValidAccess = subscriptionActive || manualAccessActive || lifetimeAccessActive
 
-  console.log('[DASHBOARD GATE DECISION]', {
-    businessId: business?.id,
-    setupState,
-    hasValidAccess,
-    stripeStatus: business?.subscription_status,
-    trialStatus: business?.subscription_status === 'trialing',
-    manualAccess: (business as any)?.manual_access,
-    manualAccessExpiresAt: (business as any)?.manual_access_expires_at,
-    manualAccessValid: manualAccessActive,
-    lifetimeAccess: (business as any)?.lifetime_access,
-    forwardingStatus: business?.forwarding_verified,
-    redirectTarget: null,
-    reason: 'Evaluating dashboard guard'
-  })
 
   if (businessFetchComplete && !businessLoading && business && !isAdmin) {
     // If setup is incomplete, stay on dashboard and show Setup Gate
@@ -907,76 +829,19 @@ export default function DashboardContent() {
       const targetRoute = (() => {
         switch (setupState) {
           case 'needs_trial':
-            // DO NOT redirect to /onboarding - that's for users with no business row
-            // If user has a business but needs trial/access, go to dashboard with show billing prompt
-            console.log('[DASHBOARD GATE DECISION]', {
-              businessId: business?.id,
-              setupState,
-              hasValidAccess,
-              stripeStatus: business?.subscription_status,
-              trialStatus: business?.subscription_status === 'trialing',
-              manualAccess: (business as any)?.manual_access,
-              manualAccessValid: manualAccessActive,
-              lifetimeAccess: (business as any)?.lifetime_access,
-              forwardingStatus: business?.forwarding_verified,
-              redirectTarget: '/dashboard',
-              reason: 'Business exists but needs trial/access - allow dashboard access with billing prompt'
-            })
-            return null  // Stay on dashboard, show billing prompt
+            return null
           case 'provisioning_or_number_pending':
-            // Stay on dashboard, show provisioning status
-            console.log('[DASHBOARD GATE DECISION]', {
-              businessId: business?.id,
-              setupState,
-              redirectTarget: '/dashboard',
-              reason: 'Provisioning in progress - stay on dashboard'
-            })
-            return null  // Stay on dashboard
+            return null
           case 'needs_forwarding':
-            // Stay on dashboard, show Setup Gate
-            console.log('[DASHBOARD GATE DECISION]', {
-              businessId: business?.id,
-              setupState,
-              redirectTarget: '/dashboard',
-              reason: 'Forwarding needed - stay on dashboard and show Setup Gate'
-            })
-            return null  // Stay on dashboard
+            return null
           case 'needs_final_test':
-            // Stay on dashboard, show test call section in Setup Gate
-            console.log('[DASHBOARD GATE DECISION]', {
-              businessId: business?.id,
-              setupState,
-              redirectTarget: '/dashboard',
-              reason: 'Test needed - stay on dashboard and show test section'
-            })
-            return null  // Stay on dashboard
+            return null
           default:
             return null
         }
       })()
 
-      // No redirects - all setup happens in dashboard
       if (targetRoute && targetRoute !== pathname) {
-        console.log('[DASHBOARD GATE DECISION]', {
-          businessId: business?.id,
-          setupState,
-          hasValidAccess,
-          stripeStatus: business?.subscription_status,
-          trialStatus: business?.subscription_status === 'trialing',
-          manualAccess: (business as any)?.manual_access,
-          manualAccessValid: manualAccessActive,
-          lifetimeAccess: (business as any)?.lifetime_access,
-          forwardingStatus: business?.forwarding_verified,
-          redirectTarget: targetRoute,
-          reason: 'Setup incomplete, redirecting to setup step'
-        })
-        console.log('[Dashboard Gate] Setup incomplete, redirecting:', {
-          setupState,
-          targetRoute,
-          currentPath: pathname,
-          subscription_status: business?.subscription_status,
-          provisioning_status: business?.provisioning_status
-        })
         router.push(targetRoute)
         return <AppLoadingScreen />
       }
@@ -988,68 +853,21 @@ export default function DashboardContent() {
   if (businessFetchComplete && !businessLoading) {
     // User has no business at all - redirect to onboarding/profile
     if (!business) {
-      console.log('[Post Trial Routing Decision]', {
-        pathname: '/dashboard',
-        destination: '/onboarding',
-        subscriptionStatus: null,
-        onboardingStatus: null,
-        hasBusiness: false,
-        reason: 'No business exists'
-      })
-      console.log('[Dashboard Gate] No business found, redirecting to onboarding/profile')
       router.push('/onboarding')
       return <AppLoadingScreen />
     }
-    
+
     // Check if user has active subscription (trialing or active)
     const hasActiveSubscription = isActiveSubscription(business.subscription_status)
-    
+
     // User has business but missing required fields - ONLY redirect if NO active subscription
     if (!business.name || !business.business_phone_number) {
-      if (hasActiveSubscription) {
-        console.log('[Post Trial Routing Decision]', {
-          pathname: '/dashboard',
-          destination: 'dashboard',
-          subscriptionStatus: business.subscription_status,
-          onboardingStatus: business.onboarding_status,
-          hasBusiness: true,
-          reason: 'Active subscription allows dashboard access despite missing profile'
-        })
-        console.log('[Dashboard Gate] User has active subscription, allowing dashboard access despite missing profile', {
-          subscriptionStatus: business.subscription_status,
-          hasName: !!business.name,
-          hasPhone: !!business.business_phone_number
-        })
-        // Allow dashboard access - Setup Progress component will handle incomplete profile
-      } else {
-        console.log('[Post Trial Routing Decision]', {
-          pathname: '/dashboard',
-          destination: '/onboarding',
-          subscriptionStatus: business.subscription_status,
-          onboardingStatus: business.onboarding_status,
-          hasBusiness: true,
-          reason: 'No active subscription AND missing profile'
-        })
-        console.log('[Dashboard Gate] Business missing name or phone AND no active subscription, redirecting to onboarding/profile', {
-          hasName: !!business.name,
-          hasPhone: !!business.business_phone_number,
-          subscriptionStatus: business.subscription_status
-        })
+      if (!hasActiveSubscription) {
         router.push('/onboarding')
         return <AppLoadingScreen />
       }
+      // Allow dashboard access - Setup Progress component will handle incomplete profile
     }
-  }
-
-  // Log when rendering active dashboard
-  if (business) {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
-    console.log('[rendering active dashboard]', {
-      isMobile,
-      hasBusiness: !!business,
-      subscription_status: business?.subscription_status,
-      onboarding_status: business?.onboarding_status
-    })
   }
 
   // Prepare debug info for error boundary

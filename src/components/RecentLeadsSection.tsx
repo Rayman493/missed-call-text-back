@@ -312,17 +312,6 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
     return `In ${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''}`
   }
 
-  // Render the leads section
-  console.log('[Dashboard Render] RecentLeadsSection')
-  console.log('[RecentLeadsSection] raw leads data:', leads)
-  console.log('[RecentLeadsSection] Array.isArray(leads):', Array.isArray(leads))
-  console.log('[RecentLeadsSection] leads.length:', leads.length)
-  if (leads.length > 0) {
-    console.log('[RecentLeadsSection] first lead keys:', Object.keys(leads[0]))
-    console.log('[RecentLeadsSection AUDIT] rendering first lead id:', leads[0].id)
-  }
-  // AUDIT: No selectedLead, no auto-open, no router.push/replace in this component
-
   if (loading) {
     return (
       <DashboardErrorBoundary>
