@@ -28,7 +28,6 @@ export interface AICallSession {
   callback_number: string | null
   error_message: string | null
   raw_metadata: any
-  custom_business_type: string | null
   created_at: string
   updated_at: string
 }
@@ -38,7 +37,6 @@ export interface CreateSessionParams {
   lead_id: string | null
   call_sid: string
   openai_session_id?: string
-  custom_business_type?: string | null
 }
 
 export interface UpdateSessionParams {
@@ -63,22 +61,20 @@ export interface UpdateSessionParams {
  */
 export async function createAISession(params: CreateSessionParams): Promise<AICallSession | null> {
   try {
-    console.log('[AI CALL ASSISTANT] Creating session', {
+    const insertPayload = {
       business_id: params.business_id,
-      call_sid: params.call_sid
-    })
+      lead_id: params.lead_id,
+      call_sid: params.call_sid,
+      openai_session_id: params.openai_session_id || null,
+      status: 'started',
+      started_at: new Date().toISOString(),
+    }
+
+    console.log('[AI SESSION INSERT PAYLOAD]', insertPayload)
 
     const { data, error } = await supabaseAdmin
       .from('ai_call_sessions')
-      .insert({
-        business_id: params.business_id,
-        lead_id: params.lead_id,
-        call_sid: params.call_sid,
-        openai_session_id: params.openai_session_id || null,
-        custom_business_type: params.custom_business_type || null,
-        status: 'started',
-        started_at: new Date().toISOString(),
-      })
+      .insert(insertPayload)
       .select()
       .single()
 
