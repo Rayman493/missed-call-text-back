@@ -30,20 +30,6 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
     if (!businessId) return
 
     const fetchLeads = async () => {
-      console.log('[LEAD QUERY DEBUG]', {
-        location: 'src/components/RecentLeadsSection.tsx',
-        businessId,
-        userId: null,
-        statusFilter: 'all',
-        isDemoFilter: false,
-        ignoredFilter: false,
-        createdAtRange: 'all',
-        returnedCount: 'fetching',
-        leadIds: []
-      })
-      // AUDIT: RecentLeadsSection fetchLeads — no auto-navigation logic here
-      
-      console.log('[Leads Fetch] Starting leads fetch', { businessId, loading })
       setLoading(true)
       try {
         const { data } = await supabase
@@ -85,28 +71,9 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
           .order('created_at', { ascending: false })
 
         const leadsData = data as any[]
-        
-        console.log('[LEAD QUERY DEBUG]', {
-          location: 'src/components/RecentLeadsSection.tsx',
-          businessId,
-          userId: null,
-          statusFilter: 'all',
-          isDemoFilter: false,
-          ignoredFilter: false,
-          createdAtRange: 'all',
-          returnedCount: leadsData?.length || 0,
-          leadIds: (leadsData || []).map((l: any) => l.id)
-        })
-        // AUDIT: RecentLeadsSection — first lead ID if any:
-        if (leadsData && leadsData.length > 0) {
-          console.log('[RecentLeadsSection AUDIT] first lead id:', leadsData[0].id, 'latest flag: index===0')
-        }
-        
-        console.log('[Leads Fetch] Success', { count: leadsData?.length || 0, loading: false })
         setLeads(leadsData || [])
       } catch (error) {
         console.error('[RecentLeadsSection] Error fetching leads:', error)
-        console.log('[Leads Fetch] Error', { error, loading: false })
         setLeads([])
       }
 
@@ -416,14 +383,11 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
           </div>
         ) : (
           <>
-            {/* Compact Recent Leads List — NAVIGATION DISABLED FOR DIAGNOSTIC */}
             {leads.length > 0 && (
               <div className="space-y-1.5 sm:space-y-2">
                 {leads.slice(0, 5).map((lead, index) => {
                   const aiData = getAIData(lead)
                   const isLatest = index === 0
-                  // AUDIT: mapping lead id, no auto-navigation
-                  console.log('[RecentLeadsSection AUDIT] mapping lead', lead.id, 'index:', index, 'isLatest:', isLatest)
 
                   return (
                     <div key={lead.id} className="block">

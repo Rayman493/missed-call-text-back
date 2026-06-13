@@ -40,11 +40,12 @@ export default function RecentActivityFeed({ business }: RecentActivityFeedProps
           .order('created_at', { ascending: false })
           .limit(5)
 
-        // Fetch recent messages
+        // Fetch recent messages (messages has no business_id; filter by phone)
+        const businessPhone = business.twilio_phone_number || ''
         const { data: recentMessages } = await supabase
           .from('messages')
           .select('lead_id, direction, body, created_at, status')
-          .eq('business_id', business.id)
+          .or(`from_phone.eq.${businessPhone},to_phone.eq.${businessPhone}`)
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })
           .limit(10)

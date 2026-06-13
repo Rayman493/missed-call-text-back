@@ -33,7 +33,6 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
     if (!loading) {
       setRefreshing(true)
     }
-    console.log('[StatsCards] Starting stats fetch', { businessId })
     try {
         // Fetch leads count
         const { count: leadsCountData } = await supabase
@@ -64,8 +63,6 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           .select('*', { count: 'exact', head: true })
           .eq('business_id', businessId)
         setMissedCallsCount(callEventsCountData || 0)
-
-        console.log('[StatsCards] Success', { leadsCount: leadsCountData, conversationsCount: conversationsCountData, followUpsCount: followUpsCountData, missedCallsCount: callEventsCountData })
       } catch (error) {
         console.error('[StatsCards] Error fetching stats:', error)
         // Keep safe defaults of 0
@@ -95,7 +92,6 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           filter: `business_id=eq.${businessId}`
         },
         () => {
-          console.log('[StatsCards] Realtime: leads changed, refreshing')
           fetchStats()
         }
       )
@@ -108,7 +104,6 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           filter: `business_id=eq.${businessId}`
         },
         () => {
-          console.log('[StatsCards] Realtime: conversations changed, refreshing')
           fetchStats()
         }
       )
@@ -121,7 +116,6 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           filter: `business_id=eq.${businessId}`
         },
         () => {
-          console.log('[StatsCards] Realtime: follow_up_jobs changed, refreshing')
           fetchStats()
         }
       )
@@ -134,12 +128,10 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           filter: `business_id=eq.${businessId}`
         },
         () => {
-          console.log('[StatsCards] Realtime: call_events changed, refreshing')
           fetchStats()
         }
       )
       .subscribe((status: string) => {
-        console.log('[StatsCards] Realtime subscription status:', status)
         if (status === 'SUBSCRIBED') {
           setRealtimeConnected(true)
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {

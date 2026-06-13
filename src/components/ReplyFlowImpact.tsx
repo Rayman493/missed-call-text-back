@@ -40,19 +40,21 @@ export default function ReplyFlowImpact({ business }: ReplyFlowImpactProps) {
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
-        // Fetch texts sent
+        const businessPhone = business.twilio_phone_number || ''
+
+        // Fetch texts sent (outbound from business)
         const { data: messagesData } = await supabase
           .from('messages')
           .select('id')
-          .eq('business_id', business.id)
+          .eq('from_phone', businessPhone)
           .eq('direction', 'outbound')
           .gte('created_at', thirtyDaysAgo)
 
-        // Fetch customer replies
+        // Fetch customer replies (inbound to business)
         const { data: repliesData } = await supabase
           .from('messages')
           .select('id')
-          .eq('business_id', business.id)
+          .eq('to_phone', businessPhone)
           .eq('direction', 'inbound')
           .gte('created_at', thirtyDaysAgo)
 

@@ -63,35 +63,35 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
         .eq('lead_id', leadId)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
       // If not found, try fallback matching by business_id + caller_phone
-      if (error && error.code === 'PGRST116') {
-        const { data: fallbackRecord, error: fallbackError } = await supabase
+      if (!record && !error) {
+        const { data: fallbackRecord } = await supabase
           .from('ai_call_records')
           .select('*')
           .eq('business_id', businessId)
           .eq('caller_phone', callerPhone)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single()
+          .maybeSingle()
 
-        if (!fallbackError && fallbackRecord) {
+        if (fallbackRecord) {
           record = fallbackRecord
         }
       }
 
       // If still not found and conversation_id exists, try by conversation_id
-      if (!record && conversationId && error && error.code === 'PGRST116') {
-        const { data: conversationRecord, error: conversationError } = await supabase
+      if (!record && conversationId) {
+        const { data: conversationRecord } = await supabase
           .from('ai_call_records')
           .select('*')
           .eq('conversation_id', conversationId)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single()
+          .maybeSingle()
 
-        if (!conversationError && conversationRecord) {
+        if (conversationRecord) {
           record = conversationRecord
         }
       }

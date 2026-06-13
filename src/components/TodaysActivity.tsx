@@ -41,19 +41,21 @@ export default function TodaysActivity({ business }: TodaysActivityProps) {
           .eq('business_id', business.id)
           .gte('created_at', startOfDay)
 
-        // Fetch texts sent today
+        const businessPhone = business.twilio_phone_number || ''
+
+        // Fetch texts sent today (outbound from business)
         const { data: messagesData } = await supabase
           .from('messages')
           .select('id')
-          .eq('business_id', business.id)
+          .eq('from_phone', businessPhone)
           .eq('direction', 'outbound')
           .gte('created_at', startOfDay)
 
-        // Fetch customer replies today
+        // Fetch customer replies today (inbound to business)
         const { data: repliesData } = await supabase
           .from('messages')
           .select('id')
-          .eq('business_id', business.id)
+          .eq('to_phone', businessPhone)
           .eq('direction', 'inbound')
           .gte('created_at', startOfDay)
 

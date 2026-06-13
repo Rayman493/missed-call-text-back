@@ -40,21 +40,18 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
         // Helper to get lead display name
         const getLeadDisplayName = (lead: any) => {
           if (lead.name) return lead.name
-          if (lead.caller_name) return lead.caller_name
-          if (lead.contact_name) return lead.contact_name
           if (lead.raw_metadata?.name) return lead.raw_metadata.name
           if (lead.raw_metadata?.caller_name) return lead.raw_metadata.caller_name
-          if (lead.phone) return lead.phone
           if (lead.caller_phone) return lead.caller_phone
-          if (lead.phone_number) return lead.phone_number
           return 'Unknown Caller'
         }
 
         // Fetch leads from last 7 days
         const { data: leads } = await supabase
           .from('leads')
-          .select('id, name, caller_name, contact_name, phone, caller_phone, phone_number, raw_metadata, created_at')
+          .select('id, business_id, caller_phone, status, raw_metadata, created_at, updated_at, name, is_demo')
           .eq('business_id', business.id)
+          .eq('is_demo', false)
           .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
 
         // High Priority Items - Individual lead items
@@ -143,12 +140,18 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
 
         // Recommended Items
         
-        // 5. Follow-ups not configured
-        const { data: followUpConfig } = await supabase
-          .from('follow_up_settings')
-          .select('id')
-          .eq('business_id', business.id)
-          .single()
+        // 5. Follow-ups not configured (defensive: table may not exist yet)
+        let followUpConfig = null
+        try {
+          const { data } = await supabase
+            .from('follow_up_settings')
+            .select('id')
+            .eq('business_id', business.id)
+            .maybeSingle()
+          followUpConfig = data
+        } catch {
+          // Table may not exist; treat as not configured
+        }
 
         if (!followUpConfig) {
           attentionItems.push({
@@ -165,12 +168,18 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           })
         }
 
-        // 6. Google Calendar not connected
-        const { data: calendarSettings } = await supabase
-          .from('calendar_settings')
-          .select('id')
-          .eq('business_id', business.id)
-          .single()
+        // 6. Google Calendar not connected (defensive: table may not exist yet)
+        let calendarSettings = null
+        try {
+          const { data } = await supabase
+            .from('calendar_settings')
+            .select('id')
+            .eq('business_id', business.id)
+            .maybeSingle()
+          calendarSettings = data
+        } catch {
+          // Table may not exist; treat as not connected
+        }
 
         if (!calendarSettings) {
           attentionItems.push({

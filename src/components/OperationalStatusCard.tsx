@@ -79,15 +79,16 @@ export default function OperationalStatusCard({
           .limit(1)
           .single()
 
-        // Get last successful SMS
+        // Get last successful SMS (use from_phone since messages has no business_id)
+        const businessPhone = business.twilio_phone_number || ''
         const { data: lastSms } = await supabase
           .from('messages')
           .select('created_at')
-          .eq('business_id', business.id)
+          .eq('from_phone', businessPhone)
           .eq('direction', 'outbound')
           .order('created_at', { ascending: false })
           .limit(1)
-          .single()
+          .maybeSingle()
 
         // Get last AI intake
         const { data: lastAiCall } = await supabase
@@ -96,14 +97,14 @@ export default function OperationalStatusCard({
           .eq('business_id', business.id)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single()
+          .maybeSingle()
 
-        // Get recent delivery failures
+        // Get recent delivery failures (use error_code instead of error)
         const { data: failedMessages } = await supabase
           .from('messages')
-          .select('error, created_at')
-          .eq('business_id', business.id)
-          .not('error', 'is', null)
+          .select('error_code, error_message, created_at')
+          .eq('from_phone', businessPhone)
+          .not('error_code', 'is', null)
           .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
           .limit(5)
 
@@ -112,7 +113,7 @@ export default function OperationalStatusCard({
           lastSuccessfulSms: lastSms?.created_at || null,
           lastAiIntake: lastAiCall?.created_at || null,
           deliveryFailures: failedMessages?.length || 0,
-          recentErrors: failedMessages?.map((m: any) => m.error) || []
+          recentErrors: failedMessages?.map((m: any) => m.error_message || m.error_code) || []
         })
       } catch (error) {
         console.error('[OperationalStatusCard] Failed to fetch live metrics:', error)

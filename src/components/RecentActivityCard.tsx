@@ -43,23 +43,26 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .order('created_at', { ascending: false })
           .limit(3)
 
-        // Fetch recent messages
+        // Fetch recent messages (messages has no business_id; filter by business phone)
+        const businessPhone = business.twilio_phone_number || ''
         const { data: messages } = await supabase
           .from('messages')
           .select('*')
-          .eq('business_id', business.id)
+          .or(`from_phone.eq.${businessPhone},to_phone.eq.${businessPhone}`)
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })
           .limit(3)
 
-        // Fetch recent voicemails
-        const { data: voicemails } = await supabase
-          .from('voicemail_recordings')
-          .select('*')
+        // Fetch recent voicemails through leads (voicemail_recordings has no business_id)
+        const { data: voicemailLeads } = await supabase
+          .from('leads')
+          .select('id, voicemail_recordings (id, recording_url, recording_duration, recording_status, created_at)')
           .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })
-          .limit(2)
+          .limit(5)
+
+        const voicemails = (voicemailLeads || []).flatMap((l: any) => l.voicemail_recordings || []).slice(0, 2)
 
         // Convert to activity events
         const events: ActivityEvent[] = []
