@@ -763,10 +763,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setSuccessMessage('Contact ignored. ReplyFlow will no longer send automatic texts to this number.')
       setShowIgnoreModal(false)
       
-      // Redirect to dashboard after a short delay
+      // Redirect to leads list after a short delay
       setTimeout(() => {
         if (typeof window !== 'undefined') {
-          window.location.href = '/dashboard'
+          window.location.href = '/dashboard/leads'
         }
       }, 2000)
     } catch (error) {
@@ -865,10 +865,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setSuccessMessage('Lead removed from active inbox.')
       setShowRemoveModal(false)
       
-      // Redirect to dashboard after a short delay
+      // Redirect to leads list after a short delay
       setTimeout(() => {
         if (typeof window !== 'undefined') {
-          window.location.href = '/dashboard'
+          window.location.href = '/dashboard/leads'
         }
       }, 1500)
     } catch (error) {
@@ -1519,24 +1519,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <main className="h-screen bg-background p-4 sm:p-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
-            <Link
-              href="/dashboard"
+            <a
+              href="/dashboard/leads"
               className="inline-flex items-center text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+              onClick={() => console.log('[LEAD DETAIL HEADER BACK] clicked -> /dashboard/leads')}
             >
-              ← Back to dashboard
-            </Link>
+              ← Back to Leads
+            </a>
           </div>
           <div className="bg-card rounded-lg shadow border border-border p-8 text-center">
             <h1 className="text-2xl font-bold text-foreground mb-2">Lead not found</h1>
             <p className="text-muted-foreground mb-6">
               {error || 'The lead you\'re looking for doesn\'t exist or you don\'t have permission to view it.'}
             </p>
-            <Link
-              href="/dashboard"
+            <a
+              href="/dashboard/leads"
               className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+              onClick={() => console.log('[LEAD DETAIL HEADER BACK] clicked -> /dashboard/leads')}
             >
-              Return to Dashboard
-            </Link>
+              Return to Leads
+            </a>
           </div>
         </div>
       </main>
@@ -1566,6 +1568,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   type="button"
                   onClick={() => {
+                    console.log('[LEAD DETAIL HEADER BACK] clicked -> /dashboard/leads')
                     window.location.href = '/dashboard/leads'
                   }}
                   className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors p-1"
@@ -1607,6 +1610,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 type="button"
                 onClick={() => {
+                  console.log('[LEAD DETAIL HEADER BACK] clicked -> /dashboard/leads')
                   window.location.href = '/dashboard/leads'
                 }}
                 className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
