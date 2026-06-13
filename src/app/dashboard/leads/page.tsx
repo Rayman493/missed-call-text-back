@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { getLeadDisplayName, formatPhoneNumber } from '@/lib/utils'
+import Link from 'next/link'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
@@ -20,7 +21,7 @@ export default function LeadsPage() {
 
   const fetchLeads = useCallback(async () => {
     if (!business?.id) return
-    console.log('[ISOLATION STEP 3] Starting fetchLeads')
+    console.log('[ISOLATION STEP 4] Starting fetchLeads')
     setLoading(true)
     setError(null)
     try {
@@ -32,10 +33,10 @@ export default function LeadsPage() {
         .order('created_at', { ascending: false })
       if (error) throw error
       const fetched = data || []
-      console.log('[ISOLATION STEP 3] Lead count', fetched.length)
+      console.log('[ISOLATION STEP 4] Lead count', fetched.length)
       setLeads(fetched)
     } catch (err: any) {
-      console.error('[ISOLATION STEP 3] Error fetching leads:', err)
+      console.error('[ISOLATION STEP 4] Error fetching leads:', err)
       setError(err.message || 'Failed to load leads')
     } finally {
       setLoading(false)
@@ -43,7 +44,7 @@ export default function LeadsPage() {
   }, [business?.id, supabase])
 
   useEffect(() => {
-    console.log('[ISOLATION STEP 3] Mounted')
+    console.log('[ISOLATION STEP 4] Mounted')
     fetchLeads()
   }, [fetchLeads])
 
@@ -55,8 +56,8 @@ export default function LeadsPage() {
             <AppHeader title='Leads' />
             <main className='flex-1 pt-4 sm:pt-5 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-16 relative z-10'>
               <div className='max-w-[1400px] mx-auto space-y-4'>
-                <h1 className='text-2xl font-bold'>Step 3: Lead List Test</h1>
-                <p className='text-slate-600'>Guards + AppHeader + StatsCards + passive lead list (no links).</p>
+                <h1 className='text-2xl font-bold'>Step 4: Link Test</h1>
+                <p className='text-slate-600'>Guards + AppHeader + StatsCards + lead list with Link wrappers.</p>
 
                 {business?.id && (
                   <StatsCards
@@ -82,11 +83,15 @@ export default function LeadsPage() {
                 {!loading && !error && leads.length > 0 && (
                   <div className='space-y-3'>
                     {leads.map((lead) => {
-                      console.log(`[ISOLATION STEP 3] Rendering lead ${lead.id}`)
+                      const href = `/dashboard/leads/${lead.id}`
+                      console.log(`[STEP 4] Rendering Link for lead ${lead.id}`)
+                      console.log(`[STEP 4] Link href = ${href}`)
                       return (
-                        <div
+                        <Link
                           key={lead.id}
-                          className='bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm p-4'
+                          href={href}
+                          prefetch={false}
+                          className='block bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-sm p-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors'
                         >
                           <div className='flex items-center justify-between'>
                             <div>
@@ -104,13 +109,13 @@ export default function LeadsPage() {
                           <p className='mt-2 text-xs text-slate-400'>
                             Lead ID: {lead.id}
                           </p>
-                        </div>
+                        </Link>
                       )
                     })}
                   </div>
                 )}
 
-                <p className='text-slate-500 text-sm'>If Back to Leads works here, next step restores navigation/Link on cards.</p>
+                <p className='text-slate-500 text-sm'>If Back to Leads works here, next step restores realtime subscriptions.</p>
               </div>
             </main>
           </div>
