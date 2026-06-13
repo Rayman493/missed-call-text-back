@@ -1565,11 +1565,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    console.log('[BACK BUTTON] Hard navigating to /dashboard/leads')
-                    window.location.assign('/dashboard/leads')
+                  onClick={() => {
+                    window.location.href = '/dashboard/leads'
                   }}
                   className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors p-1"
                 >
@@ -1609,11 +1606,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="mb-3 sm:mb-4">
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  console.log('[BACK BUTTON] Hard navigating to /dashboard/leads')
-                  window.location.assign('/dashboard/leads')
+                onClick={() => {
+                  window.location.href = '/dashboard/leads'
                 }}
                 className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
               >
