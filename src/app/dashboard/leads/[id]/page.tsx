@@ -1,5 +1,7 @@
 'use client'
 
+console.log('[LEAD DETAIL PAGE LOADED - BUILD 91374]')
+
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import ConversationComposer from '@/components/ConversationComposer'
 import MobileConversationComposer from '@/components/MobileConversationComposer'
@@ -1597,6 +1599,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <main className="min-h-screen bg-background flex flex-col">
       {/* Standard App Header */}
       <AppHeader />
+
+      {/* BUILD MARKER - confirms this file is executing */}
+      <div style={{ background: 'red', color: 'white', padding: '20px', textAlign: 'center', fontSize: '24px', fontWeight: 'bold', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99999 }}>
+        BUILD MARKER 91374 — If you see this, src/app/dashboard/leads/[id]/page.tsx IS executing
+      </div>
 
       {/* Conversation Sub-Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
