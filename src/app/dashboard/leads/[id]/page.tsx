@@ -138,6 +138,47 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const mobileFileInputRef = useRef<HTMLInputElement>(null)
   const clearComposerImagesRef = useRef<(() => void) | null>(null)
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
+
+  // Global click capture diagnostics
+  useEffect(() => {
+    const captureHandler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      console.log('[GLOBAL CLICK CAPTURE]', {
+        tagName: target?.tagName,
+        className: target?.className,
+        id: target?.id,
+        textContent: target?.textContent?.substring(0, 50),
+        parentTag: target?.parentElement?.tagName,
+        parentClass: target?.parentElement?.className,
+        time: Date.now()
+      })
+      console.trace()
+    }
+
+    const bubbleHandler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      console.log('[GLOBAL CLICK BUBBLE]', {
+        tagName: target?.tagName,
+        className: target?.className,
+        id: target?.id,
+        textContent: target?.textContent?.substring(0, 50),
+        parentTag: target?.parentElement?.tagName,
+        parentClass: target?.parentElement?.className,
+        time: Date.now()
+      })
+      console.trace()
+    }
+
+    document.addEventListener('click', captureHandler, true)
+    document.addEventListener('click', bubbleHandler, false)
+
+    console.log('[DIAGNOSTIC] Global click listeners mounted on document')
+
+    return () => {
+      document.removeEventListener('click', captureHandler, true)
+      document.removeEventListener('click', bubbleHandler, false)
+    }
+  }, [])
   
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
