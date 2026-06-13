@@ -41,6 +41,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
         returnedCount: 'fetching',
         leadIds: []
       })
+      // AUDIT: RecentLeadsSection fetchLeads — no auto-navigation logic here
       
       console.log('[Leads Fetch] Starting leads fetch', { businessId, loading })
       setLoading(true)
@@ -96,6 +97,10 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
           returnedCount: leadsData?.length || 0,
           leadIds: (leadsData || []).map((l: any) => l.id)
         })
+        // AUDIT: RecentLeadsSection — first lead ID if any:
+        if (leadsData && leadsData.length > 0) {
+          console.log('[RecentLeadsSection AUDIT] first lead id:', leadsData[0].id, 'latest flag: index===0')
+        }
         
         console.log('[Leads Fetch] Success', { count: leadsData?.length || 0, loading: false })
         setLeads(leadsData || [])
@@ -347,7 +352,9 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
   console.log('[RecentLeadsSection] leads.length:', leads.length)
   if (leads.length > 0) {
     console.log('[RecentLeadsSection] first lead keys:', Object.keys(leads[0]))
+    console.log('[RecentLeadsSection AUDIT] rendering first lead id:', leads[0].id)
   }
+  // AUDIT: No selectedLead, no auto-open, no router.push/replace in this component
 
   if (loading) {
     return (
@@ -409,15 +416,17 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
           </div>
         ) : (
           <>
-            {/* Compact Recent Leads List */}
+            {/* Compact Recent Leads List — NAVIGATION DISABLED FOR DIAGNOSTIC */}
             {leads.length > 0 && (
               <div className="space-y-1.5 sm:space-y-2">
                 {leads.slice(0, 5).map((lead, index) => {
                   const aiData = getAIData(lead)
                   const isLatest = index === 0
+                  // AUDIT: mapping lead id, no auto-navigation
+                  console.log('[RecentLeadsSection AUDIT] mapping lead', lead.id, 'index:', index, 'isLatest:', isLatest)
 
                   return (
-                    <Link key={lead.id} href={`/dashboard/leads/${lead.id}`} className="block">
+                    <div key={lead.id} className="block">
                       <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 sm:p-3 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex-1 min-w-0">
@@ -465,7 +474,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                           </div>
                         </div>
                       </div>
-                    </Link>
+                    </div>
                   )
                 })}
               </div>
