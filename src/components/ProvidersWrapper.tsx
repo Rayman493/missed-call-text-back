@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import NavigationTracker from './NavigationTracker'
 
 interface ProvidersWrapperProps {
   children: React.ReactNode
@@ -79,7 +80,10 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
         <BusinessProvider>
           <VoicemailVolumeProvider>
             <VoicemailPlaybackManagerProvider>
-              <VoicemailProgressProvider key={pathname}>{children}</VoicemailProgressProvider>
+              <VoicemailProgressProvider key={pathname}>
+                <NavigationTracker />
+                {children}
+              </VoicemailProgressProvider>
             </VoicemailPlaybackManagerProvider>
           </VoicemailVolumeProvider>
         </BusinessProvider>
