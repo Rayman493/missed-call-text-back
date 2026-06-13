@@ -1568,14 +1568,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   type="button"
                   onClick={() => {
+                    alert('MOBILE BACK v2 clicked')
                     console.log('[LEAD DETAIL HEADER BACK] clicked -> /dashboard/leads')
                     window.location.href = '/dashboard/leads'
                   }}
-                  className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors p-1"
+                  className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors p-1 flex items-center gap-1"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
+                  <span className="text-[10px] text-red-600 font-bold">MOBILE BACK v2</span>
                 </button>
                 <div className="flex-1 min-w-0">
                   <h1 className="text-base font-semibold text-slate-900 dark:text-white leading-tight truncate">
@@ -1610,6 +1612,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 type="button"
                 onClick={() => {
+                  alert('DESKTOP BACK v2 clicked')
                   console.log('[LEAD DETAIL HEADER BACK] clicked -> /dashboard/leads')
                   window.location.href = '/dashboard/leads'
                 }}
@@ -1618,7 +1621,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                Back to Leads
+                <span>Back to Leads</span>
+                <span className="text-[10px] text-red-600 font-bold ml-1">DESKTOP BACK v2</span>
               </button>
             </div>
 
