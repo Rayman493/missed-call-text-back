@@ -99,15 +99,13 @@ export default function VoicemailMessage({
         const recordingSid = extractRecordingSid(recording.recording_url)
 
         if (!recordingSid) {
-          console.error('[VOICEMAIL FRONTEND] Failed to extract recording SID from URL:', recording.recording_url)
           throw new Error('Invalid recording URL format')
         }
 
         const secureUrl = await createSecureAudioUrl(recordingSid)
         
         setAudioUrl(secureUrl)
-      } catch (error) {
-        console.error('[VOICEMAIL FRONTEND] Failed to initialize audio URL:', error)
+      } catch {
         setAudioError('Unable to load voicemail recording.')
       } finally {
         setIsLoading(false)
@@ -181,19 +179,16 @@ export default function VoicemailMessage({
     }
   }
 
-  const handleError = (e: React.SyntheticEvent<HTMLAudioElement>) => {
-    console.error('[VOICEMAIL PLAYER] audio error:', e)
+  const handleError = () => {
     setAudioError('Unable to load voicemail recording.')
     setIsPlaying(false)
     setIsEnded(recording.id, false)
   }
 
   const togglePlayPause = async () => {
-    logAllAudioElements()
-    
     const audio = audioRef.current
     if (!audio) {
-      console.error('[VOICEMAIL FRONTEND] Audio ref not available')
+      setAudioError('Audio not available.')
       return
     }
 
@@ -233,8 +228,7 @@ export default function VoicemailMessage({
           
           await audio.play()
           setIsPlaying(true)
-        } catch (error) {
-          console.error('[VOICEMAIL FRONTEND] Failed to play reused audio:', error)
+        } catch {
           setAudioError('Unable to play voicemail recording.')
           audioManager.requestPause(recording.id)
         }
@@ -243,7 +237,6 @@ export default function VoicemailMessage({
       
       // Only fetch audio if we don't have it yet
       if (!audioUrl) {
-        console.error('[VOICEMAIL FRONTEND] No audio URL available')
         setAudioError('Voicemail URL not available.')
         return
       }
@@ -283,7 +276,6 @@ export default function VoicemailMessage({
               
               // Also clean up on error
               const handleError = () => {
-                console.error('[VOICEMAIL FRONTEND] Audio playback error')
                 URL.revokeObjectURL(objectUrl)
                 setBlobUrl(null)
                 audio.removeEventListener('error', handleError)
@@ -301,26 +293,21 @@ export default function VoicemailMessage({
                 try {
                   await audio.play()
                   setIsPlaying(true)
-                } catch (error) {
-                  console.error('[VOICEMAIL FRONTEND] Failed to play audio after load:', error)
+                } catch {
                   setAudioError('Unable to play voicemail recording.')
                   audioManager.requestPause(recording.id)
                 }
               }, { once: true })
             } else {
-              console.error('[VOICEMAIL FRONTEND] Failed to fetch audio blob:', response.status, response.statusText)
               setAudioError('Unable to load voicemail recording.')
             }
           } else {
-            console.error('[VOICEMAIL FRONTEND] No session or access token available')
             setAudioError('Authentication required.')
           }
         } else {
-          console.error('[VOICEMAIL FRONTEND] Failed to create Supabase client')
           setAudioError('Unable to initialize authentication.')
         }
-      } catch (error) {
-        console.error('[VOICEMAIL FRONTEND] Failed to play audio:', error)
+      } catch {
         setAudioError('Unable to play voicemail recording.')
       }
     }
@@ -364,22 +351,19 @@ export default function VoicemailMessage({
     const audio = audioRef.current
     if (!audio || !audioUrl) return
 
-    console.log('[VoicemailMessage] Registering with audio manager:', recording.id, 'audio element:', audio);
     audioManager.registerAudio(recording.id, audio)
 
     // Cleanup function for unmount
     return () => {
-      console.log('[VoicemailMessage] Component unmounting, cleaning up voicemail:', recording.id);
       audioManager.unregisterAudio(recording.id);
       
       // Also pause the audio element directly as a safety measure
       try {
         if (!audio.paused) {
-          console.log('[VoicemailMessage] Direct pause during unmount:', recording.id);
           audio.pause();
         }
-      } catch (error) {
-        console.error('[VoicemailMessage] Error pausing audio during unmount:', error);
+      } catch {
+        // Ignore pause errors during unmount
       }
     }
   }, [recording.id, audioUrl])
@@ -392,13 +376,12 @@ export default function VoicemailMessage({
     }
     
     const handleBeforeUnload = () => {
-      console.log('[VoicemailMessage] Page unloading, pausing voicemail:', recording.id);
       const audio = audioRef.current;
       if (audio && !audio.paused) {
         try {
           audio.pause();
-        } catch (error) {
-          console.error('[VoicemailMessage] Error pausing audio on page unload:', error);
+        } catch {
+          // Ignore pause errors on unload
         }
       }
     };
@@ -409,87 +392,11 @@ export default function VoicemailMessage({
     };
   }, [recording.id])
 
-  // Debug logging function for all audio elements
-  const logAllAudioElements = () => {
-    // Guard against SSR
-    if (typeof document === 'undefined') {
-      return
-    }
-
-    const allAudio = document.querySelectorAll("audio")
-    
-    // Enhanced debug table to identify source of extra audio elements
-    console.table(
-      Array.from(allAudio).map((audio, index) => ({
-        index,
-        voicemailId: (audio as HTMLAudioElement).dataset.voicemailId,
-        src: (audio as HTMLAudioElement).src,
-        className: (audio as HTMLAudioElement).className,
-        paused: (audio as HTMLAudioElement).paused,
-        currentTime: (audio as HTMLAudioElement).currentTime,
-        parentText: audio.closest("[data-voicemail-card]")?.textContent?.slice(0, 80),
-        inSidebar: !!audio.closest("[data-sidebar]"),
-        inMobileLayout: !!audio.closest("[data-mobile-layout]"),
-        inDesktopLayout: !!audio.closest("[data-desktop-layout]"),
-        inActiveConversation: !!audio.closest("[data-active-conversation-list]"),
-        inCompactVoicemail: !!audio.closest("[data-compact-voicemail]"),
-        closestDataId: audio.closest("[data-voicemail-id]")?.getAttribute("data-voicemail-id"),
-        elementId: (audio as HTMLAudioElement).id,
-        parentElementTag: audio.parentElement?.tagName,
-        parentElementClass: audio.parentElement?.className,
-      }))
-    );
-    
-    const audioElements = Array.from(allAudio).map((audio) => ({
-      voicemailId: (audio as HTMLAudioElement).dataset.voicemailId,
-      src: (audio as HTMLAudioElement).src,
-      currentTime: (audio as HTMLAudioElement).currentTime,
-      paused: (audio as HTMLAudioElement).paused,
-      ended: (audio as HTMLAudioElement).ended,
-      readyState: (audio as HTMLAudioElement).readyState,
-    }))
-    
-    console.log("[VOICEMAIL DEBUG] all audio elements", audioElements)
-    
-    // Count voicemail audio elements (those with data-voicemail-id)
-    const voicemailAudioElements = audioElements.filter(audio => audio.voicemailId)
-    const expectedCount = document.querySelectorAll('[data-voicemail-id]').length
-    
-    // Dev-only assertion for duplicate audio elements
-    if (process.env.NODE_ENV === 'development') {
-      const voicemailCards = document.querySelectorAll('[data-voicemail-id]').length
-      const audioCount = voicemailAudioElements.length
-      
-      if (audioCount > voicemailCards) {
-        console.error(
-          `[VOICEMAIL ASSERTION FAILED] Duplicate audio elements detected! ` +
-          `Found ${audioCount} audio elements but only ${voicemailCards} voicemail recordings. ` +
-          `This violates the 1:1 audio-to-voicemail rule and will cause echo/overlap issues.`
-        )
-      } else if (audioCount === voicemailCards) {
-        console.log(
-          `[VOICEMAIL ASSERTION PASSED] ${audioCount} audio elements for ${voicemailCards} voicemail recordings - OK`
-        )
-      }
-    }
-    
-    if (voicemailAudioElements.length > expectedCount) {
-      console.warn(
-        `[VOICEMAIL WARNING] Audio element count mismatch! ` +
-        `Found ${voicemailAudioElements.length} voicemail audio elements, ` +
-        `expected ${expectedCount} based on voicemail cards. ` +
-        `This may cause echo/overlap issues.`
-      )
-    }
-  }
-
   // Handle playback state changes from audio manager
   useEffect(() => {
     const handlePlaybackStateChange = (voicemailId: string, isPlaying: boolean) => {
       if (voicemailId === recording.id) {
-        console.log('[VoicemailMessage] Received playback state change from audio manager:', isPlaying)
         setIsPlaying(isPlaying)
-        logAllAudioElements()
       }
     }
 
@@ -534,7 +441,6 @@ export default function VoicemailMessage({
     const progressRef = progressBarRef.current
     
     if (!audio || !progressRef || !duration || isNaN(duration)) {
-      console.log('[VOICEMAIL PLAYER] seek failed - missing refs or duration')
       return
     }
 
@@ -544,11 +450,9 @@ export default function VoicemailMessage({
 
     // Prevent NaN
     if (isNaN(nextTime) || !isFinite(nextTime)) {
-      console.log('[VOICEMAIL PLAYER] seek failed - invalid time:', nextTime)
       return
     }
 
-    console.log('[VOICEMAIL PLAYER] seek - nextTime:', nextTime, 'percent:', percent)
     audio.currentTime = nextTime
     setCurrentTime(recording.id, nextTime)
   }
