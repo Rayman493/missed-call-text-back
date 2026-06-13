@@ -2211,11 +2211,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="bg-card border border-border rounded-xl p-4">
             <h3 className="text-sm font-semibold text-foreground mb-3">Lead Health</h3>
             <div className="space-y-2">
-              {/* AI Intake */}
+              {/* Intake Status */}
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">AI Intake</span>
-                <span className={`text-xs font-medium ${leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 ? 'Complete' : 'Not Started'}
+                <span className="text-xs text-muted-foreground">
+                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
+                    ? 'AI Intake'
+                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
+                      ? 'Voicemail Intake'
+                      : 'Intake'}
+                </span>
+                <span className={`text-xs font-medium ${
+                  leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
+                    ? 'text-green-600 dark:text-green-400'
+                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-slate-500 dark:text-slate-400'
+                }`}>
+                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
+                    ? 'Complete'
+                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
+                      ? 'Complete'
+                      : 'Incomplete'}
                 </span>
               </div>
               {/* Customer Replied */}

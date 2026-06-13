@@ -28,7 +28,6 @@ export interface AICallSession {
   callback_number: string | null
   error_message: string | null
   raw_metadata: any
-  business_category: string | null
   custom_business_type: string | null
   created_at: string
   updated_at: string
@@ -39,7 +38,6 @@ export interface CreateSessionParams {
   lead_id: string | null
   call_sid: string
   openai_session_id?: string
-  business_category?: string | null
   custom_business_type?: string | null
 }
 
@@ -77,7 +75,6 @@ export async function createAISession(params: CreateSessionParams): Promise<AICa
         lead_id: params.lead_id,
         call_sid: params.call_sid,
         openai_session_id: params.openai_session_id || null,
-        business_category: params.business_category || null,
         custom_business_type: params.custom_business_type || null,
         status: 'started',
         started_at: new Date().toISOString(),
@@ -94,13 +91,18 @@ export async function createAISession(params: CreateSessionParams): Promise<AICa
         return getAISessionByCallSid(params.call_sid)
       }
       
-      console.error('[AI CALL ASSISTANT] Failed to create session:', error)
+      console.error('[AI SESSION CREATE] failure', {
+        code: error.code,
+        message: error.message,
+        callSid: params.call_sid
+      })
       return null
     }
 
-    console.log('[AI CALL ASSISTANT] Session created', {
-      session_id: data.id,
-      call_sid: data.call_sid
+    console.log('[AI SESSION CREATE] success', {
+      sessionId: data.id,
+      callSid: data.call_sid,
+      businessId: data.business_id
     })
 
     return data

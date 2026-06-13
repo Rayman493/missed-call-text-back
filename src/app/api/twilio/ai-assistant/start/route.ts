@@ -113,7 +113,6 @@ export async function POST(request: NextRequest) {
       business_id: business.business.id,
       lead_id: lead?.id || null,
       call_sid: CallSid,
-      business_category: category,
       custom_business_type: customBusinessType,
     })
 
