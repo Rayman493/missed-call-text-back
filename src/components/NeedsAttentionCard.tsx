@@ -41,17 +41,20 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
         const getLeadDisplayName = (lead: any) => {
           if (lead.raw_metadata?.name) return lead.raw_metadata.name
           if (lead.raw_metadata?.caller_name) return lead.raw_metadata.caller_name
-          if (lead.caller_phone) return lead.caller_phone
+          if (lead.phone) return lead.phone
           return 'Unknown Caller'
         }
 
         // Fetch leads from last 7 days
-        const { data: leads } = await supabase
+        const { data: leads, error: leadsError } = await supabase
           .from('leads')
-          .select('id, business_id, caller_phone, status, raw_metadata, created_at, updated_at, is_demo')
+          .select('id, business_id, phone, status, raw_metadata, created_at, updated_at')
           .eq('business_id', business.id)
-          .eq('is_demo', false)
           .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+
+        if (leadsError) {
+          console.error('[NeedsAttention] Failed to fetch leads:', leadsError)
+        }
 
         // High Priority Items - Individual lead items
         

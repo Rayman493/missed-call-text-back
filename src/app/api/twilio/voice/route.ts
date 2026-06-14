@@ -50,7 +50,7 @@ async function hasRecentAutoReply(businessId: string, callerPhone: string): Prom
       .from('leads')
       .select('id')
       .eq('business_id', businessId)
-      .eq('caller_phone', callerPhone)
+      .eq('phone', callerPhone)
       .single();
 
     if (leadError && leadError.code !== 'PGRST116') {
@@ -1247,7 +1247,6 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       conversationId: null,
       messageId: null,
       aiCallRecordId: null,
-      isDemo: existingLead?.is_demo || false,
       leadStatus: existingLead?.status || 'new',
       classification: existingLead ? 'existing_lead_reused' : 'new_lead_will_be_created',
       reason: existingLead ? 'Lead found by phone number' : 'No lead found, will create new',
@@ -1271,7 +1270,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       console.log('[Voice] No existing lead found, creating new lead');
       console.log('[Voice] Creating lead:', {
         business_id: business.id,
-        caller_phone: normalizedCallerPhone,
+        phone: normalizedCallerPhone,
         status: 'new'
       });
       
@@ -1290,9 +1289,9 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       // Create new lead
       lead = await db.createLead({
         business_id: business.id,
-        caller_phone: normalizedCallerPhone,
+        phone: normalizedCallerPhone,
         status: 'new',
-        raw_metadata: { source: 'voice', is_demo: false },
+        raw_metadata: { source: 'voice' },
       });
       
       if (lead) {
@@ -1477,7 +1476,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         finalConversationId: null,
         aiCallRecordId: null,
         outboundMessageId: null,
-        reason: `Reusing existing lead: ${existingLead.id}, status: ${existingLead.status}, is_demo: ${existingLead.is_demo}`
+        reason: `Reusing existing lead: ${existingLead.id}, status: ${existingLead.status}`
       });
       
       // Update lead's last activity

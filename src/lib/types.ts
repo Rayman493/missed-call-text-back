@@ -105,18 +105,19 @@ export interface Business {
 export interface Lead {
   id: string;
   business_id: string;
-  caller_phone: string;
+  phone: string;
+  name?: string | null;
+  email?: string | null;
+  source?: string;
   status: string;
   raw_metadata: any;
   created_at: string;
   updated_at: string;
-  // Optional fields that may not exist in actual DB schema
-  name?: string | null;
+  // Optional fields that may be added by backend or derived
   first_contact_at?: string | null;
   last_message_at?: string | null;
   last_reply_at?: string | null;
   opted_out?: boolean;
-  is_demo?: boolean;
 }
 
 export interface Message {

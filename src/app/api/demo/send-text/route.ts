@@ -136,15 +136,10 @@ export async function POST(request: Request) {
       
       demoLead = await db.createLead({
         business_id: business.id,
-        caller_phone: normalizedDemoPhone,
+        phone: normalizedDemoPhone,
         status: 'new',
         name: 'Demo User',
-        raw_metadata: { source: 'demo', is_demo: true },
-        first_contact_at: new Date().toISOString(),
-        last_message_at: null,
-        last_reply_at: null,
-        opted_out: false,
-        is_demo: true,
+        raw_metadata: { source: 'demo' },
       })
 
       if (!demoLead) {

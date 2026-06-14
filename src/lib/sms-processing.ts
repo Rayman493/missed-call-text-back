@@ -299,7 +299,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.log('[INBOUND SMS LEAD LOOKUP RESULT]', {
       leadId: lead.id,
       businessId: business.id,
-      callerPhone: lead.caller_phone
+      callerPhone: lead.phone
     })
   } else {
     // No existing lead, get business for this phone number (dedicated number architecture)
@@ -382,7 +382,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.log('[LEAD CREATION ATTEMPT]', {
       source: 'sms-processing',
       business_id: business.id,
-      caller_phone: normalizedCustomerPhone,
+      phone: normalizedCustomerPhone,
       message_sid: messageSid,
       source_type: source,
       is_demo: source === 'dev_simulation',
@@ -391,15 +391,9 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     
     lead = await db.createLead({
       business_id: business.id,
-      caller_phone: normalizedCustomerPhone,
+      phone: normalizedCustomerPhone,
       status: 'contacted', // Customer replied, so mark as contacted
-      name: null,
-      raw_metadata: { source: 'sms', is_demo: source === 'dev_simulation' },
-      first_contact_at: new Date().toISOString(),
-      last_message_at: new Date().toISOString(),
-      last_reply_at: new Date().toISOString(),
-      opted_out: false,
-      is_demo: source === 'dev_simulation', // Mark dev simulations as demo leads
+      raw_metadata: { source: 'sms' },
     })
     
     if (!lead) {
@@ -417,14 +411,14 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.log(`[SMS Processing] Lead created:`, {
       lead_id: lead.id,
       business_id: lead.business_id,
-      caller_phone: lead.caller_phone
+      phone: lead.phone
     })
   } else if (lead) {
     // Update existing lead's status to 'replied' and track reply time
     console.log('[INBOUND SMS LEAD UPDATE START]', {
       leadId: lead.id,
       businessId: business.id,
-      callerPhone: lead.caller_phone
+      callerPhone: lead.phone
     })
 
     const currentRawMetadata = lead.raw_metadata || {}
@@ -1200,7 +1194,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.log(`[CONSENT] lead before update:`, {
       id: lead.id,
       opted_out: lead.opted_out,
-      caller_phone: lead.caller_phone
+      phone: lead.phone
     })
     
     // Update lead to set opted_out = false and update timestamps
@@ -1214,7 +1208,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       console.log(`[CONSENT] lead after update:`, {
         id: updatedLead.id,
         opted_out: updatedLead.opted_out,
-        caller_phone: updatedLead.caller_phone
+        phone: updatedLead.phone
       })
       lead = updatedLead
     } else {
@@ -1340,7 +1334,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       });
     
     // Get lead name from raw_metadata if available
-    const leadName = lead.raw_metadata?.caller_name || lead.caller_phone || 'Customer';
+    const leadName = lead.raw_metadata?.caller_name || lead.phone || 'Customer';
     
     // Determine message text for notification
     let notificationMessage = sanitizedBody;
