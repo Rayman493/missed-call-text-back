@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import getStripe from '@/lib/stripe'
 import { twilioClient } from '@/lib/twilio'
-import { sendOffboardingEmail } from '@/lib/email'
+import { sendOffboardingEmail, sendAccountDeletionConfirmationEmail } from '@/lib/email'
 
 const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
 
@@ -758,6 +758,45 @@ export async function POST(request: NextRequest) {
         } else {
           console.log('[delete-account] Auth user deletion succeeded', { userId: user.id })
           summary.authDeletionResult = 'success'
+        }
+
+        // Send account deletion confirmation email after successful auth deletion
+        if (!dryRun && user.email) {
+          console.log('[delete-account] Sending account deletion confirmation email', {
+            userEmail: user.email,
+          })
+
+          try {
+            const business = businesses && businesses.length > 0 ? businesses[0] : null
+            const twilioNumberReserved = summary.twilioNumberReleased !== undefined
+            
+            const emailResult = await sendAccountDeletionConfirmationEmail({
+              userEmail: user.email,
+              businessName: business?.name,
+              twilioNumberReserved,
+              twilioNumber: summary.twilioNumberReleased,
+            })
+
+            if (emailResult.success) {
+              console.log('[delete-account] Account deletion confirmation email sent successfully', {
+                messageId: emailResult.messageId,
+              })
+              summary.confirmationEmailSent = true
+              summary.confirmationEmailMessageId = emailResult.messageId
+            } else {
+              console.warn('[delete-account] Failed to send account deletion confirmation email (account deletion completed)', {
+                error: emailResult.error,
+              })
+              summary.confirmationEmailSent = false
+              summary.confirmationEmailError = emailResult.error
+            }
+          } catch (emailError) {
+            console.error('[delete-account] Exception sending account deletion confirmation email (account deletion completed)', {
+              error: emailError instanceof Error ? emailError.message : String(emailError),
+            })
+            summary.confirmationEmailSent = false
+            summary.confirmationEmailError = emailError instanceof Error ? emailError.message : 'Unknown error'
+          }
         }
       } catch (error) {
         console.error('[delete-account] Unexpected error during auth user deletion', {

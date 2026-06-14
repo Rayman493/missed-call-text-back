@@ -13,6 +13,13 @@ interface OffboardingEmailParams {
   userEmail: string
 }
 
+interface AccountDeletionConfirmationParams {
+  userEmail: string
+  businessName?: string
+  twilioNumberReserved?: boolean
+  twilioNumber?: string
+}
+
 /**
  * Generate offboarding email HTML content
  */
@@ -149,4 +156,116 @@ export async function sendOffboardingEmail(params: OffboardingEmailParams): Prom
  */
 export function isEmailServiceAvailable(): boolean {
   return resendClient !== null
+}
+
+/**
+ * Generate account deletion confirmation email HTML content
+ */
+function generateAccountDeletionConfirmationHTML(params: AccountDeletionConfirmationParams): string {
+  const { businessName, twilioNumberReserved, twilioNumber } = params
+
+  const businessNameSection = businessName 
+    ? `<p><strong>Business name:</strong><br>${businessName}</p>`
+    : ''
+
+  const twilioNumberSection = twilioNumber
+    ? `<p><strong>ReplyFlow number:</strong><br>${twilioNumber}</p>`
+    : ''
+
+  const twilioReservationSection = twilioNumberReserved && twilioNumber
+    ? `<p><strong>Number status:</strong><br>Your ReplyFlow number has been reserved for 30 days according to our retention policy. If you wish to reclaim it, please contact support within 30 days of deletion.</p>`
+    : twilioNumberReserved
+    ? `<p><strong>Number status:</strong><br>Your ReplyFlow number has been reserved for 30 days according to our retention policy.</p>`
+    : ''
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your ReplyFlow account has been deleted</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+          .section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e5e7eb; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0; font-size: 24px;">ReplyFlowHQ</h1>
+          </div>
+          <div class="content">
+            <p>Hi,</p>
+            
+            <p>This email confirms that your ReplyFlow account has been successfully deleted.</p>
+            
+            <div class="section">
+              <h2 style="margin-top: 0; color: #1f2937;">What happened to your data:</h2>
+              
+              <p><strong>Account status:</strong><br>Your ReplyFlow account has been permanently deleted.</p>
+              
+              <p><strong>Business data:</strong><br>All your business data, including leads, conversations, messages, and settings have been removed.</p>
+              
+              ${businessNameSection}
+              ${twilioNumberSection}
+              ${twilioReservationSection}
+            </div>
+            
+            <p>If you did not request this deletion or if you believe this was done in error, please contact our support team immediately at <a href="mailto:support@replyflowhq.com" style="color: #2563eb;">support@replyflowhq.com</a>.</p>
+            
+            <p>Thank you for using ReplyFlow.<br>ReplyFlowHQ</p>
+          </div>
+          <div class="footer">
+            <p>You're receiving this email because your ReplyFlow account was deleted.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `
+}
+
+/**
+ * Send account deletion confirmation email
+ * @returns { success: boolean, error?: string, messageId?: string }
+ */
+export async function sendAccountDeletionConfirmationEmail(params: AccountDeletionConfirmationParams): Promise<{
+  success: boolean
+  error?: string
+  messageId?: string
+}> {
+  if (!resendClient) {
+    console.warn('[email] Resend client not initialized - RESEND_API_KEY not set')
+    return { success: false, error: 'Email service not configured' }
+  }
+
+  const { userEmail } = params
+
+  try {
+    const html = generateAccountDeletionConfirmationHTML(params)
+
+    const result = await resendClient.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || 'ReplyFlowHQ <noreply@replyflowhq.com>',
+      to: userEmail,
+      subject: 'Your ReplyFlow account has been deleted',
+      html,
+    })
+
+    console.log('[email] Account deletion confirmation email sent successfully', {
+      to: userEmail,
+      messageId: result.data?.id,
+    })
+
+    return { success: true, messageId: result.data?.id }
+  } catch (error: any) {
+    console.error('[email] Failed to send account deletion confirmation email', {
+      to: userEmail,
+      error: error?.message || String(error),
+    })
+    return { success: false, error: error?.message || 'Failed to send email' }
+  }
 }
