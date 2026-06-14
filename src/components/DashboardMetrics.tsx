@@ -272,24 +272,24 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   }
 
   return (
-    <div className="space-y-3 sm:space-y-4">
+    <div className="space-y-2.5 sm:space-y-3">
       {/* Primary KPI Cards - Leads Generated and Recovery Rate */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
         {[
           { type: 'leads', value: metrics.leadsGenerated },
           { type: 'recovery', value: metrics.recoveryRate }
         ].map((metric) => (
-          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
-            <div className="flex items-start justify-between mb-2 sm:mb-3">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border shadow-sm`}>
+          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-2.5 sm:p-3 min-h-[6rem] sm:min-h-[7rem] flex flex-col">
+            <div className="flex items-start justify-between mb-2">
+              <div className={`w-8 h-8 sm:w-9 sm:h-9 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border shadow-sm`}>
                 {getMetricIcon(metric.type)}
               </div>
               <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
                 {metrics.period}
               </div>
             </div>
-            <div className="space-y-1 sm:space-y-1.5 flex-1">
-              <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
+            <div className="space-y-1 flex-1">
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
                 {metric.type === 'recovery' ? `${metric.value}%` : metric.value.toLocaleString()}
               </div>
               <div className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">
@@ -306,23 +306,23 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       </div>
 
       {/* Secondary KPI Cards */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
         {[
           { type: 'missedCalls', value: metrics.missedCallsCaptured },
           { type: 'messages', value: metrics.messagesSent },
           { type: 'conversations', value: metrics.activeConversations }
         ].map((metric) => (
-          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-2.5 sm:p-3 min-h-[6rem] sm:min-h-[7rem] flex flex-col">
-            <div className="flex items-center justify-between mb-2 sm:mb-2.5">
-              <div className={`w-7 h-7 sm:w-8 sm:h-8 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
+          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-2 sm:p-2.5 min-h-[5rem] sm:min-h-[6rem] flex flex-col">
+            <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+              <div className={`w-6 h-6 sm:w-7 sm:h-7 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
                 {getMetricIcon(metric.type)}
               </div>
               <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                 {metrics.period}
               </div>
             </div>
-            <div className="space-y-1 flex-1">
-              <div className="text-lg sm:text-xl font-bold text-slate-900 dark:text-foreground leading-tight">
+            <div className="space-y-0.5 flex-1">
+              <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-foreground leading-tight">
                 {metric.value.toLocaleString()}
               </div>
               <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400">

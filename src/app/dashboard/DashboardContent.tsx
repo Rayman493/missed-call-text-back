@@ -913,8 +913,8 @@ export default function DashboardContent() {
             <AppHeader showNavigation={true} />
 
             {/* Main Content */}
-            <div className="flex-1 pt-3 sm:pt-4 lg:pt-5 px-3 sm:px-4 lg:px-6 pb-12 relative z-10">
-              <div className="max-w-[1400px] mx-auto space-y-2 sm:space-y-3 lg:space-y-4">
+            <div className="flex-1 pt-2 sm:pt-3 lg:pt-4 px-3 sm:px-4 lg:px-6 pb-8 relative z-10">
+              <div className="max-w-[1400px] mx-auto space-y-1.5 sm:space-y-2 lg:space-y-3">
 
                 {/* Setup Mode Banner - De-emphasized CTA, System Health owns onboarding */}
                 {hasActiveSubscription(business) && !business?.forwarding_verified && (
@@ -1468,7 +1468,7 @@ export default function DashboardContent() {
                 console.log('[Render Child] Footer')
                 return null
               })()}
-              <footer className="border-t border-border/50 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/40 mt-12">
+              <footer className="border-t border-border/50 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/40 mt-6">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="text-xs text-muted-foreground/60">

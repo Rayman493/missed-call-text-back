@@ -321,35 +321,35 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
   }
 
   return (
-    <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 sm:p-4 shadow-sm dark:shadow-md">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🏆</span>
-          <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">Achievements</h3>
+    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 sm:p-3 shadow-sm">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm">🏆</span>
+          <h3 className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">Achievements</h3>
         </div>
-        <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
           {achievements.length} earned
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
         {achievements.slice(0, 4).map((achievement) => (
-          <div key={achievement.id} className="flex items-start gap-2 bg-white dark:bg-slate-900/50 border border-amber-100 dark:border-amber-900/30 rounded-lg p-2.5">
-            <div className="flex-shrink-0 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center mt-0.5">
-              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div key={achievement.id} className="flex items-start gap-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-lg p-2">
+            <div className="flex-shrink-0 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center mt-0.5">
+              <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
                 {achievement.title}
               </p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+              <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate">
                 {achievement.description}
               </p>
               {achievement.earnedAt && (
                 <p className="text-[9px] text-green-600 dark:text-green-400 mt-0.5 font-medium">
-                  ✓ Completed {formatRelativeTime(achievement.earnedAt)}
+                  ✓ {formatRelativeTime(achievement.earnedAt)}
                 </p>
               )}
             </div>
@@ -358,9 +358,9 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
       </div>
 
       {achievements.length > 4 && (
-        <div className="mt-2 text-center">
-          <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
-            +{achievements.length - 4} more achievements
+        <div className="mt-1.5 text-center">
+          <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium">
+            +{achievements.length - 4} more
           </p>
         </div>
       )}

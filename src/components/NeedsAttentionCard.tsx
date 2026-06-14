@@ -287,8 +287,8 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
   }, {} as Record<string, AttentionItem[]>)
 
   return (
-    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4">
-      <div className="flex items-center justify-between mb-3">
+    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-3.5">
+      <div className="flex items-center justify-between mb-2">
         <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Needs Attention</h3>
         {totalCount > 0 && (
           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
@@ -304,35 +304,35 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
       </div>
 
       {visibleItems.length === 0 ? (
-        <div className="text-center py-6">
+        <div className="text-center py-4">
           <p className="text-sm text-slate-500 dark:text-slate-400">All caught up</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {Object.entries(groupedItems).map(([groupName, groupItems]) => (
-            <div key={groupName} className="space-y-2">
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+            <div key={groupName} className="space-y-1.5">
+              <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 {groupName}
               </p>
               {groupItems.map((item) => {
                 const Icon = item.icon
                 return (
                   <Link key={item.id} href={item.actionUrl}>
-                    <div className="p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer group border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
-                      <div className="flex items-center gap-3 mb-1">
-                        <div className={`w-8 h-8 ${item.bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                          <Icon className={`w-4 h-4 ${item.color}`} />
+                    <div className="p-2 sm:p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer group border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
+                      <div className="flex items-center gap-2.5 mb-0.5">
+                        <div className={`w-7 h-7 ${item.bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                          <Icon className={`w-3.5 h-3.5 ${item.color}`} />
                         </div>
-                        <p className="text-sm font-medium text-slate-900 dark:text-foreground flex-1">{item.label}</p>
+                        <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground flex-1">{item.label}</p>
                       </div>
                       {item.subtitle && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 ml-11 mb-2">{item.subtitle}</p>
+                        <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 ml-9.5 mb-1">{item.subtitle}</p>
                       )}
-                      <div className="flex items-center justify-between ml-11">
-                        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
+                      <div className="flex items-center justify-between ml-9.5">
+                        <span className="text-[10px] sm:text-xs font-semibold text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
                           {item.actionLabel}
                         </span>
-                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors flex-shrink-0" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors flex-shrink-0" />
                       </div>
                     </div>
                   </Link>

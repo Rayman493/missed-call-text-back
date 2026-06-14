@@ -346,8 +346,8 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
   return (
     <DashboardErrorBoundary>
       {/* Recent Leads List */}
-      <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4">
-        <div className="flex items-center justify-between mb-2 sm:mb-3">
+      <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 sm:p-3">
+        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm">
               <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,7 +360,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
         </div>
 
         {leads.length === 0 ? (
-          <div className="text-center py-6 sm:py-8 px-4">
+          <div className="text-center py-5 sm:py-6 px-4">
             {!isOnboardingExpanded && (
               <div className="space-y-1.5 sm:space-y-2">
                 <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">
@@ -384,60 +384,62 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
         ) : (
           <>
             {leads.length > 0 && (
-              <div className="space-y-1.5 sm:space-y-2">
+              <div className="space-y-1 sm:space-y-1.5">
                 {leads.slice(0, 5).map((lead, index) => {
                   const aiData = getAIData(lead)
                   const isLatest = index === 0
 
                   return (
                     <div key={lead.id} className="block">
-                      <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 sm:p-3 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground truncate">
-                                {getLeadDisplayName(lead)}
-                              </p>
-                              <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium flex-shrink-0 ${
-                                getLeadStatus(lead) === 'Awaiting Response'
-                                  ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300'
-                                  : getLeadStatus(lead) === 'New'
-                                  ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-                                  : 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-                              }`}>
-                                {getLeadStatus(lead)}
-                              </span>
-                              {aiData.urgency && (
+                      <Link href={`/dashboard/leads/${lead.id}`}>
+                        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-2 sm:p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 cursor-pointer">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground truncate">
+                                  {getLeadDisplayName(lead)}
+                                </p>
                                 <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium flex-shrink-0 ${
-                                  aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
-                                    ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
-                                    : 'bg-slate-100 dark:bg-slate-900/20 text-slate-700 dark:text-slate-300'
+                                  getLeadStatus(lead) === 'Awaiting Response'
+                                    ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300'
+                                    : getLeadStatus(lead) === 'New'
+                                    ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                                    : 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300'
                                 }`}>
-                                  {aiData.urgency}
+                                  {getLeadStatus(lead)}
                                 </span>
+                                {aiData.urgency && (
+                                  <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium flex-shrink-0 ${
+                                    aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
+                                      ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                                      : 'bg-slate-100 dark:bg-slate-900/20 text-slate-700 dark:text-slate-300'
+                                  }`}>
+                                    {aiData.urgency}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium">
+                                  {formatPhoneNumber(lead.phone_number)}
+                                </p>
+                                <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
+                                  {formatRelativeTime(lead.created_at)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                              {lead.voicemail_recordings && lead.voicemail_recordings.length > 0 && (
+                                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                </svg>
                               )}
-                            </div>
-                            <div className="flex items-center gap-2 sm:gap-3">
-                              <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium">
-                                {formatPhoneNumber(lead.phone_number)}
-                              </p>
-                              <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
-                                {formatRelativeTime(lead.created_at)}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                            {lead.voicemail_recordings && lead.voicemail_recordings.length > 0 && (
-                              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 dark:text-slate-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>
-                            )}
-                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 dark:text-slate-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     </div>
                   )
                 })}
