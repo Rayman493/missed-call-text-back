@@ -414,14 +414,14 @@ async function purchaseNumber(
       .eq('id', businessId)
       .single();
 
-    // First, check if this business has a reserved number they can reclaim using stable keys
-    console.log('[PURCHASE NUMBER] Checking for reserved numbers using stable keys');
+    // Check for reserved numbers using strong reclaim only (email + business phone)
+    console.log('[PURCHASE NUMBER] Checking for reserved numbers using strong reclaim (email + business phone)');
     let reservedNumber: any = null;
     let reclaimReason: string = '';
 
     if (business) {
-      // Try exact match on email + business_phone (safest match)
-      if (business.user_id) {
+      // Only try exact match on email + business_phone (strong match only)
+      if (business.user_id && business.business_phone) {
         const { data: user } = await supabase.auth.admin.getUserById(business.user_id);
         if (user && user.user && user.user.email) {
           const { data: reservedByPhoneAndEmail } = await supabase
@@ -436,23 +436,29 @@ async function purchaseNumber(
 
           if (reservedByPhoneAndEmail) {
             reservedNumber = reservedByPhoneAndEmail;
-            reclaimReason = 'email_and_business_phone_match';
-            console.log('[PURCHASE NUMBER] Found reserved number by email + business phone match:', {
+            reclaimReason = 'strong_reclaim_email_and_business_phone_match';
+            console.log('[PURCHASE NUMBER] STRONG RECLAIM: Found reserved number by email + business phone match', {
               email: user.user.email,
               businessPhone: business.business_phone,
               phoneNumber: reservedNumber.phone_number,
+              reserved_expires_at: reservedNumber.reserved_expires_at,
+            });
+          } else {
+            console.log('[PURCHASE NUMBER] No strong reclaim match found (email + business phone)', {
+              email: user.user.email,
+              businessPhone: business.business_phone,
             });
           }
         }
       }
 
-      // If no exact match, try email match only (less safe but useful for returning customers)
+      // Check for weak reclaim candidates (log only, don't auto-assign)
       if (!reservedNumber && business.user_id) {
         const { data: user } = await supabase.auth.admin.getUserById(business.user_id);
         if (user && user.user && user.user.email) {
           const { data: reservedByEmail } = await supabase
             .from('twilio_numbers')
-            .select('*')
+            .select('phone_number, reserved_business_phone, reserved_expires_at')
             .eq('status', 'reserved')
             .eq('reserved_owner_email', user.user.email)
             .gt('reserved_expires_at', new Date().toISOString())
@@ -460,22 +466,21 @@ async function purchaseNumber(
             .maybeSingle();
 
           if (reservedByEmail) {
-            reservedNumber = reservedByEmail;
-            reclaimReason = 'email_match_only';
-            console.log('[PURCHASE NUMBER] Found reserved number by email match:', {
+            console.log('[PURCHASE NUMBER] WEAK RECLAIM CANDIDATE: Found reserved number by email only (skipping auto-assignment)', {
               email: user.user.email,
-              phoneNumber: reservedNumber.phone_number,
-              warning: 'Email match only - business phone may differ',
+              phoneNumber: reservedByEmail.phone_number,
+              reservedBusinessPhone: reservedByEmail.reserved_business_phone,
+              currentBusinessPhone: business.business_phone,
+              reason: 'Business phone mismatch - requires manual review',
             });
           }
         }
       }
 
-      // If still no match, try Stripe customer ID match (for returning customers with same billing)
       if (!reservedNumber && business.stripe_customer_id) {
         const { data: reservedByStripe } = await supabase
           .from('twilio_numbers')
-          .select('*')
+          .select('phone_number, reserved_owner_email, reserved_business_phone, reserved_expires_at')
           .eq('status', 'reserved')
           .eq('reserved_stripe_customer_id', business.stripe_customer_id)
           .gt('reserved_expires_at', new Date().toISOString())
@@ -483,19 +488,19 @@ async function purchaseNumber(
           .maybeSingle();
 
         if (reservedByStripe) {
-          reservedNumber = reservedByStripe;
-          reclaimReason = 'stripe_customer_id_match';
-          console.log('[PURCHASE NUMBER] Found reserved number by Stripe customer ID match:', {
+          console.log('[PURCHASE NUMBER] WEAK RECLAIM CANDIDATE: Found reserved number by Stripe customer ID only (skipping auto-assignment)', {
             stripeCustomerId: business.stripe_customer_id,
-            phoneNumber: reservedNumber.phone_number,
-            warning: 'Stripe match only - email or business phone may differ',
+            phoneNumber: reservedByStripe.phone_number,
+            reservedOwnerEmail: reservedByStripe.reserved_owner_email,
+            reservedBusinessPhone: reservedByStripe.reserved_business_phone,
+            reason: 'Email and business phone mismatch - requires manual review',
           });
         }
       }
     }
 
     if (reservedNumber) {
-      console.log('[PURCHASE NUMBER] Reclaiming reserved number for returning customer', {
+      console.log('[PURCHASE NUMBER] Reclaiming reserved number for returning customer (strong match)', {
         phoneNumber: reservedNumber.phone_number,
         reclaimReason,
         previousBusinessId: reservedNumber.reserved_for_business_id,
@@ -562,8 +567,8 @@ async function purchaseNumber(
       };
     }
 
-    // No reserved number found for this customer, continue with normal flow
-    console.log('[PURCHASE NUMBER] No reserved number found for returning customer');
+    // No strong reclaim found, continue with normal flow
+    console.log('[PURCHASE NUMBER] No strong reclaim found, continuing with normal provisioning flow');
 
     // Next, check for available numbers in inventory (excluding reserved)
     console.log('[PURCHASE NUMBER] Checking for available numbers in inventory');
