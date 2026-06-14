@@ -139,28 +139,45 @@ export default function SettingsContent() {
       }
 
       // Only save real business columns that exist in the database schema
+      const updatePayload: any = {
+        name: businessData.name,
+        business_phone_number: businessData.business_phone_number,
+        business_type: businessData.business_type,
+        business_type_other: businessData.business_type === 'Other' ? businessData.business_type_other?.trim() : null,
+        auto_reply_message: businessData.auto_reply_message,
+        forwarding_enabled: businessData.call_forwarding_enabled,
+        business_hours_enabled: businessData.business_hours_enabled,
+        business_hours_start: businessData.business_hours_start,
+        business_hours_end: businessData.business_hours_end,
+        business_hours_timezone: businessData.business_hours_timezone,
+        after_hours_message: businessData.after_hours_message,
+        automation_settings: automationSettings
+      }
+
+      console.log('[Settings] Saving business settings:', {
+        businessId: businessData.id,
+        updatePayload
+      })
+
       const { error } = await supabase
         .from('businesses')
-        .update({
-          name: businessData.name,
-          business_phone_number: businessData.business_phone_number,
-          business_type: businessData.business_type,
-          business_type_other: businessData.business_type === 'Other' ? businessData.business_type_other?.trim() : null,
-          auto_reply_message: businessData.auto_reply_message,
-          call_forwarding_enabled: businessData.call_forwarding_enabled,
-          business_hours_enabled: businessData.business_hours_enabled,
-          business_hours_start: businessData.business_hours_start,
-          business_hours_end: businessData.business_hours_end,
-          business_hours_timezone: businessData.business_hours_timezone,
-          after_hours_message: businessData.after_hours_message,
-          automation_settings: automationSettings
-        })
+        .update(updatePayload)
         .eq('id', businessData.id)
 
       if (error) {
-        console.error('Settings save error:', error)
+        console.error('[Settings] Save error details:', {
+          businessId: businessData.id,
+          error: error,
+          errorMessage: error.message,
+          errorDetails: JSON.stringify(error),
+          updatePayload
+        })
         throw new Error('Failed to save settings')
       }
+
+      console.log('[Settings] Business settings saved successfully:', {
+        businessId: businessData.id
+      })
     },
     onBusinessUpdated: (updatedBusiness) => {
       // Set save success state when business is updated after successful save
