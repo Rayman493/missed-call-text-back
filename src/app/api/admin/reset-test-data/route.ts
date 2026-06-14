@@ -221,11 +221,11 @@ async function performReset(
   const affectedTwilioNumbers: string[] = []
   let totalRecords = 0
 
-  // Get business details first
+  // Get business details first (include fields needed for reservation metadata)
   console.log('[ADMIN RESET] Getting business details')
   const { data: businesses } = await supabase
     .from('businesses')
-    .select('id, name, twilio_phone_number, twilio_phone_number_sid, is_protected_account')
+    .select('id, name, twilio_phone_number, twilio_phone_number_sid, is_protected_account, user_id, business_phone_number, stripe_customer_id')
     .in('id', businessIds.length > 0 ? businessIds : ['00000000-0000-0000-0000-000000000000'])
 
   console.log('[ADMIN RESET] Businesses fetched:', businesses?.length)
@@ -387,7 +387,7 @@ async function performReset(
         // Get business details for stable keys
         const { data: businesses } = await supabase
           .from('businesses')
-          .select('id, user_id, business_phone, stripe_customer_id')
+          .select('id, user_id, business_phone_number, stripe_customer_id')
           .in('id', businessIds)
 
         console.log('[ADMIN RESET] Business details for reservation:', businesses)
@@ -396,10 +396,18 @@ async function performReset(
         // Get user email for stable reclaim key
         let ownerEmail = null
         if (businesses && businesses.length > 0 && businesses[0].user_id) {
-          const { data: user } = await supabase.auth.admin.getUserById(businesses[0].user_id)
-          if (user && user.user && user.user.email) {
-            ownerEmail = user.user.email
+          try {
+            const { data: user } = await supabase.auth.admin.getUserById(businesses[0].user_id)
+            if (user && user.user && user.user.email) {
+              ownerEmail = user.user.email
+            } else {
+              console.warn('[ADMIN RESET] Could not retrieve user email for reservation metadata')
+            }
+          } catch (error) {
+            console.warn('[ADMIN RESET] Failed to fetch user email for reservation metadata:', error)
           }
+        } else {
+          console.warn('[ADMIN RESET] No user_id available for email lookup')
         }
         console.log('[ADMIN RESET] Owner email for reservation:', ownerEmail)
 
@@ -416,7 +424,7 @@ async function performReset(
           reserved_expires_at: reservedUntil,
           reservation_reason: 'test_business_data_reset',
           reserved_owner_email: ownerEmail || null,
-          reserved_business_phone: targetBusiness?.business_phone || targetBusiness?.twilio_phone_number || null,
+          reserved_business_phone: targetBusiness?.business_phone_number || targetBusiness?.twilio_phone_number || null,
           reserved_stripe_customer_id: targetBusiness?.stripe_customer_id || null,
           reserved_user_id: targetBusiness?.user_id || null,
           // Note: detached_at and detached_reason are not included as they don't exist in production schema
