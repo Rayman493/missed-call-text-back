@@ -100,6 +100,13 @@ export default function SettingsContent() {
   const [calendarEmail, setCalendarEmail] = useState<string | null>(null)
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
 
+  // Business phone number change state
+  const [showPhoneChangeModal, setShowPhoneChangeModal] = useState(false)
+  const [newPhoneNumber, setNewPhoneNumber] = useState('')
+  const [isChangingPhone, setIsChangingPhone] = useState(false)
+  const [phoneChangeError, setPhoneChangeError] = useState('')
+  const [phoneCooldown, setPhoneCooldown] = useState<{ inCooldown: boolean; nextAvailableDate: string | null } | null>(null)
+
   const supabase = createBrowserClient()
 
   // Time input refs for better UX
@@ -484,6 +491,107 @@ export default function SettingsContent() {
     }
   }
 
+  // Check phone number change cooldown
+  const checkPhoneCooldown = async () => {
+    if (!business?.id) return
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        console.log('[Settings] No session token for phone cooldown check')
+        return
+      }
+
+      const response = await fetch(`/api/business/update-phone-number?businessId=${business.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        console.error('[Settings] Failed to check phone cooldown')
+        return
+      }
+
+      const data = await response.json()
+      setPhoneCooldown({
+        inCooldown: data.inCooldown,
+        nextAvailableDate: data.nextAvailableChangeDate
+      })
+    } catch (error) {
+      console.error('[Settings] Error checking phone cooldown:', error)
+    }
+  }
+
+  // Handle phone number change
+  const handleChangePhoneNumber = async () => {
+    if (!business?.id || !newPhoneNumber.trim()) {
+      setPhoneChangeError('Phone number is required')
+      return
+    }
+
+    setPhoneChangeError('')
+    setIsChangingPhone(true)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch('/api/business/update-phone-number', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          businessId: business.id,
+          phoneNumber: newPhoneNumber.trim()
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          // Cooldown error
+          const nextDate = data.nextAvailableChangeDate
+            ? new Date(data.nextAvailableChangeDate).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric'
+              })
+            : '7 days from now'
+          setPhoneChangeError(`This number was recently changed. You can update it again on ${nextDate}. Need to switch sooner? Contact support.`)
+        } else {
+          setPhoneChangeError(data.error || 'Failed to update phone number')
+        }
+        return
+      }
+
+      // Success
+      showToast('Business phone number updated. Please review your call forwarding settings to continue capturing missed calls.', 'success')
+      setShowPhoneChangeModal(false)
+      setNewPhoneNumber('')
+      refreshBusiness()
+      
+      // Redirect to forwarding review
+      setTimeout(() => {
+        router.push('/setup/phone-forwarding?mode=review')
+      }, 1500)
+    } catch (error) {
+      console.error('[Settings] Error changing phone number:', error)
+      setPhoneChangeError('An unexpected error occurred')
+    } finally {
+      setIsChangingPhone(false)
+    }
+  }
+
   const removeToast = (id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id))
   }
@@ -586,6 +694,8 @@ export default function SettingsContent() {
       setIgnoreSuspectedSpamCallers(settings.ignoreSuspectedSpamCallers)
       // Fetch calendar status
       fetchCalendarStatus()
+      // Check phone cooldown status
+      checkPhoneCooldown()
     }
   }, [business, user])
 
@@ -905,13 +1015,68 @@ export default function SettingsContent() {
                     <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-2">
                       Business Phone Number
                     </label>
-                    <input
-                      type="tel"
-                      value={formBusiness.business_phone_number || ''}
-                      onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
-                      placeholder="(555) 123-4567"
-                      className="w-full px-4 py-3 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
-                    />
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="tel"
+                          value={formBusiness.business_phone_number || ''}
+                          onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
+                          placeholder="(555) 123-4567"
+                          disabled={phoneCooldown?.inCooldown}
+                          className="flex-1 px-4 py-3 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        <button
+                          onClick={() => {
+                            setNewPhoneNumber(formBusiness.business_phone_number || '')
+                            setShowPhoneChangeModal(true)
+                          }}
+                          disabled={phoneCooldown?.inCooldown}
+                          className="px-4 py-3 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                        >
+                          Change
+                        </button>
+                      </div>
+                      
+                      {phoneCooldown?.inCooldown && phoneCooldown.nextAvailableDate && (
+                        <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                          <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                          </svg>
+                          <div className="flex-1">
+                            <p className="text-sm text-amber-800 dark:text-amber-200 font-medium mb-1">
+                              Phone number change on cooldown
+                            </p>
+                            <p className="text-xs text-amber-700 dark:text-amber-300">
+                              You can update your phone number again on{' '}
+                              <span className="font-medium">
+                                {new Date(phoneCooldown.nextAvailableDate).toLocaleDateString('en-US', {
+                                  month: 'long',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                              . Need to switch sooner? <a href="mailto:support@replyflowhq.com" className="underline">Contact support</a>.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {!phoneCooldown?.inCooldown && (
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
+                          Changing your business phone number requires updating your call forwarding settings. After saving, ReplyFlow will guide you through re-verifying forwarding so missed calls continue to be captured.
+                        </p>
+                      )}
+                      
+                      {business?.business_phone_changed_at && (
+                        <p className="text-xs text-slate-500 dark:text-slate-500">
+                          Last changed: {new Date(business.business_phone_changed_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-2">
@@ -1930,6 +2095,82 @@ export default function SettingsContent() {
                       </>
                     ) : (
                       'Update Password'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Change Phone Number Modal */}
+          {showPhoneChangeModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
+                  Change Business Phone Number
+                </h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Current Phone Number
+                    </label>
+                    <div className="px-4 py-3 bg-slate-100 dark:bg-slate-900 rounded-lg text-slate-900 dark:text-slate-100">
+                      {formatPhoneNumber(business?.business_phone_number || '')}
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="newPhoneNumber" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      New Phone Number
+                    </label>
+                    <input
+                      id="newPhoneNumber"
+                      type="tel"
+                      value={newPhoneNumber}
+                      onChange={(e) => setNewPhoneNumber(e.target.value)}
+                      placeholder="(555) 123-4567"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-500/80"
+                    />
+                  </div>
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg p-4">
+                    <p className="text-sm text-amber-800 dark:text-amber-200 font-medium mb-2">
+                      Important
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      Changing your business number will require you to update call forwarding on the new phone number. After saving, ReplyFlow will guide you through re-verifying forwarding so missed calls continue to be captured.
+                    </p>
+                  </div>
+                  {phoneChangeError && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg p-3">
+                      <p className="text-sm text-red-600 dark:text-red-400">{phoneChangeError}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowPhoneChangeModal(false)
+                      setNewPhoneNumber('')
+                      setPhoneChangeError('')
+                    }}
+                    disabled={isChangingPhone}
+                    className="px-4 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleChangePhoneNumber}
+                    disabled={isChangingPhone || !newPhoneNumber.trim()}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isChangingPhone ? (
+                      <>
+                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
+                        Changing...
+                      </>
+                    ) : (
+                      'Change Number'
                     )}
                   </button>
                 </div>

@@ -26,6 +26,7 @@ export interface Business {
   business_phone_number?: string | null;
   phone_carrier?: string | null;
   business_phone_carrier?: string | null;
+  business_phone_changed_at?: string | null;
   setup_status?: 'not_configured' | 'awaiting_test' | 'working' | null;
   setup_completed_at?: string | null;
   onboarding_status?: 'started' | 'phone_setup_completed' | 'completed' | string | null;
