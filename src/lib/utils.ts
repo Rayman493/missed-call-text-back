@@ -117,7 +117,7 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 
 /**
  * Get lead display name with graceful fallback
- * Priority: lead.contact_name → lead.raw_metadata?.callerName → lead.raw_metadata?.caller_name → lead.raw_metadata?.extracted_info?.callerName → lead.raw_metadata?.extracted_info?.name → ai_call_records extracted info → caller_phone / phone → "Unknown Caller"
+ * Priority: lead.contact_name → lead.raw_metadata?.callerName → lead.raw_metadata?.caller_name → lead.raw_metadata?.extracted_info?.callerName → lead.raw_metadata?.extracted_info?.name → lead.raw_metadata?.extracted_info?.caller_name → ai_call_records extracted info → lead.raw_metadata?.ai_extracted_info?.name → lead.raw_metadata?.name → formatted phone number → "Unknown Caller"
  */
 export function getLeadDisplayName(lead: any): string {
   // Try direct contact_name first (highest priority)
@@ -150,25 +150,25 @@ export function getLeadDisplayName(lead: any): string {
     return lead.raw_metadata.extracted_info.caller_name.trim()
   }
 
-  // Try ai_call_records.extracted_info.callerName (camelCase)
-  if (lead.ai_call_records && lead.ai_call_records.length > 0) {
-    const aiCall = lead.ai_call_records[0]
+  // Try ai_call_records.extracted_info.callerName (camelCase) - PRIORITIZED for AI Intake
+  if (lead.aiCallRecords && lead.aiCallRecords.length > 0) {
+    const aiCall = lead.aiCallRecords[0]
     if (aiCall.extracted_info?.callerName && aiCall.extracted_info.callerName.trim()) {
       return aiCall.extracted_info.callerName.trim()
     }
   }
 
   // Try ai_call_records.extracted_info.name
-  if (lead.ai_call_records && lead.ai_call_records.length > 0) {
-    const aiCall = lead.ai_call_records[0]
+  if (lead.aiCallRecords && lead.aiCallRecords.length > 0) {
+    const aiCall = lead.aiCallRecords[0]
     if (aiCall.extracted_info?.name && aiCall.extracted_info.name.trim()) {
       return aiCall.extracted_info.name.trim()
     }
   }
 
   // Try ai_call_records.extracted_info.caller_name
-  if (lead.ai_call_records && lead.ai_call_records.length > 0) {
-    const aiCall = lead.ai_call_records[0]
+  if (lead.aiCallRecords && lead.aiCallRecords.length > 0) {
+    const aiCall = lead.aiCallRecords[0]
     if (aiCall.extracted_info?.caller_name && aiCall.extracted_info.caller_name.trim()) {
       return aiCall.extracted_info.caller_name.trim()
     }

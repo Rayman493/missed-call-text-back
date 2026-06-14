@@ -38,13 +38,14 @@ interface AICallDetailsProps {
   conversationId?: string
   callerPhone: string
   leadData?: any
+  collapsible?: boolean
 }
 
-export default function AICallDetails({ leadId, businessId, conversationId, callerPhone, leadData }: AICallDetailsProps) {
+export default function AICallDetails({ leadId, businessId, conversationId, callerPhone, leadData, collapsible = true }: AICallDetailsProps) {
   const [aiCallRecord, setAiCallRecord] = useState<AICallRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [transcriptExpanded, setTranscriptExpanded] = useState(false)
-  const [summaryExpanded, setSummaryExpanded] = useState(false)
+  const [summaryExpanded, setSummaryExpanded] = useState(!collapsible)
   const supabase = createBrowserClient()
 
   useEffect(() => {
@@ -310,41 +311,42 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       )}
 
       {/* AI Summary Card - Compact and Collapsible */}
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-        <button
-          onClick={() => setSummaryExpanded(!summaryExpanded)}
-          className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-colors"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <span className="text-sm font-semibold text-foreground">
-              AI Intake Summary
-            </span>
-          </div>
-          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${summaryExpanded ? 'rotate-180' : 'rotate-0'}`} />
-        </button>
-        
-        {summaryExpanded && (
-          <div className="px-4 pb-4 pt-2">
-            {/* AI Status Badge */}
-            <div className="flex items-center justify-between mb-4">
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getOutcomeColor(aiCallRecord.outcome)}`}>
-                {aiCallRecord.outcome.replace('_', ' ').toUpperCase()}
+      {collapsible ? (
+        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          <button
+            onClick={() => setSummaryExpanded(!summaryExpanded)}
+            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span className="text-sm font-semibold text-foreground">
+                AI Intake Summary
               </span>
-              <button
-                onClick={() => setSummaryExpanded(false)}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
-              >
-                Collapse
-              </button>
             </div>
+            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${summaryExpanded ? 'rotate-180' : 'rotate-0'}`} />
+          </button>
+          
+          {summaryExpanded && (
+            <div className="px-4 pb-4 pt-2">
+              {/* AI Status Badge */}
+              <div className="flex items-center justify-between mb-4">
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getOutcomeColor(aiCallRecord.outcome)}`}>
+                  {aiCallRecord.outcome.replace('_', ' ').toUpperCase()}
+                </span>
+                <button
+                  onClick={() => setSummaryExpanded(false)}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                >
+                  Collapse
+                </button>
+              </div>
 
-            {/* Structured Information */}
-            <div className="space-y-3">
+              {/* Structured Information */}
+              <div className="space-y-3">
           {/* Customer Information */}
           <div className="flex items-center justify-between py-2.5 border-b border-border/50">
             <div className="flex items-center gap-2.5">
@@ -424,6 +426,93 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </div>
         )}
       </div>
+      ) : (
+        <div className="space-y-3">
+          {/* AI Status Badge */}
+          <div className="flex items-center justify-between mb-4">
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getOutcomeColor(aiCallRecord.outcome)}`}>
+              {aiCallRecord.outcome.replace('_', ' ').toUpperCase()}
+            </span>
+          </div>
+
+          {/* Structured Information */}
+          {/* Customer Information */}
+          <div className="flex items-center justify-between py-2.5 border-b border-border/50">
+            <div className="flex items-center gap-2.5">
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium">Name</span>
+            </div>
+            <span className="text-sm font-medium text-foreground">
+              {extractedInfo?.callerName || 'Not Provided'}
+            </span>
+          </div>
+
+          {/* Service Requested */}
+          <div className="py-2.5 border-b border-border/50">
+            <div className="flex items-center gap-2.5 mb-1.5">
+              <Briefcase className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium">Reason</span>
+            </div>
+            <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
+              {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
+            </p>
+          </div>
+
+          {/* Details */}
+          {(extractedInfo?.importantDetails || correctedFields?.details) && (
+            <div className="py-2.5 border-b border-border/50">
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground font-medium">Details</span>
+              </div>
+              <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
+                {correctedFields?.details ? sentenceCase(correctedFields.details) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : ''}
+              </p>
+            </div>
+          )}
+
+          {/* Location */}
+          {(extractedInfo?.addressOrLocation || correctedFields?.address) && (
+            <div className="py-2.5 border-b border-border/50">
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <MapPin className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground font-medium">Location</span>
+              </div>
+              <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
+                {correctedFields?.address || extractedInfo?.addressOrLocation}
+              </p>
+            </div>
+          )}
+
+          {/* Callback Time */}
+          {extractedInfo?.preferredCallbackTime && (
+            <div className="flex items-center justify-between py-2.5 border-b border-border/50">
+              <div className="flex items-center gap-2.5">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground font-medium">Callback Time</span>
+              </div>
+              <span className="text-sm text-foreground">
+                {sentenceCase(extractedInfo.preferredCallbackTime)}
+              </span>
+            </div>
+          )}
+
+          {/* Urgency */}
+          <div className="flex items-center justify-between py-2.5">
+            <div className="flex items-center gap-2.5">
+              <TriangleAlert className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium">Urgency</span>
+            </div>
+            {extractedInfo?.urgencyLevel ? (
+              <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
+                {sentenceCase(extractedInfo.urgencyLevel)}
+              </span>
+            ) : (
+              <span className="text-sm text-muted-foreground">Unknown</span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

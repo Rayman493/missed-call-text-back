@@ -119,14 +119,15 @@ export async function POST(request: NextRequest) {
 
         // Only update lead if we extracted meaningful information
         if (extractionResult.confidence > 0) {
-          // Get current lead metadata
+          // Get current lead metadata and contact_name
           const { data: currentLead } = await supabaseAdmin
             .from('leads')
-            .select('raw_metadata')
+            .select('raw_metadata, contact_name')
             .eq('id', voicemail.lead_id)
             .single();
 
           const currentMetadata = currentLead?.raw_metadata || {};
+          const currentContactName = currentLead?.contact_name || '';
           
           console.log('[TRANSCRIPTION] Current lead metadata before merge:', {
             leadId: voicemail.lead_id,
@@ -134,24 +135,35 @@ export async function POST(request: NextRequest) {
             currentMetadataKeys: Object.keys(currentMetadata),
             currentExtractedInfo: currentMetadata.extracted_info,
             currentIntakeSources: currentMetadata.intake_sources,
-            currentVoicemailExtraction: currentMetadata.voicemail_extraction
+            currentVoicemailExtraction: currentMetadata.voicemail_extraction,
+            currentContactName
           });
           
           // Safely merge voicemail extraction with existing metadata
           const updatedMetadata = safeMergeVoicemailExtraction(currentMetadata, extractionResult);
+          
+          // Prepare update payload
+          const updatePayload: any = { raw_metadata: updatedMetadata };
+          
+          // Update contact_name if it's empty and we extracted a caller name
+          const extractedCallerName = extractionResult.extractedInfo.callerName;
+          if (extractedCallerName && extractedCallerName.trim() && !currentContactName) {
+            updatePayload.contact_name = extractedCallerName.trim();
+            console.log('[TRANSCRIPTION] Updating contact_name with extracted name:', extractedCallerName);
+          }
           
           console.log('[TRANSCRIPTION] Updated metadata after merge:', {
             updatedMetadataKeys: Object.keys(updatedMetadata),
             updatedExtractedInfo: updatedMetadata.extracted_info,
             updatedIntakeSources: updatedMetadata.intake_sources,
             updatedVoicemailExtraction: updatedMetadata.voicemail_extraction,
-            updatePayload: { raw_metadata: updatedMetadata }
+            updatePayload
           });
           
-          // Update lead with merged metadata
+          // Update lead with merged metadata and potentially contact_name
           const { error: updateError } = await supabaseAdmin
             .from('leads')
-            .update({ raw_metadata: updatedMetadata })
+            .update(updatePayload)
             .eq('id', voicemail.lead_id);
 
           if (updateError) {

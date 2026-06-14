@@ -1847,6 +1847,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           conversationId={leadData?.conversation?.id}
                           callerPhone={leadData?.phone_number || lead?.phone}
                           leadData={leadData}
+                          collapsible={false}
                         />
                       </div>
                     )}
