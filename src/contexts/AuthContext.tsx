@@ -23,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const authSubscriptionRef = useRef<any>(null)
   const router = useRouter()
   const pathname = usePathname()
+  const initialLoadRef = useRef(true)
 
   useEffect(() => {
     setIsClient(true)
@@ -40,6 +41,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    // Check if we already have a cached authenticated session from sessionStorage
+    const cachedAuth = typeof window !== 'undefined' ? sessionStorage.getItem('replyflow_auth_cache') : null
+    const wasPreviouslyAuthenticated = cachedAuth === 'authenticated'
+
     // Restore session on app load
     const restoreSession = async () => {
       try {
@@ -52,15 +57,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session) {
           setSession(session)
           setUser(session.user)
+          // Cache authenticated state
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('replyflow_auth_cache', 'authenticated')
+          }
+        } else {
+          // Clear cache if no session
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('replyflow_auth_cache')
+          }
         }
       } catch (error) {
         console.error('[Auth] Session restore failed:', error)
       } finally {
         setLoading(false)
+        initialLoadRef.current = false
       }
     }
 
-    restoreSession()
+    // If user was previously authenticated, skip loading state for faster navigation
+    if (wasPreviouslyAuthenticated && !initialLoadRef.current) {
+      setLoading(false)
+      restoreSession()
+    } else {
+      restoreSession()
+    }
 
     // Listen to auth state changes - only once
     if (!authSubscriptionRef.current && supabase) {
@@ -68,9 +89,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session) {
           setSession(session)
           setUser(session.user)
+          // Update cache on auth state change
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('replyflow_auth_cache', 'authenticated')
+          }
         } else {
           setSession(null)
           setUser(null)
+          // Clear cache on sign out
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('replyflow_auth_cache')
+          }
         }
       })
     }
