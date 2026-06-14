@@ -380,10 +380,10 @@ export default function FAQPage() {
                 </p>
                 <div className="mt-4 text-center">
                   <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-4">
-                    <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">&lt;5s</span>
+                    <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">&lt;1m</span>
                   </div>
                   <p className="text-muted-foreground">
-                    Average message delivery time
+                    Typical message delivery time
                   </p>
                 </div>
                 <p className="text-muted-foreground mt-4">
@@ -588,7 +588,7 @@ export default function FAQPage() {
                   <strong>Yes.</strong> Businesses can configure after-hours handling and AI-assisted call intake.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  ReplyFlow works 24/7 to ensure you never miss a lead, whether during business hours, after hours, or on weekends. The AI can handle calls and collect information anytime.
+                  ReplyFlow works 24/7 to help you capture more leads, whether during business hours, after hours, or on weekends. The AI can handle calls and collect information anytime.
                 </p>
               </div>
             </div>
@@ -690,7 +690,7 @@ export default function FAQPage() {
                   <div className="space-y-3">
                     <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
                       <p className="font-medium text-foreground mb-1">How long until I receive the auto-reply?</p>
-                      <p className="text-sm text-muted-foreground">SMS typically arrives within 1-2 minutes after the missed call. Some carriers may take up to 5 minutes.</p>
+                      <p className="text-sm text-muted-foreground">SMS typically arrives within 1-2 minutes after the missed call. Some carriers may take longer.</p>
                     </div>
                     <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
                       <p className="font-medium text-foreground mb-1">What if I don't receive the text?</p>
@@ -764,7 +764,7 @@ export default function FAQPage() {
             Ready to get started?
           </h3>
           <p className="text-muted-foreground mb-6">
-            Start your 14-day free trial and never miss another customer call.
+            Start your 14-day free trial and capture more missed calls.
           </p>
           <Link
             href="/auth?mode=signup"

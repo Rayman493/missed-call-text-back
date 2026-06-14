@@ -426,7 +426,7 @@ export default function PublicHome() {
                     </svg>
                   </div>
                   <span className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">
-                    Setup in under 5 minutes
+                    Fast setup
                   </span>
                 </div>
                 <div className="flex flex-col items-center text-center group">
@@ -935,7 +935,7 @@ export default function PublicHome() {
               </div>
               <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Secure & Private</h3>
               <p className="text-base text-slate-600 dark:text-muted-foreground">
-                Your data is encrypted and never shared with third parties
+                Your data is encrypted and protected with industry-standard security measures
               </p>
             </motion.div>
             
@@ -970,7 +970,7 @@ export default function PublicHome() {
             viewport={{ once: true }}
           >
             <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-7">
-              Ready to never miss a customer again?
+              Ready to capture more missed calls?
             </h2>
             <p className="text-xl md:text-2xl text-slate-600 dark:text-muted-foreground mb-12 leading-relaxed">
               Built for contractors and home services that never want to miss another lead.

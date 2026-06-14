@@ -78,7 +78,7 @@ export default function CompliancePage() {
               Compliance & Standards
             </h1>
             <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
-              ReplyFlowHQ LLC maintains the highest standards for conversational messaging compliance and regulatory adherence.
+              ReplyFlowHQ LLC maintains compliance standards for conversational messaging and regulatory adherence.
             </p>
           </div>
         </div>

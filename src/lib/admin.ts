@@ -5,13 +5,14 @@
 
 /**
  * Get admin user IDs from environment variable
+ * SECURITY: Only checks ADMIN_USER_IDS (server-side only)
+ * Never check NEXT_PUBLIC_* variables as they would expose admin IDs to client bundle
  */
 function getAdminUserIds(): string[] {
-  const envVar = process.env.ADMIN_USER_IDS || process.env.NEXT_PUBLIC_ADMIN_USER_IDS
+  const envVar = process.env.ADMIN_USER_IDS
   const adminIds = envVar?.split(',').map(id => id.trim()).filter(id => id.length > 0) || []
   
   console.log('[ADMIN CHECK] Admin user IDs from environment:', {
-    envVar,
     adminIds,
     count: adminIds.length
   })
