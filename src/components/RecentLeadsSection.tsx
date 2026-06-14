@@ -419,9 +419,14 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                                 )}
                               </div>
                               <div className="flex items-center gap-2 sm:gap-3">
-                                <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium">
-                                  {formatPhoneNumber(lead.phone_number)}
-                                </p>
+                                {(() => {
+                                  const formattedPhone = formatPhoneNumber(lead.phone_number)
+                                  return formattedPhone !== 'Unknown Caller' && (
+                                    <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium">
+                                      {formattedPhone}
+                                    </p>
+                                  )
+                                })()}
                                 <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
                                   {formatRelativeTime(lead.created_at)}
                                 </span>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
-import { hasActiveAccess, hasActiveTrial } from '@/lib/subscription-utils'
+import { hasActiveAccess, hasActiveTrial, isForwardingComplete } from '@/lib/subscription-utils'
 import { 
   hasValidSubscription,
   SUBSCRIPTION_STATES 
@@ -88,7 +88,7 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
     const subscriptionActive = hasActiveAccess(business)
     const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'completed'
     const replyFlowReadyDone = subscriptionActive && twilioReady
-    const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
+    const forwardingSetupComplete = isForwardingComplete(business)
     const testComplete = business?.forwarding_verified || realCallDataExists
     
     // Determine which step should be expanded
@@ -170,7 +170,7 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
     if (!business) return 'loading'
     const subscriptionActive = hasActiveAccess(business)
     const twilioReady = Boolean(business?.twilio_phone_number) && business?.provisioning_status === 'completed'
-    const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
+    const forwardingSetupComplete = isForwardingComplete(business)
     // Use setupHealth forwardingVerified (no recalculation)
     const testComplete = setupHealth?.forwardingVerified === true
     
@@ -261,7 +261,7 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
   // Legacy variables for compatibility (will be phased out)
   const subscriptionActive = hasActiveAccess(currentBusiness)
   const twilioReady = Boolean(currentBusiness?.twilio_phone_number) && currentBusiness?.provisioning_status === 'completed'
-  const forwardingSetupComplete = Boolean(currentBusiness?.phone_setup_completed_at)
+  const forwardingSetupComplete = isForwardingComplete(currentBusiness)
   const testComplete = setupState.step3Complete
   const provisioningStatus = currentBusiness?.provisioning_status ?? 'pending'
 

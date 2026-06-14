@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import getStripe from '@/lib/stripe'
 import { twilioClient } from '@/lib/twilio'
+import { sendOffboardingEmail } from '@/lib/email'
 
 const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
 
@@ -102,6 +103,64 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[delete-account] Found businesses:', businessIds.length, businessIds)
+
+    // Send offboarding email before deletion (with idempotency check)
+    if (!dryRun && businesses && businesses.length > 0) {
+      const business = businesses[0] // Use first business for email
+      const userEmail = user.email
+      
+      // Check if offboarding email was already sent (idempotency)
+      const { data: existingTrialHistory } = await supabaseAdmin
+        .from('trial_history')
+        .select('offboarding_email_sent, offboarding_email_sent_at')
+        .eq('business_id', business.id)
+        .single()
+      
+      const emailAlreadySent = existingTrialHistory?.offboarding_email_sent === true
+      
+      if (!emailAlreadySent && userEmail) {
+        console.log('[delete-account] Sending offboarding email', {
+          businessId: business.id,
+          businessName: business.name,
+          userEmail,
+        })
+        
+        const emailResult = await sendOffboardingEmail({
+          businessName: business.name || 'Customer',
+          businessPhone: business.twilio_phone_number,
+          replyFlowNumber: business.twilio_phone_number, // Same as business phone in this context
+          userEmail,
+        })
+        
+        if (emailResult.success) {
+          console.log('[delete-account] Offboarding email sent successfully', {
+            messageId: emailResult.messageId,
+          })
+          // Store email sent status in summary for later recording
+          summary.offboardingEmailSent = true
+          summary.offboardingEmailMessageId = emailResult.messageId
+        } else {
+          console.warn('[delete-account] Failed to send offboarding email (continuing deletion)', {
+            error: emailResult.error,
+          })
+          summary.offboardingEmailSent = false
+          summary.offboardingEmailError = emailResult.error
+        }
+      } else if (emailAlreadySent) {
+        console.log('[delete-account] Offboarding email already sent, skipping', {
+          businessId: business.id,
+          sentAt: existingTrialHistory?.offboarding_email_sent_at,
+        })
+        summary.offboardingEmailSent = false
+        summary.offboardingEmailSkipped = true
+        summary.offboardingEmailSkippedReason = 'already_sent'
+      } else {
+        console.warn('[delete-account] No user email available, skipping offboarding email')
+        summary.offboardingEmailSent = false
+        summary.offboardingEmailSkipped = true
+        summary.offboardingEmailSkippedReason = 'no_email'
+      }
+    }
 
     if (businessIds.length === 0) {
       console.log('[delete-account] No businesses found, skipping data deletion')
@@ -601,6 +660,9 @@ export async function POST(request: NextRequest) {
             account_deleted_at: new Date().toISOString(),
             account_deleted_by: 'self',
             deletion_reason: 'user_request',
+            offboarding_email_sent: summary.offboardingEmailSent || false,
+            offboarding_email_sent_at: summary.offboardingEmailSent ? new Date().toISOString() : null,
+            offboarding_email_message_id: summary.offboardingEmailMessageId || null,
           }
           
           if (!dryRun) {

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils'
+import { formatPhoneNumber, formatRelativeTime, getLeadDisplayName } from '@/lib/utils'
 import { Phone, MessageSquare, Clock, AlertCircle, Reply } from 'lucide-react'
 
 interface RecentLeadsProps {
@@ -221,7 +221,7 @@ export default function RecentLeads({ business }: RecentLeadsProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`font-medium text-foreground ${status.color}`}>
-                        {formatPhoneNumber(lead.caller_phone)}
+                        {getLeadDisplayName(lead)}
                       </span>
                       <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${status.bgColor} ${status.color}`}>
                         {status.icon}
@@ -230,7 +230,12 @@ export default function RecentLeads({ business }: RecentLeadsProps) {
                     </div>
                     
                     <div className="text-xs text-muted-foreground mb-2">
-                      Last Contact: {getLastActivity(lead)}
+                      {(() => {
+                        const formattedPhone = formatPhoneNumber(lead.caller_phone)
+                        return formattedPhone !== 'Unknown Caller' 
+                          ? `${formattedPhone} • ${getLastActivity(lead)}`
+                          : getLastActivity(lead)
+                      })()}
                     </div>
                   </div>
                 </div>
