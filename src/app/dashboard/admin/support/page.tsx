@@ -45,7 +45,7 @@ interface Business {
 
 export default function AdminSupportPage() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   
@@ -313,12 +313,18 @@ export default function AdminSupportPage() {
       return
     }
 
+    if (!session || !session.access_token) {
+      console.error('[DELETE TEST DATA] No session or access token')
+      setActionResult({ success: false, message: 'Authentication required. Please log in again.' })
+      return
+    }
+
     if (deleteConfirmPhase === 'dry-run') {
       console.log('[DELETE TEST DATA] Starting dry-run phase')
       setDeleteLoading(true)
       try {
-        console.log('[DELETE TEST DATA] Getting ID token')
-        const token = await user?.getIdToken()
+        console.log('[DELETE TEST DATA] Using session access token')
+        const token = session.access_token
         console.log('[DELETE TEST DATA] Token obtained:', !!token)
 
         const payload = {
@@ -363,7 +369,14 @@ export default function AdminSupportPage() {
     } else {
       setDeleteLoading(true)
       try {
-        const token = await user?.getIdToken()
+        if (!session || !session.access_token) {
+          console.error('[DELETE TEST DATA] No session or access token')
+          setActionResult({ success: false, message: 'Authentication required. Please log in again.' })
+          setDeleteLoading(false)
+          return
+        }
+
+        const token = session.access_token
         const response = await fetch('/api/admin/reset-test-data', {
           method: 'POST',
           headers: {
