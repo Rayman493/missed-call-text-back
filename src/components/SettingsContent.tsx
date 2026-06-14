@@ -685,8 +685,22 @@ export default function SettingsContent() {
       }
 
       console.log('[Delete Account] Account deleted successfully, redirecting to homepage')
-      // Force redirect to homepage immediately without waiting for signOut
-      // since the user is already deleted from Supabase Auth
+      
+      // Explicitly sign out from Supabase to clear auth state
+      try {
+        const { error: signOutError } = await supabase.auth.signOut()
+        if (signOutError) {
+          console.error('[Delete Account] SignOut error:', signOutError)
+          // Continue anyway - account is deleted
+        } else {
+          console.log('[Delete Account] Successfully signed out from Supabase')
+        }
+      } catch (signOutError) {
+        console.error('[Delete Account] SignOut exception:', signOutError)
+        // Continue anyway - account is deleted
+      }
+      
+      // Force redirect to homepage
       window.location.href = '/'
     } catch (error) {
       console.error('[Delete Account] Network error:', error)
