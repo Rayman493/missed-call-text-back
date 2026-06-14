@@ -78,11 +78,11 @@ export async function POST(request: NextRequest) {
       },
     }
 
-    // Step 1: Find all businesses for this user (include Stripe + Twilio fields)
+    // Step 1: Find all businesses for this user (include Stripe + Twilio fields + reservation metadata)
     console.log('[delete-account] Step 1: find businesses')
     const { data: businesses, error: businessesError } = await supabaseAdmin
       .from('businesses')
-      .select('id, stripe_customer_id, stripe_subscription_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, name, trial_ends_at, created_at')
+      .select('id, stripe_customer_id, stripe_subscription_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, name, trial_ends_at, created_at, user_id, business_phone_number')
       .eq('user_id', user.id)
 
     if (businessesError) {
@@ -589,22 +589,32 @@ export async function POST(request: NextRequest) {
               .eq('business_id', business.id)
               .single()
 
-            const { error: twilioReserveError } = await supabaseAdmin
+            // Prepare reservation data (schema-safe: only include columns that exist in production)
+            const reservationData = {
+              status: 'reserved',
+              business_id: null, // Clear business_id
+              reserved_for_business_id: business.id,
+              reserved_at: new Date().toISOString(),
+              reserved_expires_at: thirtyDaysFromNow.toISOString(),
+              reservation_reason: 'account_deletion',
+              reserved_owner_email: user.email,
+              reserved_business_phone: business.business_phone_number || business.twilio_phone_number,
+              reserved_stripe_customer_id: business.stripe_customer_id,
+              reserved_user_id: user.id,
+              // Note: detached_at and detached_reason are not included as they don't exist in production schema
+            }
+            console.log('[delete-account] Reservation data:', reservationData)
+
+            const { error: twilioReserveError, data: reserveData, count: reserveCount } = await supabaseAdmin
               .from('twilio_numbers')
-              .update({
-                status: 'reserved',
-                reserved_for_business_id: business.id,
-                reserved_at: new Date().toISOString(),
-                reserved_expires_at: thirtyDaysFromNow.toISOString(),
-                reservation_reason: 'account_deletion',
-                reserved_owner_email: user.email,
-                reserved_business_phone: business.business_phone || business.twilio_phone_number,
-                reserved_stripe_customer_id: business.stripe_customer_id,
-                reserved_user_id: user.id,
-                detached_at: new Date().toISOString(),
-                detached_reason: 'account_deletion',
-              })
+              .update(reservationData)
               .eq('business_id', business.id)
+
+            console.log('[delete-account] Twilio reservation UPDATE result:', {
+              error: twilioReserveError,
+              data: reserveData,
+              count: reserveCount,
+            })
 
             if (twilioReserveError) {
               console.error('[delete-account] Failed to reserve Twilio number in DB:', twilioReserveError)
@@ -622,7 +632,7 @@ export async function POST(request: NextRequest) {
               new_status: 'reserved',
               reserved_for_business_id: business.id,
               reserved_owner_email: user.email,
-              reserved_business_phone: business.business_phone || business.twilio_phone_number,
+              reserved_business_phone: business.business_phone_number || business.twilio_phone_number,
               reserved_stripe_customer_id: business.stripe_customer_id,
               reserved_user_id: user.id,
               reserved_at: new Date().toISOString(),
