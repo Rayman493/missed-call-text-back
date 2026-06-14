@@ -25,6 +25,10 @@ interface DryRunResult {
   warnings: string[]
   blocked: boolean
   blockReason?: string
+  totalRecordsDeleted?: number
+  businessesDeleted?: number
+  twilioNumbersReserved?: number
+  reservedUntil?: string | null
 }
 
 export async function POST(request: NextRequest) {
@@ -229,8 +233,11 @@ async function performReset(
   }
 
   // Safe deletion order (child tables first, then parent tables)
+  // First, get message IDs for message_media query
+  const messageIds = await getLeadMessageIds(supabase, businessIds)
+  
   const tablesToDelete = [
-    { table: 'message_media', description: 'MMS media attachments', query: (ids: string[]) => supabase.from('message_media').select('id').in('message_id', getLeadMessageIds(supabase, ids)) },
+    { table: 'message_media', description: 'MMS media attachments', query: (ids: string[]) => supabase.from('message_media').select('id').in('message_id', messageIds) },
     { table: 'messages', description: 'SMS and conversation messages', query: (ids: string[]) => supabase.from('messages').select('id').in('business_id', ids) },
     { table: 'conversations', description: 'Conversation threads', query: (ids: string[]) => supabase.from('conversations').select('id').in('business_id', ids) },
     { table: 'follow_up_jobs', description: 'Scheduled follow-up jobs', query: (ids: string[]) => supabase.from('follow_up_jobs').select('id').in('business_id', ids) },
@@ -283,33 +290,20 @@ async function performReset(
   console.log('[ADMIN RESET] Table count loop completed')
 
   // Execute: delete records
+  let businessesDeleted = 0
+  let twilioNumbersReserved = 0
+  let reservedUntil: string | null = null
+
   if (executeMode && businessIds.length > 0) {
-    // Delete in reverse order (child tables first)
-    for (let i = tablesToDelete.length - 1; i >= 0; i--) {
-      const tableInfo = tablesToDelete[i]
-      try {
-        const { error } = await supabase
-          .from(tableInfo.table)
-          .delete()
-          .in('business_id', businessIds)
-
-        if (error) {
-          console.error(`[ADMIN RESET] Error deleting ${tableInfo.table}:`, error)
-          warnings.push(`Failed to delete ${tableInfo.table}: ${error.message}`)
-        } else {
-          console.log(`[ADMIN RESET] Deleted ${summary.find(s => s.table === tableInfo.table)?.count || 0} records from ${tableInfo.table}`)
-        }
-      } catch (error: any) {
-        console.error(`[ADMIN RESET] Exception deleting ${tableInfo.table}:`, error)
-        warnings.push(`Exception deleting ${tableInfo.table}: ${error.message}`)
-      }
-    }
-
-    // Reserve Twilio numbers for 30-day grace period after business deletion
+    console.log('[ADMIN RESET] Starting execute mode')
+    
+    // Reserve Twilio numbers for 30-day grace period BEFORE deleting business
     if (affectedTwilioNumbers.length > 0) {
+      console.log('[ADMIN RESET] Reserving Twilio numbers before business deletion')
       try {
         const thirtyDaysFromNow = new Date()
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
+        reservedUntil = thirtyDaysFromNow.toISOString()
 
         // Get current numbers and business details for logging
         const { data: currentNumbers } = await supabase
@@ -330,9 +324,9 @@ async function performReset(
           .from('twilio_numbers')
           .update({
             status: 'reserved',
-            reserved_for_business_id: null, // Test businesses don't need reclamation
+            reserved_for_business_id: businessIds[0], // Set to target business ID
             reserved_at: new Date().toISOString(),
-            reserved_expires_at: thirtyDaysFromNow.toISOString(),
+            reserved_expires_at: reservedUntil,
             reservation_reason: 'test_business_data_reset',
             reserved_owner_email: null, // Test businesses don't need reclamation
             reserved_business_phone: null, // Test businesses don't need reclamation
@@ -353,9 +347,9 @@ async function performReset(
               .from('twilio_numbers')
               .update({
                 status: 'reserved',
-                reserved_for_business_id: null,
+                reserved_for_business_id: businessIds[0],
                 reserved_at: new Date().toISOString(),
-                reserved_expires_at: thirtyDaysFromNow.toISOString(),
+                reserved_expires_at: reservedUntil,
                 reservation_reason: 'test_business_data_reset',
                 detached_at: new Date().toISOString(),
                 detached_reason: 'test_business_data_reset',
@@ -367,25 +361,27 @@ async function performReset(
               warnings.push(`Failed to reserve Twilio numbers: ${fallbackError.message}`)
             } else {
               console.log(`[ADMIN RESET] Reserved ${affectedTwilioNumbers.length} Twilio numbers for 30-day grace period (fallback)`)
-              warnings.push(`Reserved ${affectedTwilioNumbers.length} Twilio number(s) for 30-day grace period. Numbers will become available after ${thirtyDaysFromNow.toISOString()}.`)
+              twilioNumbersReserved = affectedTwilioNumbers.length
+              warnings.push(`Reserved ${affectedTwilioNumbers.length} Twilio number(s) for 30-day grace period. Numbers will become available after ${reservedUntil}.`)
             }
           } else {
             warnings.push(`Failed to reserve Twilio numbers: ${reserveError.message}`)
           }
         } else {
           console.log(`[ADMIN RESET] Reserved ${affectedTwilioNumbers.length} Twilio numbers for 30-day grace period`)
+          twilioNumbersReserved = affectedTwilioNumbers.length
           currentNumbers?.forEach((num: any) => {
             const business = businessMap.get(num.business_id)
             console.log('[ADMIN RESET] Twilio number reserved', {
               phone_number: num.phone_number,
               old_status: num.status,
               new_status: 'reserved',
-              reserved_expires_at: thirtyDaysFromNow.toISOString(),
+              reserved_for_business_id: businessIds[0],
+              reserved_expires_at: reservedUntil,
               reservation_reason: 'test_business_data_reset',
-              note: 'Test business - no reclamation keys stored',
             })
           })
-          warnings.push(`Reserved ${affectedTwilioNumbers.length} Twilio number(s) for 30-day grace period. Numbers will become available after ${thirtyDaysFromNow.toISOString()}.`)
+          warnings.push(`Reserved ${affectedTwilioNumbers.length} Twilio number(s) for 30-day grace period. Numbers will become available after ${reservedUntil}.`)
         }
       } catch (error: any) {
         console.error('[ADMIN RESET] Exception reserving Twilio numbers:', error)
@@ -393,9 +389,62 @@ async function performReset(
       }
     }
 
-    // Note: We do NOT delete businesses themselves, just their data
-    // This preserves business configuration, subscription
-    // Twilio numbers are detached but not released (preserved in inventory)
+    // Delete in reverse order (child tables first)
+    console.log('[ADMIN RESET] Deleting records from tables')
+    for (let i = tablesToDelete.length - 1; i >= 0; i--) {
+      const tableInfo = tablesToDelete[i]
+      try {
+        const { error } = await supabase
+          .from(tableInfo.table)
+          .delete()
+          .in('business_id', businessIds)
+
+        if (error) {
+          console.error(`[ADMIN RESET] Error deleting ${tableInfo.table}:`, error)
+          warnings.push(`Failed to delete ${tableInfo.table}: ${error.message}`)
+        } else {
+          const count = summary.find(s => s.table === tableInfo.table)?.count || 0
+          console.log(`[ADMIN RESET] Deleted ${count} records from ${tableInfo.table}`)
+        }
+      } catch (error: any) {
+        console.error(`[ADMIN RESET] Exception deleting ${tableInfo.table}:`, error)
+        warnings.push(`Exception deleting ${tableInfo.table}: ${error.message}`)
+      }
+    }
+
+    // Delete business rows
+    console.log('[ADMIN RESET] Deleting business rows')
+    for (const businessId of businessIds) {
+      try {
+        const { error: deleteBusinessError } = await supabase
+          .from('businesses')
+          .delete()
+          .eq('id', businessId)
+
+        if (deleteBusinessError) {
+          console.error('[ADMIN RESET] Error deleting business:', deleteBusinessError)
+          warnings.push(`Failed to delete business ${businessId}: ${deleteBusinessError.message}`)
+        } else {
+          console.log('[ADMIN RESET] Deleted business:', businessId)
+          businessesDeleted++
+        }
+      } catch (error: any) {
+        console.error('[ADMIN RESET] Exception deleting business:', error)
+        warnings.push(`Exception deleting business ${businessId}: ${error.message}`)
+      }
+    }
+
+    // Note: We do NOT delete auth users for test data reset
+    // This is a test data reset, not a full account deletion
+    console.log('[ADMIN RESET] Auth users preserved (test data reset, not account deletion)')
+    warnings.push('Auth users preserved. This is a test data reset, not a full account deletion.')
+    
+    console.log('[ADMIN RESET] Execute mode completed', {
+      totalRecordsDeleted: totalRecords,
+      businessesDeleted,
+      twilioNumbersReserved,
+      reservedUntil
+    })
   }
 
   console.log('[ADMIN RESET] performReset preparing to return')
@@ -418,7 +467,11 @@ async function performReset(
     affectedBusinesses,
     affectedTwilioNumbers,
     warnings,
-    blocked: false
+    blocked: false,
+    totalRecordsDeleted: executeMode ? totalRecords : undefined,
+    businessesDeleted: executeMode ? businessesDeleted : undefined,
+    twilioNumbersReserved: executeMode ? twilioNumbersReserved : undefined,
+    reservedUntil: executeMode ? reservedUntil : undefined
   }
 
   console.log('[ADMIN RESET] performReset returning result:', JSON.stringify(result, null, 2))

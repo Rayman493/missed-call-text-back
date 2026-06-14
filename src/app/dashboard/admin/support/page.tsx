@@ -393,7 +393,13 @@ export default function AdminSupportPage() {
 
         const data = await response.json()
         if (data.success || !data.blocked) {
-          setActionResult({ success: true, message: `Successfully deleted ${data.totalRecords} records` })
+          const message = data.totalRecordsDeleted !== undefined
+            ? `Successfully deleted ${data.totalRecordsDeleted} record${data.totalRecordsDeleted !== 1 ? 's' : ''}` +
+              (data.businessesDeleted ? `, ${data.businessesDeleted} business${data.businessesDeleted !== 1 ? 'es' : ''}` : '') +
+              (data.twilioNumbersReserved ? `, reserved ${data.twilioNumbersReserved} Twilio number${data.twilioNumbersReserved !== 1 ? 's' : ''}` : '') +
+              (data.reservedUntil ? ` until ${new Date(data.reservedUntil).toLocaleDateString()}` : '')
+            : 'Successfully deleted test data'
+          setActionResult({ success: true, message })
           setShowDeleteModal(false)
           setDeleteConfirmPhase('dry-run')
           setDeleteDryRunResult(null)
