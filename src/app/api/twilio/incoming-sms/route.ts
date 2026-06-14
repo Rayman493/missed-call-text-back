@@ -33,13 +33,14 @@ export async function POST(req: NextRequest) {
       contentType,
       bodyLength: rawBody.length
     })
-    
-    // Bypass signature validation for local development only
-    const isDevEnvironment = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === 'true'
-    
+
+    // Bypass signature validation ONLY in development environment
+    // NEVER allow bypass via client-accessible environment variables
+    const isDevEnvironment = process.env.NODE_ENV === 'development'
+
     if (!isDevEnvironment) {
       const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
-      
+
       if (!isValid) {
         console.error('[INBOUND SMS SIGNATURE VALID] FAILED', {
           url: req.url,
@@ -57,10 +58,10 @@ export async function POST(req: NextRequest) {
           },
         })
       }
-      
+
       console.log('[INBOUND SMS SIGNATURE VALID] SUCCESS')
     } else {
-      console.log('[INBOUND SMS SIGNATURE VALID] BYPASSED Development environment detected')
+      console.log('[INBOUND SMS SIGNATURE VALID] BYPASSED - Local development environment detected (NODE_ENV === development)')
     }
     
     // Parse body using formData for proper form data handling

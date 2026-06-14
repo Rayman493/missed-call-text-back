@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { notificationService } from '@/lib/notifications'
+import { requireTwilioAuth } from '@/lib/twilio/webhook'
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -20,10 +21,20 @@ const supabase = createClient(
 export async function POST(req: NextRequest) {
   try {
     console.log('[twilio] status callback received')
-    
+
     // Read raw body for signature validation
     const rawBody = await req.text()
+    const contentType = req.headers.get('content-type') || ''
     const params = new URLSearchParams(rawBody)
+
+    // Validate Twilio signature with params object
+    const isValid = requireTwilioAuth(req, Object.fromEntries(params), rawBody.length, contentType)
+    if (!isValid) {
+      console.error('[twilio] Invalid Twilio signature')
+      return new Response('Unauthorized', { status: 401 })
+    }
+
+    console.log('[twilio] Signature validated successfully')
     
     const MessageSid = params.get('MessageSid')
     const MessageStatus = params.get('MessageStatus')

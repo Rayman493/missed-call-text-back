@@ -158,7 +158,127 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   // Check for opt-in keywords (case-insensitive) - START, UNSTOP, YES
   const optInKeywords = ['START', 'UNSTOP', 'YES']
   const isOptIn = optInKeywords.some(keyword => originalBody === keyword)
-  
+
+  // Handle opt-out and opt-in keywords before normal message processing
+  if (isOptOut || isOptIn) {
+    console.log('[OPT-OUT/IN DETECTED]', {
+      isOptOut,
+      isOptIn,
+      originalBody,
+      from: normalizedCustomerPhone,
+      to: normalizedToPhone
+    })
+
+    // Try to find existing lead across all businesses with this phone number
+    const leadResult = await db.findLeadByPhoneAcrossBusinesses(normalizedCustomerPhone, normalizedToPhone)
+    
+    if (leadResult && leadResult.lead) {
+      const business = leadResult.business
+      const lead = leadResult.lead
+      
+      console.log('[OPT-OUT/IN LEAD FOUND]', {
+        leadId: lead.id,
+        businessId: business.id,
+        currentOptedOut: lead.opted_out,
+        action: isOptOut ? 'OPT_OUT' : 'OPT_IN'
+      })
+
+      // Update lead's opted_out status
+      const newOptedOutStatus = isOptOut
+      const updatedLead = await db.updateLead(lead.id, {
+        opted_out: newOptedOutStatus,
+        raw_metadata: {
+          ...(lead.raw_metadata || {}),
+          last_opt_change_at: now,
+          last_opt_change_type: isOptOut ? 'opt_out' : 'opt_in',
+          last_opt_change_body: body
+        }
+      })
+
+      if (updatedLead) {
+        console.log('[OPT-OUT/IN STATUS UPDATED]', {
+          leadId: lead.id,
+          previousStatus: lead.opted_out,
+          newStatus: newOptedOutStatus
+        })
+      } else {
+        console.error('[OPT-OUT/IN UPDATE FAILED]', { leadId: lead.id })
+      }
+
+      // Store the opt-out/opt-in message in conversation history
+      let conversation = await db.getOpenConversationForLead(lead.id, business.id)
+      
+      if (!conversation) {
+        conversation = await db.createConversation({
+          lead_id: lead.id,
+          business_id: business.id,
+          status: 'open',
+          source: 'sms',
+          started_at: new Date().toISOString(),
+          last_activity_at: new Date().toISOString(),
+        })
+      }
+
+      if (conversation) {
+        const sanitizedBody = sanitizeMessageContent(body)
+        await db.createMessageWithConversation({
+          lead_id: lead.id,
+          conversation_id: conversation.id,
+          direction: 'inbound',
+          body: sanitizedBody,
+          from_phone: normalizedCustomerPhone,
+          to_phone: to,
+          twilio_message_sid: messageSid,
+          status: 'received',
+          message_type: 'text',
+          media_count: 0,
+          created_at: new Date().toISOString(),
+        })
+        console.log('[OPT-OUT/IN MESSAGE STORED]', { conversationId: conversation.id })
+      }
+
+      // Cancel pending follow-up jobs for opted-out contacts
+      if (isOptOut) {
+        await db.cancelPendingFollowUpJobsForLead(lead.id)
+        console.log('[OPT-OUT FOLLOW-UPS CANCELED]', { leadId: lead.id })
+      }
+
+      // Return compliant confirmation message
+      const confirmationMessage = isOptOut
+        ? "You've opted out of messages. Reply START to opt back in."
+        : "You've opted back in to messages. Reply STOP to opt out."
+
+      return {
+        success: true,
+        optOutHandled: true,
+        twiml: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${confirmationMessage}</Message>
+</Response>`
+      }
+    } else {
+      console.log('[OPT-OUT/IN LEAD NOT FOUND]', {
+        from: normalizedCustomerPhone,
+        to: normalizedToPhone,
+        action: isOptOut ? 'OPT_OUT' : 'OPT_IN'
+      })
+
+      // No lead found, but still return confirmation message for compliance
+      const confirmationMessage = isOptOut
+        ? "You've opted out of messages. Reply START to opt back in."
+        : "You've opted back in to messages. Reply STOP to opt out."
+
+      return {
+        success: true,
+        optOutHandled: true,
+        twiml: `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${confirmationMessage}</Message>
+</Response>`
+      }
+    }
+  }
+
   // Try to find existing lead across all businesses with this phone number
   console.log('[INBOUND SMS BUSINESS LOOKUP START]', { to: normalizedToPhone })
   const leadResult = await db.findLeadByPhoneAcrossBusinesses(normalizedCustomerPhone, normalizedToPhone)

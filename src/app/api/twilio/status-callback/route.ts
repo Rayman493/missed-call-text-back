@@ -1,18 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db, supabaseAdmin } from '@/lib/supabase/admin'
+import { requireTwilioAuth } from '@/lib/twilio/webhook'
 
 export async function POST(req: NextRequest) {
   console.log('[status-callback] Received Twilio status callback')
-  
+
   let MessageSid: string | null = null
   let MessageStatus: string | null = null
   let ErrorCode: string | null = null
   let ErrorMessage: string | null = null
-  
+
   try {
     // Parse the form data from Twilio safely
-    const body = await req.text()
-    const params = new URLSearchParams(body)
+    const rawBody = await req.text()
+    const contentType = req.headers.get('content-type') || ''
+    const params = new URLSearchParams(rawBody)
+
+    // Validate Twilio signature with params object
+    const isValid = requireTwilioAuth(req, Object.fromEntries(params), rawBody.length, contentType)
+    if (!isValid) {
+      console.error('[status-callback] Invalid Twilio signature')
+      return new Response('Unauthorized', { status: 401 })
+    }
+
+    console.log('[status-callback] Signature validated successfully')
     
     MessageSid = params.get('MessageSid')
     MessageStatus = params.get('MessageStatus')

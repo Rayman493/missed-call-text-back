@@ -316,7 +316,25 @@ export async function POST(req: NextRequest) {
         }
         
         console.log(`[send-followups] Found lead: ${lead.id}, business: ${business.id}`)
-        
+
+        // Check if lead has opted out of messages
+        if (lead.opted_out) {
+          console.log(`[send-followups] Lead ${lead.id} has opted out, skipping follow-up ${followUp.id}`)
+          const { error: cancelError } = await supabase
+            .from('follow_up_jobs')
+            .update({
+              status: 'cancelled',
+              cancelled_reason: 'opted_out',
+              cancelled_at: new Date().toISOString()
+            })
+            .eq('id', followUp.id)
+
+          if (cancelError) {
+            console.error('[send-followups] Error cancelling follow-up for opted-out lead:', cancelError)
+          }
+          cancelled++
+          continue
+        }
 
         // Check if lead phone is in ignored contacts
         if (lead.caller_phone) {

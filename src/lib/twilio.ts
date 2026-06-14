@@ -90,6 +90,25 @@ export async function sendSms(
 
   console.log('[FOLLOWUP TWILIO SEND RESULT] Idempotency check passed, proceeding with send');
 
+  // Check if lead has opted out - block automated messages to opted-out numbers
+  if (options?.lead_id && !options.isManual) {
+    const { data: lead, error: leadError } = await supabase
+      .from('leads')
+      .select('opted_out')
+      .eq('id', options.lead_id)
+      .single()
+
+    if (!leadError && lead && lead.opted_out) {
+      console.log('[SMS BLOCKED] Lead has opted out of messages', {
+        lead_id: options.lead_id,
+        to,
+        message_preview: message.substring(0, 50)
+      })
+      await logFailedMessage(business, to, message, options, 'Lead has opted out of messages', 'OPTED_OUT', false)
+      return { sid: null, messageId: null }
+    }
+  }
+
   // Validate Twilio environment for SMS operations
   const smsValidation = validateTwilioForSms();
 

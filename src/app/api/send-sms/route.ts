@@ -130,10 +130,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    // Check if lead has opted out
-    if (lead.raw_metadata?.opted_out) {
+    // Check if lead has opted out - block manual sends to opted-out numbers
+    if (lead.opted_out) {
       console.log('[Manual SMS] Lead has opted out, blocking send:', { leadId })
-      return NextResponse.json({ error: 'Lead has opted out of messages' }, { status: 403 })
+      return NextResponse.json({ 
+        error: 'Lead has opted out of messages',
+        details: 'This customer has opted out of receiving messages. You cannot send messages to opted-out contacts.'
+      }, { status: 403 })
     }
 
     // Get or create conversation
