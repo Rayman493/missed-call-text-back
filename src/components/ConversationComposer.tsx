@@ -24,8 +24,10 @@ export default function ConversationComposer({
 }: ConversationComposerProps) {
   const [images, setImages] = useState<ImagePreview[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [isAtMaxHeight, setIsAtMaxHeight] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Clear images when onClearImages is called
   React.useEffect(() => {
@@ -118,12 +120,34 @@ export default function ConversationComposer({
   }
 
   const handleSend = () => {
+    if (!hasContent || sending) return
     if (images.length > 0) {
       const mediaFiles = images.map(img => img.file)
       handleSendMessage(mediaFiles)
     } else {
       handleSendMessage()
     }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+    // Shift+Enter is allowed to insert a newline (default behavior)
+  }
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value)
+    const textarea = e.target
+    
+    // Auto-grow textarea
+    textarea.style.height = 'auto'
+    const newHeight = Math.min(textarea.scrollHeight, 150)
+    textarea.style.height = newHeight + 'px'
+    
+    // Show scrollbar only when at max height
+    setIsAtMaxHeight(textarea.scrollHeight >= 150)
   }
 
   const hasContent = message.trim() || images.length > 0
@@ -187,15 +211,14 @@ export default function ConversationComposer({
           />
 
             <textarea
+              ref={textareaRef}
               value={message}
-              onChange={(e) => {
-                setMessage(e.target.value)
-                const textarea = e.target
-                textarea.style.height = 'auto'
-                textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px'
-              }}
+              onChange={handleTextareaChange}
+              onKeyDown={handleKeyDown}
               placeholder="Send a text message..."
-              className="flex-1 p-3 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed h-11"
+              className={`flex-1 p-3 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed h-11 ${
+                isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
+              }`}
               rows={1}
               style={{ minHeight: '44px', maxHeight: '150px' }}
               disabled={sending}

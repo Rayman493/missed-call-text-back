@@ -15,6 +15,7 @@ export default function MobileConversationComposer({
 }: MobileConversationComposerProps) {
   const [isTyping, setIsTyping] = useState(false)
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [isAtMaxHeight, setIsAtMaxHeight] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -25,6 +26,9 @@ export default function MobileConversationComposer({
     const textarea = e.target
     textarea.style.height = 'auto'
     textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px'
+    
+    // Show scrollbar only when at max height
+    setIsAtMaxHeight(textarea.scrollHeight >= 100)
     
     // Handle typing indicator
     if (newValue.trim()) {
@@ -60,7 +64,9 @@ export default function MobileConversationComposer({
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
                 disabled={sending}
-                className="w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-muted-foreground/50 text-base leading-relaxed py-2.5 px-1 max-h-32 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-muted-foreground/50 text-base leading-relaxed py-2.5 px-1 max-h-32 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
+                }`}
                 rows={1}
                 style={{ fieldSizing: 'content', minHeight: '44px' }}
               />
