@@ -72,7 +72,6 @@ export function useOperationalMetrics(business: Business | null) {
           loading: false
         }
 
-        console.log('[OPERATIONAL METRICS]', computedMetrics)
         setMetrics(computedMetrics)
       } catch (error) {
         console.error('[OPERATIONAL METRICS] Error fetching:', error)

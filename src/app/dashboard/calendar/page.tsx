@@ -204,29 +204,23 @@ export default function CalendarPage() {
   }
 
   const fetchCalendarStatus = async () => {
-    console.log('[GOOGLE CALENDAR SYNC START] Fetching calendar status...')
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
       if (!token) {
-        console.log('[GOOGLE CALENDAR SYNC] No session token')
         setCalendarConnected(false)
         return
       }
 
-      console.log('[GOOGLE CALENDAR SYNC] Requesting status from API')
       const response = await fetch('/api/google/calendar/status?provider=google', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      console.log('[GOOGLE CALENDAR SYNC] Status response:', response.status, response.statusText)
-
       if (!response.ok) {
         if (response.status === 401) {
-          console.log('[GOOGLE CALENDAR SYNC] Unauthorized response')
           setCalendarConnected(false)
           return
         }
@@ -236,7 +230,6 @@ export default function CalendarPage() {
       }
 
       const data = await response.json()
-      console.log('[GOOGLE CALENDAR SYNC] Status data:', { connected: data.connected, provider: data.provider, calendarEmail: data.calendarEmail })
       setCalendarConnected(data.connected || false)
       setCalendarEmail(data.calendarEmail || null)
       if (data.connectedAt) {
@@ -244,7 +237,6 @@ export default function CalendarPage() {
       }
 
       if (data.connected) {
-        console.log('[GOOGLE CALENDAR SYNC] Calendar connected, fetching events')
         await fetchEvents()
       }
     } catch (error) {
@@ -256,14 +248,12 @@ export default function CalendarPage() {
   }
 
   const fetchEvents = async () => {
-    console.log('[GOOGLE CALENDAR SYNC] Fetching events...')
     setIsLoadingEvents(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
       if (!token) {
-        console.log('[GOOGLE CALENDAR SYNC] No session token for events')
         throw new Error('Not authenticated')
       }
 
@@ -284,11 +274,6 @@ export default function CalendarPage() {
       const gridEnd = new Date(year, monthIndex + 1, remainingDays)
       gridEnd.setHours(23, 59, 59, 999)
 
-      console.log('[GOOGLE CALENDAR SYNC] Fetching events for date range:', {
-        timeMin: gridStart.toISOString(),
-        timeMax: gridEnd.toISOString()
-      })
-
       const response = await fetch(
         `/api/google/calendar/events?timeMin=${gridStart.toISOString()}&timeMax=${gridEnd.toISOString()}`,
         {
@@ -298,16 +283,12 @@ export default function CalendarPage() {
         }
       )
 
-      console.log('[GOOGLE CALENDAR SYNC] Events response:', response.status, response.statusText)
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         console.error('[GOOGLE CALENDAR SYNC ERROR] Events error', errorData)
-        console.error('[GOOGLE CALENDAR SYNC ERROR] Events response', { status: response.status, statusText: response.statusText, ok: response.ok })
         
         // Handle token expiration
         if (response.status === 401) {
-          console.log('[GOOGLE CALENDAR TOKEN EXPIRED] Token refresh failed, requiring reauthentication')
           setTokenExpired(true)
           throw new Error('Google Calendar connection requires reauthentication')
         }
@@ -316,7 +297,6 @@ export default function CalendarPage() {
       }
 
       const data = await response.json()
-      console.log('[GOOGLE CALENDAR EVENTS IMPORTED]', { eventCount: data.events?.length || 0, calendarEmail: data.calendarEmail })
       
       // Update last sync time
       setLastSyncTime(new Date())
@@ -326,7 +306,6 @@ export default function CalendarPage() {
         new Map((data.events || []).map((event: CalendarEvent) => [event.id, event])).values()
       ) as CalendarEvent[]
       
-      console.log('[GOOGLE CALENDAR SYNC] After deduplication:', { uniqueEventCount: uniqueEvents.length })
       setEvents(uniqueEvents)
     } catch (error) {
       console.error('[GOOGLE CALENDAR SYNC ERROR] Events error', error)

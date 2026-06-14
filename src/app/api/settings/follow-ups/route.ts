@@ -42,9 +42,6 @@ export async function GET() {
 
     const business = lookupResult.business
 
-    console.log('[SETTINGS LOAD] Business:', { id: business.id, name: business.name })
-    console.log('[SETTINGS LOAD] Full automation_settings:', JSON.stringify(business.automation_settings, null, 2))
-
     // Get current follow-up settings or return defaults
     const automationSettings = business.automation_settings || {}
     const followUpSettings = automationSettings.followUps || {
@@ -73,9 +70,6 @@ export async function GET() {
         }
       ]
     }
-
-    console.log('[SETTINGS LOAD] Follow-up settings being returned:', JSON.stringify(followUpSettings, null, 2))
-    console.log('[SETTINGS LOAD] Using defaults?', !automationSettings.followUps)
 
     return NextResponse.json(followUpSettings)
   } catch (error) {
@@ -114,8 +108,6 @@ export async function PUT(request: NextRequest) {
 
     const settings = await request.json()
 
-    console.log('[SETTINGS SAVE] Incoming settings:', JSON.stringify(settings, null, 2))
-
     // Validate the settings structure
     if (!settings || typeof settings !== 'object') {
       return NextResponse.json({ error: 'Invalid settings format' }, { status: 400 })
@@ -130,17 +122,12 @@ export async function PUT(request: NextRequest) {
 
     const business = lookupResult.business
 
-    console.log('[SETTINGS SAVE] Business:', { id: business.id, name: business.name })
-    console.log('[SETTINGS SAVE] Existing automation_settings:', JSON.stringify(business.automation_settings, null, 2))
-
     // Merge with existing automation settings
     const existingAutomationSettings = business.automation_settings || {}
     const updatedAutomationSettings = {
       ...existingAutomationSettings,
       followUps: settings
     }
-
-    console.log('[SETTINGS SAVE] Updated automation_settings:', JSON.stringify(updatedAutomationSettings, null, 2))
 
     // Update the business record
     const updatedBusiness = await db.updateBusiness(business.id, {

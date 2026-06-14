@@ -13,36 +13,7 @@ export interface SetupState {
 }
 
 export function deriveSetupState(business: Business | null, realCallDataExists: boolean = false, missedCallCount: number = 0): SetupState {
-  console.log('[DERIVE SETUP STATE DEBUG]', {
-    businessId: business?.id,
-    subscriptionStatus: business?.subscription_status,
-    trialStatus: business?.subscription_status === 'trialing',
-    manualAccess: (business as any)?.manual_access,
-    manualAccessExpiresAt: (business as any)?.manual_access_expires_at,
-    manualAccessValid: (business as any)?.manual_access && 
-      (!!(business as any)?.manual_access_expires_at ? new Date((business as any)?.manual_access_expires_at) > new Date() : true),
-    lifetimeAccess: (business as any)?.lifetime_access,
-    hasTwilioNumber: !!business?.twilio_phone_number,
-    forwardingVerified: business?.forwarding_verified,
-    setupState: 'deriving...',
-    reason: 'Starting deriveSetupState'
-  })
-
-  console.log('[SetupState] Deriving setup state from business:', {
-    businessId: business?.id,
-    onboarding_status: business?.onboarding_status,
-    phone_setup_completed_at: business?.phone_setup_completed_at,
-    call_forwarding_enabled: business?.call_forwarding_enabled,
-    forwarding_verified: business?.forwarding_verified,
-    test_call_received_at: business?.test_call_received_at,
-    test_sms_sent_at: business?.test_sms_sent_at,
-    setup_completed_at: business?.setup_completed_at,
-    realCallDataExists,
-    missedCallCount
-  })
-
   if (!business) {
-    console.log('[SetupState] No business data - returning default state')
     return {
       currentStep: 1,
       step1Complete: false,
@@ -70,18 +41,6 @@ export function deriveSetupState(business: Business | null, realCallDataExists: 
   
   // Valid access if ANY of these are true
   const hasValidAccess = subscriptionActive || manualAccessActive || lifetimeAccessActive
-  
-  console.log('[DERIVE SETUP STATE DEBUG]', {
-    businessId: business?.id,
-    subscriptionStatus: business?.subscription_status,
-    trialStatus: business?.subscription_status === 'trialing',
-    manualAccess: (business as any)?.manual_access,
-    manualAccessExpiresAt: (business as any)?.manual_access_expires_at,
-    manualAccessValid: manualAccessActive,
-    lifetimeAccess: (business as any)?.lifetime_access,
-    hasValidAccess,
-    reason: `hasValidAccess = ${hasValidAccess} (subscription:${subscriptionActive}, manual:${manualAccessActive}, lifetime:${lifetimeAccessActive})`
-  })
   
   const twilioReady = business.twilio_phone_number && business.provisioning_status === 'active'
   const step1Complete = hasValidAccess && twilioReady
@@ -132,17 +91,6 @@ export function deriveSetupState(business: Business | null, realCallDataExists: 
     isActionNeeded: Boolean(isActionNeeded),
     status
   }
-
-  console.log('[SetupState] Derived state:', {
-    currentStep: currentState.currentStep,
-    step1Complete: currentState.step1Complete,
-    step2Complete: currentState.step2Complete,
-    step3Complete: currentState.step3Complete,
-    canAccessTestSetup: currentState.canAccessTestSetup,
-    showSuccessState: currentState.showSuccessState,
-    isActionNeeded: currentState.isActionNeeded,
-    status: currentState.status
-  })
 
   return currentState
 }

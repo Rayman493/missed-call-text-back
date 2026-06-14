@@ -243,7 +243,6 @@ export default function LeadsPage() {
           )
         `)
         .eq('business_id', business.id)
-        .eq('is_demo', false)
         .order('created_at', { ascending: false })
 
       if (error) throw error

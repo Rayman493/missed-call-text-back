@@ -174,14 +174,6 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
     // Use setupHealth forwardingVerified (no recalculation)
     const testComplete = setupHealth?.forwardingVerified === true
     
-    console.log('[Setup Progress] Step 3 completion check:', {
-      businessId: business.id,
-      missedCallCount,
-      forwarding_verified: business?.forwarding_verified,
-      realCallDataExists,
-      testComplete
-    })
-    
     if (!subscriptionActive) return 'no_subscription'
     if (!twilioReady) return 'provisioning_number'
     if (!forwardingSetupComplete) return 'forwarding_needed'

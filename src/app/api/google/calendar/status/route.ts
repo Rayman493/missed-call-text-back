@@ -37,8 +37,6 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    console.log('[Google Calendar Status] Authenticated user:', session.user.id)
-
     // Get the user's business
     const { data: business, error: businessError } = await supabase
       .from('businesses')
@@ -56,14 +54,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (!business) {
-      console.log('[Google Calendar Status] No business found for user:', session.user.id)
       return NextResponse.json({
         connected: false,
         provider
       })
     }
-
-    console.log('[Google Calendar Status] Business found:', business.id)
 
     // Query calendar_integrations
     const { data: integration, error: integrationError } = await supabase
@@ -74,10 +69,8 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (integrationError) {
-      console.log('[Google Calendar Status] Integration lookup error:', integrationError.code, integrationError.message)
       if (integrationError.code === 'PGRST116') {
         // No integration found
-        console.log('[Google Calendar Status] No integration found')
         return NextResponse.json({
           connected: false,
           provider
@@ -92,14 +85,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (!integration) {
-      console.log('[Google Calendar Status] Integration data is null')
       return NextResponse.json({
         connected: false,
         provider
       })
     }
-
-    console.log('[Google Calendar Status] Integration found:', integration.id)
 
     // Return connected status (do not expose tokens)
     return NextResponse.json({

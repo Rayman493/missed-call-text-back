@@ -214,7 +214,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
       )
       .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
-          console.log('[RecentLeadsSection] Realtime subscription established')
+          // Subscription established
         }
       })
 

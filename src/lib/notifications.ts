@@ -89,7 +89,6 @@ export class NotificationService {
   private supabase = createBrowserClient()
 
   async getNotifications(businessId: string, limit = 20): Promise<Notification[]> {
-    console.log('[NOTIFICATIONS UI FETCH START]', { businessId, limit })
     const { data, error } = await this.supabase
       .from('notifications')
       .select('*')
@@ -98,23 +97,21 @@ export class NotificationService {
       .limit(limit)
 
     if (error) {
-      console.log('[NOTIFICATIONS UI FETCH ERROR]', { error, businessId })
+      console.error('Error fetching notifications:', error)
       return []
     }
 
-    console.log('[NOTIFICATIONS UI FETCH RESULT]', { count: data?.length || 0, businessId, payload: data })
     return data || []
   }
 
   async getNotificationCount(businessId: string): Promise<NotificationCount> {
-    console.log('[NOTIFICATIONS UI FETCH START]', { businessId, operation: 'count' })
     const { data, error } = await this.supabase
       .from('notifications')
       .select('read')
       .eq('business_id', businessId)
 
     if (error) {
-      console.log('[NOTIFICATIONS UI FETCH ERROR]', { error, businessId, operation: 'count' })
+      console.error('Error fetching notification count:', error)
       return { unread: 0, total: 0 }
     }
 
@@ -123,7 +120,6 @@ export class NotificationService {
       unread: notifications.filter((n: any) => !n.read).length,
       total: notifications.length
     }
-    console.log('[NOTIFICATIONS UI FETCH RESULT]', { count, businessId })
     return count
   }
 
@@ -151,31 +147,27 @@ export class NotificationService {
   }
 
   async deleteNotification(notificationId: string): Promise<void> {
-    console.log('[NOTIFICATION DELETE] Attempting to delete notification:', notificationId)
     const { error } = await this.supabase
       .from('notifications')
       .delete()
       .eq('id', notificationId)
 
     if (error) {
-      console.error('[NOTIFICATION DELETE] Error deleting notification:', error)
+      console.error('Error deleting notification:', error)
       throw error
     }
-    console.log('[NOTIFICATION DELETE] Successfully deleted notification:', notificationId)
   }
 
   async clearAllNotifications(businessId: string): Promise<void> {
-    console.log('[NOTIFICATION CLEAR ALL] Attempting to clear all notifications for business:', businessId)
     const { error } = await this.supabase
       .from('notifications')
       .delete()
       .eq('business_id', businessId)
 
     if (error) {
-      console.error('[NOTIFICATION CLEAR ALL] Error clearing notifications:', error)
+      console.error('Error clearing notifications:', error)
       throw error
     }
-    console.log('[NOTIFICATION CLEAR ALL] Successfully cleared all notifications for business:', businessId)
   }
 
   async createNotification(

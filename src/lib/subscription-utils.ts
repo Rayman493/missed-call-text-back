@@ -46,10 +46,6 @@ export function hasActiveAccess(business: Business | null | undefined): boolean 
   
   // Check manual access first - this is the admin override
   if (hasActiveManualAccess(business)) {
-    console.log('[hasActiveAccess] Access granted via manual access', {
-      manualAccessEnabled: business.manual_access_enabled,
-      manualAccessExpiresAt: business.manual_access_expires_at
-    })
     return true
   }
   
@@ -114,7 +110,7 @@ export function isSetupComplete(business: Business | null | undefined): boolean 
  * Manual access accounts are eligible for forwarding setup without Stripe subscription
  */
 export function isReadyForForwardingSetup(business: Business | null | undefined): boolean {
-  if (!business) return false;
+  if (!business) return false
   
   const hasAccess = hasActiveAccess(business)
   const hasManualAccess = hasActiveManualAccess(business)
@@ -122,13 +118,6 @@ export function isReadyForForwardingSetup(business: Business | null | undefined)
   
   // Manual access accounts don't require Stripe customer/subscription for forwarding setup
   if (hasManualAccess) {
-    console.log('[isReadyForForwardingSetup] Manual access - eligible for forwarding setup without Stripe', {
-      hasAccess,
-      hasManualAccess,
-      hasNumber,
-      forwardingComplete: isForwardingComplete(business),
-      setupComplete: isSetupComplete(business)
-    })
     return (
       hasAccess &&
       hasNumber &&
