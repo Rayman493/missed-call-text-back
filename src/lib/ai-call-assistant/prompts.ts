@@ -47,12 +47,13 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = []
-      if (data.caller_name) parts.push(`I have your name as ${data.caller_name}`)
-      if (data.reason_for_call) parts.push(`you need help with ${data.reason_for_call}`)
-      if (data.urgency) parts.push(`and this is ${data.urgency} urgency`)
-      if (data.address) parts.push(`at ${data.address}`)
-      if (data.callback_number) parts.push(`and I can reach you at ${data.callback_number}`)
-      return parts.join(', ').replace(/^, /, '') + '.'
+      parts.push(`Your name is ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`This is ${data.urgency} urgency`)
+      if (data.address) parts.push(`The address is ${data.address}`)
+      if (data.callback_time) parts.push(`The best callback time is ${data.callback_time}`)
+      if (data.callback_number) parts.push(`The best number to reach you is ${data.callback_number}`)
+      return parts.join('. ') + '.'
     }
   },
   
@@ -69,12 +70,13 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = []
-      if (data.caller_name) parts.push(`I have your name as ${data.caller_name}`)
-      if (data.reason_for_call) parts.push(`you need help with ${data.reason_for_call}`)
-      if (data.urgency) parts.push(`and this is ${data.urgency} urgency`)
-      if (data.address) parts.push(`at ${data.address}`)
-      if (data.callback_number) parts.push(`and I can reach you at ${data.callback_number}`)
-      return parts.join(', ').replace(/^, /, '') + '.'
+      parts.push(`Your name is ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`This is ${data.urgency} urgency`)
+      if (data.address) parts.push(`The address is ${data.address}`)
+      if (data.callback_time) parts.push(`The best callback time is ${data.callback_time}`)
+      if (data.callback_number) parts.push(`The best number to reach you is ${data.callback_number}`)
+      return parts.join('. ') + '.'
     }
   },
   
@@ -91,12 +93,13 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = []
-      if (data.caller_name) parts.push(`I have your name as ${data.caller_name}`)
-      if (data.reason_for_call) parts.push(`you need ${data.reason_for_call}`)
-      if (data.urgency) parts.push(`and this is ${data.urgency} urgency`)
-      if (data.address) parts.push(`at ${data.address}`)
-      if (data.callback_number) parts.push(`and I can reach you at ${data.callback_number}`)
-      return parts.join(', ').replace(/^, /, '') + '.'
+      parts.push(`Your name is ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`This is ${data.urgency} urgency`)
+      if (data.address) parts.push(`The address is ${data.address}`)
+      if (data.callback_time) parts.push(`The best callback time is ${data.callback_time}`)
+      if (data.callback_number) parts.push(`The best number to reach you is ${data.callback_number}`)
+      return parts.join('. ') + '.'
     }
   },
   
@@ -113,12 +116,13 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = []
-      if (data.caller_name) parts.push(`I have your name as ${data.caller_name}`)
-      if (data.reason_for_call) parts.push(`you need help with ${data.reason_for_call}`)
-      if (data.urgency) parts.push(`and this is ${data.urgency} urgency`)
-      if (data.address) parts.push(`at ${data.address}`)
-      if (data.callback_number) parts.push(`and I can reach you at ${data.callback_number}`)
-      return parts.join(', ').replace(/^, /, '') + '.'
+      parts.push(`Your name is ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`This is ${data.urgency} urgency`)
+      if (data.address) parts.push(`The address is ${data.address}`)
+      if (data.callback_time) parts.push(`The best callback time is ${data.callback_time}`)
+      if (data.callback_number) parts.push(`The best number to reach you is ${data.callback_number}`)
+      return parts.join('. ') + '.'
     }
   },
   
@@ -135,12 +139,13 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = []
-      if (data.caller_name) parts.push(`I have your name as ${data.caller_name}`)
-      if (data.reason_for_call) parts.push(`you're interested in ${data.reason_for_call}`)
-      if (data.urgency) parts.push(`and this is ${data.urgency} urgency`)
-      if (data.address) parts.push(`for the property at ${data.address}`)
-      if (data.callback_number) parts.push(`and I can reach you at ${data.callback_number}`)
-      return parts.join(', ').replace(/^, /, '') + '.'
+      parts.push(`Your name is ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`This is ${data.urgency} urgency`)
+      if (data.address) parts.push(`The address is ${data.address}`)
+      if (data.callback_time) parts.push(`The best callback time is ${data.callback_time}`)
+      if (data.callback_number) parts.push(`The best number to reach you is ${data.callback_number}`)
+      return parts.join('. ') + '.'
     }
   },
   
@@ -157,12 +162,12 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = []
-      if (data.caller_name) parts.push(`I have your name as ${data.caller_name}`)
-      if (data.reason_for_call) parts.push(`you're interested in traveling to ${data.reason_for_call}`)
-      if (data.urgency) parts.push(`and this is ${data.urgency} urgency`)
-      if (data.travelers) parts.push(`for ${data.travelers} traveler${data.travelers !== '1' ? 's' : ''}`)
-      if (data.callback_number) parts.push(`and I can reach you at ${data.callback_number}`)
-      return parts.join(', ').replace(/^, /, '') + '.'
+      parts.push(`Your name is ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`This is ${data.urgency} urgency`)
+      if (data.callback_time) parts.push(`The best callback time is ${data.callback_time}`)
+      if (data.callback_number) parts.push(`The best number to reach you is ${data.callback_number}`)
+      return parts.join('. ') + '.'
     }
   },
   
@@ -179,12 +184,12 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = []
-      if (data.caller_name) parts.push(`I have your name as ${data.caller_name}`)
-      if (data.reason_for_call) parts.push(`you'd like ${data.reason_for_call}`)
-      if (data.urgency) parts.push(`and this is ${data.urgency} urgency`)
-      if (data.preferred_time) parts.push(`preferably at ${data.preferred_time}`)
-      if (data.callback_number) parts.push(`and I can reach you at ${data.callback_number}`)
-      return parts.join(', ').replace(/^, /, '') + '.'
+      parts.push(`Your name is ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`This is ${data.urgency} urgency`)
+      if (data.callback_time) parts.push(`The best callback time is ${data.callback_time}`)
+      if (data.callback_number) parts.push(`The best number to reach you is ${data.callback_number}`)
+      return parts.join('. ') + '.'
     }
   },
   
@@ -201,11 +206,12 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = []
-      if (data.caller_name) parts.push(`I have your name as ${data.caller_name}`)
-      if (data.reason_for_call) parts.push(`you need ${data.reason_for_call}`)
-      if (data.urgency) parts.push(`and this is ${data.urgency} urgency`)
-      if (data.callback_number) parts.push(`and I can reach you at ${data.callback_number}`)
-      return parts.join(', ').replace(/^, /, '') + '.'
+      parts.push(`Your name is ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`This is ${data.urgency} urgency`)
+      if (data.callback_time) parts.push(`The best callback time is ${data.callback_time}`)
+      if (data.callback_number) parts.push(`The best number to reach you is ${data.callback_number}`)
+      return parts.join('. ') + '.'
     }
   },
   
@@ -222,11 +228,12 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = []
-      if (data.caller_name) parts.push(`I have your name as ${data.caller_name}`)
-      if (data.reason_for_call) parts.push(`you're interested in ${data.reason_for_call}`)
-      if (data.urgency) parts.push(`and this is ${data.urgency} urgency`)
-      if (data.callback_number) parts.push(`and I can reach you at ${data.callback_number}`)
-      return parts.join(', ').replace(/^, /, '') + '.'
+      parts.push(`Your name is ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`This is ${data.urgency} urgency`)
+      if (data.callback_time) parts.push(`The best callback time is ${data.callback_time}`)
+      if (data.callback_number) parts.push(`The best number to reach you is ${data.callback_number}`)
+      return parts.join('. ') + '.'
     }
   },
   
@@ -243,11 +250,12 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = []
-      if (data.caller_name) parts.push(`I have your name as ${data.caller_name}`)
-      if (data.reason_for_call) parts.push(`you're calling about ${data.reason_for_call}`)
-      if (data.urgency) parts.push(`and this is ${data.urgency} urgency`)
-      if (data.callback_number) parts.push(`and I can reach you at ${data.callback_number}`)
-      return parts.join(', ').replace(/^, /, '') + '.'
+      parts.push(`Your name is ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`This is ${data.urgency} urgency`)
+      if (data.callback_time) parts.push(`The best callback time is ${data.callback_time}`)
+      if (data.callback_number) parts.push(`The best number to reach you is ${data.callback_number}`)
+      return parts.join('. ') + '.'
     }
   },
   
@@ -264,11 +272,12 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = []
-      if (data.caller_name) parts.push(`I have your name as ${data.caller_name}`)
-      if (data.reason_for_call) parts.push(`you'd like to discuss ${data.reason_for_call}`)
-      if (data.urgency) parts.push(`and this is ${data.urgency} urgency`)
-      if (data.callback_number) parts.push(`and I can reach you at ${data.callback_number}`)
-      return parts.join(', ').replace(/^, /, '') + '.'
+      parts.push(`Your name is ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`This is ${data.urgency} urgency`)
+      if (data.callback_time) parts.push(`The best callback time is ${data.callback_time}`)
+      if (data.callback_number) parts.push(`The best number to reach you is ${data.callback_number}`)
+      return parts.join('. ') + '.'
     }
   },
   
@@ -285,11 +294,12 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = []
-      if (data.caller_name) parts.push(`I have your name as ${data.caller_name}`)
-      if (data.reason_for_call) parts.push(`you're calling about ${data.reason_for_call}`)
-      if (data.urgency) parts.push(`and this is ${data.urgency} urgency`)
-      if (data.callback_number) parts.push(`and I can reach you at ${data.callback_number}`)
-      return parts.join(', ').replace(/^, /, '') + '.'
+      parts.push(`Your name is ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`This is ${data.urgency} urgency`)
+      if (data.callback_time) parts.push(`The best callback time is ${data.callback_time}`)
+      if (data.callback_number) parts.push(`The best number to reach you is ${data.callback_number}`)
+      return parts.join('. ') + '.'
     }
   }
 }
@@ -490,8 +500,25 @@ INTERRUPTION HANDLING:
 EARLY CONFIRMATION:
 - Once sufficient information has been gathered, proceed directly to a concise confirmation
 - Do not continue to ask optional questions simply because they exist
-- The confirmation should summarize the key details naturally and ask whether everything is correct
 - Sufficient information means: name (if available), reason for calling, and enough details for the business to understand the request
+- IMPORTANT: If any required field (name, reason for call, urgency, callback number) is missing, ask for it BEFORE entering confirmation
+- Do not enter confirmation phase until all required fields have been collected
+
+CONFIRMATION STRUCTURE (MUST FOLLOW EXACTLY):
+The confirmation phase must always follow this strict structure:
+
+1. Transition (exact phrase): "Let me make sure I have everything right."
+
+2. Summary (exact format): "Your name is [name]. You're calling about [reason/details]. This is [urgency] urgency. The address is [address]. The best callback time is [callback time]. The best number to reach you is [callback number]."
+   - Only include fields that were actually provided
+   - If address is not provided, omit "The address is [address]."
+   - If callback time is not provided, omit "The best callback time is [callback time]."
+   - Start with "Your name is" (not "I have your name as")
+   - Do NOT use casual personalized openers like "Let me confirm I have everything, [name]"
+
+3. Confirmation question (exact phrase): "Is this correct?"
+   - This is mandatory and must always be asked
+   - Do not use variations like "Does that sound right?" or "Did I get that right?"
 
 NATURAL CONVERSATION:
 - Do not sound like you are reading a form
@@ -551,7 +578,7 @@ Important guidelines:
 
 Greeting: "${config.greeting}"
 
-Confirmation question: "Did I get that right?"
+Confirmation question: "Is this correct?"
 
 Closing (after confirmation): "Thank you. I've shared this information with the team and someone will contact you shortly. Goodbye."`
 }
@@ -727,7 +754,7 @@ export function getConfirmationQuestion(data: any, category: BusinessCategory = 
   
   const config = CATEGORY_INTAKE_CONFIG[category]
   const summary = config.confirmationFormat(data)
-  return `Let me make sure I captured that correctly. ${summary} Does that sound right?`
+  return `Let me make sure I have everything right. ${summary} Is this correct?`
 }
 
 /**
