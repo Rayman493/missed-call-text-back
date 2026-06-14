@@ -304,33 +304,58 @@ export default function AdminSupportPage() {
   }
 
   const handleDeleteTestBusinessData = async () => {
-    if (!selectedBusiness) return
+    console.log('[DELETE TEST DATA] ========== START ==========')
+    console.log('[DELETE TEST DATA] selectedBusiness:', selectedBusiness)
+    console.log('[DELETE TEST DATA] deleteConfirmPhase:', deleteConfirmPhase)
+
+    if (!selectedBusiness) {
+      console.error('[DELETE TEST DATA] No selected business')
+      return
+    }
 
     if (deleteConfirmPhase === 'dry-run') {
+      console.log('[DELETE TEST DATA] Starting dry-run phase')
       setDeleteLoading(true)
       try {
+        console.log('[DELETE TEST DATA] Getting ID token')
         const token = await user?.getIdToken()
+        console.log('[DELETE TEST DATA] Token obtained:', !!token)
+
+        const payload = {
+          mode: 'dry-run',
+          filterType: 'businessId',
+          filterValue: selectedBusiness.id
+        }
+        console.log('[DELETE TEST DATA] Request payload:', payload)
+        console.log('[DELETE TEST DATA] Request URL: /api/admin/reset-test-data')
+
         const response = await fetch('/api/admin/reset-test-data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({
-            mode: 'dry-run',
-            filterType: 'businessId',
-            filterValue: selectedBusiness.id
-          })
+          body: JSON.stringify(payload)
         })
 
+        console.log('[DELETE TEST DATA] Response status:', response.status)
+        console.log('[DELETE TEST DATA] Response ok:', response.ok)
+
         const data = await response.json()
+        console.log('[DELETE TEST DATA] Response data:', data)
+
         if (data.blocked) {
+          console.log('[DELETE TEST DATA] Operation blocked:', data.blockReason)
           setActionResult({ success: false, message: data.blockReason || 'Operation blocked' })
         } else {
+          console.log('[DELETE TEST DATA] Setting dry-run result')
           setDeleteDryRunResult(data)
           setDeleteConfirmPhase('confirm')
         }
-      } catch (error) {
+      } catch (error: any) {
+        console.error('[DELETE TEST DATA] Exception caught:', error)
+        console.error('[DELETE TEST DATA] Error message:', error.message)
+        console.error('[DELETE TEST DATA] Error stack:', error.stack)
         setActionResult({ success: false, message: 'Failed to get dry-run preview' })
       } finally {
         setDeleteLoading(false)
