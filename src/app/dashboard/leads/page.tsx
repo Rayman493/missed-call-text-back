@@ -232,6 +232,14 @@ export default function LeadsPage() {
             body,
             direction,
             created_at
+          ),
+          aiCallRecords (
+            id,
+            extracted_info,
+            caller_phone,
+            business_id,
+            lead_id,
+            created_at
           )
         `)
         .eq('business_id', business.id)

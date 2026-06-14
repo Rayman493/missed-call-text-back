@@ -62,6 +62,14 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               recording_duration,
               recording_status,
               created_at
+            ),
+            aiCallRecords (
+              id,
+              extracted_info,
+              caller_phone,
+              business_id,
+              lead_id,
+              created_at
             )
           `)
           .eq('business_id', businessId)
