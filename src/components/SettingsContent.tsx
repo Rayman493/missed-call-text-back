@@ -1830,7 +1830,7 @@ export default function SettingsContent() {
                             disabled={isOpeningPortal}
                             className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs"
                           >
-                            Manage Billing
+                            {business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Manage Billing' : 'Subscribe Now'}
                           </button>
                         )}
                       </div>

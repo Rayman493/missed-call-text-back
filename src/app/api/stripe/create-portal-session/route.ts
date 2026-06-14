@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   try {
+    console.log('[stripe-portal] ========== START ==========')
     console.log('[stripe-portal] Starting portal session creation')
     
     const stripe = getStripe()
@@ -19,6 +20,8 @@ export async function POST(request: Request) {
       )
     }
     
+    console.log('[stripe-portal] Stripe client configured successfully')
+    
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -26,6 +29,8 @@ export async function POST(request: Request) {
 
     // Get auth header
     const authHeader = request.headers.get('authorization')
+    console.log('[stripe-portal] Auth header present:', !!authHeader)
+    
     if (!authHeader) {
       console.error('[stripe-portal] No authorization header')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -33,23 +38,37 @@ export async function POST(request: Request) {
 
     // Get user from auth header
     const token = authHeader.replace('Bearer ', '')
+    console.log('[stripe-portal] Starting auth user lookup')
+    
     const { data: { user }, error: userError } = await supabase.auth.getUser(token)
+    
+    console.log('[stripe-portal] Auth user lookup complete:', {
+      userError,
+      userPresent: !!user,
+      userId: user?.id
+    })
     
     if (userError || !user) {
       console.error('[stripe-portal] Invalid token or no user:', userError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('[stripe-portal] User authenticated:', user.id)
+    console.log('[stripe-portal] User authenticated successfully:', user.id)
 
     // Fetch business by user_id
+    console.log('[stripe-portal] Starting business query for user_id:', user.id)
+    
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle()
 
-    console.log('[stripe-portal] Business query result:', { business, businessError })
+    console.log('[stripe-portal] Business query complete:', {
+      businessError,
+      businessFound: !!business,
+      businessId: business?.id
+    })
 
     if (businessError) {
       console.error('[stripe-portal] Business query error:', businessError)
@@ -58,42 +77,61 @@ export async function POST(request: Request) {
 
     if (!business) {
       console.error('[stripe-portal] Business not found for user:', user.id)
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+      return NextResponse.json({ 
+        error: 'Business not found',
+        code: 'BUSINESS_NOT_FOUND'
+      }, { status: 404 })
     }
 
     console.log('[stripe-portal] Business found:', business.id)
-    console.log('[stripe-portal] stripe_customer_id:', business.stripe_customer_id)
+    console.log('[stripe-portal] stripe_customer_id value:', business.stripe_customer_id)
+    console.log('[stripe-portal] stripe_customer_id type:', typeof business.stripe_customer_id)
+    console.log('[stripe-portal] stripe_customer_id starts with cus_:', business.stripe_customer_id?.startsWith('cus_'))
     console.log('[stripe-portal] subscription_status:', business.subscription_status)
-    console.log('[stripe-portal] action: ' + (business.stripe_customer_id ? 'portal' : 'checkout'))
 
     // Check for stripe_customer_id
     if (!business.stripe_customer_id) {
       console.log('[stripe-portal] Missing stripe_customer_id for business:', business.id)
-      console.log('[stripe-portal] Subscription status:', business.subscription_status)
-      console.log('[stripe-portal] Returning upgrade prompt for missing customer')
+      console.log('[stripe-portal] Returning 400 for missing stripe_customer_id')
       return NextResponse.json({ 
         success: false,
         code: "NO_STRIPE_CUSTOMER",
         error: "No billing account found. Please start a subscription to manage your billing.",
         message: "No billing account found yet."
-      })
+      }, { status: 400 })
     }
+
+    // Validate stripe_customer_id format
+    if (!business.stripe_customer_id.startsWith('cus_')) {
+      console.error('[stripe-portal] Invalid stripe_customer_id format:', business.stripe_customer_id)
+      return NextResponse.json({ 
+        success: false,
+        code: "INVALID_STRIPE_CUSTOMER",
+        error: "Invalid billing account format. Please contact support.",
+        message: "Invalid billing account format."
+      }, { status: 400 })
+    }
+
+    console.log('[stripe-portal] stripe_customer_id is valid, proceeding to Stripe API call')
 
     // Create billing portal session with canonical URL and billing return parameter
     const returnUrl = `${getDashboardUrl()}?billing=returned`
     logUrlResolution('stripe-portal-return-url', returnUrl, user.id, business.id)
 
-    console.log('[stripe-portal] Creating portal session for customer:', business.stripe_customer_id)
+    console.log('[stripe-portal] Calling Stripe billingPortal.sessions.create for customer:', business.stripe_customer_id)
 
     const session = await stripe.billingPortal.sessions.create({
       customer: business.stripe_customer_id,
       return_url: returnUrl,
     })
 
+    console.log('[stripe-portal] Stripe API call successful')
     console.log('[stripe-portal] Portal session created:', session.url)
+    console.log('[stripe-portal] ========== SUCCESS ==========')
 
     return NextResponse.json({ url: session.url })
   } catch (error: any) {
+    console.error('[stripe-portal] ========== ERROR ==========')
     console.error('[stripe-portal] Error creating portal session:', {
       error: error,
       errorMessage: error.message,
