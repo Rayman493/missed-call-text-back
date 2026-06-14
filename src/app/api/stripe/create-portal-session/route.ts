@@ -43,17 +43,23 @@ export async function POST(request: Request) {
     console.log('[stripe-portal] User authenticated:', user.id)
 
     // Fetch business by user_id
-    const { data: business, error: businessError } = await supabase
+    const { data: businesses, error: businessError } = await supabase
       .from('businesses')
       .select('*')
       .eq('user_id', user.id)
       .limit(1)
-      .single()
 
-    console.log('[stripe-portal] Business query result:', { business, businessError })
+    console.log('[stripe-portal] Business query result:', { businesses, businessError })
 
-    if (businessError || !business) {
-      console.error('[stripe-portal] Business not found:', businessError)
+    if (businessError) {
+      console.error('[stripe-portal] Business query error:', businessError)
+      return NextResponse.json({ error: 'Failed to fetch business' }, { status: 500 })
+    }
+
+    const business = businesses?.[0] || null
+
+    if (!business) {
+      console.error('[stripe-portal] Business not found for user:', user.id)
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
@@ -76,7 +82,9 @@ export async function POST(request: Request) {
     // Create billing portal session with canonical URL and billing return parameter
     const returnUrl = `${getDashboardUrl()}?billing=returned`
     logUrlResolution('stripe-portal-return-url', returnUrl, user.id, business.id)
-    
+
+    console.log('[stripe-portal] Creating portal session for customer:', business.stripe_customer_id)
+
     const session = await stripe.billingPortal.sessions.create({
       customer: business.stripe_customer_id,
       return_url: returnUrl,
@@ -86,7 +94,24 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url })
   } catch (error: any) {
-    console.error('[stripe-portal] Error:', error)
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+    console.error('[stripe-portal] Error creating portal session:', {
+      error: error,
+      errorMessage: error.message,
+      errorType: error.type,
+      errorStack: error.stack
+    })
+
+    // Return user-friendly error based on error type
+    let userMessage = 'Failed to open billing portal. Please try again or contact support.'
+    
+    if (error.type === 'StripeInvalidRequestError') {
+      userMessage = 'Unable to open billing portal. Your billing account may need to be set up first.'
+    } else if (error.type === 'StripeAPIError') {
+      userMessage = 'Stripe service temporarily unavailable. Please try again in a moment.'
+    } else if (error.type === 'StripeConnectionError') {
+      userMessage = 'Could not connect to Stripe. Please check your internet connection and try again.'
+    }
+
+    return NextResponse.json({ error: userMessage }, { status: 500 })
   }
 }
