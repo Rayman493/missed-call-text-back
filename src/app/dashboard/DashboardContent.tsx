@@ -1171,8 +1171,8 @@ export default function DashboardContent() {
                   </SectionErrorBoundary>
                 )}
 
-                {/* Pre-trial activation CTA - compact, not hero-sized */}
-                {!hasActiveAccess(business) && (
+                {/* Pre-trial activation CTA - compact, not hero-sized - Skip when trial already used (hero card shown instead) */}
+                {!hasActiveAccess(business) && !(eligibility && !eligibility.eligible && eligibility.failureType === 'previous_subscription') && (
                   <SectionErrorBoundary sectionName="ActivationCTA">
                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl border border-blue-200 dark:border-blue-800 p-2.5 sm:p-3">
                       <div className="flex flex-col gap-2.5">
