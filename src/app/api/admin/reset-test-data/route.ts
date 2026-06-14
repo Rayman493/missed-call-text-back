@@ -269,6 +269,7 @@ async function performReset(
 
         const businessMap = new Map(businesses?.map((b: any) => [b.id, b]) || [])
 
+        // Try to update with new reserved fields (if migration applied)
         const { error: reserveError } = await supabase
           .from('twilio_numbers')
           .update({
@@ -287,8 +288,34 @@ async function performReset(
           .in('phone_number', affectedTwilioNumbers)
 
         if (reserveError) {
-          console.error('[ADMIN RESET] Error reserving Twilio numbers:', reserveError)
-          warnings.push(`Failed to reserve Twilio numbers: ${reserveError.message}`)
+          console.error('[ADMIN RESET] Error reserving Twilio numbers with new fields:', reserveError)
+
+          // If error is due to missing columns, try without the new fields
+          if (reserveError.message && reserveError.message.includes('column')) {
+            console.log('[ADMIN RESET] Falling back to update without new reserved fields')
+            const { error: fallbackError } = await supabase
+              .from('twilio_numbers')
+              .update({
+                status: 'reserved',
+                reserved_for_business_id: null,
+                reserved_at: new Date().toISOString(),
+                reserved_expires_at: thirtyDaysFromNow.toISOString(),
+                reservation_reason: 'test_business_data_reset',
+                detached_at: new Date().toISOString(),
+                detached_reason: 'test_business_data_reset',
+              })
+              .in('phone_number', affectedTwilioNumbers)
+
+            if (fallbackError) {
+              console.error('[ADMIN RESET] Error reserving Twilio numbers (fallback):', fallbackError)
+              warnings.push(`Failed to reserve Twilio numbers: ${fallbackError.message}`)
+            } else {
+              console.log(`[ADMIN RESET] Reserved ${affectedTwilioNumbers.length} Twilio numbers for 30-day grace period (fallback)`)
+              warnings.push(`Reserved ${affectedTwilioNumbers.length} Twilio number(s) for 30-day grace period. Numbers will become available after ${thirtyDaysFromNow.toISOString()}.`)
+            }
+          } else {
+            warnings.push(`Failed to reserve Twilio numbers: ${reserveError.message}`)
+          }
         } else {
           console.log(`[ADMIN RESET] Reserved ${affectedTwilioNumbers.length} Twilio numbers for 30-day grace period`)
           currentNumbers?.forEach((num: any) => {
