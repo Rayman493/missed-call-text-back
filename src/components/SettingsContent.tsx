@@ -163,6 +163,8 @@ export default function SettingsContent() {
         .from('businesses')
         .update(updatePayload)
         .eq('id', businessData.id)
+        .select()
+        .single()
 
       if (error) {
         console.error('[Settings] Save error details:', {

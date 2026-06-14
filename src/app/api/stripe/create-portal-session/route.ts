@@ -43,20 +43,18 @@ export async function POST(request: Request) {
     console.log('[stripe-portal] User authenticated:', user.id)
 
     // Fetch business by user_id
-    const { data: businesses, error: businessError } = await supabase
+    const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('*')
       .eq('user_id', user.id)
-      .limit(1)
+      .maybeSingle()
 
-    console.log('[stripe-portal] Business query result:', { businesses, businessError })
+    console.log('[stripe-portal] Business query result:', { business, businessError })
 
     if (businessError) {
       console.error('[stripe-portal] Business query error:', businessError)
       return NextResponse.json({ error: 'Failed to fetch business' }, { status: 500 })
     }
-
-    const business = businesses?.[0] || null
 
     if (!business) {
       console.error('[stripe-portal] Business not found for user:', user.id)
@@ -71,10 +69,12 @@ export async function POST(request: Request) {
     // Check for stripe_customer_id
     if (!business.stripe_customer_id) {
       console.log('[stripe-portal] Missing stripe_customer_id for business:', business.id)
+      console.log('[stripe-portal] Subscription status:', business.subscription_status)
       console.log('[stripe-portal] Returning upgrade prompt for missing customer')
       return NextResponse.json({ 
         success: false,
         code: "NO_STRIPE_CUSTOMER",
+        error: "No billing account found. Please start a subscription to manage your billing.",
         message: "No billing account found yet."
       })
     }
