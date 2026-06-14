@@ -1877,12 +1877,19 @@ export default function SettingsContent() {
                   Delete your account?
                 </h2>
                 <p className="text-sm text-slate-600 dark:text-muted-foreground mb-3">
-                  This will:
+                  Before you continue:
                 </p>
                 <ul className="text-sm text-slate-600 dark:text-muted-foreground mb-4 list-disc pl-5 space-y-1">
-                  <li>Cancel your active subscription in Stripe immediately</li>
-                  <li>Permanently delete your business, leads, messages, conversations, and automatic check-ins</li>
-                  <li>Sign you out and delete your login</li>
+                  <li>We recommend canceling your subscription from the Stripe Customer Portal first for immediate confirmation that billing has ended.</li>
+                  <li>ReplyFlow will also automatically attempt to cancel any active Stripe subscription during account deletion as an additional safeguard.</li>
+                </ul>
+                <p className="text-sm text-slate-600 dark:text-muted-foreground mb-3">
+                  Deleting your account will:
+                </p>
+                <ul className="text-sm text-slate-600 dark:text-muted-foreground mb-4 list-disc pl-5 space-y-1">
+                  <li>Cancel your active Stripe subscription (if one exists)</li>
+                  <li>Permanently delete your business, leads, messages, conversations, and related data</li>
+                  <li>Sign you out and remove your ReplyFlow account</li>
                 </ul>
                 <p className="text-sm font-medium text-red-600 dark:text-red-400 mb-4">
                   This action cannot be undone.

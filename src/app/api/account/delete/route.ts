@@ -104,6 +104,111 @@ export async function POST(request: NextRequest) {
 
     console.log('[delete-account] Found businesses:', businessIds.length, businessIds)
 
+    // Step 2: Cancel any active Stripe subscriptions BEFORE deleting any data
+    console.log('[delete-account] Step 2: Cancel Stripe subscriptions (before data deletion)')
+    if (!dryRun && businesses && businesses.length > 0) {
+      const stripe = getStripe()
+      const subsToCancel = (businesses as any[]).filter(
+        (b) => b.stripe_subscription_id && ACTIVE_SUB_STATUSES.has(b.subscription_status || '')
+      )
+
+      if (subsToCancel.length > 0) {
+        console.log('[delete-account] Found active Stripe subscriptions to cancel:', subsToCancel.map((b) => b.stripe_subscription_id))
+        
+        if (!stripe) {
+          console.error('[delete-account] Stripe client unavailable, cannot cancel subscription')
+          return NextResponse.json(
+            { ok: false, step: 'stripe_init', error: 'Billing service unavailable. Please try again later.' },
+            { status: 503 }
+          )
+        }
+
+        for (const b of subsToCancel) {
+          console.log('[delete-account] Attempting to cancel Stripe subscription:', b.stripe_subscription_id)
+          summary.stripeResult.cancellationAttempted = true
+
+          try {
+            const cancelled = await stripe.subscriptions.cancel(b.stripe_subscription_id)
+            console.log('[delete-account] Stripe cancellation result:', {
+              subscriptionId: cancelled.id,
+              status: cancelled.status,
+              customerId: b.stripe_customer_id
+            })
+            
+            if (cancelled.status !== 'canceled') {
+              throw new Error(`Stripe returned unexpected status: ${cancelled.status}`)
+            }
+
+            // Successful cancellation
+            summary.stripeResult.cancellationSucceeded = true
+            console.log('[delete-account] Stripe subscription cancelled successfully', {
+              customerId: b.stripe_customer_id,
+              subscriptionId: b.stripe_subscription_id,
+              status: cancelled.status
+            })
+
+            // Reflect cancellation in DB before continuing
+            const { error: updateError } = await supabaseAdmin
+              .from('businesses')
+              .update({ subscription_status: 'canceled' })
+              .eq('id', b.id)
+
+            if (updateError) {
+              console.warn('[delete-account] Failed to update subscription_status in DB after Stripe cancellation:', updateError)
+            } else {
+              console.log('[delete-account] Updated subscription_status to canceled in DB')
+            }
+          } catch (cancelErr: any) {
+            // Already-cancelled subscriptions sometimes return a 404 / resource_missing
+            const code = cancelErr?.code || cancelErr?.raw?.code
+            if (code === 'resource_missing') {
+              console.warn('[delete-account] Subscription already gone in Stripe, continuing:', b.stripe_subscription_id)
+              summary.stripeResult.cancellationSucceeded = true // Already cancelled
+            } else {
+              summary.stripeResult.cancellationSucceeded = false
+              summary.stripeResult.error = cancelErr?.message || String(cancelErr)
+              console.error('[delete-account] Stripe cancellation failed', {
+                customerId: b.stripe_customer_id,
+                subscriptionId: b.stripe_subscription_id,
+                error: cancelErr?.message || String(cancelErr),
+                code: code
+              })
+              return NextResponse.json(
+                {
+                  ok: false,
+                  step: 'stripe_cancel',
+                  error: 'Failed to cancel your subscription. Your account was not deleted. Please try again or contact support.',
+                  details: cancelErr?.message || String(cancelErr),
+                },
+                { status: 502 }
+              )
+            }
+          }
+        }
+      } else {
+        console.log('[delete-account] No active Stripe subscriptions to cancel')
+        summary.stripeResult.cancellationAttempted = false
+        summary.stripeResult.cancellationSucceeded = true // No subscription to cancel is a success
+      }
+    } else if (dryRun && businesses && businesses.length > 0) {
+      // Dry-run mode: just log that cancellation would be attempted
+      const subsToCancel = (businesses as any[]).filter(
+        (b) => b.stripe_subscription_id && ACTIVE_SUB_STATUSES.has(b.subscription_status || '')
+      )
+      if (subsToCancel.length > 0) {
+        console.log('[delete-account] DRY RUN: Would cancel Stripe subscriptions:', subsToCancel.map((b) => b.stripe_subscription_id))
+      }
+      summary.stripeResult.dryRun = true
+    } else {
+      console.log('[delete-account] No businesses or dry-run mode, skipping Stripe cancellation')
+    }
+
+    console.log('[delete-account] Step 2 completed: Stripe cancellation handled', {
+      cancellationAttempted: summary.stripeResult.cancellationAttempted,
+      cancellationSucceeded: summary.stripeResult.cancellationSucceeded,
+      error: summary.stripeResult.error
+    })
+
     // Send offboarding email before deletion (with idempotency check)
     if (!dryRun && businesses && businesses.length > 0) {
       const business = businesses[0] // Use first business for email
@@ -552,94 +657,8 @@ export async function POST(request: NextRequest) {
       summary.tablesDeleted.leads = leadsCount || 0
       console.log('[delete-account] Step 18 completed: deleted leads:', leadsCount)
 
-      // Step 19: Cancel any active Stripe subscriptions BEFORE deleting businesses
-      if (!dryRun && businesses && businesses.length > 0) {
-        const stripe = getStripe()
-        const subsToCancel = (businesses as any[]).filter(
-          (b) => b.stripe_subscription_id && ACTIVE_SUB_STATUSES.has(b.subscription_status || '')
-        )
-
-        if (subsToCancel.length > 0) {
-          if (!stripe) {
-            console.error('[delete-account] Stripe client unavailable, cannot cancel subscription')
-            return NextResponse.json(
-              { ok: false, step: 'stripe_init', error: 'Billing service unavailable. Please try again later.' },
-              { status: 503 }
-            )
-          }
-
-          for (const b of subsToCancel) {
-            console.log('[delete-account] Cancelling Stripe subscription:', b.stripe_subscription_id)
-            summary.stripeResult.cancellationAttempted = true
-
-            try {
-              const cancelled = await stripe.subscriptions.cancel(b.stripe_subscription_id)
-              console.log('[delete-account] Stripe cancellation result:', {
-                id: cancelled.id,
-                status: cancelled.status,
-              })
-              if (cancelled.status !== 'canceled') {
-                throw new Error(`Stripe returned unexpected status: ${cancelled.status}`)
-              }
-
-              // Successful cancellation
-              summary.stripeResult.cancellationSucceeded = true
-              console.log('[ACCOUNT DELETE] Stripe subscription cancelled successfully', {
-                customerId: b.stripe_customer_id,
-                subscriptionId: b.stripe_subscription_id,
-              })
-
-              // Reflect cancellation in DB before continuing
-              await supabaseAdmin
-                .from('businesses')
-                .update({ subscription_status: 'canceled' })
-                .eq('id', b.id)
-            } catch (cancelErr: any) {
-              // Already-cancelled subscriptions sometimes return a 404 / resource_missing
-              const code = cancelErr?.code || cancelErr?.raw?.code
-              if (code === 'resource_missing') {
-                console.warn('[delete-account] Subscription already gone in Stripe, continuing:', b.stripe_subscription_id)
-                summary.stripeResult.cancellationSucceeded = true // Already cancelled
-              } else {
-                summary.stripeResult.cancellationSucceeded = false
-                summary.stripeResult.error = cancelErr?.message || String(cancelErr)
-                console.log('[ACCOUNT DELETE] Stripe cancellation failed', {
-                  customerId: b.stripe_customer_id,
-                  subscriptionId: b.stripe_subscription_id,
-                  error: cancelErr?.message || String(cancelErr),
-                })
-                console.error('[delete-account] Stripe cancellation failed:', cancelErr)
-                return NextResponse.json(
-                  {
-                    ok: false,
-                    step: 'stripe_cancel',
-                    error: 'Failed to cancel your subscription. Your account was not deleted. Please try again or contact support.',
-                    details: cancelErr?.message || String(cancelErr),
-                  },
-                  { status: 502 }
-                )
-              }
-            }
-          }
-        } else {
-          console.log('[delete-account] No active Stripe subscriptions to cancel')
-        }
-
-        // Note: Twilio numbers are detached in Step 17 and NOT released from Twilio API
-        // They remain available for reassignment to new businesses
-      } else if (dryRun && businesses && businesses.length > 0) {
-        // Dry-run mode: just log that cancellation would be attempted
-        const subsToCancel = (businesses as any[]).filter(
-          (b) => b.stripe_subscription_id && ACTIVE_SUB_STATUSES.has(b.subscription_status || '')
-        )
-        if (subsToCancel.length > 0) {
-          console.log('[delete-account] DRY RUN: Would cancel Stripe subscriptions:', subsToCancel.map((b) => b.stripe_subscription_id))
-        }
-        summary.stripeResult.dryRun = true
-      }
-
-      // Step 21: Hard-delete businesses and record trial history
-      console.log('[delete-account] Step 21: hard-delete businesses and record trial history')
+      // Step 19: Hard-delete businesses and record trial history
+      console.log('[delete-account] Step 19: hard-delete businesses and record trial history')
       
       for (const business of businesses as any[]) {
         // Record trial history before deleting
