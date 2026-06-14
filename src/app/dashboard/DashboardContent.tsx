@@ -956,8 +956,8 @@ export default function DashboardContent() {
                   </SectionErrorBoundary>
                 )}
 
-                {/* Provisioning Status Banner - Show when provisioning is pending */}
-                {!setupMode && business?.provisioning_status === 'pending' && (
+                {/* Provisioning Status Banner - Show when provisioning is pending AND user is eligible for trial */}
+                {!setupMode && business?.provisioning_status === 'pending' && eligibility?.eligible && (
                   <SectionErrorBoundary sectionName="ProvisioningBanner">
                     <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
                       <div className="flex items-center gap-3">
@@ -1187,32 +1187,82 @@ export default function DashboardContent() {
                 {!hasActiveAccess(business) && (
                   <SectionErrorBoundary sectionName="LockedDashboardPreview">
                     <div className="relative">
-                      {/* Dashboard Preview Content */}
-                      <div className="space-y-4 sm:space-y-6">
-                        {/* Setup Progress Preview */}
-                        <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-base sm:text-lg font-semibold text-foreground">Setup Progress</h3>
-                            <div className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">
-                              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Preview</span>
+                      {/* Trial-Used Focused Card - Show when user has already used trial */}
+                      {eligibility && !eligibility.eligible && eligibility.failureType === 'previous_subscription' ? (
+                        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-700 dark:to-indigo-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-blue-500/30">
+                          <div className="flex flex-col gap-6">
+                            {/* Icon */}
+                            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
                             </div>
-                          </div>
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
-                              <span className="text-sm text-slate-500 dark:text-slate-400">Business phone number</span>
+
+                            {/* Title and Subtitle */}
+                            <div>
+                              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Free trial already used</h1>
+                              <p className="text-blue-100 text-base sm:text-lg">This email has already been used for a ReplyFlow trial. To continue setting up ReplyFlow, choose a subscription.</p>
                             </div>
-                            <div className="flex items-center gap-3">
-                              <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
-                              <span className="text-sm text-slate-500 dark:text-slate-400">Call forwarding setup</span>
+
+                            {/* Explanation */}
+                            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                              <p className="text-white text-sm leading-relaxed">
+                                To prevent abuse, each customer gets one free trial.
+                              </p>
                             </div>
-                            <div className="flex items-center gap-3">
-                              <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
-                              <span className="text-sm text-slate-500 dark:text-slate-400">Test your setup</span>
+
+                            {/* CTAs */}
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                              <button
+                                onClick={handleStartSubscription}
+                                disabled={checkoutLoading}
+                                className="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-blue-50 text-blue-600 text-base font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                              >
+                                {checkoutLoading ? 'Loading...' : 'Subscribe Now'}
+                              </button>
+                              <Link
+                                href="/auth/signin"
+                                className="inline-flex items-center justify-center px-6 py-4 bg-transparent hover:bg-white/10 text-white text-base font-medium rounded-xl border border-white/30 transition-all duration-200"
+                              >
+                                Use a Different Email
+                              </Link>
+                            </div>
+
+                            {/* Support Text */}
+                            <div className="text-center sm:text-left">
+                              <p className="text-blue-200 text-sm">
+                                Need help? Contact <a href="mailto:support@replyflowhq.com" className="underline hover:no-underline font-medium">support@replyflowhq.com</a>
+                              </p>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="space-y-4 sm:space-y-6">
+                          {/* Setup Progress Preview */}
+                          <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="text-base sm:text-lg font-semibold text-foreground">Setup Progress</h3>
+                              <div className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">
+                                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Preview</span>
+                              </div>
+                            </div>
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                                <span className="text-sm text-slate-500 dark:text-slate-400">Business phone number</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                                <span className="text-sm text-slate-500 dark:text-slate-400">Call forwarding setup</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                                <span className="text-sm text-slate-500 dark:text-slate-400">Test your setup</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </SectionErrorBoundary>
                 )}
