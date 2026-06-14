@@ -925,7 +925,7 @@ export default function DashboardContent() {
                         <div className="flex items-center gap-3">
                           <div className="px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
                             <span className="text-white text-sm font-semibold">
-                              {setupState === 'needs_final_test' ? 'Step 3 of 3' : 'Step 2 of 3'}
+                              Step 3 of 3
                             </span>
                           </div>
                         </div>
@@ -934,24 +934,49 @@ export default function DashboardContent() {
                         {setupState === 'needs_final_test' ? (
                           <>
                             <div>
-                              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Test your setup</h1>
-                              <p className="text-blue-100 text-base sm:text-lg">Make one quick test call to confirm ReplyFlow is receiving missed calls.</p>
+                              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Verify Your Setup</h1>
+                              <p className="text-blue-100 text-base sm:text-lg">Complete your setup by testing call forwarding.</p>
                             </div>
 
-                            {/* Friendly Explanation */}
+                            {/* Completed Steps Summary */}
                             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                              <p className="text-white text-sm leading-relaxed">
-                                Call your business number from your phone. If forwarding is working correctly, you should receive a text message from ReplyFlow.
-                              </p>
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                  </div>
+                                  <span className="text-white text-sm">ReplyFlow number activated</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                  </div>
+                                  <span className="text-white text-sm">Call forwarding connected</span>
+                                </div>
+                              </div>
                             </div>
 
-                            {/* CTA Button - Run Test Call */}
+                            {/* Test Instructions */}
+                            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                              <h3 className="text-white font-semibold mb-2">How to test:</h3>
+                              <div className="space-y-2">
+                                <p className="text-white text-sm">• Call your business number from another phone</p>
+                                <p className="text-white text-sm">• Let it ring until forwarding activates</p>
+                                <p className="text-white text-sm">• ReplyFlow will answer and automatically verify your setup</p>
+                              </div>
+                            </div>
+
+                            {/* CTA Button - View Test Instructions */}
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                               <Link
                                 href="/dashboard/test-setup"
                                 className="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-blue-50 text-blue-600 text-base font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                               >
-                                Run Test Call
+                                View Test Instructions
                               </Link>
                               <p className="text-blue-200 text-sm">Takes about 1 minute.</p>
                             </div>

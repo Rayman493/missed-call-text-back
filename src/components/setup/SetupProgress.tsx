@@ -363,17 +363,8 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
       details: forwardingSetupComplete 
         ? `Verified • Carrier: ${currentBusiness?.business_phone_carrier || 'Not set'} • ReplyFlow: ${currentBusiness?.twilio_phone_number ? formatPhoneNumber(currentBusiness.twilio_phone_number) : 'Loading...'}`
         : (currentBusiness?.business_phone_carrier ? `Carrier: ${currentBusiness.business_phone_carrier}` : undefined)
-    },
-    {
-      id: 'test',
-      title: 'Test Your Setup',
-      description: 'Call your business phone from another phone. Let it ring until it forwards to ReplyFlow. ReplyFlow will answer and automatically verify your setup.',
-      status: testComplete ? 'complete' : (forwardingSetupComplete ? 'needs-action' : 'not-tested-yet'),
-      buttonText: testComplete ? undefined : (forwardingSetupComplete ? 'How to Test Setup' : undefined),
-      buttonOnClick: testComplete ? undefined : (forwardingSetupComplete ? () => setShowTestModal(true) : undefined),
-      secondaryButtonText: testComplete ? 'View Test Instructions' : undefined,
-      secondaryButtonOnClick: testComplete ? () => setShowTestModal(true) : undefined
     }
+    // Step 3 (Test) is now handled by the hero card on the dashboard - removed to avoid duplication
   ]
 
   const handleToggle = () => {
