@@ -232,14 +232,22 @@ async function performReset(
 
   if (businesses) {
     businesses.forEach((b: any) => {
+      console.log('[ADMIN RESET] Processing business:', { id: b.id, name: b.name, twilio_phone_number: b.twilio_phone_number, is_protected_account: b.is_protected_account })
       if (!b.is_protected_account) {
         affectedBusinesses.push(b.id)
         if (b.twilio_phone_number) {
           affectedTwilioNumbers.push(b.twilio_phone_number)
+          console.log('[ADMIN RESET] Added to affectedTwilioNumbers:', b.twilio_phone_number)
+        } else {
+          console.log('[ADMIN RESET] Business has no twilio_phone_number')
         }
+      } else {
+        console.log('[ADMIN RESET] Business is protected, skipping')
       }
     })
   }
+
+  console.log('[ADMIN RESET] Final affectedTwilioNumbers:', affectedTwilioNumbers)
 
   // Safe deletion order (child tables first, then parent tables)
   // First, get message IDs for message_media query
@@ -275,11 +283,17 @@ async function performReset(
 
   // Dry-run: count records that would be deleted
   console.log('[ADMIN RESET] Starting table count loop')
+  console.log('[ADMIN RESET] businessIds for queries:', businessIds)
   for (const tableInfo of tablesToDelete) {
     try {
       console.log(`[ADMIN RESET] Counting table: ${tableInfo.table}`)
       const { data, error } = await tableInfo.query(businessIds)
-      console.log(`[ADMIN RESET] Table ${tableInfo.table} query result:`, { error: !!error, count: data?.length })
+      console.log(`[ADMIN RESET] Table ${tableInfo.table} query result:`, { 
+        error: !!error, 
+        errorMessage: error?.message, 
+        count: data?.length,
+        data: data 
+      })
       const count = data ? data.length : 0
 
       if (count > 0) {
@@ -318,6 +332,22 @@ async function performReset(
     if (affectedTwilioNumbers.length > 0) {
       console.log('[ADMIN RESET] Reserving Twilio numbers before business deletion')
       console.log('[ADMIN RESET] affectedTwilioNumbers:', affectedTwilioNumbers)
+      
+      // First, check if these phone numbers exist in twilio_numbers table
+      const { data: existingTwilioNumbers } = await supabase
+        .from('twilio_numbers')
+        .select('phone_number, status, business_id')
+        .in('phone_number', affectedTwilioNumbers)
+      
+      console.log('[ADMIN RESET] Existing Twilio numbers in database:', existingTwilioNumbers)
+      console.log('[ADMIN RESET] Matched count:', existingTwilioNumbers?.length, 'Expected count:', affectedTwilioNumbers.length)
+      
+      if (!existingTwilioNumbers || existingTwilioNumbers.length === 0) {
+        console.error('[ADMIN RESET] ERROR: No matching Twilio numbers found in twilio_numbers table!')
+        console.error('[ADMIN RESET] This means the UPDATE will not affect any rows')
+        warnings.push('Warning: No matching Twilio numbers found in twilio_numbers table. Reservation may not work.')
+      }
+      
       try {
         const thirtyDaysFromNow = new Date()
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
@@ -372,12 +402,20 @@ async function performReset(
         console.log('[ADMIN RESET] Reservation data:', reservationData)
 
         // Try to update with new reserved fields (if migration applied)
-        const { error: reserveError, data: reserveData } = await supabase
+        console.log('[ADMIN RESET] Executing UPDATE twilio_numbers')
+        console.log('[ADMIN RESET] WHERE clause: phone_number IN (', affectedTwilioNumbers, ')')
+        console.log('[ADMIN RESET] UPDATE values:', reservationData)
+        
+        const { error: reserveError, data: reserveData, count: reserveCount } = await supabase
           .from('twilio_numbers')
           .update(reservationData)
           .in('phone_number', affectedTwilioNumbers)
 
-        console.log('[ADMIN RESET] Twilio reservation update result:', { error: reserveError, data: reserveData })
+        console.log('[ADMIN RESET] Twilio reservation UPDATE result:')
+        console.log('[ADMIN RESET] - error:', reserveError)
+        console.log('[ADMIN RESET] - data:', reserveData)
+        console.log('[ADMIN RESET] - count:', reserveCount)
+        console.log('[ADMIN RESET] - affectedTwilioNumbers length:', affectedTwilioNumbers.length)
 
         if (reserveError) {
           console.error('[ADMIN RESET] Error reserving Twilio numbers with new fields:', reserveError)
