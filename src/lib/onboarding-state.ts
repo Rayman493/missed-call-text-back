@@ -213,7 +213,25 @@ export function getBusinessOnboardingState(
   // - business has a Twilio/ReplyFlow number
   // - forwarding has been confirmed/tested
   // - at least one missed call created a lead/conversation OR at least one auto-reply SMS was successfully sent
+  // OR onboarding_status is 'completed' (manual completion via test call or admin action)
   if (hasNumber && isMessagingReady && forwardingVerified && (hasLeads || hasConversations || hasSuccessfulSms)) {
+    return {
+      state: 'LIVE',
+      label: 'ReplyFlow is live',
+      description: 'Monitoring missed calls and automatically texting back customers.',
+      tone: 'success',
+      canShowLiveIndicators: true,
+      currentStep: 6,
+      lockedSteps: [],
+      completedSteps: [1, 2, 3, 4, 5]
+    }
+  }
+
+  // If onboarding_status is 'completed', respect it and show as LIVE
+  // This handles the case where a test call marked onboarding as complete
+  // but there may not be leads/conversations/successful SMS yet
+  if (hasNumber && isMessagingReady && forwardingVerified && business.onboarding_status === 'completed') {
+    console.log('[getBusinessOnboardingState] Onboarding marked as completed - returning LIVE')
     return {
       state: 'LIVE',
       label: 'ReplyFlow is live',
