@@ -4,6 +4,7 @@ import AppHeader from '@/components/AppHeader'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 import HelpAssistant, { HelpContext } from '@/components/HelpAssistant'
+import LegalNavigation from '@/components/LegalNavigation'
 
 export const metadata: Metadata = {
   title: 'ReplyFlowHQ FAQ | Missed Call Response Automation',
@@ -37,7 +38,13 @@ export default function FAQPage() {
       
       {/* Hero Section */}
       <div className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          {/* Legal Page Navigation */}
+          <div className="flex justify-center mb-8">
+            <LegalNavigation activePage="faq" />
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-6">
               <svg

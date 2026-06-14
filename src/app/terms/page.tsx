@@ -3,6 +3,7 @@ import Link from 'next/link'
 import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
+import LegalNavigation from '@/components/LegalNavigation'
 
 export const metadata: Metadata = {
   title: 'ReplyFlowHQ Terms of Service | Conversational Messaging Platform',
@@ -39,27 +40,7 @@ export default function TermsPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           {/* Legal Page Navigation */}
           <div className="flex justify-center mb-8">
-            <nav className="inline-flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1" aria-label="Legal documents">
-              <Link
-                href="/privacy"
-                className="px-4 py-2 text-sm font-medium rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-              >
-                Privacy Policy
-              </Link>
-              <Link
-                href="/terms"
-                className="px-4 py-2 text-sm font-medium rounded-md bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                aria-current="page"
-              >
-                Terms of Service
-              </Link>
-              <Link
-                href="/compliance"
-                className="px-4 py-2 text-sm font-medium rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-              >
-                Compliance
-              </Link>
-            </nav>
+            <LegalNavigation activePage="terms" />
           </div>
         </div>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16">
