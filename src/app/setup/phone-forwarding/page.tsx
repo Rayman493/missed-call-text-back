@@ -528,13 +528,13 @@ export default function PhoneForwardingPage() {
               )}
             </div>
 
-            {/* Finish later link */}
+            {/* Finish later / Back to Dashboard link */}
             <div className="text-center">
               <Link
                 href="/dashboard"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Finish later
+                {isReviewMode ? 'Back to Dashboard' : 'Finish later'}
               </Link>
             </div>
           </div>

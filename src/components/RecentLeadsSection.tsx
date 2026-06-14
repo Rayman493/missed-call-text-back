@@ -63,7 +63,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               recording_status,
               created_at
             ),
-            aiCallRecords (
+            ai_call_records (
               id,
               extracted_info,
               caller_phone,
@@ -73,13 +73,16 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
             )
           `)
           .eq('business_id', businessId)
-          .eq('is_demo', false)
           .order('last_message_at', { ascending: false, nullsFirst: false })
           .order('first_contact_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false })
 
-        const leadsData = data as any[]
-        setLeads(leadsData || [])
+        // Normalize ai_call_records to aiCallRecords for UI compatibility
+        const normalizedLeads = (data || []).map((lead: any) => ({
+          ...lead,
+          aiCallRecords: lead.ai_call_records || []
+        }))
+        setLeads(normalizedLeads)
       } catch (error) {
         console.error('[RecentLeadsSection] Error fetching leads:', error)
         setLeads([])

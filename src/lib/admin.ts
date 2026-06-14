@@ -11,12 +11,7 @@
 function getAdminUserIds(): string[] {
   const envVar = process.env.ADMIN_USER_IDS
   const adminIds = envVar?.split(',').map(id => id.trim()).filter(id => id.length > 0) || []
-  
-  console.log('[ADMIN CHECK] Admin user IDs from environment:', {
-    adminIds,
-    count: adminIds.length
-  })
-  
+
   return adminIds
 }
 
@@ -27,20 +22,11 @@ function getAdminUserIds(): string[] {
  */
 export function isAdminUserById(userId?: string | null): boolean {
   if (!userId) {
-    console.log('[ADMIN CHECK] No user ID provided')
     return false
   }
-  
+
   const adminIds = getAdminUserIds()
-  const isAdmin = adminIds.includes(userId)
-  
-  console.log('[ADMIN CHECK] Admin check by user ID:', {
-    userId,
-    adminIds,
-    isAdmin
-  })
-  
-  return isAdmin
+  return adminIds.includes(userId)
 }
 
 
@@ -66,15 +52,7 @@ export function isInternalAdmin(userId?: string | null): boolean {
  */
 export function isAdmin(userId?: string | null): boolean {
   if (!userId) return false
-  
+
   const adminIds = getAdminUserIds()
-  const isAdmin = adminIds.includes(userId)
-  
-  console.log('[ADMIN API AUTH]', {
-    userId,
-    adminIds,
-    isAdmin
-  })
-  
-  return isAdmin
+  return adminIds.includes(userId)
 }

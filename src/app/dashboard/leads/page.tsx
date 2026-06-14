@@ -50,7 +50,6 @@ import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel } from
 import StatCard from '@/components/StatCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { HelpContext } from '@/components/HelpAssistant'
-import TestReplyFlowModal from '@/components/TestReplyFlowModal'
 
 // Helper to get compact summary for lead card
 function getCompactSummary(lead: any): string {
@@ -186,7 +185,6 @@ export default function LeadsPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
-  const [showTestModal, setShowTestModal] = useState(false)
   const { checkoutMode, isLoading: eligibilityLoading } = useTrialEligibility()
 
   const supabase = createBrowserClient()
@@ -211,18 +209,6 @@ export default function LeadsPage() {
       }
       setError(null)
 
-      console.log('[LEAD QUERY DEBUG]', {
-        location: 'src/app/dashboard/leads/page.tsx',
-        businessId: business.id,
-        userId: user?.id,
-        statusFilter: 'all',
-        isDemoFilter: false,
-        ignoredFilter: false,
-        createdAtRange: 'all',
-        returnedCount: 'fetching',
-        leadIds: []
-      })
-
       const { data, error } = await supabase
         .from('leads')
         .select(`
@@ -233,7 +219,7 @@ export default function LeadsPage() {
             direction,
             created_at
           ),
-          aiCallRecords (
+          ai_call_records (
             id,
             extracted_info,
             caller_phone,
@@ -246,56 +232,21 @@ export default function LeadsPage() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      
-      console.log('[LEAD QUERY DEBUG]', {
-        location: 'src/app/dashboard/leads/page.tsx',
-        businessId: business.id,
-        userId: user?.id,
-        statusFilter: 'all',
-        isDemoFilter: false,
-        ignoredFilter: false,
-        createdAtRange: 'all',
-        returnedCount: data?.length || 0,
-        leadIds: (data || []).map((l: any) => l.id)
-      })
-      
-      // Pipeline debug logs
-      const rawLeads = data || []
-      const rawIds = rawLeads.map((l: any) => l.id)
-      const rawPhones = rawLeads.map((l: any) => l.caller_phone)
-      const rawStatuses = rawLeads.map((l: any) => l.status)
-      
-      // Deduplicate leads by normalized phone number (DISABLED - no longer merging)
-      const deduplicatedLeads = mergeDuplicateLeads(rawLeads)
-      const deduplicatedIds = deduplicatedLeads.map((l: any) => l.id)
-      
+
+      // Normalize ai_call_records to aiCallRecords for UI compatibility
+      const normalizedLeads = (data || []).map((lead: any) => ({
+        ...lead,
+        aiCallRecords: lead.ai_call_records || []
+      }))
+
       // Sort by latest activity
-      deduplicatedLeads.sort((a, b) => {
+      normalizedLeads.sort((a: any, b: any) => {
         const aActivity = getLatestActivity(a)
         const bActivity = getLatestActivity(b)
         return new Date(bActivity).getTime() - new Date(aActivity).getTime()
       })
-      
-      console.log('[LEADS PIPELINE DEBUG]', {
-        businessId: business.id,
-        rawCount: rawLeads.length,
-        rawIds,
-        rawPhones,
-        rawStatuses,
-        afterStatusFilterCount: rawLeads.length,
-        afterStatusFilterIds: rawIds,
-        afterDemoFilterCount: rawLeads.filter((l: any) => !l.is_demo).length,
-        afterDemoFilterIds: rawLeads.filter((l: any) => !l.is_demo).map((l: any) => l.id),
-        afterIgnoredFilterCount: rawLeads.filter((l: any) => !l.opted_out).length,
-        afterIgnoredFilterIds: rawLeads.filter((l: any) => !l.opted_out).map((l: any) => l.id),
-        afterDedupeCount: deduplicatedLeads.length,
-        afterDedupeIds: deduplicatedIds,
-        renderedCount: deduplicatedLeads.length,
-        renderedIds: deduplicatedIds,
-        reason: 'mergeDuplicateLeads disabled to prevent incorrect merging'
-      })
-      
-      setLeads(deduplicatedLeads)
+
+      setLeads(normalizedLeads)
 
       // Fetch missed call count
       const { count } = await supabase
@@ -381,32 +332,8 @@ export default function LeadsPage() {
   )
 
   useEffect(() => {
-    console.log('[LEADS PAGE] MOUNTED - leads page component loaded')
-    console.log('[LEADS PAGE] Current pathname:', typeof window !== 'undefined' ? window.location.pathname : 'server')
-    console.log('[LEADS PAGE] Fetching leads', {
-      pathname: typeof window !== 'undefined' ? window.location.pathname : 'server',
-      businessId: business?.id,
-      userId: user?.id
-    })
     fetchLeads()
-    return () => {
-      console.log('[LEADS PAGE] UNMOUNTED')
-    }
   }, [fetchLeads])
-
-  // Navigation-away diagnostic: watch pathname for unexpected transitions into a lead detail route
-  useEffect(() => {
-    if (!pathname) return
-    const isLeadDetail = pathname.startsWith('/dashboard/leads/') && pathname !== '/dashboard/leads'
-    if (isLeadDetail) {
-      console.log('[LEADS PAGE] Auto navigation attempted', {
-        source: 'pathname changed while LeadsPage mounted',
-        destination: pathname,
-        routerAction: 'unexpected - no router.push from LeadsPage',
-        timestamp: new Date().toISOString()
-      })
-    }
-  }, [pathname])
 
   // Handle conversation click
   const handleConversationClick = (leadId: string) => {
@@ -977,19 +904,13 @@ export default function LeadsPage() {
 
                         {/* Description */}
                         <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base mb-8 max-w-md mx-auto">
-                          When someone misses a call, ReplyFlow will automatically create a lead here.
+                          When someone misses a call to your business number, ReplyFlow will automatically create a lead here.
                         </p>
 
-                        {/* Test Setup CTA */}
-                        <button
-                          onClick={() => setShowTestModal(true)}
-                          className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base font-medium rounded-xl transition-colors shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30"
-                        >
-                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          Test My Setup
-                        </button>
+                        {/* Passive instruction */}
+                        <p className="text-slate-500 dark:text-slate-500 text-xs sm:text-sm max-w-md mx-auto">
+                          Leads will appear here as missed calls are detected.
+                        </p>
                       </div>
                     </div>
                   )
@@ -1328,10 +1249,6 @@ export default function LeadsPage() {
       </BusinessGuard>
     </AuthGuard>
     <BottomNavigation />
-    <TestReplyFlowModal
-      isOpen={showTestModal}
-      onClose={() => setShowTestModal(false)}
-    />
     </DashboardErrorBoundary>
   )
 }
