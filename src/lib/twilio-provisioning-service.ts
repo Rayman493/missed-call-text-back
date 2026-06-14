@@ -407,20 +407,101 @@ async function purchaseNumber(
   }
   
   try {
-    // First, check if this business has a reserved number they can reclaim
-    console.log('[PURCHASE NUMBER] Checking for reserved numbers for this business');
-    const { data: reservedNumber, error: reservedError } = await supabase
-      .from('twilio_numbers')
-      .select('*')
-      .eq('status', 'reserved')
-      .eq('reserved_for_business_id', businessId)
-      .gt('reserved_expires_at', new Date().toISOString())
-      .limit(1)
-      .maybeSingle();
+    // Get business details for stable key matching
+    const { data: business } = await supabase
+      .from('businesses')
+      .select('user_id, business_phone, stripe_customer_id')
+      .eq('id', businessId)
+      .single();
 
-    if (reservedNumber && !reservedError) {
-      console.log('[PURCHASE NUMBER] Found reserved number for this business:', reservedNumber.phone_number);
-      console.log('[PURCHASE NUMBER] Reclaiming reserved number for returning customer');
+    // First, check if this business has a reserved number they can reclaim using stable keys
+    console.log('[PURCHASE NUMBER] Checking for reserved numbers using stable keys');
+    let reservedNumber: any = null;
+    let reclaimReason: string = '';
+
+    if (business) {
+      // Try exact match on email + business_phone (safest match)
+      if (business.user_id) {
+        const { data: user } = await supabase.auth.admin.getUserById(business.user_id);
+        if (user && user.user && user.user.email) {
+          const { data: reservedByPhoneAndEmail } = await supabase
+            .from('twilio_numbers')
+            .select('*')
+            .eq('status', 'reserved')
+            .eq('reserved_owner_email', user.user.email)
+            .eq('reserved_business_phone', business.business_phone)
+            .gt('reserved_expires_at', new Date().toISOString())
+            .limit(1)
+            .maybeSingle();
+
+          if (reservedByPhoneAndEmail) {
+            reservedNumber = reservedByPhoneAndEmail;
+            reclaimReason = 'email_and_business_phone_match';
+            console.log('[PURCHASE NUMBER] Found reserved number by email + business phone match:', {
+              email: user.user.email,
+              businessPhone: business.business_phone,
+              phoneNumber: reservedNumber.phone_number,
+            });
+          }
+        }
+      }
+
+      // If no exact match, try email match only (less safe but useful for returning customers)
+      if (!reservedNumber && business.user_id) {
+        const { data: user } = await supabase.auth.admin.getUserById(business.user_id);
+        if (user && user.user && user.user.email) {
+          const { data: reservedByEmail } = await supabase
+            .from('twilio_numbers')
+            .select('*')
+            .eq('status', 'reserved')
+            .eq('reserved_owner_email', user.user.email)
+            .gt('reserved_expires_at', new Date().toISOString())
+            .limit(1)
+            .maybeSingle();
+
+          if (reservedByEmail) {
+            reservedNumber = reservedByEmail;
+            reclaimReason = 'email_match_only';
+            console.log('[PURCHASE NUMBER] Found reserved number by email match:', {
+              email: user.user.email,
+              phoneNumber: reservedNumber.phone_number,
+              warning: 'Email match only - business phone may differ',
+            });
+          }
+        }
+      }
+
+      // If still no match, try Stripe customer ID match (for returning customers with same billing)
+      if (!reservedNumber && business.stripe_customer_id) {
+        const { data: reservedByStripe } = await supabase
+          .from('twilio_numbers')
+          .select('*')
+          .eq('status', 'reserved')
+          .eq('reserved_stripe_customer_id', business.stripe_customer_id)
+          .gt('reserved_expires_at', new Date().toISOString())
+          .limit(1)
+          .maybeSingle();
+
+        if (reservedByStripe) {
+          reservedNumber = reservedByStripe;
+          reclaimReason = 'stripe_customer_id_match';
+          console.log('[PURCHASE NUMBER] Found reserved number by Stripe customer ID match:', {
+            stripeCustomerId: business.stripe_customer_id,
+            phoneNumber: reservedNumber.phone_number,
+            warning: 'Stripe match only - email or business phone may differ',
+          });
+        }
+      }
+    }
+
+    if (reservedNumber) {
+      console.log('[PURCHASE NUMBER] Reclaiming reserved number for returning customer', {
+        phoneNumber: reservedNumber.phone_number,
+        reclaimReason,
+        previousBusinessId: reservedNumber.reserved_for_business_id,
+        previousEmail: reservedNumber.reserved_owner_email,
+        previousBusinessPhone: reservedNumber.reserved_business_phone,
+      });
 
       // Reclaim the reserved number for the business
       const { error: reclaimError } = await supabase
@@ -433,6 +514,10 @@ async function purchaseNumber(
           reserved_at: null,
           reserved_expires_at: null,
           reservation_reason: null,
+          reserved_owner_email: null,
+          reserved_business_phone: null,
+          reserved_stripe_customer_id: null,
+          reserved_user_id: null,
           detached_at: null,
           detached_reason: null,
         })
@@ -466,6 +551,7 @@ async function purchaseNumber(
       console.log('[PURCHASE NUMBER] Reclaimed reserved number successfully', {
         phoneNumber: reservedNumber.phone_number,
         phoneNumberSid: reservedNumber.twilio_sid,
+        reclaimReason,
       });
 
       return {
@@ -475,6 +561,9 @@ async function purchaseNumber(
         status: 'ready'
       };
     }
+
+    // No reserved number found for this customer, continue with normal flow
+    console.log('[PURCHASE NUMBER] No reserved number found for returning customer');
 
     // Next, check for available numbers in inventory (excluding reserved)
     console.log('[PURCHASE NUMBER] Checking for available numbers in inventory');

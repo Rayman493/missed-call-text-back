@@ -14,17 +14,29 @@ ALTER TABLE twilio_numbers
 ADD COLUMN IF NOT EXISTS reserved_for_business_id UUID,
 ADD COLUMN IF NOT EXISTS reserved_at TIMESTAMP WITH TIME ZONE,
 ADD COLUMN IF NOT EXISTS reserved_expires_at TIMESTAMP WITH TIME ZONE,
-ADD COLUMN IF NOT EXISTS reservation_reason TEXT;
+ADD COLUMN IF NOT EXISTS reservation_reason TEXT,
+ADD COLUMN IF NOT EXISTS reserved_owner_email TEXT,
+ADD COLUMN IF NOT EXISTS reserved_business_phone TEXT,
+ADD COLUMN IF NOT EXISTS reserved_stripe_customer_id TEXT,
+ADD COLUMN IF NOT EXISTS reserved_user_id TEXT;
 
 -- Add comments
 COMMENT ON COLUMN twilio_numbers.status IS 'Number status: active (in use), released (deleted from Twilio), error (provisioning failed), retired (blocked from reassignment), reserved (30-day grace period after deletion), available (ready for assignment)';
-COMMENT ON COLUMN twilio_numbers.reserved_for_business_id IS 'Business ID that previously owned this number, used for reclamation within grace period';
+COMMENT ON COLUMN twilio_numbers.reserved_for_business_id IS 'Business ID that previously owned this number (for audit history only)';
 COMMENT ON COLUMN twilio_numbers.reserved_at IS 'When the number was reserved (start of grace period)';
 COMMENT ON COLUMN twilio_numbers.reserved_expires_at IS 'When the reservation expires (30 days after reserved_at)';
 COMMENT ON COLUMN twilio_numbers.reservation_reason IS 'Reason for reservation (e.g., account_deletion, test_business_data_reset, churn_grace_period_expired)';
+COMMENT ON COLUMN twilio_numbers.reserved_owner_email IS 'Email of the previous owner (stable reclaim key)';
+COMMENT ON COLUMN twilio_numbers.reserved_business_phone IS 'Business phone number of the previous owner (stable reclaim key)';
+COMMENT ON COLUMN twilio_numbers.reserved_stripe_customer_id IS 'Stripe customer ID of the previous owner (stable reclaim key)';
+COMMENT ON COLUMN twilio_numbers.reserved_user_id IS 'User ID of the previous owner (for audit history)';
 
 -- Add index for efficient lookup of expired reservations
 CREATE INDEX IF NOT EXISTS idx_twilio_numbers_reserved_expires_at ON twilio_numbers(reserved_expires_at) WHERE status = 'reserved';
 
--- Add index for efficient lookup of numbers reserved for a specific business
+-- Add index for efficient lookup of numbers reserved for a specific business (audit only)
 CREATE INDEX IF NOT EXISTS idx_twilio_numbers_reserved_for_business_id ON twilio_numbers(reserved_for_business_id) WHERE status = 'reserved';
+
+-- Add index for efficient lookup by stable reclaim keys
+CREATE INDEX IF NOT EXISTS idx_twilio_numbers_reserved_owner_email ON twilio_numbers(reserved_owner_email) WHERE status = 'reserved';
+CREATE INDEX IF NOT EXISTS idx_twilio_numbers_reserved_business_phone ON twilio_numbers(reserved_business_phone) WHERE status = 'reserved';

@@ -255,11 +255,19 @@ async function performReset(
         const thirtyDaysFromNow = new Date()
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
 
-        // Get current numbers for logging
+        // Get current numbers and business details for logging
         const { data: currentNumbers } = await supabase
           .from('twilio_numbers')
           .select('phone_number, status, business_id')
           .in('phone_number', affectedTwilioNumbers)
+
+        // Get business details for stable keys
+        const { data: businesses } = await supabase
+          .from('businesses')
+          .select('id, user_id, business_phone, stripe_customer_id')
+          .in('id', businessIds)
+
+        const businessMap = new Map(businesses?.map((b: any) => [b.id, b]) || [])
 
         const { error: reserveError } = await supabase
           .from('twilio_numbers')
@@ -269,6 +277,10 @@ async function performReset(
             reserved_at: new Date().toISOString(),
             reserved_expires_at: thirtyDaysFromNow.toISOString(),
             reservation_reason: 'test_business_data_reset',
+            reserved_owner_email: null, // Test businesses don't need reclamation
+            reserved_business_phone: null, // Test businesses don't need reclamation
+            reserved_stripe_customer_id: null, // Test businesses don't need reclamation
+            reserved_user_id: null, // Test businesses don't need reclamation
             detached_at: new Date().toISOString(),
             detached_reason: 'test_business_data_reset',
           })
@@ -280,12 +292,14 @@ async function performReset(
         } else {
           console.log(`[ADMIN RESET] Reserved ${affectedTwilioNumbers.length} Twilio numbers for 30-day grace period`)
           currentNumbers?.forEach((num: any) => {
+            const business = businessMap.get(num.business_id)
             console.log('[ADMIN RESET] Twilio number reserved', {
               phone_number: num.phone_number,
               old_status: num.status,
               new_status: 'reserved',
               reserved_expires_at: thirtyDaysFromNow.toISOString(),
               reservation_reason: 'test_business_data_reset',
+              note: 'Test business - no reclamation keys stored',
             })
           })
           warnings.push(`Reserved ${affectedTwilioNumbers.length} Twilio number(s) for 30-day grace period. Numbers will become available after ${thirtyDaysFromNow.toISOString()}.`)

@@ -184,12 +184,21 @@ export async function GET(request: NextRequest) {
         const thirtyDaysFromNow = new Date()
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
 
-        // Get current twilio_number record for logging
+        // Get current twilio_number record and user email for logging
         const { data: currentNumber } = await supabase
           .from('twilio_numbers')
           .select('phone_number, status, business_id')
           .eq('business_id', business.id)
           .single()
+
+        // Get user email for stable reclaim key
+        let ownerEmail = null
+        if (business.user_id) {
+          const { data: user } = await supabase.auth.admin.getUserById(business.user_id)
+          if (user && user.user && user.user.email) {
+            ownerEmail = user.user.email
+          }
+        }
 
         // Reserve the number for 30-day grace period
         const { error: reserveError } = await supabase
@@ -200,6 +209,10 @@ export async function GET(request: NextRequest) {
             reserved_at: new Date().toISOString(),
             reserved_expires_at: thirtyDaysFromNow.toISOString(),
             reservation_reason: 'churn_grace_period_expired',
+            reserved_owner_email: ownerEmail,
+            reserved_business_phone: business.business_phone || business.twilio_phone_number,
+            reserved_stripe_customer_id: business.stripe_customer_id,
+            reserved_user_id: business.user_id,
             detached_at: new Date().toISOString(),
             detached_reason: 'churn_grace_period_expired',
           })
@@ -219,6 +232,10 @@ export async function GET(request: NextRequest) {
           old_status: currentNumber?.status || 'unknown',
           new_status: 'reserved',
           reserved_for_business_id: business.id,
+          reserved_owner_email: ownerEmail,
+          reserved_business_phone: business.business_phone || business.twilio_phone_number,
+          reserved_stripe_customer_id: business.stripe_customer_id,
+          reserved_user_id: business.user_id,
           reserved_at: new Date().toISOString(),
           reserved_expires_at: thirtyDaysFromNow.toISOString(),
           reservation_reason: 'churn_grace_period_expired',

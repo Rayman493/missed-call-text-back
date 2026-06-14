@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     // Find expired reservations
     const { data: expiredReservations, error: fetchError } = await supabase
       .from('twilio_numbers')
-      .select('id, phone_number, twilio_sid, status, reserved_for_business_id, reserved_at, reserved_expires_at, reservation_reason')
+      .select('id, phone_number, twilio_sid, status, reserved_for_business_id, reserved_at, reserved_expires_at, reservation_reason, reserved_owner_email, reserved_business_phone, reserved_stripe_customer_id, reserved_user_id')
       .eq('status', 'reserved')
       .lte('reserved_expires_at', new Date().toISOString())
 
@@ -109,6 +109,10 @@ export async function GET(request: NextRequest) {
             reserved_at: null,
             reserved_expires_at: null,
             reservation_reason: null,
+            reserved_owner_email: null,
+            reserved_business_phone: null,
+            reserved_stripe_customer_id: null,
+            reserved_user_id: null,
             assigned_at: null,
           })
           .eq('id', reservation.id)
@@ -123,6 +127,8 @@ export async function GET(request: NextRequest) {
         console.log('[EXPIRED RESERVATIONS] Number returned to inventory successfully', {
           phoneNumber: reservation.phone_number,
           previousReservedForBusinessId: reservation.reserved_for_business_id,
+          previousReservedOwnerEmail: reservation.reserved_owner_email,
+          previousReservedBusinessPhone: reservation.reserved_business_phone,
           reservationReason: reservation.reservation_reason,
           returnedToInventoryAt: new Date().toISOString(),
         })
