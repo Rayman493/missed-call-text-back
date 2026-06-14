@@ -213,7 +213,7 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
                       Use the T-Mobile app or call 611 to set up "No Answer/Busy Transfer" to your ReplyFlow number.
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      T-Mobile does not use standard dial codes for conditional forwarding
+                      To deactivate: Use the T-Mobile app or call 611. T-Mobile does not use standard dial codes for conditional forwarding.
                     </p>
                   </div>
                 </div>
@@ -229,8 +229,11 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
                   </div>
                   <div className="flex-1">
                     <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">iPhone (iOS)</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                      Settings → Phone → Call Forwarding → Enter your ReplyFlow number
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">
+                      iOS doesn't have conditional forwarding in settings. Use your carrier's dial codes (see above) or contact your carrier.
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Note: iOS "Call Forwarding" setting forwards ALL calls, not just missed ones
                     </p>
                   </div>
                 </div>
@@ -246,8 +249,11 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
                   </div>
                   <div className="flex-1">
                     <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">Android</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                      Phone app → Settings → Call forwarding → Enter your ReplyFlow number
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">
+                      Use your carrier's dial codes (see above) for reliable conditional forwarding.
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Phone settings vary by manufacturer and carrier - dial codes work universally
                     </p>
                   </div>
                 </div>
@@ -286,6 +292,29 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
             >
               {copied ? 'Copied!' : 'Copy Support Script'}
             </button>
+          </div>
+
+          {/* Troubleshooting */}
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-5">
+            <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">Troubleshooting tips:</h4>
+            <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+              <li className="flex gap-2">
+                <span className="text-amber-600 dark:text-amber-400">•</span>
+                <span>Wait 2-5 minutes for forwarding to activate after setup</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-amber-600 dark:text-amber-400">•</span>
+                <span>Restart your phone if forwarding doesn't work immediately</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-amber-600 dark:text-amber-400">•</span>
+                <span>Turn off Wi-Fi calling if forwarding doesn't activate</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-amber-600 dark:text-amber-400">•</span>
+                <span>Contact your carrier support if dial codes don't work on your device</span>
+              </li>
+            </ul>
           </div>
 
           {/* Note */}
