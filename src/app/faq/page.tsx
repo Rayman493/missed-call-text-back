@@ -375,7 +375,7 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  ReplyFlowHQ sends automated responses <strong>within seconds</strong> of a missed call. 
+                  ReplyFlowHQ sends automated responses <strong>quickly</strong> after a missed call. 
                   The typical delivery time is:
                 </p>
                 <div className="mt-4 text-center">
@@ -387,7 +387,7 @@ export default function FAQPage() {
                   </p>
                 </div>
                 <p className="text-muted-foreground mt-4">
-                  This rapid response helps capture leads while they're actively engaged and thinking about your business.
+                  This quick response helps capture leads while they're actively engaged and thinking about your business.
                 </p>
               </div>
             </div>
@@ -585,10 +585,10 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  <strong>Yes.</strong> Businesses can configure after-hours handling and AI-assisted call intake.
+                  <strong>Yes.</strong> Businesses can configure after-hours handling and AI-assisted voicemail intake.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  ReplyFlow works 24/7 to help you capture more leads, whether during business hours, after hours, or on weekends. The AI can handle calls and collect information anytime.
+                  ReplyFlow works 24/7 to help you capture more leads, whether during business hours, after hours, or on weekends. When calls are missed and forwarded, AI can capture caller information through voicemail intake anytime.
                 </p>
               </div>
             </div>
