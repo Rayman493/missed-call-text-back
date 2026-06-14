@@ -967,7 +967,15 @@ export default function AdminSupportPage() {
                       {selectedBusiness.call_forwarding_enabled && (
                         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
                           <p className="text-sm text-amber-800 dark:text-amber-300">
-                            <strong>Warning:</strong> Call forwarding is enabled for this business. You should manually disable call forwarding on the business phone after deletion.
+                            <strong>Warning:</strong> Call forwarding is enabled for this business. You must manually disable call forwarding on {selectedBusiness.business_phone} after deletion to prevent misdirected calls.
+                          </p>
+                        </div>
+                      )}
+
+                      {deleteDryRunResult && deleteDryRunResult.affectedTwilioNumbers && deleteDryRunResult.affectedTwilioNumbers.length > 0 && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                          <p className="text-sm text-blue-800 dark:text-blue-300">
+                            <strong>Note:</strong> The ReplyFlow number(s) will be detached from this business and made available for reassignment, but will NOT be released from Twilio. The Twilio SID and Messaging Service attachment will be preserved.
                           </p>
                         </div>
                       )}

@@ -115,10 +115,10 @@ export async function POST(request: NextRequest) {
     // Block if trying to delete admin/protected businesses
     const { data: protectedBusinesses } = await supabase
       .from('businesses')
-      .select('id, name')
+      .select('id, name, is_protected_account')
       .in('id', businessIds.length > 0 ? businessIds : ['00000000-0000-0000-0000-000000000000'])
 
-    if (protectedBusinesses && protectedBusinesses.some(b => b.protected)) {
+    if (protectedBusinesses && protectedBusinesses.some((b: any) => b.is_protected_account)) {
       return NextResponse.json({
         error: 'Blocked: Cannot delete protected businesses',
         details: 'Protected businesses cannot be deleted'
@@ -163,12 +163,12 @@ async function performReset(
   // Get business details first
   const { data: businesses } = await supabase
     .from('businesses')
-    .select('id, name, twilio_phone_number, twilio_phone_number_sid, protected')
+    .select('id, name, twilio_phone_number, twilio_phone_number_sid, is_protected_account')
     .in('id', businessIds.length > 0 ? businessIds : ['00000000-0000-0000-0000-000000000000'])
 
   if (businesses) {
-    businesses.forEach(b => {
-      if (!b.protected) {
+    businesses.forEach((b: any) => {
+      if (!b.is_protected_account) {
         affectedBusinesses.push(b.id)
         if (b.twilio_phone_number) {
           affectedTwilioNumbers.push(b.twilio_phone_number)
@@ -199,7 +199,7 @@ async function performReset(
       .select('phone_number, status')
       .in('phone_number', affectedTwilioNumbers)
 
-    if (warmNumbers && warmNumbers.some(n => n.status === 'warm')) {
+    if (warmNumbers && warmNumbers.some((n: any) => n.status === 'warm')) {
       warnings.push('Some affected numbers are in warm inventory. These will NOT be released automatically.')
     }
   }
@@ -249,8 +249,36 @@ async function performReset(
       }
     }
 
+    // Detach Twilio numbers from businesses (do NOT release, just detach)
+    if (affectedTwilioNumbers.length > 0) {
+      try {
+        const { error: detachError } = await supabase
+          .from('twilio_numbers')
+          .update({
+            business_id: null,
+            status: 'available',
+            assigned_at: null,
+            detached_at: new Date().toISOString(),
+            detached_reason: 'test_business_data_reset'
+          })
+          .in('phone_number', affectedTwilioNumbers)
+
+        if (detachError) {
+          console.error('[ADMIN RESET] Error detaching Twilio numbers:', detachError)
+          warnings.push(`Failed to detach Twilio numbers: ${detachError.message}`)
+        } else {
+          console.log(`[ADMIN RESET] Detached ${affectedTwilioNumbers.length} Twilio numbers from businesses`)
+          warnings.push(`Detached ${affectedTwilioNumbers.length} Twilio number(s) from businesses. Numbers are now available for reassignment.`)
+        }
+      } catch (error: any) {
+        console.error('[ADMIN RESET] Exception detaching Twilio numbers:', error)
+        warnings.push(`Exception detaching Twilio numbers: ${error.message}`)
+      }
+    }
+
     // Note: We do NOT delete businesses themselves, just their data
-    // This preserves business configuration, subscription, and Twilio number assignment
+    // This preserves business configuration, subscription
+    // Twilio numbers are detached but not released (preserved in inventory)
   }
 
   return {
