@@ -1058,20 +1058,17 @@ export default function LeadsPage() {
                                   const status = isNewLead ? 'new' : getLeadLifecycleStatus(lead)
                                   setStatusFilter(statusFilter === status ? 'all' : status)
                                 }}
-                                className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-200 ${
-                                  isNewLead ? 'bg-orange-500' :
-                                  getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-500' :
-                                  getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-500' :
-                                  'bg-slate-400'
-                                } hover:scale-125 hover:ring-2 hover:ring-offset-1 ${
-                                  isNewLead ? 'hover:ring-orange-300' :
-                                  getLeadLifecycleStatus(lead) === 'new' ? 'hover:ring-blue-300' :
-                                  getLeadLifecycleStatus(lead) === 'active' ? 'hover:ring-green-300' :
-                                  'hover:ring-slate-300'
-                                } dark:hover:ring-offset-slate-900 cursor-pointer`}
-                                title={`Filter by ${isNewLead ? 'new' : getLeadLifecycleStatus(lead)} status`}
-                                aria-label={`Filter by ${isNewLead ? 'new' : getLeadLifecycleStatus(lead)} status`}
-                              ></button>
+                                className={`px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] sm:text-xs font-medium rounded-full transition-all duration-200 ${
+                                  isNewLead ? 'bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300' :
+                                  getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-100 text-blue-700 dark:bg-blue-600/20 dark:text-blue-300' :
+                                  getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-600/20 dark:text-green-300' :
+                                  'bg-slate-100 text-slate-700 dark:bg-slate-600/20 dark:text-slate-300'
+                                } hover:opacity-80 cursor-pointer`}
+                                title={`Filter by ${isNewLead ? 'New' : getLeadLifecycleStatus(lead)} status`}
+                                aria-label={`Filter by ${isNewLead ? 'New' : getLeadLifecycleStatus(lead)} status`}
+                              >
+                                {isNewLead ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
+                              </button>
                               <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                                 {formatRelativeTime(lead.created_at)}
                               </span>
@@ -1213,20 +1210,17 @@ export default function LeadsPage() {
                                       const status = isNewLead ? 'new' : getLeadLifecycleStatus(lead)
                                       setStatusFilter(statusFilter === status ? 'all' : status)
                                     }}
-                                    className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all duration-200 ${
-                                      isNewLead ? 'bg-orange-500' :
-                                      getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-500' :
-                                      getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-500' :
-                                      'bg-slate-400'
-                                    } hover:scale-125 hover:ring-2 hover:ring-offset-1 ${
-                                      isNewLead ? 'hover:ring-orange-300' :
-                                      getLeadLifecycleStatus(lead) === 'new' ? 'hover:ring-blue-300' :
-                                      getLeadLifecycleStatus(lead) === 'active' ? 'hover:ring-green-300' :
-                                      'hover:ring-slate-300'
-                                    } dark:hover:ring-offset-slate-900 cursor-pointer`}
-                                    title={`Filter by ${isNewLead ? 'new' : getLeadLifecycleStatus(lead)} status`}
-                                    aria-label={`Filter by ${isNewLead ? 'new' : getLeadLifecycleStatus(lead)} status`}
-                                  ></button>
+                                    className={`px-1.5 py-0.5 sm:px-2 sm:py-0.5 text-[9px] sm:text-[10px] font-medium rounded-full transition-all duration-200 ${
+                                      isNewLead ? 'bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300' :
+                                      getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-100 text-blue-700 dark:bg-blue-600/20 dark:text-blue-300' :
+                                      getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-600/20 dark:text-green-300' :
+                                      'bg-slate-100 text-slate-700 dark:bg-slate-600/20 dark:text-slate-300'
+                                    } hover:opacity-80 cursor-pointer`}
+                                    title={`Filter by ${isNewLead ? 'New' : getLeadLifecycleStatus(lead)} status`}
+                                    aria-label={`Filter by ${isNewLead ? 'New' : getLeadLifecycleStatus(lead)} status`}
+                                  >
+                                    {isNewLead ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
+                                  </button>
                                   <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
                                     {formatRelativeTime(lead.created_at)}
                                   </span>
