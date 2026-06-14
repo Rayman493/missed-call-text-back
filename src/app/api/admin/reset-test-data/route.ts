@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isAdmin } from '@/lib/admin'
 
-const REQUIRED_CONFIRMATION_PHRASE = 'I confirm this is a test data reset'
+const REQUIRED_CONFIRMATION_PHRASE = 'I confirm full deletion of this test business'
 
 interface ResetSummary {
   table: string
@@ -104,12 +104,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Require confirmation phrase for execute mode
+    console.log('[ADMIN RESET] Checking confirmation phrase for execute mode')
+    console.log('[ADMIN RESET] executeMode:', executeMode)
+    console.log('[ADMIN RESET] confirmationPhrase:', confirmationPhrase)
+    console.log('[ADMIN RESET] REQUIRED_CONFIRMATION_PHRASE:', REQUIRED_CONFIRMATION_PHRASE)
+    console.log('[ADMIN RESET] Phrase match:', confirmationPhrase === REQUIRED_CONFIRMATION_PHRASE)
+    
     if (executeMode && confirmationPhrase !== REQUIRED_CONFIRMATION_PHRASE) {
+      console.error('[ADMIN RESET] Invalid confirmation phrase - blocking execution')
       return NextResponse.json({
         error: 'Invalid confirmation phrase',
         details: `Confirmation phrase must be: "${REQUIRED_CONFIRMATION_PHRASE}"`
       }, { status: 403 })
     }
+
+    console.log('[ADMIN RESET] Confirmation phrase validated successfully')
 
     // Get businesses to reset
     console.log('[ADMIN RESET] Getting businesses to reset')
@@ -234,7 +243,9 @@ async function performReset(
 
   // Safe deletion order (child tables first, then parent tables)
   // First, get message IDs for message_media query
+  console.log('[ADMIN RESET] Getting message IDs for message_media query')
   const messageIds = await getLeadMessageIds(supabase, businessIds)
+  console.log('[ADMIN RESET] Message IDs retrieved:', messageIds.length)
   
   const tablesToDelete = [
     { table: 'message_media', description: 'MMS media attachments', query: (ids: string[]) => supabase.from('message_media').select('id').in('message_id', messageIds) },
@@ -294,12 +305,19 @@ async function performReset(
   let twilioNumbersReserved = 0
   let reservedUntil: string | null = null
 
+  console.log('[ADMIN RESET] Checking execute mode condition')
+  console.log('[ADMIN RESET] executeMode:', executeMode)
+  console.log('[ADMIN RESET] businessIds.length:', businessIds.length)
+  console.log('[ADMIN RESET] Entering execute mode:', executeMode && businessIds.length > 0)
+
   if (executeMode && businessIds.length > 0) {
+    console.log('[ADMIN RESET] ========== EXECUTE MODE START ==========')
     console.log('[ADMIN RESET] Starting execute mode')
     
     // Reserve Twilio numbers for 30-day grace period BEFORE deleting business
     if (affectedTwilioNumbers.length > 0) {
       console.log('[ADMIN RESET] Reserving Twilio numbers before business deletion')
+      console.log('[ADMIN RESET] affectedTwilioNumbers:', affectedTwilioNumbers)
       try {
         const thirtyDaysFromNow = new Date()
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
@@ -311,31 +329,55 @@ async function performReset(
           .select('phone_number, status, business_id')
           .in('phone_number', affectedTwilioNumbers)
 
+        console.log('[ADMIN RESET] Current Twilio numbers:', currentNumbers)
+
         // Get business details for stable keys
         const { data: businesses } = await supabase
           .from('businesses')
           .select('id, user_id, business_phone, stripe_customer_id')
           .in('id', businessIds)
 
+        console.log('[ADMIN RESET] Business details for reservation:', businesses)
         const businessMap = new Map(businesses?.map((b: any) => [b.id, b]) || [])
 
+        // Get user email for stable reclaim key
+        let ownerEmail = null
+        if (businesses && businesses.length > 0 && businesses[0].user_id) {
+          const { data: user } = await supabase.auth.admin.getUserById(businesses[0].user_id)
+          if (user && user.user && user.user.email) {
+            ownerEmail = user.user.email
+          }
+        }
+        console.log('[ADMIN RESET] Owner email for reservation:', ownerEmail)
+
+        // Get the business for stable keys
+        const targetBusiness = businesses?.[0]
+        console.log('[ADMIN RESET] Target business for reservation:', targetBusiness)
+
+        // Prepare reservation data
+        const reservationData = {
+          status: 'reserved',
+          business_id: null, // Clear business_id
+          reserved_for_business_id: businessIds[0], // Set to target business ID
+          reserved_at: new Date().toISOString(),
+          reserved_expires_at: reservedUntil,
+          reservation_reason: 'test_business_data_reset',
+          reserved_owner_email: ownerEmail || null,
+          reserved_business_phone: targetBusiness?.business_phone || targetBusiness?.twilio_phone_number || null,
+          reserved_stripe_customer_id: targetBusiness?.stripe_customer_id || null,
+          reserved_user_id: targetBusiness?.user_id || null,
+          detached_at: new Date().toISOString(),
+          detached_reason: 'test_business_data_reset',
+        }
+        console.log('[ADMIN RESET] Reservation data:', reservationData)
+
         // Try to update with new reserved fields (if migration applied)
-        const { error: reserveError } = await supabase
+        const { error: reserveError, data: reserveData } = await supabase
           .from('twilio_numbers')
-          .update({
-            status: 'reserved',
-            reserved_for_business_id: businessIds[0], // Set to target business ID
-            reserved_at: new Date().toISOString(),
-            reserved_expires_at: reservedUntil,
-            reservation_reason: 'test_business_data_reset',
-            reserved_owner_email: null, // Test businesses don't need reclamation
-            reserved_business_phone: null, // Test businesses don't need reclamation
-            reserved_stripe_customer_id: null, // Test businesses don't need reclamation
-            reserved_user_id: null, // Test businesses don't need reclamation
-            detached_at: new Date().toISOString(),
-            detached_reason: 'test_business_data_reset',
-          })
+          .update(reservationData)
           .in('phone_number', affectedTwilioNumbers)
+
+        console.log('[ADMIN RESET] Twilio reservation update result:', { error: reserveError, data: reserveData })
 
         if (reserveError) {
           console.error('[ADMIN RESET] Error reserving Twilio numbers with new fields:', reserveError)
@@ -343,10 +385,11 @@ async function performReset(
           // If error is due to missing columns, try without the new fields
           if (reserveError.message && reserveError.message.includes('column')) {
             console.log('[ADMIN RESET] Falling back to update without new reserved fields')
-            const { error: fallbackError } = await supabase
+            const { error: fallbackError, data: fallbackData } = await supabase
               .from('twilio_numbers')
               .update({
                 status: 'reserved',
+                business_id: null,
                 reserved_for_business_id: businessIds[0],
                 reserved_at: new Date().toISOString(),
                 reserved_expires_at: reservedUntil,
@@ -355,6 +398,8 @@ async function performReset(
                 detached_reason: 'test_business_data_reset',
               })
               .in('phone_number', affectedTwilioNumbers)
+
+            console.log('[ADMIN RESET] Fallback reservation result:', { error: fallbackError, data: fallbackData })
 
             if (fallbackError) {
               console.error('[ADMIN RESET] Error reserving Twilio numbers (fallback):', fallbackError)
@@ -385,54 +430,69 @@ async function performReset(
         }
       } catch (error: any) {
         console.error('[ADMIN RESET] Exception reserving Twilio numbers:', error)
+        console.error('[ADMIN RESET] Error stack:', error.stack)
         warnings.push(`Exception reserving Twilio numbers: ${error.message}`)
       }
+    } else {
+      console.log('[ADMIN RESET] No affected Twilio numbers to reserve')
     }
 
     // Delete in reverse order (child tables first)
     console.log('[ADMIN RESET] Deleting records from tables')
+    console.log('[ADMIN RESET] tablesToDelete:', tablesToDelete.map(t => t.table))
     for (let i = tablesToDelete.length - 1; i >= 0; i--) {
       const tableInfo = tablesToDelete[i]
+      console.log(`[ADMIN RESET] Deleting from table: ${tableInfo.table}`)
       try {
-        const { error } = await supabase
+        const { error, count } = await supabase
           .from(tableInfo.table)
           .delete()
           .in('business_id', businessIds)
+
+        console.log(`[ADMIN RESET] Delete result for ${tableInfo.table}:`, { error, count })
 
         if (error) {
           console.error(`[ADMIN RESET] Error deleting ${tableInfo.table}:`, error)
           warnings.push(`Failed to delete ${tableInfo.table}: ${error.message}`)
         } else {
-          const count = summary.find(s => s.table === tableInfo.table)?.count || 0
-          console.log(`[ADMIN RESET] Deleted ${count} records from ${tableInfo.table}`)
+          const tableCount = summary.find(s => s.table === tableInfo.table)?.count || 0
+          console.log(`[ADMIN RESET] Deleted ${count || tableCount} records from ${tableInfo.table}`)
         }
       } catch (error: any) {
         console.error(`[ADMIN RESET] Exception deleting ${tableInfo.table}:`, error)
+        console.error(`[ADMIN RESET] Error stack:`, error.stack)
         warnings.push(`Exception deleting ${tableInfo.table}: ${error.message}`)
       }
     }
+    console.log('[ADMIN RESET] Runtime record deletion completed')
 
     // Delete business rows
     console.log('[ADMIN RESET] Deleting business rows')
+    console.log('[ADMIN RESET] businessIds to delete:', businessIds)
     for (const businessId of businessIds) {
+      console.log(`[ADMIN RESET] Deleting business: ${businessId}`)
       try {
-        const { error: deleteBusinessError } = await supabase
+        const { error: deleteBusinessError, count: deleteCount } = await supabase
           .from('businesses')
           .delete()
           .eq('id', businessId)
+
+        console.log(`[ADMIN RESET] Business delete result:`, { error: deleteBusinessError, count: deleteCount })
 
         if (deleteBusinessError) {
           console.error('[ADMIN RESET] Error deleting business:', deleteBusinessError)
           warnings.push(`Failed to delete business ${businessId}: ${deleteBusinessError.message}`)
         } else {
-          console.log('[ADMIN RESET] Deleted business:', businessId)
+          console.log('[ADMIN RESET] Deleted business:', businessId, 'count:', deleteCount)
           businessesDeleted++
         }
       } catch (error: any) {
         console.error('[ADMIN RESET] Exception deleting business:', error)
+        console.error('[ADMIN RESET] Error stack:', error.stack)
         warnings.push(`Exception deleting business ${businessId}: ${error.message}`)
       }
     }
+    console.log('[ADMIN RESET] Business deletion completed')
 
     // Note: We do NOT delete auth users for test data reset
     // This is a test data reset, not a full account deletion
