@@ -741,6 +741,13 @@ export function getClosing(): string {
 }
 
 /**
+ * Generate graceful guardrail closing message when limits are reached
+ */
+export function getGuardrailClosing(): string {
+  return "I'm sorry, but I need to wrap up this call now. I'll pass along the information I have so the business can follow up with you. Thank you for calling."
+}
+
+/**
  * Generate confirmation question with summary - now category-aware and excludes placeholders
  */
 export function getConfirmationQuestion(data: any, category: BusinessCategory = 'general_service'): string {

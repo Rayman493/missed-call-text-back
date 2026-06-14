@@ -7,6 +7,13 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { classifyOutcome, OutcomeClassificationInput } from './outcome-classifier'
 
+// Guardrail configuration
+export const AI_GUARDRAILS = {
+  MAX_CALL_SECONDS: parseInt(process.env.AI_MAX_CALL_SECONDS || '300', 10), // Default: 5 minutes
+  MAX_CONVERSATION_TURNS: parseInt(process.env.AI_MAX_CONVERSATION_TURNS || '20', 10), // Default: 20 turns
+  MAX_FIELD_ATTEMPTS: parseInt(process.env.AI_MAX_FIELD_ATTEMPTS || '3', 10), // Default: 3 attempts per field
+}
+
 export interface AICallSession {
   id: string
   business_id: string
@@ -268,4 +275,104 @@ export async function calculateSessionDuration(sessionId: string): Promise<numbe
  */
 export async function updateSessionTranscript(sessionId: string, transcript: string): Promise<void> {
   await updateAISession(sessionId, { transcript })
+}
+
+/**
+ * Mark session as timed out due to duration limit
+ */
+export async function timeoutAISession(
+  sessionId: string,
+  reason: 'duration' | 'turn_limit' | 'field_limit',
+  extractedData?: {
+    caller_name?: string
+    reason_for_call?: string
+    urgency?: string
+    callback_number?: string
+  }
+): Promise<AICallSession | null> {
+  console.log('[AI GUARDRAIL] Session timed out', {
+    session_id: sessionId,
+    reason,
+    extractedData
+  })
+
+  const duration = await calculateSessionDuration(sessionId)
+
+  // Save whatever data was collected as partial intake
+  let outcome: AICallSession['outcome'] = 'partial_intake'
+  
+  if (extractedData && extractedData.caller_name && extractedData.reason_for_call) {
+    // Some data collected, mark as partial
+    outcome = 'partial_intake'
+  } else {
+    // No meaningful data collected
+    outcome = 'early_hangup'
+  }
+
+  return updateAISession(sessionId, {
+    status: 'timed_out',
+    outcome,
+    ended_at: new Date().toISOString(),
+    duration_seconds: duration || undefined,
+    caller_name: extractedData?.caller_name || undefined,
+    reason_for_call: extractedData?.reason_for_call || undefined,
+    urgency: extractedData?.urgency || undefined,
+    callback_number: extractedData?.callback_number || undefined,
+    raw_metadata: {
+      guardrail_triggered: true,
+      guardrail_reason: reason,
+      ...extractedData
+    }
+  })
+}
+
+/**
+ * Mark session as completed with partial intake (graceful exit)
+ */
+export async function completePartialAISession(
+  sessionId: string,
+  extractedData: {
+    caller_name?: string
+    reason_for_call?: string
+    urgency?: string
+    callback_number?: string
+  },
+  reason: 'duration' | 'turn_limit' | 'field_limit'
+): Promise<AICallSession | null> {
+  console.log('[AI GUARDRAIL] Completing partial intake', {
+    session_id: sessionId,
+    reason,
+    extractedData
+  })
+
+  const duration = await calculateSessionDuration(sessionId)
+
+  const classification = classifyOutcome({
+    extractedInfo: {
+      callerName: extractedData.caller_name || '',
+      reasonForCalling: extractedData.reason_for_call || '',
+      urgencyLevel: extractedData.urgency || 'low',
+      callbackNumber: extractedData.callback_number || ''
+    },
+    transcript: null,
+    confirmationCompleted: false
+  })
+
+  console.log('[OUTCOME CLASSIFICATION RESULT]', classification)
+
+  return updateAISession(sessionId, {
+    status: 'completed',
+    outcome: 'partial_intake',
+    ended_at: new Date().toISOString(),
+    duration_seconds: duration || undefined,
+    caller_name: extractedData.caller_name || undefined,
+    reason_for_call: extractedData.reason_for_call || undefined,
+    urgency: extractedData.urgency || undefined,
+    callback_number: extractedData.callback_number || undefined,
+    raw_metadata: {
+      guardrail_triggered: true,
+      guardrail_reason: reason,
+      partial_intake: true
+    }
+  })
 }
