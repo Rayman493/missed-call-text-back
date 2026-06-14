@@ -617,11 +617,11 @@ export async function POST(request: NextRequest) {
             })
 
             if (twilioReserveError) {
-              console.error('[delete-account] Failed to reserve Twilio number in DB:', twilioReserveError)
-              return NextResponse.json(
-                { ok: false, step: 'reserve_twilio_number', error: 'Failed to reserve Twilio number. Please try again or contact support.', details: twilioReserveError.message },
-                { status: 500 }
-              )
+              console.error('[delete-account] Failed to reserve Twilio number in DB (continuing with deletion):', twilioReserveError)
+              // Don't fail the entire deletion - continue to delete auth user
+              // This ensures the user cannot sign back in even if Twilio reservation fails
+              summary.twilioReservationFailed = true
+              summary.twilioReservationError = twilioReserveError.message
             }
 
             // Log the status change
@@ -729,24 +729,54 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 22: Delete the Supabase Auth user last
-    console.log('[delete-account] Step 22: delete auth user')
-    
-    if (!dryRun) {
-      const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
+    console.log('[delete-account] Step 22: delete auth user', { userId: user.id })
 
-      if (deleteUserError) {
-        console.error('[delete-account] Step 22 failed:', deleteUserError)
+    if (!dryRun) {
+      try {
+        console.log('[delete-account] Starting auth user deletion', { userId: user.id })
+        const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
+
+        if (deleteUserError) {
+          console.error('[delete-account] Auth user deletion failed', {
+            userId: user.id,
+            error: deleteUserError,
+            errorMessage: deleteUserError.message,
+            errorDetails: JSON.stringify(deleteUserError)
+          })
+
+          // Check if user is already deleted (idempotency)
+          // Supabase returns "User not found" error when trying to delete a non-existent user
+          if (deleteUserError.message && deleteUserError.message.includes('User not found')) {
+            console.warn('[delete-account] Auth user already deleted, treating as success', { userId: user.id })
+            summary.authDeletionResult = 'already_deleted'
+          } else {
+            return NextResponse.json(
+              { ok: false, step: 'delete_auth_user', error: 'Failed to delete your account. Please try again or contact support.', details: deleteUserError.message },
+              { status: 500 }
+            )
+          }
+        } else {
+          console.log('[delete-account] Auth user deletion succeeded', { userId: user.id })
+          summary.authDeletionResult = 'success'
+        }
+      } catch (error) {
+        console.error('[delete-account] Unexpected error during auth user deletion', {
+          userId: user.id,
+          error: error instanceof Error ? error.message : String(error)
+        })
         return NextResponse.json(
-          { ok: false, step: 'delete_auth_user', error: 'Failed to delete your account. Please try again or contact support.', details: deleteUserError.message },
+          { ok: false, step: 'delete_auth_user', error: 'Failed to delete your account. Please try again or contact support.', details: error instanceof Error ? error.message : 'Unknown error' },
           { status: 500 }
         )
       }
-      summary.authDeletionResult = 'success'
     } else {
       summary.authDeletionResult = 'skipped (dry run)'
     }
 
-    console.log('[delete-account] Step 22 completed')
+    console.log('[delete-account] Step 22 completed', {
+      userId: user.id,
+      authDeletionResult: summary.authDeletionResult
+    })
     console.log('[ACCOUNT DELETE COMPLETE]', {
       userId: summary.userId,
       businessId: summary.businessId,
