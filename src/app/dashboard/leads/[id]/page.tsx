@@ -1464,26 +1464,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <main className="h-screen bg-background p-4 sm:p-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
-            <a
+            <Link
               href="/dashboard/leads"
               className="inline-flex items-center text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
               onClick={() => console.log('[LEAD DETAIL HEADER BACK] clicked -> /dashboard/leads')}
             >
               ← Back to Leads
-            </a>
+            </Link>
           </div>
           <div className="bg-card rounded-lg shadow border border-border p-8 text-center">
             <h1 className="text-2xl font-bold text-foreground mb-2">Lead not found</h1>
             <p className="text-muted-foreground mb-6">
               {error || 'The lead you\'re looking for doesn\'t exist or you don\'t have permission to view it.'}
             </p>
-            <a
+            <Link
               href="/dashboard/leads"
               className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
               onClick={() => console.log('[LEAD DETAIL HEADER BACK] clicked -> /dashboard/leads')}
             >
               Return to Leads
-            </a>
+            </Link>
           </div>
         </div>
       </main>
@@ -1513,7 +1513,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   type="button"
                   onClick={() => {
-                    window.location.href = '/dashboard/leads'
+                    router.push('/dashboard/leads')
                   }}
                   className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors p-1"
                 >
@@ -1557,7 +1557,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 type="button"
                 onClick={() => {
-                  window.location.href = '/dashboard/leads'
+                  router.push('/dashboard/leads')
                 }}
                 className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
               >
@@ -1684,7 +1684,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   onClick={handleRefresh}
                   disabled={refreshing}
-                  className="p-2 text-muted-foreground hover:text-foreground dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50 border border-border hover:border-border flex items-center justify-center"
+                  className="p-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50 border border-border hover:border-border flex items-center justify-center"
                   title="Refresh conversation"
                 >
                   {refreshing ? (
@@ -1700,7 +1700,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="relative">
                   <button
                     onClick={() => setShowMoreActions(!showMoreActions)}
-                    className="p-2 text-muted-foreground hover:text-foreground dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 border border-border hover:border-border flex items-center justify-center"
+                    className="p-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 border border-border hover:border-border flex items-center justify-center"
                     title="More actions"
                   >
                     <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1778,7 +1778,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
         
         {/* Desktop Layout */}
-        <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_420px] gap-6 items-start">
+        <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
           {/* Desktop Conversation Section */}
           <section className="flex flex-col min-h-0 bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden h-[calc(100vh-350px)]">
             {/* Desktop Message Thread */}
@@ -1825,7 +1825,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           
           {/* Desktop Sidebar */}
           <aside className="sticky top-6 overflow-y-auto max-h-[calc(100vh-230px)]" data-sidebar>
-            <div className="space-y-4">
+            <div className="space-y-5">
               {/* AI Intake Summary Card - Sticky on Desktop */}
               {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
                 <div className="sticky top-0 bg-background z-10 pb-4">
