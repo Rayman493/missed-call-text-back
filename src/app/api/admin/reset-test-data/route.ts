@@ -28,33 +28,57 @@ interface DryRunResult {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('[ADMIN RESET] ========== START ==========')
+  console.log('[ADMIN RESET] Request received')
+
   try {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
+    console.log('[ADMIN RESET] Supabase client created')
+
     // Get the user from the request
     const authHeader = request.headers.get('authorization')
+    console.log('[ADMIN RESET] Auth header present:', !!authHeader)
+
     if (!authHeader?.startsWith('Bearer ')) {
+      console.error('[ADMIN RESET] Missing or invalid auth header')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const token = authHeader.substring(7)
+    console.log('[ADMIN RESET] Token extracted, getting user')
     const { data: { user }, error: userError } = await supabase.auth.getUser(token)
 
-    if (userError || !user) {
+    if (userError) {
+      console.error('[ADMIN RESET] User auth error:', userError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    if (!user) {
+      console.error('[ADMIN RESET] No user found')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    console.log('[ADMIN RESET] User authenticated:', user.id)
+
     // Check if user is admin
-    if (!isAdmin(user.id)) {
+    const isAdminUser = isAdmin(user.id)
+    console.log('[ADMIN RESET] Admin check:', isAdminUser)
+
+    if (!isAdminUser) {
+      console.error('[ADMIN RESET] User is not admin')
       return NextResponse.json({ error: 'Forbidden - Admin only' }, { status: 403 })
     }
 
     // Parse request body
+    console.log('[ADMIN RESET] Parsing request body')
     const body = await request.json()
+    console.log('[ADMIN RESET] Request body parsed:', body)
     const { mode, filterType, filterValue, confirmationPhrase } = body
+    console.log('[ADMIN RESET] Parsed params:', { mode, filterType, filterValue, confirmationPhrase })
 
     // Default to dry-run
     const executeMode = mode === 'execute'
@@ -84,17 +108,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Get businesses to reset
+    console.log('[ADMIN RESET] Getting businesses to reset')
     let businessIds: string[] = []
 
     if (filterType === 'email') {
+      console.log('[ADMIN RESET] Filter type: email, value:', filterValue)
       // Find businesses by user email
       const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers()
+      console.log('[ADMIN RESET] Users listed:', users?.length)
       if (usersError) {
+        console.error('[ADMIN RESET] Failed to list users:', usersError)
         return NextResponse.json({ error: 'Failed to list users' }, { status: 500 })
       }
 
       const targetUser = users.find(u => u.email === filterValue)
+      console.log('[ADMIN RESET] Target user found:', !!targetUser)
       if (!targetUser) {
+        console.error('[ADMIN RESET] User not found')
         return NextResponse.json({ error: 'User not found' }, { status: 404 })
       }
 
@@ -103,22 +133,30 @@ export async function POST(request: NextRequest) {
         .select('id, name, twilio_phone_number, twilio_phone_number_sid')
         .eq('user_id', targetUser.id)
 
+      console.log('[ADMIN RESET] Businesses found:', businesses?.length)
       if (!businesses || businesses.length === 0) {
+        console.error('[ADMIN RESET] No businesses found for user')
         return NextResponse.json({ error: 'No businesses found for this user' }, { status: 404 })
       }
 
       businessIds = businesses.map(b => b.id)
     } else if (filterType === 'businessId') {
+      console.log('[ADMIN RESET] Filter type: businessId, value:', filterValue)
       businessIds = [filterValue]
     }
 
+    console.log('[ADMIN RESET] Business IDs to process:', businessIds)
+
     // Block if trying to delete admin/protected businesses
+    console.log('[ADMIN RESET] Checking for protected businesses')
     const { data: protectedBusinesses } = await supabase
       .from('businesses')
       .select('id, name, is_protected_account')
       .in('id', businessIds.length > 0 ? businessIds : ['00000000-0000-0000-0000-000000000000'])
 
+    console.log('[ADMIN RESET] Protected businesses check:', protectedBusinesses?.length)
     if (protectedBusinesses && protectedBusinesses.some((b: any) => b.is_protected_account)) {
+      console.error('[ADMIN RESET] Blocked: Protected businesses found')
       return NextResponse.json({
         error: 'Blocked: Cannot delete protected businesses',
         details: 'Protected businesses cannot be deleted'
@@ -126,9 +164,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Perform dry-run or execute
+    console.log('[ADMIN RESET] Calling performReset with executeMode:', executeMode)
     const result = await performReset(supabase, businessIds, executeMode, filterType)
+    console.log('[ADMIN RESET] performReset completed, result:', JSON.stringify(result, null, 2))
 
     // Log the operation
+    console.log('[ADMIN RESET] Preparing to return response')
     console.log('[ADMIN RESET TEST DATA]', {
       mode: executeMode ? 'execute' : 'dry-run',
       filterType,
@@ -142,9 +183,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result)
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[ADMIN RESET TEST DATA] Unexpected error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('[ADMIN RESET TEST DATA] Error stack:', error.stack)
+    console.error('[ADMIN RESET TEST DATA] Error message:', error.message)
+    return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 })
   }
 }
 
@@ -154,6 +197,11 @@ async function performReset(
   executeMode: boolean,
   filterType: string
 ): Promise<DryRunResult> {
+  console.log('[ADMIN RESET] performReset START')
+  console.log('[ADMIN RESET] businessIds:', businessIds)
+  console.log('[ADMIN RESET] executeMode:', executeMode)
+  console.log('[ADMIN RESET] filterType:', filterType)
+
   const summary: ResetSummary[] = []
   const warnings: string[] = []
   const affectedBusinesses: string[] = []
@@ -161,10 +209,13 @@ async function performReset(
   let totalRecords = 0
 
   // Get business details first
+  console.log('[ADMIN RESET] Getting business details')
   const { data: businesses } = await supabase
     .from('businesses')
     .select('id, name, twilio_phone_number, twilio_phone_number_sid, is_protected_account')
     .in('id', businessIds.length > 0 ? businessIds : ['00000000-0000-0000-0000-000000000000'])
+
+  console.log('[ADMIN RESET] Businesses fetched:', businesses?.length)
 
   if (businesses) {
     businesses.forEach((b: any) => {
@@ -205,9 +256,12 @@ async function performReset(
   }
 
   // Dry-run: count records that would be deleted
+  console.log('[ADMIN RESET] Starting table count loop')
   for (const tableInfo of tablesToDelete) {
     try {
+      console.log(`[ADMIN RESET] Counting table: ${tableInfo.table}`)
       const { data, error } = await tableInfo.query(businessIds)
+      console.log(`[ADMIN RESET] Table ${tableInfo.table} query result:`, { error: !!error, count: data?.length })
       const count = data ? data.length : 0
 
       if (count > 0) {
@@ -221,10 +275,12 @@ async function performReset(
         totalRecords += count
       }
     } catch (error: any) {
+      console.error(`[ADMIN RESET] Error counting ${tableInfo.table}:`, error)
       console.warn(`[ADMIN RESET] Error counting ${tableInfo.table}:`, error.message)
       // Continue with other tables
     }
   }
+  console.log('[ADMIN RESET] Table count loop completed')
 
   // Execute: delete records
   if (executeMode && businessIds.length > 0) {
@@ -342,7 +398,16 @@ async function performReset(
     // Twilio numbers are detached but not released (preserved in inventory)
   }
 
-  return {
+  console.log('[ADMIN RESET] performReset preparing to return')
+  console.log('[ADMIN RESET] Summary:', summary)
+  console.log('[ADMIN RESET] Total records:', totalRecords)
+  console.log('[ADMIN RESET] Affected businesses:', affectedBusinesses)
+  console.log('[ADMIN RESET] Affected Twilio numbers:', affectedTwilioNumbers)
+  console.log('[ADMIN RESET] Warnings:', warnings)
+  console.log('[ADMIN RESET] Execute mode:', executeMode)
+  console.log('[ADMIN RESET] Filter type:', filterType)
+
+  const result: DryRunResult = {
     mode: executeMode ? 'execute' : 'dry-run',
     filter: {
       type: filterType as 'email' | 'businessId' | 'all',
@@ -355,6 +420,9 @@ async function performReset(
     warnings,
     blocked: false
   }
+
+  console.log('[ADMIN RESET] performReset returning result:', JSON.stringify(result, null, 2))
+  return result
 }
 
 async function getLeadMessageIds(supabase: any, businessIds: string[]): Promise<string[]> {
