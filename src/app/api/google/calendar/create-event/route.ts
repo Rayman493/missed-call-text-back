@@ -137,22 +137,23 @@ export async function POST(request: NextRequest) {
       start = { date }
       end = { date } // For all-day events, end date is exclusive
     } else {
-      // Timed event: use dateTime format with timezone
+      // Timed event: use dateTime format without timezone
+      // Google Calendar will use the user's calendar default timezone
       if (!startTime || !endTime) {
         return NextResponse.json({ error: 'Start and end time are required for timed events' }, { status: 400 })
       }
-      
+
       // Combine date and time
       const startDateTime = new Date(`${date}T${startTime}`)
       const endDateTime = new Date(`${date}T${endTime}`)
-      
+
+      // Send datetime in ISO format without timezone parameter
+      // Google Calendar will use the user's calendar default timezone
       start = {
-        dateTime: startDateTime.toISOString(),
-        timeZone: 'America/New_York' // TODO: Use user/business timezone
+        dateTime: startDateTime.toISOString()
       }
       end = {
-        dateTime: endDateTime.toISOString(),
-        timeZone: 'America/New_York' // TODO: Use user/business timezone
+        dateTime: endDateTime.toISOString()
       }
     }
 
