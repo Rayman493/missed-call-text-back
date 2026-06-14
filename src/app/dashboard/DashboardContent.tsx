@@ -284,7 +284,7 @@ export default function DashboardContent() {
       messaging_status: business?.messaging_status,
       a2p_status: business?.a2p_status
     }
-    
+
     return getBusinessOnboardingState(businessData, {
       hasLeads: processedLeads.length > 0,
       hasConversations: processedLeads.filter(l => l.conversation_id).length > 0,
@@ -916,7 +916,7 @@ export default function DashboardContent() {
             <div className="flex-1 pt-2 sm:pt-3 lg:pt-4 px-3 sm:px-4 lg:px-6 pb-8 relative z-10">
               <div className="max-w-[1400px] mx-auto space-y-1.5 sm:space-y-2 lg:space-y-3">
 
-                {/* Dominant Hero Onboarding Card - Only show when forwarding is not verified */}
+                {/* Dominant Hero Onboarding Card - Show when forwarding is not verified */}
                 {hasActiveSubscription(business) && !business?.forwarding_verified && (
                   <SectionErrorBoundary sectionName="OnboardingHero">
                     <div className="bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-700 dark:to-indigo-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-blue-500/30">
@@ -924,33 +924,74 @@ export default function DashboardContent() {
                         {/* Progress Indicator */}
                         <div className="flex items-center gap-3">
                           <div className="px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
-                            <span className="text-white text-sm font-semibold">Step 2 of 3</span>
+                            <span className="text-white text-sm font-semibold">
+                              {setupState === 'needs_final_test' ? 'Step 3 of 3' : 'Step 2 of 3'}
+                            </span>
                           </div>
                         </div>
 
-                        {/* Title and Subtitle */}
-                        <div>
-                          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Complete your setup</h1>
-                          <p className="text-blue-100 text-base sm:text-lg">One final step before ReplyFlow can start capturing missed calls.</p>
-                        </div>
+                        {/* Title and Subtitle - Different for needs_final_test */}
+                        {setupState === 'needs_final_test' ? (
+                          <>
+                            <div>
+                              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Test your setup</h1>
+                              <p className="text-blue-100 text-base sm:text-lg">Make one quick test call to confirm ReplyFlow is receiving missed calls.</p>
+                            </div>
 
-                        {/* Friendly Explanation */}
-                        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                          <p className="text-white text-sm leading-relaxed">
-                            Your business phone number stays the same. You'll simply forward missed calls to your ReplyFlow number so we can automatically text customers back.
-                          </p>
-                        </div>
+                            {/* Friendly Explanation */}
+                            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                              <p className="text-white text-sm leading-relaxed">
+                                Call your business number from your phone. If forwarding is working correctly, you should receive a text message from ReplyFlow.
+                              </p>
+                            </div>
 
-                        {/* CTA Button */}
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                          <Link
-                            href="/setup/phone-forwarding"
-                            className="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-blue-50 text-blue-600 text-base font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                          >
-                            Set Up Call Forwarding
-                          </Link>
-                          <p className="text-blue-200 text-sm">Takes about 2 minutes.</p>
-                        </div>
+                            {/* CTA Button - Run Test Call */}
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                              <Link
+                                href="/dashboard/test-setup"
+                                className="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-blue-50 text-blue-600 text-base font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                              >
+                                Run Test Call
+                              </Link>
+                              <p className="text-blue-200 text-sm">Takes about 1 minute.</p>
+                            </div>
+
+                            {/* Secondary Link - Review forwarding instructions */}
+                            <div className="text-center sm:text-left">
+                              <Link
+                                href="/setup/phone-forwarding"
+                                className="text-blue-200 text-sm hover:text-white underline underline-offset-2 transition-colors"
+                              >
+                                Review forwarding instructions
+                              </Link>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Complete your setup</h1>
+                              <p className="text-blue-100 text-base sm:text-lg">One final step before ReplyFlow can start capturing missed calls.</p>
+                            </div>
+
+                            {/* Friendly Explanation */}
+                            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                              <p className="text-white text-sm leading-relaxed">
+                                Your business phone number stays the same. You'll simply forward missed calls to your ReplyFlow number so we can automatically text customers back.
+                              </p>
+                            </div>
+
+                            {/* CTA Button - Set Up Call Forwarding */}
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                              <Link
+                                href="/setup/phone-forwarding"
+                                className="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-blue-50 text-blue-600 text-base font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                              >
+                                Set Up Call Forwarding
+                              </Link>
+                              <p className="text-blue-200 text-sm">Takes about 2 minutes.</p>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </SectionErrorBoundary>
@@ -1303,36 +1344,75 @@ export default function DashboardContent() {
                                 </div>
                               </div>
 
-                              {/* Step 2 - Current Step */}
-                              <div className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-2 border-blue-500 dark:border-blue-400 shadow-md">
-                                <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <p className="font-semibold text-foreground">Set up call forwarding</p>
-                                    <span className="px-2 py-0.5 bg-blue-500 text-white text-xs font-medium rounded-full">Current Step</span>
+                              {/* Step 2 - Different states based on setupState */}
+                              {setupState === 'needs_final_test' ? (
+                                /* Step 2 - Completed when needs_final_test */
+                                <div className="flex items-start gap-4 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                                  <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
                                   </div>
-                                  <p className="text-sm text-muted-foreground mb-3">Configure your phone to forward missed calls to ReplyFlow</p>
-                                  <Link
-                                    href="/setup/phone-forwarding"
-                                    className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
-                                  >
-                                    Set Up Call Forwarding
-                                  </Link>
+                                  <div className="flex-1">
+                                    <p className="font-medium text-foreground">Set up call forwarding</p>
+                                    <p className="text-sm text-muted-foreground">Call forwarding has been configured</p>
+                                  </div>
                                 </div>
-                              </div>
+                              ) : (
+                                /* Step 2 - Current Step when needs_forwarding */
+                                <div className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-2 border-blue-500 dark:border-blue-400 shadow-md">
+                                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <p className="font-semibold text-foreground">Set up call forwarding</p>
+                                      <span className="px-2 py-0.5 bg-blue-500 text-white text-xs font-medium rounded-full">Current Step</span>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mb-3">Configure your phone to forward missed calls to ReplyFlow</p>
+                                    <Link
+                                      href="/setup/phone-forwarding"
+                                      className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                                    >
+                                      Set Up Call Forwarding
+                                    </Link>
+                                  </div>
+                                </div>
+                              )}
 
-                              {/* Step 3 - Pending */}
-                              <div className="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-950/20 rounded-lg border border-slate-200 dark:border-slate-800 opacity-60">
-                                <div className="w-6 h-6 rounded-full bg-slate-300 dark:bg-slate-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                  <span className="w-2 h-2 bg-white rounded-full"></span>
+                              {/* Step 3 - Different states based on setupState */}
+                              {setupState === 'needs_final_test' ? (
+                                /* Step 3 - Current Step when needs_final_test */
+                                <div className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-2 border-blue-500 dark:border-blue-400 shadow-md">
+                                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <p className="font-semibold text-foreground">Run a test call</p>
+                                      <span className="px-2 py-0.5 bg-blue-500 text-white text-xs font-medium rounded-full">Current Step</span>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mb-3">Verify your setup by making a test call</p>
+                                    <Link
+                                      href="/dashboard/test-setup"
+                                      className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                                    >
+                                      Run Test Call
+                                    </Link>
+                                  </div>
                                 </div>
-                                <div className="flex-1">
-                                  <p className="font-medium text-foreground">Run a test call</p>
-                                  <p className="text-sm text-muted-foreground">Verify your setup by making a test call</p>
+                              ) : (
+                                /* Step 3 - Pending when needs_forwarding */
+                                <div className="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-950/20 rounded-lg border border-slate-200 dark:border-slate-800 opacity-60">
+                                  <div className="w-6 h-6 rounded-full bg-slate-300 dark:bg-slate-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <span className="w-2 h-2 bg-white rounded-full"></span>
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-medium text-foreground">Run a test call</p>
+                                    <p className="text-sm text-muted-foreground">Verify your setup by making a test call</p>
+                                  </div>
                                 </div>
-                              </div>
+                              )}
                             </div>
                           </div>
                         </div>
