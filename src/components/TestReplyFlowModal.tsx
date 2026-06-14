@@ -89,8 +89,8 @@ export default function TestReplyFlowModal({ isOpen, onClose }: TestReplyFlowMod
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-white">Test ReplyFlow</h2>
-                <p className="text-sm text-slate-400">Verify your setup in 30 seconds</p>
+                <h2 className="text-xl font-semibold text-white">How to Test Your Setup</h2>
+                <p className="text-sm text-slate-400">Verify your call forwarding in 30 seconds</p>
               </div>
             </div>
 
@@ -115,7 +115,7 @@ export default function TestReplyFlowModal({ isOpen, onClose }: TestReplyFlowMod
                 </div>
               </div>
               <p className="text-sm text-slate-400 leading-relaxed">
-                Call this number from your phone. We'll detect the missed call, create a lead, and send an automated reply.
+                Call this number from another phone. Let it ring until it forwards to ReplyFlow. ReplyFlow will answer and verify your setup automatically.
               </p>
             </div>
 
@@ -124,19 +124,19 @@ export default function TestReplyFlowModal({ isOpen, onClose }: TestReplyFlowMod
                 <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-xs font-semibold text-blue-400">1</span>
                 </div>
-                <p className="text-sm text-slate-300">Call your business number</p>
+                <p className="text-sm text-slate-300">Call your business number from another phone</p>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-xs font-semibold text-blue-400">2</span>
                 </div>
-                <p className="text-sm text-slate-300">Let it ring and go to voicemail</p>
+                <p className="text-sm text-slate-300">Let it ring until it forwards to ReplyFlow</p>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-xs font-semibold text-blue-400">3</span>
                 </div>
-                <p className="text-sm text-slate-300">Receive automated text reply</p>
+                <p className="text-sm text-slate-300">ReplyFlow will answer and verify your setup</p>
               </div>
             </div>
 
@@ -153,7 +153,7 @@ export default function TestReplyFlowModal({ isOpen, onClose }: TestReplyFlowMod
               ) : (
                 <>
                   <Phone className="w-4 h-4" />
-                  Start Test
+                  Start Monitoring
                 </>
               )}
             </button>

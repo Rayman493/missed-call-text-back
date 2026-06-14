@@ -367,11 +367,11 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
     {
       id: 'test',
       title: 'Test Your Setup',
-      description: 'Verify your setup by running a test call to ensure everything is working correctly.',
+      description: 'Call your business phone from another phone. Let it ring until it forwards to ReplyFlow. ReplyFlow will answer and automatically verify your setup.',
       status: testComplete ? 'complete' : (forwardingSetupComplete ? 'needs-action' : 'not-tested-yet'),
-      buttonText: testComplete ? undefined : (forwardingSetupComplete ? 'Test Your Setup' : undefined),
+      buttonText: testComplete ? undefined : (forwardingSetupComplete ? 'How to Test Setup' : undefined),
       buttonOnClick: testComplete ? undefined : (forwardingSetupComplete ? () => setShowTestModal(true) : undefined),
-      secondaryButtonText: testComplete ? 'Run Another Test' : undefined,
+      secondaryButtonText: testComplete ? 'View Test Instructions' : undefined,
       secondaryButtonOnClick: testComplete ? () => setShowTestModal(true) : undefined
     }
   ]
