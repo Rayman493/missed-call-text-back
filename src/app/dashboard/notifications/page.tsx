@@ -33,19 +33,54 @@ export default function NotificationsPage() {
   }, [business?.id])
 
   const handleMarkAsRead = async (notificationId: string) => {
-    await notificationService.markAsRead(notificationId)
+    // Optimistically update UI
     setNotifications(prev => 
       prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
     )
+    setNotificationCount(prev => ({
+      unread: Math.max(0, prev.unread - 1),
+      total: prev.total
+    }))
+
+    try {
+      await notificationService.markAsRead(notificationId)
+    } catch (error) {
+      console.error('[NOTIFICATION MARK READ] Failed to mark as read:', error)
+      // Revert on error
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, read: false } : n)
+      )
+      setNotificationCount(prev => ({
+        unread: prev.unread + 1,
+        total: prev.total
+      }))
+    }
   }
 
   const handleMarkAllAsRead = async () => {
     if (!business?.id) return
-    // Mark each notification as read individually
-    for (const notification of notifications.filter(n => !n.read)) {
-      await notificationService.markAsRead(notification.id)
-    }
+
+    // Optimistically update UI
+    const unreadCount = notifications.filter(n => !n.read).length
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    setNotificationCount(prev => ({
+      unread: Math.max(0, prev.unread - unreadCount),
+      total: prev.total
+    }))
+
+    try {
+      // Mark each notification as read individually
+      for (const notification of notifications.filter(n => !n.read)) {
+        await notificationService.markAsRead(notification.id)
+      }
+    } catch (error) {
+      console.error('[NOTIFICATION MARK ALL READ] Failed to mark all as read:', error)
+      // Revert on error - refetch to get accurate state
+      const fetchedNotifications = await notificationService.getNotifications(business.id)
+      setNotifications(fetchedNotifications)
+      const count = await notificationService.getNotificationCount(business.id)
+      setNotificationCount(count)
+    }
   }
 
   const handleDeleteNotification = async (notificationId: string) => {
@@ -226,7 +261,7 @@ export default function NotificationsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     {/* Title with timestamp */}
-                    <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-start justify-between mb-2 pr-16">
                       <h3 className={`font-semibold text-slate-900 dark:text-foreground ${notification.read ? 'text-slate-600 dark:text-slate-400' : ''}`}>
                         {notification.title}
                       </h3>
@@ -254,7 +289,7 @@ export default function NotificationsPage() {
                   {!notification.read && (
                     <button
                       onClick={() => handleMarkAsRead(notification.id)}
-                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-white dark:bg-card rounded shadow-sm"
                       title="Mark as read"
                     >
                       <Check className="w-4 h-4" />
@@ -262,7 +297,7 @@ export default function NotificationsPage() {
                   )}
                   <button
                     onClick={() => handleDeleteNotification(notification.id)}
-                    className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                    className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-white dark:bg-card rounded shadow-sm"
                     title="Delete notification"
                   >
                     <X className="w-4 h-4" />
