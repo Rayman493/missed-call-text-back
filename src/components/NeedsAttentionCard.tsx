@@ -138,21 +138,12 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
         }
 
         // Recommended Items
-        
-        // 5. Follow-ups not configured (defensive: table may not exist yet)
-        let followUpConfig = null
-        try {
-          const { data } = await supabase
-            .from('follow_up_settings')
-            .select('id')
-            .eq('business_id', business.id)
-            .maybeSingle()
-          followUpConfig = data
-        } catch {
-          // Table may not exist; treat as not configured
-        }
 
-        if (!followUpConfig) {
+        // 5. Follow-ups not configured - check business.automation_settings instead of follow_up_settings table
+        const followUpsEnabled = business?.automation_settings?.followUps?.enabled
+        const followUpsConfigured = (business?.automation_settings?.followUps?.followUps?.length || 0) > 0
+
+        if (!followUpsEnabled && !followUpsConfigured) {
           attentionItems.push({
             id: 'followups-config',
             label: 'Follow-ups not configured',
@@ -167,20 +158,19 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           })
         }
 
-        // 6. Google Calendar not connected (defensive: table may not exist yet)
-        let calendarSettings = null
+        // 6. Google Calendar not connected - use API endpoint instead of calendar_settings table
+        let calendarConnected = false
         try {
-          const { data } = await supabase
-            .from('calendar_settings')
-            .select('id')
-            .eq('business_id', business.id)
-            .maybeSingle()
-          calendarSettings = data
+          const response = await fetch('/api/google/calendar/status?provider=google')
+          if (response.ok) {
+            const data = await response.json()
+            calendarConnected = data.connected || false
+          }
         } catch {
-          // Table may not exist; treat as not connected
+          // API call failed; treat as not connected
         }
 
-        if (!calendarSettings) {
+        if (!calendarConnected) {
           attentionItems.push({
             id: 'calendar-config',
             label: 'Google Calendar not connected',
