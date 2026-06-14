@@ -250,23 +250,46 @@ async function performReset(
   console.log('[ADMIN RESET] Final affectedTwilioNumbers:', affectedTwilioNumbers)
 
   // Safe deletion order (child tables first, then parent tables)
-  // First, get message IDs for message_media query
+  // Schema-safe: Document which foreign key each table uses for deletion
+  // message_media: uses message_id (no business_id column)
+  // messages: uses conversation_id (via conversations table which has business_id)
+  // conversations: uses business_id
+  // follow_up_jobs: uses business_id
+  // notifications: uses business_id
+  // ai_call_records: uses business_id
+  // voicemail_recordings: uses business_id
+  // call_events: uses business_id
+  // ai_call_failures: uses business_id
+  // leads: uses business_id
+  // ignored_contacts: uses business_id
+  
+  // Get conversation IDs for messages deletion (schema-safe: messages doesn't have business_id)
+  console.log('[ADMIN RESET] Getting conversation IDs for messages query')
+  const { data: conversations } = await supabase
+    .from('conversations')
+    .select('id')
+    .in('business_id', businessIds.length > 0 ? businessIds : ['00000000-0000-0000-0000-000000000000'])
+  
+  const conversationIds = conversations?.map((c: any) => c.id) || []
+  console.log('[ADMIN RESET] Conversation IDs retrieved:', conversationIds.length)
+  
+  // Get message IDs for message_media query (schema-safe: message_media doesn't have business_id)
   console.log('[ADMIN RESET] Getting message IDs for message_media query')
   const messageIds = await getLeadMessageIds(supabase, businessIds)
   console.log('[ADMIN RESET] Message IDs retrieved:', messageIds.length)
   
   const tablesToDelete = [
-    { table: 'message_media', description: 'MMS media attachments', query: (ids: string[]) => supabase.from('message_media').select('id').in('message_id', messageIds) },
-    { table: 'messages', description: 'SMS and conversation messages', query: (ids: string[]) => supabase.from('messages').select('id').in('business_id', ids) },
-    { table: 'conversations', description: 'Conversation threads', query: (ids: string[]) => supabase.from('conversations').select('id').in('business_id', ids) },
-    { table: 'follow_up_jobs', description: 'Scheduled follow-up jobs', query: (ids: string[]) => supabase.from('follow_up_jobs').select('id').in('business_id', ids) },
-    { table: 'notifications', description: 'In-app notifications', query: (ids: string[]) => supabase.from('notifications').select('id').in('business_id', ids) },
-    { table: 'ai_call_records', description: 'AI call session records', query: (ids: string[]) => supabase.from('ai_call_records').select('id').in('business_id', ids) },
-    { table: 'voicemail_recordings', description: 'Voicemail recordings', query: (ids: string[]) => supabase.from('voicemail_recordings').select('id').in('business_id', ids) },
-    { table: 'call_events', description: 'Call event logs', query: (ids: string[]) => supabase.from('call_events').select('id').in('business_id', ids) },
-    { table: 'ai_call_failures', description: 'AI call failure logs', query: (ids: string[]) => supabase.from('ai_call_failures').select('id').in('business_id', ids) },
-    { table: 'leads', description: 'Customer leads', query: (ids: string[]) => supabase.from('leads').select('id').in('business_id', ids) },
-    { table: 'ignored_contacts', description: 'Ignored contact list', query: (ids: string[]) => supabase.from('ignored_contacts').select('id').in('business_id', ids) },
+    { table: 'message_media', description: 'MMS media attachments', query: (ids: string[]) => supabase.from('message_media').select('id').in('message_id', messageIds), key: 'message_id' },
+    { table: 'messages', description: 'SMS and conversation messages', query: (ids: string[]) => supabase.from('messages').select('id').in('conversation_id', conversationIds), key: 'conversation_id' },
+    { table: 'conversations', description: 'Conversation threads', query: (ids: string[]) => supabase.from('conversations').select('id').in('business_id', ids), key: 'business_id' },
+    { table: 'follow_up_jobs', description: 'Scheduled follow-up jobs', query: (ids: string[]) => supabase.from('follow_up_jobs').select('id').in('business_id', ids), key: 'business_id' },
+    { table: 'notifications', description: 'In-app notifications', query: (ids: string[]) => supabase.from('notifications').select('id').in('business_id', ids), key: 'business_id' },
+    { table: 'ai_call_records', description: 'AI call session records', query: (ids: string[]) => supabase.from('ai_call_records').select('id').in('business_id', ids), key: 'business_id' },
+    { table: 'voicemail_recordings', description: 'Voicemail recordings', query: (ids: string[]) => supabase.from('voicemail_recordings').select('id').in('business_id', ids), key: 'business_id' },
+    { table: 'call_events', description: 'Call event logs', query: (ids: string[]) => supabase.from('call_events').select('id').in('business_id', ids), key: 'business_id' },
+    { table: 'ai_call_failures', description: 'AI call failure logs', query: (ids: string[]) => supabase.from('ai_call_failures').select('id').in('business_id', ids), key: 'business_id' },
+    { table: 'leads', description: 'Customer leads', query: (ids: string[]) => supabase.from('leads').select('id').in('business_id', ids), key: 'business_id' },
+    { table: 'ignored_contacts', description: 'Ignored contact list', query: (ids: string[]) => supabase.from('ignored_contacts').select('id').in('business_id', ids), key: 'business_id' },
   ]
 
   // Check for warm inventory numbers
@@ -384,7 +407,7 @@ async function performReset(
         const targetBusiness = businesses?.[0]
         console.log('[ADMIN RESET] Target business for reservation:', targetBusiness)
 
-        // Prepare reservation data
+        // Prepare reservation data (schema-safe: only include columns that exist in production)
         const reservationData = {
           status: 'reserved',
           business_id: null, // Clear business_id
@@ -396,8 +419,7 @@ async function performReset(
           reserved_business_phone: targetBusiness?.business_phone || targetBusiness?.twilio_phone_number || null,
           reserved_stripe_customer_id: targetBusiness?.stripe_customer_id || null,
           reserved_user_id: targetBusiness?.user_id || null,
-          detached_at: new Date().toISOString(),
-          detached_reason: 'test_business_data_reset',
+          // Note: detached_at and detached_reason are not included as they don't exist in production schema
         }
         console.log('[ADMIN RESET] Reservation data:', reservationData)
 
@@ -432,8 +454,7 @@ async function performReset(
                 reserved_at: new Date().toISOString(),
                 reserved_expires_at: reservedUntil,
                 reservation_reason: 'test_business_data_reset',
-                detached_at: new Date().toISOString(),
-                detached_reason: 'test_business_data_reset',
+                // Note: detached_at and detached_reason are not included as they don't exist in production schema
               })
               .in('phone_number', affectedTwilioNumbers)
 
@@ -480,12 +501,28 @@ async function performReset(
     console.log('[ADMIN RESET] tablesToDelete:', tablesToDelete.map(t => t.table))
     for (let i = tablesToDelete.length - 1; i >= 0; i--) {
       const tableInfo = tablesToDelete[i]
-      console.log(`[ADMIN RESET] Deleting from table: ${tableInfo.table}`)
+      console.log(`[ADMIN RESET] Deleting from table: ${tableInfo.table} using key: ${tableInfo.key}`)
       try {
-        const { error, count } = await supabase
-          .from(tableInfo.table)
-          .delete()
-          .in('business_id', businessIds)
+        // Use the correct foreign key based on the table schema
+        let deleteQuery
+        if (tableInfo.key === 'message_id') {
+          deleteQuery = supabase
+            .from(tableInfo.table)
+            .delete()
+            .in('message_id', messageIds)
+        } else if (tableInfo.key === 'conversation_id') {
+          deleteQuery = supabase
+            .from(tableInfo.table)
+            .delete()
+            .in('conversation_id', conversationIds)
+        } else {
+          deleteQuery = supabase
+            .from(tableInfo.table)
+            .delete()
+            .in('business_id', businessIds)
+        }
+
+        const { error, count } = await deleteQuery
 
         console.log(`[ADMIN RESET] Delete result for ${tableInfo.table}:`, { error, count })
 
