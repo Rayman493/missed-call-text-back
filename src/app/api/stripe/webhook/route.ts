@@ -6,6 +6,7 @@ import { SUBSCRIPTION_STATES, isEligibleForProvisioning } from '@/lib/subscripti
 // Legacy numberManager removed - only provisionTwilioNumber should be used for provisioning
 import getStripe from '@/lib/stripe'
 import { scheduleTwilioRelease, cancelTwilioRelease } from '@/lib/twilio-reclamation'
+import { normalizeStripeCustomerId } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -124,8 +125,13 @@ export async function POST(request: Request) {
         console.log('[ProvisioningState] CHECKOUT.SESSION.COMPLETED webhook triggered')
         
         const session = event.data.object as Stripe.Checkout.Session
-        const customerId = session.customer as string
+        const customerId = normalizeStripeCustomerId(session.customer)
         const subscriptionId = session.subscription as string
+
+        if (!customerId) {
+          console.error('[STRIPE WEBHOOK] Invalid customer ID in session:', session.customer)
+          return NextResponse.json({ received: true, warning: 'Invalid customer ID' })
+        }
 
         console.log('[STRIPE WEBHOOK] Customer:', customerId)
         console.log('[STRIPE WEBHOOK] Subscription ID:', subscriptionId)
@@ -428,7 +434,12 @@ export async function POST(request: Request) {
         
         const eventSubscription = event.data.object as Stripe.Subscription
         const subscriptionId = eventSubscription.id
-        const customerId = eventSubscription.customer as string
+        const customerId = normalizeStripeCustomerId(eventSubscription.customer)
+
+        if (!customerId) {
+          console.error('[DEBUG] Invalid customer ID in subscription:', eventSubscription.customer)
+          return NextResponse.json({ received: true, warning: 'Invalid customer ID' })
+        }
 
         console.log('[DEBUG] Customer ID:', customerId)
         console.log('[DEBUG] Subscription ID:', subscriptionId)
@@ -676,7 +687,12 @@ export async function POST(request: Request) {
         
         const eventSubscription = event.data.object as Stripe.Subscription
         const subscriptionId = eventSubscription.id
-        const customerId = eventSubscription.customer as string
+        const customerId = normalizeStripeCustomerId(eventSubscription.customer)
+
+        if (!customerId) {
+          console.error('[STRIPE CANCEL] Invalid customer ID in subscription:', eventSubscription.customer)
+          return NextResponse.json({ received: true, warning: 'Invalid customer ID' })
+        }
 
         console.log('[STRIPE CANCEL] Subscription ID from event:', subscriptionId)
         console.log('[STRIPE CANCEL] Customer ID from event:', customerId)

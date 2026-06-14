@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import getStripe from '@/lib/stripe'
 import { getDashboardUrl, logUrlResolution } from '@/lib/urls'
+import { normalizeStripeCustomerId } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -89,9 +90,32 @@ export async function POST(request: Request) {
     console.log('[stripe-portal] stripe_customer_id starts with cus_:', business.stripe_customer_id?.startsWith('cus_'))
     console.log('[stripe-portal] subscription_status:', business.subscription_status)
 
+    // Normalize stripe_customer_id to handle cases where it might be stored as a JSON object
+    const normalizedCustomerId = normalizeStripeCustomerId(business.stripe_customer_id)
+    console.log('[stripe-portal] Normalized customer ID:', normalizedCustomerId)
+
+    // If normalized value differs from stored value, repair the database
+    if (normalizedCustomerId && normalizedCustomerId !== business.stripe_customer_id) {
+      console.log('[stripe-portal] REPAIRING stripe_customer_id in database')
+      console.log('[stripe-portal] Old value:', business.stripe_customer_id)
+      console.log('[stripe-portal] New value:', normalizedCustomerId)
+      
+      const { error: repairError } = await supabase
+        .from('businesses')
+        .update({ stripe_customer_id: normalizedCustomerId })
+        .eq('id', business.id)
+      
+      if (repairError) {
+        console.error('[stripe-portal] Failed to repair stripe_customer_id:', repairError)
+      } else {
+        console.log('[stripe-portal] Successfully repaired stripe_customer_id')
+      }
+    }
+
     // Check for stripe_customer_id
-    if (!business.stripe_customer_id) {
-      console.log('[stripe-portal] Missing stripe_customer_id for business:', business.id)
+    if (!normalizedCustomerId) {
+      console.log('[stripe-portal] Missing or invalid stripe_customer_id for business:', business.id)
+      console.log('[stripe-portal] Original value:', business.stripe_customer_id)
       console.log('[stripe-portal] Returning 400 for missing stripe_customer_id')
       return NextResponse.json({ 
         success: false,
@@ -102,8 +126,8 @@ export async function POST(request: Request) {
     }
 
     // Validate stripe_customer_id format
-    if (!business.stripe_customer_id.startsWith('cus_')) {
-      console.error('[stripe-portal] Invalid stripe_customer_id format:', business.stripe_customer_id)
+    if (!normalizedCustomerId.startsWith('cus_')) {
+      console.error('[stripe-portal] Invalid stripe_customer_id format:', normalizedCustomerId)
       return NextResponse.json({ 
         success: false,
         code: "INVALID_STRIPE_CUSTOMER",
@@ -118,10 +142,10 @@ export async function POST(request: Request) {
     const returnUrl = `${getDashboardUrl()}?billing=returned`
     logUrlResolution('stripe-portal-return-url', returnUrl, user.id, business.id)
 
-    console.log('[stripe-portal] Calling Stripe billingPortal.sessions.create for customer:', business.stripe_customer_id)
+    console.log('[stripe-portal] Calling Stripe billingPortal.sessions.create for customer:', normalizedCustomerId)
 
     const session = await stripe.billingPortal.sessions.create({
-      customer: business.stripe_customer_id,
+      customer: normalizedCustomerId,
       return_url: returnUrl,
     })
 

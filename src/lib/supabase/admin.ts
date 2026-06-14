@@ -43,6 +43,40 @@ export function normalizePhoneNumberForStorage(phone: string): string {
   return phone // Return original if can't normalize
 }
 
+// Helper function to normalize Stripe customer ID
+// Handles cases where the customer might be stored as a full object instead of just the ID string
+export function normalizeStripeCustomerId(customerId: any): string | null {
+  if (!customerId) return null
+  
+  // If it's already a string starting with cus_, return it
+  if (typeof customerId === 'string') {
+    if (customerId.startsWith('cus_')) {
+      return customerId
+    }
+    // Try to parse as JSON in case it's a stringified object
+    try {
+      const parsed = JSON.parse(customerId)
+      if (parsed && parsed.id && parsed.id.startsWith('cus_')) {
+        return parsed.id
+      }
+    } catch {
+      // Not JSON, return as-is
+      return customerId
+    }
+    return customerId
+  }
+  
+  // If it's an object with an id property, extract the id
+  if (typeof customerId === 'object' && customerId.id) {
+    const id = customerId.id
+    if (typeof id === 'string' && id.startsWith('cus_')) {
+      return id
+    }
+  }
+  
+  return null
+}
+
 // Database helpers
 export const db = {
   // Media operations
