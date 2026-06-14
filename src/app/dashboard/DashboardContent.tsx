@@ -916,23 +916,40 @@ export default function DashboardContent() {
             <div className="flex-1 pt-2 sm:pt-3 lg:pt-4 px-3 sm:px-4 lg:px-6 pb-8 relative z-10">
               <div className="max-w-[1400px] mx-auto space-y-1.5 sm:space-y-2 lg:space-y-3">
 
-                {/* Setup Mode Banner - De-emphasized CTA, System Health owns onboarding */}
+                {/* Dominant Hero Onboarding Card - Only show when forwarding is not verified */}
                 {hasActiveSubscription(business) && !business?.forwarding_verified && (
-                  <SectionErrorBoundary sectionName="SetupModeBanner">
-                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 rounded-xl p-4 sm:p-6 shadow-lg">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="flex items-start gap-4">
-                          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                  <SectionErrorBoundary sectionName="OnboardingHero">
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-700 dark:to-indigo-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-blue-500/30">
+                      <div className="flex flex-col gap-6">
+                        {/* Progress Indicator */}
+                        <div className="flex items-center gap-3">
+                          <div className="px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
+                            <span className="text-white text-sm font-semibold">Step 2 of 3</span>
                           </div>
-                          <div>
-                            <h2 className="text-xl font-bold text-white mb-1">Welcome to ReplyFlow!</h2>
-                            <p className="text-blue-100 text-sm sm:text-base">
-                              Complete your setup in the System Health card below to start capturing missed calls.
-                            </p>
-                          </div>
+                        </div>
+
+                        {/* Title and Subtitle */}
+                        <div>
+                          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Complete your setup</h1>
+                          <p className="text-blue-100 text-base sm:text-lg">One final step before ReplyFlow can start capturing missed calls.</p>
+                        </div>
+
+                        {/* Friendly Explanation */}
+                        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                          <p className="text-white text-sm leading-relaxed">
+                            Your business phone number stays the same. You'll simply forward missed calls to your ReplyFlow number so we can automatically text customers back.
+                          </p>
+                        </div>
+
+                        {/* CTA Button */}
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                          <Link
+                            href="/setup/phone-forwarding"
+                            className="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-blue-50 text-blue-600 text-base font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                          >
+                            Set Up Call Forwarding
+                          </Link>
+                          <p className="text-blue-200 text-sm">Takes about 2 minutes.</p>
                         </div>
                       </div>
                     </div>
@@ -958,8 +975,8 @@ export default function DashboardContent() {
                   </SectionErrorBoundary>
                 )}
 
-                {/* Setup Gate - Show when provisioning is ready but forwarding is not verified */}
-                {business?.provisioning_status === 'ready' && !business?.forwarding_verified && (
+                {/* Setup Gate - Hidden when forwarding is not verified (replaced by dominant hero card) */}
+                {false && business?.provisioning_status === 'ready' && !business?.forwarding_verified && (
                   <SectionErrorBoundary sectionName="SetupGate">
                     <div id="setup-gate" className="bg-card border border-border rounded-xl shadow-sm p-4 sm:p-6">
                       <div className="flex items-start gap-4">
@@ -977,11 +994,11 @@ export default function DashboardContent() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                             <div>
                               <p className="text-xs text-muted-foreground mb-1">Business Number</p>
-                              <p className="text-sm font-semibold text-foreground">{business.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}</p>
+                              <p className="text-sm font-semibold text-foreground">{business?.business_phone_number ? formatPhoneNumber(business?.business_phone_number) : 'Not set'}</p>
                             </div>
                             <div>
                               <p className="text-xs text-muted-foreground mb-1">ReplyFlow Number</p>
-                              <p className="text-sm font-semibold text-foreground">{business.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not set'}</p>
+                              <p className="text-sm font-semibold text-foreground">{business?.twilio_phone_number ? formatPhoneNumber(business?.twilio_phone_number) : 'Not set'}</p>
                             </div>
                           </div>
                           <Link
@@ -1203,22 +1220,12 @@ export default function DashboardContent() {
                 {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
                 {hasActiveSubscription(business) ? (
                   <>
-                    {/* System Status Banner */}
-                    <SectionErrorBoundary sectionName="OperationalStatusCard">
-                      <div className="mb-2">
-                        <OperationalStatusCard
-                          business={business}
-                          missedCallCount={missedCallCount}
-                          setupHealth={setupHealth}
-                        />
-                      </div>
-                    </SectionErrorBoundary>
-
-                    {/* Setup Progress - Show only when no leads yet */}
-                    {processedLeads.length === 0 && (
-                      <SectionErrorBoundary sectionName="SetupProgress">
+                    {/* System Status Banner - Hide when forwarding is not verified (reduces cognitive load) */}
+                    {business?.forwarding_verified && (
+                      <SectionErrorBoundary sectionName="OperationalStatusCard">
                         <div className="mb-2">
-                          <SetupProgress
+                          <OperationalStatusCard
+                            business={business}
                             missedCallCount={missedCallCount}
                             setupHealth={setupHealth}
                           />
@@ -1226,55 +1233,108 @@ export default function DashboardContent() {
                       </SectionErrorBoundary>
                     )}
 
-                    {/* Dashboard Metrics - Priority 1 */}
+                    {/* Setup Progress - Show improved checklist when forwarding is not verified */}
+                    {!business?.forwarding_verified && (
+                      <SectionErrorBoundary sectionName="SetupProgress">
+                        <div className="mb-3">
+                          <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+                            <h3 className="text-lg font-semibold text-foreground mb-4">Setup Progress</h3>
+                            <div className="space-y-4">
+                              {/* Step 1 - Completed */}
+                              <div className="flex items-start gap-4 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                                <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-medium text-foreground">ReplyFlow number assigned</p>
+                                  <p className="text-sm text-muted-foreground">Your dedicated ReplyFlow number is ready</p>
+                                </div>
+                              </div>
+
+                              {/* Step 2 - Current Step */}
+                              <div className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-2 border-blue-500 dark:border-blue-400 shadow-md">
+                                <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <p className="font-semibold text-foreground">Set up call forwarding</p>
+                                    <span className="px-2 py-0.5 bg-blue-500 text-white text-xs font-medium rounded-full">Current Step</span>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground mb-3">Configure your phone to forward missed calls to ReplyFlow</p>
+                                  <Link
+                                    href="/setup/phone-forwarding"
+                                    className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                                  >
+                                    Set Up Call Forwarding
+                                  </Link>
+                                </div>
+                              </div>
+
+                              {/* Step 3 - Pending */}
+                              <div className="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-950/20 rounded-lg border border-slate-200 dark:border-slate-800 opacity-60">
+                                <div className="w-6 h-6 rounded-full bg-slate-300 dark:bg-slate-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <span className="w-2 h-2 bg-white rounded-full"></span>
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-medium text-foreground">Run a test call</p>
+                                  <p className="text-sm text-muted-foreground">Verify your setup by making a test call</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </SectionErrorBoundary>
+                    )}
+
+                    {/* Dashboard Metrics - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="DashboardMetrics">
-                      <div className="mb-3 transition-opacity duration-300">
+                      <div className={`mb-3 transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
                         <DashboardMetrics business={business} />
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Latest Lead Section - Priority 2 */}
+                    {/* Latest Lead Section - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
-                      {/* Hide RecentLeadsSection when onboarding is expanded to avoid duplicate messaging */}
-                      {!(isOnboardingExpanded && !isOnboardingComplete && hasActiveAccess(business) && business?.twilio_phone_number) && (
-                        <div className="transition-opacity duration-300 mb-3">
-                          {business?.id && (
-                            <RecentLeadsSection
-                              businessId={business.id}
-                              isOnboardingComplete={isOnboardingComplete}
-                              provisioningStatus={business?.provisioning_status || 'pending'}
-                              forwardingVerified={business?.forwarding_verified || false}
-                              isOnboardingExpanded={isOnboardingExpanded}
-                            />
-                          )}
-                        </div>
-                      )}
+                      <div className={`transition-opacity duration-300 mb-3 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                        {business?.id && (
+                          <RecentLeadsSection
+                            businessId={business.id}
+                            isOnboardingComplete={isOnboardingComplete}
+                            provisioningStatus={business?.provisioning_status || 'pending'}
+                            forwardingVerified={business?.forwarding_verified || false}
+                            isOnboardingExpanded={isOnboardingExpanded}
+                          />
+                        )}
+                      </div>
                     </SectionErrorBoundary>
 
-                    {/* Needs Attention Card - Priority 3 */}
+                    {/* Needs Attention Card - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="NeedsAttentionCard">
-                      <div className="mb-3 transition-opacity duration-300">
+                      <div className={`mb-3 transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
                         <NeedsAttentionCard business={business} />
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Recent Activity Card - Priority 4 */}
+                    {/* Recent Activity Card - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="RecentActivityCard">
-                      <div className="mb-3 transition-opacity duration-300">
+                      <div className={`mb-3 transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
                         <RecentActivityCard business={business} />
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Follow-Up Activity Card - Priority 5 */}
+                    {/* Follow-Up Activity Card - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="FollowUpActivityCard">
-                      <div className="mb-2 transition-opacity duration-300 opacity-80 hover:opacity-100">
+                      <div className={`mb-2 transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-30 hover:opacity-40' : 'opacity-80 hover:opacity-100'}`}>
                         <FollowUpActivityCard business={business} />
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Business Wins Card - Priority 6 */}
+                    {/* Business Wins Card - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="BusinessWinsCard">
-                      <div className="opacity-80 hover:opacity-100 transition-opacity duration-300">
+                      <div className={`${!business?.forwarding_verified ? 'opacity-30 hover:opacity-40' : 'opacity-80 hover:opacity-100'} transition-opacity duration-300`}>
                         <BusinessWinsCard business={business} />
                       </div>
                     </SectionErrorBoundary>
