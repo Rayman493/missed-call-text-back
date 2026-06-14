@@ -349,41 +349,75 @@ export default function BillingSuccessPage() {
     <PageBackground>
             <div className="flex items-center justify-center px-4 min-h-screen">
         <div className="max-w-md w-full mx-auto text-center">
-        {/* Logo */}
-        <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-8">
-          <span className="text-white font-bold text-2xl">RF</span>
+        {/* Logo - using actual ReplyFlow logo */}
+        <div className="mb-8">
+          <img
+            src="/replyflow-r-logo.png"
+            alt="ReplyFlow"
+            width={80}
+            height={80}
+            className="object-contain animate-pulse mx-auto"
+          />
         </div>
 
-        {/* Progress Steps */}
-        <div className="space-y-4 mb-8">
+        {/* Spinner */}
+        <div className="relative mb-8">
+          <div className="w-14 h-14 border-4 border-blue-600/30 border-t-blue-600 border-solid rounded-full animate-spin mx-auto"></div>
+        </div>
+
+        {/* Main loading text */}
+        <h1 className="text-foreground text-xl sm:text-2xl font-semibold mb-2 animate-pulse">
+          Setting up your account
+        </h1>
+
+        {/* Reassuring subtitle */}
+        <p className="text-muted-foreground text-sm sm:text-base mb-8">
+          This usually takes less than a minute.
+        </p>
+
+        {/* Step-based progress */}
+        <div className="max-w-md w-full space-y-3">
           {PROGRESS_STEPS.map((step, index) => (
             <div
               key={step.id}
-              className={`flex items-center space-x-3 transition-all duration-500 ${
-                index <= currentStep ? 'opacity-100' : 'opacity-40'
+              className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
+                index <= currentStep
+                  ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-500/50'
+                  : 'bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800'
               }`}
             >
-              <div className={`w-2 h-2 rounded-full transition-all duration-500 ${
-                index < currentStep 
-                  ? 'bg-green-600 scale-125' 
-                  : index === currentStep 
-                    ? 'bg-blue-600 scale-125 animate-pulse' 
-                    : 'bg-gray-300 dark:bg-gray-600'
-              }`} />
-              <span className={`text-sm transition-all duration-500 ${
-                index <= currentStep ? 'text-foreground' : 'text-muted-foreground'
-              }`}>
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  index < currentStep
+                    ? 'bg-green-500'
+                    : index === currentStep
+                      ? 'bg-blue-500'
+                      : 'bg-slate-300 dark:bg-slate-700'
+                }`}
+              >
+                {index < currentStep ? (
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : index === currentStep ? (
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                ) : null}
+              </div>
+              <p
+                className={`text-sm sm:text-base ${
+                  index <= currentStep
+                    ? 'text-foreground font-medium'
+                    : 'text-muted-foreground'
+                }`}
+              >
                 {step.label}
-              </span>
+              </p>
             </div>
           ))}
         </div>
 
-        {/* Loading Spinner */}
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-6"></div>
-
         {/* Status Message */}
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-sm mt-8">
           {status ? (
             <>
               {status.checkoutStatus === 'complete' ? (
