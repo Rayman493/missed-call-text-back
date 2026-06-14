@@ -167,12 +167,12 @@ export default function ConversationComposer({
           onDrop={handleDrop}
           className="relative"
         >
-          <div className="flex items-end gap-3 bg-card border border-border/80 rounded-2xl p-2 shadow-lg hover:shadow-xl transition-shadow duration-200">
+          <div className="flex items-center gap-3 bg-card border border-border/80 rounded-2xl p-3 shadow-lg hover:shadow-xl transition-shadow duration-200">
             {/* Image Upload Button */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-3 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 rounded-xl hover:bg-muted/50"
+              className="p-2.5 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 rounded-xl hover:bg-muted/50 h-11 flex items-center justify-center"
               disabled={sending}
             >
               <ImageIcon className="w-5 h-5" />
@@ -195,16 +195,16 @@ export default function ConversationComposer({
                 textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px'
               }}
               placeholder="Send a text message..."
-              className="flex-1 p-4 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed"
+              className="flex-1 p-3 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed h-11"
               rows={1}
-              style={{ minHeight: '56px', maxHeight: '150px' }}
+              style={{ minHeight: '44px', maxHeight: '150px' }}
               disabled={sending}
             />
             <button
               type="button"
               onClick={handleSend}
               disabled={sending || !hasContent}
-              className="px-5 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 flex-shrink-0"
+              className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 flex-shrink-0 h-11"
             >
             {sending ? (
               <>
@@ -225,13 +225,10 @@ export default function ConversationComposer({
             </button>
           </div>
         </div>
-        <div className="flex justify-between px-2">
-          <div className="text-xs text-muted-foreground">
-            {images.length > 0 && `${images.length} image${images.length > 1 ? 's' : ''} selected`}
-          </div>
+        <div className="flex justify-end px-1 pt-2">
           <div className="text-xs text-muted-foreground">
             <span className="hidden sm:inline">Enter → Send</span>
-            <span className="hidden sm:inline ml-2">Shift+Enter → New Line</span>
+            <span className="hidden sm:inline ml-3">Shift+Enter → New Line</span>
           </div>
         </div>
       </div>

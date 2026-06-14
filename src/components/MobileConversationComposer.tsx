@@ -50,7 +50,7 @@ export default function MobileConversationComposer({
         {/* Composer Container */}
         <div className="relative">
           {/* iPhone-style Composer Row */}
-          <div className="flex items-end gap-3 bg-background border border-border/80 rounded-2xl px-4 py-3.5 shadow-md hover:shadow-lg transition-all duration-200">
+          <div className="flex items-center gap-3 bg-background border border-border/80 rounded-2xl px-4 py-3 shadow-md hover:shadow-lg transition-all duration-200">
             {/* Message Input */}
             <div className="flex-1 relative">
               <textarea

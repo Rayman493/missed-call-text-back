@@ -37,7 +37,7 @@ export default function DesktopConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-8 pb-24" data-desktop-layout data-active-conversation-list>
+    <div className="space-y-10 pb-24" data-desktop-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle system events
         if (item.type === 'system_event') {
@@ -155,36 +155,36 @@ export default function DesktopConversationMessageList({
               </div>
               
               {/* Message Status/Timestamp - Beneath bubble, aligned with bubble */}
-              <div className={`mt-2 flex items-center gap-2 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+              <div className={`mt-1.5 flex items-center gap-2 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                 {isOutbound && (
                   <>
                     {msg.status === 'delivered' && (
                       <>
-                        <span className="text-[11px] text-muted-foreground/60">Delivered</span>
-                        <span className="text-[11px] text-muted-foreground/60">•</span>
+                        <span className="text-[10px] text-muted-foreground/50 font-medium">Delivered</span>
+                        <span className="text-[10px] text-muted-foreground/30">•</span>
                       </>
                     )}
                     {msg.status === 'sent' && (
                       <>
-                        <span className="text-[11px] text-muted-foreground/60">Sent</span>
-                        <span className="text-[11px] text-muted-foreground/60">•</span>
+                        <span className="text-[10px] text-muted-foreground/50 font-medium">Sent</span>
+                        <span className="text-[10px] text-muted-foreground/30">•</span>
                       </>
                     )}
                     {msg.status === 'failed' && (
                       <>
-                        <span className="text-[11px] text-red-500/70">Failed</span>
-                        <span className="text-[11px] text-muted-foreground/60">•</span>
+                        <span className="text-[10px] text-red-500/60 font-medium">Failed</span>
+                        <span className="text-[10px] text-muted-foreground/30">•</span>
                       </>
                     )}
                     {isOptimistic && (
                       <>
-                        <span className="text-[11px] text-blue-500/70">Sending</span>
-                        <span className="text-[11px] text-muted-foreground/60">•</span>
+                        <span className="text-[10px] text-blue-500/60 font-medium">Sending</span>
+                        <span className="text-[10px] text-muted-foreground/30">•</span>
                       </>
                     )}
                   </>
                 )}
-                <span className="text-[11px] text-muted-foreground/60" title={new Date(msg.created_at).toLocaleString()}>
+                <span className="text-[10px] text-muted-foreground/50 font-medium" title={new Date(msg.created_at).toLocaleString()}>
                   {formatRelativeTime(msg.created_at)}
                 </span>
               </div>

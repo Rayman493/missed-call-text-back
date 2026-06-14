@@ -46,6 +46,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const [loading, setLoading] = useState(true)
   const [transcriptExpanded, setTranscriptExpanded] = useState(false)
   const [summaryExpanded, setSummaryExpanded] = useState(!collapsible)
+  const [detailsExpanded, setDetailsExpanded] = useState(false)
   const supabase = createBrowserClient()
 
   useEffect(() => {
@@ -346,88 +347,106 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </div>
 
               {/* Structured Information */}
-              <div className="space-y-3">
-          {/* Customer Information */}
-          <div className="flex items-center justify-between py-2.5 border-b border-border/50">
-            <div className="flex items-center gap-2.5">
-              <User className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground font-medium">Name</span>
+              <div className="space-y-4">
+          {/* Customer Information - Prominent */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800">
+            <div className="flex items-center gap-2.5 mb-2">
+              <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Name</span>
             </div>
-            <span className="text-sm font-medium text-foreground">
+            <span className="text-lg font-bold text-foreground">
               {extractedInfo?.callerName || 'Not Provided'}
             </span>
           </div>
 
-          {/* Service Requested */}
-          <div className="py-2.5 border-b border-border/50">
-            <div className="flex items-center gap-2.5 mb-1.5">
-              <Briefcase className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground font-medium">Reason</span>
+          {/* Service Requested - Prominent */}
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 border border-purple-100 dark:border-purple-800">
+            <div className="flex items-center gap-2.5 mb-2">
+              <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider">Reason</span>
             </div>
-            <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
+            <p className="text-base font-semibold text-foreground leading-relaxed">
               {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
             </p>
           </div>
 
-          {/* Details */}
+          {/* Details - Truncated with expansion */}
           {(extractedInfo?.importantDetails || correctedFields?.details) && (
-            <div className="py-2.5 border-b border-border/50">
-              <div className="flex items-center gap-2.5 mb-1.5">
-                <FileText className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground font-medium">Details</span>
+            <div className="bg-card rounded-xl p-4 border border-border/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2.5">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Details</span>
+                </div>
+                {(correctedFields?.details?.length > 200 || (extractedInfo?.importantDetails?.length || 0) > 200) && (
+                  <button
+                    onClick={() => setDetailsExpanded(!detailsExpanded)}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                  >
+                    {detailsExpanded ? 'Show Less' : 'Show More'}
+                  </button>
+                )}
               </div>
-              <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
-                {correctedFields?.details ? sentenceCase(correctedFields.details) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : ''}
+              <p className="text-sm text-foreground leading-relaxed">
+                {detailsExpanded 
+                  ? (correctedFields?.details ? sentenceCase(correctedFields.details) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : '')
+                  : (correctedFields?.details ? sentenceCase(correctedFields.details.substring(0, 200) + (correctedFields.details.length > 200 ? '...' : '')) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails.substring(0, 200) + ((extractedInfo.importantDetails.length || 0) > 200 ? '...' : '')) : '')
+                }
               </p>
             </div>
           )}
 
-          {/* Location */}
-          {(extractedInfo?.addressOrLocation || correctedFields?.address) && (
-            <div className="py-2.5 border-b border-border/50">
-              <div className="flex items-center gap-2.5 mb-1.5">
-                <MapPin className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground font-medium">Location</span>
-              </div>
-              <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
-                {correctedFields?.address || extractedInfo?.addressOrLocation}
-              </p>
-            </div>
-          )}
+          {/* Compact Row: Location, Callback, Urgency */}
+          <div className="bg-card rounded-xl p-4 border border-border/50">
+            <div className="grid grid-cols-3 gap-3">
+              {/* Location */}
+              {(extractedInfo?.addressOrLocation || correctedFields?.address) && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Location</span>
+                  </div>
+                  <p className="text-xs text-foreground leading-snug line-clamp-2">
+                    {correctedFields?.address || extractedInfo?.addressOrLocation}
+                  </p>
+                </div>
+              )}
 
-          {/* Callback Time */}
-          {extractedInfo?.preferredCallbackTime && (
-            <div className="flex items-center justify-between py-2.5 border-b border-border/50">
-              <div className="flex items-center gap-2.5">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground font-medium">Callback Time</span>
-              </div>
-              <span className="text-sm text-foreground">
-                {sentenceCase(extractedInfo.preferredCallbackTime)}
-              </span>
-            </div>
-          )}
+              {/* Callback Time */}
+              {extractedInfo?.preferredCallbackTime && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Callback</span>
+                  </div>
+                  <p className="text-xs text-foreground leading-snug line-clamp-2">
+                    {sentenceCase(extractedInfo.preferredCallbackTime)}
+                  </p>
+                </div>
+              )}
 
-          {/* Urgency */}
-          <div className="flex items-center justify-between py-2.5">
-            <div className="flex items-center gap-2.5">
-              <TriangleAlert className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground font-medium">Urgency</span>
+              {/* Urgency - Visually distinct chip */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <TriangleAlert className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Urgency</span>
+                </div>
+                {extractedInfo?.urgencyLevel ? (
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
+                    {sentenceCase(extractedInfo.urgencyLevel)}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Unknown</span>
+                )}
+              </div>
             </div>
-            {extractedInfo?.urgencyLevel ? (
-              <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
-                {sentenceCase(extractedInfo.urgencyLevel)}
-              </span>
-            ) : (
-              <span className="text-sm text-muted-foreground">Unknown</span>
-            )}
           </div>
             </div>
           </div>
         )}
       </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {/* AI Status Badge */}
           <div className="flex items-center justify-between mb-4">
             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getOutcomeColor(aiCallRecord.outcome)}`}>
@@ -436,80 +455,98 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </div>
 
           {/* Structured Information */}
-          {/* Customer Information */}
-          <div className="flex items-center justify-between py-2.5 border-b border-border/50">
-            <div className="flex items-center gap-2.5">
-              <User className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground font-medium">Name</span>
+          {/* Customer Information - Prominent */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800">
+            <div className="flex items-center gap-2.5 mb-2">
+              <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Name</span>
             </div>
-            <span className="text-sm font-medium text-foreground">
+            <span className="text-lg font-bold text-foreground">
               {extractedInfo?.callerName || 'Not Provided'}
             </span>
           </div>
 
-          {/* Service Requested */}
-          <div className="py-2.5 border-b border-border/50">
-            <div className="flex items-center gap-2.5 mb-1.5">
-              <Briefcase className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground font-medium">Reason</span>
+          {/* Service Requested - Prominent */}
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 border border-purple-100 dark:border-purple-800">
+            <div className="flex items-center gap-2.5 mb-2">
+              <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider">Reason</span>
             </div>
-            <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
+            <p className="text-base font-semibold text-foreground leading-relaxed">
               {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
             </p>
           </div>
 
-          {/* Details */}
+          {/* Details - Truncated with expansion */}
           {(extractedInfo?.importantDetails || correctedFields?.details) && (
-            <div className="py-2.5 border-b border-border/50">
-              <div className="flex items-center gap-2.5 mb-1.5">
-                <FileText className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground font-medium">Details</span>
+            <div className="bg-card rounded-xl p-4 border border-border/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2.5">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Details</span>
+                </div>
+                {(correctedFields?.details?.length > 200 || (extractedInfo?.importantDetails?.length || 0) > 200) && (
+                  <button
+                    onClick={() => setDetailsExpanded(!detailsExpanded)}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                  >
+                    {detailsExpanded ? 'Show Less' : 'Show More'}
+                  </button>
+                )}
               </div>
-              <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
-                {correctedFields?.details ? sentenceCase(correctedFields.details) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : ''}
+              <p className="text-sm text-foreground leading-relaxed">
+                {detailsExpanded 
+                  ? (correctedFields?.details ? sentenceCase(correctedFields.details) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : '')
+                  : (correctedFields?.details ? sentenceCase(correctedFields.details.substring(0, 200) + (correctedFields.details.length > 200 ? '...' : '')) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails.substring(0, 200) + ((extractedInfo.importantDetails.length || 0) > 200 ? '...' : '')) : '')
+                }
               </p>
             </div>
           )}
 
-          {/* Location */}
-          {(extractedInfo?.addressOrLocation || correctedFields?.address) && (
-            <div className="py-2.5 border-b border-border/50">
-              <div className="flex items-center gap-2.5 mb-1.5">
-                <MapPin className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground font-medium">Location</span>
-              </div>
-              <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
-                {correctedFields?.address || extractedInfo?.addressOrLocation}
-              </p>
-            </div>
-          )}
+          {/* Compact Row: Location, Callback, Urgency */}
+          <div className="bg-card rounded-xl p-4 border border-border/50">
+            <div className="grid grid-cols-3 gap-3">
+              {/* Location */}
+              {(extractedInfo?.addressOrLocation || correctedFields?.address) && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Location</span>
+                  </div>
+                  <p className="text-xs text-foreground leading-snug line-clamp-2">
+                    {correctedFields?.address || extractedInfo?.addressOrLocation}
+                  </p>
+                </div>
+              )}
 
-          {/* Callback Time */}
-          {extractedInfo?.preferredCallbackTime && (
-            <div className="flex items-center justify-between py-2.5 border-b border-border/50">
-              <div className="flex items-center gap-2.5">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground font-medium">Callback Time</span>
-              </div>
-              <span className="text-sm text-foreground">
-                {sentenceCase(extractedInfo.preferredCallbackTime)}
-              </span>
-            </div>
-          )}
+              {/* Callback Time */}
+              {extractedInfo?.preferredCallbackTime && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Callback</span>
+                  </div>
+                  <p className="text-xs text-foreground leading-snug line-clamp-2">
+                    {sentenceCase(extractedInfo.preferredCallbackTime)}
+                  </p>
+                </div>
+              )}
 
-          {/* Urgency */}
-          <div className="flex items-center justify-between py-2.5">
-            <div className="flex items-center gap-2.5">
-              <TriangleAlert className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground font-medium">Urgency</span>
+              {/* Urgency - Visually distinct chip */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <TriangleAlert className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Urgency</span>
+                </div>
+                {extractedInfo?.urgencyLevel ? (
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
+                    {sentenceCase(extractedInfo.urgencyLevel)}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Unknown</span>
+                )}
+              </div>
             </div>
-            {extractedInfo?.urgencyLevel ? (
-              <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
-                {sentenceCase(extractedInfo.urgencyLevel)}
-              </span>
-            ) : (
-              <span className="text-sm text-muted-foreground">Unknown</span>
-            )}
           </div>
         </div>
       )}

@@ -1572,13 +1572,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="flex items-start gap-5 flex-1 min-w-0">
               {/* Lead Details */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-4 mb-3">
-                  {/* Name and Phone */}
+                <div className="flex items-center gap-4 mb-2">
+                  {/* Name - Emphasized */}
                   <div className="flex-1 min-w-0">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight truncate">
+                    <h1 className="text-3xl sm:text-4xl font-bold text-foreground leading-tight tracking-tight">
                       {getLeadDisplayName(leadData || lead)}
                     </h1>
-                    <p className="text-base text-muted-foreground mt-1">
+                    <p className="text-sm text-muted-foreground mt-1 font-medium">
                       {formatPhoneNumber(lead?.caller_phone || '')}
                     </p>
                   </div>
@@ -1824,7 +1824,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </section>
           
           {/* Desktop Sidebar */}
-          <aside className="overflow-y-auto max-h-[calc(100vh-230px)]" data-sidebar>
+          <aside className="sticky top-6 overflow-y-auto max-h-[calc(100vh-230px)]" data-sidebar>
             <div className="space-y-4">
               {/* AI Intake Summary Card - Sticky on Desktop */}
               {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
