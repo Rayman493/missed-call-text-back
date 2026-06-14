@@ -407,11 +407,147 @@ async function purchaseNumber(
   }
   
   try {
+    // First, check if this business has a reserved number they can reclaim
+    console.log('[PURCHASE NUMBER] Checking for reserved numbers for this business');
+    const { data: reservedNumber, error: reservedError } = await supabase
+      .from('twilio_numbers')
+      .select('*')
+      .eq('status', 'reserved')
+      .eq('reserved_for_business_id', businessId)
+      .gt('reserved_expires_at', new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
+
+    if (reservedNumber && !reservedError) {
+      console.log('[PURCHASE NUMBER] Found reserved number for this business:', reservedNumber.phone_number);
+      console.log('[PURCHASE NUMBER] Reclaiming reserved number for returning customer');
+
+      // Reclaim the reserved number for the business
+      const { error: reclaimError } = await supabase
+        .from('twilio_numbers')
+        .update({
+          business_id: businessId,
+          status: 'active',
+          assigned_at: new Date().toISOString(),
+          reserved_for_business_id: null,
+          reserved_at: null,
+          reserved_expires_at: null,
+          reservation_reason: null,
+          detached_at: null,
+          detached_reason: null,
+        })
+        .eq('id', reservedNumber.id);
+
+      if (reclaimError) {
+        console.error('[PURCHASE NUMBER] Failed to reclaim reserved number:', reclaimError);
+        return { success: false, error: 'Failed to reclaim reserved number' };
+      }
+
+      // Update businesses table
+      const { error: updateError } = await supabase
+        .from('businesses')
+        .update({
+          twilio_phone_number: reservedNumber.phone_number,
+          twilio_phone_number_sid: reservedNumber.twilio_sid,
+          assigned_twilio_number_id: reservedNumber.id,
+          twilio_messaging_service_sid: messagingServiceSid,
+          provisioning_status: 'ready',
+          provisioning_error: null,
+          last_provisioning_attempt_at: new Date().toISOString(),
+          provisioned_at: new Date().toISOString(),
+        })
+        .eq('id', businessId);
+
+      if (updateError) {
+        console.error('[PURCHASE NUMBER] Failed to update business:', updateError);
+        return { success: false, error: 'Failed to update business record' };
+      }
+
+      console.log('[PURCHASE NUMBER] Reclaimed reserved number successfully', {
+        phoneNumber: reservedNumber.phone_number,
+        phoneNumberSid: reservedNumber.twilio_sid,
+      });
+
+      return {
+        success: true,
+        phoneNumber: reservedNumber.phone_number,
+        phoneNumberSid: reservedNumber.twilio_sid,
+        status: 'ready'
+      };
+    }
+
+    // Next, check for available numbers in inventory (excluding reserved)
+    console.log('[PURCHASE NUMBER] Checking for available numbers in inventory');
+    const { data: availableNumber, error: availableError } = await supabase
+      .from('twilio_numbers')
+      .select('*')
+      .eq('status', 'available')
+      .is('business_id', null)
+      .limit(1)
+      .maybeSingle();
+
+    if (availableNumber && !availableError) {
+      console.log('[PURCHASE NUMBER] Found available number in inventory:', availableNumber.phone_number);
+      console.log('[PURCHASE NUMBER] Assigning existing number to business instead of purchasing new');
+
+      // Assign the available number to the business
+      const { error: assignError } = await supabase
+        .from('twilio_numbers')
+        .update({
+          business_id: businessId,
+          status: 'active',
+          assigned_at: new Date().toISOString(),
+          detached_at: null,
+          detached_reason: null,
+        })
+        .eq('id', availableNumber.id);
+
+      if (assignError) {
+        console.error('[PURCHASE NUMBER] Failed to assign available number:', assignError);
+        return { success: false, error: 'Failed to assign available number' };
+      }
+
+      // Update businesses table
+      const { error: updateError } = await supabase
+        .from('businesses')
+        .update({
+          twilio_phone_number: availableNumber.phone_number,
+          twilio_phone_number_sid: availableNumber.twilio_sid,
+          assigned_twilio_number_id: availableNumber.id,
+          twilio_messaging_service_sid: messagingServiceSid,
+          provisioning_status: 'ready',
+          provisioning_error: null,
+          last_provisioning_attempt_at: new Date().toISOString(),
+          provisioned_at: new Date().toISOString(),
+        })
+        .eq('id', businessId);
+
+      if (updateError) {
+        console.error('[PURCHASE NUMBER] Failed to update business:', updateError);
+        return { success: false, error: 'Failed to update business record' };
+      }
+
+      console.log('[PURCHASE NUMBER] Assigned available number successfully', {
+        phoneNumber: availableNumber.phone_number,
+        phoneNumberSid: availableNumber.twilio_sid,
+      });
+
+      return {
+        success: true,
+        phoneNumber: availableNumber.phone_number,
+        phoneNumberSid: availableNumber.twilio_sid,
+        status: 'ready'
+      };
+    }
+
+    // No available numbers in inventory, purchase new from Twilio
+    console.log('[PURCHASE NUMBER] No available numbers in inventory, purchasing new from Twilio');
+
     const client = Twilio(accountSid, authToken);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com';
-    
+
     console.log('[PURCHASE NUMBER] Using appUrl:', appUrl);
-    
+
     // Search for available US local numbers
     console.log('[PURCHASE NUMBER] Searching for available local numbers');
     const availableNumbers = await client.availablePhoneNumbers('US')
@@ -421,16 +557,16 @@ async function purchaseNumber(
         smsEnabled: true,
         limit: 1,
       });
-    
+
     if (!availableNumbers || availableNumbers.length === 0) {
       const error = 'No available local numbers found';
       console.error('[PURCHASE NUMBER] ERROR:', error);
       return { success: false, error };
     }
-    
+
     const numberToPurchase = availableNumbers[0];
     console.log('[PURCHASE NUMBER] Selected number:', numberToPurchase.phoneNumber);
-    
+
     // Purchase the number with webhook URLs
     console.log('[PURCHASE NUMBER] Purchasing number');
     const purchasedNumber = await client.incomingPhoneNumbers.create({
@@ -442,7 +578,7 @@ async function purchaseNumber(
       smsUrl: `${appUrl}/api/twilio/incoming-sms`,
       smsMethod: 'POST',
     });
-    
+
     console.log('[PURCHASE NUMBER] Purchased successfully');
     console.log('[PURCHASE NUMBER] Phone number:', purchasedNumber.phoneNumber);
     console.log('[PURCHASE NUMBER] SID:', purchasedNumber.sid);

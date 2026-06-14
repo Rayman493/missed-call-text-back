@@ -249,30 +249,50 @@ async function performReset(
       }
     }
 
-    // Detach Twilio numbers from businesses (do NOT release, just detach)
+    // Reserve Twilio numbers for 30-day grace period after business deletion
     if (affectedTwilioNumbers.length > 0) {
       try {
-        const { error: detachError } = await supabase
+        const thirtyDaysFromNow = new Date()
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
+
+        // Get current numbers for logging
+        const { data: currentNumbers } = await supabase
+          .from('twilio_numbers')
+          .select('phone_number, status, business_id')
+          .in('phone_number', affectedTwilioNumbers)
+
+        const { error: reserveError } = await supabase
           .from('twilio_numbers')
           .update({
-            business_id: null,
-            status: 'available',
-            assigned_at: null,
+            status: 'reserved',
+            reserved_for_business_id: null, // Test businesses don't need reclamation
+            reserved_at: new Date().toISOString(),
+            reserved_expires_at: thirtyDaysFromNow.toISOString(),
+            reservation_reason: 'test_business_data_reset',
             detached_at: new Date().toISOString(),
-            detached_reason: 'test_business_data_reset'
+            detached_reason: 'test_business_data_reset',
           })
           .in('phone_number', affectedTwilioNumbers)
 
-        if (detachError) {
-          console.error('[ADMIN RESET] Error detaching Twilio numbers:', detachError)
-          warnings.push(`Failed to detach Twilio numbers: ${detachError.message}`)
+        if (reserveError) {
+          console.error('[ADMIN RESET] Error reserving Twilio numbers:', reserveError)
+          warnings.push(`Failed to reserve Twilio numbers: ${reserveError.message}`)
         } else {
-          console.log(`[ADMIN RESET] Detached ${affectedTwilioNumbers.length} Twilio numbers from businesses`)
-          warnings.push(`Detached ${affectedTwilioNumbers.length} Twilio number(s) from businesses. Numbers are now available for reassignment.`)
+          console.log(`[ADMIN RESET] Reserved ${affectedTwilioNumbers.length} Twilio numbers for 30-day grace period`)
+          currentNumbers?.forEach((num: any) => {
+            console.log('[ADMIN RESET] Twilio number reserved', {
+              phone_number: num.phone_number,
+              old_status: num.status,
+              new_status: 'reserved',
+              reserved_expires_at: thirtyDaysFromNow.toISOString(),
+              reservation_reason: 'test_business_data_reset',
+            })
+          })
+          warnings.push(`Reserved ${affectedTwilioNumbers.length} Twilio number(s) for 30-day grace period. Numbers will become available after ${thirtyDaysFromNow.toISOString()}.`)
         }
       } catch (error: any) {
-        console.error('[ADMIN RESET] Exception detaching Twilio numbers:', error)
-        warnings.push(`Exception detaching Twilio numbers: ${error.message}`)
+        console.error('[ADMIN RESET] Exception reserving Twilio numbers:', error)
+        warnings.push(`Exception reserving Twilio numbers: ${error.message}`)
       }
     }
 

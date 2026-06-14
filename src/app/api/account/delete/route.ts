@@ -462,42 +462,68 @@ export async function POST(request: NextRequest) {
         console.log('[delete-account] Step 16 completed: deleted stripe_webhook_events:', stripeWebhookEventsCount)
       }
 
-      // Step 17: Release Twilio numbers (set business_id = NULL, status = 'available')
-      console.log('[delete-account] Step 17: release twilio_numbers in DB')
-      
+      // Step 17: Reserve Twilio numbers for 30-day grace period
+      console.log('[delete-account] Step 17: reserve twilio_numbers for 30-day grace period')
+
+      const thirtyDaysFromNow = new Date()
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
+
       for (const business of businesses as any[]) {
         if (business.twilio_phone_number_sid) {
-          console.log('[delete-account] Releasing Twilio number in DB', {
+          console.log('[delete-account] Reserving Twilio number for 30-day grace period', {
             businessId: business.id,
             phoneNumber: business.twilio_phone_number,
             sid: business.twilio_phone_number_sid,
           })
 
           if (!dryRun) {
-            const { error: twilioReleaseError } = await supabaseAdmin
+            // Get current status for logging
+            const { data: currentNumber } = await supabaseAdmin
+              .from('twilio_numbers')
+              .select('phone_number, status, business_id')
+              .eq('business_id', business.id)
+              .single()
+
+            const { error: twilioReserveError } = await supabaseAdmin
               .from('twilio_numbers')
               .update({
-                business_id: null,
-                status: 'available',
-                assigned_at: null,
+                status: 'reserved',
+                reserved_for_business_id: business.id,
+                reserved_at: new Date().toISOString(),
+                reserved_expires_at: thirtyDaysFromNow.toISOString(),
+                reservation_reason: 'account_deletion',
+                detached_at: new Date().toISOString(),
+                detached_reason: 'account_deletion',
               })
               .eq('business_id', business.id)
 
-            if (twilioReleaseError) {
-              console.error('[delete-account] Failed to release Twilio number in DB:', twilioReleaseError)
+            if (twilioReserveError) {
+              console.error('[delete-account] Failed to reserve Twilio number in DB:', twilioReserveError)
               return NextResponse.json(
-                { ok: false, step: 'release_twilio_number', error: 'Failed to release Twilio number. Please try again or contact support.', details: twilioReleaseError.message },
+                { ok: false, step: 'reserve_twilio_number', error: 'Failed to reserve Twilio number. Please try again or contact support.', details: twilioReserveError.message },
                 { status: 500 }
               )
             }
+
+            // Log the status change
+            console.log('[delete-account] Twilio number reserved for 30-day grace period', {
+              previous_business_id: business.id,
+              phone_number: business.twilio_phone_number,
+              old_status: currentNumber?.status || 'unknown',
+              new_status: 'reserved',
+              reserved_for_business_id: business.id,
+              reserved_at: new Date().toISOString(),
+              reserved_expires_at: thirtyDaysFromNow.toISOString(),
+              reservation_reason: 'account_deletion',
+            })
           }
-          
+
           summary.twilioNumberReleased = business.twilio_phone_number
-          console.log('[delete-account] Twilio number released in DB:', business.twilio_phone_number)
+          console.log('[delete-account] Twilio number reserved:', business.twilio_phone_number)
         }
       }
       summary.tablesDeleted.twilio_numbers_released = businesses.filter((b: any) => b.twilio_phone_number_sid).length
-      console.log('[delete-account] Step 17 completed: released twilio_numbers in DB')
+      console.log('[delete-account] Step 17 completed: reserved twilio_numbers for 30-day grace period')
 
       // Step 18: Delete leads linked to businesses
       console.log('[delete-account] Step 18: delete leads')
@@ -537,7 +563,7 @@ export async function POST(request: NextRequest) {
           for (const b of subsToCancel) {
             console.log('[delete-account] Cancelling Stripe subscription:', b.stripe_subscription_id)
             summary.stripeResult.cancellationAttempted = true
-            
+
             try {
               const cancelled = await stripe.subscriptions.cancel(b.stripe_subscription_id)
               console.log('[delete-account] Stripe cancellation result:', {
@@ -547,14 +573,14 @@ export async function POST(request: NextRequest) {
               if (cancelled.status !== 'canceled') {
                 throw new Error(`Stripe returned unexpected status: ${cancelled.status}`)
               }
-              
+
               // Successful cancellation
               summary.stripeResult.cancellationSucceeded = true
               console.log('[ACCOUNT DELETE] Stripe subscription cancelled successfully', {
                 customerId: b.stripe_customer_id,
                 subscriptionId: b.stripe_subscription_id,
               })
-              
+
               // Reflect cancellation in DB before continuing
               await supabaseAdmin
                 .from('businesses')
@@ -591,41 +617,8 @@ export async function POST(request: NextRequest) {
           console.log('[delete-account] No active Stripe subscriptions to cancel')
         }
 
-        // Step 20: Release Twilio numbers from Twilio API (after DB release succeeds)
-        for (const business of businesses as any[]) {
-          if (business.twilio_phone_number_sid) {
-            console.log('[delete-account] Releasing Twilio number from Twilio API', {
-              businessId: business.id,
-              phoneNumber: business.twilio_phone_number,
-              sid: business.twilio_phone_number_sid,
-            })
-
-            try {
-              if (twilioClient) {
-                await twilioClient.incomingPhoneNumbers(business.twilio_phone_number_sid).remove()
-                console.log('[delete-account] Twilio number released from API successfully', {
-                  businessId: business.id,
-                  phoneNumber: business.twilio_phone_number,
-                  sid: business.twilio_phone_number_sid,
-                })
-              } else {
-                console.error('[delete-account] Twilio client not available, cannot release number from API', {
-                  businessId: business.id,
-                  phoneNumber: business.twilio_phone_number,
-                  sid: business.twilio_phone_number_sid,
-                })
-              }
-            } catch (twilioError) {
-              console.error('[delete-account] Failed to release Twilio number from API (continuing deletion)', {
-                businessId: business.id,
-                phoneNumber: business.twilio_phone_number,
-                sid: business.twilio_phone_number_sid,
-                error: twilioError instanceof Error ? twilioError.message : String(twilioError),
-              })
-              // Continue deletion process even if Twilio API release fails
-            }
-          }
-        }
+        // Note: Twilio numbers are detached in Step 17 and NOT released from Twilio API
+        // They remain available for reassignment to new businesses
       } else if (dryRun && businesses && businesses.length > 0) {
         // Dry-run mode: just log that cancellation would be attempted
         const subsToCancel = (businesses as any[]).filter(

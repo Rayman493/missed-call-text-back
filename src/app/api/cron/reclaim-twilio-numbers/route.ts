@@ -175,16 +175,53 @@ export async function GET(request: NextRequest) {
 
       // Release the Twilio number
       try {
-        // TODO: Implement actual Twilio number release logic
-        // For now, just mark it as released in the database
-        // In production, this would:
-        // 1. Detach from Messaging Service if needed
-        // 2. Release number from Twilio or mark as available in warm inventory
-        
-        console.log('[TWILIO RECLAIM] Releasing number', {
+        console.log('[TWILIO RECLAIM] Reserving number for 30-day grace period', {
           businessId: business.id,
           phoneNumber: business.twilio_phone_number,
           phoneNumberSid: business.twilio_phone_number_sid
+        })
+
+        const thirtyDaysFromNow = new Date()
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
+
+        // Get current twilio_number record for logging
+        const { data: currentNumber } = await supabase
+          .from('twilio_numbers')
+          .select('phone_number, status, business_id')
+          .eq('business_id', business.id)
+          .single()
+
+        // Reserve the number for 30-day grace period
+        const { error: reserveError } = await supabase
+          .from('twilio_numbers')
+          .update({
+            status: 'reserved',
+            reserved_for_business_id: business.id,
+            reserved_at: new Date().toISOString(),
+            reserved_expires_at: thirtyDaysFromNow.toISOString(),
+            reservation_reason: 'churn_grace_period_expired',
+            detached_at: new Date().toISOString(),
+            detached_reason: 'churn_grace_period_expired',
+          })
+          .eq('business_id', business.id)
+
+        if (reserveError) {
+          console.error('[TWILIO RECLAIM] Failed to reserve Twilio number:', reserveError)
+          results.skipped++
+          results.skippedReasons.push(`Business ${business.id}: Reserve failed`)
+          continue
+        }
+
+        // Log the reservation
+        console.log('[TWILIO RECLAIM] Twilio number reserved for 30-day grace period', {
+          previous_business_id: business.id,
+          phone_number: business.twilio_phone_number,
+          old_status: currentNumber?.status || 'unknown',
+          new_status: 'reserved',
+          reserved_for_business_id: business.id,
+          reserved_at: new Date().toISOString(),
+          reserved_expires_at: thirtyDaysFromNow.toISOString(),
+          reservation_reason: 'churn_grace_period_expired',
         })
 
         // Update business record
@@ -214,9 +251,9 @@ export async function GET(request: NextRequest) {
         console.log('[TWILIO RECLAIM] Business updated successfully', { businessId: business.id })
         results.released++
       } catch (error) {
-        console.error('[TWILIO RECLAIM] Failed to release number:', error)
+        console.error('[TWILIO RECLAIM] Failed to reserve number:', error)
         results.skipped++
-        results.skippedReasons.push(`Business ${business.id}: Release failed`)
+        results.skippedReasons.push(`Business ${business.id}: Reserve failed`)
       }
     }
 
