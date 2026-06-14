@@ -239,7 +239,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 
       // Cancel pending follow-up jobs for opted-out contacts
       if (isOptOut) {
-        await db.cancelPendingFollowUpJobsForLead(lead.id)
+        await db.cancelPendingFollowUpJobsForLead(lead.id, 'opted_out')
         console.log('[OPT-OUT FOLLOW-UPS CANCELED]', { leadId: lead.id })
       }
 
