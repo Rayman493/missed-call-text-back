@@ -72,6 +72,13 @@ export default function AdminSupportPage() {
   const [protectReason, setProtectReason] = useState('')
   const [showProtectModal, setShowProtectModal] = useState(false)
 
+  // Delete test business data state
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteDryRunResult, setDeleteDryRunResult] = useState<any>(null)
+  const [deleteConfirmPhase, setDeleteConfirmPhase] = useState<'dry-run' | 'confirm'>('dry-run')
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
   useEffect(() => {
     const checkAdmin = async () => {
       if (!user?.id) return
@@ -256,10 +263,10 @@ export default function AdminSupportPage() {
 
   const handleProtect = async () => {
     if (!selectedBusiness) return
-    
+
     setActionLoading(true)
     setActionResult(null)
-    
+
     try {
       const response = await fetch('/api/admin/protect-business', {
         method: 'POST',
@@ -272,14 +279,14 @@ export default function AdminSupportPage() {
       })
 
       const data = await response.json()
-      
+
       if (data.success) {
         setActionResult({ success: true, message: data.message || `Business ${protectAction === 'protect' ? 'protected' : 'unprotected'} successfully` })
         setShowProtectModal(false)
         setProtectReason('')
         // Refresh business data
-        const updatedBusiness = { 
-          ...selectedBusiness, 
+        const updatedBusiness = {
+          ...selectedBusiness,
           is_protected_account: protectAction === 'protect',
           protected_reason: protectAction === 'protect' ? protectReason : undefined
         } as Business
@@ -294,6 +301,89 @@ export default function AdminSupportPage() {
     } finally {
       setActionLoading(false)
     }
+  }
+
+  const handleDeleteTestBusinessData = async () => {
+    if (!selectedBusiness) return
+
+    if (deleteConfirmPhase === 'dry-run') {
+      setDeleteLoading(true)
+      try {
+        const token = await user?.getIdToken()
+        const response = await fetch('/api/admin/reset-test-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            mode: 'dry-run',
+            filterType: 'businessId',
+            filterValue: selectedBusiness.id
+          })
+        })
+
+        const data = await response.json()
+        if (data.blocked) {
+          setActionResult({ success: false, message: data.blockReason || 'Operation blocked' })
+        } else {
+          setDeleteDryRunResult(data)
+          setDeleteConfirmPhase('confirm')
+        }
+      } catch (error) {
+        setActionResult({ success: false, message: 'Failed to get dry-run preview' })
+      } finally {
+        setDeleteLoading(false)
+      }
+    } else {
+      setDeleteLoading(true)
+      try {
+        const token = await user?.getIdToken()
+        const response = await fetch('/api/admin/reset-test-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            mode: 'execute',
+            filterType: 'businessId',
+            filterValue: selectedBusiness.id,
+            confirmationPhrase: deleteConfirmation
+          })
+        })
+
+        const data = await response.json()
+        if (data.success || !data.blocked) {
+          setActionResult({ success: true, message: `Successfully deleted ${data.totalRecords} records` })
+          setShowDeleteModal(false)
+          setDeleteConfirmPhase('dry-run')
+          setDeleteDryRunResult(null)
+          setDeleteConfirmation('')
+          // Refresh search results
+          if (searchQuery) {
+            await handleSearch()
+          }
+        } else {
+          setActionResult({ success: false, message: data.blockReason || data.error || 'Deletion failed' })
+        }
+      } catch (error) {
+        setActionResult({ success: false, message: 'Failed to delete test data' })
+      } finally {
+        setDeleteLoading(false)
+      }
+    }
+  }
+
+  const handleOpenDeleteModal = () => {
+    if (selectedBusiness?.is_protected_account) {
+      setActionResult({ success: false, message: 'Cannot delete protected business data' })
+      return
+    }
+    setShowDeleteModal(true)
+    setDeleteConfirmPhase('dry-run')
+    setDeleteDryRunResult(null)
+    setDeleteConfirmation('')
   }
 
   if (loading) {
@@ -623,6 +713,13 @@ export default function AdminSupportPage() {
                         Release Number Now
                       </button>
                     )}
+                    <button
+                      onClick={handleOpenDeleteModal}
+                      disabled={actionLoading || selectedBusiness.is_protected_account === true}
+                      className="px-4 py-2 bg-red-700 text-white text-sm font-medium rounded-lg hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Delete Test Business Data
+                    </button>
                   </div>
                 </div>
               </div>
@@ -795,6 +892,152 @@ export default function AdminSupportPage() {
                       {actionLoading ? 'Processing...' : (protectAction === 'protect' ? 'Protect Account' : 'Unprotect Account')}
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Delete Test Business Data Modal */}
+            {showDeleteModal && selectedBusiness && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-2xl w-full mx-4 shadow-xl max-h-[90vh] overflow-y-auto">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
+                    Delete Test Business Data
+                  </h3>
+
+                  {deleteConfirmPhase === 'dry-run' && (
+                    <div className="space-y-4">
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        This will show you what data would be deleted. You'll need to confirm before the actual deletion.
+                      </p>
+
+                      <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
+                        <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3">Business Details</h4>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-500">Business Name</p>
+                            <p className="text-slate-900 dark:text-foreground">{selectedBusiness.business_name}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-500">Business Phone</p>
+                            <p className="text-slate-900 dark:text-foreground">{selectedBusiness.business_phone}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-500">ReplyFlow Number</p>
+                            <p className="text-slate-900 dark:text-foreground">{selectedBusiness.twilio_phone_number || 'Not set'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-500">Twilio SID</p>
+                            <p className="text-slate-900 dark:text-foreground font-mono text-xs">{selectedBusiness.twilio_phone_number_sid || 'Not set'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-500">Stripe Customer ID</p>
+                            <p className="text-slate-900 dark:text-foreground font-mono text-xs">{selectedBusiness.stripe_customer_id || 'Not set'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-500">Stripe Subscription ID</p>
+                            <p className="text-slate-900 dark:text-foreground font-mono text-xs">{selectedBusiness.stripe_subscription_id || 'Not set'}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {deleteDryRunResult && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3">Records to be Deleted</h4>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                            Total: {deleteDryRunResult.totalRecords} records
+                          </p>
+                          <div className="space-y-2">
+                            {deleteDryRunResult.summary.map((item: any) => (
+                              <div key={item.table} className="flex justify-between text-sm">
+                                <span className="text-slate-700 dark:text-slate-300">{item.description}</span>
+                                <span className="font-medium text-slate-900 dark:text-foreground">{item.count}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {deleteDryRunResult.warnings && deleteDryRunResult.warnings.length > 0 && (
+                            <div className="mt-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded p-2">
+                              {deleteDryRunResult.warnings.map((warning: string, idx: number) => (
+                                <p key={idx} className="text-xs text-amber-800 dark:text-amber-300">{warning}</p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {selectedBusiness.call_forwarding_enabled && (
+                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                          <p className="text-sm text-amber-800 dark:text-amber-300">
+                            <strong>Warning:</strong> Call forwarding is enabled for this business. You should manually disable call forwarding on the business phone after deletion.
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-3">
+                        <button
+                          onClick={() => {
+                            setShowDeleteModal(false)
+                            setDeleteConfirmPhase('dry-run')
+                            setDeleteDryRunResult(null)
+                          }}
+                          disabled={deleteLoading}
+                          className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleDeleteTestBusinessData}
+                          disabled={deleteLoading}
+                          className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {deleteLoading ? 'Loading...' : 'Show Preview'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {deleteConfirmPhase === 'confirm' && deleteDryRunResult && (
+                    <div className="space-y-4">
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                        <h4 className="text-sm font-semibold text-red-900 dark:text-red-400 mb-2">Confirm Deletion</h4>
+                        <p className="text-sm text-red-800 dark:text-red-300">
+                          You are about to delete {deleteDryRunResult.totalRecords} records for this business. This action cannot be undone.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          Type to confirm: <code className="bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded">I confirm full deletion of this test business</code>
+                        </label>
+                        <input
+                          type="text"
+                          value={deleteConfirmation}
+                          onChange={(e) => setDeleteConfirmation(e.target.value)}
+                          placeholder="Type the confirmation phrase above"
+                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground"
+                        />
+                      </div>
+
+                      <div className="flex justify-end gap-3">
+                        <button
+                          onClick={() => {
+                            setDeleteConfirmPhase('dry-run')
+                            setDeleteConfirmation('')
+                          }}
+                          disabled={deleteLoading}
+                          className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Back
+                        </button>
+                        <button
+                          onClick={handleDeleteTestBusinessData}
+                          disabled={deleteLoading || deleteConfirmation !== 'I confirm full deletion of this test business'}
+                          className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {deleteLoading ? 'Deleting...' : 'Confirm Deletion'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
