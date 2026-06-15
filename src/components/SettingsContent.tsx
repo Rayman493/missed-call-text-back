@@ -132,10 +132,18 @@ export default function SettingsContent() {
 
       // Validate business_type_other if "Other" is selected
       if (businessData.business_type === 'Other') {
-        const validation = validateBusinessTypeOther(businessData.business_type_other)
+        const businessTypeOther = (automationSettings as any)?.business_type_other
+        const validation = validateBusinessTypeOther(businessTypeOther)
         if (!validation.valid) {
           throw new Error(validation.error || 'Invalid business type')
         }
+      }
+
+      // Store business_type_other in automation_settings when "Other" is selected
+      if (businessData.business_type === 'Other') {
+        (automationSettings as any).business_type_other = (businessData as any).business_type_other?.trim() || null
+      } else {
+        (automationSettings as any).business_type_other = null
       }
 
       // Only save real business columns that exist in the database schema
@@ -143,7 +151,6 @@ export default function SettingsContent() {
         name: businessData.name,
         business_phone_number: businessData.business_phone_number,
         business_type: businessData.business_type,
-        business_type_other: businessData.business_type === 'Other' ? businessData.business_type_other?.trim() : null,
         auto_reply_message: businessData.auto_reply_message,
         call_forwarding_enabled: businessData.call_forwarding_enabled,
         business_hours_enabled: businessData.business_hours_enabled,
@@ -1151,8 +1158,14 @@ export default function SettingsContent() {
                       </label>
                       <input
                         type="text"
-                        value={formBusiness.business_type_other || ''}
-                        onChange={(e) => updateBusiness({ business_type_other: e.target.value })}
+                        value={formBusiness.automation_settings?.business_type_other || ''}
+                        onChange={(e) => {
+                          const updatedSettings = {
+                            ...formBusiness.automation_settings,
+                            business_type_other: e.target.value
+                          }
+                          updateBusiness({ automation_settings: updatedSettings })
+                        }}
                         placeholder="e.g., Pool Service, Wedding Photographer, Piano Teacher"
                         className="w-full px-4 py-3 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                       />
