@@ -10,6 +10,7 @@
  * 
  * Version: ai-record-post-insert-hooks-v2
  * Updated: 2026-06-03
+ * Rollback state: c5acba53
  */
 
 import { createServer } from 'http';
