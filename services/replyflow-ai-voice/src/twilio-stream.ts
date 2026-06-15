@@ -156,11 +156,10 @@ export class TwilioStreamHandler {
               const greetingSent = (this as any).greetingSent || false;
               const callState = (this as any).callState || 'active';
               const assistantSpeaking = (this as any).assistantSpeaking || false;
-              const terminalClosingResponseStarted = (this as any).terminalClosingResponseStarted || false;
 
-              // Hard guard: Do not append caller audio during terminal closing or when assistant is speaking
-              if (terminalClosingResponseStarted || callState !== 'active') {
-                console.log('[INBOUND CALLER AUDIO BLOCKED - TERMINAL CLOSING]', { callState, terminalClosingResponseStarted });
+              // Hard guard: Do not append caller audio when call is not active or assistant is speaking
+              if (callState !== 'active') {
+                console.log('[INBOUND CALLER AUDIO BLOCKED - CALL STATE]', { callState });
                 return;
               }
 
@@ -170,7 +169,7 @@ export class TwilioStreamHandler {
               }
 
               if (openAiWs) {
-                console.log('[OPENAI INPUT AUDIO APPEND START]', { callState, assistantSpeaking, terminalClosingResponseStarted });
+                console.log('[OPENAI INPUT AUDIO APPEND START]', { callState, assistantSpeaking });
                 const audioMessage = {
                   type: 'input_audio_buffer.append',
                   audio: audioBuffer.toString('base64'),

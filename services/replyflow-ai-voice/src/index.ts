@@ -1720,7 +1720,6 @@ wss.on('connection', (ws, req) => {
     let hangupScheduled = false;
     let postCallSmsSent = false;
     let assistantSpeaking = false;
-    let terminalClosingResponseStarted = false;
 
     let intakeComplete = false;
     let fallbackHangupTimer: NodeJS.Timeout | null = null;
@@ -3455,11 +3454,6 @@ Do NOT:
                         console.log('[AI FINAL GOODBYE CREATE SENT] Final closing message sent to OpenAI');
                       }
 
-                      // Mark that final goodbye response has started - wait for response.audio.done before hanging up
-                      terminalClosingResponseStarted = true;
-                      console.log('[FINAL GOODBYE START] Final goodbye response started, waiting for response.audio.done');
-                      (twilioHandler as any).terminalClosingResponseStarted = terminalClosingResponseStarted;
-
                       // DO NOT schedule hangup timer here - wait for response.audio.done instead
                       // This ensures audio has finished generating before we start the hangup buffer
 
@@ -3553,7 +3547,8 @@ Do NOT:
                 console.log('[FINAL GOODBYE AUDIO DONE] Audio generation complete for final goodbye');
                 
                 // Terminal closing detection - end call after final audio is done
-                if (terminalClosingResponseStarted && !hangupScheduled) {
+                // Only hangup if this is after final closing has started
+                if (finalClosingStarted && !hangupScheduled) {
                   console.log('[FINAL GOODBYE BUFFER WAITING 10S] Starting 10 second buffer after audio.done');
                   console.log('[FINAL GOODBYE BUFFER WAITING 10S] Timestamp:', new Date().toISOString());
                   
@@ -5529,7 +5524,7 @@ async function sendAIConfirmationSMS(
 
 // Start server
 server.listen(PORT, () => {
-  console.log('[AI VOICE SERVICE VERSION] commit=88972d5c hangup-router-v4=single-path audio-done-only');
+  console.log('[AI VOICE SERVICE VERSION] commit=3f990c99 hangup-router-v5=audio-done-only terminalClosingRemoved');
   console.log('[SCHEMA COMPATIBILITY CHECK] conversations table columns: lead_id, business_id, status, created_at, updated_at (NO call_sid)');
   console.log('[SCHEMA COMPATIBILITY CHECK] leads table columns: id, business_id, phone, name, email, status, raw_metadata, created_at, updated_at (NO source)');
   console.log('[SCHEMA COMPATIBILITY CHECK] ai_call_records table columns: id, business_id, lead_id, conversation_id, caller_phone, call_sid, ai_session_id, transcript, outcome, extracted_info, summary, extraction_failed, created_at, updated_at');
