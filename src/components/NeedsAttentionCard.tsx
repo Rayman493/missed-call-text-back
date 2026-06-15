@@ -203,8 +203,12 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
 
         // Recommended Items
 
-        // Forwarding not verified
-        if (!business.forwarding_verified) {
+        // Forwarding not verified - only show if business is actively using the system (has leads)
+        // This avoids showing onboarding-style warnings to businesses still in setup
+        const hasLeads = leads && leads.length > 0
+        const isActivelyUsing = hasLeads || business?.forwarding_verified_at
+
+        if (!business.forwarding_verified && isActivelyUsing) {
           attentionItems.push({
             id: 'forwarding-verify',
             label: 'Forwarding not verified',
