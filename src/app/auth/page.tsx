@@ -501,9 +501,9 @@ function AuthContent() {
               {/* Password Requirements - Only show for signup */}
               {!isSignIn && (
                 <div className="mt-3 space-y-2">
-                  <p className="text-xs text-slate-400 dark:text-slate-400 font-medium">Password must contain:</p>
+                  <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-400 font-medium">Password must contain:</p>
                   <div className="grid grid-cols-2 gap-2">
-                    <div className={`flex items-center gap-2 text-xs ${passwordRequirements.minLength ? 'text-green-400' : 'text-slate-500'}`}>
+                    <div className={`flex items-center gap-2 text-xs sm:text-sm ${passwordRequirements.minLength ? 'text-green-400' : 'text-slate-500'}`}>
                       {passwordRequirements.minLength ? (
                         <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -513,7 +513,7 @@ function AuthContent() {
                       )}
                       <span>At least 8 characters</span>
                     </div>
-                    <div className={`flex items-center gap-2 text-xs ${passwordRequirements.hasUppercase ? 'text-green-400' : 'text-slate-500'}`}>
+                    <div className={`flex items-center gap-2 text-xs sm:text-sm ${passwordRequirements.hasUppercase ? 'text-green-400' : 'text-slate-500'}`}>
                       {passwordRequirements.hasUppercase ? (
                         <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -523,7 +523,7 @@ function AuthContent() {
                       )}
                       <span>1 uppercase letter</span>
                     </div>
-                    <div className={`flex items-center gap-2 text-xs ${passwordRequirements.hasLowercase ? 'text-green-400' : 'text-slate-500'}`}>
+                    <div className={`flex items-center gap-2 text-xs sm:text-sm ${passwordRequirements.hasLowercase ? 'text-green-400' : 'text-slate-500'}`}>
                       {passwordRequirements.hasLowercase ? (
                         <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -533,7 +533,7 @@ function AuthContent() {
                       )}
                       <span>1 lowercase letter</span>
                     </div>
-                    <div className={`flex items-center gap-2 text-xs ${passwordRequirements.hasNumber ? 'text-green-400' : 'text-slate-500'}`}>
+                    <div className={`flex items-center gap-2 text-xs sm:text-sm ${passwordRequirements.hasNumber ? 'text-green-400' : 'text-slate-500'}`}>
                       {passwordRequirements.hasNumber ? (
                         <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />

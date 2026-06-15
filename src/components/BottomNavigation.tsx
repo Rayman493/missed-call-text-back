@@ -44,10 +44,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   }
 
   const handleLogout = async () => {
-    console.log('[MOBILE LOGOUT CLICKED] User tapped Logout button')
     try {
       await signOut({ manual: true })
-      console.log('[MOBILE LOGOUT SUCCESS] User signed out successfully')
       router.push('/')
     } catch (error) {
       console.error('[MOBILE LOGOUT ERROR] Sign out error:', error)
@@ -133,20 +131,6 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   <div className="flex-1">
                     <div className="font-medium text-slate-900 dark:text-foreground">Settings</div>
                     <div className="text-sm text-slate-500 dark:text-slate-400">Configure your account</div>
-                  </div>
-                </Link>
-                
-                <Link
-                  href="/dashboard/settings"
-                  onClick={() => setIsMoreMenuOpen(false)}
-                  className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"
-                >
-                  <div className="w-11 h-11 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <User className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-900 dark:text-foreground">Account</div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">Billing and profile</div>
                   </div>
                 </Link>
                 
