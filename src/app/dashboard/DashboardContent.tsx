@@ -930,15 +930,6 @@ export default function DashboardContent() {
                   <SectionErrorBoundary sectionName="OnboardingHero">
                     <div className="bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-700 dark:to-indigo-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-blue-500/30">
                       <div className="flex flex-col gap-6">
-                        {/* Progress Indicator */}
-                        <div className="flex items-center gap-3">
-                          <div className="px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
-                            <span className="text-white text-sm font-semibold">
-                              Step 3 of 3
-                            </span>
-                          </div>
-                        </div>
-
                         {/* Title and Subtitle - Different for needs_final_test */}
                         {setupState === 'needs_final_test' ? (
                           <>
