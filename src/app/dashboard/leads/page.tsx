@@ -649,8 +649,8 @@ export default function LeadsPage() {
             {/* Real Leads content - only show for active users */}
             {hasActiveAccess(business) && (
               <>
-            {/* Lifecycle Summary Cards - improved spacing hierarchy */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
+            {/* Lifecycle Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-4 sm:mb-6">
               <StatCard
                 value={leads.filter(l => getLeadLifecycleStatus(l) === 'new').length}
                 label="New Leads"
@@ -701,10 +701,10 @@ export default function LeadsPage() {
               />
             </div>
 
-            {/* Leads Header - match Dashboard spacing hierarchy */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-4 mb-4 sm:mb-6">
+            {/* Leads Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-4 sm:mb-5">
               <div>
-                <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-foreground">
+                <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
                   Customer Leads
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
@@ -980,7 +980,7 @@ export default function LeadsPage() {
 
                   return (
                     <div className="flex flex-col items-center">
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">1 active lead</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-3.5">1 active lead</p>
                       <Link
                         key={lead.id}
                         href={`/dashboard/leads/${lead.id}`}
@@ -996,42 +996,42 @@ export default function LeadsPage() {
                           'bg-slate-400'
                         }`}></div>
 
-                        <div className="p-3.5 sm:p-4 md:p-5">
+                        <div className="p-4 sm:p-5">
                           {/* Header: Name, Phone, Status */}
-                          <div className="flex items-start justify-between mb-2.5 sm:mb-3 md:mb-4">
+                          <div className="flex items-start justify-between mb-3 sm:mb-4">
                             <div className="flex-1 min-w-0">
-                              <h3 className={`text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-0.5 sm:mb-1 truncate ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                              <h3 className={`text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-1 truncate tracking-tight ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
                                 {getLeadDisplayName(lead)}
                               </h3>
-                              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
                                 {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                               </p>
                             </div>
-                            <span className={`px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs sm:text-sm font-semibold flex-shrink-0 ml-2 sm:ml-3 ${statusClasses}`}>
+                            <span className={`px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold flex-shrink-0 ml-3 ${statusClasses}`}>
                               {statusBadge}
                             </span>
                           </div>
 
                           {/* Compact Preview */}
-                          <div className="mb-2.5 sm:mb-3 md:mb-4 space-y-1.5 sm:space-y-2">
+                          <div className="mb-3 sm:mb-4 space-y-1.5 sm:space-y-2">
                             {aiData.reason && (
-                              <div className="flex items-center gap-1.5 sm:gap-2">
+                              <div className="flex items-center gap-2">
                                 <span className="text-xs sm:text-sm">📋</span>
-                                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-normal">
                                   {sentenceCase(aiData.reason)}
                                 </p>
                               </div>
                             )}
                             {aiData.details && (
-                              <div className="flex items-center gap-1.5 sm:gap-2">
+                              <div className="flex items-center gap-2">
                                 <span className="text-xs sm:text-sm">📝</span>
-                                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-normal">
                                   {sentenceCase(aiData.details)}
                                 </p>
                               </div>
                             )}
                             {aiData.urgency && (
-                              <div className="flex items-center gap-1.5 sm:gap-2">
+                              <div className="flex items-center gap-2">
                                 <span className="text-xs sm:text-sm">🔥</span>
                                 <span className={`text-xs sm:text-sm font-medium ${
                                   aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
@@ -1043,15 +1043,15 @@ export default function LeadsPage() {
                               </div>
                             )}
                             {!aiData.reason && !aiData.details && !aiData.urgency && (
-                              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-normal">
                                 {getCompactSummary(lead)}
                               </p>
                             )}
                           </div>
 
                           {/* Metadata */}
-                          <div className="flex items-center justify-between mb-2.5 sm:mb-3 md:mb-4">
-                            <div className="flex items-center gap-1.5 sm:gap-2">
+                          <div className="flex items-center justify-between mb-3 sm:mb-4">
+                            <div className="flex items-center gap-2">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
@@ -1069,12 +1069,12 @@ export default function LeadsPage() {
                               >
                                 {isNewLead ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
                               </button>
-                              <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                              <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
                                 {formatRelativeTime(lead.created_at)}
                               </span>
                             </div>
                             {isNewLead && (
-                              <span className="px-2 sm:px-3 py-0.5 sm:py-1 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] sm:text-xs font-semibold rounded-full">
+                              <span className="px-2.5 sm:px-3 py-1 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[10px] sm:text-xs font-semibold rounded-full">
                                 New
                               </span>
                             )}
@@ -1109,7 +1109,7 @@ export default function LeadsPage() {
                 } else {
                   // Multiple leads: grid layout
                   return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                       {activeLeads.map((lead, index) => {
                         const latestMessage = lead.messages && lead.messages.length > 0
                           ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]     
@@ -1148,28 +1148,28 @@ export default function LeadsPage() {
                               'bg-slate-400'
                             }`}></div>
 
-                            <div className="p-3 sm:p-3.5 md:p-4">
+                            <div className="p-3.5 sm:p-4">
                               {/* Header: Name, Phone, Status */}
-                              <div className="flex items-start justify-between mb-2 sm:mb-2.5 md:mb-3">
+                              <div className="flex items-start justify-between mb-2.5 sm:mb-3">
                                 <div className="flex-1 min-w-0">
-                                  <h3 className={`text-sm sm:text-base font-semibold text-slate-900 dark:text-white mb-0.5 sm:mb-1 truncate ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                                  <h3 className={`text-sm sm:text-base font-semibold text-slate-900 dark:text-white mb-1 truncate tracking-tight ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
                                     {getLeadDisplayName(lead)}
                                   </h3>
-                                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
+                                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
                                     {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                                   </p>
                                 </div>
-                                <span className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold flex-shrink-0 ml-1.5 sm:ml-2 ${statusClasses}`}>
+                                <span className={`px-2 sm:px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold flex-shrink-0 ml-2 ${statusClasses}`}>
                                   {statusBadge}
                                 </span>
                               </div>
 
                               {/* Compact Preview */}
-                              <div className="mb-2 sm:mb-2.5 md:mb-3 space-y-1 sm:space-y-1.5">
+                              <div className="mb-2.5 sm:mb-3 space-y-1 sm:space-y-1.5">
                                 {aiData.reason && (
                                   <div className="flex items-center gap-1.5 sm:gap-2">
                                     <span className="text-[10px] sm:text-xs">📋</span>
-                                    <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
+                                    <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300 font-normal">
                                       {aiData.reason}
                                     </p>
                                   </div>
@@ -1177,7 +1177,7 @@ export default function LeadsPage() {
                                 {aiData.details && (
                                   <div className="flex items-center gap-1.5 sm:gap-2">
                                     <span className="text-[10px] sm:text-xs">📝</span>
-                                    <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
+                                    <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300 font-normal">
                                       {aiData.details}
                                     </p>
                                   </div>
@@ -1195,14 +1195,14 @@ export default function LeadsPage() {
                                   </div>
                                 )}
                                 {!aiData.reason && !aiData.details && !aiData.urgency && (
-                                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
+                                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300 font-normal">
                                     {getCompactSummary(lead)}
                                   </p>
                                 )}
                               </div>
 
                               {/* Metadata */}
-                              <div className="flex items-center justify-between mb-2.5 sm:mb-3 md:mb-4">
+                              <div className="flex items-center justify-between mb-2.5 sm:mb-3">
                                 <div className="flex items-center gap-1.5 sm:gap-2">
                                   <button
                                     onClick={(e) => {
@@ -1221,12 +1221,12 @@ export default function LeadsPage() {
                                   >
                                     {isNewLead ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
                                   </button>
-                                  <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
+                                  <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
                                     {formatRelativeTime(lead.created_at)}
                                   </span>
                                 </div>
                                 {isNewLead && (
-                                  <span className="px-1.5 sm:px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[9px] sm:text-[10px] font-semibold rounded-full">
+                                  <span className="px-2 sm:px-2.5 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300 text-[9px] sm:text-[10px] font-semibold rounded-full">
                                     New
                                   </span>
                                 )}
