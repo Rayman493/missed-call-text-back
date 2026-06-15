@@ -13,7 +13,7 @@ interface AttentionItem {
   actionLabel: string
   count: number
   priority: 'high' | 'medium' | 'low'
-  group: 'High Priority' | 'Recommended' | 'Account'
+  group: 'High Priority' | 'Recommended'
   icon: React.ElementType
   color: string
   bgColor: string
@@ -201,58 +201,9 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           })
         })
 
-        // 4. New leads awaiting review (created in last 24 hours)
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-        const recentLeads = leads?.filter((lead: any) => lead.created_at >= twentyFourHoursAgo) || []
-        
-        if (recentLeads.length > 0) {
-          recentLeads.slice(0, 3).forEach((lead: any) => {
-            attentionItems.push({
-              id: `new-${lead.id}`,
-              label: 'New lead awaiting review',
-              subtitle: getLeadDisplayName(lead),
-              actionLabel: 'Review',
-              count: 1,
-              priority: 'high',
-              group: 'High Priority',
-              icon: User,
-              color: 'text-red-600 dark:text-red-400',
-              bgColor: 'bg-red-100 dark:bg-red-900/20',
-              actionUrl: `/dashboard/leads/${lead.id}`
-            })
-          })
-        }
-
         // Recommended Items
 
-        // 5. Google Calendar not connected - use API endpoint instead of calendar_settings table
-        let calendarConnected = false
-        try {
-          const response = await fetch('/api/google/calendar/status?provider=google')
-          if (response.ok) {
-            const data = await response.json()
-            calendarConnected = data.connected || false
-          }
-        } catch {
-          // API call failed; treat as not connected
-        }
-
-        if (!calendarConnected) {
-          attentionItems.push({
-            id: 'calendar-config',
-            label: 'Google Calendar not connected',
-            actionLabel: 'Connect',
-            count: 1,
-            priority: 'medium',
-            group: 'Recommended',
-            icon: Calendar,
-            color: 'text-amber-600 dark:text-amber-400',
-            bgColor: 'bg-amber-100 dark:bg-amber-900/20',
-            actionUrl: '/dashboard/calendar'
-          })
-        }
-
-        // 7. Forwarding not verified
+        // Forwarding not verified
         if (!business.forwarding_verified) {
           attentionItems.push({
             id: 'forwarding-verify',
@@ -268,29 +219,8 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           })
         }
 
-        // Account Items
-        
-        // 8. Trial ending soon (if on trial)
-        if (business.trial_ends_at) {
-          const daysLeft = Math.ceil((new Date(business.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-          if (daysLeft <= 7) {
-            attentionItems.push({
-              id: 'trial-ending',
-              label: `Trial ending in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`,
-              actionLabel: 'Upgrade',
-              count: 1,
-              priority: 'low',
-              group: 'Account',
-              icon: Clock,
-              color: 'text-blue-600 dark:text-blue-400',
-              bgColor: 'bg-blue-100 dark:bg-blue-900/20',
-              actionUrl: '/pricing'
-            })
-          }
-        }
-
-        // Sort by group (High Priority > Recommended > Account) then by priority
-        const groupOrder = { 'High Priority': 0, 'Recommended': 1, 'Account': 2 }
+        // Sort by group (High Priority > Recommended) then by priority
+        const groupOrder = { 'High Priority': 0, 'Recommended': 1 }
         const priorityOrder = { high: 0, medium: 1, low: 2 }
         attentionItems.sort((a, b) => {
           if (groupOrder[a.group] !== groupOrder[b.group]) {
