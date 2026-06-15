@@ -1882,6 +1882,7 @@ wss.on('connection', (ws, req) => {
 
     let intakeComplete = false;
     let confirmationAccepted = false;
+    let pendingConfirmationAccepted = false;
 
     let callerPhone: string = '';
     let sessionId: string = '';
@@ -3616,19 +3617,20 @@ Do NOT:
 
                     if (isConfirmationAccepted(userTranscript)) {
                       const timestamp = new Date().toISOString();
-                      console.log('[RACE CONDITION DEBUG] User confirmation detected at:', timestamp);
-                      console.log('[RACE CONDITION DEBUG] User transcript:', userTranscript);
-                      console.log('[RACE CONDITION DEBUG] Current callState:', callState);
-                      console.log('[RACE CONDITION DEBUG] Current confirmationState:', confirmationState);
-                      console.log('[RACE CONDITION DEBUG] confirmationResponseId:', (ws as any).confirmationResponseId || 'unknown');
+                      console.log('[EARLY CONFIRMATION RECEIVED] User confirmed before audio completed at:', timestamp);
+                      console.log('[EARLY CONFIRMATION RECEIVED] User transcript:', userTranscript);
+                      console.log('[EARLY CONFIRMATION RECEIVED] Current callState:', callState);
+                      console.log('[EARLY CONFIRMATION RECEIVED] Current confirmationState:', confirmationState);
+                      console.log('[EARLY CONFIRMATION RECEIVED] confirmationResponseId:', (ws as any).confirmationResponseId || 'unknown');
+                      
+                      // Store pending confirmation instead of immediately closing
+                      pendingConfirmationAccepted = true;
+                      console.log('[STORED PENDING CONFIRMATION] User confirmation stored, waiting for audio completion');
                       console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
                       console.log('[CONFIRMATION ACCEPTED] confirmationState: accepted');
                       confirmationState = 'confirmed';
                       console.log('[CALL STATE CHANGE] confirmationState: awaiting_confirmation -> confirmed');
-                      console.log('[EXIT AWAITING_CONFIRMATION] Caller confirmed, proceeding to final goodbye');
-
-                      // Immediately close the call after confirmation (deterministic)
-                      closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                      console.log('[EXIT AWAITING_CONFIRMATION] Caller confirmed, waiting for audio completion before closing');
                       return; // Skip all other processing
 
                       // Check if all required fields are collected
@@ -3884,6 +3886,7 @@ Do NOT:
 
                 // Log confirmation response start
                 if (confirmationState === 'confirmation_pending' || confirmationState === 'awaiting_confirmation') {
+                  console.log('[CONFIRMATION AUDIO START] Confirmation response created at:', new Date().toISOString());
                   console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE CREATED with response_id:', responseId);
                   console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE CREATED at:', new Date().toISOString());
                   console.log('[CONFIRMATION AUDIO START] Confirmation response created');
@@ -4117,6 +4120,8 @@ Do NOT:
                   console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE DONE at:', new Date().toISOString());
                   console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE DONE response_id:', responseId);
                   console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE DONE callState:', callState);
+                  console.log('[CONFIRMATION AUDIO COMPLETE] Confirmation audio playback complete at:', new Date().toISOString());
+                  console.log('[CONFIRMATION AUDIO COMPLETE] confirmationResponseId:', responseId);
                   console.log('[CONFIRMATION SUMMARY DONE MATCHED]', message.response_id || 'unknown');
                   console.log('[CONFIRMATION SUMMARY DONE] Confirmation summary response completed');
                   console.log('[CONFIRMATION SUMMARY DONE] confirmationSummarySpoken = true');
@@ -4124,7 +4129,14 @@ Do NOT:
                   confirmationState = 'awaiting_confirmation';
                   console.log('[CALL STATE CHANGE] confirmationState: confirmation_pending -> awaiting_confirmation');
                   console.log('[ENTER AWAITING_CONFIRMATION] Waiting for caller response');
-                  console.log('[CONFIRMATION AUDIO COMPLETE] Confirmation audio playback complete');
+                  
+                  // Check if user confirmed early while audio was playing
+                  if (pendingConfirmationAccepted) {
+                    console.log('[PROCESSING PENDING CONFIRMATION] User confirmed early, processing now that audio is complete');
+                    console.log('[PROCESSING PENDING CONFIRMATION] Proceeding to final goodbye');
+                    // Now trigger the final goodbye since audio is complete
+                    closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+                  }
                 }
                 
                 // Finalize any remaining active assistant transcripts
