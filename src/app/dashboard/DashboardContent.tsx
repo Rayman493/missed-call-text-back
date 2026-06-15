@@ -50,6 +50,7 @@ import BottomNavigation from '@/components/BottomNavigation'
 import SetupProgress from '@/components/setup/SetupProgress'
 import OffboardingBanner from '@/components/OffboardingBanner'
 import ProvisioningSuccessBanner from '@/components/ProvisioningSuccessBanner'
+import DashboardHero from '@/components/DashboardHero'
 import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
@@ -925,339 +926,22 @@ export default function DashboardContent() {
             <div className="flex-1 pt-2 sm:pt-3 lg:pt-4 px-3 sm:px-4 lg:px-6 pb-8 relative z-10">
               <div className="max-w-[1400px] mx-auto space-y-1.5 sm:space-y-2 lg:space-y-3">
 
-                {/* Dominant Hero Onboarding Card - Show when forwarding is not verified */}
-                {hasActiveSubscription(business) && !business?.forwarding_verified && (
-                  <SectionErrorBoundary sectionName="OnboardingHero">
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-700 dark:to-indigo-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-blue-500/30">
-                      <div className="flex flex-col gap-6">
-                        {/* Title and Subtitle - Different for needs_final_test */}
-                        {setupState === 'needs_final_test' ? (
-                          <>
-                            <div>
-                              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Verify Your Setup</h1>
-                              <p className="text-blue-100 text-base sm:text-lg">Complete your setup by testing call forwarding.</p>
-                            </div>
+                {/* Single Adaptive Hero - Consolidates all onboarding/health/status banners */}
+                <SectionErrorBoundary sectionName="DashboardHero">
+                  <DashboardHero 
+                    business={business} 
+                    setupHealth={setupHealth}
+                    missedCallCount={missedCallCount}
+                  />
+                </SectionErrorBoundary>
 
-                            {/* Completed Steps Summary */}
-                            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                              <div className="space-y-3">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                  </div>
-                                  <span className="text-white text-sm">ReplyFlow number activated</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                  </div>
-                                  <span className="text-white text-sm">Call forwarding connected</span>
-                                </div>
-                              </div>
-                            </div>
+                {/* Old banners removed - now handled by DashboardHero */}
 
-                            {/* Test Instructions */}
-                            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                              <h3 className="text-white font-semibold mb-3">How to test:</h3>
-                              <div className="space-y-3">
-                                <div className="flex items-start gap-3">
-                                  <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <span className="text-white text-sm font-semibold">1</span>
-                                  </div>
-                                  <p className="text-white text-sm pt-0.5">Call your business phone number from another phone.</p>
-                                </div>
-                                <div className="flex items-start gap-3">
-                                  <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <span className="text-white text-sm font-semibold">2</span>
-                                  </div>
-                                  <p className="text-white text-sm pt-0.5">Let the call ring until it forwards to ReplyFlow.</p>
-                                </div>
-                                <div className="flex items-start gap-3">
-                                  <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <span className="text-white text-sm font-semibold">3</span>
-                                  </div>
-                                  <p className="text-white text-sm pt-0.5">Listen for the AI greeting and complete a short conversation.</p>
-                                </div>
-                                <div className="flex items-start gap-3">
-                                  <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <span className="text-white text-sm font-semibold">4</span>
-                                  </div>
-                                  <p className="text-white text-sm pt-0.5">Confirm that a new lead appears in your dashboard.</p>
-                                </div>
-                              </div>
-                            </div>
+                {/* Payment issue now handled by DashboardHero */}
 
-                            {/* Secondary Link - Review forwarding instructions */}
-                            <div className="text-center sm:text-left">
-                              <Link
-                                href="/setup/phone-forwarding?mode=review"
-                                className="text-blue-200 text-sm hover:text-white underline underline-offset-2 transition-colors"
-                              >
-                                Review forwarding instructions
-                              </Link>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div>
-                              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Complete your setup</h1>
-                              <p className="text-blue-100 text-base sm:text-lg">One final step before ReplyFlow can start capturing missed calls.</p>
-                            </div>
+                {/* Subscription/Trial status now handled by DashboardHero */}
 
-                            {/* Friendly Explanation */}
-                            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                              <p className="text-white text-sm leading-relaxed">
-                                Your business phone number stays the same. You'll simply forward missed calls to your ReplyFlow number so we can automatically text customers back.
-                              </p>
-                            </div>
-
-                            {/* CTA Button - Set Up Call Forwarding */}
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                              <Link
-                                href="/setup/phone-forwarding"
-                                className="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-blue-50 text-blue-600 text-base font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                              >
-                                Set Up Call Forwarding
-                              </Link>
-                              <p className="text-blue-200 text-sm">Takes about 2 minutes.</p>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </SectionErrorBoundary>
-                )}
-
-                {/* Provisioning Status Banner - Show when provisioning is pending AND billing is complete */}
-                {!setupMode && business?.provisioning_status === 'pending' && hasActiveSubscription(business) && (
-                  <SectionErrorBoundary sectionName="ProvisioningBanner">
-                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/40 rounded-full flex items-center justify-center">
-                          <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.001 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-amber-900 dark:text-amber-100 font-semibold text-sm">Setting up your ReplyFlow number...</p>
-                          <p className="text-amber-700 dark:text-amber-300 text-xs">This usually takes less than a minute. We'll notify you when it's ready.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </SectionErrorBoundary>
-                )}
-
-                {/* Setup Gate - Hidden when forwarding is not verified (replaced by dominant hero card) */}
-                {false && business?.provisioning_status === 'ready' && !business?.forwarding_verified && (
-                  <SectionErrorBoundary sectionName="SetupGate">
-                    <div id="setup-gate" className="bg-card border border-border rounded-xl shadow-sm p-4 sm:p-6">
-                      <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center flex-shrink-0">
-                          <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">Call Forwarding Setup</h3>
-                          <div className="flex items-center gap-2 mb-3">
-                            <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                            <p className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">Not Verified</p>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Business Number</p>
-                              <p className="text-sm font-semibold text-foreground">{business?.business_phone_number ? formatPhoneNumber(business?.business_phone_number) : 'Not set'}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">ReplyFlow Number</p>
-                              <p className="text-sm font-semibold text-foreground">{business?.twilio_phone_number ? formatPhoneNumber(business?.twilio_phone_number) : 'Not set'}</p>
-                            </div>
-                          </div>
-                          <Link
-                            href="/setup/phone-forwarding"
-                            className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
-                          >
-                            Set Up Call Forwarding
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </SectionErrorBoundary>
-                )}
-                        
-                
-                {/* HARD RENDER GUARD: ProvisioningSuccessBanner if subscription is active */}
-                {isSubscriptionActive && (
-                  <SectionErrorBoundary sectionName="ProvisioningSuccessBanner">
-                      {(() => {
-                        console.log('[Render Guard] ProvisioningSuccessBanner rendered', {
-                          subscription_status: business?.subscription_status,
-                          isSubscriptionActive,
-                          checkoutStatus,
-                          allowed: true
-                        })
-                        console.log('[SECTION RENDER]', {
-                          section: 'ProvisioningSuccessBanner',
-                          mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false,
-                          hasBusiness: !!business,
-                          subscriptionStatus: business?.subscription_status,
-                          onboardingStatus: business?.onboarding_status,
-                          checkoutStatus
-                        })
-                        console.log('[Render Child] ProvisioningSuccessBanner')
-                        return null
-                      })()}
-                      <ProvisioningSuccessBanner checkoutSuccess={checkoutStatus === 'success'} />
-                    </SectionErrorBoundary>
-                )}
-
-                {/* Subscription Alerts - Only show when action needed */}
-                {/* Payment Issue Warning - High Priority */}
-                {(business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid') && (
-                  <SectionErrorBoundary sectionName="PaymentIssueBanner">
-                    <div className="bg-red-900/20 border border-red-900/40 rounded-xl p-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xl">⚠️</span>
-                          <div>
-                            <p className="text-sm font-semibold text-red-100">
-                              Payment issue — update billing to keep ReplyFlow active
-                            </p>
-                            <p className="text-xs text-red-300">
-                              {getSubscriptionStatusText(business?.subscription_status)} • Update payment method to continue service
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={handleManageSubscription}
-                          disabled={isOpeningBilling}
-                          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isOpeningBilling ? 'Opening…' : 'Update Billing'}
-                        </button>
-                      </div>
-                    </div>
-                  </SectionErrorBoundary>
-                )}
-
-                {/* Consolidated Subscription/Trial Status Banner */}
-                {hasActiveAccess(business) && (
-                  <SectionErrorBoundary sectionName="SubscriptionBanner">
-                    {(() => {
-                      console.log('[Render Child] SubscriptionBanner')
-                      return null
-                    })()}
-                    {(() => {
-                      const isScheduledToCancelValue = isScheduledToCancel(business?.cancel_at, business?.cancel_at_period_end)
-                      const isInTrial = isInTrialPeriod(business?.subscription_status)
-                      
-                      // If scheduled to cancel, show cancellation banner (supersedes trial banner)
-                      if (isScheduledToCancelValue) {
-                        const endDate = isInTrial ? business?.trial_ends_at : business?.current_period_end
-                        const formattedDate = formatDate(endDate)
-                        
-                        return (
-                          <div className="bg-amber-900/20 border border-amber-900/40 rounded-xl p-2">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-3">
-                                <span className="text-xl">⏰</span>
-                                <div>
-                                  <p className="text-sm font-semibold text-amber-100">
-                                    {isInTrial ? 'Trial cancelled' : 'Subscription cancelled'}
-                                  </p>
-                                  <p className="text-xs text-amber-300">
-                                    {isInTrial 
-                                      ? (formattedDate 
-                                        ? `You can continue using ReplyFlow until ${formattedDate}. You will not be charged.`
-                                        : 'You can continue using ReplyFlow until your trial ends. You will not be charged.')
-                                      : (formattedDate
-                                        ? `Access remains active until ${formattedDate}.`
-                                        : 'Access remains active until your subscription ends.')
-                                    }
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={handleManageSubscription}
-                                disabled={isOpeningBilling}
-                                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {isOpeningBilling ? 'Opening…' : (isInTrial ? 'Reactivate Trial' : 'Resume Plan')}
-                              </button>
-                            </div>
-                          </div>
-                        )
-                      }
-                      
-                      // If in trial and not cancelled, show trial banner - REMOVED to reduce dashboard clutter
-                      // Trial status now shown in Setup Progress card as compact pill
-                      if (isInTrial) {
-                        // Return null to remove the full-width banner
-                        return null
-                      }
-                      
-                      // Active subscription (not trial, not cancelled) - no banner needed
-                      return null
-                    })()}
-                  </SectionErrorBoundary>
-                )}
-
-                {/* Pre-trial activation CTA - compact, not hero-sized - Skip when trial already used (hero card shown instead) */}
-                {!hasActiveAccess(business) && !(eligibility && !eligibility.eligible && eligibility.failureType === 'previous_subscription') && (
-                  <SectionErrorBoundary sectionName="ActivationCTA">
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl border border-blue-200 dark:border-blue-800 p-4 sm:p-5">
-                      <div className="flex flex-col gap-2.5">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
-                          <div>
-                            <h3 className="text-base font-semibold text-foreground mb-1">
-                              {eligibilityLoading 
-                                ? 'Checking plan...' 
-                                : (eligibility && !eligibility.eligible && eligibility.failureTitle
-                                  ? eligibility.failureTitle
-                                  : 'Start your 14-day free trial')
-                              }
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {eligibilityLoading 
-                                ? 'Determining your subscription options...'
-                                : (eligibility && !eligibility.eligible && eligibility.failureMessage
-                                  ? eligibility.failureMessage
-                                  : "Activate ReplyFlow today. We'll provision your dedicated number, help you configure call forwarding, and have you capturing missed calls in just a few minutes.")
-                              }
-                            </p>
-                          </div>
-                          <button
-                            onClick={handleStartSubscription}
-                            disabled={checkoutLoading || eligibilityLoading}
-                            className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                          >
-                            {checkoutLoading ? 'Starting…' : (eligibilityLoading ? 'Checking plan...' : 'Start Free Trial')}
-                          </button>
-                        </div>
-                        {eligibility && !eligibility.eligible && eligibility.failureDetails && (
-                          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                            <p className="text-sm text-amber-800 dark:text-amber-200 font-medium mb-1">{eligibility.failureDetails}</p>
-                            <p className="text-xs text-amber-600 dark:text-amber-400">
-                              Need help? Contact <a href="mailto:support@replyflowhq.com" className="underline hover:no-underline">support@replyflowhq.com</a> and we'll take a look.
-                            </p>
-                          </div>
-                        )}
-                        {checkoutError && !eligibility?.failureDetails && (
-                          <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                            <p className="text-sm text-red-800 dark:text-red-200 font-medium mb-1">{checkoutError}</p>
-                            <p className="text-xs text-red-600 dark:text-red-400">
-                              Need help? Contact <a href="mailto:support@replyflowhq.com" className="underline hover:no-underline">support@replyflowhq.com</a> and we'll take a look.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </SectionErrorBoundary>
-                )}
+                {/* Trial activation now handled by DashboardHero */}
 
                 {/* Locked Dashboard Preview - Show what users will unlock */}
                 {!hasActiveAccess(business) && (
@@ -1356,18 +1040,6 @@ export default function DashboardContent() {
                 {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
                 {hasActiveSubscription(business) ? (
                   <>
-                    {/* System Status Banner - Hide when forwarding is not verified (reduces cognitive load) */}
-                    {business?.forwarding_verified && (
-                      <SectionErrorBoundary sectionName="OperationalStatusCard">
-                        <div className="mb-2">
-                          <OperationalStatusCard
-                            business={business}
-                            missedCallCount={missedCallCount}
-                            setupHealth={setupHealth}
-                          />
-                        </div>
-                      </SectionErrorBoundary>
-                    )}
 
                     {/* Dashboard Metrics - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="DashboardMetrics">
