@@ -1656,6 +1656,10 @@ async function scheduleHangupOnly(ws: any, twilioHandler: any) {
 
 // Send final goodbye and hangup deterministically
 async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: any) {
+  const timestamp = new Date().toISOString();
+  console.log('[RACE CONDITION DEBUG] sendFinalGoodbyeAndHangup called at:', timestamp);
+  console.log('[RACE CONDITION DEBUG] Current callState before setting to closing:', (ws as any).callState);
+  console.log('[RACE CONDITION DEBUG] Current confirmationState:', (ws as any).confirmationState);
   console.log('[AI FINAL GOODBYE START] Starting deterministic goodbye and hangup sequence');
   console.log('[ENTER FINAL_GOODBYE] confirmationState: confirmed');
   
@@ -1669,6 +1673,7 @@ async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: 
   (ws as any).confirmationState = 'final_goodbye';
   (twilioHandler as any).confirmationState = 'final_goodbye';
   
+  console.log('[RACE CONDITION DEBUG] callState set to closing at:', new Date().toISOString());
   console.log('[AI CLOSING STATE SET] callState: closing, terminalClosingResponseStarted: true, intakeComplete: true, confirmationState: final_goodbye');
   
   // Send final goodbye message immediately
@@ -3610,6 +3615,12 @@ Do NOT:
                     console.log('[AI ISSUE DESCRIPTION ACCEPTED] Issue description is valid');
 
                     if (isConfirmationAccepted(userTranscript)) {
+                      const timestamp = new Date().toISOString();
+                      console.log('[RACE CONDITION DEBUG] User confirmation detected at:', timestamp);
+                      console.log('[RACE CONDITION DEBUG] User transcript:', userTranscript);
+                      console.log('[RACE CONDITION DEBUG] Current callState:', callState);
+                      console.log('[RACE CONDITION DEBUG] Current confirmationState:', confirmationState);
+                      console.log('[RACE CONDITION DEBUG] confirmationResponseId:', (ws as any).confirmationResponseId || 'unknown');
                       console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
                       console.log('[CONFIRMATION ACCEPTED] confirmationState: accepted');
                       confirmationState = 'confirmed';
@@ -3865,12 +3876,20 @@ Do NOT:
               }
               if (message.type === 'response.created') {
                 responseCreatedReceived = true;
-                console.log('[OPENAI RECV] response.created');
-                
+                const responseId = message.response?.id || 'unknown';
+                console.log('[OPENAI RECV] response.created with response_id:', responseId);
+                console.log('[RACE CONDITION DEBUG] response.created at:', new Date().toISOString());
+                console.log('[RACE CONDITION DEBUG] Current callState:', callState);
+                console.log('[RACE CONDITION DEBUG] Current confirmationState:', confirmationState);
+
                 // Log confirmation response start
-                if (confirmationState === 'confirmation_pending') {
+                if (confirmationState === 'confirmation_pending' || confirmationState === 'awaiting_confirmation') {
+                  console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE CREATED with response_id:', responseId);
+                  console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE CREATED at:', new Date().toISOString());
                   console.log('[CONFIRMATION AUDIO START] Confirmation response created');
                   console.log('[CONFIRMATION AUDIO START] confirmationState:', confirmationState);
+                  // Store confirmation response ID for tracking
+                  (ws as any).confirmationResponseId = responseId;
                 }
               }
               if (message.type === 'response.output_item.added') {
@@ -4084,12 +4103,20 @@ Do NOT:
                 console.log('[OPENAI RECV] response.created');
               }
               if (message.type === 'response.done') {
+                const responseId = message.response_id || 'unknown';
                 console.log('[OPENAI RECV] response.done');
                 console.log('[AI RESPONSE DONE] Response completed');
-                console.log('[AI RESPONSE DONE] response_id:', message.response_id || 'unknown');
-                
+                console.log('[AI RESPONSE DONE] response_id:', responseId);
+                console.log('[RACE CONDITION DEBUG] response.done at:', new Date().toISOString());
+                console.log('[RACE CONDITION DEBUG] response.done response_id:', responseId);
+                console.log('[RACE CONDITION DEBUG] Current callState:', callState);
+                console.log('[RACE CONDITION DEBUG] Current confirmationState:', confirmationState);
+
                 // Check if this was a confirmation summary response
                 if (confirmationSummaryInProgress) {
+                  console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE DONE at:', new Date().toISOString());
+                  console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE DONE response_id:', responseId);
+                  console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE DONE callState:', callState);
                   console.log('[CONFIRMATION SUMMARY DONE MATCHED]', message.response_id || 'unknown');
                   console.log('[CONFIRMATION SUMMARY DONE] Confirmation summary response completed');
                   console.log('[CONFIRMATION SUMMARY DONE] confirmationSummarySpoken = true');
@@ -4330,6 +4357,9 @@ Do NOT:
 
                 // Check if audio should be blocked
                 if (callState === 'closing') {
+                  console.log('[RACE CONDITION DEBUG] Audio delta BLOCKED due to callState=closing at:', new Date().toISOString());
+                  console.log('[RACE CONDITION DEBUG] Blocked audio bytes:', message.delta.length);
+                  console.log('[RACE CONDITION DEBUG] confirmationState:', confirmationState);
                   console.log('[OUTBOUND ASSISTANT AUDIO BLOCKED]', {
                     reason: 'terminal_closing',
                     callState: callState,
@@ -4340,6 +4370,11 @@ Do NOT:
 
                 // Special logging for confirmation audio
                 if (confirmationState === 'confirmation_pending' || confirmationState === 'awaiting_confirmation') {
+                  const confirmationResponseId = (ws as any).confirmationResponseId || 'unknown';
+                  console.log('[RACE CONDITION DEBUG] CONFIRMATION AUDIO DELTA received at:', new Date().toISOString());
+                  console.log('[RACE CONDITION DEBUG] CONFIRMATION AUDIO DELTA response_id:', confirmationResponseId);
+                  console.log('[RACE CONDITION DEBUG] CONFIRMATION AUDIO DELTA bytes:', message.delta.length);
+                  console.log('[RACE CONDITION DEBUG] CONFIRMATION AUDIO DELTA callState:', callState);
                   console.log('[CONFIRMATION AUDIO DELTA RECEIVED]', {
                     bytes: message.delta.length,
                     confirmationState: confirmationState
