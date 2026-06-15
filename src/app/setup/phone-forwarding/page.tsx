@@ -152,20 +152,20 @@ export default function PhoneForwardingPage() {
     if (!business?.twilio_phone_number) return ''
     const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
     
-    // Format as *92 (XXX) XXX-XXXX
+    // Format as *92 (XXX) XXX-XXXX with spaces for better wrapping
     if (phoneNumber.length === 11) {
       const areaCode = phoneNumber.substring(1, 4)
       const firstThree = phoneNumber.substring(4, 7)
       const lastFour = phoneNumber.substring(7, 11)
-      return `*92 (${areaCode}) ${firstThree}-${lastFour}`
+      return `*92 ( ${areaCode} ) ${firstThree} - ${lastFour}`
     } else if (phoneNumber.length === 10) {
       const areaCode = phoneNumber.substring(0, 3)
       const firstThree = phoneNumber.substring(3, 6)
       const lastFour = phoneNumber.substring(6, 10)
-      return `*92 (${areaCode}) ${firstThree}-${lastFour}`
+      return `*92 ( ${areaCode} ) ${firstThree} - ${lastFour}`
     }
     
-    return `*92${phoneNumber}`
+    return `*92 ${phoneNumber}`
   }
 
   // Returns formatted T-Mobile code for display with parentheses and dashes
@@ -173,20 +173,20 @@ export default function PhoneForwardingPage() {
     if (!business?.twilio_phone_number) return ''
     const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
     
-    // Format as *61* (XXX) XXX-XXXX **20#
+    // Format as *61* (XXX) XXX-XXXX **20# with spaces for better wrapping
     if (phoneNumber.length === 11) {
       const areaCode = phoneNumber.substring(1, 4)
       const firstThree = phoneNumber.substring(4, 7)
       const lastFour = phoneNumber.substring(7, 11)
-      return `*61* (${areaCode}) ${firstThree}-${lastFour}**20#`
+      return `*61* ( ${areaCode} ) ${firstThree} - ${lastFour} **20#`
     } else if (phoneNumber.length === 10) {
       const areaCode = phoneNumber.substring(0, 3)
       const firstThree = phoneNumber.substring(3, 6)
       const lastFour = phoneNumber.substring(6, 10)
-      return `*61* (${areaCode}) ${firstThree}-${lastFour}**20#`
+      return `*61* ( ${areaCode} ) ${firstThree} - ${lastFour} **20#`
     }
     
-    return `*61*${phoneNumber}**20#`
+    return `*61* ${phoneNumber} **20#`
   }
 
   const hasValidCode = Boolean(
@@ -414,13 +414,13 @@ export default function PhoneForwardingPage() {
                         Dial this from your business phone, then press Call.
                       </p>
                       <div 
-                        className="bg-muted border-2 border-blue-200 dark:border-blue-800 rounded-xl px-6 py-6 sm:py-8 mb-3 overflow-x-auto cursor-pointer hover:bg-muted/80 transition-colors"
+                        className="bg-muted border-2 border-blue-200 dark:border-blue-800 rounded-xl px-6 py-6 sm:py-8 mb-3 cursor-pointer hover:bg-muted/80 transition-colors"
                         onClick={handleCopyCode}
                         title="Click to copy code"
                       >
                         <code
                           aria-label="Connection dial code"
-                          className="block font-mono font-bold text-foreground text-center text-3xl sm:text-4xl lg:text-5xl tracking-widest whitespace-nowrap select-all"
+                          className="block font-mono font-bold text-foreground text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl tracking-normal break-words leading-relaxed"
                         >
                           {getATTCodeDisplay()}
                         </code>
@@ -444,13 +444,13 @@ export default function PhoneForwardingPage() {
                         {selectedCarrier === 't-mobile' ? 'Dial this from your business phone:' : 'Dial this from your business phone, then press Call.'}
                       </p>
                       <div 
-                        className="bg-muted border-2 border-blue-200 dark:border-blue-800 rounded-xl px-6 py-6 sm:py-8 mb-3 overflow-x-auto cursor-pointer hover:bg-muted/80 transition-colors"
+                        className="bg-muted border-2 border-blue-200 dark:border-blue-800 rounded-xl px-6 py-6 sm:py-8 mb-3 cursor-pointer hover:bg-muted/80 transition-colors"
                         onClick={handleCopyCode}
                         title="Click to copy code"
                       >
                         <code
                           aria-label="Connection dial code"
-                          className="block font-mono font-bold text-foreground text-center text-3xl sm:text-4xl lg:text-5xl tracking-widest whitespace-nowrap select-all"
+                          className="block font-mono font-bold text-foreground text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl tracking-normal break-words leading-relaxed"
                         >
                           {selectedCarrier === 't-mobile' ? getTMobileCodeDisplay() : getForwardingCodeDisplay()}
                         </code>
