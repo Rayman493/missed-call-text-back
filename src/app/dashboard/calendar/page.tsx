@@ -544,28 +544,28 @@ export default function CalendarPage() {
                       )}
 
                       {/* Compact Status Bar - Desktop: combines metrics + calendar status + sync + new appointment */}
-                      <div className="hidden md:flex items-center justify-between gap-4 mb-4 p-3 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
+                      <div className="hidden md:flex items-center justify-between gap-4 mb-4 p-4 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
                         {/* Metrics */}
-                        <div className="flex items-center gap-6">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-red-500 rounded-full shadow-sm shadow-red-500/30"></div>
+                        <div className="flex items-center gap-8">
+                          <div className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div className="w-2.5 h-2.5 bg-red-500 rounded-full shadow-sm shadow-red-500/30"></div>
                             <div>
-                              <p className="text-[9px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">Today</p>
-                              <p className="text-sm font-bold text-slate-900 dark:text-foreground">{getTodayEvents()}</p>
+                              <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Today</p>
+                              <p className="text-lg font-bold text-slate-900 dark:text-foreground leading-none">{getTodayEvents()}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm shadow-green-500/30"></div>
+                          <div className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full shadow-sm shadow-green-500/30"></div>
                             <div>
-                              <p className="text-[9px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">This Week</p>
-                              <p className="text-sm font-bold text-slate-900 dark:text-foreground">{getThisWeekEvents()}</p>
+                              <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">This Week</p>
+                              <p className="text-lg font-bold text-slate-900 dark:text-foreground leading-none">{getThisWeekEvents()}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-purple-500 rounded-full shadow-sm shadow-purple-500/30"></div>
+                          <div className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div className="w-2.5 h-2.5 bg-purple-500 rounded-full shadow-sm shadow-purple-500/30"></div>
                             <div>
-                              <p className="text-[9px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">This Month</p>
-                              <p className="text-sm font-bold text-slate-900 dark:text-foreground">{getThisMonthEvents()}</p>
+                              <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">This Month</p>
+                              <p className="text-lg font-bold text-slate-900 dark:text-foreground leading-none">{getThisMonthEvents()}</p>
                             </div>
                           </div>
                         </div>
@@ -657,9 +657,9 @@ export default function CalendarPage() {
 
                       {/* Conditionally render Month or Agenda view */}
                       {viewMode === 'month' ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                          {/* Calendar Grid - takes 3 columns on large screens, full width on mobile */}
-                          <div className="lg:col-span-3 order-1 lg:order-1">
+                        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+                          {/* Calendar Grid - takes 4 columns on extra-large screens, full width on smaller screens */}
+                          <div className="xl:col-span-4 order-1">
                             <CalendarGrid
                               month={currentMonth}
                               events={visibleMonthEvents}
@@ -684,8 +684,8 @@ export default function CalendarPage() {
                             />
                           </div>
 
-                          {/* Upcoming Agenda Sidebar - takes 1 column on large screens, below calendar on mobile */}
-                          <div className="lg:col-span-1 order-2 lg:order-2">
+                          {/* Upcoming Agenda Sidebar - takes 1 column on extra-large screens, below calendar on smaller screens */}
+                          <div className="xl:col-span-1 order-2">
                             <UpcomingAgenda
                               events={events}
                               maxEvents={8}
@@ -709,25 +709,25 @@ export default function CalendarPage() {
                       <div className="md:hidden mt-6 space-y-3">
                         {/* Compact Metrics Row */}
                         <div className="flex items-center justify-around p-3 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                          <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div className="w-2 h-2 bg-red-500 rounded-full shadow-sm shadow-red-500/30"></div>
                             <div>
-                              <p className="text-[8px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">Today</p>
-                              <p className="text-xs font-bold text-slate-900 dark:text-foreground">{getTodayEvents()}</p>
+                              <p className="text-[8px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Today</p>
+                              <p className="text-sm font-bold text-slate-900 dark:text-foreground leading-none">{getTodayEvents()}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                          <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm shadow-green-500/30"></div>
                             <div>
-                              <p className="text-[8px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">Week</p>
-                              <p className="text-xs font-bold text-slate-900 dark:text-foreground">{getThisWeekEvents()}</p>
+                              <p className="text-[8px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Week</p>
+                              <p className="text-sm font-bold text-slate-900 dark:text-foreground leading-none">{getThisWeekEvents()}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                          <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full shadow-sm shadow-purple-500/30"></div>
                             <div>
-                              <p className="text-[8px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium">Month</p>
-                              <p className="text-xs font-bold text-slate-900 dark:text-foreground">{getThisMonthEvents()}</p>
+                              <p className="text-[8px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Month</p>
+                              <p className="text-sm font-bold text-slate-900 dark:text-foreground leading-none">{getThisMonthEvents()}</p>
                             </div>
                           </div>
                         </div>

@@ -132,41 +132,51 @@ export default function UpcomingAgenda({ events, maxEvents = 5, onRefresh, calen
   const renderEventGroup = (title: string, events: CalendarEvent[]) => {
     if (events.length === 0) return null
     return (
-      <div key={title} className="mb-3 sm:mb-4">
-        <p className="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5 sm:mb-2">
+      <div key={title} className="mb-4">
+        <p className="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
           {title}
         </p>
-        <div className="space-y-1.5 sm:space-y-2">
+        <div className="space-y-2">
           {events.map((event) => (
             <div
               key={event.id}
-              className="group flex items-start gap-2 sm:gap-3 p-2 sm:p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+              className={`group flex items-start gap-3 p-3 rounded-xl transition-all cursor-pointer border ${
+                event.isHoliday
+                  ? 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/20 border-emerald-200 dark:border-emerald-800 hover:shadow-md'
+                  : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 hover:shadow-md'
+              }`}
               onClick={() => {
                 if (event.htmlLink) {
                   window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
                 }
               }}
             >
-              <div className={`flex-shrink-0 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full mt-2 sm:mt-2.5 ${
+              <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
                 event.isHoliday 
-                  ? 'bg-emerald-500 dark:bg-emerald-400' 
-                  : 'bg-blue-500 dark:bg-blue-400'
+                  ? 'bg-emerald-500 dark:bg-emerald-400 ring-4 ring-emerald-100 dark:ring-emerald-900/30' 
+                  : 'bg-blue-500 dark:bg-blue-400 ring-4 ring-blue-100 dark:ring-blue-900/30'
               }`} />
               <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground truncate mb-0.5 sm:mb-1">
+                <p className="text-sm font-semibold text-slate-900 dark:text-foreground truncate mb-1">
                   {event.summary}
                 </p>
-                <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
+                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                   {!isAllDay(event.start) && (
-                    <span className="flex items-center gap-0.5 sm:gap-1">
-                      <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" />
                       {formatTime(event.start?.dateTime)}
+                    </span>
+                  )}
+                  {event.isHoliday && (
+                    <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                      <CalendarIcon className="w-3 h-3" />
+                      Holiday
                     </span>
                   )}
                 </div>
               </div>
               {event.htmlLink && (
-                <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 flex-shrink-0" />
+                <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 flex-shrink-0 mt-1" />
               )}
             </div>
           ))}
