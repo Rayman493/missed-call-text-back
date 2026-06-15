@@ -68,22 +68,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         checkoutParam === 'success' ||
         Boolean(sessionId?.startsWith('cs_'))
       
-      // Determine flow type for logging
+      // Determine flow type for internal logic
       let flowType = 'normal_dashboard_navigation'
       if (hasCheckoutSuccess) {
         flowType = 'stripe_return'
       } else if (loading && !user) {
         flowType = 'initial_load'
       }
-      
-      console.log('[TRACE AuthGuard Render]', {
-        flowType,
-        pathname: window.location.pathname,
-        search: window.location.search,
-        hasCheckoutSuccess,
-        userExists: !!user,
-        loading
-      })
     }
   }, [user, loading])
 
@@ -142,10 +133,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         url.searchParams.has('setup')
       
       if (hasStripeParams) {
-        console.log('[AuthGuard] Clearing Stripe return parameters after session restoration', {
-          flowType: 'stripe_return_cleanup',
-          pathname: window.location.pathname
-        })
         
         // Clear all Stripe-related parameters
         url.searchParams.delete('checkout')
@@ -160,34 +147,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, stripeParamsCleared])
 
-  // Trace log on every AuthGuard render
+  // Trace log on every AuthGuard render (removed for production)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      console.log('[TRACE AuthGuard]', {
-        flowType,
-        pathname: window.location.pathname,
-        search: window.location.search,
-        userExists: !!user,
-        sessionExists: !!user,
-        loading,
-        checkoutSuccess: isCheckoutRecovery,
-        stripeParamsCleared,
-        redirectingTo: null,
-        reason: 'authguard_render'
-      })
-    }
+    // No-op - debug logs removed for production
   }, [user, loading, isCheckoutRecovery, flowType, stripeParamsCleared])
 
-  // Trace log when billing return grace mode is active
+  // Billing return grace mode logic
   useEffect(() => {
     if (isBillingReturn && typeof window !== 'undefined') {
-      console.log('[Dashboard Billing Return Grace Active]', {
-        flowType: 'stripe_return',
-        pathname: window.location.pathname,
-        search: window.location.search,
-        hasSession: !!user,
-        authLoading: loading
-      })
+      // Grace period for session restoration
     }
   }, [isBillingReturn, user, loading])
 
@@ -197,21 +165,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     // Mobile requires longer timeout due to PWA session restoration behavior
     const graceTimeoutMs = isMobile ? 60000 : 20000
-    console.log('[Dashboard Billing Return] Starting billing return grace timeout for session restoration', {
-      isMobile,
-      graceTimeoutMs,
-      device: isMobile ? 'mobile' : 'desktop'
-    })
 
     const timeout = setTimeout(() => {
-      console.log('[Dashboard Billing Return Grace Timeout]', {
-        pathname: window.location.pathname,
-        search: window.location.search,
-        hasSession: !!user,
-        authLoading: loading,
-        graceElapsedMs: graceTimeoutMs,
-        isMobile
-      })
 
       setBillingGraceTimeoutElapsed(true)
 
@@ -402,30 +357,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   if (loading && !(authVerified && user)) {
     // Explicit guard: never show full-page loader during normal navigation
     if (flowType === 'normal_dashboard_navigation' && authVerified) {
-      console.log('[AuthGuard] FORBIDDEN: Skipping loading screen during normal navigation', { 
-        flowType, 
-        loading,
-        authVerified,
-        pathname: typeof window !== 'undefined' ? window.location.pathname : 'server',
-        userExists: !!user
-      })
       return <>{children}</>
     }
-    console.log('[AuthGuard] Showing loading screen', { 
-      flowType, 
-      loading,
-      authVerified,
-      pathname: typeof window !== 'undefined' ? window.location.pathname : 'server',
-      userExists: !!user
-    })
     return <AppLoadingScreen />
   }
 
   if (!user) {
-    console.log('[AuthGuard] No user found, returning null (AuthProvider will handle redirect)', { flowType })
     return null // Will redirect via AuthProvider
   }
 
-  console.log('[AuthGuard] User authenticated, rendering children', { flowType })
   return <>{children}</>
 }
