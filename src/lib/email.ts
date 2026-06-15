@@ -57,14 +57,14 @@ function generateOffboardingEmailHTML(params: OffboardingEmailParams): string {
       <body>
         <div class="container">
           <div class="header">
-            <h1 style="margin: 0; font-size: 24px;">ReplyFlowHQ</h1>
+            <h1 style="margin: 0; font-size: 24px;">ReplyFlow</h1>
           </div>
           <div class="content">
-            <p>Hi ${businessName},</p>
+            <p>Hi there,</p>
             
-            <p>Your ReplyFlow account has been scheduled for cancellation/deletion.</p>
+            <p>Your ReplyFlow account has been scheduled for cancellation.</p>
             
-            <p>To make sure missed calls no longer forward to ReplyFlow, please disable call forwarding on your business phone.</p>
+            <p>If you enabled call forwarding to ReplyFlow, please disable it using the instructions below to ensure missed calls are no longer forwarded.</p>
             
             <div class="section">
               ${businessPhoneSection}
@@ -81,12 +81,12 @@ function generateOffboardingEmailHTML(params: OffboardingEmailParams): string {
               
               <div class="carrier">
                 <div class="carrier-name">AT&T</div>
-                <p>Dial <span class="carrier-code">##004#</span> or <span class="carrier-code">#21#</span> from your business phone, then press Call/Send.</p>
+                <p>Dial <span class="carrier-code">*93</span> from your business phone, then press Call/Send.</p>
               </div>
               
               <div class="carrier">
                 <div class="carrier-name">T-Mobile</div>
-                <p>Dial <span class="carrier-code">##004#</span> from your business phone, then press Call/Send.</p>
+                <p>Dial <span class="carrier-code">##61#</span> from your business phone, then press Call/Send.</p>
               </div>
               
               <div class="carrier">
@@ -99,7 +99,7 @@ function generateOffboardingEmailHTML(params: OffboardingEmailParams): string {
             
             <p>If you need help, contact <a href="mailto:support@replyflowhq.com" style="color: #2563eb;">support@replyflowhq.com</a>.</p>
             
-            <p>Thanks,<br>ReplyFlowHQ</p>
+            <p>Thanks,<br>ReplyFlow</p>
           </div>
           <div class="footer">
             <p>You're receiving this email because you requested to cancel or delete your ReplyFlow account.</p>
@@ -129,7 +129,7 @@ export async function sendOffboardingEmail(params: OffboardingEmailParams): Prom
   try {
     const html = generateOffboardingEmailHTML(params)
 
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'ReplyFlowHQ <noreply@replyflowhq.com>'
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'ReplyFlow <noreply@replyflowhq.com>'
     console.log('[email] Sending offboarding email', {
       to: userEmail,
       from: fromEmail,
@@ -241,19 +241,19 @@ function generateAccountDeletionConfirmationHTML(params: AccountDeletionConfirma
       <body>
         <div class="container">
           <div class="header">
-            <h1 style="margin: 0; font-size: 24px;">ReplyFlowHQ</h1>
+            <h1 style="margin: 0; font-size: 24px;">ReplyFlow</h1>
           </div>
           <div class="content">
-            <p>Hi,</p>
+            <p>Hi there,</p>
             
-            <p>This email confirms that your ReplyFlow account has been successfully deleted.</p>
+            <p>This email confirms that your ReplyFlow account has been permanently deleted.</p>
             
             <div class="section">
               <h2 style="margin-top: 0; color: #1f2937;">What happened to your data:</h2>
               
               <p><strong>Account status:</strong><br>Your ReplyFlow account has been permanently deleted.</p>
               
-              <p><strong>Business data:</strong><br>All your business data, including leads, conversations, messages, and settings have been removed.</p>
+              <p><strong>Business data:</strong><br>All your business data, including leads, conversations, messages, and settings have been removed from our systems.</p>
               
               ${businessNameSection}
               ${twilioNumberSection}
@@ -262,7 +262,7 @@ function generateAccountDeletionConfirmationHTML(params: AccountDeletionConfirma
             
             <p>If you did not request this deletion or if you believe this was done in error, please contact our support team immediately at <a href="mailto:support@replyflowhq.com" style="color: #2563eb;">support@replyflowhq.com</a>.</p>
             
-            <p>Thank you for using ReplyFlow.<br>ReplyFlowHQ</p>
+            <p>Thank you for using ReplyFlow.<br>ReplyFlow</p>
           </div>
           <div class="footer">
             <p>You're receiving this email because your ReplyFlow account was deleted.</p>
@@ -292,7 +292,7 @@ export async function sendAccountDeletionConfirmationEmail(params: AccountDeleti
   try {
     const html = generateAccountDeletionConfirmationHTML(params)
 
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'ReplyFlowHQ <noreply@replyflowhq.com>'
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'ReplyFlow <noreply@replyflowhq.com>'
     console.log('[email] Sending account deletion confirmation email', {
       to: userEmail,
       from: fromEmail,
