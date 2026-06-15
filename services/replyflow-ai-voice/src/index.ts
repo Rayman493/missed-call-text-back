@@ -1561,111 +1561,22 @@ const FINAL_GOODBYE = "Thank you for calling. I'll pass this information along t
 const FINAL_ENDING_PHRASE = "Have a great day.";
 const CONFIRMATION_SUFFIX = " Is this correct?";
 
-// Schedule hangup only (for when final goodbye was already sent)
+// Schedule hangup only (for when final goodbye was already sent) - DISABLED - using response.audio.done instead
 async function scheduleHangupOnly(ws: any, twilioHandler: any) {
-  const currentCallState = (ws as any).callState || 'active';
-  const currentIntakeComplete = (ws as any).intakeComplete || false;
-  
-  // Clear fallback timer since we're closing normally
-  if ((ws as any).fallbackHangupTimer) {
-    clearTimeout((ws as any).fallbackHangupTimer);
-    (ws as any).fallbackHangupTimer = null;
-    console.log('[FALLBACK TIMER CLEARED] Intake completed, clearing fallback timer');
-  }
-  
-  console.log('[AI FINAL GOODBYE COMPLETE] Final goodbye sentence detected');
-  console.log('[AI HANGUP SCHEDULED] Scheduling hangup after 5000ms to ensure audio playback finishes');
-  
-  // Set closing state
-  (ws as any).callState = 'closing';
-  (twilioHandler as any).callState = 'closing';
-  (ws as any).intakeComplete = true;
-  (twilioHandler as any).intakeComplete = true;
-  
-  // Wait 5000ms for audio to play, then hangup
-  const hangupScheduled = (ws as any).hangupScheduled;
-  if (!hangupScheduled) {
-    console.log('[TWILIO HANGUP ATTEMPT] Scheduling hangup after 5000ms for audio playback');
-    (ws as any).hangupScheduled = true;
-    (twilioHandler as any).hangupScheduled = true;
-    
-    setTimeout(async () => {
-      console.log('[TWILIO HANGUP ATTEMPT] Audio buffer complete, executing hangup');
-      try {
-        await endCallCleanly(ws, twilioHandler);
-        console.log('[TWILIO HANGUP SUCCESS] Call terminated successfully');
-      } catch (error) {
-        console.log('[TWILIO HANGUP ERROR] Error during hangup:', error);
-      }
-    }, 5000); // 5000ms buffer
-  }
+  console.log('[OLD HANGUP PATH DISABLED] scheduleHangupOnly is disabled, using response.audio.done path instead');
+  return; // DISABLED - do nothing, let response.audio.done handle hangup
 }
 
-// Send final goodbye and hangup deterministically
+// Send final goodbye and hangup deterministically - DISABLED - using response.audio.done instead
 async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: any) {
-  const currentCallState = (ws as any).callState || 'active';
-  const currentIntakeComplete = (ws as any).intakeComplete || false;
-  
-  // Clear fallback timer since we're closing normally
-  if ((ws as any).fallbackHangupTimer) {
-    clearTimeout((ws as any).fallbackHangupTimer);
-    (ws as any).fallbackHangupTimer = null;
-    console.log('[FALLBACK TIMER CLEARED] Intake completed, clearing fallback timer');
-  }
-  
-  const timestamp = new Date().toISOString();
-  console.log('[RACE CONDITION DEBUG] sendFinalGoodbyeAndHangup called at:', timestamp);
-  console.log('[RACE CONDITION DEBUG] Current callState before setting to closing:', currentCallState);
-  console.log('[AI FINAL GOODBYE START] Starting deterministic goodbye and hangup sequence');
-  
-  // Set closing state immediately
-  (ws as any).callState = 'closing';
-  (twilioHandler as any).callState = 'closing';
-  (ws as any).terminalClosingResponseStarted = true;
-  (twilioHandler as any).terminalClosingResponseStarted = true;
-  (ws as any).intakeComplete = true;
-  (twilioHandler as any).intakeComplete = true;
-  
-  console.log('[RACE CONDITION DEBUG] callState set to closing at:', new Date().toISOString());
-  console.log('[AI CLOSING STATE SET] callState: closing, terminalClosingResponseStarted: true, intakeComplete: true');
-  console.log('[FINAL GOODBYE START] Starting final goodbye at:', new Date().toISOString());
-  
-  // Send final goodbye message immediately
-  const finalClosingMessage = {
-    type: 'response.create',
-    response: {
-      instructions: `Say exactly: "${FINAL_GOODBYE}"`
-    }
-  };
-
-  if (openAiWs) {
-    openAiWs.send(JSON.stringify(finalClosingMessage));
-    console.log('[AI FINAL GOODBYE SENT] Final closing message sent to OpenAI');
-  }
-
-  // Wait 1500ms for audio to play, then hangup
-  const hangupScheduled = (ws as any).hangupScheduled;
-  if (!hangupScheduled) {
-    console.log('[AUTO HANGUP START] Scheduling hangup after 1500ms for audio playback at:', new Date().toISOString());
-    (ws as any).hangupScheduled = true;
-    (twilioHandler as any).hangupScheduled = true;
-    
-    setTimeout(async () => {
-      console.log('[FINAL GOODBYE AUDIO DONE] Audio buffer complete, executing hangup at:', new Date().toISOString());
-      try {
-        await endCallCleanly(ws, twilioHandler);
-        console.log('[TWILIO HANGUP SUCCESS] Call terminated successfully');
-      } catch (error) {
-        console.log('[TWILIO HANGUP ERROR] Error during hangup:', error);
-      }
-    }, 4000); // 4000ms buffer to ensure full goodbye plays
-  }
+  console.log('[OLD HANGUP PATH DISABLED] sendFinalGoodbyeAndHangup is disabled, using response.audio.done path instead');
+  return; // DISABLED - do nothing, let response.audio.done handle hangup
 }
 
-// Close call after confirmation function
+// Close call after confirmation function - DISABLED - using response.audio.done instead
 async function closeCallAfterConfirmation(ws: any, twilioHandler: any, openAiWs: any) {
-  console.log('[AI CONFIRMATION ACCEPTED - CLOSING] Calling deterministic goodbye and hangup');
-  sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
+  console.log('[OLD HANGUP PATH DISABLED] closeCallAfterConfirmation is disabled, using response.audio.done path instead');
+  return; // DISABLED - do nothing, let response.audio.done handle hangup
 }
 
 // Clean call ending function
@@ -3558,6 +3469,8 @@ Do NOT:
                         instructions: `Say exactly: "Perfect. I'll pass this information along and someone will follow up with you soon. Thanks for calling."`.substring(0, 200)
                       });
 
+                      console.log('[FINAL GOODBYE START] Starting final goodbye at:', new Date().toISOString());
+
                       if (openAiWs) {
                         openAiWs.send(JSON.stringify(finalClosingMessage));
                         console.log('[AI FINAL GOODBYE CREATE SENT] Final closing message sent to OpenAI');
@@ -3565,7 +3478,7 @@ Do NOT:
 
                       // Mark that final goodbye response has started - wait for response.audio.done before hanging up
                       terminalClosingResponseStarted = true;
-                      console.log('[AI TERMINAL CLOSING STARTED] Final goodbye response started, waiting for response.audio.done');
+                      console.log('[FINAL GOODBYE START] Final goodbye response started, waiting for response.audio.done');
                       (twilioHandler as any).terminalClosingResponseStarted = terminalClosingResponseStarted;
 
                       // DO NOT schedule hangup timer here - wait for response.audio.done instead
@@ -3662,16 +3575,16 @@ Do NOT:
                 
                 // Terminal closing detection - end call after final audio is done
                 if (terminalClosingResponseStarted && !hangupScheduled) {
-                  console.log('[FINAL GOODBYE HANGUP BUFFER START] Starting 6 second buffer after audio.done');
-                  console.log('[FINAL GOODBYE HANGUP BUFFER START] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL GOODBYE BUFFER WAITING 8S] Starting 8 second buffer after audio.done');
+                  console.log('[FINAL GOODBYE BUFFER WAITING 8S] Timestamp:', new Date().toISOString());
                   
                   hangupScheduled = true;
                   (twilioHandler as any).hangupScheduled = hangupScheduled;
                   
-                  // Schedule hangup after 6 second buffer to ensure full goodbye message plays
+                  // Schedule hangup after 8 second buffer to ensure full goodbye message plays
                   setTimeout(async () => {
-                    console.log('[FINAL GOODBYE HANGUP BUFFER COMPLETE] 6 second buffer complete');
-                    console.log('[FINAL GOODBYE HANGUP BUFFER COMPLETE] Timestamp:', new Date().toISOString());
+                    console.log('[FINAL GOODBYE BUFFER COMPLETE] 8 second buffer complete');
+                    console.log('[FINAL GOODBYE BUFFER COMPLETE] Timestamp:', new Date().toISOString());
                     console.log('[AUTO HANGUP START] Executing hangup now');
                     
                     try {
@@ -3682,7 +3595,7 @@ Do NOT:
                     } catch (error) {
                       console.log('[AUTO HANGUP FAILED] Error during hangup:', error);
                     }
-                  }, 6000); // 6 second buffer to ensure audio plays completely
+                  }, 8000); // 8 second buffer to ensure audio plays completely
                 }
               }
               if (message.type === 'response.done') {
