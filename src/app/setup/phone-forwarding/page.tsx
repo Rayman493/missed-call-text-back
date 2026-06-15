@@ -13,7 +13,7 @@ import BusinessGuard from '@/components/BusinessGuard'
 
 const CARRIERS = [
   { id: 'verizon', name: 'Verizon', noAnswerCode: '*71', requiresLeadingOne: false, deactivationCode: '*73' },
-  { id: 'at&t', name: 'AT&T', noAnswerCode: null, deactivationCode: null, manualSetupRecommended: true },
+  { id: 'at&t', name: 'AT&T', noAnswerCode: '*92', requiresLeadingOne: false, deactivationCode: '*93' },
   { id: 't-mobile', name: 'T-Mobile', noAnswerCode: '*61*', noAnswerSuffix: '**20#', deactivationCode: '##61#' },
   { id: 'other', name: 'Other', noAnswerCode: null }
 ]
@@ -88,7 +88,7 @@ export default function PhoneForwardingPage() {
   }
 
   // Returns the raw dial-code string used for the clipboard / actual dialing,
-  // e.g. '*7112296964989' or '*6112296964989#'
+  // e.g. '*719452708121' or '*619452708121**20#'
   // UPDATED: Uses verified no-answer forwarding codes
   const getForwardingCode = () => {
     if (!business?.twilio_phone_number) return ''
@@ -104,8 +104,8 @@ export default function PhoneForwardingPage() {
       // Conditional forwarding for no-answer/busy
       code = carrier.noAnswerCode + phoneNumber
     } else if (carrier.id === 'at&t') {
-      // AT&T: Manual setup recommended due to wireless vs landline differences
-      return 'Contact your carrier to enable call forwarding'
+      // AT&T: *92 + 10-digit number (no leading 1, no trailing #)
+      code = carrier.noAnswerCode + phoneNumber
     } else if (carrier.id === 't-mobile') {
       // T-Mobile: *61* + number + **20# (GSM standard for conditional forwarding with 20s delay)
       // Format: *61*number**seconds# where seconds is the delay before forwarding
@@ -118,7 +118,7 @@ export default function PhoneForwardingPage() {
     return code
   }
 
-  // Returns the human-readable display form, e.g. '*71 218-423-6763'
+  // Returns the human-readable display form, e.g. '*71 945-270-8121'
   // so non-technical users can verify each digit at a glance.
   // UPDATED: Uses verified no-answer forwarding codes with compact formatting
   const getForwardingCodeDisplay = () => {
@@ -149,45 +149,14 @@ export default function PhoneForwardingPage() {
       code = carrier.noAnswerCode + ' ' + formattedNumber
     } else if (carrier.id === 't-mobile') {
       // T-Mobile: *61* + number + **20# (GSM standard for conditional forwarding with 20s delay)
-      code = carrier.noAnswerCode + ' ' + formattedNumber + ' ' + carrier.noAnswerSuffix
+      // Display as one uninterrupted string
+      code = carrier.noAnswerCode + phoneNumber + carrier.noAnswerSuffix
     } else {
       // Default format for other carriers
       code = `${carrier.noAnswerCode} ${formattedNumber}`
     }
     
     return code
-  }
-
-  // Returns formatted AT&T code for display with compact format
-  const getATTCodeDisplay = () => {
-    if (!business?.twilio_phone_number) return ''
-    const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
-    
-    // Format as *92 XXX-XXX-XXXX (no parentheses, compact spacing)
-    if (phoneNumber.length === 11) {
-      const digits = phoneNumber.substring(1)
-      return `*92 ${digits.substring(0, 3)}-${digits.substring(3, 6)}-${digits.substring(6, 10)}`
-    } else if (phoneNumber.length === 10) {
-      return `*92 ${phoneNumber.substring(0, 3)}-${phoneNumber.substring(3, 6)}-${phoneNumber.substring(6, 10)}`
-    }
-    
-    return `*92 ${phoneNumber}`
-  }
-
-  // Returns formatted T-Mobile code for display with compact format
-  const getTMobileCodeDisplay = () => {
-    if (!business?.twilio_phone_number) return ''
-    const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
-    
-    // Format as *61* XXX-XXX-XXXX **20# (no parentheses, compact spacing)
-    if (phoneNumber.length === 11) {
-      const digits = phoneNumber.substring(1)
-      return `*61* ${digits.substring(0, 3)}-${digits.substring(3, 6)}-${digits.substring(6, 10)} **20#`
-    } else if (phoneNumber.length === 10) {
-      return `*61* ${phoneNumber.substring(0, 3)}-${phoneNumber.substring(3, 6)}-${phoneNumber.substring(6, 10)} **20#`
-    }
-    
-    return `*61* ${phoneNumber} **20#`
   }
 
   const hasValidCode = Boolean(
@@ -407,12 +376,11 @@ export default function PhoneForwardingPage() {
                     </span>
                     <p className="font-medium text-foreground">Set Up Conditional Call Forwarding</p>
                   </div>
-                  {/* AT&T-specific instructions */}
-                  {selectedCarrier === 'at&t' ? (
+                  {hasValidCode ? (
                     <div className="bg-card border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-6 sm:p-8 shadow-sm">
-                      <p className="text-sm font-semibold text-foreground mb-1">AT&T</p>
+                      <p className="text-sm font-semibold text-foreground mb-1">{CARRIERS.find(c => c.id === selectedCarrier)?.name}</p>
                       <p className="text-sm text-muted-foreground mb-3">
-                        Dial this from your business phone, then press Call.
+                        Open your phone's dialer, enter the code exactly as shown below, then press Call. Wait for the confirmation tone or message.
                       </p>
                       <div 
                         className="bg-muted border-2 border-blue-200 dark:border-blue-800 rounded-xl px-6 py-6 sm:py-8 mb-3 cursor-pointer hover:bg-muted/80 transition-colors"
@@ -423,46 +391,23 @@ export default function PhoneForwardingPage() {
                           aria-label="Connection dial code"
                           className="block font-mono font-bold text-foreground text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl tracking-normal break-words leading-relaxed"
                         >
-                          {getATTCodeDisplay()}
+                          {getForwardingCodeDisplay()}
                         </code>
                       </div>
                       <p className="text-xs text-muted-foreground/70 text-center mb-3">
                         Wait for the confirmation tone or message.
                       </p>
-                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3">
-                        <p className="text-xs text-blue-700 dark:text-blue-300">
-                          If this code doesn't work, your AT&T plan may use different forwarding settings. Check with AT&T for account-specific instructions.
-                        </p>
-                      </div>
-                      <p className="text-xs text-muted-foreground/60 text-center">
-                        To disable later: Dial *93 and press Call.
-                      </p>
-                    </div>
-                  ) : hasValidCode ? (
-                    <div className="bg-card border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-6 sm:p-8 shadow-sm">
-                      <p className="text-sm font-semibold text-foreground mb-1">{CARRIERS.find(c => c.id === selectedCarrier)?.name}</p>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {selectedCarrier === 't-mobile' ? 'Dial this from your business phone:' : 'Dial this from your business phone, then press Call.'}
-                      </p>
-                      <div 
-                        className="bg-muted border-2 border-blue-200 dark:border-blue-800 rounded-xl px-6 py-6 sm:py-8 mb-3 cursor-pointer hover:bg-muted/80 transition-colors"
-                        onClick={handleCopyCode}
-                        title="Click to copy code"
-                      >
-                        <code
-                          aria-label="Connection dial code"
-                          className="block font-mono font-bold text-foreground text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl tracking-normal break-words leading-relaxed"
-                        >
-                          {selectedCarrier === 't-mobile' ? getTMobileCodeDisplay() : getForwardingCodeDisplay()}
-                        </code>
-                      </div>
-                      <p className="text-xs text-muted-foreground/70 text-center mb-3">
-                        {selectedCarrier === 't-mobile' ? 'Press Call and wait for the confirmation message.' : 'Wait for the confirmation tone or message.'}
-                      </p>
+                      {selectedCarrier === 'at&t' && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3">
+                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                            Some AT&T plans or devices may use different forwarding methods. Contact AT&T if this code doesn't work.
+                          </p>
+                        </div>
+                      )}
                       {selectedCarrier === 't-mobile' && (
                         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3">
                           <p className="text-xs text-blue-700 dark:text-blue-300">
-                            Some T-Mobile plans or devices may use different forwarding settings. If this code doesn't work, check with T-Mobile for account-specific instructions.
+                            Some T-Mobile plans or devices may use different forwarding methods. Contact T-Mobile if this code doesn't work.
                           </p>
                         </div>
                       )}
