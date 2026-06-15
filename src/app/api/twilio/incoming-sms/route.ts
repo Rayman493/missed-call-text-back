@@ -6,37 +6,50 @@ import { notificationServiceServer } from '@/lib/notifications-server'
 
 export async function POST(req: NextRequest) {
   // CRITICAL: Log IMMEDIATELY to verify route is being hit
-  console.log('[INCOMING SMS WEBHOOK HIT]')
-  console.log('[INCOMING SMS METHOD]', req.method)
-  console.log('[INCOMING SMS URL]', req.url)
+  const isDevEnvironment = process.env.NODE_ENV === 'development'
+  
+  if (isDevEnvironment) {
+    console.log('[INCOMING SMS WEBHOOK HIT]')
+    console.log('[INCOMING SMS METHOD]', req.method)
+    console.log('[INCOMING SMS URL]', req.url)
+  }
   
   try {
     // Read raw body BEFORE any processing
     const rawBody = await req.text();
-    console.log('[INCOMING SMS RAW BODY]', rawBody)
-    console.log('[INCOMING SMS HEADERS]', Object.fromEntries(req.headers.entries()))
+    
+    if (isDevEnvironment) {
+      console.log('[INCOMING SMS RAW BODY]', rawBody)
+      console.log('[INCOMING SMS HEADERS]', Object.fromEntries(req.headers.entries()))
+    }
     
     const contentType = req.headers.get('content-type') || '';
-    console.log('[MMS DEBUG] content-type', contentType)
-    console.log('[MMS DEBUG] raw body length', rawBody.length)
+    
+    if (isDevEnvironment) {
+      console.log('[MMS DEBUG] content-type', contentType)
+      console.log('[MMS DEBUG] raw body length', rawBody.length)
+    }
     
     // Parse body using URLSearchParams
     const params = Object.fromEntries(new URLSearchParams(rawBody))
     
-    console.log('[INCOMING SMS NUMMEDIA]', params['NumMedia'])
-    console.log('[INCOMING SMS MEDIA URL 0]', params['MediaUrl0'])
-    console.log('[INCOMING SMS CONTENT TYPE 0]', params['MediaContentType0'])
+    if (isDevEnvironment) {
+      console.log('[INCOMING SMS NUMMEDIA]', params['NumMedia'])
+      console.log('[INCOMING SMS MEDIA URL 0]', params['MediaUrl0'])
+      console.log('[INCOMING SMS CONTENT TYPE 0]', params['MediaContentType0'])
+    }
     
     // Signature validation
-    console.log('[SIGNATURE VALIDATION START]', {
-      url: req.url,
-      contentType,
-      bodyLength: rawBody.length
-    })
+    if (isDevEnvironment) {
+      console.log('[SIGNATURE VALIDATION START]', {
+        url: req.url,
+        contentType,
+        bodyLength: rawBody.length
+      })
+    }
 
     // Bypass signature validation ONLY in development environment
     // NEVER allow bypass via client-accessible environment variables
-    const isDevEnvironment = process.env.NODE_ENV === 'development'
 
     if (!isDevEnvironment) {
       const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
@@ -79,11 +92,13 @@ export async function POST(req: NextRequest) {
     const MessageSid = formData.get('MessageSid')?.toString() || ''
     const NumMedia = Number(formData.get('NumMedia') || 0)
     
-    console.log('[MMS DEBUG] From', From)
-    console.log('[MMS DEBUG] To', To)
-    console.log('[MMS DEBUG] Body', Body)
-    console.log('[MMS DEBUG] MessageSid', MessageSid)
-    console.log('[MMS DEBUG] NumMedia', NumMedia)
+    if (isDevEnvironment) {
+      console.log('[MMS DEBUG] From', From)
+      console.log('[MMS DEBUG] To', To)
+      console.log('[MMS DEBUG] Body', Body)
+      console.log('[MMS DEBUG] MessageSid', MessageSid)
+      console.log('[MMS DEBUG] NumMedia', NumMedia)
+    }
     
     // Extract MMS media if present
     const media: Array<{ url: string; contentType: string }> = []
@@ -93,12 +108,18 @@ export async function POST(req: NextRequest) {
         const mediaContentType = params[`MediaContentType${i}`]
         if (mediaUrl && mediaContentType) {
           media.push({ url: mediaUrl, contentType: mediaContentType })
-          console.log(`[MMS DEBUG] Media ${i}: url=${mediaUrl.substring(0, 30)}..., type=${mediaContentType}`)
+          if (isDevEnvironment) {
+            console.log(`[MMS DEBUG] Media ${i}: url=${mediaUrl.substring(0, 30)}..., type=${mediaContentType}`)
+          }
         } else {
-          console.log(`[MMS DEBUG] Media ${i}: missing url or contentType`)
+          if (isDevEnvironment) {
+            console.log(`[MMS DEBUG] Media ${i}: missing url or contentType`)
+          }
         }
       }
-      console.log('[MMS DEBUG] Total media extracted:', media.length)
+      if (isDevEnvironment) {
+        console.log('[MMS DEBUG] Total media extracted:', media.length)
+      }
     }
     
     // Rate limiting check (phone number-based)
@@ -122,7 +143,10 @@ export async function POST(req: NextRequest) {
     
     // Validate required fields - allow empty body if media is present
     const hasContent = (Body && Body.length > 0) || (media && media.length > 0)
-    console.log('[MMS DEBUG] hasContent check', { hasContent, BodyLength: Body.length, MediaCount: media.length })
+    
+    if (isDevEnvironment) {
+      console.log('[MMS DEBUG] hasContent check', { hasContent, BodyLength: Body.length, MediaCount: media.length })
+    }
     
     if (!From || !To || !MessageSid || !hasContent) {
       console.error('[SYSTEM] [INCOMING-SMS] Missing required fields or no content:', { 
@@ -146,11 +170,13 @@ export async function POST(req: NextRequest) {
       })
     }
     
-    console.log('[INBOUND SMS] Processing inbound SMS:', {
-      From,
-      To,
-      BodyLength: Body.length
-    })
+    if (isDevEnvironment) {
+      console.log('[INBOUND SMS] Processing inbound SMS:', {
+        From,
+        To,
+        BodyLength: Body.length
+      })
+    }
     
     // Process the inbound SMS using the shared function
     const result = await processInboundSms({
@@ -172,31 +198,33 @@ export async function POST(req: NextRequest) {
       })
     }
     
-    console.log('[INBOUND SMS] Processing successful')
+    if (isDevEnvironment) {
+      console.log('[INBOUND SMS] Processing successful')
     
-    // Add operational logs for successful processing
-    if (result.lead) {
-      console.log('[INBOUND SMS] Lead found/created:', result.lead.id)
-      console.log('[MMS DEBUG] Lead ID for tracing:', result.lead.id)
+      // Add operational logs for successful processing
+      if (result.lead) {
+        console.log('[INBOUND SMS] Lead found/created:', result.lead.id)
+        console.log('[MMS DEBUG] Lead ID for tracing:', result.lead.id)
+      }
+      
+      if (result.conversation) {
+        console.log('[INBOUND SMS] Conversation found/created:', result.conversation.id)
+      }
+      
+      if (result.message) {
+        console.log('[INBOUND SMS] Message inserted:', result.message.id)
+        console.log('[MMS DEBUG] Message ID for tracing:', result.message.id)
+      }
+      
+      // Add debug response with key identifiers
+      console.log('[INBOUND SMS DEBUG]', {
+        businessId: result.lead?.business_id || 'unknown',
+        leadId: result.lead?.id || 'unknown',
+        conversationId: result.conversation?.id || 'unknown',
+        messageId: result.message?.id || 'unknown',
+        numMedia: formData.get('NumMedia') || 0
+      })
     }
-    
-    if (result.conversation) {
-      console.log('[INBOUND SMS] Conversation found/created:', result.conversation.id)
-    }
-    
-    if (result.message) {
-      console.log('[INBOUND SMS] Message inserted:', result.message.id)
-      console.log('[MMS DEBUG] Message ID for tracing:', result.message.id)
-    }
-    
-    // Add debug response with key identifiers
-    console.log('[INBOUND SMS DEBUG]', {
-      businessId: result.lead?.business_id || 'unknown',
-      leadId: result.lead?.id || 'unknown',
-      conversationId: result.conversation?.id || 'unknown',
-      messageId: result.message?.id || 'unknown',
-      numMedia: formData.get('NumMedia') || 0
-    })
       
       // Return the TwiML response
     return new Response(result.twiml, {
