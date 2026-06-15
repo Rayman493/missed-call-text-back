@@ -156,6 +156,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
 
   // Show loading state while business is loading or not yet initialized
   // Skip loading if business is already verified and business exists (normal navigation)
+  // FORBID AppLoadingScreen during normal_dashboard_navigation
   if (showLoading || !initialized) {
     if (businessVerified && business) {
       console.log('[BusinessGuard] Skipping loading screen - business already verified', {
@@ -170,6 +171,20 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       // Render children immediately, don't wait for loading to complete
       return <>{children}</>
     } else {
+      // Explicit guard: never show full-page loader during normal navigation
+      if (pathname?.startsWith('/dashboard') && businessVerified) {
+        console.log('[BusinessGuard] FORBIDDEN: Skipping loading screen during normal dashboard navigation', {
+          showLoading,
+          loading,
+          initialized,
+          businessVerified,
+          pathname,
+          businessExists: !!business,
+          flowType: 'normal_dashboard_navigation',
+          reasonForLoadingScreen: showLoading ? 'delayed_loading' : 'not_initialized'
+        })
+        return <>{children}</>
+      }
       console.log('[BusinessGuard] Showing loading screen', {
         showLoading,
         loading,

@@ -398,7 +398,19 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // Show loading during initial auth loading (not recovery mode)
   // Skip loading if auth is already verified and user exists (normal navigation)
+  // FORBID AppLoadingScreen during normal_dashboard_navigation
   if (loading && !(authVerified && user)) {
+    // Explicit guard: never show full-page loader during normal navigation
+    if (flowType === 'normal_dashboard_navigation' && authVerified) {
+      console.log('[AuthGuard] FORBIDDEN: Skipping loading screen during normal navigation', { 
+        flowType, 
+        loading,
+        authVerified,
+        pathname: typeof window !== 'undefined' ? window.location.pathname : 'server',
+        userExists: !!user
+      })
+      return <>{children}</>
+    }
     console.log('[AuthGuard] Showing loading screen', { 
       flowType, 
       loading,
