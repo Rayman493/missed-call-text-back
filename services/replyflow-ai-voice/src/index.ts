@@ -3502,8 +3502,10 @@ Do NOT:
 
               // Listen for partial transcript events (optional)
               if (message.type === 'conversation.item.input_audio_transcription.partial') {
-                const userTranscript = message.transcript || '';
-                console.log('[AI USER TRANSCRIPT PARTIAL]', userTranscript);
+                if (process.env.DEBUG_AI_VOICE === 'true') {
+                  const userTranscript = message.transcript || '';
+                  console.log('[AI USER TRANSCRIPT PARTIAL]', userTranscript);
+                }
               }
               if (message.type === 'response.created') {
                 responseCreatedReceived = true;
@@ -3516,7 +3518,9 @@ Do NOT:
                 console.log('[OPENAI RECV] response.output_item.added');
               }
               if (message.type === 'response.output_audio.delta') {
-                console.log('[OPENAI RECV] response.output_audio.delta');
+                if (process.env.DEBUG_AI_VOICE === 'true') {
+                  console.log('[OPENAI RECV] response.output_audio.delta');
+                }
 
                 // Set assistant speaking to true when audio starts
                 if (!assistantSpeaking) {
@@ -3749,10 +3753,12 @@ Do NOT:
                   const updatedBuffer = currentBuffer + message.delta;
                   activeAssistantTranscripts.set(itemId, updatedBuffer);
                   
-                  console.log('[TRANSCRIPT DELTA]', { 
-                    item_id: itemId, 
-                    current_buffer_length: updatedBuffer.length 
-                  });
+                  if (process.env.DEBUG_AI_VOICE === 'true') {
+                    console.log('[TRANSCRIPT DELTA]', { 
+                      item_id: itemId, 
+                      current_buffer_length: updatedBuffer.length 
+                    });
+                  }
                   
                   // Check for natural closing phrases
                   const closingPhrases = [
@@ -3919,17 +3925,23 @@ Do NOT:
               }
               
               // Catch-all logging for every OpenAI event type
-              console.log('[OPENAI EVENT]', message.type);
+              if (process.env.DEBUG_AI_VOICE === 'true') {
+                console.log('[OPENAI EVENT]', message.type);
+              }
 
               
               // Handle audio delta - now PCMU directly from OpenAI
               if (message.type === 'response.output_audio.delta') {
-                console.log('[OPENAI RECV] response.output_audio.delta');
-                console.log('[AI AUDIO DELTA] Assistant audio delta received');
+                if (process.env.DEBUG_AI_VOICE === 'true') {
+                  console.log('[OPENAI RECV] response.output_audio.delta');
+                  console.log('[AI AUDIO DELTA] Assistant audio delta received');
+                }
               }
               if (message.type === 'response.output_audio_transcript.delta') {
                 console.log('[OPENAI RECV] response.output_audio_transcript.delta');
-                console.log('[AI TRANSCRIPT DELTA]', message.delta || 'null');
+                if (process.env.DEBUG_AI_VOICE === 'true') {
+                  console.log('[AI TRANSCRIPT DELTA]', message.delta || 'null');
+                }
                 // Do NOT trigger hangup on delta - wait for completed transcript events
               }
               if (message.type === 'response.output_audio_transcript.done') {
@@ -3940,7 +3952,9 @@ Do NOT:
                 // This prevents premature hangup before audio has finished generating
               }
               if (message.type === 'response.output_audio.delta' && message.delta) {
-                console.log('[GREETING AUDIO DELTA RECEIVED] Audio delta from OpenAI');
+                if (process.env.DEBUG_AI_VOICE === 'true') {
+                  console.log('[GREETING AUDIO DELTA RECEIVED] Audio delta from OpenAI');
+                }
                 console.log('[FORWARDING PCMU DIRECTLY] - no conversion needed');
                 
                 const streamSid = twilioHandler.getStreamSid();
@@ -3952,16 +3966,20 @@ Do NOT:
                 }
                 
                 // Log call state during audio streaming
-                console.log('[OUTBOUND ASSISTANT AUDIO DELTA]', {
-                  callState: callState,
-                  assistantSpeaking: assistantSpeaking,
-                  bytes: message.delta.length
-                });
+                if (process.env.DEBUG_AI_VOICE === 'true') {
+                  console.log('[OUTBOUND ASSISTANT AUDIO DELTA]', {
+                    callState: callState,
+                    assistantSpeaking: assistantSpeaking,
+                    bytes: message.delta.length
+                  });
+                }
 
                 // Check if audio should be blocked
                 if (callState === 'closing') {
                   console.log('[RACE CONDITION DEBUG] Audio delta BLOCKED due to callState=closing at:', new Date().toISOString());
-                  console.log('[RACE CONDITION DEBUG] Blocked audio bytes:', message.delta.length);
+                  if (process.env.DEBUG_AI_VOICE === 'true') {
+                    console.log('[RACE CONDITION DEBUG] Blocked audio bytes:', message.delta.length);
+                  }
                   console.log('[OUTBOUND ASSISTANT AUDIO BLOCKED]', {
                     reason: 'terminal_closing',
                     callState: callState
@@ -3969,7 +3987,9 @@ Do NOT:
                   return;
                 }
 
-                console.log('[OUTBOUND ASSISTANT AUDIO FORWARDED TO TWILIO]', { bytes: message.delta.length });
+                if (process.env.DEBUG_AI_VOICE === 'true') {
+                  console.log('[OUTBOUND ASSISTANT AUDIO FORWARDED TO TWILIO]', { bytes: message.delta.length });
+                }
                 
                 // Forward PCMU directly to Twilio
                 const mediaMessage = {

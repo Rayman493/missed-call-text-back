@@ -169,14 +169,18 @@ export class TwilioStreamHandler {
               }
 
               if (openAiWs) {
-                console.log('[OPENAI INPUT AUDIO APPEND START]', { callState, assistantSpeaking });
+                if (process.env.DEBUG_AI_VOICE === 'true') {
+                  console.log('[OPENAI INPUT AUDIO APPEND START]', { callState, assistantSpeaking });
+                }
                 const audioMessage = {
                   type: 'input_audio_buffer.append',
                   audio: audioBuffer.toString('base64'),
                 };
                 try {
                   openAiWs.send(JSON.stringify(audioMessage));
-                  console.log('[OPENAI INPUT AUDIO APPEND SENT]', { audioLength: audioBuffer.length });
+                  if (process.env.DEBUG_AI_VOICE === 'true') {
+                    console.log('[OPENAI INPUT AUDIO APPEND SENT]', { audioLength: audioBuffer.length });
+                  }
                 } catch (error) {
                   console.log('[OPENAI INPUT AUDIO APPEND ERROR]', error);
                 }
