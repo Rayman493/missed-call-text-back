@@ -153,12 +153,12 @@ export class TwilioStreamHandler {
 
               // Hard guard: Do not append caller audio during terminal closing or when assistant is speaking
               if (terminalClosingResponseStarted || callState !== 'active') {
-                console.log('[AI AUDIO APPEND BLOCKED TERMINAL CLOSING]', { callState, terminalClosingResponseStarted });
+                console.log('[INBOUND CALLER AUDIO BLOCKED - TERMINAL CLOSING]', { callState, terminalClosingResponseStarted });
                 return;
               }
 
               if (assistantSpeaking) {
-                console.log('[AI AUDIO APPEND SKIPPED ASSISTANT SPEAKING]', { assistantSpeaking });
+                console.log('[INBOUND CALLER AUDIO SKIPPED - ASSISTANT SPEAKING]', { assistantSpeaking });
                 return;
               }
 

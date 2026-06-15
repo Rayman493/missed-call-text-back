@@ -3844,6 +3844,12 @@ Do NOT:
               if (message.type === 'response.created') {
                 responseCreatedReceived = true;
                 console.log('[OPENAI RECV] response.created');
+                
+                // Log confirmation response start
+                if (confirmationState === 'confirmation_pending') {
+                  console.log('[CONFIRMATION AUDIO START] Confirmation response created');
+                  console.log('[CONFIRMATION AUDIO START] confirmationState:', confirmationState);
+                }
               }
               if (message.type === 'response.output_item.added') {
                 console.log('[OPENAI RECV] response.output_item.added');
@@ -4069,6 +4075,7 @@ Do NOT:
                   confirmationState = 'awaiting_confirmation';
                   console.log('[CALL STATE CHANGE] confirmationState: confirmation_pending -> awaiting_confirmation');
                   console.log('[ENTER AWAITING_CONFIRMATION] Waiting for caller response');
+                  console.log('[CONFIRMATION AUDIO COMPLETE] Confirmation audio playback complete');
                 }
                 
                 // Finalize any remaining active assistant transcripts
@@ -4168,6 +4175,12 @@ Do NOT:
                   
                   // Check for final closing phrases
                   const cleanTranscript = message.transcript.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
+                  
+                  // Special logging for confirmation transcript
+                  if (confirmationState === 'confirmation_pending' || confirmationState === 'awaiting_confirmation') {
+                    console.log('[CONFIRMATION TRANSCRIPT]', { text: cleanTranscript, confirmationState: confirmationState });
+                    console.log('[CONFIRMATION TRANSCRIPT] Contains "Is that correct?":', cleanTranscript.includes('Is that correct?'));
+                  }
                   
                   // Check for final closing phrase - schedule hangup immediately
                   if (cleanTranscript.includes(FINAL_ENDING_PHRASE)) {
@@ -4283,7 +4296,35 @@ Do NOT:
                   return;
                 }
                 
-                console.log('[AUDIO SENT TO TWILIO] Sending audio to Twilio WebSocket');
+                // Log call state during audio streaming
+                console.log('[OUTBOUND ASSISTANT AUDIO DELTA]', {
+                  callState: callState,
+                  confirmationState: confirmationState,
+                  assistantSpeaking: assistantSpeaking,
+                  terminalClosingResponseStarted: terminalClosingResponseStarted,
+                  finalClosingStarted: finalClosingStarted,
+                  bytes: message.delta.length
+                });
+
+                // Check if audio should be blocked
+                if (callState === 'closing') {
+                  console.log('[OUTBOUND ASSISTANT AUDIO BLOCKED]', {
+                    reason: 'terminal_closing',
+                    callState: callState,
+                    confirmationState: confirmationState
+                  });
+                  return;
+                }
+
+                // Special logging for confirmation audio
+                if (confirmationState === 'confirmation_pending' || confirmationState === 'awaiting_confirmation') {
+                  console.log('[CONFIRMATION AUDIO DELTA RECEIVED]', {
+                    bytes: message.delta.length,
+                    confirmationState: confirmationState
+                  });
+                }
+
+                console.log('[OUTBOUND ASSISTANT AUDIO FORWARDED TO TWILIO]', { bytes: message.delta.length });
                 
                 // Forward PCMU directly to Twilio
                 const mediaMessage = {
@@ -4294,13 +4335,15 @@ Do NOT:
                   },
                 };
                 
-                console.log('[TWILIO MEDIA SENT] - direct PCMU', {
-                  streamSid: mediaMessage.streamSid,
-                  payloadLength: mediaMessage.media?.payload?.length || 0
-                });
-                
                 ws.send(JSON.stringify(mediaMessage));
-                console.log('[AUDIO OUT SENT TO TWILIO]');
+
+                // Special logging for confirmation audio
+                if (confirmationState === 'confirmation_pending' || confirmationState === 'awaiting_confirmation') {
+                  console.log('[CONFIRMATION AUDIO DELTA FORWARDED TO TWILIO]', {
+                    bytes: message.delta.length,
+                    confirmationState: confirmationState
+                  });
+                }
               }
             });
             console.log('[OPENAI AUDIT] message listener attached');
