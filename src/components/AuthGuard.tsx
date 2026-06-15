@@ -17,6 +17,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [recoveryTimeoutElapsed, setRecoveryTimeoutElapsed] = useState(false)
   const [billingGraceTimeoutElapsed, setBillingGraceTimeoutElapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [stripeParamsCleared, setStripeParamsCleared] = useState(false)
 
   // Mobile detection
   useEffect(() => {
@@ -38,13 +39,24 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         checkoutParam === 'success' ||
         Boolean(sessionId?.startsWith('cs_'))
       
+      // Determine flow type for logging
+      let flowType = 'normal_dashboard_navigation'
+      if (hasCheckoutSuccess) {
+        flowType = 'stripe_return'
+      } else if (loading && !user) {
+        flowType = 'initial_load'
+      }
+      
       console.log('[TRACE AuthGuard Render]', {
+        flowType,
         pathname: window.location.pathname,
         search: window.location.search,
-        hasCheckoutSuccess
+        hasCheckoutSuccess,
+        userExists: !!user,
+        loading
       })
     }
-  }, [])
+  }, [user, loading])
 
   // Check if we're in checkout recovery mode
   const checkoutParam = searchParams?.get('checkout')
@@ -52,50 +64,96 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const billingReturnParam = searchParams?.get('billing_return')
   const setupParam = searchParams?.get('setup')
   const isCheckoutRecovery = 
-    checkoutParam === 'success' ||
-    Boolean(sessionId?.startsWith('cs_'))
+    !stripeParamsCleared && (
+      checkoutParam === 'success' ||
+      Boolean(sessionId?.startsWith('cs_'))
+    )
   
   // Check if we're in billing return grace mode
   // Exclude /billing/success page - it has its own loading and polling logic
   const isBillingSuccessPage = typeof window !== 'undefined' && window.location.pathname === '/billing/success'
   const isBillingReturn = 
+    !stripeParamsCleared &&
     !isBillingSuccessPage &&
     (billingReturnParam === 'success' ||
     Boolean(sessionId?.startsWith('cs_')))
 
   // Check if we're returning from Stripe to setup (grace mode for session restoration)
   const isStripeSetupReturn = 
+    !stripeParamsCleared &&
     setupParam === '1' && 
     (typeof window !== 'undefined' && (window.location.pathname === '/dashboard' || window.location.pathname === '/setup/forwarding'))
 
+  // Determine flow type for logging
+  let flowType = 'normal_dashboard_navigation'
+  if (isCheckoutRecovery || isBillingReturn || isStripeSetupReturn) {
+    flowType = 'stripe_return'
+  } else if (loading && !user) {
+    flowType = 'initial_load'
+  }
+
   console.log('[AuthGuard] Stripe return detection', {
+    flowType,
     isCheckoutRecovery,
     isBillingReturn,
     isStripeSetupReturn,
+    stripeParamsCleared,
     setupParam,
     pathname: typeof window !== 'undefined' ? window.location.pathname : 'server'
   })
+
+  // Clear Stripe return parameters after successful session restoration
+  useEffect(() => {
+    if (user && !stripeParamsCleared && typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      const hasStripeParams = 
+        url.searchParams.has('checkout') ||
+        url.searchParams.has('session_id') ||
+        url.searchParams.has('billing_return') ||
+        url.searchParams.has('setup')
+      
+      if (hasStripeParams) {
+        console.log('[AuthGuard] Clearing Stripe return parameters after session restoration', {
+          flowType: 'stripe_return_cleanup',
+          pathname: window.location.pathname
+        })
+        
+        // Clear all Stripe-related parameters
+        url.searchParams.delete('checkout')
+        url.searchParams.delete('session_id')
+        url.searchParams.delete('billing_return')
+        url.searchParams.delete('setup')
+        
+        // Replace URL without parameters
+        window.history.replaceState({}, '', url.toString())
+        setStripeParamsCleared(true)
+      }
+    }
+  }, [user, stripeParamsCleared])
 
   // Trace log on every AuthGuard render
   useEffect(() => {
     if (typeof window !== 'undefined') {
       console.log('[TRACE AuthGuard]', {
+        flowType,
         pathname: window.location.pathname,
         search: window.location.search,
         userExists: !!user,
         sessionExists: !!user,
         loading,
         checkoutSuccess: isCheckoutRecovery,
+        stripeParamsCleared,
         redirectingTo: null,
         reason: 'authguard_render'
       })
     }
-  }, [user, loading, isCheckoutRecovery])
+  }, [user, loading, isCheckoutRecovery, flowType, stripeParamsCleared])
 
   // Trace log when billing return grace mode is active
   useEffect(() => {
     if (isBillingReturn && typeof window !== 'undefined') {
       console.log('[Dashboard Billing Return Grace Active]', {
+        flowType: 'stripe_return',
         pathname: window.location.pathname,
         search: window.location.search,
         hasSession: !!user,
@@ -311,15 +369,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // Show loading during initial auth loading (not recovery mode)
   if (loading) {
-    console.log('[AuthGuard] Showing loading state', { loading })
+    console.log('[AuthGuard] Showing loading state', { flowType, loading })
     return <AppLoadingScreen />
   }
 
   if (!user) {
-    console.log('[AuthGuard] No user found, returning null (AuthProvider will handle redirect)')
+    console.log('[AuthGuard] No user found, returning null (AuthProvider will handle redirect)', { flowType })
     return null // Will redirect via AuthProvider
   }
 
-  console.log('[AuthGuard] User authenticated, rendering children')
+  console.log('[AuthGuard] User authenticated, rendering children', { flowType })
   return <>{children}</>
 }
