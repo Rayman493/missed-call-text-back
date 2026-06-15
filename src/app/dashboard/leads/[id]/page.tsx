@@ -1620,11 +1620,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </p>
                   </div>
 
-                  {/* Status Badge */}
-                  <span className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold border ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))} flex-shrink-0`}>
-                    {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
-                  </span>
-
                   {/* Correction Badge */}
                   {leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0 && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex-shrink-0">
@@ -1736,6 +1731,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   disabled={refreshing}
                   className="p-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50 border border-border hover:border-border flex items-center justify-center"
                   title="Refresh conversation"
+                  aria-label="Refresh conversation"
                 >
                   {refreshing ? (
                     <div className="w-4 h-4 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600"></div>
@@ -1745,79 +1741,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </svg>
                   )}
                 </button>
-                
-                {/* More Actions */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowMoreActions(!showMoreActions)}
-                    className="p-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 border border-border hover:border-border flex items-center justify-center"
-                    title="More actions"
-                  >
-                    <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                    </svg>
-                  </button>
-                  
-                  {showMoreActions && (
-                    <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 z-50">
-                      {getLeadLifecycleStatus(leadData) !== 'completed' && (
-                        <button
-                          onClick={() => {
-                            handleStatusUpdate('completed')
-                            setShowMoreActions(false)
-                          }}
-                          disabled={isCompleting}
-                          className="w-full px-3 py-1.5 text-left text-xs text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                          {isCompleting ? (
-                            <>
-                              <div className="w-3 h-3 animate-spin rounded-full border border-green-400 border-t-transparent"></div>
-                              <span>Completing...</span>
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                              <span>Mark Complete</span>
-                            </>
-                          )}
-                        </button>
-                      )}
-                      <button
-                        onClick={() => {
-                          setShowIgnoreModal(true)
-                          setShowMoreActions(false)
-                        }}
-                        disabled={isIgnoring}
-                        className="w-full px-3 py-1.5 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        {isIgnoring ? (
-                          <>
-                            <div className="w-3 h-3 animate-spin rounded-full border border-red-400 border-t-transparent"></div>
-                            <span>Ignoring...</span>
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                            <span>Ignore Contact</span>
-                          </>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowRemoveModal(true)
-                          setShowMoreActions(false)
-                        }}
-                        className="w-full px-3 py-1.5 text-left text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                      >
-                        Remove Lead
-                      </button>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           </div>
