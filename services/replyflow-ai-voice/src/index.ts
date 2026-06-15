@@ -3126,6 +3126,9 @@ Return only JSON, no other text.`;
             let sessionUpdatedReceived = false;
             let confirmationSummaryInProgress = false;
             let awaitingFinalConfirmationQuestion = false;
+            let confirmationSummarySpoken = false;
+            let confirmationQuestionAsked = false;
+            let waitingForConfirmation = false;
             
             // Attach listeners - using minimal endpoint pattern
             console.log('[OPENAI STATE AFTER LISTENER] readyState:', openAiWs.readyState, 'OPEN:', WebSocket.OPEN);
@@ -3180,12 +3183,12 @@ Once you have collected ALL 7 required fields, you MUST get confirmation before 
 
 STEP 1 - Start confirmation: Say exactly: "Let me make sure I have everything right."
 STEP 2 - Summarize each field: Say "Your name is [caller_name]. You're calling about [reason]. The additional details are [additional_details]. This is [urgent/time-sensitive or not urgent]. The address is [address]. The best time to call you back is [time]. The best callback number is [number]."
-STEP 3 - Ask confirmation question (MANDATORY - NEVER SKIP): Say exactly: "Is that correct?"
+STEP 3 - WAIT for the system to ask the confirmation question separately (do not ask it yourself)
 STEP 4 - WAIT for caller confirmation (yes, correct, sounds good, etc.)
 STEP 5 - If confirmed, say exactly: "Perfect. I'll pass this along and someone will follow up with you shortly. Thank you for calling. Have a great day."
 STEP 6 - Do NOT ask any more questions after the final goodbye.
 
-CRITICAL: You MUST complete ALL 6 steps above. Step 3 (asking "Is that correct?") is absolutely required and cannot be skipped or truncated. Do not end the confirmation without saying "Is that correct?"
+IMPORTANT: Do NOT include "Is that correct?" in your summary. The system will ask this question separately after you finish the summary.
 
 IMPORTANT: You MUST get confirmation before the final goodbye. Do not skip the confirmation step.
 
@@ -3551,6 +3554,16 @@ Do NOT:
                   if (intakeData!.stage === 'confirmation' && userTranscript) {
                     console.log('[CONFIRMATION REQUIRED] Processing user response for confirmation:', userTranscript);
 
+                    // Gate: Only process confirmation after the question has been asked
+                    if (!confirmationQuestionAsked) {
+                      console.log('[CONFIRMATION GATE] Question not yet asked, ignoring user response');
+                      console.log('[CONFIRMATION GATE] confirmationQuestionAsked:', confirmationQuestionAsked);
+                      console.log('[CONFIRMATION GATE] waitingForConfirmation:', waitingForConfirmation);
+                      return; // Skip processing until question is asked
+                    }
+
+                    console.log('[CONFIRMATION GATE] Question has been asked, processing user response');
+
                     // Pre-confirmation gate: validate issue description
                     console.log('[AI PRE CONFIRMATION VALIDATION] Checking issue description validity');
                     const isIssueValid = isValidIssueDescription(intakeData!.issueDescription || '', intakeData!.serviceRequested);
@@ -3590,6 +3603,8 @@ Do NOT:
                     if (isConfirmationAccepted(userTranscript)) {
                       console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
                       console.log('[CONFIRMATION ACCEPTED] confirmationState: accepted');
+                      console.log('[CONFIRMATION ACCEPTED] waitingForConfirmation = false');
+                      waitingForConfirmation = false;
 
                       // Immediately close the call after confirmation (deterministic)
                       closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
@@ -3759,6 +3774,7 @@ Do NOT:
                   const isConfirmationMessage = intakeResponse.nextStage === 'complete' || intakeResponse.nextStage === 'confirmation';
                   
                   if (isConfirmationMessage) {
+                    console.log('[CONFIRMATION SUMMARY REQUESTED] Sending confirmation summary');
                     console.log('[AI CONFIRMATION SUMMARY SENT]', { text: responseToSend });
                     
                     // Set state flags
@@ -4042,6 +4058,51 @@ Do NOT:
                 console.log('[OPENAI RECV] response.done');
                 console.log('[AI RESPONSE DONE] Response completed');
                 
+                // Check if this was a confirmation summary response
+                if (confirmationSummaryInProgress) {
+                  console.log('[CONFIRMATION SUMMARY DONE] Confirmation summary response completed');
+                  console.log('[CONFIRMATION SUMMARY DONE] confirmationSummarySpoken = true');
+                  confirmationSummarySpoken = true;
+                  confirmationSummaryInProgress = false;
+                  
+                  // Send separate "Is that correct?" question
+                  console.log('[CONFIRMATION QUESTION REQUESTED] Sending separate "Is that correct?" response');
+                  const confirmationQuestionPayload = {
+                    type: 'response.create',
+                    response: {
+                      instructions: 'Say exactly: "Is that correct?"'
+                    }
+                  };
+                  
+                  console.log('[AI RESPONSE.CREATE SEND SITE]', {
+                    label: 'CONFIRMATION_QUESTION',
+                    currentStage: intakeData?.stage || 'unknown',
+                    nextStage: 'not_applicable',
+                    intakeComplete: intakeComplete,
+                    instructions: 'Say exactly: "Is that correct?"'
+                  });
+                  
+                  if (openAiWs) {
+                    openAiWs.send(JSON.stringify(confirmationQuestionPayload));
+                    console.log('[CONFIRMATION QUESTION SENT] "Is that correct?" response sent');
+                  }
+                  
+                  return;
+                }
+                
+                // Check if this was the confirmation question response
+                if (awaitingFinalConfirmationQuestion && !confirmationQuestionAsked) {
+                  console.log('[CONFIRMATION QUESTION DONE] Confirmation question response completed');
+                  console.log('[CONFIRMATION QUESTION DONE] confirmationQuestionAsked = true');
+                  console.log('[CONFIRMATION QUESTION DONE] waitingForConfirmation = true');
+                  confirmationQuestionAsked = true;
+                  waitingForConfirmation = true;
+                  awaitingFinalConfirmationQuestion = false;
+                  
+                  console.log('[WAITING FOR CONFIRMATION] Waiting for caller response');
+                  return;
+                }
+                
                 // Finalize any remaining active assistant transcripts
                 activeAssistantTranscripts.forEach((buffer, itemId) => {
                   if (buffer.trim()) {
@@ -4057,8 +4118,8 @@ Do NOT:
                 });
                 activeAssistantTranscripts.clear();
                 
-                // Check if ready to close and send final closing
-                if (intakeComplete && !finalClosingStarted && callState === 'active') {
+                // Check if ready to close and send final closing (only after confirmation received)
+                if (intakeComplete && !finalClosingStarted && callState === 'active' && waitingForConfirmation === false) {
                   console.log('[AI TERMINAL CLOSING START] Starting terminal closing flow');
                   console.log('[AI TERMINAL CLOSING START] callState: active -> closing');
                   
