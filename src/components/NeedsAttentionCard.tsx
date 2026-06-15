@@ -46,38 +46,97 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
         }
 
         // Fetch leads from last 7 days
-        const { data: leads, error: leadsError } = await supabase
-          .from('leads')
-          .select('id, business_id, phone, status, raw_metadata, created_at, updated_at')
-          .eq('business_id', business.id)
-          .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        // Try with phone column first
+        let leads: any[] | null = null
+        let leadsError: any = null
+        
+        try {
+          const result = await supabase
+            .from('leads')
+            .select('id, business_id, phone, status, raw_metadata, created_at, updated_at')
+            .eq('business_id', business.id)
+            .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+          
+          leads = result.data
+          leadsError = result.error
+        } catch (e) {
+          leadsError = e
+        }
 
         if (leadsError) {
-          console.error('[NeedsAttention] Failed to fetch leads:', {
+          console.error('[NeedsAttention] Failed to fetch leads with phone column:', {
             code: leadsError.code,
             message: leadsError.message,
             details: leadsError.details,
             hint: leadsError.hint,
-            fullError: leadsError
+            fullError: JSON.stringify(leadsError, null, 2)
           })
-          // Try fallback query with minimal columns if the detailed query fails
-          const { data: fallbackLeads, error: fallbackError } = await supabase
-            .from('leads')
-            .select('id, business_id, phone, status, created_at')
-            .eq('business_id', business.id)
-            .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
           
-          if (fallbackError) {
-            console.error('[NeedsAttention] Fallback query also failed:', {
-              code: fallbackError.code,
-              message: fallbackError.message,
-              details: fallbackError.details,
-              hint: fallbackError.hint
-            })
-            // Continue with empty leads array
-          } else {
-            console.log('[NeedsAttention] Fallback query succeeded')
+          // Try with caller_phone column (production might use this instead)
+          try {
+            const result = await supabase
+              .from('leads')
+              .select('id, business_id, caller_phone, status, raw_metadata, created_at, updated_at')
+              .eq('business_id', business.id)
+              .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+            
+            leads = result.data
+            leadsError = result.error
+            
+            if (!leadsError) {
+              console.log('[NeedsAttention] Query succeeded with caller_phone column')
+              // Normalize to phone field for downstream code
+              if (result.data) {
+                leads = result.data.map((lead: any) => ({
+                  ...lead,
+                  phone: lead.caller_phone
+                }))
+              }
+            }
+          } catch (e) {
+            leadsError = e
           }
+        }
+
+        if (leadsError) {
+          console.error('[NeedsAttention] Query with caller_phone also failed:', {
+            code: leadsError.code,
+            message: leadsError.message,
+            details: leadsError.details,
+            hint: leadsError.hint,
+            fullError: JSON.stringify(leadsError, null, 2)
+          })
+          
+          // Try minimal query with only safe columns
+          try {
+            const result = await supabase
+              .from('leads')
+              .select('id, business_id, status, created_at')
+              .eq('business_id', business.id)
+              .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+            
+            leads = result.data
+            leadsError = result.error
+            
+            if (!leadsError) {
+              console.log('[NeedsAttention] Minimal query succeeded')
+            }
+          } catch (e) {
+            leadsError = e
+          }
+        }
+
+        if (leadsError) {
+          console.error('[NeedsAttention] All lead queries failed, suppressing warning card', {
+            code: leadsError.code,
+            message: leadsError.message,
+            details: leadsError.details,
+            hint: leadsError.hint,
+            fullError: JSON.stringify(leadsError, null, 2)
+          })
+          // Suppress the warning card by returning early
+          setLoading(false)
+          return
         }
 
         // High Priority Items - Individual lead items
