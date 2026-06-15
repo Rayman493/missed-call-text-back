@@ -50,7 +50,7 @@ async function hasRecentAutoReply(businessId: string, callerPhone: string): Prom
       .from('leads')
       .select('id')
       .eq('business_id', businessId)
-      .eq('phone', callerPhone)
+      .eq('caller_phone', callerPhone)
       .single();
 
     if (leadError && leadError.code !== 'PGRST116') {
@@ -1289,7 +1289,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       // Create new lead
       lead = await db.createLead({
         business_id: business.id,
-        phone: normalizedCallerPhone,
+        caller_phone: normalizedCallerPhone,
         status: 'new',
         raw_metadata: { source: 'voice' },
       });

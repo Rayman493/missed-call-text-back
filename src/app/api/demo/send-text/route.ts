@@ -136,7 +136,7 @@ export async function POST(request: Request) {
       
       demoLead = await db.createLead({
         business_id: business.id,
-        phone: normalizedDemoPhone,
+        caller_phone: normalizedDemoPhone,
         status: 'new',
         name: 'Demo User',
         raw_metadata: { source: 'demo' },

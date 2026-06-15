@@ -177,12 +177,12 @@ export const db = {
     
     const business = businesses[0]
     
-    // Search for lead by phone for this specific business
+    // Search for lead by caller_phone for this specific business
     const { data, error } = await supabaseAdmin
       .from('leads')
       .select('*')
       .eq('business_id', business.id)
-      .eq('phone', phone)
+      .eq('caller_phone', phone)
       .limit(1)
       .single()
     
@@ -226,7 +226,7 @@ export const db = {
     console.log('[INBOUND SMS LEAD MATCHED BY CALLER_PHONE]', {
       leadId: data.id,
       businessId: data.business_id,
-      callerPhone: data.phone
+      callerPhone: data.caller_phone
     })
     
     return { lead: data, business }
@@ -916,7 +916,7 @@ export const db = {
       .from('leads')
       .select('*')
       .eq('business_id', businessId)
-      .eq('phone', normalizedPhone)
+      .eq('caller_phone', normalizedPhone)
       .single()
     
     if (error) {
@@ -963,22 +963,22 @@ export const db = {
 
   async createLead(lead: Omit<Lead, 'id' | 'created_at' | 'updated_at'>): Promise<Lead | null> {
     // DEFENSIVE GUARD: Validate required fields
-    if (!lead.business_id || !lead.phone) {
+    if (!lead.business_id || !lead.caller_phone) {
       console.error('[LEAD CREATION BLOCKED] Missing required fields:', {
         business_id: lead.business_id,
-        phone: lead.phone
+        caller_phone: lead.caller_phone
       })
       return null
     }
     
     const normalizedLead = {
       ...lead,
-      phone: normalizePhoneNumberForStorage(lead.phone || '')
+      caller_phone: normalizePhoneNumberForStorage(lead.caller_phone || '')
     }
     
     console.log('[PHONE NORMALIZED]', {
-      rawPhone: lead.phone,
-      normalizedPhone: normalizedLead.phone,
+      rawPhone: lead.caller_phone,
+      normalizedPhone: normalizedLead.caller_phone,
       source: 'createLead'
     })
     
@@ -986,7 +986,7 @@ export const db = {
     console.log('[LEAD CREATION ATTEMPT]', {
       source: 'createLead',
       business_id: lead.business_id,
-      phone: normalizedLead.phone,
+      caller_phone: normalizedLead.caller_phone,
       status: lead.status,
       raw_metadata_source: lead.raw_metadata?.source,
       timestamp: new Date().toISOString()
@@ -1001,7 +1001,7 @@ export const db = {
     if (error) {
       console.error('[LEAD CREATION FAILED]', {
         business_id: lead.business_id,
-        phone: normalizedLead.phone,
+        caller_phone: normalizedLead.caller_phone,
         error: error.message,
         code: error.code
       })
@@ -1011,7 +1011,7 @@ export const db = {
     console.log('[LEAD CREATED]', {
       lead_id: data.id,
       business_id: data.business_id,
-      phone: data.phone,
+      caller_phone: data.caller_phone,
       status: data.status,
       timestamp: new Date().toISOString()
     })
@@ -1039,7 +1039,7 @@ export const db = {
     const { data, error } = await supabaseAdmin
       .from('leads')
       .upsert(lead, {
-        onConflict: 'business_id,phone'
+        onConflict: 'business_id,caller_phone'
       })
       .select()
       .single()
@@ -1205,13 +1205,13 @@ export const db = {
       return { leadId: aiCallRecord.lead_id, conversationId: aiCallRecord.conversation_id, isNew: false }
     }
     
-    // Step 3: Lookup existing lead by business_id + phone (for repeat callers)
-    console.log('[CALL INTAKE] Looking up existing lead by business_id + phone')
+    // Step 3: Lookup existing lead by business_id + caller_phone (for repeat callers)
+    console.log('[CALL INTAKE] Looking up existing lead by business_id + caller_phone')
     const { data: existingLead } = await supabaseAdmin
       .from('leads')
       .select('id, status, last_message_at, last_reply_at, first_contact_at, created_at')
       .eq('business_id', params.businessId)
-      .eq('phone', normalizedPhone)
+      .eq('caller_phone', normalizedPhone)
       .maybeSingle()
     
     let leadId: string | null = null
@@ -1265,7 +1265,7 @@ export const db = {
         .from('leads')
         .insert({
           business_id: params.businessId,
-          phone: normalizedPhone,
+          caller_phone: normalizedPhone,
           status: 'new',
           raw_metadata: { source: 'call_intake', callSid: params.callSid }
         })

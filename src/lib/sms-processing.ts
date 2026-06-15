@@ -391,7 +391,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     
     lead = await db.createLead({
       business_id: business.id,
-      phone: normalizedCustomerPhone,
+      caller_phone: normalizedCustomerPhone,
       status: 'contacted', // Customer replied, so mark as contacted
       raw_metadata: { source: 'sms' },
     })
@@ -1208,7 +1208,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       console.log(`[CONSENT] lead after update:`, {
         id: updatedLead.id,
         opted_out: updatedLead.opted_out,
-        phone: updatedLead.phone
+        caller_phone: updatedLead.caller_phone
       })
       lead = updatedLead
     } else {

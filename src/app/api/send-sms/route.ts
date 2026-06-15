@@ -260,7 +260,7 @@ export async function POST(request: Request) {
     console.log('[Manual SMS] Sending message:', {
       businessId: business.id,
       businessPhone: business.twilio_phone_number,
-      toPhone: lead.phone,
+      toPhone: lead.caller_phone,
       conversationId: conversation.id,
       isMms: mediaUrls.length > 0,
       mediaCount: mediaUrls.length,
@@ -271,7 +271,7 @@ export async function POST(request: Request) {
     let messageId: string | null = null
     if (mediaUrls.length > 0) {
       // Send MMS
-      const result = await sendMms(business, lead.phone, sanitizedMessage || '', mediaUrls, {
+      const result = await sendMms(business, lead.caller_phone, sanitizedMessage || '', mediaUrls, {
         lead_id: lead.id,
         conversation_id: conversation.id,
         isManual: true, // Mark as manual user message to bypass duplicate check
@@ -280,7 +280,7 @@ export async function POST(request: Request) {
       messageId = result?.messageId || null
     } else {
       // Send SMS
-      const result = await sendSms(business, lead.phone, sanitizedMessage, {
+      const result = await sendSms(business, lead.caller_phone, sanitizedMessage, {
         lead_id: lead.id,
         conversation_id: conversation.id,
         isManual: true, // Mark as manual user message to bypass duplicate check
@@ -370,7 +370,7 @@ export async function POST(request: Request) {
         direction: 'outbound',
         body: sanitizedMessage,
         from_phone: business.twilio_phone_number,
-        to_phone: lead.phone,
+        to_phone: lead.caller_phone,
         twilio_message_sid: messageSid,
         status: 'queued',
         sent_at: new Date().toISOString(),

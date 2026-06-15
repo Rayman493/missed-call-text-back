@@ -107,7 +107,7 @@ export interface Business {
 export interface Lead {
   id: string;
   business_id: string;
-  phone: string;
+  caller_phone: string;
   name?: string | null;
   email?: string | null;
   source?: string;
