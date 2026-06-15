@@ -962,23 +962,33 @@ export default function DashboardContent() {
 
                             {/* Test Instructions */}
                             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                              <h3 className="text-white font-semibold mb-2">How to test:</h3>
-                              <div className="space-y-2">
-                                <p className="text-white text-sm">• Call your business number from another phone</p>
-                                <p className="text-white text-sm">• Let it ring until forwarding activates</p>
-                                <p className="text-white text-sm">• ReplyFlow will answer and automatically verify your setup</p>
+                              <h3 className="text-white font-semibold mb-3">How to test:</h3>
+                              <div className="space-y-3">
+                                <div className="flex items-start gap-3">
+                                  <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span className="text-white text-sm font-semibold">1</span>
+                                  </div>
+                                  <p className="text-white text-sm pt-0.5">Call your business phone number from another phone.</p>
+                                </div>
+                                <div className="flex items-start gap-3">
+                                  <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span className="text-white text-sm font-semibold">2</span>
+                                  </div>
+                                  <p className="text-white text-sm pt-0.5">Let the call ring until it forwards to ReplyFlow.</p>
+                                </div>
+                                <div className="flex items-start gap-3">
+                                  <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span className="text-white text-sm font-semibold">3</span>
+                                  </div>
+                                  <p className="text-white text-sm pt-0.5">Listen for the AI greeting and complete a short conversation.</p>
+                                </div>
+                                <div className="flex items-start gap-3">
+                                  <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span className="text-white text-sm font-semibold">4</span>
+                                  </div>
+                                  <p className="text-white text-sm pt-0.5">Confirm that a new lead appears in your dashboard.</p>
+                                </div>
                               </div>
-                            </div>
-
-                            {/* CTA Button - View Test Instructions */}
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                              <Link
-                                href="/dashboard/test-setup"
-                                className="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-blue-50 text-blue-600 text-base font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                              >
-                                View Test Instructions
-                              </Link>
-                              <p className="text-blue-200 text-sm">Takes about 1 minute.</p>
                             </div>
 
                             {/* Secondary Link - Review forwarding instructions */}
