@@ -1208,7 +1208,7 @@ export default function DashboardContent() {
                                 ? 'Checking plan...' 
                                 : (eligibility && !eligibility.eligible && eligibility.failureTitle
                                   ? eligibility.failureTitle
-                                  : (checkoutMode === 'trial' ? 'Start your free trial' : 'Subscribe Now'))
+                                  : 'Start your 14-day free trial')
                               }
                             </h3>
                             <p className="text-sm text-muted-foreground">
@@ -1216,7 +1216,7 @@ export default function DashboardContent() {
                                 ? 'Determining your subscription options...'
                                 : (eligibility && !eligibility.eligible && eligibility.failureMessage
                                   ? eligibility.failureMessage
-                                  : 'Activate ReplyFlow to begin capturing missed calls automatically.')
+                                  : "We'll automatically provision your dedicated ReplyFlow number and guide you through setup.")
                               }
                             </p>
                           </div>
@@ -1304,26 +1304,25 @@ export default function DashboardContent() {
                         </div>
                       ) : (
                         <div className="space-y-4 sm:space-y-6">
-                          {/* Setup Progress Preview */}
+                          {/* What happens next */}
                           <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
-                            <div className="flex items-center justify-between mb-4">
-                              <h3 className="text-base sm:text-lg font-semibold text-foreground">Setup Progress</h3>
-                              <div className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">
-                                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Preview</span>
-                              </div>
-                            </div>
+                            <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4">What happens next</h3>
                             <div className="space-y-3">
                               <div className="flex items-center gap-3">
                                 <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
-                                <span className="text-sm text-slate-500 dark:text-slate-400">Business phone number</span>
+                                <span className="text-sm text-slate-500 dark:text-slate-400">Start your free trial</span>
                               </div>
                               <div className="flex items-center gap-3">
                                 <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
-                                <span className="text-sm text-slate-500 dark:text-slate-400">Call forwarding setup</span>
+                                <span className="text-sm text-slate-500 dark:text-slate-400">Receive your ReplyFlow number</span>
                               </div>
                               <div className="flex items-center gap-3">
                                 <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
-                                <span className="text-sm text-slate-500 dark:text-slate-400">Test your setup</span>
+                                <span className="text-sm text-slate-500 dark:text-slate-400">Configure call forwarding</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                                <span className="text-sm text-slate-500 dark:text-slate-400">Place a test call</span>
                               </div>
                             </div>
                           </div>
