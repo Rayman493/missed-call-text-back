@@ -129,38 +129,29 @@ export async function POST(request: Request) {
     console.log('[stripe-checkout] Eligibility check result:', eligibilityResult);
     console.log('[stripe-checkout] About to check eligibility with mode:', checkoutMode);
 
-    if (!eligibilityResult.ok || !eligibilityResult.eligible) {
-      console.log('[stripe-checkout] Trial eligibility check result:', eligibilityResult);
-      console.log('[stripe-checkout] Checkout mode at eligibility check:', checkoutMode);
-      
-      // Only block checkout if this is a trial checkout
-      // Paid checkouts should be allowed even if trial is not eligible
-      if (checkoutMode === 'trial') {
-        console.error('[stripe-checkout] 403 FORBIDDEN - Trial checkout blocked due to ineligibility:', {
+    // Determine final checkout mode based on eligibility
+    let finalCheckoutMode = checkoutMode
+    
+    if (checkoutMode === 'trial') {
+      if (!eligibilityResult.ok || !eligibilityResult.eligible) {
+        console.log('[stripe-checkout] Trial not eligible - switching to paid checkout:', {
           eligibilityResult,
           phoneNumberForEligibility,
           businessEmail: user.email,
           businessId: business.id,
-          checkoutMode,
-          reason: 'User not eligible for trial based on phone number/email check'
+          originalCheckoutMode: checkoutMode,
+          finalCheckoutMode: 'paid',
+          reason: 'User not eligible for trial based on phone number/email check, allowing paid checkout'
         });
-        return NextResponse.json(
-          {
-            error: eligibilityResult.message || 'Trial eligibility check failed',
-            reasons: eligibilityResult.reasons,
-            support_email: eligibilityResult.support_email,
-            cooldown_end_date: eligibilityResult.checks?.cooldown_end_date,
-          },
-          { status: 403 }
-        );
+        finalCheckoutMode = 'paid'
       } else {
-        console.log('[stripe-checkout] Paid checkout allowed despite trial ineligibility');
+        console.log('[stripe-checkout] Trial eligible - proceeding with trial checkout');
       }
     } else {
-      console.log('[stripe-checkout] Trial eligible - proceeding with checkout');
+      console.log('[stripe-checkout] Paid checkout mode requested - proceeding regardless of trial eligibility');
     }
 
-    console.log('[stripe-checkout] Proceeding with checkout - mode:', checkoutMode);
+    console.log('[stripe-checkout] Proceeding with checkout - mode:', finalCheckoutMode);
 
     // Create or retrieve Stripe customer
     let customerId = business.stripe_customer_id
@@ -209,8 +200,8 @@ export async function POST(request: Request) {
       subscriptionStatus: business.subscription_status,
       hasStripeCustomerId: !!business.stripe_customer_id,
       action: 'checkout',
-      checkoutMode,
-      trialPeriodDays: checkoutMode === 'trial' ? 14 : undefined
+      checkoutMode: finalCheckoutMode,
+      trialPeriodDays: finalCheckoutMode === 'trial' ? 14 : undefined
     });
     
     // Route to dedicated billing success page for smoother post-checkout flow
@@ -258,11 +249,11 @@ export async function POST(request: Request) {
       },
       subscription_data: {
         // Only include trial period for trial mode
-        ...(checkoutMode === 'trial' && { trial_period_days: 14 }),
+        ...(finalCheckoutMode === 'trial' && { trial_period_days: 14 }),
         metadata: {
           business_id: business.id,
           user_id: user.id,
-          checkout_mode: checkoutMode,
+          checkout_mode: finalCheckoutMode,
         },
       },
     })
