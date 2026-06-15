@@ -4,28 +4,18 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function NoBusinessSetup() {
-  console.log('[NoBusinessSetup] Rendering component')
-
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
 
   // Add mobile detection
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
-  console.log('[Mobile New User Branch]', {
-    isMobile,
-    userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'server',
-    viewport: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'server'
-  })
 
   // Hooks at top level - no conditional hooks
   useEffect(() => {
-    console.log('[NoBusinessSetup] Component mounted, redirecting to onboarding')
-    console.log('[rendering NoBusinessSetup]')
     setIsLoading(false)
     
     // Small delay to ensure client-side redirect works on mobile
     const timer = setTimeout(() => {
-      console.log('[NoBusinessSetup] Redirecting to /onboarding')
       router.push('/onboarding')
     }, 100)
 

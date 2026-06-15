@@ -147,15 +147,6 @@ export default function ForwardingSetupModal() {
     setLoading(true)
 
     try {
-      console.log('[ForwardingSetup] Starting setup completion...')
-      console.log('[ForwardingSetup] Update payload:', {
-        business_id: business.id,
-        call_forwarding_enabled: true,
-        business_phone_carrier: selectedCarrier,
-        phone_setup_completed_at: new Date().toISOString(),
-        onboarding_status: 'pending_test'
-      })
-
       // Update Supabase with forwarding enabled and business_phone_carrier
       const { error } = await supabase
         .from('businesses')

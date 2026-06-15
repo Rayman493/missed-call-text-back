@@ -20,18 +20,7 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
 
   // Trace log on every page load
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const isMobile = window.innerWidth < 768
-      console.log('[TRACE Page Load]', {
-        pathname: window.location.pathname,
-        search: window.location.search,
-        href: window.location.href,
-        referrer: document.referrer,
-        timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent,
-        isMobile
-      })
-    }
+    // Page load tracking removed for production
   }, [])
 
   useEffect(() => {

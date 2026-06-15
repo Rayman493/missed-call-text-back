@@ -156,11 +156,6 @@ export default function SettingsContent() {
         automation_settings: automationSettings
       }
 
-      console.log('[Settings] Saving business settings:', {
-        businessId: businessData.id,
-        updatePayload
-      })
-
       const { error } = await supabase
         .from('businesses')
         .update(updatePayload)
@@ -179,10 +174,6 @@ export default function SettingsContent() {
         })
         throw new Error(`Failed to save settings: ${error.message} (code: ${error.code})`)
       }
-
-      console.log('[Settings] Business settings saved successfully:', {
-        businessId: businessData.id
-      })
     },
     onBusinessUpdated: (updatedBusiness) => {
       // Set save success state when business is updated after successful save

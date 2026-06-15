@@ -16,8 +16,6 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
   
   // Use business's dedicated ReplyFlow number, fallback to prop if provided
   const forwardingNumber = business?.twilio_phone_number || phoneNumber
-  
-  console.log('[SetupInstructions] forwardingNumber =', forwardingNumber)
 
   const handleCopyScript = async () => {
     const script = `Hi, I want unanswered calls from my business number forwarded to this number: ${forwardingNumber}. Can you help me set up conditional call forwarding?`

@@ -51,7 +51,6 @@ interface GettingStartedProps {
 const COLLAPSE_PREFERENCE_KEY = 'gettingStartedCollapsed'
 
 export default function GettingStarted({ isExpanded: propExpanded, onToggle, isOnboardingComplete, missedCallCount = 0 }: GettingStartedProps) {
-  console.log('[GettingStarted] Component render -', new Date().toISOString())
   const { business, refreshBusiness } = useBusiness()
   const pathname = usePathname()
   const [isExpanded, setIsExpanded] = useState(propExpanded || false)
