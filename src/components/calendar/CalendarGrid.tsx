@@ -98,6 +98,17 @@ export default function CalendarGrid({
     // Create day key for comparison (YYYY-MM-DD)
     const dayKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
     
+    // Log events for debugging multi-day issues
+    if (dayNumber === 19) {
+      console.log('[CALENDAR DEBUG] Day 19 events:', events.map(e => ({
+        id: e.id,
+        summary: e.summary,
+        start: e.start,
+        end: e.end,
+        hasEnd: !!e.end
+      })))
+    }
+    
     const allMatchedEvents = events.filter(event => {
       const eventDateRaw = event.start?.dateTime || event.start?.date
       if (!eventDateRaw) return false
@@ -125,6 +136,20 @@ export default function CalendarGrid({
         
         const dayTimestamp = new Date(dayKey).getTime()
         const startTimestamp = new Date(eventStartDayKey).getTime()
+        
+        // Debug logging for multi-day events
+        if (event.summary === 'Vacation' && dayNumber >= 19 && dayNumber <= 24) {
+          console.log('[CALENDAR DEBUG] Vacation multi-day check:', {
+            day: dayKey,
+            dayTimestamp,
+            eventStart: eventStartDayKey,
+            startTimestamp,
+            eventEnd: eventEndDayKey,
+            effectiveEndDate,
+            isAllDay,
+            inRange: dayTimestamp >= startTimestamp && dayTimestamp <= effectiveEndDate
+          })
+        }
         
         // Check if current day falls within the event's date range
         return dayTimestamp >= startTimestamp && dayTimestamp <= effectiveEndDate
