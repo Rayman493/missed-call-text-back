@@ -41,10 +41,6 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
 
     // Cache business verified state when business is loaded
     if (business && !loading && fetchComplete && !businessVerified && typeof window !== 'undefined') {
-      console.log('[BusinessGuard] Caching business verified state', {
-        pathname,
-        businessId: business.id
-      })
       setBusinessVerified(true)
       sessionStorage.setItem('replyflow_business_verified', 'true')
     } else if (!business && !loading && fetchComplete && businessVerified && typeof window !== 'undefined') {
@@ -159,43 +155,13 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   // FORBID AppLoadingScreen during normal_dashboard_navigation
   if (showLoading || !initialized) {
     if (businessVerified && business) {
-      console.log('[BusinessGuard] Skipping loading screen - business already verified', {
-        showLoading,
-        loading,
-        initialized,
-        businessVerified,
-        pathname,
-        businessExists: !!business,
-        flowType: 'normal_dashboard_navigation'
-      })
       // Render children immediately, don't wait for loading to complete
       return <>{children}</>
     } else {
       // Explicit guard: never show full-page loader during normal navigation
       if (pathname?.startsWith('/dashboard') && businessVerified) {
-        console.log('[BusinessGuard] FORBIDDEN: Skipping loading screen during normal dashboard navigation', {
-          showLoading,
-          loading,
-          initialized,
-          businessVerified,
-          pathname,
-          businessExists: !!business,
-          flowType: 'normal_dashboard_navigation',
-          reasonForLoadingScreen: showLoading ? 'delayed_loading' : 'not_initialized'
-        })
         return <>{children}</>
       }
-      console.log('[BusinessGuard] Showing loading screen', {
-        showLoading,
-        loading,
-        initialized,
-        businessVerified,
-        pathname,
-        businessExists: !!business,
-        fetchComplete,
-        flowType: loading ? 'business_loading' : 'not_initialized',
-        reasonForLoadingScreen: showLoading ? 'delayed_loading' : 'not_initialized'
-      })
       return <AppLoadingScreen />
     }
   }
