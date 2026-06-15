@@ -546,32 +546,50 @@ export default function PhoneForwardingPage() {
                 </div>
               ) : (
                 <div className="mt-8 space-y-4">
-                  {/* Forwarding verification status */}
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-3">
-                      <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
-                      <div>
+                  {business?.phone_setup_completed_at ? (
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
                         <p className="font-semibold text-green-700 dark:text-green-300 text-base">
-                          Forwarding previously verified
+                          Last successfully verified
                         </p>
-                        {business?.phone_setup_completed_at && (
-                          <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-1">
-                            Last verified: {new Date(business.phone_setup_completed_at).toLocaleDateString()} at {new Date(business.phone_setup_completed_at).toLocaleTimeString()}
-                          </p>
-                        )}
                       </div>
+                      <div className="mb-4">
+                        <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">
+                          Last verified:
+                        </p>
+                        <p className="text-sm text-green-600/90 dark:text-green-400/90">
+                          {new Date(business.phone_setup_completed_at).toLocaleDateString()} at {new Date(business.phone_setup_completed_at).toLocaleTimeString()}
+                        </p>
+                      </div>
+                      <p className="text-sm text-green-600/80 dark:text-green-400/80 mb-4">
+                        ReplyFlow successfully verified your forwarding setup during testing. If you change your carrier settings later, run another test call to confirm everything is still working.
+                      </p>
+                      <Link
+                        href="/dashboard/test-setup"
+                        className="inline-flex items-center justify-center gap-2 w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-all"
+                      >
+                        <Phone className="w-4 h-4" />
+                        Run Test Call
+                      </Link>
                     </div>
-                    <p className="text-sm text-green-600/80 dark:text-green-400/80 mb-4">
-                      ReplyFlow successfully verified your forwarding setup during testing. If you change your carrier settings later, run another test call to confirm everything is still working.
-                    </p>
-                    <Link
-                      href="/dashboard/test-setup"
-                      className="inline-flex items-center justify-center gap-2 w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-all"
-                    >
-                      <Phone className="w-4 h-4" />
-                      Run Test Call
-                    </Link>
-                  </div>
+                  ) : (
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-6">
+                      <p className="font-semibold text-amber-700 dark:text-amber-300 text-base mb-2">
+                        Forwarding has not been verified yet.
+                      </p>
+                      <p className="text-sm text-amber-600/80 dark:text-amber-400/80 mb-4">
+                        Run a test call to confirm your forwarding setup is working correctly.
+                      </p>
+                      <Link
+                        href="/dashboard/test-setup"
+                        className="inline-flex items-center justify-center gap-2 w-full bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white font-semibold py-3 px-6 rounded-lg transition-all"
+                      >
+                        <Phone className="w-4 h-4" />
+                        Run Test Call
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
