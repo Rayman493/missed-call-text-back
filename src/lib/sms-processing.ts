@@ -793,8 +793,19 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   }
 
   if (aiCallRecord && aiCallRecord.extracted_info) {
+    // Use original_extracted_info if available (prevents re-detecting stale corrections)
+    // Otherwise fall back to current extracted_info
+    const extractedInfoForComparison = aiCallRecord.original_extracted_info || aiCallRecord.extracted_info
 
-    const correctionResult = await detectCorrection(body, aiCallRecord.extracted_info)
+    console.log('[AI CORRECTION DETECTION USING]', {
+      leadId: lead.id,
+      aiCallRecordId: aiCallRecord.id,
+      customerReply: body,
+      usingOriginal: !!aiCallRecord.original_extracted_info,
+      extractedInfoSource: aiCallRecord.original_extracted_info ? 'original_extracted_info' : 'extracted_info'
+    })
+
+    const correctionResult = await detectCorrection(body, extractedInfoForComparison)
 
     console.log('[AI CORRECTION DETECTION RESULT]', correctionResult)
 
@@ -884,12 +895,24 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         })
 
         // Update AI call record (RC1: don't regenerate summary, just update extracted_info)
+        // Store original_extracted_info on first correction to prevent re-detecting stale corrections
+        const updatePayload: any = {
+          extracted_info: updatedExtractedInfo,
+          updated_at: now
+        }
+
+        // Only set original_extracted_info if it doesn't exist yet (first correction)
+        if (!aiCallRecord.original_extracted_info) {
+          updatePayload.original_extracted_info = aiCallRecord.extracted_info
+          console.log('[STORING ORIGINAL EXTRACTED INFO]', {
+            callRecordId: aiCallRecord.id,
+            originalExtractedInfo: aiCallRecord.extracted_info
+          })
+        }
+
         const { data: updatedAiRecord, error: aiUpdateError } = await supabaseAdmin
           .from('ai_call_records')
-          .update({
-            extracted_info: updatedExtractedInfo,
-            updated_at: now
-          })
+          .update(updatePayload)
           .eq('id', aiCallRecord.id)
           .select()
           .single()
