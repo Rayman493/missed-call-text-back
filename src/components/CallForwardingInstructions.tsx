@@ -187,11 +187,35 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
                   </div>
                   <div className="flex-1">
                     <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">AT&T</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 leading-relaxed">
-                      Dial <span className="font-mono bg-gray-100 dark:bg-gray-600 px-2 py-0.5 rounded text-sm">*61</span> followed by your ReplyFlow number, then <span className="font-mono bg-gray-100 dark:bg-gray-600 px-2 py-0.5 rounded text-sm">#</span>, then press Call/Send.
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      To deactivate: Dial <span className="font-mono bg-gray-100 dark:bg-gray-600 px-2 py-0.5 rounded text-xs">#004#</span>
+                    
+                    {/* AT&T Wireless */}
+                    <div className="mb-4">
+                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">AT&T Wireless:</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">
+                        On many AT&T wireless phones, conditional call forwarding is managed from the phone's call settings or dialer.
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">
+                        Try your phone's call forwarding settings first. If your device supports star codes, use the unanswered/no-reply forwarding option and forward missed calls to your ReplyFlow number.
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">
+                        If this does not work, contact AT&T and ask them to enable conditional call forwarding/no-answer forwarding to your ReplyFlow number.
+                      </p>
+                    </div>
+
+                    {/* AT&T Business/Home Phone */}
+                    <div className="mb-3">
+                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">AT&T Business/Home Phone:</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 leading-relaxed">
+                        Dial <span className="font-mono bg-gray-100 dark:bg-gray-600 px-2 py-0.5 rounded text-sm">*92</span>, then enter your ReplyFlow number ({formatPhoneNumber(forwardingNumber)}), then press <span className="font-mono bg-gray-100 dark:bg-gray-600 px-2 py-0.5 rounded text-sm">#</span>.
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                        To turn it off later, dial <span className="font-mono bg-gray-100 dark:bg-gray-600 px-2 py-0.5 rounded text-sm">*93#</span>.
+                      </p>
+                    </div>
+
+                    {/* Fallback note */}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                      AT&T plans and devices can vary. If this code does not work, contact AT&T and ask for no-answer or conditional call forwarding.
                     </p>
                   </div>
                 </div>
