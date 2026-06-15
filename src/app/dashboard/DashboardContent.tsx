@@ -1359,8 +1359,8 @@ export default function DashboardContent() {
                       </SectionErrorBoundary>
                     )}
 
-                    {/* Setup Progress - Show improved checklist when forwarding is not verified */}
-                    {!business?.forwarding_verified && (
+                    {/* Setup Progress - Show improved checklist when forwarding is not verified and not in needs_forwarding state */}
+                    {!business?.forwarding_verified && setupState !== 'needs_forwarding' && (
                       <SectionErrorBoundary sectionName="SetupProgress">
                         <div className="mb-3">
                           <div className="bg-card border border-border rounded-xl shadow-sm p-6">
