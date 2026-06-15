@@ -1643,6 +1643,7 @@ async function scheduleHangupOnly(ws: any, twilioHandler: any) {
 // Send final goodbye and hangup deterministically
 async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: any) {
   console.log('[AI FINAL GOODBYE START] Starting deterministic goodbye and hangup sequence');
+  console.log('[ENTER FINAL_GOODBYE] confirmationState: confirmed');
   
   // Set closing state immediately
   (ws as any).callState = 'closing';
@@ -1651,8 +1652,10 @@ async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: 
   (twilioHandler as any).terminalClosingResponseStarted = true;
   (ws as any).intakeComplete = true;
   (twilioHandler as any).intakeComplete = true;
+  (ws as any).confirmationState = 'final_goodbye';
+  (twilioHandler as any).confirmationState = 'final_goodbye';
   
-  console.log('[AI CLOSING STATE SET] callState: closing, terminalClosingResponseStarted: true, intakeComplete: true');
+  console.log('[AI CLOSING STATE SET] callState: closing, terminalClosingResponseStarted: true, intakeComplete: true, confirmationState: final_goodbye');
   
   // Send final goodbye message immediately
   const finalClosingMessage = {
@@ -1853,6 +1856,10 @@ wss.on('connection', (ws, req) => {
     let postCallSmsSent = false;
     let assistantSpeaking = false;
     let terminalClosingResponseStarted = false;
+
+    // Explicit confirmation lifecycle states
+    type ConfirmationState = 'collecting_info' | 'confirmation_pending' | 'awaiting_confirmation' | 'confirmed' | 'final_goodbye';
+    let confirmationState: ConfirmationState = 'collecting_info';
 
     let intakeComplete = false;
     let confirmationAccepted = false;
@@ -3591,6 +3598,9 @@ Do NOT:
                     if (isConfirmationAccepted(userTranscript)) {
                       console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
                       console.log('[CONFIRMATION ACCEPTED] confirmationState: accepted');
+                      confirmationState = 'confirmed';
+                      console.log('[CALL STATE CHANGE] confirmationState: awaiting_confirmation -> confirmed');
+                      console.log('[EXIT AWAITING_CONFIRMATION] Caller confirmed, proceeding to final goodbye');
 
                       // Immediately close the call after confirmation (deterministic)
                       closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
@@ -3767,6 +3777,8 @@ Do NOT:
                     // Set state flags
                     confirmationSummaryInProgress = true;
                     awaitingFinalConfirmationQuestion = true;
+                    confirmationState = 'confirmation_pending';
+                    console.log('[CALL STATE CHANGE] confirmationState: collecting_info -> confirmation_pending');
                     
                     // Send confirmation summary via direct response.create
                     const confirmationPayload = {
@@ -4054,7 +4066,9 @@ Do NOT:
                   console.log('[CONFIRMATION SUMMARY DONE] Confirmation summary response completed');
                   console.log('[CONFIRMATION SUMMARY DONE] confirmationSummarySpoken = true');
                   confirmationSummaryInProgress = false;
-                  console.log('[WAITING FOR CONFIRMATION] Waiting for caller response');
+                  confirmationState = 'awaiting_confirmation';
+                  console.log('[CALL STATE CHANGE] confirmationState: confirmation_pending -> awaiting_confirmation');
+                  console.log('[ENTER AWAITING_CONFIRMATION] Waiting for caller response');
                 }
                 
                 // Finalize any remaining active assistant transcripts
@@ -4072,10 +4086,11 @@ Do NOT:
                 });
                 activeAssistantTranscripts.clear();
                 
-                // Check if ready to close and send final closing
-                if (intakeComplete && !finalClosingStarted && callState === 'active') {
+                // Check if ready to close and send final closing (ONLY after confirmation received)
+                if (confirmationState === 'confirmed' && !finalClosingStarted && callState === 'active') {
                   console.log('[AI TERMINAL CLOSING START] Starting terminal closing flow');
-                  console.log('[AI TERMINAL CLOSING START] callState: active -> closing');
+                  console.log('[CALL STATE CHANGE] active -> closing');
+                  console.log('[ENTER CLOSING] confirmationState: confirmed');
                   
                   // Use the deterministic goodbye and hangup function
                   sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
