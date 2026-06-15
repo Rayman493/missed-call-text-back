@@ -323,7 +323,7 @@ export default function CalendarGrid({
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm relative">
+    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm">
       <div className="sticky top-0 z-10 bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-t-xl p-1 sm:p-2 md:p-4 md:p-6 border-b border-slate-200/70 dark:border-slate-700/50">
         <div className="flex items-center justify-between gap-2">
           <button
@@ -373,30 +373,6 @@ export default function CalendarGrid({
           
           return (
             <div key={weekIndex} className="relative">
-              {/* Multi-day event bars for this week */}
-              <div className="absolute inset-0 top-6 sm:top-8 pointer-events-none">
-                {weekSegments.map((segment, segmentIndex) => (
-                  <div
-                    key={segment.event.id}
-                    className="absolute h-6 sm:h-8 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium text-blue-800 dark:text-blue-200 truncate pointer-events-auto cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
-                    style={{
-                      left: `calc(${segment.startColumn * (100 / 7)}% + 0.25%)`,
-                      width: `calc(${segment.spanDays * (100 / 7)}% - 0.5%)`,
-                      top: `${segment.lane * 2.5}rem`,
-                      zIndex: 10 + segmentIndex
-                    }}
-                    onClick={() => {
-                      if (segment.event.originalEvent.htmlLink) {
-                        window.open(segment.event.originalEvent.htmlLink, '_blank', 'noopener,noreferrer')
-                      }
-                    }}
-                    title={segment.event.summary}
-                  >
-                    {segment.event.summary}
-                  </div>
-                ))}
-              </div>
-
               {/* Calendar grid cells for this week */}
               <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 relative z-0">
                 {week.map((dayInfo, dayIndex) => {
@@ -421,6 +397,30 @@ export default function CalendarGrid({
                     />
                   )
                 })}
+              </div>
+
+              {/* Multi-day event bars for this week - positioned relative to the grid */}
+              <div className="absolute inset-0 top-6 sm:top-8 pointer-events-none">
+                {weekSegments.map((segment, segmentIndex) => (
+                  <div
+                    key={segment.event.id}
+                    className="absolute h-6 sm:h-8 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium text-blue-800 dark:text-blue-200 truncate pointer-events-auto cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
+                    style={{
+                      left: `calc(${segment.startColumn * (100 / 7)}% + 0.25%)`,
+                      width: `calc(${segment.spanDays * (100 / 7)}% - 0.5%)`,
+                      top: `${segment.lane * 2.5}rem`,
+                      zIndex: 10 + segmentIndex
+                    }}
+                    onClick={() => {
+                      if (segment.event.originalEvent.htmlLink) {
+                        window.open(segment.event.originalEvent.htmlLink, '_blank', 'noopener,noreferrer')
+                      }
+                    }}
+                    title={segment.event.summary}
+                  >
+                    {segment.event.summary}
+                  </div>
+                ))}
               </div>
             </div>
           )
