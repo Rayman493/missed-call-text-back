@@ -134,8 +134,8 @@ export default function PhoneForwardingPage() {
       // Verizon: *71 + 10-digit number (no leading 1, no trailing #)
       code = carrier.noAnswerCode + formattedNumber
     } else if (carrier.id === 'at&t') {
-      // AT&T: Manual setup recommended
-      return ''
+      // AT&T: *92 + 10-digit number (no leading 1, no trailing #)
+      code = carrier.noAnswerCode + formattedNumber
     } else if (carrier.id === 't-mobile') {
       // T-Mobile: *61* + number + **20# (GSM standard for conditional forwarding with 20s delay)
       code = carrier.noAnswerCode + formattedNumber + carrier.noAnswerSuffix
@@ -145,6 +145,27 @@ export default function PhoneForwardingPage() {
     }
     
     return code
+  }
+
+  // Returns formatted AT&T code for display with parentheses and dashes
+  const getATTCodeDisplay = () => {
+    if (!business?.twilio_phone_number) return ''
+    const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
+    
+    // Format as *92 (XXX) XXX-XXXX
+    if (phoneNumber.length === 11) {
+      const areaCode = phoneNumber.substring(1, 4)
+      const firstThree = phoneNumber.substring(4, 7)
+      const lastFour = phoneNumber.substring(7, 11)
+      return `*92 (${areaCode}) ${firstThree}-${lastFour}`
+    } else if (phoneNumber.length === 10) {
+      const areaCode = phoneNumber.substring(0, 3)
+      const firstThree = phoneNumber.substring(3, 6)
+      const lastFour = phoneNumber.substring(6, 10)
+      return `*92 (${areaCode}) ${firstThree}-${lastFour}`
+    }
+    
+    return `*92${phoneNumber}`
   }
 
   const hasValidCode = Boolean(
@@ -367,12 +388,12 @@ export default function PhoneForwardingPage() {
                   {/* AT&T-specific instructions */}
                   {selectedCarrier === 'at&t' ? (
                     <div className="bg-card border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-6 sm:p-8 shadow-sm">
-                      <p className="text-sm font-semibold text-foreground mb-2">AT&T</p>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Dial this from your AT&T phone:
+                      <p className="text-sm font-semibold text-foreground mb-1">AT&T</p>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Dial this from your business phone, then press Call.
                       </p>
                       <div 
-                        className="bg-muted border-2 border-blue-200 dark:border-blue-800 rounded-xl px-6 py-6 sm:py-8 mb-4 overflow-x-auto cursor-pointer hover:bg-muted/80 transition-colors"
+                        className="bg-muted border-2 border-blue-200 dark:border-blue-800 rounded-xl px-6 py-6 sm:py-8 mb-3 overflow-x-auto cursor-pointer hover:bg-muted/80 transition-colors"
                         onClick={handleCopyCode}
                         title="Click to copy code"
                       >
@@ -380,15 +401,15 @@ export default function PhoneForwardingPage() {
                           aria-label="Connection dial code"
                           className="block font-mono font-bold text-foreground text-center text-3xl sm:text-4xl lg:text-5xl tracking-widest whitespace-nowrap select-all"
                         >
-                          *92{business?.twilio_phone_number?.replace(/^\+/, '')}
+                          {getATTCodeDisplay()}
                         </code>
                       </div>
-                      <p className="text-xs text-muted-foreground/70 text-center mb-4">
-                        Press Call and wait for the confirmation tone or message.
+                      <p className="text-xs text-muted-foreground/70 text-center mb-3">
+                        Wait for the confirmation tone or message.
                       </p>
-                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3">
                         <p className="text-xs text-blue-700 dark:text-blue-300">
-                          <strong>Note:</strong> If this code doesn't work, your AT&T plan may use different forwarding settings. Contact AT&T or check your account for carrier-specific instructions.
+                          If this code doesn't work, your AT&T plan may use different forwarding settings. Check with AT&T for account-specific instructions.
                         </p>
                       </div>
                       <p className="text-xs text-muted-foreground/60 text-center">
@@ -397,11 +418,12 @@ export default function PhoneForwardingPage() {
                     </div>
                   ) : hasValidCode ? (
                     <div className="bg-card border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-6 sm:p-8 shadow-sm">
-                      <p className="text-sm font-semibold text-muted-foreground mb-4 text-center">
-                        Dial this from your business phone
+                      <p className="text-sm font-semibold text-foreground mb-1">{CARRIERS.find(c => c.id === selectedCarrier)?.name}</p>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Dial this from your business phone, then press Call.
                       </p>
                       <div 
-                        className="bg-muted border-2 border-blue-200 dark:border-blue-800 rounded-xl px-6 py-6 sm:py-8 mb-6 overflow-x-auto cursor-pointer hover:bg-muted/80 transition-colors"
+                        className="bg-muted border-2 border-blue-200 dark:border-blue-800 rounded-xl px-6 py-6 sm:py-8 mb-3 overflow-x-auto cursor-pointer hover:bg-muted/80 transition-colors"
                         onClick={handleCopyCode}
                         title="Click to copy code"
                       >
@@ -412,7 +434,10 @@ export default function PhoneForwardingPage() {
                           {getForwardingCodeDisplay()}
                         </code>
                       </div>
-                      <div className="flex gap-3 mb-4">
+                      <p className="text-xs text-muted-foreground/70 text-center mb-3">
+                        Wait for the confirmation tone or message.
+                      </p>
+                      <div className="flex gap-3 mb-3">
                         <button
                           onClick={handleCopyCode}
                           className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg border transition-all ${
@@ -446,18 +471,10 @@ export default function PhoneForwardingPage() {
                           Dial
                         </button>
                       </div>
-                      <p className="text-xs text-muted-foreground/70 text-center">
-                        Press Call/Send after entering the code
-                      </p>
                       {/* Deactivation helper */}
-                      {selectedCarrier === 'verizon' && (
-                        <p className="text-xs text-muted-foreground/60 text-center mt-3">
-                          To disable forwarding later: {CARRIERS.find(c => c.id === 'verizon')?.deactivationCode}
-                        </p>
-                      )}
-                      {selectedCarrier === 't-mobile' && (
-                        <p className="text-xs text-muted-foreground/60 text-center mt-3">
-                          To disable forwarding later: {CARRIERS.find(c => c.id === 't-mobile')?.deactivationCode}
+                      {CARRIERS.find(c => c.id === selectedCarrier)?.deactivationCode && (
+                        <p className="text-xs text-muted-foreground/60 text-center">
+                          To disable later: Dial {CARRIERS.find(c => c.id === selectedCarrier)?.deactivationCode} and press Call.
                         </p>
                       )}
                     </div>
