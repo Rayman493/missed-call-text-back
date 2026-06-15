@@ -1576,23 +1576,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               
               {/* Action Buttons */}
               <div className="flex items-center gap-1">
-                {/* Refresh Button */}
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Refresh lead"
-                  aria-label="Refresh lead"
-                >
-                  <svg 
-                    className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
@@ -1703,22 +1686,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       }}
                     />
                     {/* Icon-only secondary actions */}
-                    <button
-                      onClick={handleRefresh}
-                      disabled={refreshing}
-                      className="p-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Refresh lead"
-                      aria-label="Refresh lead"
-                    >
-                      <svg 
-                        className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    </button>
                     <button
                       onClick={() => setShowDeleteModal(true)}
                       className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border border-red-200 dark:border-red-800"
