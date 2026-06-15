@@ -216,28 +216,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isCheckoutRecovery || user) return
 
-    console.log('[Checkout Recovery] Starting 3-second session recovery timeout')
-
     const timeout = setTimeout(() => {
-      console.log('[TRACE AuthGuard Checkout Recovery Timeout]', {
-        pathname: window.location.pathname,
-        search: window.location.search,
-        hasCheckoutSuccess: true,
-        hasSession: false,
-        loading,
-        recoveryElapsedMs: 3000
-      })
-      
       // Check if session exists
       supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
         if (!session) {
-          console.log('[Redirect Decision]', {
-            reason: 'checkout_recovery_timeout_no_session',
-            from: '/dashboard',
-            to: '/auth/recover-session?checkout=success',
-            checkoutSuccess: true
-          })
-          console.log('[Checkout Recovery] No session available, routing to recovery page')
           setRecoveryTimeoutElapsed(true)
           
           // Preserve session_id if available
@@ -246,14 +228,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             : `/auth/recover-session?checkout=success`
           
           router.push(recoveryUrl)
-        } else {
-          console.log('[Redirect Decision]', {
-            reason: 'checkout_recovery_session_restored',
-            from: '/dashboard',
-            to: 'stay',
-            checkoutSuccess: true
-          })
-          console.log('[Checkout Recovery] Session recovered successfully')
         }
       })
     }, 3000)
@@ -270,25 +244,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // After timeout, route to recovery page if session still unavailable
   if (isCheckoutRecovery) {
     if (recoveryTimeoutElapsed) {
-      console.log('[AuthGuard] Recovery timeout elapsed, showing loading while redirecting to recovery page')
       return <AppLoadingScreen />
     }
-    console.log('[TRACE AuthGuard Prevent Homepage Fallback]', {
-      pathname: window.location.pathname,
-      search: window.location.search,
-      hasCheckoutSuccess: true,
-      hasSession: !!user,
-      loading,
-      action: 'showing_loading_instead_of_homepage'
-    })
-    console.log('[AuthGuard] Recovery mode active - waiting for session restoration')
     return <AppLoadingScreen />
   }
 
   // BILLING RETURN GRACE MODE: When billing_return=success, show recovery loading with extended timeout
   if (isBillingReturn) {
     if (billingGraceTimeoutElapsed) {
-      console.log('[AuthGuard] Billing grace timeout elapsed, showing loading while redirecting to signin')
       return <AppLoadingScreen />
     }
     
@@ -306,14 +269,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // STRIPE SETUP RETURN GRACE MODE: When setup=1 on dashboard/forwarding, wait for session restoration
   if (isStripeSetupReturn) {
-    console.log('[AuthGuard] Stripe setup return grace mode active - waiting for session restoration', {
-      hasUser: !!user,
-      loading,
-      pathname: typeof window !== 'undefined' ? window.location.pathname : 'server'
-    })
-    
     if (!user && !loading) {
-      console.log('[AuthGuard] Stripe setup return - session missing after grace period, redirecting to signin with returnTo')
       const returnTo = encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/dashboard?setup=1')
       router.push(`/auth/signin?returnTo=${returnTo}`)
       return <AppLoadingScreen />
