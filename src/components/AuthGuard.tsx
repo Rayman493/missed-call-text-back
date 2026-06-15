@@ -18,6 +18,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [billingGraceTimeoutElapsed, setBillingGraceTimeoutElapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [stripeParamsCleared, setStripeParamsCleared] = useState(false)
+  const [authVerified, setAuthVerified] = useState(false)
 
   // Mobile detection
   useEffect(() => {
@@ -28,6 +29,34 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  // Restore auth verified state from sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const cached = sessionStorage.getItem('replyflow_auth_verified')
+      if (cached === 'true') {
+        setAuthVerified(true)
+      }
+    }
+  }, [])
+
+  // Cache auth verified state when user is authenticated
+  useEffect(() => {
+    if (user && !loading && typeof window !== 'undefined') {
+      if (!authVerified) {
+        console.log('[AuthGuard] Caching auth verified state', {
+          pathname: window.location.pathname,
+          flowType: 'auth_verified_cache'
+        })
+        setAuthVerified(true)
+        sessionStorage.setItem('replyflow_auth_verified', 'true')
+      }
+    } else if (!user && !loading && typeof window !== 'undefined') {
+      // Clear cache on logout
+      sessionStorage.removeItem('replyflow_auth_verified')
+      setAuthVerified(false)
+    }
+  }, [user, loading, authVerified])
 
   // Trace log at AuthGuard first render
   useEffect(() => {
@@ -368,8 +397,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   // Show loading during initial auth loading (not recovery mode)
-  if (loading) {
-    console.log('[AuthGuard] Showing loading state', { flowType, loading })
+  // Skip loading if auth is already verified and user exists (normal navigation)
+  if (loading && !(authVerified && user)) {
+    console.log('[AuthGuard] Showing loading screen', { 
+      flowType, 
+      loading,
+      authVerified,
+      pathname: typeof window !== 'undefined' ? window.location.pathname : 'server',
+      userExists: !!user
+    })
     return <AppLoadingScreen />
   }
 

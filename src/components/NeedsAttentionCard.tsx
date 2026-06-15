@@ -53,7 +53,31 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
 
         if (leadsError) {
-          console.error('[NeedsAttention] Failed to fetch leads:', leadsError)
+          console.error('[NeedsAttention] Failed to fetch leads:', {
+            code: leadsError.code,
+            message: leadsError.message,
+            details: leadsError.details,
+            hint: leadsError.hint,
+            fullError: leadsError
+          })
+          // Try fallback query with minimal columns if the detailed query fails
+          const { data: fallbackLeads, error: fallbackError } = await supabase
+            .from('leads')
+            .select('id, business_id, phone, status, created_at')
+            .eq('business_id', business.id)
+            .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+          
+          if (fallbackError) {
+            console.error('[NeedsAttention] Fallback query also failed:', {
+              code: fallbackError.code,
+              message: fallbackError.message,
+              details: fallbackError.details,
+              hint: fallbackError.hint
+            })
+            // Continue with empty leads array
+          } else {
+            console.log('[NeedsAttention] Fallback query succeeded')
+          }
         }
 
         // High Priority Items - Individual lead items

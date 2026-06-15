@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { RealtimeChannel } from '@supabase/supabase-js'
@@ -13,6 +13,12 @@ export function useRealtimeLeads(
 ) {
   const supabase = createBrowserClient()
   const channelsRef = useRef<RealtimeChannel[]>([])
+  const callbacksRef = useRef({ onNewLead, onNewMessage, onLeadUpdate })
+
+  // Update callbacks ref without triggering effect re-run
+  useEffect(() => {
+    callbacksRef.current = { onNewLead, onNewMessage, onLeadUpdate }
+  }, [onNewLead, onNewMessage, onLeadUpdate])
 
   useEffect(() => {
     if (!businessId || !supabase) return
@@ -36,7 +42,7 @@ export function useRealtimeLeads(
         },
         (payload: any) => {
           console.log('[Realtime] New lead:', payload.new)
-          onNewLead(payload.new)
+          callbacksRef.current.onNewLead(payload.new)
         }
       )
       .on(
@@ -49,7 +55,7 @@ export function useRealtimeLeads(
         },
         (payload: any) => {
           console.log('[Realtime] Lead updated:', payload.new)
-          onLeadUpdate(payload.new)
+          callbacksRef.current.onLeadUpdate(payload.new)
         }
       )
       .subscribe((status: string) => {
@@ -70,7 +76,7 @@ export function useRealtimeLeads(
           console.log('[Realtime] New message:', payload.new)
           // Only process messages for this business's leads
           // We'll need to fetch the lead to verify business ownership
-          onNewMessage(payload.new)
+          callbacksRef.current.onNewMessage(payload.new)
         }
       )
       .subscribe((status: string) => {
@@ -87,7 +93,7 @@ export function useRealtimeLeads(
       })
       channelsRef.current = []
     }
-  }, [businessId, supabase, onNewLead, onNewMessage, onLeadUpdate])
+  }, [businessId, supabase])
 
   return {
     cleanup: () => {

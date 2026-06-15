@@ -18,12 +18,37 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
 
   // Add explicit state tracking
   const [initialized, setInitialized] = useState(false)
+  const [businessVerified, setBusinessVerified] = useState(false)
   const hasRedirectedRef = useRef<string | null>(null)
+
+  // Restore business verified state from sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const cached = sessionStorage.getItem('replyflow_business_verified')
+      if (cached === 'true') {
+        setBusinessVerified(true)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     // Mark as initialized once loading is complete and fetch is complete
     if (!loading && fetchComplete) {
       setInitialized(true)
+    }
+
+    // Cache business verified state when business is loaded
+    if (business && !loading && fetchComplete && !businessVerified && typeof window !== 'undefined') {
+      console.log('[BusinessGuard] Caching business verified state', {
+        pathname,
+        businessId: business.id
+      })
+      setBusinessVerified(true)
+      sessionStorage.setItem('replyflow_business_verified', 'true')
+    } else if (!business && !loading && fetchComplete && businessVerified && typeof window !== 'undefined') {
+      // Clear cache if business is missing
+      sessionStorage.removeItem('replyflow_business_verified')
+      setBusinessVerified(false)
     }
 
     // Reset redirect ref when pathname changes to allow new redirects
@@ -104,8 +129,28 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   }, [business, loading, router, pathname, checkoutStatus, initialized, user, session, fetchComplete, businessMissingConfirmed, businessError])
 
   // Show loading state while business is loading or not yet initialized
+  // Skip loading if business is already verified and business exists (normal navigation)
   if (loading || !initialized) {
-    return <AppLoadingScreen />
+    if (businessVerified && business) {
+      console.log('[BusinessGuard] Skipping loading screen - business already verified', {
+        loading,
+        initialized,
+        businessVerified,
+        pathname,
+        businessExists: !!business
+      })
+    } else {
+      console.log('[BusinessGuard] Showing loading screen', {
+        loading,
+        initialized,
+        businessVerified,
+        pathname,
+        businessExists: !!business,
+        fetchComplete,
+        flowType: loading ? 'business_loading' : 'not_initialized'
+      })
+      return <AppLoadingScreen />
+    }
   }
 
   if (!business) {
