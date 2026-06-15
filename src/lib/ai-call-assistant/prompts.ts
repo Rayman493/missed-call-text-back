@@ -35,282 +35,282 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   confirmationFormat: (data: any) => string
 }> = {
   home_services: {
-    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
-    reasonQuestion: "What can I help with?",
+    greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
+    reasonQuestion: "Could you tell me a little about what you need help with?",
     followUpQuestions: [
-      "Can you tell me a little more about that?",
-      "Where is the service location?"
+      "Got it. Can you tell me a little more about that?",
+      "Understood. Where is the service location?"
     ],
-    urgencyQuestion: "Is this urgent or time-sensitive?",
+    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "Where is the service location?",
-    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
-      const parts = ['Let me make sure I have everything right.']
-      if (data.caller_name) parts.push(`Your name is ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`The issue is ${data.urgency}.`)
-      if (data.address) parts.push(`The service address is ${data.address}.`)
-      if (data.callback_time) parts.push(`The best time to reach you is ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`The best callback number is ${data.callback_number}.`)
-      parts.push('Is this correct?')
+      const parts = ['Thanks! Here\'s what I have:']
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
+      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.address) parts.push(`Location: ${data.address}.`)
+      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
+      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
+      parts.push('Is everything correct?')
       return parts.join(' ')
     }
   },
   
   plumbing_hvac: {
-    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
-    reasonQuestion: "What can I help with?",
+    greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
+    reasonQuestion: "Could you tell me a little about what you need help with?",
     followUpQuestions: [
-      "Can you tell me a little more about that?",
-      "Where is the service location?"
+      "Got it. Can you tell me a little more about that?",
+      "Understood. Where is the service location?"
     ],
-    urgencyQuestion: "Is this urgent or time-sensitive?",
+    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "Where is the service location?",
-    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
-      const parts = ['Let me make sure I have everything right.']
-      if (data.caller_name) parts.push(`Your name is ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`The issue is ${data.urgency}.`)
-      if (data.address) parts.push(`The service address is ${data.address}.`)
-      if (data.callback_time) parts.push(`The best time to reach you is ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`The best callback number is ${data.callback_number}.`)
-      parts.push('Is this correct?')
+      const parts = ['Thanks! Here\'s what I have:']
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
+      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.address) parts.push(`Location: ${data.address}.`)
+      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
+      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
+      parts.push('Is everything correct?')
       return parts.join(' ')
     }
   },
   
   cleaning: {
-    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
-    reasonQuestion: "What can I help with?",
+    greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
+    reasonQuestion: "Could you tell me a little about what you need help with?",
     followUpQuestions: [
-      "What type of cleaning do you need, and where is it?",
-      "Can you tell me a little more about that?"
+      "Got it. What type of cleaning do you need, and where is it?",
+      "Understood. Can you tell me a little more about that?"
     ],
-    urgencyQuestion: "Is this urgent or time-sensitive?",
+    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "What type of cleaning do you need, and where is it?",
-    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
-      const parts = ['Let me make sure I have everything right.']
-      if (data.caller_name) parts.push(`Your name is ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`The issue is ${data.urgency}.`)
-      if (data.address) parts.push(`The service address is ${data.address}.`)
-      if (data.callback_time) parts.push(`The best time to reach you is ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`The best callback number is ${data.callback_number}.`)
-      parts.push('Is this correct?')
+      const parts = ['Thanks! Here\'s what I have:']
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
+      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.address) parts.push(`Location: ${data.address}.`)
+      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
+      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
+      parts.push('Is everything correct?')
       return parts.join(' ')
     }
   },
   
   landscaping: {
-    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
-    reasonQuestion: "What can I help with?",
+    greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
+    reasonQuestion: "Could you tell me a little about what you need help with?",
     followUpQuestions: [
-      "Can you tell me a little more about that?",
-      "Where is the service location?"
+      "Got it. Can you tell me a little more about that?",
+      "Understood. Where is the service location?"
     ],
-    urgencyQuestion: "Is this urgent or time-sensitive?",
+    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "Where is the service location?",
-    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
-      const parts = ['Let me make sure I have everything right.']
-      if (data.caller_name) parts.push(`Your name is ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`The issue is ${data.urgency}.`)
-      if (data.address) parts.push(`The service address is ${data.address}.`)
-      if (data.callback_time) parts.push(`The best time to reach you is ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`The best callback number is ${data.callback_number}.`)
-      parts.push('Is this correct?')
+      const parts = ['Thanks! Here\'s what I have:']
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
+      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.address) parts.push(`Location: ${data.address}.`)
+      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
+      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
+      parts.push('Is everything correct?')
       return parts.join(' ')
     }
   },
   
   real_estate: {
-    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
-    reasonQuestion: "What can I help with?",
+    greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
+    reasonQuestion: "Could you tell me a little about what you need help with?",
     followUpQuestions: [
-      "Can you tell me a little more about that?",
-      "Where is the property location?"
+      "Got it. Can you tell me a little more about that?",
+      "Understood. Where is the property location?"
     ],
-    urgencyQuestion: "Is this urgent or time-sensitive?",
+    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "Where is the property location?",
-    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
-      const parts = ['Let me make sure I have everything right.']
-      if (data.caller_name) parts.push(`Your name is ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`The issue is ${data.urgency}.`)
-      if (data.address) parts.push(`The service address is ${data.address}.`)
-      if (data.callback_time) parts.push(`The best time to reach you is ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`The best callback number is ${data.callback_number}.`)
-      parts.push('Is this correct?')
+      const parts = ['Thanks! Here\'s what I have:']
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
+      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.address) parts.push(`Location: ${data.address}.`)
+      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
+      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
+      parts.push('Is everything correct?')
       return parts.join(' ')
     }
   },
   
   travel_agent: {
-    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
-    reasonQuestion: "What can I help with?",
+    greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
+    reasonQuestion: "Could you tell me a little about what you need help with?",
     followUpQuestions: [
-      "Can you tell me a little more about that?",
-      "When are you looking to travel?"
+      "Got it. Can you tell me a little more about that?",
+      "Understood. When are you looking to travel?"
     ],
-    urgencyQuestion: "Is this urgent or time-sensitive?",
+    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: null,
-    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
-      const parts = ['Let me make sure I have everything right.']
-      if (data.caller_name) parts.push(`Your name is ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`The issue is ${data.urgency}.`)
-      if (data.callback_time) parts.push(`The best time to reach you is ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`The best callback number is ${data.callback_number}.`)
-      parts.push('Is this correct?')
+      const parts = ['Thanks! Here\'s what I have:']
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
+      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
+      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
+      parts.push('Is everything correct?')
       return parts.join(' ')
     }
   },
   
   salon_appointment: {
-    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
-    reasonQuestion: "What can I help with?",
+    greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
+    reasonQuestion: "Could you tell me a little about what you need help with?",
     followUpQuestions: [
-      "Can you tell me a little more about that?",
-      "When would you like to come in?"
+      "Got it. Can you tell me a little more about that?",
+      "Understood. When would you like to come in?"
     ],
-    urgencyQuestion: "Is this urgent or time-sensitive?",
+    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: null,
-    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
-      const parts = ['Let me make sure I have everything right.']
-      if (data.caller_name) parts.push(`Your name is ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`The issue is ${data.urgency}.`)
-      if (data.callback_time) parts.push(`The best time to reach you is ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`The best callback number is ${data.callback_number}.`)
-      parts.push('Is this correct?')
+      const parts = ['Thanks! Here\'s what I have:']
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
+      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
+      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
+      parts.push('Is everything correct?')
       return parts.join(' ')
     }
   },
   
   pet_grooming: {
-    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
-    reasonQuestion: "What can I help with?",
+    greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
+    reasonQuestion: "Could you tell me a little about what you need help with?",
     followUpQuestions: [
-      "What kind of pet is it, and what service do they need?",
-      "Can you tell me a little more about that?"
+      "Got it. What kind of pet is it, and what service do they need?",
+      "Understood. Can you tell me a little more about that?"
     ],
-    urgencyQuestion: "Is this urgent or time-sensitive?",
+    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: null,
-    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
-      const parts = ['Let me make sure I have everything right.']
-      if (data.caller_name) parts.push(`Your name is ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`The issue is ${data.urgency}.`)
-      if (data.callback_time) parts.push(`The best time to reach you is ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`The best callback number is ${data.callback_number}.`)
-      parts.push('Is this correct?')
+      const parts = ['Thanks! Here\'s what I have:']
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
+      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
+      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
+      parts.push('Is everything correct?')
       return parts.join(' ')
     }
   },
   
   lessons_tutoring: {
-    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
-    reasonQuestion: "What can I help with?",
+    greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
+    reasonQuestion: "Could you tell me a little about what you need help with?",
     followUpQuestions: [
-      "Who are the lessons for, and what level are they at?",
-      "Can you tell me a little more about that?"
+      "Got it. Who are the lessons for, and what level are they at?",
+      "Understood. Can you tell me a little more about that?"
     ],
-    urgencyQuestion: "Is this urgent or time-sensitive?",
+    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: null,
-    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
-      const parts = ['Let me make sure I have everything right.']
-      if (data.caller_name) parts.push(`Your name is ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`The issue is ${data.urgency}.`)
-      if (data.callback_time) parts.push(`The best time to reach you is ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`The best callback number is ${data.callback_number}.`)
-      parts.push('Is this correct?')
+      const parts = ['Thanks! Here\'s what I have:']
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
+      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
+      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
+      parts.push('Is everything correct?')
       return parts.join(' ')
     }
   },
   
   medical_dental: {
-    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
-    reasonQuestion: "What can I help with?",
+    greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
+    reasonQuestion: "Could you tell me a little about what you need help with?",
     followUpQuestions: [
-      "What kind of appointment or issue are you calling about?",
-      "Can you tell me a little more about that?"
+      "Got it. What kind of appointment or issue are you calling about?",
+      "Understood. Can you tell me a little more about that?"
     ],
-    urgencyQuestion: "Is this urgent or time-sensitive?",
+    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: null,
-    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
-      const parts = ['Let me make sure I have everything right.']
-      if (data.caller_name) parts.push(`Your name is ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`The issue is ${data.urgency}.`)
-      if (data.callback_time) parts.push(`The best time to reach you is ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`The best callback number is ${data.callback_number}.`)
-      parts.push('Is this correct?')
+      const parts = ['Thanks! Here\'s what I have:']
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
+      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
+      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
+      parts.push('Is everything correct?')
       return parts.join(' ')
     }
   },
   
   legal_consulting: {
-    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
-    reasonQuestion: "What can I help with?",
+    greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
+    reasonQuestion: "Could you tell me a little about what you need help with?",
     followUpQuestions: [
-      "What would you like to discuss?",
-      "Can you tell me a little more about that?"
+      "Got it. What would you like to discuss?",
+      "Understood. Can you tell me a little more about that?"
     ],
-    urgencyQuestion: "Is this urgent or time-sensitive?",
+    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: null,
-    callbackTimeQuestion: "What's the best time to call you back?",
+    callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
-      const parts = ['Let me make sure I have everything right.']
-      if (data.caller_name) parts.push(`Your name is ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`The issue is ${data.urgency}.`)
-      if (data.callback_time) parts.push(`The best time to reach you is ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`The best callback number is ${data.callback_number}.`)
-      parts.push('Is this correct?')
+      const parts = ['Thanks! Here\'s what I have:']
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
+      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
+      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
+      parts.push('Is everything correct?')
       return parts.join(' ')
     }
   },
   
   general_service: {
-    greeting: "Hi, this is the assistant. I can get your request over to the team. What can I help with?",
-    reasonQuestion: "What can I help with?",
+    greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
+    reasonQuestion: "Could you tell me a little about what you need help with?",
     followUpQuestions: [
-      "Can you tell me a little more about that?",
-      "Is there anything else I should know?"
+      "Got it. Can you tell me a little more about that?",
+      "Understood. Is there anything else I should know?"
     ],
-    urgencyQuestion: "Is this urgent or time-sensitive?",
+    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: null,
     callbackTimeQuestion: null,
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
-      const parts = ['Let me make sure I have everything right.']
-      if (data.caller_name) parts.push(`Your name is ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`You're calling about ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`The issue is ${data.urgency}.`)
-      if (data.callback_time) parts.push(`The best time to reach you is ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`The best callback number is ${data.callback_number}.`)
-      parts.push('Is this correct?')
+      const parts = ['Thanks! Here\'s what I have:']
+      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
+      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
+      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
+      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
+      parts.push('Is everything correct?')
       return parts.join(' ')
     }
   }
@@ -545,16 +545,16 @@ EARLY CONFIRMATION:
 CONFIRMATION STRUCTURE (MUST FOLLOW EXACTLY):
 The confirmation phase must always follow this strict structure:
 
-1. Transition (exact phrase): "Let me make sure I have everything right."
+1. Transition (exact phrase): "Thanks! Here's what I have:"
 
-2. Summary (exact format): "Your name is [name]. You're calling about [reason/details]. This is [urgency] urgency. The address is [address]. The best callback time is [callback time]. The best number to reach you is [callback number]."
+2. Summary (exact format): "Name: [name]. Reason: [reason/details]. Urgency: [urgency]. Location: [address]. Best callback time: [callback time]. Callback number: [callback number]."
    - Only include fields that were actually provided
-   - If address is not provided, omit "The address is [address]."
-   - If callback time is not provided, omit "The best callback time is [callback time]."
-   - Start with "Your name is" (not "I have your name as")
+   - If address is not provided, omit "Location: [address]."
+   - If callback time is not provided, omit "Best callback time: [callback time]."
+   - Use the label format "Name:", "Reason:", etc. for clarity
    - Do NOT use casual personalized openers like "Let me confirm I have everything, [name]"
 
-3. Confirmation question (exact phrase): "Is this correct?"
+3. Confirmation question (exact phrase): "Is everything correct?"
    - This is mandatory and must always be asked
    - Do not use variations like "Does that sound right?" or "Did I get that right?"
 
@@ -566,6 +566,11 @@ NATURAL CONVERSATION:
 - Use concise responses (1-2 sentences)
 - Acknowledge information already provided instead of re-asking
 - If the caller provides their name, address, or other details naturally, acknowledge and use that information
+- Use brief acknowledgements between answers: "Got it.", "Thanks.", "Understood.", "Perfect.", "Okay, thanks for letting me know."
+- Ask questions conversationally instead of mechanically. Instead of "What is the reason for your call?", prefer "Could you tell me a little about what you need help with today?"
+- Keep transitions smooth and avoid sounding scripted
+- If the caller already volunteered information, do not ask for it again
+- Do not unnecessarily repeat information back after every answer
 
 Your role is to:
 1. Greet the caller professionally in English
@@ -578,12 +583,13 @@ Your role is to:
    ${config.locationQuestion ? `- Location/address (ask naturally: "${config.locationQuestion}" - only if not already provided)` : ''}
    ${config.callbackTimeQuestion ? `- Best callback time (ask naturally: "${config.callbackTimeQuestion}" - only if relevant)` : ''}
 5. Ask relevant follow-up questions naturally based on the caller's responses and business type
-6. Once sufficient information is gathered, transition to confirmation using the exact phrase: "Let me make sure I have everything right."
-7. Read back the summary using the exact format: "Your name is [name]. You're calling about [reason/details]. This is [urgency] urgency. The address is [address]. The best callback time is [callback time]. The best number to reach you is [callback number]." (only include fields that were actually provided)
-8. Ask for final confirmation using the exact phrase: "Is that correct?"
+6. Once sufficient information is gathered, transition to confirmation using the exact phrase: "Thanks! Here's what I have:"
+7. Read back the summary using the exact format: "Name: [name]. Reason: [reason/details]. Urgency: [urgency]. Location: [address]. Best callback time: [callback time]. Callback number: [callback number]." (only include fields that were actually provided)
+8. Ask for final confirmation using the exact phrase: "Is everything correct?"
 9. If caller confirms (yes, correct, that's right, etc.):
    - Thank the caller
-   - End the call
+   - End with: "Thank you for calling. I'll pass this information along to the business. Have a great day."
+   - IMPORTANT: Wait for this closing message to be fully spoken before disconnecting. Do not hang up until the audio playback is complete.
 10. If caller corrects something:
    - Update the corrected field
    - Regenerate summary
@@ -616,9 +622,11 @@ Important guidelines:
 
 Greeting: "${config.greeting}"
 
-Confirmation question: "Is this correct?"
+Confirmation question: "Is everything correct?"
 
-Closing (after confirmation): "Thank you. I've shared this information with the team and someone will contact you shortly. Goodbye."`
+Closing (after confirmation): "Thank you for calling. I'll pass this information along to the business. Have a great day."
+
+IMPORTANT HANGUP INSTRUCTION: After speaking the closing message, wait for the audio playback to complete before disconnecting. Do not hang up until the closing message has been fully spoken. This ensures the caller hears the complete message without it being cut off.`
 }
 
 /**
