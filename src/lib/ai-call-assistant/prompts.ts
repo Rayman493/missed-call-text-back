@@ -170,6 +170,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
       if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
       if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
       if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.address) parts.push(`Location: ${data.address}.`)
       if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
       if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
       parts.push('Is everything correct?')
@@ -185,7 +186,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
       "Understood. When would you like to come in?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
-    locationQuestion: null,
+    locationQuestion: "Where would you like this to take place — your location, their location, or a general area?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
@@ -193,6 +194,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
       if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
       if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
       if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.address) parts.push(`Location: ${data.address}.`)
       if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
       if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
       parts.push('Is everything correct?')
@@ -208,7 +210,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
       "Understood. Can you tell me a little more about that?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
-    locationQuestion: null,
+    locationQuestion: "Where would you like this to take place — your location, their location, or a general area?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
@@ -216,6 +218,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
       if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
       if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
       if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.address) parts.push(`Location: ${data.address}.`)
       if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
       if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
       parts.push('Is everything correct?')
@@ -231,7 +234,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
       "Understood. Can you tell me a little more about that?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
-    locationQuestion: null,
+    locationQuestion: "Where would you like this to take place — your location, their location, or a general area?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
@@ -239,6 +242,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
       if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
       if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
       if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.address) parts.push(`Location: ${data.address}.`)
       if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
       if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
       parts.push('Is everything correct?')
@@ -254,7 +258,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
       "Understood. Can you tell me a little more about that?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
-    locationQuestion: null,
+    locationQuestion: "Where would you like this to take place — your location, their location, or a general area?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
@@ -262,6 +266,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
       if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
       if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
       if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.address) parts.push(`Location: ${data.address}.`)
       if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
       if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
       parts.push('Is everything correct?')
@@ -277,7 +282,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
       "Understood. Can you tell me a little more about that?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
-    locationQuestion: null,
+    locationQuestion: "Where would you like this to take place — your location, their location, or a general area?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
@@ -285,6 +290,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
       if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
       if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
       if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.address) parts.push(`Location: ${data.address}.`)
       if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
       if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
       parts.push('Is everything correct?')
@@ -308,6 +314,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
       if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
       if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
       if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
+      if (data.address) parts.push(`Location: ${data.address}.`)
       if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
       if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
       parts.push('Is everything correct?')
@@ -540,6 +547,11 @@ EXTRACTION EXAMPLES:
 - "My best number is 412-555-1234." → populate Callback number = 412-555-1234
 - "Call me at my cell 555-7890." → populate Callback number = 555-7890
 - "Anytime after 2pm works." → populate Callback time = Anytime after 2pm
+- "At your location" → populate Address = At business location
+- "I'll come to you" → populate Address = Caller prefers business location
+- "At the business" → populate Address = At business location
+- "Your studio" → populate Address = At business location
+- "Your office" → populate Address = At business location
 
 AVOID REDUNDANT QUESTIONS:
 - NEVER ask for Name if Name is already known
