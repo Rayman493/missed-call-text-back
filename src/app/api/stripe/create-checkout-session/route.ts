@@ -250,6 +250,7 @@ export async function POST(request: Request) {
       ],
       success_url: successUrl,
       cancel_url: cancelUrl,
+      allow_promotion_codes: true,
       metadata: {
         business_id: business.id,
         user_id: user.id,
