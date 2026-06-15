@@ -218,7 +218,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // After timeout, route to recovery page if session still unavailable
   if (isCheckoutRecovery) {
     if (recoveryTimeoutElapsed) {
-      return <AppLoadingScreen />
+      // Redirect is handled by timeout callback, don't show loading
+      return null
     }
     return <AppLoadingScreen />
   }
@@ -226,7 +227,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // BILLING RETURN GRACE MODE: When billing_return=success, show recovery loading with extended timeout
   if (isBillingReturn) {
     if (billingGraceTimeoutElapsed) {
-      return <AppLoadingScreen />
+      // Redirect is handled by timeout callback, don't show loading
+      return null
     }
     
     // Show custom billing return loading state
