@@ -47,14 +47,14 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
-      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
-      if (data.address) parts.push(`Location: ${data.address}.`)
-      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
-      parts.push('Is everything correct?')
-      return parts.join(' ')
+      if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`• Location: ${data.address}`)
+      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
+      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      parts.push('Does everything look correct?')
+      return parts.join('\n')
     }
   },
   
@@ -71,14 +71,14 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
-      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
-      if (data.address) parts.push(`Location: ${data.address}.`)
-      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
-      parts.push('Is everything correct?')
-      return parts.join(' ')
+      if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`• Location: ${data.address}`)
+      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
+      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      parts.push('Does everything look correct?')
+      return parts.join('\n')
     }
   },
   
@@ -95,14 +95,14 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
-      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
-      if (data.address) parts.push(`Location: ${data.address}.`)
-      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
-      parts.push('Is everything correct?')
-      return parts.join(' ')
+      if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`• Location: ${data.address}`)
+      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
+      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      parts.push('Does everything look correct?')
+      return parts.join('\n')
     }
   },
   
@@ -119,14 +119,14 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
-      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
-      if (data.address) parts.push(`Location: ${data.address}.`)
-      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
-      parts.push('Is everything correct?')
-      return parts.join(' ')
+      if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`• Location: ${data.address}`)
+      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
+      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      parts.push('Does everything look correct?')
+      return parts.join('\n')
     }
   },
   
@@ -143,14 +143,14 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
-      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
-      if (data.address) parts.push(`Location: ${data.address}.`)
-      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
-      parts.push('Is everything correct?')
-      return parts.join(' ')
+      if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`• Location: ${data.address}`)
+      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
+      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      parts.push('Does everything look correct?')
+      return parts.join('\n')
     }
   },
   
@@ -167,14 +167,14 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
-      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
-      if (data.address) parts.push(`Location: ${data.address}.`)
-      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
-      parts.push('Is everything correct?')
-      return parts.join(' ')
+      if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`• Location: ${data.address}`)
+      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
+      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      parts.push('Does everything look correct?')
+      return parts.join('\n')
     }
   },
   
@@ -191,14 +191,14 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
-      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
-      if (data.address) parts.push(`Location: ${data.address}.`)
-      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
-      parts.push('Is everything correct?')
-      return parts.join(' ')
+      if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`• Location: ${data.address}`)
+      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
+      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      parts.push('Does everything look correct?')
+      return parts.join('\n')
     }
   },
   
@@ -215,14 +215,14 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
-      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
-      if (data.address) parts.push(`Location: ${data.address}.`)
-      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
-      parts.push('Is everything correct?')
-      return parts.join(' ')
+      if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`• Location: ${data.address}`)
+      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
+      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      parts.push('Does everything look correct?')
+      return parts.join('\n')
     }
   },
   
@@ -239,14 +239,14 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
-      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
-      if (data.address) parts.push(`Location: ${data.address}.`)
-      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
-      parts.push('Is everything correct?')
-      return parts.join(' ')
+      if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`• Location: ${data.address}`)
+      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
+      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      parts.push('Does everything look correct?')
+      return parts.join('\n')
     }
   },
   
@@ -263,14 +263,14 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
-      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
-      if (data.address) parts.push(`Location: ${data.address}.`)
-      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
-      parts.push('Is everything correct?')
-      return parts.join(' ')
+      if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`• Location: ${data.address}`)
+      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
+      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      parts.push('Does everything look correct?')
+      return parts.join('\n')
     }
   },
   
@@ -287,14 +287,14 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
-      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
-      if (data.address) parts.push(`Location: ${data.address}.`)
-      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
-      parts.push('Is everything correct?')
-      return parts.join(' ')
+      if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`• Location: ${data.address}`)
+      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
+      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      parts.push('Does everything look correct?')
+      return parts.join('\n')
     }
   },
   
@@ -311,14 +311,14 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
-      if (data.caller_name) parts.push(`Name: ${data.caller_name}.`)
-      if (data.reason_for_call) parts.push(`Reason: ${data.reason_for_call}.`)
-      if (data.urgency) parts.push(`Urgency: ${data.urgency}.`)
-      if (data.address) parts.push(`Location: ${data.address}.`)
-      if (data.callback_time) parts.push(`Best callback time: ${data.callback_time}.`)
-      if (data.callback_number) parts.push(`Callback number: ${data.callback_number}.`)
-      parts.push('Is everything correct?')
-      return parts.join(' ')
+      if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
+      if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
+      if (data.address) parts.push(`• Location: ${data.address}`)
+      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
+      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      parts.push('Does everything look correct?')
+      return parts.join('\n')
     }
   }
 }
@@ -552,6 +552,11 @@ EXTRACTION EXAMPLES:
 - "At the business" → populate Address = At business location
 - "Your studio" → populate Address = At business location
 - "Your office" → populate Address = At business location
+- "At your shop" → populate Address = At business location
+- "I'd like lessons at your studio" → populate Address = At business location
+- "Can I come there?" → populate Address = Caller prefers business location
+- "At your location" → populate Address = At business location
+- "I'll come to you" → populate Address = Caller prefers business location
 
 AVOID REDUNDANT QUESTIONS:
 - NEVER ask for Name if Name is already known
@@ -581,14 +586,19 @@ The confirmation phase must always follow this strict structure:
 
 1. Transition (exact phrase): "Thanks! Here's what I have:"
 
-2. Summary (exact format): "Name: [name]. Reason: [reason/details]. Urgency: [urgency]. Location: [address]. Best callback time: [callback time]. Callback number: [callback number]."
+2. Summary (exact format): "• Name: [name]
+• Reason: [reason/details]
+• Location: [address]
+• Callback time: [callback time]
+• Callback number: [callback number]"
    - Only include fields that were actually provided
-   - If address is not provided, omit "Location: [address]."
-   - If callback time is not provided, omit "Best callback time: [callback time]."
-   - Use the label format "Name:", "Reason:", etc. for clarity
+   - If address is not provided, omit "• Location: [address]"
+   - If callback time is not provided, omit "• Callback time: [callback time]"
+   - Use the label format "• Name:", "• Reason:", etc. for clarity
+   - Use bullet points for better readability
    - Do NOT use casual personalized openers like "Let me confirm I have everything, [name]"
 
-3. Confirmation question (exact phrase): "Is everything correct?"
+3. Confirmation question (exact phrase): "Does everything look correct?"
    - This is mandatory and must always be asked
    - Do not use variations like "Does that sound right?" or "Did I get that right?"
 
@@ -601,10 +611,18 @@ NATURAL CONVERSATION:
 - Acknowledge information already provided instead of re-asking
 - If the caller provides their name, address, or other details naturally, acknowledge and use that information
 - Use brief acknowledgements between answers: "Got it.", "Thanks.", "Understood.", "Perfect.", "Okay, thanks for letting me know."
+- Never overuse acknowledgements - use them sparingly and naturally
+- Avoid repeating the caller's exact words back to them
+- Never sound robotic
 - Ask questions conversationally instead of mechanically. Instead of "What is the reason for your call?", prefer "Could you tell me a little about what you need help with today?"
 - Keep transitions smooth and avoid sounding scripted
 - If the caller already volunteered information, do not ask for it again
 - Do not unnecessarily repeat information back after every answer
+- Behave like an excellent receptionist - infer obvious information
+- Minimize unnecessary questions
+- Keep the conversation moving
+- Do not hallucinate or invent details
+- Ask for clarification only when genuinely needed
 
 Your role is to:
 1. Greet the caller professionally in English
@@ -673,37 +691,58 @@ IMPORTANT HANGUP INSTRUCTION: After speaking the closing message, wait for the a
 function getCategorySpecificGuidance(category: BusinessCategory): string {
   switch (category) {
     case 'plumbing_hvac':
-      return `- For HVAC: Ask if the issue is heating or cooling related and whether it's urgent
-- For plumbing: Ask if there is an active leak or water damage
-- Prioritize urgency for these time-sensitive issues`
+      return `- For HVAC: Understand issues like AC not cooling, furnace problems, maintenance needs, thermostat issues
+- For plumbing: Understand leaks, clogs, water heaters, pipes, toilets, drains, emergencies
+- Prioritize urgency for these time-sensitive issues
+- Ask about property size or frequency only if helpful for the business
+- For lawn care/landscaping: Understand mowing, trimming, edging, cleanup, seasonal maintenance, recurring service
+- Ask about property size or frequency only if helpful`
     case 'pet_grooming':
-      return `- Ask about pet type and what service they need
+      return `- Understand breed, pet type, requested services, approximate size
 - Ask if they prefer mobile service or will come to the shop (if relevant)
-- Ask about pet size/age for scheduling purposes`
+- Ask about pet size/age for scheduling purposes only if needed`
     case 'medical_dental':
       return `- Ask what type of appointment or issue they're calling about
 - Ask if this is urgent or routine
-- Be sensitive to health-related concerns`
+- Be sensitive to health-related concerns
+- For legal/professional services: Gather only a high-level reason and callback information without probing into confidential details`
     case 'legal_consulting':
-      return `- Ask what type of legal matter they need help with
+      return `- Gather only a high-level reason and callback information without probing into confidential details
 - Ask if this is time-sensitive (court dates, deadlines)
 - Do not provide legal advice, just take the message`
     case 'cleaning':
-      return `- Ask what type of cleaning they need and where
+      return `- Understand residential vs commercial, deep cleaning, recurring service
 - Ask about property size if relevant for quoting
-- Ask if this is a one-time or recurring service`
+- Ask if this is a one-time or recurring service only if helpful`
     case 'landscaping':
-      return `- Ask what type of landscaping service they need
-- Ask about property size if relevant
-- Ask if this is maintenance or a new project`
+      return `- Understand mowing, trimming, edging, cleanup, seasonal maintenance, recurring service
+- Ask about property size or frequency only if helpful`
     case 'home_services':
-      return `- Ask for details about the service needed
+      return `- For electricians: Understand outlets, breakers, wiring, lighting, panel issues
 - Ask about the scope of work if relevant
 - Ask if this is urgent or can be scheduled`
+    case 'salon_appointment':
+      return `- Understand haircut, color, beard trim, consultation
+- Ask about preferred timing if relevant`
+    case 'lessons_tutoring':
+      return `- Understand beginner/intermediate/advanced level
+- Recognize references to in-person vs online
+- Understand that lessons may occur at the student's home or the instructor's location
+- Ask about skill level and format (in-person/online) only if not clear from context`
+    case 'real_estate':
+      return `- Ask about property type and location
+- Ask if this is urgent or routine
+- Ask about buying/selling/renting only if not clear`
+    case 'travel_agent':
+      return `- Ask about destination, dates, and number of travelers
+- Ask about budget if relevant
+- Ask about travel preferences only if helpful`
     default:
       return `- Ask for relevant details based on their reason for calling
 - Adapt your follow-up questions to what they tell you
-- Focus on getting enough information for an effective callback`
+- Focus on getting enough information for an effective callback
+- Ask questions that materially improve the handoff to the business
+- Do NOT blindly ask identical scripted questions`
   }
 }
 
