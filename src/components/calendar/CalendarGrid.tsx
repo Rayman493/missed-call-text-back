@@ -18,6 +18,23 @@ interface CalendarGridProps {
   onDayClick?: (day: number, isCurrentMonth: boolean) => void
 }
 
+interface MultiDayEvent {
+  id: string
+  summary: string
+  start: Date
+  end: Date
+  isAllDay: boolean
+  originalEvent: any
+}
+
+interface MultiDaySegment {
+  event: MultiDayEvent
+  startDay: Date
+  endDay: Date
+  startColumn: number
+  spanDays: number
+}
+
 export default function CalendarGrid({ 
   month, 
   events, 
@@ -92,71 +109,111 @@ export default function CalendarGrid({
     })
   }
 
+  // Helper function to check if an event is multi-day
+  const isMultiDayEvent = (event: any): boolean => {
+    const startDate = event.start?.dateTime || event.start?.date
+    const endDate = event.end?.dateTime || event.end?.date
+    if (!startDate || !endDate) return false
+    
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    
+    // For all-day events, Google Calendar uses exclusive end dates
+    const isAllDayEvent = !event.start?.dateTime && !!event.start?.date
+    const effectiveEnd = isAllDayEvent ? new Date(end.getTime() - 86400000) : end
+    
+    return start.toDateString() !== effectiveEnd.toDateString()
+  }
+
+  // Helper function to get effective end date (handling exclusive end dates)
+  const getEffectiveEndDate = (event: any): Date => {
+    const endDate = event.end?.dateTime || event.end?.date
+    if (!endDate) return new Date(event.start?.dateTime || event.start?.date)
+    
+    const end = new Date(endDate)
+    const isAllDayEvent = !event.start?.dateTime && !!event.start?.date
+    return isAllDayEvent ? new Date(end.getTime() - 86400000) : end
+  }
+
+  // Separate events into single-day and multi-day categories
+  const { singleDayEvents, multiDayEvents } = (() => {
+    const singleDay: any[] = []
+    const multiDay: MultiDayEvent[] = []
+    
+    events.forEach(event => {
+      const eventDateRaw = event.start?.dateTime || event.start?.date
+      if (!eventDateRaw) return
+      
+      if (isMultiDayEvent(event)) {
+        const startDate = new Date(eventDateRaw)
+        const endDate = getEffectiveEndDate(event)
+        const isAllDay = !event.start?.dateTime && !!event.start?.date
+        
+        multiDay.push({
+          id: event.id,
+          summary: event.summary,
+          start: startDate,
+          end: endDate,
+          isAllDay,
+          originalEvent: event
+        })
+      } else {
+        singleDay.push(event)
+      }
+    })
+    
+    return { singleDayEvents: singleDay, multiDayEvents: multiDay }
+  })()
+
+  // Calculate multi-day event segments per week row
+  const calculateMultiDaySegments = (): MultiDaySegment[] => {
+    const segments: MultiDaySegment[] = []
+    
+    multiDayEvents.forEach(event => {
+      // Get the month start and end dates
+      const monthStart = new Date(year, monthIndex, 1)
+      const monthEnd = new Date(year, monthIndex + 1, 0)
+      
+      // Calculate the segment for this event within the current month view
+      const segmentStart = new Date(Math.max(event.start.getTime(), monthStart.getTime()))
+      const segmentEnd = new Date(Math.min(event.end.getTime(), monthEnd.getTime()))
+      
+      // Calculate which columns this segment spans
+      const startColumn = segmentStart.getDate() + startDayOfWeek - 1
+      const endColumn = segmentEnd.getDate() + startDayOfWeek - 1
+      const spanDays = endColumn - startColumn + 1
+      
+      segments.push({
+        event,
+        startDay: segmentStart,
+        endDay: segmentEnd,
+        startColumn,
+        spanDays
+      })
+    })
+    
+    return segments
+  }
+
+  const multiDaySegments = calculateMultiDaySegments()
+
   const getEventsForDay = (dayNumber: number, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) return { events: [], overflowCount: 0 }
     
     // Create day key for comparison (YYYY-MM-DD)
     const dayKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
     
-    // Log events for debugging multi-day issues
-    if (dayNumber === 19) {
-      console.log('[CALENDAR DEBUG] Day 19 events:', events.map(e => ({
-        id: e.id,
-        summary: e.summary,
-        start: e.start,
-        end: e.end,
-        hasEnd: !!e.end
-      })))
-    }
-    
-    const allMatchedEvents = events.filter(event => {
+    // Only filter single-day events (multi-day events are rendered separately as bars)
+    const allMatchedEvents = singleDayEvents.filter(event => {
       const eventDateRaw = event.start?.dateTime || event.start?.date
       if (!eventDateRaw) return false
       
-      // Normalize event start date to YYYY-MM-DD string
-      const eventStartDayKey = eventDateRaw.includes('T')
+      // Normalize event date to YYYY-MM-DD string
+      const eventDayKey = eventDateRaw.includes('T')
         ? eventDateRaw.split('T')[0]
         : eventDateRaw
       
-      // Check if event has an end date (for multi-day events)
-      const eventEndRaw = event.end?.dateTime || event.end?.date
-      if (eventEndRaw) {
-        // Normalize event end date to YYYY-MM-DD string
-        const eventEndDayKey = eventEndRaw.includes('T')
-          ? eventEndRaw.split('T')[0]
-          : eventEndRaw
-        
-        // For all-day events, Google Calendar uses exclusive end dates
-        // Example: June 19-23 comes as start.date = 2026-06-19, end.date = 2026-06-24
-        // For timed events, the end date is inclusive
-        const isAllDay = !event.start?.dateTime && !!event.start?.date
-        const effectiveEndDate = isAllDay 
-          ? new Date(eventEndDayKey).getTime() - 86400000 // Subtract 1 day for exclusive end
-          : new Date(eventEndDayKey).getTime()
-        
-        const dayTimestamp = new Date(dayKey).getTime()
-        const startTimestamp = new Date(eventStartDayKey).getTime()
-        
-        // Debug logging for multi-day events
-        if (event.summary === 'Vacation' && dayNumber >= 19 && dayNumber <= 24) {
-          console.log('[CALENDAR DEBUG] Vacation multi-day check:', {
-            day: dayKey,
-            dayTimestamp,
-            eventStart: eventStartDayKey,
-            startTimestamp,
-            eventEnd: eventEndDayKey,
-            effectiveEndDate,
-            isAllDay,
-            inRange: dayTimestamp >= startTimestamp && dayTimestamp <= effectiveEndDate
-          })
-        }
-        
-        // Check if current day falls within the event's date range
-        return dayTimestamp >= startTimestamp && dayTimestamp <= effectiveEndDate
-      }
-      
-      // Single-day event: check if start date matches
-      return eventStartDayKey === dayKey
+      return eventDayKey === dayKey
     })
     
     // Limit visible events based on screen size
@@ -178,7 +235,7 @@ export default function CalendarGrid({
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm">
+    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm relative">
       <div className="sticky top-0 z-10 bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-t-xl p-1 sm:p-2 md:p-4 md:p-6 border-b border-slate-200/70 dark:border-slate-700/50">
         <div className="flex items-center justify-between gap-2">
           <button
@@ -221,30 +278,56 @@ export default function CalendarGrid({
           ))}
         </div>
       
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2">
-        {days.map((dayInfo, index) => {
-          const { events: dayEvents, overflowCount } = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
-          const dayDate = dayInfo.isCurrentMonth ? new Date(year, monthIndex, dayInfo.day) : null
-          
-          return (
-            <CalendarDayCell
-              key={index}
-              day={dayInfo.day}
-              isCurrentMonth={dayInfo.isCurrentMonth}
-              isToday={dayInfo.isToday}
-              events={
-                dayEvents.length > 0 ? (
-                  <>
-                    {dayEvents.map((event: any) => renderEvent(event, dayDate!))}
-                  </>
-                ) : null
-              }
-              overflowCount={overflowCount}
-              onClick={() => onDayClick?.(dayInfo.day, dayInfo.isCurrentMonth)}
-            />
-          )
-        })}
+      {/* Calendar grid with multi-day bars */}
+      <div className="relative">
+        {/* Multi-day event bars */}
+        <div className="absolute inset-0 pointer-events-none">
+          {multiDaySegments.map((segment, index) => (
+            <div
+              key={segment.event.id}
+              className="absolute top-0 h-6 sm:h-8 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium text-blue-800 dark:text-blue-200 truncate pointer-events-auto cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
+              style={{
+                left: `calc(${segment.startColumn * (100 / 7)}% + 0.25%)`,
+                width: `calc(${segment.spanDays * (100 / 7)}% - 0.5%)`,
+                zIndex: 10 + index
+              }}
+              onClick={() => {
+                if (segment.event.originalEvent.htmlLink) {
+                  window.open(segment.event.originalEvent.htmlLink, '_blank', 'noopener,noreferrer')
+                }
+              }}
+              title={segment.event.summary}
+            >
+              {segment.event.summary}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar grid cells */}
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 relative z-0">
+          {days.map((dayInfo, index) => {
+            const { events: dayEvents, overflowCount } = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
+            const dayDate = dayInfo.isCurrentMonth ? new Date(year, monthIndex, dayInfo.day) : null
+            
+            return (
+              <CalendarDayCell
+                key={index}
+                day={dayInfo.day}
+                isCurrentMonth={dayInfo.isCurrentMonth}
+                isToday={dayInfo.isToday}
+                events={
+                  dayEvents.length > 0 ? (
+                    <>
+                      {dayEvents.map((event: any) => renderEvent(event, dayDate!))}
+                    </>
+                  ) : null
+                }
+                overflowCount={overflowCount}
+                onClick={() => onDayClick?.(dayInfo.day, dayInfo.isCurrentMonth)}
+              />
+            )
+          })}
+        </div>
       </div>
       </div>
     </div>
