@@ -1620,6 +1620,15 @@ const CONFIRMATION_SUFFIX = " Is this correct?";
 
 // Schedule hangup only (for when final goodbye was already sent)
 async function scheduleHangupOnly(ws: any, twilioHandler: any) {
+  const currentCallState = (ws as any).callState || 'active';
+  const currentConfirmationState = (ws as any).confirmationState || 'collecting_info';
+  
+  // Hard guard: Validate closing transition
+  if (!validateClosingTransition(currentCallState, currentConfirmationState, undefined, 'scheduleHangupOnly')) {
+    console.log('[CLOSING BLOCKED] scheduleHangupOnly blocked by state guard');
+    return;
+  }
+  
   console.log('[AI FINAL GOODBYE COMPLETE] Final goodbye sentence detected');
   console.log('[AI HANGUP SCHEDULED] Scheduling hangup after 5000ms to ensure audio playback finishes');
   
@@ -1648,12 +1657,40 @@ async function scheduleHangupOnly(ws: any, twilioHandler: any) {
   }
 }
 
+// Validate closing transition - hard guard to prevent premature closing
+function validateClosingTransition(callState: string, confirmationState: string, transcript?: string, reason?: string): boolean {
+  const allowedConfirmationStates = ['confirmed', 'final_goodbye'];
+  if (!allowedConfirmationStates.includes(confirmationState)) {
+    console.log('[INVALID CLOSING TRANSITION] =========================================');
+    console.log('[INVALID CLOSING TRANSITION] ATTEMPTED TO CLOSE CALL IN INVALID STATE');
+    console.log('[INVALID CLOSING TRANSITION]', {
+      callState,
+      confirmationState,
+      reason,
+      transcriptTail: transcript ? transcript.slice(-200) : 'none',
+      allowedStates: allowedConfirmationStates.join(', ')
+    });
+    console.log('[INVALID CLOSING TRANSITION] =========================================');
+    return false;
+  }
+  return true;
+}
+
 // Send final goodbye and hangup deterministically
 async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: any) {
+  const currentCallState = (ws as any).callState || 'active';
+  const currentConfirmationState = (ws as any).confirmationState || 'collecting_info';
+  
+  // Hard guard: Validate closing transition
+  if (!validateClosingTransition(currentCallState, currentConfirmationState, undefined, 'sendFinalGoodbyeAndHangup')) {
+    console.log('[CLOSING BLOCKED] sendFinalGoodbyeAndHangup blocked by state guard');
+    return;
+  }
+  
   const timestamp = new Date().toISOString();
   console.log('[RACE CONDITION DEBUG] sendFinalGoodbyeAndHangup called at:', timestamp);
-  console.log('[RACE CONDITION DEBUG] Current callState before setting to closing:', (ws as any).callState);
-  console.log('[RACE CONDITION DEBUG] Current confirmationState:', (ws as any).confirmationState);
+  console.log('[RACE CONDITION DEBUG] Current callState before setting to closing:', currentCallState);
+  console.log('[RACE CONDITION DEBUG] Current confirmationState:', currentConfirmationState);
   console.log('[AI FINAL GOODBYE START] Starting deterministic goodbye and hangup sequence');
   console.log('[ENTER FINAL_GOODBYE] confirmationState: confirmed');
   
@@ -3465,20 +3502,7 @@ Do NOT:
                     transcript: userTranscript 
                   });
                   
-                  // Check for confirmation phrases and intercept immediately
-                  if (currentStage === 'confirmation' && userTranscript) {
-                    const confirmationPhrases = ['yes', 'correct', 'yep', "that's right", 'that is right', 'sounds good', 'right', 'confirm'];
-                    const isConfirmation = confirmationPhrases.some(phrase => 
-                      userTranscript.toLowerCase().includes(phrase)
-                    );
-                    
-                    if (isConfirmation) {
-                      console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at conversation.item.created');
-                      sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
-                      return; // Skip all other processing
-                    }
-                  }
-                }
+                                  }
               }
               if (message.type === 'conversation.item.done') {
                 console.log('[USER ITEM] done:', message.item?.type || 'unknown');
@@ -3500,20 +3524,7 @@ Do NOT:
                     transcript: userTranscript 
                   });
                   
-                  // Check for confirmation phrases and intercept immediately
-                  if (currentStage === 'confirmation' && userTranscript) {
-                    const confirmationPhrases = ['yes', 'correct', 'yep', "that's right", 'that is right', 'sounds good', 'right', 'confirm'];
-                    const isConfirmation = confirmationPhrases.some(phrase => 
-                      userTranscript.toLowerCase().includes(phrase)
-                    );
-                    
-                    if (isConfirmation) {
-                      console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at conversation.item.done');
-                      sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
-                      return; // Skip all other processing
-                    }
-                  }
-                }
+                                  }
               }
               if (message.type === 'conversation.item.completed') {
                 console.log('[USER ITEM] completed:', message.item?.type || 'unknown');
@@ -3535,20 +3546,7 @@ Do NOT:
                     transcript: userTranscript 
                   });
                   
-                  // Check for confirmation phrases and intercept immediately
-                  if (currentStage === 'confirmation' && userTranscript) {
-                    const confirmationPhrases = ['yes', 'correct', 'yep', "that's right", 'that is right', 'sounds good', 'right', 'confirm'];
-                    const isConfirmation = confirmationPhrases.some(phrase => 
-                      userTranscript.toLowerCase().includes(phrase)
-                    );
-                    
-                    if (isConfirmation) {
-                      console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at conversation.item.completed');
-                      sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
-                      return; // Skip all other processing
-                    }
-                  }
-                }
+                                  }
               }
 
               // Listen for FINAL transcript events
@@ -3576,20 +3574,7 @@ Do NOT:
                     transcript: userTranscript 
                   });
                   
-                  // Check for confirmation phrases and intercept immediately
-                  if (currentStage === 'confirmation' && userTranscript) {
-                    const confirmationPhrases = ['yes', 'correct', 'yep', "that's right", 'that is right', 'sounds good', 'right', 'confirm'];
-                    const isConfirmation = confirmationPhrases.some(phrase => 
-                      userTranscript.toLowerCase().includes(phrase)
-                    );
-                    
-                    if (isConfirmation) {
-                      console.log('[AI CONFIRMATION DETECTED IN TRANSCRIPT] Intercepting confirmation at transcript handler');
-                      sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
-                      return; // Skip all other processing
-                    }
-                  }
-                  
+                                    
                   // Check for goodbye phrases after final message
                   if (callState === 'closing' || callState === 'closing_audio_playing') {
                     console.log('[AI CLOSING IGNORE USER AUDIO] Ignoring caller audio during closing state');
@@ -3706,23 +3691,7 @@ Do NOT:
                         return; // Skip normal intake processing
                       }
 
-                      console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
-                      console.log('[CONFIRMATION ACCEPTED] confirmationState: accepted');
-                      console.log('[AI CONFIRMATION ACCEPTED - CLOSING] Starting deterministic closing sequence');
-
-                      // Set closing state immediately
-                      callState = 'closing';
-                      (twilioHandler as any).callState = callState;
-                      terminalClosingResponseStarted = true;
-                      (twilioHandler as any).terminalClosingResponseStarted = terminalClosingResponseStarted;
-                      confirmationAccepted = true;
-                      intakeComplete = true;
                       
-                      console.log('[AI CLOSING STATE SET] callState: closing, terminalClosingResponseStarted: true, intakeComplete: true');
-                      
-                      // Mark as complete to prevent further processing
-                      intakeData!.stage = 'complete';
-
                       // Send final goodbye message immediately
                       const finalClosingMessage = {
                         type: 'response.create',
