@@ -85,7 +85,8 @@ export default function CalendarGrid({
     days.push({
       day: prevMonthLastDay - i,
       isCurrentMonth: false,
-      isToday: false
+      isToday: false,
+      date: new Date(year, monthIndex - 1, prevMonthLastDay - i)
     })
   }
   
@@ -95,7 +96,8 @@ export default function CalendarGrid({
     days.push({
       day,
       isCurrentMonth: true,
-      isToday
+      isToday,
+      date: new Date(year, monthIndex, day)
     })
   }
   
@@ -105,8 +107,22 @@ export default function CalendarGrid({
     days.push({
       day,
       isCurrentMonth: false,
-      isToday: false
+      isToday: false,
+      date: new Date(year, monthIndex + 1, day)
     })
+  }
+
+  // Group days into week rows (6 rows of 7 days)
+  const weekRows: Array<Array<{
+    day: number
+    isCurrentMonth: boolean
+    isToday: boolean
+    date: Date
+  }>> = []
+  for (let i = 0; i < 6; i++) {
+    const startIdx = i * 7
+    const endIdx = startIdx + 7
+    weekRows.push(days.slice(startIdx, endIdx))
   }
 
   // Helper function to check if an event is multi-day
@@ -166,36 +182,53 @@ export default function CalendarGrid({
   })()
 
   // Calculate multi-day event segments per week row
-  const calculateMultiDaySegments = (): MultiDaySegment[] => {
-    const segments: MultiDaySegment[] = []
+  const calculateMultiDaySegments = (): Map<number, MultiDaySegment[]> => {
+    const segmentsByWeek = new Map<number, MultiDaySegment[]>()
+    
+    // Initialize segments for each week row
+    for (let i = 0; i < 6; i++) {
+      segmentsByWeek.set(i, [])
+    }
     
     multiDayEvents.forEach(event => {
-      // Get the month start and end dates
-      const monthStart = new Date(year, monthIndex, 1)
-      const monthEnd = new Date(year, monthIndex + 1, 0)
-      
-      // Calculate the segment for this event within the current month view
-      const segmentStart = new Date(Math.max(event.start.getTime(), monthStart.getTime()))
-      const segmentEnd = new Date(Math.min(event.end.getTime(), monthEnd.getTime()))
-      
-      // Calculate which columns this segment spans
-      const startColumn = segmentStart.getDate() + startDayOfWeek - 1
-      const endColumn = segmentEnd.getDate() + startDayOfWeek - 1
-      const spanDays = endColumn - startColumn + 1
-      
-      segments.push({
-        event,
-        startDay: segmentStart,
-        endDay: segmentEnd,
-        startColumn,
-        spanDays
+      // Calculate which week rows this event appears in
+      weekRows.forEach((week, weekIndex) => {
+        const weekStart = week[0].date
+        const weekEnd = week[6].date
+        
+        // Check if event overlaps with this week
+        const eventStart = event.start.getTime()
+        const eventEnd = event.end.getTime()
+        const weekStartTime = weekStart.getTime()
+        const weekEndTime = weekEnd.getTime()
+        
+        if (eventStart <= weekEndTime && eventEnd >= weekStartTime) {
+          // Calculate segment within this week
+          const segmentStart = new Date(Math.max(eventStart, weekStartTime))
+          const segmentEnd = new Date(Math.min(eventEnd, weekEndTime))
+          
+          // Calculate which columns this segment spans
+          const startColumn = week.findIndex(day => 
+            day.date.toDateString() === segmentStart.toDateString()
+          )
+          const endColumn = week.findIndex(day => 
+            day.date.toDateString() === segmentEnd.toDateString()
+          )
+          const spanDays = endColumn - startColumn + 1
+          
+          segmentsByWeek.get(weekIndex)?.push({
+            event,
+            startDay: segmentStart,
+            endDay: segmentEnd,
+            startColumn,
+            spanDays
+          })
+        }
       })
     })
     
-    return segments
+    return segmentsByWeek
   }
-
-  const multiDaySegments = calculateMultiDaySegments()
 
   const getEventsForDay = (dayNumber: number, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) return { events: [], overflowCount: 0 }
@@ -223,6 +256,8 @@ export default function CalendarGrid({
     
     return { events: visibleEvents, overflowCount }
   }
+
+  const multiDaySegmentsByWeek = calculateMultiDaySegments()
 
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return ''
@@ -278,56 +313,64 @@ export default function CalendarGrid({
           ))}
         </div>
       
-      {/* Calendar grid with multi-day bars */}
-      <div className="relative">
-        {/* Multi-day event bars */}
-        <div className="absolute inset-0 pointer-events-none">
-          {multiDaySegments.map((segment, index) => (
-            <div
-              key={segment.event.id}
-              className="absolute top-0 h-6 sm:h-8 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium text-blue-800 dark:text-blue-200 truncate pointer-events-auto cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
-              style={{
-                left: `calc(${segment.startColumn * (100 / 7)}% + 0.25%)`,
-                width: `calc(${segment.spanDays * (100 / 7)}% - 0.5%)`,
-                zIndex: 10 + index
-              }}
-              onClick={() => {
-                if (segment.event.originalEvent.htmlLink) {
-                  window.open(segment.event.originalEvent.htmlLink, '_blank', 'noopener,noreferrer')
-                }
-              }}
-              title={segment.event.summary}
-            >
-              {segment.event.summary}
-            </div>
-          ))}
-        </div>
+      {/* Calendar grid with week-row multi-day bars */}
+      <div className="space-y-0.5 sm:space-y-1 md:space-y-2">
+        {weekRows.map((week, weekIndex) => {
+          const weekSegments = multiDaySegmentsByWeek.get(weekIndex) || []
+          
+          return (
+            <div key={weekIndex} className="relative">
+              {/* Multi-day event bars for this week */}
+              <div className="absolute inset-0 top-6 sm:top-8 pointer-events-none">
+                {weekSegments.map((segment, segmentIndex) => (
+                  <div
+                    key={segment.event.id}
+                    className="absolute top-0 h-6 sm:h-8 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium text-blue-800 dark:text-blue-200 truncate pointer-events-auto cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
+                    style={{
+                      left: `calc(${segment.startColumn * (100 / 7)}% + 0.25%)`,
+                      width: `calc(${segment.spanDays * (100 / 7)}% - 0.5%)`,
+                      zIndex: 10 + segmentIndex
+                    }}
+                    onClick={() => {
+                      if (segment.event.originalEvent.htmlLink) {
+                        window.open(segment.event.originalEvent.htmlLink, '_blank', 'noopener,noreferrer')
+                      }
+                    }}
+                    title={segment.event.summary}
+                  >
+                    {segment.event.summary}
+                  </div>
+                ))}
+              </div>
 
-        {/* Calendar grid cells */}
-        <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 relative z-0">
-          {days.map((dayInfo, index) => {
-            const { events: dayEvents, overflowCount } = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
-            const dayDate = dayInfo.isCurrentMonth ? new Date(year, monthIndex, dayInfo.day) : null
-            
-            return (
-              <CalendarDayCell
-                key={index}
-                day={dayInfo.day}
-                isCurrentMonth={dayInfo.isCurrentMonth}
-                isToday={dayInfo.isToday}
-                events={
-                  dayEvents.length > 0 ? (
-                    <>
-                      {dayEvents.map((event: any) => renderEvent(event, dayDate!))}
-                    </>
-                  ) : null
-                }
-                overflowCount={overflowCount}
-                onClick={() => onDayClick?.(dayInfo.day, dayInfo.isCurrentMonth)}
-              />
-            )
-          })}
-        </div>
+              {/* Calendar grid cells for this week */}
+              <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 relative z-0">
+                {week.map((dayInfo, dayIndex) => {
+                  const { events: dayEvents, overflowCount } = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
+                  const dayDate = dayInfo.isCurrentMonth ? new Date(year, monthIndex, dayInfo.day) : null
+                  
+                  return (
+                    <CalendarDayCell
+                      key={dayIndex}
+                      day={dayInfo.day}
+                      isCurrentMonth={dayInfo.isCurrentMonth}
+                      isToday={dayInfo.isToday}
+                      events={
+                        dayEvents.length > 0 ? (
+                          <>
+                            {dayEvents.map((event: any) => renderEvent(event, dayDate!))}
+                          </>
+                        ) : null
+                      }
+                      overflowCount={overflowCount}
+                      onClick={() => onDayClick?.(dayInfo.day, dayInfo.isCurrentMonth)}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
       </div>
       </div>
     </div>
