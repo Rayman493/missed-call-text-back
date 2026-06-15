@@ -1410,13 +1410,7 @@ export default function DashboardContent() {
                                       <p className="font-semibold text-foreground">Set up call forwarding</p>
                                       <span className="px-2 py-0.5 bg-blue-500 text-white text-xs font-medium rounded-full">Current Step</span>
                                     </div>
-                                    <p className="text-sm text-muted-foreground mb-3">Configure your phone to forward missed calls to ReplyFlow</p>
-                                    <Link
-                                      href="/setup/phone-forwarding"
-                                      className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
-                                    >
-                                      Set Up Call Forwarding
-                                    </Link>
+                                    <p className="text-sm text-muted-foreground">Configure your phone to forward missed calls to ReplyFlow. Use the button above to get started.</p>
                                   </div>
                                 </div>
                               )}
