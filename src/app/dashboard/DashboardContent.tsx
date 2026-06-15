@@ -1022,8 +1022,8 @@ export default function DashboardContent() {
                   </SectionErrorBoundary>
                 )}
 
-                {/* Provisioning Status Banner - Show when provisioning is pending AND user is eligible for trial */}
-                {!setupMode && business?.provisioning_status === 'pending' && eligibility?.eligible && (
+                {/* Provisioning Status Banner - Show when provisioning is pending AND billing is complete */}
+                {!setupMode && business?.provisioning_status === 'pending' && hasActiveSubscription(business) && (
                   <SectionErrorBoundary sectionName="ProvisioningBanner">
                     <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
                       <div className="flex items-center gap-3">
