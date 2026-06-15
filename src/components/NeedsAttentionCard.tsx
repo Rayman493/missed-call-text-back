@@ -225,26 +225,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
 
         // Recommended Items
 
-        // 5. Follow-ups not configured - check business.automation_settings instead of follow_up_settings table
-        const followUpsEnabled = business?.automation_settings?.followUps?.enabled
-        const followUpsConfigured = (business?.automation_settings?.followUps?.followUps?.length || 0) > 0
-
-        if (!followUpsEnabled && !followUpsConfigured) {
-          attentionItems.push({
-            id: 'followups-config',
-            label: 'Follow-ups not configured',
-            actionLabel: 'Configure',
-            count: 1,
-            priority: 'medium',
-            group: 'Recommended',
-            icon: Settings,
-            color: 'text-amber-600 dark:text-amber-400',
-            bgColor: 'bg-amber-100 dark:bg-amber-900/20',
-            actionUrl: '/dashboard/settings/follow-ups'
-          })
-        }
-
-        // 6. Google Calendar not connected - use API endpoint instead of calendar_settings table
+        // 5. Google Calendar not connected - use API endpoint instead of calendar_settings table
         let calendarConnected = false
         try {
           const response = await fetch('/api/google/calendar/status?provider=google')
