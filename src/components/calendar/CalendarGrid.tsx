@@ -33,6 +33,7 @@ interface MultiDaySegment {
   endDay: Date
   startColumn: number
   spanDays: number
+  lane: number
 }
 
 export default function CalendarGrid({ 
@@ -221,9 +222,61 @@ export default function CalendarGrid({
             startDay: segmentStart,
             endDay: segmentEnd,
             startColumn,
-            spanDays
+            spanDays,
+            lane: 0 // Will be assigned later
           })
         }
+      })
+    })
+    
+    // Assign lanes to segments to avoid overlaps
+    segmentsByWeek.forEach((segments, weekIndex) => {
+      // Sort segments by start column
+      segments.sort((a, b) => a.startColumn - b.startColumn)
+      
+      // Assign lanes
+      const lanes: Array<{ start: number; end: number }[]> = []
+      
+      segments.forEach(segment => {
+        let assignedLane = -1
+        
+        // Find the first available lane
+        for (let i = 0; i < lanes.length; i++) {
+          const lane = lanes[i]
+          let canUseLane = true
+          
+          // Check if this segment overlaps with any segment in this lane
+          for (const laneSegment of lane) {
+            if (segment.startColumn <= laneSegment.end && segment.startColumn + segment.spanDays - 1 >= laneSegment.start) {
+              canUseLane = false
+              break
+            }
+          }
+          
+          if (canUseLane) {
+            assignedLane = i
+            break
+          }
+        }
+        
+        // If no available lane, create a new one
+        if (assignedLane === -1) {
+          assignedLane = lanes.length
+          lanes.push([])
+        }
+        
+        // Assign the lane to the segment
+        segment.lane = assignedLane
+        lanes[assignedLane].push({
+          start: segment.startColumn,
+          end: segment.startColumn + segment.spanDays - 1
+        })
+      })
+      
+      // Re-sort segments by lane, then by start column
+      segments.sort((a, b) => {
+        if (a.lane !== b.lane) return a.lane - b.lane
+        return a.startColumn - b.startColumn
       })
     })
     
@@ -325,10 +378,11 @@ export default function CalendarGrid({
                 {weekSegments.map((segment, segmentIndex) => (
                   <div
                     key={segment.event.id}
-                    className="absolute top-0 h-6 sm:h-8 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium text-blue-800 dark:text-blue-200 truncate pointer-events-auto cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
+                    className="absolute h-6 sm:h-8 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium text-blue-800 dark:text-blue-200 truncate pointer-events-auto cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
                     style={{
                       left: `calc(${segment.startColumn * (100 / 7)}% + 0.25%)`,
                       width: `calc(${segment.spanDays * (100 / 7)}% - 0.5%)`,
+                      top: `${segment.lane * 2.5}rem`,
                       zIndex: 10 + segmentIndex
                     }}
                     onClick={() => {
