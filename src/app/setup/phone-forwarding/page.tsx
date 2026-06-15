@@ -367,30 +367,33 @@ export default function PhoneForwardingPage() {
                   {/* AT&T-specific instructions */}
                   {selectedCarrier === 'at&t' ? (
                     <div className="bg-card border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-6 sm:p-8 shadow-sm">
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="font-semibold text-foreground mb-2">AT&T Wireless</h4>
-                          <p className="text-sm text-muted-foreground mb-3">
-                            Dial <span className="font-mono font-semibold text-foreground">*92{business?.twilio_phone_number?.replace(/^\+/, '')}</span> from your AT&T phone, then press Call.
-                          </p>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-foreground mb-2">AT&T Business/Home Phone</h4>
-                          <p className="text-sm text-muted-foreground mb-3">
-                            Dial <span className="font-mono font-semibold text-foreground">*92{business?.twilio_phone_number?.replace(/^\+/, '')}</span> from your AT&T phone, then press Call.
-                          </p>
-                        </div>
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                          <p className="text-xs text-blue-700 dark:text-blue-300">
-                            <strong>Note:</strong> Some AT&T devices or plans may have different activation codes. If the above doesn't work, contact AT&T customer service for your specific device's call forwarding instructions.
-                          </p>
-                        </div>
-                        <div className="bg-muted/50 border border-border rounded-lg p-4">
-                          <p className="text-xs text-muted-foreground">
-                            <strong>To disable forwarding later:</strong> Dial <span className="font-mono font-semibold">*93</span> and press Call.
-                          </p>
-                        </div>
+                      <p className="text-sm font-semibold text-foreground mb-2">AT&T</p>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Dial this from your AT&T phone:
+                      </p>
+                      <div 
+                        className="bg-muted border-2 border-blue-200 dark:border-blue-800 rounded-xl px-6 py-6 sm:py-8 mb-4 overflow-x-auto cursor-pointer hover:bg-muted/80 transition-colors"
+                        onClick={handleCopyCode}
+                        title="Click to copy code"
+                      >
+                        <code
+                          aria-label="Connection dial code"
+                          className="block font-mono font-bold text-foreground text-center text-3xl sm:text-4xl lg:text-5xl tracking-widest whitespace-nowrap select-all"
+                        >
+                          *92{business?.twilio_phone_number?.replace(/^\+/, '')}
+                        </code>
                       </div>
+                      <p className="text-xs text-muted-foreground/70 text-center mb-4">
+                        Press Call and wait for the confirmation tone or message.
+                      </p>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                        <p className="text-xs text-blue-700 dark:text-blue-300">
+                          <strong>Note:</strong> If this code doesn't work, your AT&T plan may use different forwarding settings. Contact AT&T or check your account for carrier-specific instructions.
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground/60 text-center">
+                        To disable later: Dial *93 and press Call.
+                      </p>
                     </div>
                   ) : hasValidCode ? (
                     <div className="bg-card border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-6 sm:p-8 shadow-sm">
