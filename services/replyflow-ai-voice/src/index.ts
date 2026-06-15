@@ -1581,8 +1581,8 @@ async function closeCallAfterConfirmation(ws: any, twilioHandler: any, openAiWs:
 
 // Clean call ending function
 async function endCallCleanly(ws: any, twilioHandler: any) {
-  console.log('[AUTO HANGUP START] Starting call termination process');
-  console.log('[AI FINAL AUDIO DONE] Final goodbye audio completed, initiating hangup');
+  // Note: Logging is now handled by the response.audio.done handler
+  // This function only executes the actual hangup
   
   try {
     const callContext = (ws as any).callContext;
@@ -1625,42 +1625,21 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
     });
     
     if (twilioClient && callSid) {
-      console.log('[TWILIO HANGUP ATTEMPT] Using Twilio REST API to terminate call', {
+      console.log('[TWILIO HANGUP EXECUTING] Terminating call via REST API', {
         callSid,
         businessId,
         sessionId,
-        twilioAccountSid,
-        method: 'REST API calls.update',
-        targetStatus: 'completed',
         timestamp: new Date().toISOString()
       });
       
       // Execute the hangup
       const updateResult = await twilioClient.calls(callSid).update({ status: 'completed' });
       
-      console.log('[TWILIO HANGUP SUCCESS] Call terminated successfully via Twilio REST API', {
+      console.log('[TWILIO HANGUP SUCCESS] Call terminated successfully', {
         callSid,
-        businessId,
-        sessionId,
-        method: 'REST API',
         resultStatus: updateResult.status,
-        resultDateCreated: updateResult.dateCreated,
-        resultDateUpdated: updateResult.dateUpdated,
-        resultPrice: updateResult.price,
-        resultPriceUnit: updateResult.priceUnit,
         timestamp: new Date().toISOString()
       });
-      
-      // Verify the call status changed
-      if (updateResult.status === 'completed') {
-        console.log('[TWILIO HANGUP SUCCESS] Call status confirmed as completed');
-      } else {
-        console.log('[TWILIO HANGUP ERROR] Call status not confirmed as completed', {
-          actualStatus: updateResult.status,
-          callSid,
-          businessId
-        });
-      }
       
     } else {
       // Fallback: close the WebSocket connection
@@ -3575,15 +3554,15 @@ Do NOT:
                 
                 // Terminal closing detection - end call after final audio is done
                 if (terminalClosingResponseStarted && !hangupScheduled) {
-                  console.log('[FINAL GOODBYE BUFFER WAITING 8S] Starting 8 second buffer after audio.done');
-                  console.log('[FINAL GOODBYE BUFFER WAITING 8S] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL GOODBYE BUFFER WAITING 10S] Starting 10 second buffer after audio.done');
+                  console.log('[FINAL GOODBYE BUFFER WAITING 10S] Timestamp:', new Date().toISOString());
                   
                   hangupScheduled = true;
                   (twilioHandler as any).hangupScheduled = hangupScheduled;
                   
-                  // Schedule hangup after 8 second buffer to ensure full goodbye message plays
+                  // Schedule hangup after 10 second buffer to ensure full goodbye message plays
                   setTimeout(async () => {
-                    console.log('[FINAL GOODBYE BUFFER COMPLETE] 8 second buffer complete');
+                    console.log('[FINAL GOODBYE BUFFER COMPLETE] 10 second buffer complete');
                     console.log('[FINAL GOODBYE BUFFER COMPLETE] Timestamp:', new Date().toISOString());
                     console.log('[AUTO HANGUP START] Executing hangup now');
                     
@@ -3595,7 +3574,7 @@ Do NOT:
                     } catch (error) {
                       console.log('[AUTO HANGUP FAILED] Error during hangup:', error);
                     }
-                  }, 8000); // 8 second buffer to ensure audio plays completely
+                  }, 10000); // 10 second buffer to ensure audio plays completely
                 }
               }
               if (message.type === 'response.done') {
@@ -3970,13 +3949,8 @@ Do NOT:
                 console.log('[OPENAI RECV] response.output_audio_transcript.done');
                 console.log('[AI TRANSCRIPT DONE]', message.transcript || 'null');
                 
-                // Check for final closing phrases in done
-                if (message.transcript) {
-                  if (message.transcript.includes(FINAL_ENDING_PHRASE)) {
-                    console.log('[AI FINAL GOODBYE COMPLETE] Final ending phrase detected in transcript.done');
-                    scheduleHangupOnly(ws, twilioHandler);
-                  }
-                }
+                // Do NOT trigger hangup on transcript completion - wait for response.audio.done only
+                // This prevents premature hangup before audio has finished generating
               }
               if (message.type === 'response.output_audio.delta' && message.delta) {
                 console.log('[GREETING AUDIO DELTA RECEIVED] Audio delta from OpenAI');
@@ -3994,8 +3968,6 @@ Do NOT:
                 console.log('[OUTBOUND ASSISTANT AUDIO DELTA]', {
                   callState: callState,
                   assistantSpeaking: assistantSpeaking,
-                  terminalClosingResponseStarted: terminalClosingResponseStarted,
-                  finalClosingStarted: finalClosingStarted,
                   bytes: message.delta.length
                 });
 
@@ -5557,7 +5529,7 @@ async function sendAIConfirmationSMS(
 
 // Start server
 server.listen(PORT, () => {
-  console.log('[AI VOICE SERVICE VERSION] commit=3c67556 hangup-router-v3=true');
+  console.log('[AI VOICE SERVICE VERSION] commit=88972d5c hangup-router-v4=single-path audio-done-only');
   console.log('[SCHEMA COMPATIBILITY CHECK] conversations table columns: lead_id, business_id, status, created_at, updated_at (NO call_sid)');
   console.log('[SCHEMA COMPATIBILITY CHECK] leads table columns: id, business_id, phone, name, email, status, raw_metadata, created_at, updated_at (NO source)');
   console.log('[SCHEMA COMPATIBILITY CHECK] ai_call_records table columns: id, business_id, lead_id, conversation_id, caller_phone, call_sid, ai_session_id, transcript, outcome, extracted_info, summary, extraction_failed, created_at, updated_at');
