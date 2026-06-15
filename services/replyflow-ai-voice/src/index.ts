@@ -1622,9 +1622,17 @@ const CONFIRMATION_SUFFIX = " Is this correct?";
 async function scheduleHangupOnly(ws: any, twilioHandler: any) {
   const currentCallState = (ws as any).callState || 'active';
   const currentConfirmationState = (ws as any).confirmationState || 'collecting_info';
+  const currentIntakeComplete = (ws as any).intakeComplete || false;
+  
+  // Clear fallback timer since we're closing normally
+  if ((ws as any).fallbackHangupTimer) {
+    clearTimeout((ws as any).fallbackHangupTimer);
+    (ws as any).fallbackHangupTimer = null;
+    console.log('[FALLBACK TIMER CLEARED] Confirmation lifecycle completed, clearing fallback timer');
+  }
   
   // Hard guard: Validate closing transition
-  if (!validateClosingTransition(currentCallState, currentConfirmationState, undefined, 'scheduleHangupOnly')) {
+  if (!validateClosingTransition(currentCallState, currentConfirmationState, currentIntakeComplete, undefined, 'scheduleHangupOnly')) {
     console.log('[CLOSING BLOCKED] scheduleHangupOnly blocked by state guard');
     return;
   }
@@ -1658,14 +1666,30 @@ async function scheduleHangupOnly(ws: any, twilioHandler: any) {
 }
 
 // Validate closing transition - hard guard to prevent premature closing
-function validateClosingTransition(callState: string, confirmationState: string, transcript?: string, reason?: string): boolean {
+function validateClosingTransition(callState: string, confirmationState: string, intakeComplete: boolean, transcript?: string, reason?: string): boolean {
   const allowedConfirmationStates = ['confirmed', 'final_goodbye'];
+  
+  // Fallback: Allow closing if confirmation lifecycle never started but intake is complete
+  // This restores auto-hangup reliability when confirmation lifecycle is not active
   if (!allowedConfirmationStates.includes(confirmationState)) {
+    if (intakeComplete && confirmationState === 'collecting_info') {
+      console.log('[FALLBACK CLOSING] Confirmation lifecycle not active, allowing fallback hangup');
+      console.log('[FALLBACK CLOSING]', {
+        callState,
+        confirmationState,
+        intakeComplete,
+        reason,
+        fallback: 'intake_complete_but_confirmation_never_started'
+      });
+      return true; // Allow fallback closing
+    }
+    
     console.log('[INVALID CLOSING TRANSITION] =========================================');
     console.log('[INVALID CLOSING TRANSITION] ATTEMPTED TO CLOSE CALL IN INVALID STATE');
     console.log('[INVALID CLOSING TRANSITION]', {
       callState,
       confirmationState,
+      intakeComplete,
       reason,
       transcriptTail: transcript ? transcript.slice(-200) : 'none',
       allowedStates: allowedConfirmationStates.join(', ')
@@ -1680,9 +1704,17 @@ function validateClosingTransition(callState: string, confirmationState: string,
 async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: any) {
   const currentCallState = (ws as any).callState || 'active';
   const currentConfirmationState = (ws as any).confirmationState || 'collecting_info';
+  const currentIntakeComplete = (ws as any).intakeComplete || false;
+  
+  // Clear fallback timer since we're closing normally
+  if ((ws as any).fallbackHangupTimer) {
+    clearTimeout((ws as any).fallbackHangupTimer);
+    (ws as any).fallbackHangupTimer = null;
+    console.log('[FALLBACK TIMER CLEARED] Confirmation lifecycle completed, clearing fallback timer');
+  }
   
   // Hard guard: Validate closing transition
-  if (!validateClosingTransition(currentCallState, currentConfirmationState, undefined, 'sendFinalGoodbyeAndHangup')) {
+  if (!validateClosingTransition(currentCallState, currentConfirmationState, currentIntakeComplete, undefined, 'sendFinalGoodbyeAndHangup')) {
     console.log('[CLOSING BLOCKED] sendFinalGoodbyeAndHangup blocked by state guard');
     return;
   }
@@ -1919,6 +1951,7 @@ wss.on('connection', (ws, req) => {
     let pendingConfirmationAccepted = false;
     let confirmationMarkReceived = false;
     let dedicatedConfirmationResponseInProgress = false;
+    let fallbackHangupTimer: NodeJS.Timeout | null = null;
 
     let callerPhone: string = '';
     let sessionId: string = '';
@@ -3281,25 +3314,28 @@ YOU MUST collect ALL required fields before finalizing. Do not end the call earl
 YOU MUST collect all 7 required fields before finalizing. Do not end the call early.
 
 CALL ENDING SEQUENCE:
-Once you have collected ALL 7 required fields, you MUST get confirmation before ending the call:
+Once you have collected ALL 7 required fields, STOP gathering information and WAIT for the app to handle the next steps.
 
-Say exactly: "Let me make sure I have everything right. Your name is [caller_name]. You're calling about [reason]. The additional details are [additional_details]. This is [urgent/time-sensitive or not urgent]. The address is [address]. The best time to call you back is [time]. The best callback number is [number]. Is that correct?"
+DO NOT:
+- Say "Is that correct?" or ask for confirmation
+- Say "Thank you for calling" or any goodbye message
+- End the call yourself
+- Say "Perfect. I'll pass this along" or any closing statement
 
-Then WAIT for caller confirmation (yes, correct, sounds good, etc.).
+The app will handle:
+- Summary confirmation
+- Final goodbye
+- Call termination
 
-If confirmed, say exactly: "Perfect. I'll pass this along and someone will follow up with you shortly. Thank you for calling. Have a great day."
+Your job is ONLY to collect the 7 required fields. Once all fields are collected, stop asking questions and wait.
 
-Do NOT ask any more questions after the final goodbye.
-
-CRITICAL: You MUST include "Is that correct?" at the end of your confirmation. Do not skip this question.
-
-IMPORTANT: You MUST get confirmation before the final goodbye. Do not skip the confirmation step.
+CRITICAL: Do NOT say "Is that correct?" or any goodbye message. The app will handle these steps.
 
 CLEAN CALL ENDING:
-Once intake is complete and you've said the final closing message:
-- If the caller says thanks, goodbye, okay, sounds good, or similar: do not continue the conversation. Do not restart confirmation. End the call cleanly.
-- If the caller stays silent: end the call after a short silence window.
-- Do not ask another intake question once intake is complete.
+Once intake is complete and you've collected all 7 required fields:
+- Stop asking questions
+- Wait for the app to handle confirmation and goodbye
+- Do not end the call yourself
 
 AWKWARD LOOP PREVENTION:
 Do NOT ask:
@@ -3822,7 +3858,28 @@ Do NOT:
                     confirmationSummaryInProgress = true;
                     awaitingFinalConfirmationQuestion = true;
                     confirmationState = 'summarizing';
+                    intakeComplete = true;
                     console.log('[SUMMARY RESPONSE START] confirmationState: collecting_info -> summarizing');
+                    console.log('[INTAKE COMPLETE] All required fields collected, starting confirmation lifecycle');
+                    
+                    // Start fallback hangup timer (30 seconds) to prevent indefinite active calls
+                    if (fallbackHangupTimer) {
+                      clearTimeout(fallbackHangupTimer);
+                    }
+                    fallbackHangupTimer = setTimeout(() => {
+                      if (callState !== 'closing' && callState !== 'closed') {
+                        console.log('[FALLBACK HANGUP TRIGGERED] =========================================');
+                        console.log('[FALLBACK HANGUP TRIGGERED] Max timeout reached, forcing hangup');
+                        console.log('[FALLBACK HANGUP TRIGGERED]', {
+                          callState,
+                          confirmationState,
+                          intakeComplete,
+                          reason: 'confirmation_lifecycle_timeout'
+                        });
+                        console.log('[FALLBACK HANGUP TRIGGERED] =========================================');
+                        sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
+                      }
+                    }, 30000); // 30 seconds max timeout
                     
                     // Send confirmation summary via direct response.create
                     const confirmationPayload = {
@@ -4270,6 +4327,38 @@ Do NOT:
                   if (confirmationState === 'summarizing' || confirmationState === 'awaiting_confirmation_audio' || confirmationState === 'awaiting_confirmation_response') {
                     console.log('[CONFIRMATION TRANSCRIPT]', { text: cleanTranscript, confirmationState: confirmationState });
                     console.log('[CONFIRMATION TRANSCRIPT] Contains "Is that correct?":', cleanTranscript.includes('Is that correct?'));
+                  }
+                  
+                  // Hard log for model-generated legacy confirmation
+                  if (cleanTranscript.toLowerCase().includes('is that correct?') || cleanTranscript.toLowerCase().includes('is this correct?')) {
+                    console.log('[MODEL GENERATED LEGACY CONFIRMATION] =========================================');
+                    console.log('[MODEL GENERATED LEGACY CONFIRMATION] Model generated confirmation question instead of app');
+                    console.log('[MODEL GENERATED LEGACY CONFIRMATION]', {
+                      transcript: cleanTranscript,
+                      confirmationState: confirmationState,
+                      callState: callState
+                    });
+                    console.log('[MODEL GENERATED LEGACY CONFIRMATION] =========================================');
+                  }
+                  
+                  // Hard log for model-generated legacy goodbye
+                  const legacyGoodbyePhrases = [
+                    "thank you for calling",
+                    "have a great day",
+                    "i'll pass this along",
+                    "someone will follow up",
+                    "thanks for calling"
+                  ];
+                  if (legacyGoodbyePhrases.some(phrase => cleanTranscript.toLowerCase().includes(phrase))) {
+                    console.log('[MODEL GENERATED LEGACY GOODBYE] =========================================');
+                    console.log('[MODEL GENERATED LEGACY GOODBYE] Model generated goodbye message instead of app');
+                    console.log('[MODEL GENERATED LEGACY GOODBYE]', {
+                      transcript: cleanTranscript,
+                      confirmationState: confirmationState,
+                      callState: callState,
+                      matchedPhrases: legacyGoodbyePhrases.filter(p => cleanTranscript.toLowerCase().includes(p))
+                    });
+                    console.log('[MODEL GENERATED LEGACY GOODBYE] =========================================');
                   }
                   
                   // Check for final closing phrase - schedule hangup immediately
