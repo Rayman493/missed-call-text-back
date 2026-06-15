@@ -124,7 +124,7 @@ export default function OperationalStatusCard({
     }
   }, [healthStatus])
 
-  // Simple success indicators
+  // Simple success indicators - always green when healthy
   const getSuccessIndicator = (isHealthy: boolean, label: string) => {
     if (isHealthy) {
       return (
@@ -170,15 +170,15 @@ export default function OperationalStatusCard({
       </div>
 
       {/* Phone Numbers */}
-      <div className="space-y-2 mb-4">
+      <div className="space-y-2 mb-6">
         <div className="flex items-center justify-between py-2 border-b border-border">
-          <span className="text-sm text-muted-foreground">Business:</span>
+          <span className="text-sm text-muted-foreground">Business Number:</span>
           <span className="text-sm font-medium text-foreground font-mono">
             {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
           </span>
         </div>
         <div className="flex items-center justify-between py-2 border-b border-border">
-          <span className="text-sm text-muted-foreground">ReplyFlow:</span>
+          <span className="text-sm text-muted-foreground">ReplyFlow Number:</span>
           <span className="text-sm font-medium text-foreground font-mono">
             {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
           </span>
@@ -186,7 +186,7 @@ export default function OperationalStatusCard({
       </div>
 
       {/* Success Indicators */}
-      <div className="space-y-2 mb-4">
+      <div className="space-y-2 mb-6">
         {getSuccessIndicator(isForwardingActive, 'Call Forwarding Verified')}
         {getSuccessIndicator(isTextReplyActive, 'SMS Ready')}
         {getSuccessIndicator(!!liveMetrics.lastAiIntake, 'AI Intake Ready')}
@@ -194,8 +194,8 @@ export default function OperationalStatusCard({
 
       {/* Last Verified */}
       {business?.forwarding_verified_at && (
-        <div className="text-sm text-muted-foreground mb-4">
-          Last verified: {formatRelativeTime(business.forwarding_verified_at)}
+        <div className="text-sm text-muted-foreground mb-6">
+          Forwarding last verified: {formatRelativeTime(business.forwarding_verified_at)}
         </div>
       )}
 
