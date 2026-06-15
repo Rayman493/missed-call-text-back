@@ -30,17 +30,6 @@ export default function OnboardingPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [provisioningComplete, setProvisioningComplete] = useState(false)
 
-  // Trace log at onboarding mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      console.log('[TRACE Onboarding Mounted]', {
-        pathname: window.location.pathname,
-        search: window.location.search,
-        referrer: document.referrer
-      })
-    }
-  }, [])
-
   // Check for auth error from callback
   useEffect(() => {
     const authError = searchParams?.get('error')
@@ -56,16 +45,10 @@ export default function OnboardingPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         console.error('[Onboarding] No session found, clearing anonymous state and redirecting to homepage')
-        const { clearedKeys } = clearAnonymousAppState()
-        console.log('[Onboarding] Anonymous State Cleanup]', {
-          hasSession: false,
-          pathname: window.location.pathname,
-          clearedKeys,
-        })
+        clearAnonymousAppState()
         router.replace('/')
         return
       }
-      console.log('[Onboarding] Session verified, allowing access to onboarding')
     }
     checkAuthGate()
   }, [router])
@@ -81,7 +64,6 @@ export default function OnboardingPage() {
       Boolean(sessionId?.startsWith('cs_'))
 
     if (isCheckoutRecovery) {
-      console.log('[Onboarding] Checkout recovery detected, delaying session validation')
       // Don't validate session immediately during checkout recovery
       // Let AuthGuard handle recovery first
       return
@@ -89,13 +71,10 @@ export default function OnboardingPage() {
 
     // Get current user and validate session
     const getUser = async () => {
-      console.log('[Onboarding] Validating session and user...')
-      
       // First validate session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       if (sessionError || !session) {
         console.error('[Onboarding] Session validation failed:', sessionError)
-        console.log('[Onboarding] Redirecting unauthenticated user to sign in')
         setError('Your session expired. Please sign in again.')
         setTimeout(() => {
           router.push('/auth/signin?redirect=/onboarding')
@@ -107,7 +86,6 @@ export default function OnboardingPage() {
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       if (userError || !user) {
         console.error('[Onboarding] User validation failed:', userError)
-        console.log('[Onboarding] Redirecting unauthenticated user to sign in')
         setError('Your session expired. Please sign in again.')
         setTimeout(() => {
           router.push('/auth/signin?redirect=/onboarding')
@@ -115,7 +93,6 @@ export default function OnboardingPage() {
         return
       }
       
-      console.log('[Onboarding] Session and user validated successfully:', user.id)
       setUserId(user.id)
 
       // Check if user already has a business
@@ -127,16 +104,6 @@ export default function OnboardingPage() {
         .single()
 
       if (existingBusiness && !existingError) {
-        console.log('[ONBOARDING PAGE GUARD]', {
-          businessId: existingBusiness.id,
-          businessName: existingBusiness.name,
-          subscriptionStatus: existingBusiness.subscription_status,
-          onboardingStatus: existingBusiness.onboarding_status,
-          twilioNumber: existingBusiness.twilio_phone_number,
-          redirectTarget: 'determining...',
-          reason: 'Business row exists - should not be on Welcome to ReplyFlow'
-        })
-        
         // CRITICAL: Users with existing business rows should NEVER be on /onboarding (Welcome to ReplyFlow)
         // /onboarding is only for users with NO business row
         // If user has a business, redirect to appropriate page
@@ -165,29 +132,6 @@ export default function OnboardingPage() {
           redirectReason = 'Business exists, allow dashboard access'
         }
         
-        console.log('[ONBOARDING PAGE GUARD]', {
-          businessId: existingBusiness.id,
-          businessName: existingBusiness.name,
-          subscriptionStatus: existingBusiness.subscription_status,
-          onboardingStatus: existingBusiness.onboarding_status,
-          twilioNumber: existingBusiness.twilio_phone_number,
-          redirectTarget,
-          reason: redirectReason
-        })
-        
-        console.log('[ONBOARDING REDIRECT SOURCE]', {
-          file: 'src/app/onboarding/page.tsx',
-          functionName: 'getUser',
-          currentPath: '/onboarding',
-          redirectTarget,
-          userId: user.id,
-          businessFound: true,
-          businessId: existingBusiness.id,
-          reason: 'Business row exists - redirecting away from Welcome to ReplyFlow',
-          timestamp: new Date().toISOString()
-        })
-        console.trace('[ONBOARDING REDIRECT TRACE]')
-        
         router.push(redirectTarget)
         return
       }
@@ -199,14 +143,12 @@ export default function OnboardingPage() {
           keysToClear.forEach(key => {
             localStorage.removeItem(key)
           })
-          console.log('[ROUTING DEBUG] Cleared stale localStorage keys')
         }
       } catch (error) {
         console.warn('[ROUTING DEBUG] Failed to clear localStorage:', error)
       }
       
       // Stay on onboarding page
-      console.log('[ROUTING DEBUG] Staying on onboarding page')
       setCheckingBusiness(false)
       return
     }
@@ -247,7 +189,6 @@ export default function OnboardingPage() {
 
   const handleOnboarding = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('[Onboarding] Complete Setup clicked')
     
     setLoading(true)
     setError('')
@@ -261,16 +202,11 @@ export default function OnboardingPage() {
       }
 
       // Validate current session and user before proceeding
-      console.log('[Onboarding] Validating current session before saving...')
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       
-      console.log('[Onboarding] Current session:', session ? 'valid' : 'invalid')
-      console.log('[Onboarding] Current user:', user ? user.id : 'none')
-      
       if (sessionError || !session || userError || !user) {
         console.error('[Onboarding] Invalid session/user during save:', { sessionError, userError })
-        console.log('[Onboarding] Redirecting unauthenticated user to sign in')
         // Don't clear session - it might be a temporary mobile issue
         setError('Your session expired. Please sign in again.')
         setTimeout(() => {
@@ -287,9 +223,7 @@ export default function OnboardingPage() {
       }
 
       // Normalize phone number
-      console.log('[Onboarding] Received business phone number:', businessPhone)
       const normalizedPhone = normalizePhoneNumber(businessPhone)
-      console.log('[Onboarding] Normalized business phone number (E.164):', normalizedPhone)
       
       if (!normalizedPhone) {
         console.error('[Onboarding] Invalid phone number:', businessPhone)
@@ -297,13 +231,6 @@ export default function OnboardingPage() {
         return
       }
 
-      console.log('[Onboarding] Saving business for user:', user.id)
-      console.log('[Onboarding] IMPORTANT: NOT setting subscription_status to trialing - Stripe webhook should be the source of truth')
-      console.log('[Onboarding] Sending business data to get-or-create API:', {
-        name: businessName,
-        business_phone_number: normalizedPhone,
-        onboarding_status: 'profile_created'
-      })
       // Use centralized getOrCreateBusiness API - backend will provision dedicated local number
       const response = await fetch('/api/business/get-or-create', {
         method: 'POST',
@@ -341,15 +268,10 @@ export default function OnboardingPage() {
         throw new Error('Failed to create business: no business in response')
       }
 
-      console.log('[Onboarding] Save success: business created/updated:', business.id)
-      console.log('[Onboarding] Verifying subscription_status after save:', business.subscription_status)
-      console.log('[Onboarding] Expected: null (trial should only activate after Stripe webhook)')
-
       // Refresh business context to update state
       await refreshBusiness()
       
       // Create Stripe checkout session directly
-      console.log('[Onboarding] Creating Stripe checkout session...')
       const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -365,7 +287,6 @@ export default function OnboardingPage() {
         console.error('[Onboarding] Checkout session creation failed:', checkoutError)
         
         // If checkout fails, redirect to dashboard where user can try again
-        console.log('[Onboarding] Redirecting to dashboard for manual checkout retry')
         router.push('/dashboard')
         return
       }
@@ -378,8 +299,6 @@ export default function OnboardingPage() {
         return
       }
 
-      console.log('[Onboarding] Checkout session created, redirecting to Stripe:', checkoutData.url)
-      
       // Redirect to Stripe checkout
       window.location.href = checkoutData.url
     } catch (err: any) {
