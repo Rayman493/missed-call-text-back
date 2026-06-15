@@ -118,27 +118,38 @@ export default function PhoneForwardingPage() {
     return code
   }
 
-  // Returns the human-readable display form, e.g. '*71 (218) 423-6763'
+  // Returns the human-readable display form, e.g. '*71 218-423-6763'
   // so non-technical users can verify each digit at a glance.
-  // UPDATED: Uses verified no-answer forwarding codes
+  // UPDATED: Uses verified no-answer forwarding codes with compact formatting
   const getForwardingCodeDisplay = () => {
     if (!business?.twilio_phone_number) return ''
     const carrier = CARRIERS.find(c => c.id === selectedCarrier)
     if (!carrier || !carrier.noAnswerCode) return ''
 
-    const formattedNumber = formatPhoneNumber(business.twilio_phone_number)
+    const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
+    
+    // Format phone number as XXX-XXX-XXXX (compact, no parentheses)
+    let formattedNumber = ''
+    if (phoneNumber.length === 11) {
+      const digits = phoneNumber.substring(1)
+      formattedNumber = `${digits.substring(0, 3)}-${digits.substring(3, 6)}-${digits.substring(6, 10)}`
+    } else if (phoneNumber.length === 10) {
+      formattedNumber = `${phoneNumber.substring(0, 3)}-${phoneNumber.substring(3, 6)}-${phoneNumber.substring(6, 10)}`
+    } else {
+      formattedNumber = phoneNumber
+    }
     
     // Handle different carrier formats for no-answer forwarding
     let code = ''
     if (carrier.id === 'verizon') {
       // Verizon: *71 + 10-digit number (no leading 1, no trailing #)
-      code = carrier.noAnswerCode + formattedNumber
+      code = carrier.noAnswerCode + ' ' + formattedNumber
     } else if (carrier.id === 'at&t') {
       // AT&T: *92 + 10-digit number (no leading 1, no trailing #)
-      code = carrier.noAnswerCode + formattedNumber
+      code = carrier.noAnswerCode + ' ' + formattedNumber
     } else if (carrier.id === 't-mobile') {
       // T-Mobile: *61* + number + **20# (GSM standard for conditional forwarding with 20s delay)
-      code = carrier.noAnswerCode + formattedNumber + carrier.noAnswerSuffix
+      code = carrier.noAnswerCode + ' ' + formattedNumber + ' ' + carrier.noAnswerSuffix
     } else {
       // Default format for other carriers
       code = `${carrier.noAnswerCode} ${formattedNumber}`
@@ -147,43 +158,33 @@ export default function PhoneForwardingPage() {
     return code
   }
 
-  // Returns formatted AT&T code for display with parentheses and dashes
+  // Returns formatted AT&T code for display with compact format
   const getATTCodeDisplay = () => {
     if (!business?.twilio_phone_number) return ''
     const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
     
-    // Format as *92 (XXX) XXX-XXXX with spaces for better wrapping
+    // Format as *92 XXX-XXX-XXXX (no parentheses, compact spacing)
     if (phoneNumber.length === 11) {
-      const areaCode = phoneNumber.substring(1, 4)
-      const firstThree = phoneNumber.substring(4, 7)
-      const lastFour = phoneNumber.substring(7, 11)
-      return `*92 ( ${areaCode} ) ${firstThree} - ${lastFour}`
+      const digits = phoneNumber.substring(1)
+      return `*92 ${digits.substring(0, 3)}-${digits.substring(3, 6)}-${digits.substring(6, 10)}`
     } else if (phoneNumber.length === 10) {
-      const areaCode = phoneNumber.substring(0, 3)
-      const firstThree = phoneNumber.substring(3, 6)
-      const lastFour = phoneNumber.substring(6, 10)
-      return `*92 ( ${areaCode} ) ${firstThree} - ${lastFour}`
+      return `*92 ${phoneNumber.substring(0, 3)}-${phoneNumber.substring(3, 6)}-${phoneNumber.substring(6, 10)}`
     }
     
     return `*92 ${phoneNumber}`
   }
 
-  // Returns formatted T-Mobile code for display with parentheses and dashes
+  // Returns formatted T-Mobile code for display with compact format
   const getTMobileCodeDisplay = () => {
     if (!business?.twilio_phone_number) return ''
     const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
     
-    // Format as *61* (XXX) XXX-XXXX **20# with spaces for better wrapping
+    // Format as *61* XXX-XXX-XXXX **20# (no parentheses, compact spacing)
     if (phoneNumber.length === 11) {
-      const areaCode = phoneNumber.substring(1, 4)
-      const firstThree = phoneNumber.substring(4, 7)
-      const lastFour = phoneNumber.substring(7, 11)
-      return `*61* ( ${areaCode} ) ${firstThree} - ${lastFour} **20#`
+      const digits = phoneNumber.substring(1)
+      return `*61* ${digits.substring(0, 3)}-${digits.substring(3, 6)}-${digits.substring(6, 10)} **20#`
     } else if (phoneNumber.length === 10) {
-      const areaCode = phoneNumber.substring(0, 3)
-      const firstThree = phoneNumber.substring(3, 6)
-      const lastFour = phoneNumber.substring(6, 10)
-      return `*61* ( ${areaCode} ) ${firstThree} - ${lastFour} **20#`
+      return `*61* ${phoneNumber.substring(0, 3)}-${phoneNumber.substring(3, 6)}-${phoneNumber.substring(6, 10)} **20#`
     }
     
     return `*61* ${phoneNumber} **20#`
