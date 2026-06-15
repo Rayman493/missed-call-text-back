@@ -116,6 +116,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [refreshing, setRefreshing] = useState(false)
   const [showMoreActions, setShowMoreActions] = useState(false)
   const [showCustomerInfoModal, setShowCustomerInfoModal] = useState(false)
+  const [savingCustomerInfo, setSavingCustomerInfo] = useState(false)
   const [mobileCustomerExpanded, setMobileCustomerExpanded] = useState(true)
   const [mobileLeadDetailsExpanded, setMobileLeadDetailsExpanded] = useState(false)
   const [mobileActionsExpanded, setMobileActionsExpanded] = useState(false)
@@ -2673,6 +2674,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </button>
               <button
                 onClick={async () => {
+                  if (savingCustomerInfo) return
+                  setSavingCustomerInfo(true)
+                  
                   // Save customer info
                   const supabase = createBrowserClient()
                   const { data: { session } } = await supabase.auth.getSession()
@@ -2703,11 +2707,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     }
                   } catch (error) {
                     console.error('Error saving customer info:', error)
+                  } finally {
+                    setSavingCustomerInfo(false)
                   }
                 }}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                disabled={savingCustomerInfo}
+                className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors ${savingCustomerInfo ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                Save
+                {savingCustomerInfo ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>

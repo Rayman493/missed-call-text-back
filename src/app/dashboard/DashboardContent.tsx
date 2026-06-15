@@ -249,6 +249,8 @@ export default function DashboardContent() {
   const [lastRenderedSection, setLastRenderedSection] = useState('')
   const [isRecoveringSession, setIsRecoveringSession] = useState(false)
   const [troubleshootingOpen, setTroubleshootingOpen] = useState(false)
+  const autoCompleteInProgress = useRef(false)
+  const autoCompleteCompleted = useRef(false)
   
   const checkoutStatus = searchParams?.get('checkout')
   const supabase = createBrowserClient()
@@ -335,9 +337,12 @@ export default function DashboardContent() {
       phoneSetupComplete &&
       forwardingEnabled &&
       hasNumber &&
-      business?.id
+      business?.id &&
+      !autoCompleteCompleted.current &&
+      !autoCompleteInProgress.current
 
     if (needsPersistedCompletion) {
+      autoCompleteInProgress.current = true
       const completionReason = hasConversations ? 'conversation_exists' : 'lead_exists'
       
       dlog('[SETUP COMPLETION CHECK]', {
@@ -374,7 +379,10 @@ export default function DashboardContent() {
 
           if (error) {
             console.error('[SETUP AUTO COMPLETED] Failed to persist completion:', error)
+            autoCompleteInProgress.current = false
           } else {
+            autoCompleteCompleted.current = true
+            autoCompleteInProgress.current = false
             dlog('[SETUP AUTO COMPLETED]', {
               businessId: business.id,
               completionReason
@@ -382,6 +390,7 @@ export default function DashboardContent() {
           }
         } catch (error) {
           console.error('[SETUP AUTO COMPLETED] Exception persisting completion:', error)
+          autoCompleteInProgress.current = false
         }
       }
 

@@ -160,6 +160,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     let pollCount = 0
     // Match polling duration to grace timeout (60 polls for mobile, 20 for desktop)
     const maxPolls = isMobile ? 60 : 20
+    let timeoutId: NodeJS.Timeout | null = null
 
     const pollSession = async () => {
       try {
@@ -174,7 +175,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
         // Continue polling if we haven't exceeded max polls
         if (pollCount < maxPolls && !billingGraceTimeoutElapsed) {
-          setTimeout(pollSession, 1000) // Poll every 1 second
+          timeoutId = setTimeout(pollSession, 1000) // Poll every 1 second
         }
       } catch (error) {
         console.error('[Dashboard Billing Return] Session poll error:', error)
@@ -184,6 +185,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     // Start polling
     pollSession()
 
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId)
+    }
   }, [isBillingReturn, user, billingGraceTimeoutElapsed, isMobile])
 
   // Set recovery timeout - after 3 seconds, if still no session, route to recovery page
