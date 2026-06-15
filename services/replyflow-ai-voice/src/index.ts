@@ -249,7 +249,6 @@ function generateConfirmationMessage(intake: IntakeData): string {
   const summary = `Let me make sure I have everything right. Your name is ${name}. You're calling about ${service}. The additional details are ${issue}. The urgency is ${urgency}. The address is ${location}. The best callback time is ${callbackTime}. The best callback number is ${callbackNumber}.`;
 
   console.log('[SUMMARY GENERATED]', { summary });
-  console.log('[SUMMARY GENERATED] confirmationState: pending');
   return summary;
 }
 
@@ -375,7 +374,6 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       // All fields collected - generate confirmation message
       const confirmationMessage = generateConfirmationMessage(intake);
       console.log('[CONFIRMATION RESPONSE SENT] Sending confirmation message to caller');
-      console.log('[CONFIRMATION RESPONSE SENT] confirmationState: pending_user_response');
       return {
         response: confirmationMessage,
         nextStage: 'confirmation'
@@ -583,61 +581,6 @@ function extractUrgency(transcript: string): 'urgent' | 'normal' | 'not_specifie
     return 'normal';
   }
   return 'not_specified';
-}
-
-function isConfirmationAccepted(transcript: string): boolean {
-  const confirmationWords = [
-    'yes', 'yeah', 'yep', 'correct', 'that\'s right', 'that is right', 
-    'right', 'sounds good', 'good', 'perfect', 'exactly', 'affirmative',
-    'that\'s correct', 'that is correct', 'confirmed', 'confirm',
-    'thanks', 'thank you', 'thank', 'okay', 'ok', 'alright', 'sure'
-  ];
-  
-  const lowerTranscript = transcript.toLowerCase().trim();
-  const isAccepted = confirmationWords.some(word => lowerTranscript.includes(word));
-  
-  console.log('[CONFIRMATION INTERPRETED]', {
-    transcript: transcript,
-    lowerTranscript: lowerTranscript,
-    isAccepted: isAccepted,
-    reason: isAccepted ? 'positive_confirmation' : 'not_positive'
-  });
-  
-  if (isAccepted) {
-    console.log('[CONFIRMATION POSITIVE]', {
-      transcript: transcript,
-      matchedWords: confirmationWords.filter(word => lowerTranscript.includes(word))
-    });
-  }
-  
-  return isAccepted;
-}
-
-function isConfirmationRejected(transcript: string): boolean {
-  const rejectionWords = [
-    'no', 'incorrect', 'not right', 'that\'s wrong', 'that is wrong',
-    'change that', 'actually', 'that\'s not right', 'that is not right',
-    'wrong', 'mistake', 'incorrect', 'not correct'
-  ];
-  
-  const lowerTranscript = transcript.toLowerCase().trim();
-  const isRejected = rejectionWords.some(word => lowerTranscript.includes(word));
-  
-  console.log('[CONFIRMATION INTERPRETED]', {
-    transcript: transcript,
-    lowerTranscript: lowerTranscript,
-    isRejected: isRejected,
-    reason: isRejected ? 'negative_confirmation' : 'not_negative'
-  });
-  
-  if (isRejected) {
-    console.log('[CONFIRMATION NEGATIVE]', {
-      transcript: transcript,
-      matchedWords: rejectionWords.filter(word => lowerTranscript.includes(word))
-    });
-  }
-  
-  return isRejected;
 }
 
 // AI session state tracking functions
@@ -1621,20 +1564,13 @@ const CONFIRMATION_SUFFIX = " Is this correct?";
 // Schedule hangup only (for when final goodbye was already sent)
 async function scheduleHangupOnly(ws: any, twilioHandler: any) {
   const currentCallState = (ws as any).callState || 'active';
-  const currentConfirmationState = (ws as any).confirmationState || 'collecting_info';
   const currentIntakeComplete = (ws as any).intakeComplete || false;
   
   // Clear fallback timer since we're closing normally
   if ((ws as any).fallbackHangupTimer) {
     clearTimeout((ws as any).fallbackHangupTimer);
     (ws as any).fallbackHangupTimer = null;
-    console.log('[FALLBACK TIMER CLEARED] Confirmation lifecycle completed, clearing fallback timer');
-  }
-  
-  // Hard guard: Validate closing transition
-  if (!validateClosingTransition(currentCallState, currentConfirmationState, currentIntakeComplete, undefined, 'scheduleHangupOnly')) {
-    console.log('[CLOSING BLOCKED] scheduleHangupOnly blocked by state guard');
-    return;
+    console.log('[FALLBACK TIMER CLEARED] Intake completed, clearing fallback timer');
   }
   
   console.log('[AI FINAL GOODBYE COMPLETE] Final goodbye sentence detected');
@@ -1665,66 +1601,22 @@ async function scheduleHangupOnly(ws: any, twilioHandler: any) {
   }
 }
 
-// Validate closing transition - hard guard to prevent premature closing
-function validateClosingTransition(callState: string, confirmationState: string, intakeComplete: boolean, transcript?: string, reason?: string): boolean {
-  const allowedConfirmationStates = ['confirmed', 'final_goodbye'];
-  
-  // Fallback: Allow closing if confirmation lifecycle never started but intake is complete
-  // This restores auto-hangup reliability when confirmation lifecycle is not active
-  if (!allowedConfirmationStates.includes(confirmationState)) {
-    if (intakeComplete && confirmationState === 'collecting_info') {
-      console.log('[FALLBACK CLOSING] Confirmation lifecycle not active, allowing fallback hangup');
-      console.log('[FALLBACK CLOSING]', {
-        callState,
-        confirmationState,
-        intakeComplete,
-        reason,
-        fallback: 'intake_complete_but_confirmation_never_started'
-      });
-      return true; // Allow fallback closing
-    }
-    
-    console.log('[INVALID CLOSING TRANSITION] =========================================');
-    console.log('[INVALID CLOSING TRANSITION] ATTEMPTED TO CLOSE CALL IN INVALID STATE');
-    console.log('[INVALID CLOSING TRANSITION]', {
-      callState,
-      confirmationState,
-      intakeComplete,
-      reason,
-      transcriptTail: transcript ? transcript.slice(-200) : 'none',
-      allowedStates: allowedConfirmationStates.join(', ')
-    });
-    console.log('[INVALID CLOSING TRANSITION] =========================================');
-    return false;
-  }
-  return true;
-}
-
 // Send final goodbye and hangup deterministically
 async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: any) {
   const currentCallState = (ws as any).callState || 'active';
-  const currentConfirmationState = (ws as any).confirmationState || 'collecting_info';
   const currentIntakeComplete = (ws as any).intakeComplete || false;
   
   // Clear fallback timer since we're closing normally
   if ((ws as any).fallbackHangupTimer) {
     clearTimeout((ws as any).fallbackHangupTimer);
     (ws as any).fallbackHangupTimer = null;
-    console.log('[FALLBACK TIMER CLEARED] Confirmation lifecycle completed, clearing fallback timer');
-  }
-  
-  // Hard guard: Validate closing transition
-  if (!validateClosingTransition(currentCallState, currentConfirmationState, currentIntakeComplete, undefined, 'sendFinalGoodbyeAndHangup')) {
-    console.log('[CLOSING BLOCKED] sendFinalGoodbyeAndHangup blocked by state guard');
-    return;
+    console.log('[FALLBACK TIMER CLEARED] Intake completed, clearing fallback timer');
   }
   
   const timestamp = new Date().toISOString();
   console.log('[RACE CONDITION DEBUG] sendFinalGoodbyeAndHangup called at:', timestamp);
   console.log('[RACE CONDITION DEBUG] Current callState before setting to closing:', currentCallState);
-  console.log('[RACE CONDITION DEBUG] Current confirmationState:', currentConfirmationState);
   console.log('[AI FINAL GOODBYE START] Starting deterministic goodbye and hangup sequence');
-  console.log('[ENTER FINAL_GOODBYE] confirmationState: confirmed');
   
   // Set closing state immediately
   (ws as any).callState = 'closing';
@@ -1733,11 +1625,9 @@ async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: 
   (twilioHandler as any).terminalClosingResponseStarted = true;
   (ws as any).intakeComplete = true;
   (twilioHandler as any).intakeComplete = true;
-  (ws as any).confirmationState = 'final_goodbye';
-  (twilioHandler as any).confirmationState = 'final_goodbye';
   
   console.log('[RACE CONDITION DEBUG] callState set to closing at:', new Date().toISOString());
-  console.log('[AI CLOSING STATE SET] callState: closing, terminalClosingResponseStarted: true, intakeComplete: true, confirmationState: final_goodbye');
+  console.log('[AI CLOSING STATE SET] callState: closing, terminalClosingResponseStarted: true, intakeComplete: true');
   console.log('[FINAL GOODBYE START] Starting final goodbye at:', new Date().toISOString());
   
   // Send final goodbye message immediately
@@ -1942,13 +1832,7 @@ wss.on('connection', (ws, req) => {
     let assistantSpeaking = false;
     let terminalClosingResponseStarted = false;
 
-    // Simplified confirmation lifecycle states
-    type ConfirmationState = 'collecting_info' | 'summary' | 'awaiting_confirmation' | 'confirmed' | 'goodbye' | 'hangup';
-    let confirmationState: ConfirmationState = 'collecting_info';
-
     let intakeComplete = false;
-    let confirmationAccepted = false;
-    let dedicatedConfirmationResponseInProgress = false;
     let fallbackHangupTimer: NodeJS.Timeout | null = null;
 
     let callerPhone: string = '';
@@ -1973,7 +1857,6 @@ wss.on('connection', (ws, req) => {
     // Pass state variables to twilioHandler for audio append guards
     (twilioHandler as any).callState = callState;
     (twilioHandler as any).assistantSpeaking = assistantSpeaking;
-    (twilioHandler as any).confirmationState = confirmationState;
 
     log(LogLevel.INFO, '[AI POC] waiting for Twilio start event');
 
@@ -3222,8 +3105,6 @@ Return only JSON, no other text.`;
             let responseCreatedReceived = false;
             let sessionCreated = false;
             let sessionUpdatedReceived = false;
-            let confirmationSummaryInProgress = false;
-            let awaitingFinalConfirmationQuestion = false;
             
             // Attach listeners - using minimal endpoint pattern
             console.log('[OPENAI STATE AFTER LISTENER] readyState:', openAiWs.readyState, 'OPEN:', WebSocket.OPEN);
@@ -3274,28 +3155,12 @@ YOU MUST collect ALL required fields before finalizing. Do not end the call earl
 YOU MUST collect all 7 required fields before finalizing. Do not end the call early.
 
 CALL ENDING SEQUENCE:
-Once you have collected ALL 7 required fields, STOP gathering information and WAIT for the app to handle the next steps.
+Once you have collected ALL 7 required fields, provide a brief closing sentence:
+"Perfect. I'll pass this information along to the business and someone will follow up with you soon. Thank you for calling. Have a great day."
 
-DO NOT:
-- Say "Is that correct?" or ask for confirmation
-- Say "Thank you for calling" or any goodbye message
-- End the call yourself
-- Say "Perfect. I'll pass this along" or any closing statement
+Then end the call naturally. Do NOT ask for confirmation or summarize the information.
 
-The app will handle:
-- Summary confirmation
-- Final goodbye
-- Call termination
-
-Your job is ONLY to collect the 7 required fields. Once all fields are collected, stop asking questions and wait.
-
-CRITICAL: Do NOT say "Is that correct?" or any goodbye message. The app will handle these steps.
-
-CLEAN CALL ENDING:
-Once intake is complete and you've collected all 7 required fields:
-- Stop asking questions
-- Wait for the app to handle confirmation and goodbye
-- Do not end the call yourself
+CRITICAL: Do NOT summarize the collected information. Do NOT ask "Is that correct?". Just provide the closing sentence and end the call.
 
 AWKWARD LOOP PREVENTION:
 Do NOT ask:
@@ -3637,22 +3502,7 @@ Do NOT:
 
                     console.log('[AI ISSUE DESCRIPTION ACCEPTED] Issue description is valid');
 
-                    if (isConfirmationAccepted(userTranscript)) {
-                      const timestamp = new Date().toISOString();
-                      console.log('[CALLER CONFIRMATION RECEIVED] User confirmed at:', timestamp);
-                      console.log('[CALLER CONFIRMATION RECEIVED] User transcript:', userTranscript);
-                      console.log('[CALLER CONFIRMATION RECEIVED] Current callState:', callState);
-                      console.log('[CALLER CONFIRMATION RECEIVED] Current confirmationState:', confirmationState);
-                      console.log('[CALLER CONFIRMATION RECEIVED] confirmationResponseId:', (ws as any).confirmationResponseId || 'unknown');
-                      
-                      console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
-                      confirmationState = 'confirmed';
-                      (twilioHandler as any).confirmationState = confirmationState;
-                      console.log('[CALL STATE CHANGE] confirmationState: awaiting_confirmation -> confirmed');
-                      console.log('[CONFIRMATION ACCEPTED] Proceeding to final goodbye');
-                      return; // Skip all other processing
-
-                      // Check if all required fields are collected
+                    // Check if all required fields are collected
                       const missingFields = getMissingRequiredFields(intakeData!);
                       if (missingFields.length > 0) {
                         console.log('[MISSING REQUIRED FIELDS]', { missingFields });
@@ -3718,62 +3568,6 @@ Do NOT:
                       }
 
                       return; // Skip the normal intake processing
-                    } else if (isConfirmationRejected(userTranscript)) {
-                      console.log('[CONFIRMATION REJECTED] User rejected the information');
-                      console.log('[CONFIRMATION REJECTED] confirmationState: rejected');
-                      
-                      // Reset to collecting_complete stage to rebuild confirmation
-                      intakeData!.stage = 'collecting_complete';
-                      confirmationState = 'collecting_info';
-                      console.log('[CALL STATE CHANGE] confirmationState: awaiting_confirmation -> collecting_info');
-                      console.log('[CONFIRMATION REJECTED] Resetting to collecting_complete to rebuild confirmation');
-                      
-                      // Ask the user what they'd like to correct
-                      const clarificationMessage = {
-                        type: 'response.create',
-                        response: {
-                          instructions: 'I apologize. What would you like to correct?'
-                        }
-                      };
-
-                      console.log('[AI RESPONSE.CREATE SEND SITE]', {
-                        label: 'CONFIRMATION_REJECTED_CLARIFICATION',
-                        currentStage: intakeData?.stage || 'unknown',
-                        nextStage: 'collecting_complete',
-                        intakeComplete: intakeComplete,
-                        instructions: 'I apologize. What would you like to correct?'
-                      });
-
-                      if (openAiWs) {
-                        openAiWs.send(JSON.stringify(clarificationMessage));
-                        console.log('[CONFIRMATION REJECTED] Clarification message sent');
-                      }
-                      return; // Skip the normal intake processing
-                    } else {
-                      console.log('[CONFIRMATION UNCLEAR] User response unclear, asking for clarification');
-                      console.log('[CONFIRMATION UNCLEAR] confirmationState: unclear');
-                      // Handle unclear response - ask for clarification
-                      const clarificationMessage = {
-                        type: 'response.create',
-                        response: {
-                          instructions: 'Say exactly: "I apologize. Could you please confirm if the information I provided is correct? Please say yes or no."'
-                        }
-                      };
-
-                      console.log('[AI RESPONSE.CREATE SEND SITE]', {
-                        label: 'CONFIRMATION_UNCLEAR_CLARIFICATION',
-                        currentStage: intakeData?.stage || 'unknown',
-                        nextStage: 'not_applicable',
-                        intakeComplete: intakeComplete,
-                        instructions: 'Say exactly: "I apologize. Could you please confirm if the information I provided is correct? Please say yes or no."'.substring(0, 200)
-                      });
-
-                      if (openAiWs) {
-                        openAiWs.send(JSON.stringify(clarificationMessage));
-                        console.log('[CONFIRMATION UNCLEAR] Clarification message sent');
-                      }
-                      return; // Skip the normal intake processing
-                    }
                   }
                   
                   // Get next intake response
@@ -3803,94 +3597,24 @@ Do NOT:
                   }
 
                   // Check if this is a confirmation message and send it via direct response.create
-                  let responseToSend = intakeResponse.response;
-                  const isConfirmationMessage = intakeResponse.nextStage === 'confirmation';
-                  
-                  if (isConfirmationMessage) {
-                    console.log('[CONFIRMATION SUMMARY REQUESTED] Sending confirmation summary');
-                    console.log('[CONFIRMATION SUMMARY TEXT]', { text: responseToSend });
-                    console.log('[AI CONFIRMATION SUMMARY SENT]', { text: responseToSend });
-                    
-                    // Set state flags
-                    confirmationSummaryInProgress = true;
-                    awaitingFinalConfirmationQuestion = true;
-                    confirmationState = 'summary';
-                    intakeComplete = true;
-                    console.log('[SUMMARY RESPONSE START] confirmationState: collecting_info -> summary');
-                    console.log('[INTAKE COMPLETE] All required fields collected, starting confirmation lifecycle');
-                    
-                    // Start fallback hangup timer (30 seconds) to prevent indefinite active calls
-                    if (fallbackHangupTimer) {
-                      clearTimeout(fallbackHangupTimer);
-                    }
-                    fallbackHangupTimer = setTimeout(() => {
-                      if (callState !== 'closing' && callState !== 'closed') {
-                        console.log('[FALLBACK HANGUP TRIGGERED] =========================================');
-                        console.log('[FALLBACK HANGUP TRIGGERED] Max timeout reached, forcing hangup');
-                        console.log('[FALLBACK HANGUP TRIGGERED]', {
-                          callState,
-                          confirmationState,
-                          intakeComplete,
-                          reason: 'confirmation_lifecycle_timeout'
-                        });
-                        console.log('[FALLBACK HANGUP TRIGGERED] =========================================');
-                        sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
-                      }
-                    }, 30000); // 30 seconds max timeout
-                    
-                    // Send confirmation summary via direct response.create
-                    const confirmationPayload = {
-                      type: 'response.create',
-                      response: {
-                        instructions: `Say exactly: "${responseToSend}"`
-                      }
-                    };
-
-                    console.log('[AI RESPONSE.CREATE SEND SITE]', {
-                      label: 'CONFIRMATION_SUMMARY',
-                      currentStage: intakeData?.stage || 'unknown',
-                      nextStage: intakeResponse.nextStage,
-                      intakeComplete: intakeComplete,
-                      instructions: `Say exactly: "${responseToSend}"`.substring(0, 200)
-                    });
-
-                    if (openAiWs) {
-                      const responseId = Date.now().toString();
-                      console.log('[CONFIRMATION SUMMARY RESPONSE ID]', responseId);
-                      openAiWs.send(JSON.stringify(confirmationPayload));
-                      console.log('[CONFIRMATION SUMMARY SENT VIA RESPONSE.CREATE]', { text: responseToSend, responseId });
-                    }
-                    
-                    // Update stage
-                    intakeData!.stage = intakeResponse.nextStage;
-                    return; // Skip VAD processing since we sent the response directly
-                  }
-
-                  // Let VAD handle responses naturally after session.updated greeting
+                  // Let VAD handle responses naturally
                   console.log('[AI INTAKE] VAD will handle response naturally');
                   console.log('[AI INTAKE] advancing to stage:', intakeResponse.nextStage);
 
                   // Update stage
                   intakeData!.stage = intakeResponse.nextStage;
                   
-                  // Runtime guard: DO NOT allow final goodbye without confirmation
-                  if (intakeData!.stage === 'complete' && !hangupScheduled) {
-                    console.log('[INTAKE COMPLETION CHECK] Intake marked as complete, checking if confirmation was received');
-                    console.log('[INTAKE COMPLETION CHECK] confirmationState:', confirmationState);
+                  // Start fallback hangup timer when intake is complete (30 seconds max)
+                  if (intakeData!.stage === 'complete' && !fallbackHangupTimer) {
+                    console.log('[INTAKE COMPLETE] All required fields collected');
+                    intakeComplete = true;
                     
-                    // Only allow completion if confirmation was accepted
-                    if (confirmationState !== 'confirmed') {
-                      console.log('[CONFIRMATION REQUIRED] Runtime guard activated - confirmation required before final goodbye');
-                      console.log('[CONFIRMATION REQUIRED] Forcing back to collecting_complete to trigger confirmation');
-                      
-                      // Force back to collecting_complete state to trigger confirmation
-                      intakeData!.stage = 'collecting_complete';
-                      return; // Skip any further processing
-                    } else {
-                      console.log('[CONFIRMATION VERIFIED] Confirmation was accepted, allowing completion');
-                    }
-                  } else if (intakeData!.stage === 'complete' && hangupScheduled) {
-                    console.log('[AUTO HANGUP SKIPPED] Hangup already scheduled for this call');
+                    fallbackHangupTimer = setTimeout(() => {
+                      if (callState !== 'closing' && callState !== 'closed') {
+                        console.log('[FALLBACK HANGUP TRIGGERED] Max timeout reached, forcing hangup');
+                        sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
+                      }
+                    }, 30000); // 30 seconds max timeout
                   }
                 }
               }
@@ -3906,29 +3630,6 @@ Do NOT:
                 console.log('[OPENAI RECV] response.created with response_id:', responseId);
                 console.log('[RACE CONDITION DEBUG] response.created at:', new Date().toISOString());
                 console.log('[RACE CONDITION DEBUG] Current callState:', callState);
-                console.log('[RACE CONDITION DEBUG] Current confirmationState:', confirmationState);
-
-                // Log confirmation response start
-                if (confirmationState === 'summary' || confirmationState === 'awaiting_confirmation') {
-                  console.log('[SUMMARY AUDIO START] Summary response created at:', new Date().toISOString());
-                  console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE CREATED with response_id:', responseId);
-                  console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE CREATED at:', new Date().toISOString());
-                  console.log('[SUMMARY AUDIO START] Summary response created');
-                  console.log('[SUMMARY AUDIO START] confirmationState:', confirmationState);
-                  // Store confirmation response ID for tracking
-                  (ws as any).confirmationResponseId = responseId;
-                }
-                
-                // Log dedicated confirmation response start
-                if (confirmationState === 'awaiting_confirmation') {
-                  console.log('[CONFIRMATION RESPONSE START] Dedicated confirmation response created at:', new Date().toISOString());
-                  console.log('[CONFIRMATION RESPONSE START] response_id:', responseId);
-                  console.log('[CONFIRMATION RESPONSE START] confirmationState:', confirmationState);
-                  dedicatedConfirmationResponseInProgress = true;
-                  console.log('[CONFIRMATION RESPONSE START] dedicatedConfirmationResponseInProgress = true');
-                  // Store confirmation response ID for tracking
-                  (ws as any).confirmationResponseId = responseId;
-                }
               }
               if (message.type === 'response.output_item.added') {
                 console.log('[OPENAI RECV] response.output_item.added');
@@ -3959,33 +3660,6 @@ Do NOT:
                   assistantSpeaking = false;
                   console.log('[AI ASSISTANT SPEAKING FALSE]');
                   (twilioHandler as any).assistantSpeaking = assistantSpeaking;
-                }
-
-                // Check if we're awaiting the final confirmation question
-                if (awaitingFinalConfirmationQuestion) {
-                  console.log('[AI CONFIRMATION QUESTION TRIGGERED] Awaiting final confirmation question, sending now');
-                  awaitingFinalConfirmationQuestion = false;
-                  confirmationSummaryInProgress = false;
-
-                  const confirmationQuestionPayload = {
-                    type: 'response.create',
-                    response: {
-                      instructions: 'Say exactly: "Did I get that right?"'
-                    }
-                  };
-
-                  console.log('[AI RESPONSE.CREATE SEND SITE]', {
-                    label: 'CONFIRMATION_QUESTION',
-                    currentStage: intakeData?.stage || 'unknown',
-                    nextStage: 'not_applicable',
-                    intakeComplete: intakeComplete,
-                    instructions: 'Say exactly: "Is this correct?"'.substring(0, 200)
-                  });
-
-                  if (openAiWs) {
-                    openAiWs.send(JSON.stringify(confirmationQuestionPayload));
-                    console.log('[AI CONFIRMATION QUESTION SENT] Confirmation question sent via response.create');
-                  }
                 }
 
                 console.log('[FINAL GOODBYE RESPONSE DONE] Final goodbye response completed');
@@ -4148,30 +3822,7 @@ Do NOT:
                 console.log('[RACE CONDITION DEBUG] response.done at:', new Date().toISOString());
                 console.log('[RACE CONDITION DEBUG] response.done response_id:', responseId);
                 console.log('[RACE CONDITION DEBUG] Current callState:', callState);
-                console.log('[RACE CONDITION DEBUG] Current confirmationState:', confirmationState);
 
-                // Check if this was a confirmation summary response
-                if (confirmationSummaryInProgress) {
-                  console.log('[SUMMARY AUDIO PRODUCTION COMPLETE] OpenAI finished producing summary audio at:', new Date().toISOString());
-                  console.log('[SUMMARY AUDIO PRODUCTION COMPLETE] confirmationResponseId:', responseId);
-                  console.log('[SUMMARY AUDIO DONE] Summary response completed at:', new Date().toISOString());
-                  console.log('[SUMMARY AUDIO DONE] confirmationResponseId:', responseId);
-                  console.log('[SUMMARY AUDIO DONE] confirmationSummarySpoken = true');
-                  confirmationSummaryInProgress = false;
-                  // State transition now happens in response.done handler below
-                  console.log('[SUMMARY AUDIO DONE] Waiting for response.done to trigger confirmation');
-                }
-                
-                // Check if this was the dedicated confirmation response
-                if (dedicatedConfirmationResponseInProgress) {
-                  console.log('[CONFIRMATION AUDIO DONE] Dedicated confirmation response completed at:', new Date().toISOString());
-                  console.log('[CONFIRMATION AUDIO DONE] confirmationResponseId:', responseId);
-                  console.log('[CONFIRMATION AUDIO DONE] dedicatedConfirmationResponseInProgress = false');
-                  dedicatedConfirmationResponseInProgress = false;
-                  // No mark needed - waiting for user confirmation
-                  console.log('[CONFIRMATION AUDIO DONE] Waiting for user confirmation');
-                }
-                
                 // Finalize any remaining active assistant transcripts
                 activeAssistantTranscripts.forEach((buffer, itemId) => {
                   if (buffer.trim()) {
@@ -4187,34 +3838,10 @@ Do NOT:
                 });
                 activeAssistantTranscripts.clear();
                 
-                // Simplified deterministic response sequencing
-                if (confirmationState === 'summary') {
-                  console.log('[SUMMARY RESPONSE DONE] Summary response complete at:', new Date().toISOString());
-                  console.log('[SUMMARY RESPONSE DONE] Triggering confirmation response');
-                  confirmationState = 'awaiting_confirmation';
-                  (twilioHandler as any).confirmationState = confirmationState;
-                  console.log('[CONFIRMATION RESPONSE START] confirmationState: summary -> awaiting_confirmation');
-                  
-                  // Trigger dedicated confirmation response
-                  const confirmationPayload = {
-                    type: 'response.create',
-                    response: {
-                      instructions: 'Say exactly: "Is that correct?"'
-                    }
-                  };
-                  
-                  console.log('[CONFIRMATION RESPONSE START] Sending dedicated confirmation response');
-                  if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
-                    openAiWs.send(JSON.stringify(confirmationPayload));
-                    console.log('[CONFIRMATION RESPONSE START] Dedicated confirmation response sent');
-                  }
-                }
-                
-                // Check if ready to close and send final closing (ONLY after confirmation received)
-                if (confirmationState === 'confirmed' && !finalClosingStarted && callState === 'active') {
+                // Check if ready to close after intake complete
+                if (intakeComplete && !finalClosingStarted && callState === 'active') {
                   console.log('[AI TERMINAL CLOSING START] Starting terminal closing flow');
                   console.log('[CALL STATE CHANGE] active -> closing');
-                  console.log('[ENTER CLOSING] confirmationState: confirmed');
                   
                   // Use the deterministic goodbye and hangup function
                   sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
@@ -4293,19 +3920,12 @@ Do NOT:
                   // Check for final closing phrases
                   const cleanTranscript = message.transcript.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
                   
-                  // Special logging for confirmation transcript
-                  if (confirmationState === 'summary' || confirmationState === 'awaiting_confirmation') {
-                    console.log('[CONFIRMATION TRANSCRIPT]', { text: cleanTranscript, confirmationState: confirmationState });
-                    console.log('[CONFIRMATION TRANSCRIPT] Contains "Is that correct?":', cleanTranscript.includes('Is that correct?'));
-                  }
-                  
                   // Hard log for model-generated legacy confirmation
                   if (cleanTranscript.toLowerCase().includes('is that correct?') || cleanTranscript.toLowerCase().includes('is this correct?')) {
                     console.log('[MODEL GENERATED LEGACY CONFIRMATION] =========================================');
                     console.log('[MODEL GENERATED LEGACY CONFIRMATION] Model generated confirmation question instead of app');
                     console.log('[MODEL GENERATED LEGACY CONFIRMATION]', {
                       transcript: cleanTranscript,
-                      confirmationState: confirmationState,
                       callState: callState
                     });
                     console.log('[MODEL GENERATED LEGACY CONFIRMATION] =========================================');
@@ -4324,7 +3944,6 @@ Do NOT:
                     console.log('[MODEL GENERATED LEGACY GOODBYE] Model generated goodbye message instead of app');
                     console.log('[MODEL GENERATED LEGACY GOODBYE]', {
                       transcript: cleanTranscript,
-                      confirmationState: confirmationState,
                       callState: callState,
                       matchedPhrases: legacyGoodbyePhrases.filter(p => cleanTranscript.toLowerCase().includes(p))
                     });
@@ -4448,7 +4067,6 @@ Do NOT:
                 // Log call state during audio streaming
                 console.log('[OUTBOUND ASSISTANT AUDIO DELTA]', {
                   callState: callState,
-                  confirmationState: confirmationState,
                   assistantSpeaking: assistantSpeaking,
                   terminalClosingResponseStarted: terminalClosingResponseStarted,
                   finalClosingStarted: finalClosingStarted,
@@ -4459,22 +4077,11 @@ Do NOT:
                 if (callState === 'closing') {
                   console.log('[RACE CONDITION DEBUG] Audio delta BLOCKED due to callState=closing at:', new Date().toISOString());
                   console.log('[RACE CONDITION DEBUG] Blocked audio bytes:', message.delta.length);
-                  console.log('[RACE CONDITION DEBUG] confirmationState:', confirmationState);
                   console.log('[OUTBOUND ASSISTANT AUDIO BLOCKED]', {
                     reason: 'terminal_closing',
-                    callState: callState,
-                    confirmationState: confirmationState
+                    callState: callState
                   });
                   return;
-                }
-
-                // Special logging for confirmation audio
-                if (confirmationState === 'summary' || confirmationState === 'awaiting_confirmation') {
-                  const confirmationResponseId = (ws as any).confirmationResponseId || 'unknown';
-                  console.log('[CONFIRMATION AUDIO DELTA] Confirmation audio delta received at:', new Date().toISOString());
-                  console.log('[CONFIRMATION AUDIO DELTA] response_id:', confirmationResponseId);
-                  console.log('[CONFIRMATION AUDIO DELTA] bytes:', message.delta.length);
-                  console.log('[CONFIRMATION AUDIO DELTA] confirmationState:', confirmationState);
                 }
 
                 console.log('[OUTBOUND ASSISTANT AUDIO FORWARDED TO TWILIO]', { bytes: message.delta.length });
@@ -4489,14 +4096,6 @@ Do NOT:
                 };
                 
                 ws.send(JSON.stringify(mediaMessage));
-
-                // Special logging for confirmation audio
-                if (confirmationState === 'summary' || confirmationState === 'awaiting_confirmation') {
-                  console.log('[CONFIRMATION AUDIO DELTA FORWARDED TO TWILIO]', {
-                    bytes: message.delta.length,
-                    confirmationState: confirmationState
-                  });
-                }
               }
             });
             console.log('[OPENAI AUDIT] message listener attached');
