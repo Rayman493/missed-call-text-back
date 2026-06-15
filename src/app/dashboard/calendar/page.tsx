@@ -103,10 +103,15 @@ export default function CalendarPage() {
     }
   }
 
-  const handleAddEvent = () => {
+  const handleAddEvent = (date?: Date) => {
     if (!calendarConnected) {
       showToast('Please connect Google Calendar first', 'error')
       return
+    }
+    // If a date is provided (from day modal), set it as selected day
+    // Otherwise, use current selected day or today
+    if (date) {
+      setSelectedDay(date)
     }
     setIsEventComposerOpen(true)
   }
@@ -594,7 +599,7 @@ export default function CalendarPage() {
                             )}
                           </button>
                           <button
-                            onClick={handleAddEvent}
+                            onClick={() => handleAddEvent()}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-95 shadow-md"
                           >
                             <Plus className="w-3.5 h-3.5" />
@@ -767,7 +772,7 @@ export default function CalendarPage() {
 
                       {/* Floating Add Event button for mobile */}
                       <button
-                        onClick={handleAddEvent}
+                        onClick={() => handleAddEvent()}
                         className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40 pb-safe"
                         aria-label="Add event"
                       >

@@ -33,6 +33,13 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
     { value: 'other', label: 'Other' },
   ]
 
+  // Sync date when selectedDate changes
+  useEffect(() => {
+    if (selectedDate) {
+      setDate(selectedDate.toISOString().split('T')[0])
+    }
+  }, [selectedDate])
+
   // Sync prefill values when modal opens
   useEffect(() => {
     if (isOpen && prefill) {
@@ -84,20 +91,25 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 dark:bg-slate-900 rounded-xl border border-slate-700 shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200">
+      <div className="bg-slate-900 dark:bg-slate-900 rounded-xl border border-slate-700/60 shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-700">
-          <h2 className="text-lg font-semibold text-white">Create Event</h2>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/60">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-blue-400" />
+            </div>
+            <h2 className="text-base font-semibold text-white tracking-tight">Create Event</h2>
+          </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-slate-400" />
+            <X className="w-4 h-4 text-slate-400" />
           </button>
         </div>
 
         {/* Form */}
-        <div className="p-4 space-y-4">
+        <div className="p-5 space-y-4">
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">
@@ -108,7 +120,7 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Event title"
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -121,18 +133,18 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
 
           {/* All-day toggle */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <input
               type="checkbox"
               id="allDay"
               checked={allDay}
               onChange={(e) => setAllDay(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-blue-600 focus:ring-blue-600"
+              className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-slate-900"
             />
             <label htmlFor="allDay" className="text-sm text-slate-300 cursor-pointer">
               All-day event
@@ -152,7 +164,7 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
@@ -166,7 +178,7 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
@@ -183,7 +195,7 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
               <select
                 value={eventType}
                 onChange={(e) => setEventType(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none cursor-pointer"
+                className="w-full pl-10 pr-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none cursor-pointer transition-all"
               >
                 {eventTypes.map((type) => (
                   <option key={type.value} value={type.value}>
@@ -206,24 +218,24 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add notes or description..."
                 rows={3}
-                className="w-full pl-10 pr-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full pl-10 pr-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
               />
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 p-4 border-t border-slate-700">
+        <div className="flex items-center justify-end gap-2.5 px-5 py-4 border-t border-slate-700/60">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-all duration-200"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
           >
             {isSaving ? 'Saving...' : 'Save Event'}
           </button>
