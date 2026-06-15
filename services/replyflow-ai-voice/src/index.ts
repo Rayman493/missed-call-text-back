@@ -1942,14 +1942,12 @@ wss.on('connection', (ws, req) => {
     let assistantSpeaking = false;
     let terminalClosingResponseStarted = false;
 
-    // Explicit confirmation lifecycle states
-    type ConfirmationState = 'collecting_info' | 'summarizing' | 'awaiting_confirmation_audio' | 'awaiting_confirmation_response' | 'confirmed' | 'final_goodbye';
+    // Simplified confirmation lifecycle states
+    type ConfirmationState = 'collecting_info' | 'summary' | 'awaiting_confirmation' | 'confirmed' | 'goodbye' | 'hangup';
     let confirmationState: ConfirmationState = 'collecting_info';
 
     let intakeComplete = false;
     let confirmationAccepted = false;
-    let pendingConfirmationAccepted = false;
-    let confirmationMarkReceived = false;
     let dedicatedConfirmationResponseInProgress = false;
     let fallbackHangupTimer: NodeJS.Timeout | null = null;
 
@@ -1969,46 +1967,8 @@ wss.on('connection', (ws, req) => {
       callSid: urlCallSid || '',
     });
 
-    // Set up mark received callback
-    twilioHandler.setOnMarkReceived((markName: string) => {
-      console.log('[MARK RECEIVED CALLBACK]', { markName, confirmationState, callState });
-      
-      if (markName === 'summary_complete' && confirmationState === 'awaiting_confirmation_audio') {
-        console.log('[SUMMARY MARK RECEIVED] Summary audio playback complete at:', new Date().toISOString());
-        console.log('[SUMMARY MARK RECEIVED] Triggering dedicated confirmation response');
-        confirmationState = 'awaiting_confirmation_response';
-        (twilioHandler as any).confirmationState = confirmationState;
-        console.log('[CONFIRMATION RESPONSE START] confirmationState: awaiting_confirmation_audio -> awaiting_confirmation_response');
-        
-        // Trigger dedicated confirmation response
-        const confirmationPayload = {
-          type: 'response.create',
-          response: {
-            instructions: 'Say exactly: "Is that correct?"'
-          }
-        };
-        
-        console.log('[CONFIRMATION RESPONSE START] Sending dedicated confirmation response');
-        if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
-          openAiWs.send(JSON.stringify(confirmationPayload));
-          console.log('[CONFIRMATION RESPONSE START] Dedicated confirmation response sent');
-        }
-      }
-      
-      if (markName === 'confirmation_complete' && confirmationState === 'awaiting_confirmation_response') {
-        console.log('[CONFIRMATION MARK RECEIVED] Confirmation audio playback complete at:', new Date().toISOString());
-        confirmationMarkReceived = true;
-        console.log('[CONFIRMATION MARK RECEIVED] confirmationMarkReceived = true');
-        
-        // Check if user confirmed early while audio was playing
-        if (pendingConfirmationAccepted) {
-          console.log('[PROCESSING PENDING CONFIRMATION AFTER MARK] User confirmed early, processing now that mark is received');
-          console.log('[PROCESSING PENDING CONFIRMATION AFTER MARK] Proceeding to final goodbye');
-          // Now trigger the final goodbye since audio playback is confirmed complete
-          closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
-        }
-      }
-    });
+    // Simplified confirmation flow - no mark complexity
+    // We use response.done events to sequence the responses deterministically
 
     // Pass state variables to twilioHandler for audio append guards
     (twilioHandler as any).callState = callState;
@@ -3685,14 +3645,11 @@ Do NOT:
                       console.log('[CALLER CONFIRMATION RECEIVED] Current confirmationState:', confirmationState);
                       console.log('[CALLER CONFIRMATION RECEIVED] confirmationResponseId:', (ws as any).confirmationResponseId || 'unknown');
                       
-                      // Store pending confirmation instead of immediately closing
-                      pendingConfirmationAccepted = true;
-                      console.log('[STORED PENDING CONFIRMATION] User confirmation stored, waiting for confirmation mark');
                       console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
                       confirmationState = 'confirmed';
                       (twilioHandler as any).confirmationState = confirmationState;
-                      console.log('[CALL STATE CHANGE] confirmationState: awaiting_confirmation_response -> confirmed');
-                      console.log('[EXIT AWAITING_CONFIRMATION] Caller confirmed, waiting for confirmation mark before closing');
+                      console.log('[CALL STATE CHANGE] confirmationState: awaiting_confirmation -> confirmed');
+                      console.log('[CONFIRMATION ACCEPTED] Proceeding to final goodbye');
                       return; // Skip all other processing
 
                       // Check if all required fields are collected
@@ -3857,9 +3814,9 @@ Do NOT:
                     // Set state flags
                     confirmationSummaryInProgress = true;
                     awaitingFinalConfirmationQuestion = true;
-                    confirmationState = 'summarizing';
+                    confirmationState = 'summary';
                     intakeComplete = true;
-                    console.log('[SUMMARY RESPONSE START] confirmationState: collecting_info -> summarizing');
+                    console.log('[SUMMARY RESPONSE START] confirmationState: collecting_info -> summary');
                     console.log('[INTAKE COMPLETE] All required fields collected, starting confirmation lifecycle');
                     
                     // Start fallback hangup timer (30 seconds) to prevent indefinite active calls
@@ -3952,7 +3909,7 @@ Do NOT:
                 console.log('[RACE CONDITION DEBUG] Current confirmationState:', confirmationState);
 
                 // Log confirmation response start
-                if (confirmationState === 'summarizing' || confirmationState === 'awaiting_confirmation_audio') {
+                if (confirmationState === 'summary' || confirmationState === 'awaiting_confirmation') {
                   console.log('[SUMMARY AUDIO START] Summary response created at:', new Date().toISOString());
                   console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE CREATED with response_id:', responseId);
                   console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE CREATED at:', new Date().toISOString());
@@ -3963,7 +3920,7 @@ Do NOT:
                 }
                 
                 // Log dedicated confirmation response start
-                if (confirmationState === 'awaiting_confirmation_response') {
+                if (confirmationState === 'awaiting_confirmation') {
                   console.log('[CONFIRMATION RESPONSE START] Dedicated confirmation response created at:', new Date().toISOString());
                   console.log('[CONFIRMATION RESPONSE START] response_id:', responseId);
                   console.log('[CONFIRMATION RESPONSE START] confirmationState:', confirmationState);
@@ -4201,15 +4158,8 @@ Do NOT:
                   console.log('[SUMMARY AUDIO DONE] confirmationResponseId:', responseId);
                   console.log('[SUMMARY AUDIO DONE] confirmationSummarySpoken = true');
                   confirmationSummaryInProgress = false;
-                  confirmationState = 'awaiting_confirmation_audio';
-                  (twilioHandler as any).confirmationState = confirmationState;
-                  console.log('[SUMMARY AUDIO DONE] confirmationState: summarizing -> awaiting_confirmation_audio');
-                  console.log('[SUMMARY AUDIO DONE] Waiting to trigger dedicated confirmation response');
-                  
-                  // Send Twilio mark to track when summary audio playback is actually complete
-                  console.log('[SENDING SUMMARY MARK] Sending mark to track summary audio playback completion');
-                  twilioHandler.sendMark('summary_complete');
-                  console.log('[SENDING SUMMARY MARK] Mark sent, waiting for Twilio mark received event');
+                  // State transition now happens in response.done handler below
+                  console.log('[SUMMARY AUDIO DONE] Waiting for response.done to trigger confirmation');
                 }
                 
                 // Check if this was the dedicated confirmation response
@@ -4218,11 +4168,8 @@ Do NOT:
                   console.log('[CONFIRMATION AUDIO DONE] confirmationResponseId:', responseId);
                   console.log('[CONFIRMATION AUDIO DONE] dedicatedConfirmationResponseInProgress = false');
                   dedicatedConfirmationResponseInProgress = false;
-                  
-                  // Send Twilio mark to track when confirmation audio playback is actually complete
-                  console.log('[SENDING CONFIRMATION MARK] Sending mark to track confirmation audio playback completion');
-                  twilioHandler.sendMark('confirmation_complete');
-                  console.log('[SENDING CONFIRMATION MARK] Mark sent, waiting for Twilio mark received event');
+                  // No mark needed - waiting for user confirmation
+                  console.log('[CONFIRMATION AUDIO DONE] Waiting for user confirmation');
                 }
                 
                 // Finalize any remaining active assistant transcripts
@@ -4239,6 +4186,29 @@ Do NOT:
                   }
                 });
                 activeAssistantTranscripts.clear();
+                
+                // Simplified deterministic response sequencing
+                if (confirmationState === 'summary') {
+                  console.log('[SUMMARY RESPONSE DONE] Summary response complete at:', new Date().toISOString());
+                  console.log('[SUMMARY RESPONSE DONE] Triggering confirmation response');
+                  confirmationState = 'awaiting_confirmation';
+                  (twilioHandler as any).confirmationState = confirmationState;
+                  console.log('[CONFIRMATION RESPONSE START] confirmationState: summary -> awaiting_confirmation');
+                  
+                  // Trigger dedicated confirmation response
+                  const confirmationPayload = {
+                    type: 'response.create',
+                    response: {
+                      instructions: 'Say exactly: "Is that correct?"'
+                    }
+                  };
+                  
+                  console.log('[CONFIRMATION RESPONSE START] Sending dedicated confirmation response');
+                  if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
+                    openAiWs.send(JSON.stringify(confirmationPayload));
+                    console.log('[CONFIRMATION RESPONSE START] Dedicated confirmation response sent');
+                  }
+                }
                 
                 // Check if ready to close and send final closing (ONLY after confirmation received)
                 if (confirmationState === 'confirmed' && !finalClosingStarted && callState === 'active') {
@@ -4324,7 +4294,7 @@ Do NOT:
                   const cleanTranscript = message.transcript.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
                   
                   // Special logging for confirmation transcript
-                  if (confirmationState === 'summarizing' || confirmationState === 'awaiting_confirmation_audio' || confirmationState === 'awaiting_confirmation_response') {
+                  if (confirmationState === 'summary' || confirmationState === 'awaiting_confirmation') {
                     console.log('[CONFIRMATION TRANSCRIPT]', { text: cleanTranscript, confirmationState: confirmationState });
                     console.log('[CONFIRMATION TRANSCRIPT] Contains "Is that correct?":', cleanTranscript.includes('Is that correct?'));
                   }
@@ -4499,7 +4469,7 @@ Do NOT:
                 }
 
                 // Special logging for confirmation audio
-                if (confirmationState === 'summarizing' || confirmationState === 'awaiting_confirmation_audio' || confirmationState === 'awaiting_confirmation_response') {
+                if (confirmationState === 'summary' || confirmationState === 'awaiting_confirmation') {
                   const confirmationResponseId = (ws as any).confirmationResponseId || 'unknown';
                   console.log('[CONFIRMATION AUDIO DELTA] Confirmation audio delta received at:', new Date().toISOString());
                   console.log('[CONFIRMATION AUDIO DELTA] response_id:', confirmationResponseId);
@@ -4521,7 +4491,7 @@ Do NOT:
                 ws.send(JSON.stringify(mediaMessage));
 
                 // Special logging for confirmation audio
-                if (confirmationState === 'summarizing' || confirmationState === 'awaiting_confirmation_audio' || confirmationState === 'awaiting_confirmation_response') {
+                if (confirmationState === 'summary' || confirmationState === 'awaiting_confirmation') {
                   console.log('[CONFIRMATION AUDIO DELTA FORWARDED TO TWILIO]', {
                     bytes: message.delta.length,
                     confirmationState: confirmationState
