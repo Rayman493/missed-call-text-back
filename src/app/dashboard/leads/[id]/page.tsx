@@ -140,6 +140,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const mobileFileInputRef = useRef<HTMLInputElement>(null)
   const clearComposerImagesRef = useRef<(() => void) | null>(null)
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
+  const [calendarConnected, setCalendarConnected] = useState(false)
+  const [isLoadingCalendarStatus, setIsLoadingCalendarStatus] = useState(false)
 
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -1281,6 +1283,90 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
+  const checkCalendarConnection = async () => {
+    setIsLoadingCalendarStatus(true)
+    try {
+      const response = await fetch('/api/google/calendar/status', {
+        credentials: 'include',
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setCalendarConnected(data.connected || false)
+      } else {
+        setCalendarConnected(false)
+      }
+    } catch (error) {
+      console.error('Failed to check calendar connection:', error)
+      setCalendarConnected(false)
+    } finally {
+      setIsLoadingCalendarStatus(false)
+    }
+  }
+
+  useEffect(() => {
+    checkCalendarConnection()
+  }, [])
+
+  const handleScheduleClick = () => {
+    if (!calendarConnected) {
+      setError('Connect Google Calendar to schedule appointments from ReplyFlow. Go to the Calendar page to connect.')
+      return
+    }
+    setIsAppointmentModalOpen(true)
+  }
+
+  // Generate comprehensive prefill data from lead and AI intake
+  const generateAppointmentPrefill = () => {
+    const aiIntake = leadData?.aiCallRecords?.[0]
+    const leadName = leadData?.contact_name || aiIntake?.extractedInfo?.callerName || 'Lead'
+    const leadPhone = formatPhoneNumber(leadData?.caller_phone || '')
+    const leadReason = aiIntake?.extractedInfo?.reasonForCalling || leadData?.company_name || ''
+    const leadDetails = aiIntake?.extractedInfo?.importantDetails || ''
+    const leadUrgency = aiIntake?.extractedInfo?.urgencyLevel || ''
+    const leadLocation = aiIntake?.extractedInfo?.addressOrLocation || ''
+    const leadCallbackTime = aiIntake?.extractedInfo?.preferredCallbackTime || ''
+    const leadCallbackNumber = aiIntake?.extractedInfo?.callbackNumber || leadPhone
+
+    // Generate title
+    const title = leadReason 
+      ? `${leadReason} - ${leadName}`
+      : `Appointment with ${leadName}`
+
+    // Generate comprehensive description
+    let description = `Lead: ${leadName}\n`
+    description += `Phone: ${leadPhone}\n`
+    
+    if (leadCallbackNumber && leadCallbackNumber !== leadPhone) {
+      description += `Callback number: ${leadCallbackNumber}\n`
+    }
+    
+    if (leadReason) {
+      description += `Reason: ${leadReason}\n`
+    }
+    
+    if (leadDetails) {
+      description += `Details: ${leadDetails}\n`
+    }
+    
+    if (leadUrgency) {
+      description += `Urgency: ${leadUrgency}\n`
+    }
+    
+    if (leadCallbackTime) {
+      description += `Preferred callback time: ${leadCallbackTime}\n`
+    }
+    
+    description += `\nLead link: https://replyflowhq.com/dashboard/leads/${params.id}`
+
+    return {
+      title,
+      description,
+      eventType: 'appointment',
+      location: leadLocation || undefined
+    }
+  }
+
   const handleAppointmentSave = async (event: any) => {
     try {
       const response = await fetch('/api/google/calendar/create-event', {
@@ -1670,7 +1756,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <span className="hidden sm:inline">Message</span>
                     </button>
                     <button
-                      onClick={() => setIsAppointmentModalOpen(true)}
+                      onClick={handleScheduleClick}
                       className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 transition-colors border border-green-200 dark:border-green-800 text-sm font-medium"
                       aria-label="Schedule appointment"
                     >
@@ -2713,11 +2799,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       isOpen={isAppointmentModalOpen}
       onClose={() => setIsAppointmentModalOpen(false)}
       onSave={handleAppointmentSave}
-      prefill={{
-        title: `Appointment - ${leadData?.contact_name || leadData?.caller_phone || 'Lead'}`,
-        description: `Phone: ${formatPhoneNumber(leadData?.caller_phone || '')}${leadData?.company_name ? `\nCompany: ${leadData.company_name}` : ''}`,
-        eventType: 'appointment'
-      }}
+      prefill={generateAppointmentPrefill()}
     />
 
     {/* Delete Confirmation Modal */}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Calendar, Clock, FileText, Tag } from 'lucide-react'
+import { X, Calendar, Clock, FileText, Tag, MapPin } from 'lucide-react'
 
 interface EventComposerProps {
   isOpen: boolean
@@ -12,6 +12,7 @@ interface EventComposerProps {
     title?: string
     description?: string
     eventType?: string
+    location?: string
   }
 }
 
@@ -23,6 +24,7 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
   const [endTime, setEndTime] = useState('10:00') // Default 60 min duration
   const [allDay, setAllDay] = useState(false)
   const [description, setDescription] = useState(prefill?.description || '')
+  const [location, setLocation] = useState(prefill?.location || '')
   const [eventType, setEventType] = useState(prefill?.eventType || 'appointment')
   const [isSaving, setIsSaving] = useState(false)
   const [dateError, setDateError] = useState('')
@@ -51,6 +53,7 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
       setTitle(prefill.title || '')
       setDescription(prefill.description || '')
       setEventType(prefill.eventType || 'appointment')
+      setLocation(prefill.location || '')
     }
   }, [isOpen, prefill])
 
@@ -83,11 +86,13 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
         allDay,
         description,
         eventType,
+        location: location || undefined,
       })
       onClose()
       // Reset form
       setTitle('')
       setDescription('')
+      setLocation('')
       setEventType('appointment')
       setAllDay(false)
       setStartTime('09:00')
@@ -256,6 +261,23 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
                 placeholder="Add notes or description..."
                 rows={3}
                 className="w-full pl-10 pr-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
+              />
+            </div>
+          </div>
+
+          {/* Location */}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+              Location
+            </label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Add location (optional)"
+                className="w-full pl-10 pr-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
             </div>
           </div>
