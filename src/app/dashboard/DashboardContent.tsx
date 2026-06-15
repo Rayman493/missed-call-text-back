@@ -1379,7 +1379,7 @@ export default function DashboardContent() {
                                 </div>
                               </div>
 
-                              {/* Step 2 - Different states based on setupState */}
+                              {/* Step 2 - Different states based on setupState and forwarding verification */}
                               {setupState === 'needs_final_test' ? (
                                 /* Step 2 - Completed when needs_final_test */
                                 <div className="flex items-start gap-4 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
@@ -1389,8 +1389,14 @@ export default function DashboardContent() {
                                     </svg>
                                   </div>
                                   <div className="flex-1">
-                                    <p className="font-medium text-foreground">Set up call forwarding</p>
-                                    <p className="text-sm text-muted-foreground">Call forwarding has been configured</p>
+                                    <p className="font-medium text-foreground">
+                                      {business?.forwarding_verified ? 'Call forwarding verified' : 'Call forwarding step completed'}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {business?.forwarding_verified 
+                                        ? 'ReplyFlow successfully received a forwarded test call.'
+                                        : 'You marked this step complete. Run a test call to confirm forwarding is working.'}
+                                    </p>
                                   </div>
                                 </div>
                               ) : (
