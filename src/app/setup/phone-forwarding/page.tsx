@@ -168,6 +168,27 @@ export default function PhoneForwardingPage() {
     return `*92${phoneNumber}`
   }
 
+  // Returns formatted T-Mobile code for display with parentheses and dashes
+  const getTMobileCodeDisplay = () => {
+    if (!business?.twilio_phone_number) return ''
+    const phoneNumber = business.twilio_phone_number.replace(/^\+/, '')
+    
+    // Format as *61* (XXX) XXX-XXXX **20#
+    if (phoneNumber.length === 11) {
+      const areaCode = phoneNumber.substring(1, 4)
+      const firstThree = phoneNumber.substring(4, 7)
+      const lastFour = phoneNumber.substring(7, 11)
+      return `*61* (${areaCode}) ${firstThree}-${lastFour}**20#`
+    } else if (phoneNumber.length === 10) {
+      const areaCode = phoneNumber.substring(0, 3)
+      const firstThree = phoneNumber.substring(3, 6)
+      const lastFour = phoneNumber.substring(6, 10)
+      return `*61* (${areaCode}) ${firstThree}-${lastFour}**20#`
+    }
+    
+    return `*61*${phoneNumber}**20#`
+  }
+
   const hasValidCode = Boolean(
     selectedCarrier &&
     business?.twilio_phone_number &&
@@ -420,7 +441,7 @@ export default function PhoneForwardingPage() {
                     <div className="bg-card border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-6 sm:p-8 shadow-sm">
                       <p className="text-sm font-semibold text-foreground mb-1">{CARRIERS.find(c => c.id === selectedCarrier)?.name}</p>
                       <p className="text-sm text-muted-foreground mb-3">
-                        Dial this from your business phone, then press Call.
+                        {selectedCarrier === 't-mobile' ? 'Dial this from your business phone:' : 'Dial this from your business phone, then press Call.'}
                       </p>
                       <div 
                         className="bg-muted border-2 border-blue-200 dark:border-blue-800 rounded-xl px-6 py-6 sm:py-8 mb-3 overflow-x-auto cursor-pointer hover:bg-muted/80 transition-colors"
@@ -431,12 +452,19 @@ export default function PhoneForwardingPage() {
                           aria-label="Connection dial code"
                           className="block font-mono font-bold text-foreground text-center text-3xl sm:text-4xl lg:text-5xl tracking-widest whitespace-nowrap select-all"
                         >
-                          {getForwardingCodeDisplay()}
+                          {selectedCarrier === 't-mobile' ? getTMobileCodeDisplay() : getForwardingCodeDisplay()}
                         </code>
                       </div>
                       <p className="text-xs text-muted-foreground/70 text-center mb-3">
-                        Wait for the confirmation tone or message.
+                        {selectedCarrier === 't-mobile' ? 'Press Call and wait for the confirmation message.' : 'Wait for the confirmation tone or message.'}
                       </p>
+                      {selectedCarrier === 't-mobile' && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3">
+                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                            Some T-Mobile plans or devices may use different forwarding settings. If this code doesn't work, check with T-Mobile for account-specific instructions.
+                          </p>
+                        </div>
+                      )}
                       <div className="flex gap-3 mb-3">
                         <button
                           onClick={handleCopyCode}
