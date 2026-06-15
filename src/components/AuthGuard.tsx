@@ -18,7 +18,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [billingGraceTimeoutElapsed, setBillingGraceTimeoutElapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [stripeParamsCleared, setStripeParamsCleared] = useState(false)
-  const [authVerified, setAuthVerified] = useState(false)
+  // Initialize authVerified from sessionStorage immediately to prevent loading flash
+  const [authVerified, setAuthVerified] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('replyflow_auth_verified') === 'true'
+    }
+    return false
+  })
 
   // Mobile detection
   useEffect(() => {
@@ -30,24 +36,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Restore auth verified state from sessionStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const cached = sessionStorage.getItem('replyflow_auth_verified')
-      if (cached === 'true') {
-        setAuthVerified(true)
-      }
-    }
-  }, [])
-
   // Cache auth verified state when user is authenticated
   useEffect(() => {
     if (user && !loading && typeof window !== 'undefined') {
       if (!authVerified) {
-        console.log('[AuthGuard] Caching auth verified state', {
-          pathname: window.location.pathname,
-          flowType: 'auth_verified_cache'
-        })
         setAuthVerified(true)
         sessionStorage.setItem('replyflow_auth_verified', 'true')
       }
@@ -112,16 +104,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     flowType = 'initial_load'
   }
 
-  console.log('[AuthGuard] Stripe return detection', {
-    flowType,
-    isCheckoutRecovery,
-    isBillingReturn,
-    isStripeSetupReturn,
-    stripeParamsCleared,
-    setupParam,
-    pathname: typeof window !== 'undefined' ? window.location.pathname : 'server'
-  })
-
   // Clear Stripe return parameters after successful session restoration
   useEffect(() => {
     if (user && !stripeParamsCleared && typeof window !== 'undefined') {
@@ -182,18 +164,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const pollSession = async () => {
       try {
         pollCount++
-        console.log('[Dashboard Billing Return] Session restoration poll', { pollCount, isMobile, maxPolls })
 
         const { data: { session } } = await supabase.auth.getSession()
         
         if (session) {
-          console.log('[Dashboard Billing Return Session Restored]', {
-            pathname: window.location.pathname,
-            search: window.location.search,
-            hasSession: true,
-            pollCount,
-            isMobile
-          })
           // AuthContext will detect the session and update user state
           return
         }

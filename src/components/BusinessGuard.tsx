@@ -18,20 +18,16 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
 
   // Add explicit state tracking
   const [initialized, setInitialized] = useState(false)
-  const [businessVerified, setBusinessVerified] = useState(false)
+  // Initialize businessVerified from sessionStorage immediately to prevent loading flash
+  const [businessVerified, setBusinessVerified] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('replyflow_business_verified') === 'true'
+    }
+    return false
+  })
   const [showLoading, setShowLoading] = useState(false)
   const hasRedirectedRef = useRef<string | null>(null)
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Restore business verified state from sessionStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const cached = sessionStorage.getItem('replyflow_business_verified')
-      if (cached === 'true') {
-        setBusinessVerified(true)
-      }
-    }
-  }, [])
 
   useEffect(() => {
     // Mark as initialized once loading is complete and fetch is complete
