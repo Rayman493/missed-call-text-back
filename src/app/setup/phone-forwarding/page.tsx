@@ -364,7 +364,35 @@ export default function PhoneForwardingPage() {
                     </span>
                     <p className="font-medium text-foreground">Set Up Conditional Call Forwarding</p>
                   </div>
-                  {hasValidCode ? (
+                  {/* AT&T-specific instructions */}
+                  {selectedCarrier === 'at&t' ? (
+                    <div className="bg-card border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-6 sm:p-8 shadow-sm">
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-semibold text-foreground mb-2">AT&T Wireless</h4>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            Dial <span className="font-mono font-semibold text-foreground">*92{business?.twilio_phone_number?.replace(/^\+/, '')}</span> from your AT&T phone, then press Call.
+                          </p>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-foreground mb-2">AT&T Business/Home Phone</h4>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            Dial <span className="font-mono font-semibold text-foreground">*92{business?.twilio_phone_number?.replace(/^\+/, '')}</span> from your AT&T phone, then press Call.
+                          </p>
+                        </div>
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                            <strong>Note:</strong> Some AT&T devices or plans may have different activation codes. If the above doesn't work, contact AT&T customer service for your specific device's call forwarding instructions.
+                          </p>
+                        </div>
+                        <div className="bg-muted/50 border border-border rounded-lg p-4">
+                          <p className="text-xs text-muted-foreground">
+                            <strong>To disable forwarding later:</strong> Dial <span className="font-mono font-semibold">*93</span> and press Call.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : hasValidCode ? (
                     <div className="bg-card border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-6 sm:p-8 shadow-sm">
                       <p className="text-sm font-semibold text-muted-foreground mb-4 text-center">
                         Dial this from your business phone
