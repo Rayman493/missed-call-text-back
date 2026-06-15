@@ -32,6 +32,44 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
     return !!start.date
   }
 
+  const isMultiDay = (event: CalendarEvent) => {
+    const startDate = event.start.dateTime || event.start.date
+    const endDate = event.end.dateTime || event.end.date
+    if (!startDate || !endDate) return false
+    
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    
+    // For all-day events, Google Calendar uses exclusive end dates
+    const isAllDayEvent = !event.start.dateTime && !!event.start.date
+    const effectiveEnd = isAllDayEvent ? new Date(end.getTime() - 86400000) : end
+    
+    return start.toDateString() !== effectiveEnd.toDateString()
+  }
+
+  const formatEventDateRange = (event: CalendarEvent) => {
+    const startDate = event.start.dateTime || event.start.date
+    const endDate = event.end.dateTime || event.end.date
+    if (!startDate || !endDate) return formatDate(startDate)
+
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    
+    // For all-day events, Google Calendar uses exclusive end dates
+    const isAllDayEvent = !event.start.dateTime && !!event.start.date
+    const effectiveEnd = isAllDayEvent ? new Date(end.getTime() - 86400000) : end
+
+    // If it's a single-day event, just show the date
+    if (start.toDateString() === effectiveEnd.toDateString()) {
+      return formatDate(startDate)
+    }
+
+    // For multi-day events, show the full range
+    const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const endStr = effectiveEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return `${startStr} - ${endStr}`
+  }
+
   const groupEventsByTime = (events: CalendarEvent[]) => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -93,12 +131,19 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
                     {event.summary}
                   </h4>
                   <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>
-                        {isAllDay(event.start) ? 'All day' : formatDate(event.start.dateTime)}
-                      </span>
-                    </div>
+                    {isMultiDay(event) ? (
+                      <div className="flex items-center gap-1">
+                        <CalendarIcon className="w-3 h-3" />
+                        <span>{formatEventDateRange(event)}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>
+                          {isAllDay(event.start) ? 'All day' : formatDate(event.start.dateTime)}
+                        </span>
+                      </div>
+                    )}
                     {event.location && (
                       <div className="flex items-center gap-1 truncate">
                         <MapPin className="w-3 h-3" />

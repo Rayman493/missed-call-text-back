@@ -8,6 +8,7 @@ interface CalendarGridProps {
     id: string
     summary: string
     start: { dateTime?: string; date?: string }
+    end?: { dateTime?: string; date?: string }
   }>
   renderEvent: (event: any, day: Date) => ReactNode
   onPreviousMonth?: () => void
@@ -101,12 +102,36 @@ export default function CalendarGrid({
       const eventDateRaw = event.start?.dateTime || event.start?.date
       if (!eventDateRaw) return false
       
-      // Normalize event date to YYYY-MM-DD string
-      const eventDayKey = eventDateRaw.includes('T')
+      // Normalize event start date to YYYY-MM-DD string
+      const eventStartDayKey = eventDateRaw.includes('T')
         ? eventDateRaw.split('T')[0]
         : eventDateRaw
       
-      return eventDayKey === dayKey
+      // Check if event has an end date (for multi-day events)
+      const eventEndRaw = event.end?.dateTime || event.end?.date
+      if (eventEndRaw) {
+        // Normalize event end date to YYYY-MM-DD string
+        const eventEndDayKey = eventEndRaw.includes('T')
+          ? eventEndRaw.split('T')[0]
+          : eventEndRaw
+        
+        // For all-day events, Google Calendar uses exclusive end dates
+        // Example: June 19-23 comes as start.date = 2026-06-19, end.date = 2026-06-24
+        // For timed events, the end date is inclusive
+        const isAllDay = !event.start?.dateTime && !!event.start?.date
+        const effectiveEndDate = isAllDay 
+          ? new Date(eventEndDayKey).getTime() - 86400000 // Subtract 1 day for exclusive end
+          : new Date(eventEndDayKey).getTime()
+        
+        const dayTimestamp = new Date(dayKey).getTime()
+        const startTimestamp = new Date(eventStartDayKey).getTime()
+        
+        // Check if current day falls within the event's date range
+        return dayTimestamp >= startTimestamp && dayTimestamp <= effectiveEndDate
+      }
+      
+      // Single-day event: check if start date matches
+      return eventStartDayKey === dayKey
     })
     
     // Limit visible events based on screen size

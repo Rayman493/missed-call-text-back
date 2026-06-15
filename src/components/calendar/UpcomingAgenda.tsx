@@ -102,6 +102,44 @@ export default function UpcomingAgenda({ events, maxEvents = 5, onRefresh, calen
     return !!start.date
   }
 
+  const isMultiDay = (event: CalendarEvent) => {
+    const startDate = event.start?.dateTime || event.start?.date
+    const endDate = event.end?.dateTime || event.end?.date
+    if (!startDate || !endDate) return false
+    
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    
+    // For all-day events, Google Calendar uses exclusive end dates
+    const isAllDayEvent = !event.start?.dateTime && !!event.start?.date
+    const effectiveEnd = isAllDayEvent ? new Date(end.getTime() - 86400000) : end
+    
+    return start.toDateString() !== effectiveEnd.toDateString()
+  }
+
+  const formatEventDateRange = (event: CalendarEvent) => {
+    const startDate = event.start?.dateTime || event.start?.date
+    const endDate = event.end?.dateTime || event.end?.date
+    if (!startDate || !endDate) return formatDate(startDate)
+
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    
+    // For all-day events, Google Calendar uses exclusive end dates
+    const isAllDayEvent = !event.start?.dateTime && !!event.start?.date
+    const effectiveEnd = isAllDayEvent ? new Date(end.getTime() - 86400000) : end
+
+    // If it's a single-day event, just show the date
+    if (start.toDateString() === effectiveEnd.toDateString()) {
+      return formatDate(startDate)
+    }
+
+    // For multi-day events, show the full range
+    const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const endStr = effectiveEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return `${startStr} - ${endStr}`
+  }
+
   if (upcomingEvents.length === 0) {
     return (
       <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-3 sm:p-4">
@@ -161,12 +199,17 @@ export default function UpcomingAgenda({ events, maxEvents = 5, onRefresh, calen
                   {event.summary}
                 </p>
                 <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                  {!isAllDay(event.start) && (
+                  {isMultiDay(event) ? (
+                    <span className="flex items-center gap-1.5">
+                      <CalendarIcon className="w-3 h-3" />
+                      {formatEventDateRange(event)}
+                    </span>
+                  ) : !isAllDay(event.start) ? (
                     <span className="flex items-center gap-1.5">
                       <Clock className="w-3 h-3" />
                       {formatTime(event.start?.dateTime)}
                     </span>
-                  )}
+                  ) : null}
                   {event.isHoliday && (
                     <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
                       <CalendarIcon className="w-3 h-3" />
