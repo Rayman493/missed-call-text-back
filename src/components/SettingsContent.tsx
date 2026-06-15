@@ -194,8 +194,16 @@ export default function SettingsContent() {
 
   // Toast functions
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
-    const id = Date.now().toString()
-    setToasts(prev => [...prev, { id, message, type }])
+    // Use stable ID for settings success toast to prevent duplicates
+    const stableId = message === 'Settings saved successfully' && type === 'success' 
+      ? 'settings-saved-success' 
+      : Date.now().toString()
+    
+    // Remove existing toast with the same stable ID before adding new one
+    setToasts(prev => {
+      const filtered = prev.filter(toast => toast.id !== stableId)
+      return [...filtered, { id: stableId, message, type }]
+    })
   }
 
   // Helper to get automation settings with defaults
