@@ -46,60 +46,33 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
         }
 
         // Fetch leads from last 7 days
-        // Try with phone column first
+        // Use only valid columns from the leads table
         let leads: any[] | null = null
         let leadsError: any = null
         
         try {
           const result = await supabase
             .from('leads')
-            .select('id, business_id, phone, status, raw_metadata, created_at, updated_at')
+            .select('id, business_id, caller_phone, status, raw_metadata, created_at')
             .eq('business_id', business.id)
             .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
           
           leads = result.data
           leadsError = result.error
+          
+          if (!leadsError && result.data) {
+            // Normalize caller_phone to phone field for downstream code
+            leads = result.data.map((lead: any) => ({
+              ...lead,
+              phone: lead.caller_phone
+            }))
+          }
         } catch (e) {
           leadsError = e
         }
 
         if (leadsError) {
-          console.error('[NeedsAttention] Failed to fetch leads with phone column:', {
-            code: leadsError.code,
-            message: leadsError.message,
-            details: leadsError.details,
-            hint: leadsError.hint,
-            fullError: JSON.stringify(leadsError, null, 2)
-          })
-          
-          // Try with caller_phone column (production might use this instead)
-          try {
-            const result = await supabase
-              .from('leads')
-              .select('id, business_id, caller_phone, status, raw_metadata, created_at, updated_at')
-              .eq('business_id', business.id)
-              .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-            
-            leads = result.data
-            leadsError = result.error
-            
-            if (!leadsError) {
-              console.log('[NeedsAttention] Query succeeded with caller_phone column')
-              // Normalize to phone field for downstream code
-              if (result.data) {
-                leads = result.data.map((lead: any) => ({
-                  ...lead,
-                  phone: lead.caller_phone
-                }))
-              }
-            }
-          } catch (e) {
-            leadsError = e
-          }
-        }
-
-        if (leadsError) {
-          console.error('[NeedsAttention] Query with caller_phone also failed:', {
+          console.error('[NeedsAttention] Failed to fetch leads:', {
             code: leadsError.code,
             message: leadsError.message,
             details: leadsError.details,
