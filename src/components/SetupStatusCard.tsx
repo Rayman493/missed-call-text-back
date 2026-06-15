@@ -36,15 +36,13 @@ export default function SetupStatusCard({
   
   // Determine card state based on priority order
   const getCardState = (): CardState => {
-    // Priority 1: Billing/trial blockers
-    if (!hasSubscription) {
-      const isTrialUsed = business?.onboarding_status === 'trial_used' || business?.subscription_status === 'trial_expired'
-      if (isTrialUsed) {
-        return 'billing-blocker'
-      }
-    }
+    // Priority 1: Billing/trial blockers (highest priority)
+    const isTrialUsed = business?.onboarding_status === 'trial_used' || business?.subscription_status === 'trial_expired'
+    const needsSubscription = !hasSubscription
+    const hasPaymentIssue = business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid'
     
-    if (business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid') {
+    // If trial was used OR no active subscription OR has payment issue, show billing blocker
+    if (isTrialUsed || needsSubscription || hasPaymentIssue) {
       return 'billing-blocker'
     }
     
