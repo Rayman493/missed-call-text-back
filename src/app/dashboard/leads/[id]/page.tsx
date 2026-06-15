@@ -153,6 +153,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [internalNotes, setInternalNotes] = useState(leadData?.notes || '')
   const [isSavingNotes, setIsSavingNotes] = useState(false)
   const [showLeadInfo, setShowLeadInfo] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const conversationContainerRef = useRef<HTMLDivElement>(null)
   const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
   const bottomSentinelRef = useRef<HTMLDivElement>(null)
@@ -228,6 +230,40 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       console.error('Failed to save notes:', error)
     } finally {
       setIsSavingNotes(false)
+    }
+  }
+
+  const handleDeleteLead = async () => {
+    if (!lead?.id) return
+    setIsDeleting(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+
+      const response = await fetch(`/api/leads/${lead.id}`, {
+        method: 'DELETE',
+        headers
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        console.error('Failed to delete lead:', result.error)
+        alert(result.error || 'Failed to delete lead')
+        return
+      }
+
+      // Redirect to leads list on successful deletion
+      router.push('/dashboard/leads')
+    } catch (error) {
+      console.error('Error deleting lead:', error)
+      alert('Failed to delete lead')
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteModal(false)
     }
   }
 
@@ -1641,6 +1677,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                     </button>
+                    <button
+                      onClick={() => setShowDeleteModal(true)}
+                      className="p-2 rounded-lg bg-red-100 dark:bg-red-900/20 hover:bg-red-200 dark:hover:bg-red-900/30 text-red-700 dark:text-red-300 transition-colors border border-red-200 dark:border-red-800"
+                      title="Delete Lead"
+                    >
+                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
                     <LeadStatusDropdown
                       currentStatus={leadData?.status || 'new'}
                       onStatusChange={async (newStatus) => {
@@ -2741,6 +2786,36 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         eventType: 'appointment'
       }}
     />
+
+    {/* Delete Confirmation Modal */}
+    {showDeleteModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+            Delete this lead?
+          </h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+            This will remove the lead, conversation, messages, AI intake data, notifications, and related follow-up jobs from ReplyFlow. This cannot be undone.
+          </p>
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              disabled={isDeleting}
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteLead}
+              disabled={isDeleting}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Lead'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </DashboardErrorBoundary>
   )
 }
