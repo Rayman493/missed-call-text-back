@@ -27,6 +27,22 @@ export default function PhoneForwardingPage() {
   // Check if in review mode
   const isReviewMode = searchParams?.get('mode') === 'review'
 
+  // Debug logging for review mode
+  useEffect(() => {
+    console.log('[PhoneForwarding] Page mounted')
+    console.log('[PhoneForwarding] Current pathname:', typeof window !== 'undefined' ? window.location.pathname : 'SSR')
+    console.log('[PhoneForwarding] Search params:', searchParams?.toString())
+    console.log('[PhoneForwarding] isReviewMode:', isReviewMode)
+    console.log('[PhoneForwarding] Business:', business)
+    if (business) {
+      const setupState = deriveSetupState(business)
+      console.log('[PhoneForwarding] Setup state:', setupState)
+      console.log('[PhoneForwarding] call_forwarding_enabled:', business.call_forwarding_enabled)
+      console.log('[PhoneForwarding] forwarding_verified:', business.forwarding_verified)
+      console.log('[PhoneForwarding] phone_setup_completed_at:', business.phone_setup_completed_at)
+    }
+  }, [searchParams, isReviewMode, business])
+
   // All hooks must be called before any early returns
   const [selectedCarrier, setSelectedCarrier] = useState('')
   const [loading, setLoading] = useState(false)
@@ -59,9 +75,22 @@ export default function PhoneForwardingPage() {
 
   const setupState = deriveSetupState(business)
 
+  // Debug logging for redirect logic
+  useEffect(() => {
+    console.log('[PhoneForwarding] Checking redirect logic')
+    console.log('[PhoneForwarding] isReviewMode:', isReviewMode)
+    console.log('[PhoneForwarding] setupState:', setupState)
+    if (!isReviewMode && setupState !== 'needs_forwarding' && setupState !== 'needs_final_test') {
+      console.log('[PhoneForwarding] REDIRECTING to /dashboard - review mode off and setup state not allowed')
+    } else {
+      console.log('[PhoneForwarding] ALLOWING page access - review mode on or setup state allowed')
+    }
+  }, [isReviewMode, setupState])
+
   // HARD GUARD: If subscription is not active, immediately redirect without rendering any UI
-  // REVIEW MODE EXCEPTION: Allow access when mode=review is present, even if setup is complete
+  // REVIEW MODE EXCEPTION: Allow access when mode=review is present, regardless of setup state
   if (!isReviewMode && setupState !== 'needs_forwarding' && setupState !== 'needs_final_test') {
+    console.log('[PhoneForwarding] Executing redirect to /dashboard')
     router.replace('/dashboard')
     return (
       <div className="min-h-screen bg-white dark:bg-slate-900 flex items-center justify-center">

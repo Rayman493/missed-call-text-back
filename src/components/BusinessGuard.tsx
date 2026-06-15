@@ -91,6 +91,10 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
     // Don't redirect if checkout=success is present
     if (checkoutStatus === 'success') return
 
+    // Don't redirect if mode=review is present (allows reviewing forwarding instructions)
+    const modeParam = searchParams?.get('mode')
+    if (modeParam === 'review') return
+
     // Only redirect if loading is complete and initialized
     if (!loading && initialized) {
       // Redirect if user is not authenticated
