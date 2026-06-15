@@ -200,18 +200,12 @@ export default function OperationalStatusCard({
       )}
 
       {/* Actions */}
-      <div className="flex gap-3">
+      <div className="flex">
         <Link
           href="/setup/phone-forwarding?mode=review"
           className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-muted hover:bg-muted/80 text-foreground text-sm font-medium rounded-lg transition-colors"
         >
           Review Forwarding
-        </Link>
-        <Link
-          href="/dashboard/test-setup"
-          className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          Run Test Call
         </Link>
       </div>
 
