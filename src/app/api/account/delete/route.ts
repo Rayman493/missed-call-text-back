@@ -214,16 +214,11 @@ export async function POST(request: NextRequest) {
       const business = businesses[0] // Use first business for email
       const userEmail = user.email
       
-      // Check if offboarding email was already sent (idempotency)
-      const { data: existingTrialHistory } = await supabaseAdmin
-        .from('trial_history')
-        .select('offboarding_email_sent, offboarding_email_sent_at')
-        .eq('business_id', business.id)
-        .single()
+      // Note: trial_history table check removed as it doesn't exist in production schema
+      // Offboarding email will be sent each time without idempotency check
+      // This is acceptable as account deletion is a destructive, one-time operation
       
-      const emailAlreadySent = existingTrialHistory?.offboarding_email_sent === true
-      
-      if (!emailAlreadySent && userEmail) {
+      if (userEmail) {
         console.log('[delete-account] Sending offboarding email', {
           businessId: business.id,
           businessName: business.name,
@@ -251,14 +246,6 @@ export async function POST(request: NextRequest) {
           summary.offboardingEmailSent = false
           summary.offboardingEmailError = emailResult.error
         }
-      } else if (emailAlreadySent) {
-        console.log('[delete-account] Offboarding email already sent, skipping', {
-          businessId: business.id,
-          sentAt: existingTrialHistory?.offboarding_email_sent_at,
-        })
-        summary.offboardingEmailSent = false
-        summary.offboardingEmailSkipped = true
-        summary.offboardingEmailSkippedReason = 'already_sent'
       } else {
         console.warn('[delete-account] No user email available, skipping offboarding email')
         summary.offboardingEmailSent = false
@@ -667,46 +654,12 @@ export async function POST(request: NextRequest) {
       summary.tablesDeleted.leads = leadsCount || 0
       console.log('[delete-account] Step 18 completed: deleted leads:', leadsCount)
 
-      // Step 19: Hard-delete businesses and record trial history
-      console.log('[delete-account] Step 19: hard-delete businesses and record trial history')
+      // Step 19: Hard-delete businesses
+      console.log('[delete-account] Step 19: hard-delete businesses')
       
       for (const business of businesses as any[]) {
-        // Record trial history before deleting
-        if (business.stripe_customer_id || business.trial_ends_at) {
-          const trialHistoryData = {
-            business_id: business.id,
-            business_phone_number: business.twilio_phone_number,
-            business_email: null,
-            business_domain: null,
-            stripe_customer_id: business.stripe_customer_id,
-            stripe_subscription_id: business.stripe_subscription_id,
-            trial_started_at: business.created_at,
-            trial_ended_at: business.trial_ends_at,
-            trial_status: business.subscription_status === 'trialing' ? 'canceled' : 
-                          business.subscription_status === 'active' ? 'converted' : 
-                          business.subscription_status === 'inactive' ? 'completed' : 'canceled',
-            subscription_status: business.subscription_status,
-            user_id: user.id,
-            account_deleted_at: new Date().toISOString(),
-            account_deleted_by: 'self',
-            deletion_reason: 'user_request',
-            offboarding_email_sent: summary.offboardingEmailSent || false,
-            offboarding_email_sent_at: summary.offboardingEmailSent ? new Date().toISOString() : null,
-            offboarding_email_message_id: summary.offboardingEmailMessageId || null,
-          }
-          
-          if (!dryRun) {
-            const { error: trialHistoryError } = await supabaseAdmin
-              .from('trial_history')
-              .insert(trialHistoryData)
-            
-            if (trialHistoryError) {
-              console.error('[delete-account] Failed to record trial history for business:', business.id, trialHistoryError)
-            } else {
-              console.log('[delete-account] Recorded trial history for business:', business.id)
-            }
-          }
-        }
+        // Note: trial_history table insert removed as the table doesn't exist in production schema
+        // Trial history recording is no longer required for account deletion
         
         // Hard-delete the business row
         if (!dryRun) {
@@ -716,7 +669,7 @@ export async function POST(request: NextRequest) {
             .eq('id', business.id)
 
           if (businessesDeleteError) {
-            console.error('[delete-account] Step 21 hard-delete failed:', businessesDeleteError)
+            console.error('[delete-account] Step 19 hard-delete failed:', businessesDeleteError)
             return NextResponse.json(
               { ok: false, step: 'delete_businesses', error: 'Failed to delete account data. Please try again or contact support.', details: businessesDeleteError.message },
               { status: 500 }
@@ -725,7 +678,7 @@ export async function POST(request: NextRequest) {
         }
       }
       summary.tablesDeleted.businesses = businesses.length
-      console.log('[delete-account] Step 21 completed: hard-deleted businesses and recorded trial history')
+      console.log('[delete-account] Step 19 completed: hard-deleted businesses')
     }
 
     // Step 22: Delete the Supabase Auth user last
