@@ -9,6 +9,25 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
+    // Authenticate user
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.split(' ')[1];
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { business_id } = body;
 
@@ -21,11 +40,12 @@ export async function POST(request: NextRequest) {
 
     console.log('[PROVISIONING API] ========== START ==========');
     console.log('[PROVISIONING API] business_id:', business_id);
+    console.log('[PROVISIONING API] user_id:', user.id);
 
-    // Verify business exists
+    // Verify business exists and belongs to the authenticated user
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id, name, provisioning_status')
+      .select('id, name, provisioning_status, user_id')
       .eq('id', business_id)
       .single();
 
@@ -34,6 +54,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Business not found' },
         { status: 404 }
+      );
+    }
+
+    // Verify user owns this business
+    if (business.user_id !== user.id) {
+      console.error('[PROVISIONING API] User does not own business:', {
+        userId: user.id,
+        businessUserId: business.user_id,
+        businessId: business_id
+      });
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
       );
     }
 
