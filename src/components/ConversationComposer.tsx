@@ -227,7 +227,7 @@ export default function ConversationComposer({
               type="button"
               onClick={handleSend}
               disabled={sending || !hasContent}
-              className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-muted/50 disabled:text-muted-foreground disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 flex-shrink-0 h-11"
+              className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 flex-shrink-0 h-11 disabled:shadow-none"
             >
             {sending ? (
               <>
