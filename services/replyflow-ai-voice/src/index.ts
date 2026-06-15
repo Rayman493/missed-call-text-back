@@ -133,7 +133,7 @@ interface CallContext {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_name' | 'ask_service' | 'ask_issue' | 'ask_address' | 'ask_callback_time' | 'ask_urgency' | 'ask_callback_number' | 'confirmation' | 'complete';
+type IntakeStage = 'ask_name' | 'ask_service' | 'ask_issue' | 'ask_address' | 'ask_callback_time' | 'ask_urgency' | 'ask_callback_number' | 'collecting_complete' | 'confirmation' | 'complete';
 
 // AI session state tracking types
 type AISessionState = 'AI_CONNECTING' | 'AI_CONNECTED' | 'SESSION_UPDATING' | 'SESSION_READY' | 'GREETING_SENT' | 'AUDIO_RECEIVED' | 'FAILED';
@@ -353,9 +353,10 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
     case 'ask_callback_number':
       // Check if callback number was captured
       if (intake.callbackNumber) {
+        // Move to next stage - confirmation will be triggered when all fields are collected
         return {
-          response: generateConfirmationMessage(intake),
-          nextStage: 'confirmation'
+          response: 'Thank you.',
+          nextStage: 'collecting_complete'
         };
       }
       // Ask for callback number again if not captured
@@ -364,23 +365,33 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
         nextStage: 'ask_callback_number'
       };
 
-    case 'confirmation':
+    case 'collecting_complete':
       // Check if all required fields are collected
       if (missingFields.length > 0) {
-        console.log('[INTAKE INCOMPLETE] Missing fields before confirmation:', missingFields);
+        console.log('[INTAKE INCOMPLETE] Missing fields after collecting_complete:', missingFields);
         // Ask for the first missing field
         return getResponseForMissingField(missingFields[0], intake);
       }
-      // Generate confirmation message with collected information
+      // All fields collected - generate confirmation message
       const confirmationMessage = generateConfirmationMessage(intake);
       console.log('[CONFIRMATION RESPONSE SENT] Sending confirmation message to caller');
       console.log('[CONFIRMATION RESPONSE SENT] confirmationState: pending_user_response');
       return {
         response: confirmationMessage,
-        nextStage: 'complete'
+        nextStage: 'confirmation'
+      };
+
+    case 'confirmation':
+      // This stage should only be reached after confirmation is spoken
+      // Wait for user response in the main handler
+      console.log('[CONFIRMATION STAGE] Waiting for user response');
+      return {
+        response: 'Please confirm if the information I provided is correct.',
+        nextStage: 'confirmation'
       };
 
     case 'complete':
+      // Only reached after user confirms
       return {
         response: FINAL_GOODBYE,
         nextStage: 'complete'
@@ -3691,20 +3702,27 @@ Do NOT:
                     } else if (isConfirmationRejected(userTranscript)) {
                       console.log('[CONFIRMATION REJECTED] User rejected the information');
                       console.log('[CONFIRMATION REJECTED] confirmationState: rejected');
-                      // Handle rejection - ask for clarification
+                      
+                      // Reset to collecting_complete stage to rebuild confirmation
+                      intakeData!.stage = 'collecting_complete';
+                      confirmationState = 'collecting_info';
+                      console.log('[CALL STATE CHANGE] confirmationState: awaiting_confirmation -> collecting_info');
+                      console.log('[CONFIRMATION REJECTED] Resetting to collecting_complete to rebuild confirmation');
+                      
+                      // Ask the user what they'd like to correct
                       const clarificationMessage = {
                         type: 'response.create',
                         response: {
-                          instructions: 'Say exactly: "I apologize. Let me try again. Could you please confirm if the information I provided is correct?"'
+                          instructions: 'I apologize. What would you like to correct?'
                         }
                       };
 
                       console.log('[AI RESPONSE.CREATE SEND SITE]', {
                         label: 'CONFIRMATION_REJECTED_CLARIFICATION',
                         currentStage: intakeData?.stage || 'unknown',
-                        nextStage: 'not_applicable',
+                        nextStage: 'collecting_complete',
                         intakeComplete: intakeComplete,
-                        instructions: 'Say exactly: "I apologize. Let me try again. Could you please confirm if the information I provided is correct?"'.substring(0, 200)
+                        instructions: 'I apologize. What would you like to correct?'
                       });
 
                       if (openAiWs) {
@@ -3767,7 +3785,7 @@ Do NOT:
 
                   // Check if this is a confirmation message and send it via direct response.create
                   let responseToSend = intakeResponse.response;
-                  const isConfirmationMessage = intakeResponse.nextStage === 'complete' || intakeResponse.nextStage === 'confirmation';
+                  const isConfirmationMessage = intakeResponse.nextStage === 'confirmation';
                   
                   if (isConfirmationMessage) {
                     console.log('[CONFIRMATION SUMMARY REQUESTED] Sending confirmation summary');
@@ -3818,18 +3836,19 @@ Do NOT:
                   // Runtime guard: DO NOT allow final goodbye without confirmation
                   if (intakeData!.stage === 'complete' && !hangupScheduled) {
                     console.log('[INTAKE COMPLETION CHECK] Intake marked as complete, checking if confirmation was received');
-                    console.log('[INTAKE COMPLETION CHECK] confirmationAccepted:', 'NOT_TRACKED');
-                    console.log('[INTAKE COMPLETION CHECK] This should not happen - confirmation must be processed first');
+                    console.log('[INTAKE COMPLETION CHECK] confirmationState:', confirmationState);
                     
-                    // This should not happen - confirmation must be processed first
-                    // If we reach here, it means the AI bypassed confirmation
-                    console.log('[CONFIRMATION REQUIRED] Runtime guard activated - confirmation required before final goodbye');
-                    console.log('[CONFIRMATION REQUIRED] Forcing confirmation state instead of completion');
-                    
-                    // Force back to confirmation state
-                    intakeData!.stage = 'confirmation';
-                    return; // Skip any further processing
-                    
+                    // Only allow completion if confirmation was accepted
+                    if (confirmationState !== 'confirmed') {
+                      console.log('[CONFIRMATION REQUIRED] Runtime guard activated - confirmation required before final goodbye');
+                      console.log('[CONFIRMATION REQUIRED] Forcing back to collecting_complete to trigger confirmation');
+                      
+                      // Force back to collecting_complete state to trigger confirmation
+                      intakeData!.stage = 'collecting_complete';
+                      return; // Skip any further processing
+                    } else {
+                      console.log('[CONFIRMATION VERIFIED] Confirmation was accepted, allowing completion');
+                    }
                   } else if (intakeData!.stage === 'complete' && hangupScheduled) {
                     console.log('[AUTO HANGUP SKIPPED] Hangup already scheduled for this call');
                   }
@@ -4904,7 +4923,6 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   .select('id')
                   .eq('conversation_id', conversation.id)
                   .eq('message_type', 'summary')
-                  .eq('sender', 'system')
                   .limit(1)
                   .single();
                 
@@ -4924,7 +4942,6 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     conversation_id: conversation.id,
                     lead_id: lead.id,
                     business_id: sessionBusinessId,
-                    sender: 'system',
                     content: summaryMessage,
                     message_type: 'summary',
                     structured_data: extractedFields,
@@ -4956,7 +4973,6 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   .select('id')
                   .eq('conversation_id', conversation.id)
                   .eq('message_type', 'transcript')
-                  .eq('sender', 'system')
                   .limit(1)
                   .single();
                 
@@ -4976,7 +4992,6 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                     conversation_id: conversation.id,
                     lead_id: lead.id,
                     business_id: sessionBusinessId,
-                    sender: 'system',
                     content: fullTranscript,
                     message_type: 'transcript',
                   });
