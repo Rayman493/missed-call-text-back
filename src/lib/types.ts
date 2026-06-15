@@ -55,6 +55,7 @@ export interface Business {
         message: string;
       }>;
     };
+    business_type?: string | null;
     business_type_other?: string | null;
   } | null;
   
