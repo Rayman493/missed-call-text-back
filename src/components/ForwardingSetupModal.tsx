@@ -330,7 +330,7 @@ export default function ForwardingSetupModal() {
                     )}
                   </button>
                   <p className="text-[11px] text-muted-foreground/70 text-center mt-2">
-                    Open your phone app and dial this exactly as shown.
+                    Open your phone app and dial this code.
                   </p>
                 </div>
               ) : (
@@ -438,7 +438,7 @@ export default function ForwardingSetupModal() {
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-semibold text-xs flex-shrink-0">2</div>
-                  <p>Open your phone app and dial the code exactly as shown.</p>
+                  <p>Open your phone app and dial the code.</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-semibold text-xs flex-shrink-0">3</div>

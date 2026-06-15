@@ -380,7 +380,7 @@ export default function PhoneForwardingPage() {
                     <div className="bg-card border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-6 sm:p-8 shadow-sm">
                       <p className="text-sm font-semibold text-foreground mb-1">{CARRIERS.find(c => c.id === selectedCarrier)?.name}</p>
                       <p className="text-sm text-muted-foreground mb-3">
-                        Open your phone's dialer, enter the code exactly as shown below, then press Call. Wait for the confirmation tone or message.
+                        Open your phone's dialer, enter the code below, then press Call. Wait for the confirmation tone or message.
                       </p>
                       <div 
                         className="bg-muted border-2 border-blue-200 dark:border-blue-800 rounded-xl px-6 py-6 sm:py-8 mb-3 cursor-pointer hover:bg-muted/80 transition-colors"
