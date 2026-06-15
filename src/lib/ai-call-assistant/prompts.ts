@@ -313,20 +313,33 @@ export function mapBusinessTypeToCategory(businessType: string | null | undefine
   const lowerType = businessType.toLowerCase()
   
   // Direct mappings from business_type field
-  if (lowerType.includes('hvac') || lowerType.includes('plumber')) return 'plumbing_hvac'
-  if (lowerType.includes('electrician')) return 'home_services'
-  if (lowerType.includes('landscaper')) return 'landscaping'
-  if (lowerType.includes('dog groomer') || lowerType.includes('groomer')) return 'pet_grooming'
-  if (lowerType.includes('cleaner')) return 'cleaning'
-  if (lowerType.includes('roofer')) return 'home_services'
-  if (lowerType.includes('painter')) return 'home_services'
-  if (lowerType.includes('attorney') || lowerType.includes('lawyer')) return 'legal_consulting'
-  if (lowerType.includes('dentist') || lowerType.includes('dental')) return 'medical_dental'
-  if (lowerType.includes('general contractor') || lowerType.includes('contractor')) return 'home_services'
-  if (lowerType.includes('locksmith')) return 'home_services'
+  if (lowerType.includes('hvac')) return 'plumbing_hvac'
+  if (lowerType.includes('plumbing') || lowerType.includes('plumber')) return 'plumbing_hvac'
+  if (lowerType.includes('electrical') || lowerType.includes('electrician')) return 'home_services'
+  if (lowerType.includes('roofing') || lowerType.includes('roofer')) return 'home_services'
+  if (lowerType.includes('landscaping') || lowerType.includes('lawn care') || lowerType.includes('landscaper')) return 'landscaping'
+  if (lowerType.includes('cleaning') || lowerType.includes('cleaner')) return 'cleaning'
+  if (lowerType.includes('pressure washing')) return 'cleaning'
   if (lowerType.includes('pest control')) return 'home_services'
   if (lowerType.includes('handyman')) return 'home_services'
+  if (lowerType.includes('general contractor') || lowerType.includes('contractor')) return 'home_services'
+  if (lowerType.includes('painting') || lowerType.includes('painter')) return 'home_services'
+  if (lowerType.includes('flooring')) return 'home_services'
   if (lowerType.includes('appliance repair') || lowerType.includes('auto repair')) return 'home_services'
+  if (lowerType.includes('locksmith')) return 'home_services'
+  if (lowerType.includes('garage door repair')) return 'home_services'
+  if (lowerType.includes('pool service')) return 'home_services'
+  if (lowerType.includes('junk removal')) return 'home_services'
+  if (lowerType.includes('moving company')) return 'home_services'
+  if (lowerType.includes('tree service')) return 'landscaping'
+  if (lowerType.includes('snow removal')) return 'home_services'
+  if (lowerType.includes('dog grooming') || lowerType.includes('groomer') || lowerType.includes('pet services')) return 'pet_grooming'
+  if (lowerType.includes('beauty salon') || lowerType.includes('barber') || lowerType.includes('spa') || lowerType.includes('massage')) return 'salon_appointment'
+  if (lowerType.includes('dentist') || lowerType.includes('dental') || lowerType.includes('medical office') || lowerType.includes('chiropractor')) return 'medical_dental'
+  if (lowerType.includes('attorney') || lowerType.includes('lawyer')) return 'legal_consulting'
+  if (lowerType.includes('real estate agent') || lowerType.includes('real estate')) return 'real_estate'
+  if (lowerType.includes('insurance agent') || lowerType.includes('insurance')) return 'general_service'
+  if (lowerType.includes('tutor') || lowerType.includes('lessons')) return 'lessons_tutoring'
   
   // Default to general service
   return 'general_service'
@@ -341,6 +354,19 @@ export function getCustomBusinessType(businessType: string | null | undefined, b
     return businessTypeOther.trim()
   }
   return null
+}
+
+/**
+ * Get the effective business type for AI context
+ * If business_type is "Other", returns business_type_other
+ * Otherwise, returns business_type
+ */
+export function getEffectiveBusinessType(businessType: string | null | undefined, businessTypeOther: string | null | undefined): string | null {
+  if (!businessType) return null
+  if (businessType === 'Other' && businessTypeOther && businessTypeOther.trim()) {
+    return businessTypeOther.trim()
+  }
+  return businessType
 }
 
 /**
