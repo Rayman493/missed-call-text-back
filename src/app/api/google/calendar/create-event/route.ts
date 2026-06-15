@@ -22,12 +22,20 @@ export async function POST(request: NextRequest) {
     console.log('[Calendar Create] user found:', session.user.id)
 
     const body = await request.json()
-    const { title, date, startTime, endTime, allDay, description, eventType } = body
+    const { title, date, endDate, startTime, endTime, allDay, description, eventType } = body
 
     // Validate required fields
     if (!title || !date) {
       return NextResponse.json({ error: 'Title and date are required' }, { status: 400 })
     }
+
+    // Validate that end date is not before start date
+    if (endDate && new Date(endDate) < new Date(date)) {
+      return NextResponse.json({ error: 'End date cannot be before start date' }, { status: 400 })
+    }
+
+    // Default endDate to date if not provided (single-day event)
+    const finalEndDate = endDate || date
 
     console.log('[Calendar Create] token lookup start')
 
@@ -134,8 +142,14 @@ export async function POST(request: NextRequest) {
 
     if (allDay) {
       // All-day event: use date format (YYYY-MM-DD)
+      // Google Calendar uses exclusive end dates for all-day events
+      // If user wants June 19-20, we set end.date = "2026-06-21"
       start = { date }
-      end = { date } // For all-day events, end date is exclusive
+      
+      // Calculate exclusive end date for Google Calendar
+      const endDateTime = new Date(finalEndDate)
+      endDateTime.setDate(endDateTime.getDate() + 1)
+      end = { date: endDateTime.toISOString().split('T')[0] }
     } else {
       // Timed event: use dateTime format without timezone
       // Google Calendar will use the user's calendar default timezone
@@ -145,7 +159,7 @@ export async function POST(request: NextRequest) {
 
       // Combine date and time
       const startDateTime = new Date(`${date}T${startTime}`)
-      const endDateTime = new Date(`${date}T${endTime}`)
+      const endDateTime = new Date(`${finalEndDate}T${endTime}`)
 
       // Send datetime in ISO format without timezone parameter
       // Google Calendar will use the user's calendar default timezone
@@ -164,7 +178,7 @@ export async function POST(request: NextRequest) {
       end,
     }
 
-    console.log('[Calendar Create] Creating event with data:', { title, date, allDay })
+    console.log('[Calendar Create] Creating event with data:', { title, date, endDate: finalEndDate, allDay })
 
     const response = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events`,

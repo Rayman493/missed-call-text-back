@@ -17,13 +17,15 @@ interface EventComposerProps {
 
 export default function EventComposer({ isOpen, onClose, onSave, selectedDate, prefill }: EventComposerProps) {
   const [title, setTitle] = useState(prefill?.title || '')
-  const [date, setDate] = useState(selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
+  const [startDate, setStartDate] = useState(selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
+  const [endDate, setEndDate] = useState(selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('10:00') // Default 60 min duration
   const [allDay, setAllDay] = useState(false)
   const [description, setDescription] = useState(prefill?.description || '')
   const [eventType, setEventType] = useState(prefill?.eventType || 'appointment')
   const [isSaving, setIsSaving] = useState(false)
+  const [dateError, setDateError] = useState('')
 
   const eventTypes = [
     { value: 'appointment', label: 'Appointment' },
@@ -33,10 +35,13 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
     { value: 'other', label: 'Other' },
   ]
 
-  // Sync date when selectedDate changes
+  // Sync dates when selectedDate changes
   useEffect(() => {
     if (selectedDate) {
-      setDate(selectedDate.toISOString().split('T')[0])
+      const dateStr = selectedDate.toISOString().split('T')[0]
+      setStartDate(dateStr)
+      setEndDate(dateStr)
+      setDateError('')
     }
   }, [selectedDate])
 
@@ -50,8 +55,14 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
   }, [isOpen, prefill])
 
   const handleSave = async () => {
-    if (!title || !date) {
-      alert('Please add a title and date')
+    // Validate end date is not before start date
+    if (new Date(endDate) < new Date(startDate)) {
+      setDateError('End date cannot be before start date')
+      return
+    }
+
+    if (!title || !startDate) {
+      alert('Please add a title and start date')
       return
     }
 
@@ -60,11 +71,13 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
       return
     }
 
+    setDateError('')
     setIsSaving(true)
     try {
       await onSave({
         title,
-        date,
+        date: startDate,
+        endDate: startDate !== endDate ? endDate : undefined,
         startTime: allDay ? undefined : startTime,
         endTime: allDay ? undefined : endTime,
         allDay,
@@ -79,6 +92,7 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
       setAllDay(false)
       setStartTime('09:00')
       setEndTime('09:30')
+      setDateError('')
     } catch (error) {
       console.error('Failed to save event:', error)
       alert('We couldn\'t add this event. Please try again.')
@@ -124,17 +138,40 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
             />
           </div>
 
-          {/* Date */}
+          {/* Start Date */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              Date <span className="text-red-400">*</span>
+              Start date <span className="text-red-400">*</span>
             </label>
             <input
               type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
+              value={startDate}
+              onChange={(e) => {
+                setStartDate(e.target.value)
+                setDateError('')
+              }}
               className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
+          </div>
+
+          {/* End Date */}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+              End date
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => {
+                setEndDate(e.target.value)
+                setDateError('')
+              }}
+              min={startDate}
+              className="w-full px-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            />
+            {dateError && (
+              <p className="text-xs text-red-400 mt-1">{dateError}</p>
+            )}
           </div>
 
           {/* All-day toggle */}
