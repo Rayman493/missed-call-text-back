@@ -1722,7 +1722,6 @@ wss.on('connection', (ws, req) => {
     let assistantSpeaking = false;
 
     let intakeComplete = false;
-    let fallbackHangupTimer: NodeJS.Timeout | null = null;
 
     let callerPhone: string = '';
     let sessionId: string = '';
@@ -3494,17 +3493,9 @@ Do NOT:
                   // Update stage
                   intakeData!.stage = intakeResponse.nextStage;
                   
-                  // Start fallback hangup timer when intake is complete (30 seconds max)
-                  if (intakeData!.stage === 'complete' && !fallbackHangupTimer) {
+                  if (intakeData!.stage === 'complete') {
                     console.log('[INTAKE COMPLETE] All required fields collected');
                     intakeComplete = true;
-                    
-                    fallbackHangupTimer = setTimeout(() => {
-                      if (callState !== 'closing' && callState !== 'closed') {
-                        console.log('[FALLBACK HANGUP TRIGGERED] Max timeout reached, forcing hangup');
-                        sendFinalGoodbyeAndHangup(ws, twilioHandler, openAiWs);
-                      }
-                    }, 30000); // 30 seconds max timeout
                   }
                 }
               }
@@ -3549,6 +3540,7 @@ Do NOT:
                 // Terminal closing detection - end call after final audio is done
                 // Only hangup if this is after final closing has started
                 if (finalClosingStarted && !hangupScheduled) {
+                  console.log('[HANGUP SOURCE] response.audio.done');
                   console.log('[FINAL GOODBYE BUFFER WAITING 10S] Starting 10 second buffer after audio.done');
                   console.log('[FINAL GOODBYE BUFFER WAITING 10S] Timestamp:', new Date().toISOString());
                   
@@ -3850,10 +3842,10 @@ Do NOT:
                     console.log('[MODEL GENERATED LEGACY GOODBYE] =========================================');
                   }
                   
-                  // Check for final closing phrase - schedule hangup immediately
+                  // Check for final closing phrase - do NOT schedule hangup here, wait for response.audio.done
                   if (cleanTranscript.includes(FINAL_ENDING_PHRASE)) {
                     console.log('[AI FINAL GOODBYE COMPLETE] Final ending phrase detected in output_audio_transcription.completed');
-                    scheduleHangupOnly(ws, twilioHandler);
+                    console.log('[AI FINAL GOODBYE COMPLETE] Waiting for response.audio.done before hangup');
                   }
                   
                   // Check for natural closing phrases (legacy)
@@ -5524,7 +5516,7 @@ async function sendAIConfirmationSMS(
 
 // Start server
 server.listen(PORT, () => {
-  console.log('[AI VOICE SERVICE VERSION] commit=3f990c99 hangup-router-v5=audio-done-only terminalClosingRemoved');
+  console.log('[AI VOICE SERVICE VERSION] commit=2ed8a698 hangup-router-v6=single-path-audio-done-only fallbackTimerRemoved');
   console.log('[SCHEMA COMPATIBILITY CHECK] conversations table columns: lead_id, business_id, status, created_at, updated_at (NO call_sid)');
   console.log('[SCHEMA COMPATIBILITY CHECK] leads table columns: id, business_id, phone, name, email, status, raw_metadata, created_at, updated_at (NO source)');
   console.log('[SCHEMA COMPATIBILITY CHECK] ai_call_records table columns: id, business_id, lead_id, conversation_id, caller_phone, call_sid, ai_session_id, transcript, outcome, extracted_info, summary, extraction_failed, created_at, updated_at');
