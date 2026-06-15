@@ -120,7 +120,7 @@ export async function sendOffboardingEmail(params: OffboardingEmailParams): Prom
   messageId?: string
 }> {
   if (!resendClient) {
-    console.warn('[email] Resend client not initialized - RESEND_API_KEY not set')
+    console.error('[email] Resend client not initialized - RESEND_API_KEY not set')
     return { success: false, error: 'Email service not configured' }
   }
 
@@ -129,25 +129,69 @@ export async function sendOffboardingEmail(params: OffboardingEmailParams): Prom
   try {
     const html = generateOffboardingEmailHTML(params)
 
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'ReplyFlowHQ <noreply@replyflowhq.com>'
+    console.log('[email] Sending offboarding email', {
+      to: userEmail,
+      from: fromEmail,
+      hasApiKey: !!process.env.RESEND_API_KEY,
+    })
+
     const result = await resendClient.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'ReplyFlowHQ <noreply@replyflowhq.com>',
+      from: fromEmail,
       to: userEmail,
       subject: 'How to turn off ReplyFlow call forwarding',
       html,
     })
 
+    // Log full provider response in debug mode
+    if (process.env.NODE_ENV === 'development' || process.env.DEBUG_EMAIL === 'true') {
+      console.log('[email] Resend provider response', {
+        to: userEmail,
+        result: JSON.stringify(result),
+      })
+    }
+
+    // Validate that provider confirmed delivery acceptance
+    if (!result.data?.id) {
+      console.warn('[email] Provider returned no message id - email may not have been accepted', {
+        to: userEmail,
+        result: JSON.stringify(result),
+      })
+      return { success: false, error: 'Provider did not return message id' }
+    }
+
     console.log('[email] Offboarding email sent successfully', {
       to: userEmail,
-      messageId: result.data?.id,
+      messageId: result.data.id,
     })
 
-    return { success: true, messageId: result.data?.id }
+    return { success: true, messageId: result.data.id }
   } catch (error: any) {
+    // Explicit error logging for provider errors
+    const errorMessage = error?.message || String(error)
+    const errorName = error?.name || 'UnknownError'
+    const errorStatusCode = error?.statusCode
+
     console.error('[email] Failed to send offboarding email', {
       to: userEmail,
-      error: error?.message || String(error),
+      error: errorMessage,
+      errorName,
+      statusCode: errorStatusCode,
+      fullError: process.env.NODE_ENV === 'development' ? JSON.stringify(error) : undefined,
     })
-    return { success: false, error: error?.message || 'Failed to send email' }
+
+    // Log specific error types
+    if (errorMessage.includes('API key')) {
+      console.error('[email] Missing or invalid RESEND_API_KEY')
+    } else if (errorMessage.includes('from') || errorMessage.includes('domain')) {
+      console.error('[email] Invalid from address or domain not verified')
+    } else if (errorMessage.includes('to') || errorMessage.includes('recipient')) {
+      console.error('[email] Rejected recipient')
+    } else if (errorMessage.includes('sandbox') || errorMessage.includes('test')) {
+      console.error('[email] Account in sandbox/test mode')
+    }
+
+    return { success: false, error: errorMessage }
   }
 }
 
@@ -239,7 +283,7 @@ export async function sendAccountDeletionConfirmationEmail(params: AccountDeleti
   messageId?: string
 }> {
   if (!resendClient) {
-    console.warn('[email] Resend client not initialized - RESEND_API_KEY not set')
+    console.error('[email] Resend client not initialized - RESEND_API_KEY not set')
     return { success: false, error: 'Email service not configured' }
   }
 
@@ -248,24 +292,68 @@ export async function sendAccountDeletionConfirmationEmail(params: AccountDeleti
   try {
     const html = generateAccountDeletionConfirmationHTML(params)
 
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'ReplyFlowHQ <noreply@replyflowhq.com>'
+    console.log('[email] Sending account deletion confirmation email', {
+      to: userEmail,
+      from: fromEmail,
+      hasApiKey: !!process.env.RESEND_API_KEY,
+    })
+
     const result = await resendClient.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'ReplyFlowHQ <noreply@replyflowhq.com>',
+      from: fromEmail,
       to: userEmail,
       subject: 'Your ReplyFlow account has been deleted',
       html,
     })
 
+    // Log full provider response in debug mode
+    if (process.env.NODE_ENV === 'development' || process.env.DEBUG_EMAIL === 'true') {
+      console.log('[email] Resend provider response', {
+        to: userEmail,
+        result: JSON.stringify(result),
+      })
+    }
+
+    // Validate that provider confirmed delivery acceptance
+    if (!result.data?.id) {
+      console.warn('[email] Provider returned no message id - email may not have been accepted', {
+        to: userEmail,
+        result: JSON.stringify(result),
+      })
+      return { success: false, error: 'Provider did not return message id' }
+    }
+
     console.log('[email] Account deletion confirmation email sent successfully', {
       to: userEmail,
-      messageId: result.data?.id,
+      messageId: result.data.id,
     })
 
-    return { success: true, messageId: result.data?.id }
+    return { success: true, messageId: result.data.id }
   } catch (error: any) {
+    // Explicit error logging for provider errors
+    const errorMessage = error?.message || String(error)
+    const errorName = error?.name || 'UnknownError'
+    const errorStatusCode = error?.statusCode
+
     console.error('[email] Failed to send account deletion confirmation email', {
       to: userEmail,
-      error: error?.message || String(error),
+      error: errorMessage,
+      errorName,
+      statusCode: errorStatusCode,
+      fullError: process.env.NODE_ENV === 'development' ? JSON.stringify(error) : undefined,
     })
-    return { success: false, error: error?.message || 'Failed to send email' }
+
+    // Log specific error types
+    if (errorMessage.includes('API key')) {
+      console.error('[email] Missing or invalid RESEND_API_KEY')
+    } else if (errorMessage.includes('from') || errorMessage.includes('domain')) {
+      console.error('[email] Invalid from address or domain not verified')
+    } else if (errorMessage.includes('to') || errorMessage.includes('recipient')) {
+      console.error('[email] Rejected recipient')
+    } else if (errorMessage.includes('sandbox') || errorMessage.includes('test')) {
+      console.error('[email] Account in sandbox/test mode')
+    }
+
+    return { success: false, error: errorMessage }
   }
 }
