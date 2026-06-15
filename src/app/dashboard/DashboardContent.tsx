@@ -1199,7 +1199,7 @@ export default function DashboardContent() {
                 {/* Pre-trial activation CTA - compact, not hero-sized - Skip when trial already used (hero card shown instead) */}
                 {!hasActiveAccess(business) && !(eligibility && !eligibility.eligible && eligibility.failureType === 'previous_subscription') && (
                   <SectionErrorBoundary sectionName="ActivationCTA">
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl border border-blue-200 dark:border-blue-800 p-2.5 sm:p-3">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl border border-blue-200 dark:border-blue-800 p-4 sm:p-5">
                       <div className="flex flex-col gap-2.5">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
                           <div>
@@ -1216,7 +1216,7 @@ export default function DashboardContent() {
                                 ? 'Determining your subscription options...'
                                 : (eligibility && !eligibility.eligible && eligibility.failureMessage
                                   ? eligibility.failureMessage
-                                  : "We'll automatically provision your dedicated ReplyFlow number and guide you through setup.")
+                                  : "Activate ReplyFlow today. We'll provision your dedicated number, help you configure call forwarding, and have you capturing missed calls in just a few minutes.")
                               }
                             </p>
                           </div>
@@ -1225,7 +1225,7 @@ export default function DashboardContent() {
                             disabled={checkoutLoading || eligibilityLoading}
                             className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                           >
-                            {checkoutLoading ? 'Starting…' : (eligibilityLoading ? 'Checking plan...' : 'Subscribe Now')}
+                            {checkoutLoading ? 'Starting…' : (eligibilityLoading ? 'Checking plan...' : 'Start Free Trial')}
                           </button>
                         </div>
                         {eligibility && !eligibility.eligible && eligibility.failureDetails && (
@@ -1309,21 +1309,32 @@ export default function DashboardContent() {
                             <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4">What happens next</h3>
                             <div className="space-y-3">
                               <div className="flex items-center gap-3">
-                                <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
-                                <span className="text-sm text-slate-500 dark:text-slate-400">Start your free trial</span>
+                                <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">1</span>
+                                </div>
+                                <span className="text-sm text-slate-700 dark:text-slate-300">Start your free trial</span>
                               </div>
                               <div className="flex items-center gap-3">
-                                <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
-                                <span className="text-sm text-slate-500 dark:text-slate-400">Receive your ReplyFlow number</span>
+                                <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">2</span>
+                                </div>
+                                <span className="text-sm text-slate-700 dark:text-slate-300">Receive your ReplyFlow number</span>
                               </div>
                               <div className="flex items-center gap-3">
-                                <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
-                                <span className="text-sm text-slate-500 dark:text-slate-400">Configure call forwarding</span>
+                                <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">3</span>
+                                </div>
+                                <span className="text-sm text-slate-700 dark:text-slate-300">Configure call forwarding</span>
                               </div>
                               <div className="flex items-center gap-3">
-                                <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
-                                <span className="text-sm text-slate-500 dark:text-slate-400">Place a test call</span>
+                                <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">4</span>
+                                </div>
+                                <span className="text-sm text-slate-700 dark:text-slate-300">Place a test call</span>
                               </div>
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                              <p className="text-xs text-slate-500 dark:text-slate-400">Most businesses finish setup in under 5 minutes.</p>
                             </div>
                           </div>
                         </div>
