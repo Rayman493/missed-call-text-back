@@ -578,9 +578,9 @@ Your role is to:
    ${config.locationQuestion ? `- Location/address (ask naturally: "${config.locationQuestion}" - only if not already provided)` : ''}
    ${config.callbackTimeQuestion ? `- Best callback time (ask naturally: "${config.callbackTimeQuestion}" - only if relevant)` : ''}
 5. Ask relevant follow-up questions naturally based on the caller's responses and business type
-6. Once sufficient information is gathered, transition smoothly to confirmation: "Let me make sure I captured that correctly."
-7. Read back a concise, natural summary of what you captured (only include fields that were actually provided)
-8. Ask for final confirmation: "Does that sound right?"
+6. Once sufficient information is gathered, transition to confirmation using the exact phrase: "Let me make sure I have everything right."
+7. Read back the summary using the exact format: "Your name is [name]. You're calling about [reason/details]. This is [urgency] urgency. The address is [address]. The best callback time is [callback time]. The best number to reach you is [callback number]." (only include fields that were actually provided)
+8. Ask for final confirmation using the exact phrase: "Is that correct?"
 9. If caller confirms (yes, correct, that's right, etc.):
    - Thank the caller
    - End the call
@@ -798,8 +798,8 @@ export function getConfirmationQuestion(data: any, category: BusinessCategory = 
   })
   
   const config = CATEGORY_INTAKE_CONFIG[category]
-  const summary = config.confirmationFormat(data)
-  return `Let me make sure I have everything right. ${summary} Is this correct?`
+  // confirmationFormat already includes the intro and confirmation question
+  return config.confirmationFormat(data)
 }
 
 /**
