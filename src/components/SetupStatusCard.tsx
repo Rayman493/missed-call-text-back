@@ -4,8 +4,9 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { Business } from '@/lib/types'
 import { hasActiveSubscription, deriveSetupState } from '@/lib/subscription-utils'
-import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Settings } from 'lucide-react'
+import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Settings, Loader2 } from 'lucide-react'
 import { formatPhoneNumber } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface SetupStatusCardProps {
   business: Business | null
@@ -31,8 +32,74 @@ export default function SetupStatusCard({
   missedCallCount = 0 
 }: SetupStatusCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isOpeningBilling, setIsOpeningBilling] = useState(false)
+  const [billingError, setBillingError] = useState<string | null>(null)
+  const { user } = useAuth()
   const setupState = deriveSetupState(business)
   const hasSubscription = hasActiveSubscription(business)
+  
+  // Handle opening billing portal or checkout
+  const handleOpenBilling = async () => {
+    if (!user) return
+    
+    setIsOpeningBilling(true)
+    setBillingError(null)
+    
+    try {
+      // If user has active subscription, go to portal
+      // If user needs to subscribe, go to checkout
+      if (hasSubscription) {
+        console.log('[SetupStatusCard] Opening billing portal for active subscriber')
+        const response = await fetch('/api/stripe/create-portal-session', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${await user.getIdToken()}`,
+            'Content-Type': 'application/json',
+          },
+        })
+        
+        const data = await response.json()
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to open billing portal')
+        }
+        
+        if (data.url) {
+          window.location.href = data.url
+        } else {
+          throw new Error('No billing portal URL returned')
+        }
+      } else {
+        console.log('[SetupStatusCard] Creating checkout session for non-subscriber')
+        const response = await fetch('/api/stripe/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            checkout_mode: 'paid', // Use paid mode for trial-used users
+          }),
+        })
+        
+        const data = await response.json()
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create checkout session')
+        }
+        
+        if (data.url) {
+          window.location.href = data.url
+        } else {
+          throw new Error('No checkout URL returned')
+        }
+      }
+    } catch (error: any) {
+      console.error('[SetupStatusCard] Failed to open billing:', error)
+      setBillingError(error.message || 'Failed to open billing. Please try again.')
+    } finally {
+      setIsOpeningBilling(false)
+    }
+  }
   
   // Determine card state based on priority order
   const getCardState = (): CardState => {
@@ -104,14 +171,29 @@ export default function SetupStatusCard({
                 <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Free trial already used</h1>
                 <p className="text-blue-100 text-base sm:text-lg">This email has already been used for a ReplyFlow trial. To continue, choose a subscription.</p>
               </div>
+              {billingError && (
+                <div className="bg-red-900/50 border border-red-700 rounded-lg p-3">
+                  <p className="text-sm text-red-100">{billingError}</p>
+                </div>
+              )}
               <div className="flex flex-col sm:flex-row gap-3">
-                <Link
-                  href="/pricing"
-                  className="inline-flex items-center justify-center px-6 py-3 bg-white hover:bg-blue-50 text-blue-600 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+                <button
+                  onClick={handleOpenBilling}
+                  disabled={isOpeningBilling}
+                  className="inline-flex items-center justify-center px-6 py-3 bg-white hover:bg-blue-50 text-blue-600 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Subscribe Now
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
+                  {isOpeningBilling ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Opening...
+                    </>
+                  ) : (
+                    <>
+                      Subscribe Now
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
+                </button>
                 <button
                   onClick={() => window.location.href = '/auth/signin'}
                   className="inline-flex items-center justify-center px-6 py-3 bg-blue-700/50 hover:bg-blue-700/70 text-white text-base font-semibold rounded-xl transition-colors"
@@ -126,13 +208,28 @@ export default function SetupStatusCard({
                 <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Payment Required</h1>
                 <p className="text-blue-100 text-base sm:text-lg">Update your billing information to keep ReplyFlow active.</p>
               </div>
-              <Link
-                href="/dashboard/settings"
-                className="inline-flex items-center justify-center px-6 py-3 bg-white hover:bg-blue-50 text-blue-600 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+              {billingError && (
+                <div className="bg-red-900/50 border border-red-700 rounded-lg p-3">
+                  <p className="text-sm text-red-100">{billingError}</p>
+                </div>
+              )}
+              <button
+                onClick={handleOpenBilling}
+                disabled={isOpeningBilling}
+                className="inline-flex items-center justify-center px-6 py-3 bg-white hover:bg-blue-50 text-blue-600 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Update Billing
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Link>
+                {isOpeningBilling ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Opening...
+                  </>
+                ) : (
+                  <>
+                    Update Billing
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </button>
             </>
           )}
         </div>
