@@ -246,7 +246,9 @@ function generateConfirmationMessage(intake: IntakeData): string {
     allRequired: !!(intake.customerName && intake.serviceRequested && intake.issueDescription && intake.serviceAddress && intake.callbackTime && intake.urgency && intake.callbackNumber)
   });
 
-  const confirmation = `Let me make sure I have everything right. Your name is ${name}. You're calling about ${service}. The additional details are ${issue}. The urgency is ${urgency}. The address is ${location}. The best callback time is ${callbackTime}. The best callback number is ${callbackNumber}. Is that correct?`;
+  const confirmation = `Let me make sure I have everything right. Your name is ${name}. You're calling about ${service}. The additional details are ${issue}. The urgency is ${urgency}. The address is ${location}. The best callback time is ${callbackTime}. The best callback number is ${callbackNumber}.
+
+Is all of that correct?`;
 
   console.log('[AI FULL CONFIRMATION GENERATED]', { confirmation });
   console.log('[CONFIRMATION GENERATED] Generated confirmation message:', confirmation);
