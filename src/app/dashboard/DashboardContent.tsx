@@ -994,7 +994,7 @@ export default function DashboardContent() {
                             {/* Secondary Link - Review forwarding instructions */}
                             <div className="text-center sm:text-left">
                               <Link
-                                href="/setup/phone-forwarding"
+                                href="/setup/phone-forwarding?mode=review"
                                 className="text-blue-200 text-sm hover:text-white underline underline-offset-2 transition-colors"
                               >
                                 Review forwarding instructions
