@@ -18,24 +18,6 @@ interface CalendarGridProps {
   onDayClick?: (day: number, isCurrentMonth: boolean) => void
 }
 
-interface MultiDayEvent {
-  id: string
-  summary: string
-  start: Date
-  end: Date
-  isAllDay: boolean
-  originalEvent: any
-}
-
-interface MultiDaySegment {
-  event: MultiDayEvent
-  startDay: Date
-  endDay: Date
-  startColumn: number
-  spanDays: number
-  lane: number
-}
-
 export default function CalendarGrid({ 
   month, 
   events, 
@@ -86,8 +68,7 @@ export default function CalendarGrid({
     days.push({
       day: prevMonthLastDay - i,
       isCurrentMonth: false,
-      isToday: false,
-      date: new Date(year, monthIndex - 1, prevMonthLastDay - i)
+      isToday: false
     })
   }
   
@@ -97,8 +78,7 @@ export default function CalendarGrid({
     days.push({
       day,
       isCurrentMonth: true,
-      isToday,
-      date: new Date(year, monthIndex, day)
+      isToday
     })
   }
   
@@ -108,179 +88,8 @@ export default function CalendarGrid({
     days.push({
       day,
       isCurrentMonth: false,
-      isToday: false,
-      date: new Date(year, monthIndex + 1, day)
+      isToday: false
     })
-  }
-
-  // Group days into week rows (6 rows of 7 days)
-  const weekRows: Array<Array<{
-    day: number
-    isCurrentMonth: boolean
-    isToday: boolean
-    date: Date
-  }>> = []
-  for (let i = 0; i < 6; i++) {
-    const startIdx = i * 7
-    const endIdx = startIdx + 7
-    weekRows.push(days.slice(startIdx, endIdx))
-  }
-
-  // Helper function to check if an event is multi-day
-  const isMultiDayEvent = (event: any): boolean => {
-    const startDate = event.start?.dateTime || event.start?.date
-    const endDate = event.end?.dateTime || event.end?.date
-    if (!startDate || !endDate) return false
-    
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    
-    // For all-day events, Google Calendar uses exclusive end dates
-    const isAllDayEvent = !event.start?.dateTime && !!event.start?.date
-    const effectiveEnd = isAllDayEvent ? new Date(end.getTime() - 86400000) : end
-    
-    return start.toDateString() !== effectiveEnd.toDateString()
-  }
-
-  // Helper function to get effective end date (handling exclusive end dates)
-  const getEffectiveEndDate = (event: any): Date => {
-    const endDate = event.end?.dateTime || event.end?.date
-    if (!endDate) return new Date(event.start?.dateTime || event.start?.date)
-    
-    const end = new Date(endDate)
-    const isAllDayEvent = !event.start?.dateTime && !!event.start?.date
-    return isAllDayEvent ? new Date(end.getTime() - 86400000) : end
-  }
-
-  // Separate events into single-day and multi-day categories
-  const { singleDayEvents, multiDayEvents } = (() => {
-    const singleDay: any[] = []
-    const multiDay: MultiDayEvent[] = []
-    
-    events.forEach(event => {
-      const eventDateRaw = event.start?.dateTime || event.start?.date
-      if (!eventDateRaw) return
-      
-      if (isMultiDayEvent(event)) {
-        const startDate = new Date(eventDateRaw)
-        const endDate = getEffectiveEndDate(event)
-        const isAllDay = !event.start?.dateTime && !!event.start?.date
-        
-        multiDay.push({
-          id: event.id,
-          summary: event.summary,
-          start: startDate,
-          end: endDate,
-          isAllDay,
-          originalEvent: event
-        })
-      } else {
-        singleDay.push(event)
-      }
-    })
-    
-    return { singleDayEvents: singleDay, multiDayEvents: multiDay }
-  })()
-
-  // Calculate multi-day event segments per week row
-  const calculateMultiDaySegments = (): Map<number, MultiDaySegment[]> => {
-    const segmentsByWeek = new Map<number, MultiDaySegment[]>()
-    
-    // Initialize segments for each week row
-    for (let i = 0; i < 6; i++) {
-      segmentsByWeek.set(i, [])
-    }
-    
-    multiDayEvents.forEach(event => {
-      // Calculate which week rows this event appears in
-      weekRows.forEach((week, weekIndex) => {
-        const weekStart = week[0].date
-        const weekEnd = week[6].date
-        
-        // Check if event overlaps with this week
-        const eventStart = event.start.getTime()
-        const eventEnd = event.end.getTime()
-        const weekStartTime = weekStart.getTime()
-        const weekEndTime = weekEnd.getTime()
-        
-        if (eventStart <= weekEndTime && eventEnd >= weekStartTime) {
-          // Calculate segment within this week
-          const segmentStart = new Date(Math.max(eventStart, weekStartTime))
-          const segmentEnd = new Date(Math.min(eventEnd, weekEndTime))
-          
-          // Calculate which columns this segment spans
-          const startColumn = week.findIndex(day => 
-            day.date.toDateString() === segmentStart.toDateString()
-          )
-          const endColumn = week.findIndex(day => 
-            day.date.toDateString() === segmentEnd.toDateString()
-          )
-          const spanDays = endColumn - startColumn + 1
-          
-          segmentsByWeek.get(weekIndex)?.push({
-            event,
-            startDay: segmentStart,
-            endDay: segmentEnd,
-            startColumn,
-            spanDays,
-            lane: 0 // Will be assigned later
-          })
-        }
-      })
-    })
-    
-    // Assign lanes to segments to avoid overlaps
-    segmentsByWeek.forEach((segments, weekIndex) => {
-      // Sort segments by start column
-      segments.sort((a, b) => a.startColumn - b.startColumn)
-      
-      // Assign lanes
-      const lanes: Array<{ start: number; end: number }[]> = []
-      
-      segments.forEach(segment => {
-        let assignedLane = -1
-        
-        // Find the first available lane
-        for (let i = 0; i < lanes.length; i++) {
-          const lane = lanes[i]
-          let canUseLane = true
-          
-          // Check if this segment overlaps with any segment in this lane
-          for (const laneSegment of lane) {
-            if (segment.startColumn <= laneSegment.end && segment.startColumn + segment.spanDays - 1 >= laneSegment.start) {
-              canUseLane = false
-              break
-            }
-          }
-          
-          if (canUseLane) {
-            assignedLane = i
-            break
-          }
-        }
-        
-        // If no available lane, create a new one
-        if (assignedLane === -1) {
-          assignedLane = lanes.length
-          lanes.push([])
-        }
-        
-        // Assign the lane to the segment
-        segment.lane = assignedLane
-        lanes[assignedLane].push({
-          start: segment.startColumn,
-          end: segment.startColumn + segment.spanDays - 1
-        })
-      })
-      
-      // Re-sort segments by lane, then by start column
-      segments.sort((a, b) => {
-        if (a.lane !== b.lane) return a.lane - b.lane
-        return a.startColumn - b.startColumn
-      })
-    })
-    
-    return segmentsByWeek
   }
 
   const getEventsForDay = (dayNumber: number, isCurrentMonth: boolean) => {
@@ -289,17 +98,40 @@ export default function CalendarGrid({
     // Create day key for comparison (YYYY-MM-DD)
     const dayKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
     
-    // Only filter single-day events (multi-day events are rendered separately as bars)
-    const allMatchedEvents = singleDayEvents.filter(event => {
+    const allMatchedEvents = events.filter(event => {
       const eventDateRaw = event.start?.dateTime || event.start?.date
       if (!eventDateRaw) return false
       
-      // Normalize event date to YYYY-MM-DD string
-      const eventDayKey = eventDateRaw.includes('T')
+      // Normalize event start date to YYYY-MM-DD string
+      const eventStartDayKey = eventDateRaw.includes('T')
         ? eventDateRaw.split('T')[0]
         : eventDateRaw
       
-      return eventDayKey === dayKey
+      // Check if event has an end date (for multi-day events)
+      const eventEndRaw = event.end?.dateTime || event.end?.date
+      if (eventEndRaw) {
+        // Normalize event end date to YYYY-MM-DD string
+        const eventEndDayKey = eventEndRaw.includes('T')
+          ? eventEndRaw.split('T')[0]
+          : eventEndRaw
+        
+        // For all-day events, Google Calendar uses exclusive end dates
+        // Example: June 19-23 comes as start.date = 2026-06-19, end.date = 2026-06-24
+        // For timed events, the end date is inclusive
+        const isAllDay = !event.start?.dateTime && !!event.start?.date
+        const effectiveEndDate = isAllDay 
+          ? new Date(eventEndDayKey).getTime() - 86400000 // Subtract 1 day for exclusive end
+          : new Date(eventEndDayKey).getTime()
+        
+        const dayTimestamp = new Date(dayKey).getTime()
+        const startTimestamp = new Date(eventStartDayKey).getTime()
+        
+        // Check if current day falls within the event's date range
+        return dayTimestamp >= startTimestamp && dayTimestamp <= effectiveEndDate
+      }
+      
+      // Single-day event: check if start date matches
+      return eventStartDayKey === dayKey
     })
     
     // Limit visible events based on screen size
@@ -309,8 +141,6 @@ export default function CalendarGrid({
     
     return { events: visibleEvents, overflowCount }
   }
-
-  const multiDaySegmentsByWeek = calculateMultiDaySegments()
 
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return ''
@@ -366,63 +196,28 @@ export default function CalendarGrid({
           ))}
         </div>
       
-      {/* Calendar grid with week-row multi-day bars */}
-      <div className="space-y-0.5 sm:space-y-1 md:space-y-2">
-        {weekRows.map((week, weekIndex) => {
-          const weekSegments = multiDaySegmentsByWeek.get(weekIndex) || []
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2">
+        {days.map((dayInfo, index) => {
+          const { events: dayEvents, overflowCount } = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
+          const dayDate = dayInfo.isCurrentMonth ? new Date(year, monthIndex, dayInfo.day) : null
           
           return (
-            <div key={weekIndex} className="relative">
-              {/* Calendar grid cells for this week */}
-              <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 relative z-0">
-                {week.map((dayInfo, dayIndex) => {
-                  const { events: dayEvents, overflowCount } = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
-                  const dayDate = dayInfo.isCurrentMonth ? new Date(year, monthIndex, dayInfo.day) : null
-                  
-                  return (
-                    <CalendarDayCell
-                      key={dayIndex}
-                      day={dayInfo.day}
-                      isCurrentMonth={dayInfo.isCurrentMonth}
-                      isToday={dayInfo.isToday}
-                      events={
-                        dayEvents.length > 0 ? (
-                          <>
-                            {dayEvents.map((event: any) => renderEvent(event, dayDate!))}
-                          </>
-                        ) : null
-                      }
-                      overflowCount={overflowCount}
-                      onClick={() => onDayClick?.(dayInfo.day, dayInfo.isCurrentMonth)}
-                    />
-                  )
-                })}
-              </div>
-
-              {/* Multi-day event bars for this week - positioned relative to the grid */}
-              <div className="absolute inset-0 top-6 sm:top-8 pointer-events-none">
-                {weekSegments.map((segment, segmentIndex) => (
-                  <div
-                    key={segment.event.id}
-                    className="absolute h-6 sm:h-8 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md px-2 py-1 text-[10px] sm:text-xs font-medium text-blue-800 dark:text-blue-200 truncate pointer-events-auto cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
-                    style={{
-                      left: `calc(${segment.startColumn * (100 / 7)}% + 0.25%)`,
-                      width: `calc(${segment.spanDays * (100 / 7)}% - 0.5%)`,
-                      top: `${segment.lane * 2.5}rem`,
-                      zIndex: 10 + segmentIndex
-                    }}
-                    onClick={() => {
-                      if (segment.event.originalEvent.htmlLink) {
-                        window.open(segment.event.originalEvent.htmlLink, '_blank', 'noopener,noreferrer')
-                      }
-                    }}
-                    title={segment.event.summary}
-                  >
-                    {segment.event.summary}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <CalendarDayCell
+              key={index}
+              day={dayInfo.day}
+              isCurrentMonth={dayInfo.isCurrentMonth}
+              isToday={dayInfo.isToday}
+              events={
+                dayEvents.length > 0 ? (
+                  <>
+                    {dayEvents.map((event: any) => renderEvent(event, dayDate!))}
+                  </>
+                ) : null
+              }
+              overflowCount={overflowCount}
+              onClick={() => onDayClick?.(dayInfo.day, dayInfo.isCurrentMonth)}
+            />
           )
         })}
       </div>
