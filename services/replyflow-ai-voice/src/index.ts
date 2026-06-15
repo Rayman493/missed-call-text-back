@@ -25,6 +25,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Version log - guaranteed to appear on startup
 console.log('[AUDIO TRACE BUILD VERSION] caller-audio-debug-v1');
+console.log('[AI CONFIRMATION TEMPLATE VERSION] confirmation-v3-your-name-is');
 console.log('[AI VOICE STARTUP] Service initializing');
 console.log('[AI VOICE STARTUP] Timestamp:', new Date().toISOString());
 
@@ -213,6 +214,7 @@ function createIntakeData(businessName: string, callSid: string, businessId: str
 }
 
 function generateConfirmationMessage(intake: IntakeData): string {
+  console.log('[CONFIRMATION PATH USED] generateConfirmationMessage-hardcoded-function');
   console.log('[CONFIRMATION DATA] Creating confirmation message with collected data:', {
     customerName: intake.customerName,
     serviceRequested: intake.serviceRequested,
@@ -3175,7 +3177,7 @@ YOU MUST collect all 7 required fields before finalizing. Do not end the call ea
 CALL ENDING SEQUENCE:
 Once you have collected ALL 7 required fields, you MUST get confirmation before ending the call:
 
-1. Say exactly: "Did I get that right? [caller_name], [reason], [additional_details], [urgent/time-sensitive or not urgent], [address], [time], [number]."
+1. Say exactly: "Let me make sure I have everything right. Your name is [caller_name]. You're calling about [reason]. The additional details are [additional_details]. This is [urgent/time-sensitive or not urgent]. The address is [address]. The best time to call you back is [time]. The best callback number is [number]. Is that correct?"
 2. WAIT for caller confirmation (yes, correct, sounds good, etc.)
 3. If confirmed, say exactly: "Perfect. I'll pass this along and someone will follow up with you shortly. Thank you for calling. Have a great day."
 4. Do NOT ask any more questions after the final goodbye.
