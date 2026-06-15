@@ -148,16 +148,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [user, stripeParamsCleared])
 
   // Trace log on every AuthGuard render (removed for production)
-  useEffect(() => {
-    // No-op - debug logs removed for production
-  }, [user, loading, isCheckoutRecovery, flowType, stripeParamsCleared])
-
-  // Billing return grace mode logic
-  useEffect(() => {
-    if (isBillingReturn && typeof window !== 'undefined') {
-      // Grace period for session restoration
-    }
-  }, [isBillingReturn, user, loading])
 
   // Set billing return grace timeout - after 20s (desktop) or 60s (mobile), if still no session, redirect to signin
   useEffect(() => {
@@ -174,14 +164,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       const signinUrl = sessionId 
         ? `/auth/signin?redirect=/dashboard&reason=session_restore_failed&session_id=${sessionId}`
         : `/auth/signin?redirect=/dashboard&reason=session_restore_failed`
-
-      console.log('[Redirect Decision]', {
-        reason: 'billing_return_grace_timeout',
-        from: '/dashboard',
-        to: signinUrl,
-        billingReturn: true,
-        isMobile
-      })
 
       router.push(signinUrl)
     }, graceTimeoutMs)
