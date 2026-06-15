@@ -910,7 +910,6 @@ async function createFallbackLead(
         conversation_id: conversation.id,
         lead_id: lead.id,
         business_id: businessId,
-        sender: 'system',
         content: `AI system failed (${failureReason}). Caller was redirected to voicemail. Please follow up with this customer.`,
         message_type: 'system',
       });
@@ -1156,7 +1155,6 @@ async function createSmsFallbackLead(
           conversation_id: conversation.id,
           lead_id: lead.id,
           business_id: businessId,
-          sender: 'business',
           content: smsMessage,
           message_type: 'sms',
         });
@@ -1177,7 +1175,6 @@ async function createSmsFallbackLead(
         conversation_id: conversation.id,
         lead_id: lead.id,
         business_id: businessId,
-        sender: 'system',
         content: `AI and voicemail both failed (${failureReason}). Missed-call SMS was sent to caller.`,
         message_type: 'system',
       });
@@ -1883,6 +1880,7 @@ wss.on('connection', (ws, req) => {
     let intakeComplete = false;
     let confirmationAccepted = false;
     let pendingConfirmationAccepted = false;
+    let confirmationMarkReceived = false;
 
     let callerPhone: string = '';
     let sessionId: string = '';
@@ -1898,6 +1896,24 @@ wss.on('connection', (ws, req) => {
       sessionId: urlSessionId || '',
       businessId: urlBusinessId || '',
       callSid: urlCallSid || '',
+    });
+
+    // Set up mark received callback
+    twilioHandler.setOnMarkReceived((markName: string) => {
+      console.log('[MARK RECEIVED CALLBACK]', { markName, confirmationState, callState });
+      if (markName === 'confirmation_complete') {
+        console.log('[CONFIRMATION MARK RECEIVED] Confirmation audio playback complete at:', new Date().toISOString());
+        confirmationMarkReceived = true;
+        console.log('[CONFIRMATION MARK RECEIVED] confirmationMarkReceived = true');
+        
+        // Check if user confirmed early while audio was playing
+        if (pendingConfirmationAccepted && confirmationState === 'confirmed') {
+          console.log('[PROCESSING PENDING CONFIRMATION AFTER MARK] User confirmed early, processing now that mark is received');
+          console.log('[PROCESSING PENDING CONFIRMATION AFTER MARK] Proceeding to final goodbye');
+          // Now trigger the final goodbye since audio playback is confirmed complete
+          closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
+        }
+      }
     });
 
     // Pass state variables to twilioHandler for audio append guards
@@ -4120,8 +4136,8 @@ Do NOT:
                   console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE DONE at:', new Date().toISOString());
                   console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE DONE response_id:', responseId);
                   console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE DONE callState:', callState);
-                  console.log('[CONFIRMATION AUDIO COMPLETE] Confirmation audio playback complete at:', new Date().toISOString());
-                  console.log('[CONFIRMATION AUDIO COMPLETE] confirmationResponseId:', responseId);
+                  console.log('[CONFIRMATION AUDIO PRODUCTION COMPLETE] OpenAI finished producing confirmation audio at:', new Date().toISOString());
+                  console.log('[CONFIRMATION AUDIO PRODUCTION COMPLETE] confirmationResponseId:', responseId);
                   console.log('[CONFIRMATION SUMMARY DONE MATCHED]', message.response_id || 'unknown');
                   console.log('[CONFIRMATION SUMMARY DONE] Confirmation summary response completed');
                   console.log('[CONFIRMATION SUMMARY DONE] confirmationSummarySpoken = true');
@@ -4130,13 +4146,10 @@ Do NOT:
                   console.log('[CALL STATE CHANGE] confirmationState: confirmation_pending -> awaiting_confirmation');
                   console.log('[ENTER AWAITING_CONFIRMATION] Waiting for caller response');
                   
-                  // Check if user confirmed early while audio was playing
-                  if (pendingConfirmationAccepted) {
-                    console.log('[PROCESSING PENDING CONFIRMATION] User confirmed early, processing now that audio is complete');
-                    console.log('[PROCESSING PENDING CONFIRMATION] Proceeding to final goodbye');
-                    // Now trigger the final goodbye since audio is complete
-                    closeCallAfterConfirmation(ws, twilioHandler, openAiWs);
-                  }
+                  // Send Twilio mark to track when audio playback is actually complete
+                  console.log('[SENDING CONFIRMATION MARK] Sending mark to track audio playback completion');
+                  twilioHandler.sendMark('confirmation_complete');
+                  console.log('[SENDING CONFIRMATION MARK] Mark sent, waiting for Twilio mark received event');
                 }
                 
                 // Finalize any remaining active assistant transcripts
@@ -5536,7 +5549,6 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                       conversation_id: fallbackConversation.id,
                       lead_id: fallbackLead.id,
                       business_id: sessionBusinessId,
-                      sender: 'system',
                       content: `AI call transcript (extraction failed):\n${fullTranscript}`,
                       message_type: 'transcript',
                     });
@@ -5832,13 +5844,11 @@ async function sendAIConfirmationSMS(
 
   try {
     // Check for duplicate SMS to prevent multiple sends
-    // Use sender='system' for system-generated messages (no 'business' or 'direction' columns in schema)
     console.log('[AI CONFIRMATION SMS DUPLICATE CHECK]', { conversationId });
     const { data: existingSms, error: smsCheckError } = await supabase
       .from('messages')
       .select('id')
       .eq('conversation_id', conversationId)
-      .eq('sender', 'system')
       .eq('message_type', 'text')
       .limit(1)
       .maybeSingle();

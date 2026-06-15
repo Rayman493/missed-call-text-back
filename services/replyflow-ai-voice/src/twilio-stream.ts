@@ -57,6 +57,13 @@ export class TwilioStreamHandler {
   }
 
   /**
+   * Set callback for mark received events
+   */
+  setOnMarkReceived(callback: (markName: string) => void) {
+    (this as any).onMarkReceived = callback;
+  }
+
+  /**
    * Set greeting sent flag for manual turn detection
    */
   setGreetingSent() {
@@ -226,7 +233,11 @@ export class TwilioStreamHandler {
           log(LogLevel.INFO, 'Twilio stream stopped');
           break;
         case 'mark':
-          log(LogLevel.INFO, 'Twilio connection quality mark', message);
+          console.log('[TWILIO MARK RECEIVED]', { markName: message.mark?.name });
+          // Notify main handler about mark received
+          if (message.mark?.name && (this as any).onMarkReceived) {
+            (this as any).onMarkReceived(message.mark.name);
+          }
           break;
         default:
           log(LogLevel.INFO, `Twilio event: ${message.event}`);
@@ -248,6 +259,22 @@ export class TwilioStreamHandler {
         },
       };
       this.ws.send(JSON.stringify(message));
+    }
+  }
+
+  /**
+   * Send a mark to Twilio to track audio playback completion
+   */
+  sendMark(markName: string) {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      const message = {
+        event: 'mark',
+        mark: {
+          name: markName,
+        },
+      };
+      this.ws.send(JSON.stringify(message));
+      console.log('[TWILIO MARK SENT]', { markName });
     }
   }
 
