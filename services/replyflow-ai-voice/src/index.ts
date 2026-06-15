@@ -1658,7 +1658,7 @@ async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: 
       } catch (error) {
         console.log('[TWILIO HANGUP ERROR] Error during hangup:', error);
       }
-    }, 1500); // 1500ms buffer
+    }, 4000); // 4000ms buffer to ensure full goodbye plays
   }
 }
 
@@ -1893,7 +1893,8 @@ wss.on('connection', (ws, req) => {
 
     // Ingestion function to save call data - moved to correct scope
     const ingestCallData = async () => {
-      console.log('[INGEST CALL DATA ENTER] Function called');
+      console.log('[CALL END DETECTED] WebSocket closed, starting post-call persistence');
+      console.log('[INGEST CALL DATA START] Function called');
       
       const sessionSessionId = (ws as any).sessionId || '';
       const sessionBusinessId = (ws as any).businessId || '';
@@ -2187,6 +2188,7 @@ Return only JSON, no other text.`;
         }
 
         // Create lead and conversation BEFORE inserting ai_call_records
+        console.log('[LEAD CREATE START] Starting lead creation');
         console.log('[AI LEAD LOOKUP START]', { 
           businessId: sessionBusinessId,
           callerPhone: sessionCallerPhone,
@@ -2215,6 +2217,7 @@ Return only JSON, no other text.`;
           throw leadError;
         }
 
+        console.log('[LEAD CREATE SUCCESS] Lead created successfully');
         console.log('[AI LEAD UPSERT RESULT]', { leadId: lead.id, businessId: sessionBusinessId, callerPhone: sessionCallerPhone });
 
         // Create or update conversation
@@ -2318,6 +2321,7 @@ Return only JSON, no other text.`;
           throw newRecordError;
         }
         
+        console.log('[AI CALL RECORD INSERT SUCCESS] AI call record created successfully');
         console.log('[AI SAVE RESULT]', {
           success: true,
           recordId: newRecord.id,
@@ -2473,6 +2477,7 @@ Return only JSON, no other text.`;
         console.log('[AI INGEST INSERT SUCCESS] ingestion completed successfully');
 
         // Send confirmation SMS after successful AI intake
+        console.log('[SUMMARY SMS START] Starting AI summary SMS');
         console.log('[AI CONFIRMATION SMS CALL SITE]', {
           businessId: sessionBusinessId,
           leadId: lead.id,
@@ -2492,11 +2497,13 @@ Return only JSON, no other text.`;
           extractedFields
         );
 
+        console.log('[SUMMARY SMS SUCCESS] AI summary SMS sent successfully');
         console.log('[AI CONFIRMATION SMS CALL SITE COMPLETE]', {
           businessId: sessionBusinessId,
           leadId: lead.id
         });
 
+        console.log('[INGEST CALL DATA COMPLETE] Post-call persistence completed successfully');
         return;
 
       } catch (error) {
@@ -3667,9 +3674,9 @@ Do NOT:
                 // Terminal closing detection - end call after final audio done
                 if (terminalClosingResponseStarted && !hangupScheduled) {
                   console.log('[AI TERMINAL CLOSING AUDIO DONE] Terminal closing audio completed');
-                  console.log('[AI TERMINAL CLOSING AUDIO DONE] Scheduling hangup after 1500ms buffer');
+                  console.log('[AI TERMINAL CLOSING AUDIO DONE] Scheduling hangup after 4000ms buffer to ensure full goodbye plays');
 
-                  // Schedule hangup after 1500ms buffer
+                  // Schedule hangup after 4000ms buffer to ensure full goodbye message plays
                   setTimeout(async () => {
                     if (!hangupScheduled) {
                       console.log('[AI TERMINAL HANGUP SCHEDULED] Buffer complete, executing hangup');
