@@ -108,7 +108,6 @@ export default function OperationalStatusCard({
     if (!setupHealth?.forwardingVerified) return 'needs-attention'
     if (business.messaging_status !== 'active') return 'needs-attention'
     if (liveMetrics.deliveryFailures > 5) return 'action-required'
-    if (liveMetrics.deliveryFailures > 0) return 'needs-attention'
     return 'healthy'
   }
 
