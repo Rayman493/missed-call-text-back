@@ -3563,16 +3563,13 @@ Do NOT:
                         console.log('[AI FINAL GOODBYE CREATE SENT] Final closing message sent to OpenAI');
                       }
 
-                      // Immediately schedule hangup timer
-                      if (!hangupScheduled) {
-                        console.log('[AI HANGUP TIMER SCHEDULED] Scheduling hangup after 1500ms');
-                        hangupScheduled = true;
-                        (twilioHandler as any).hangupScheduled = hangupScheduled;
-                        
-                        setTimeout(async () => {
-                          await endCallCleanly(ws, twilioHandler);
-                        }, 1500); // 1500ms buffer
-                      }
+                      // Mark that final goodbye response has started - wait for response.audio.done before hanging up
+                      terminalClosingResponseStarted = true;
+                      console.log('[AI TERMINAL CLOSING STARTED] Final goodbye response started, waiting for response.audio.done');
+                      (twilioHandler as any).terminalClosingResponseStarted = terminalClosingResponseStarted;
+
+                      // DO NOT schedule hangup timer here - wait for response.audio.done instead
+                      // This ensures audio has finished generating before we start the hangup buffer
 
                       return; // Skip the normal intake processing
                   }
@@ -3659,10 +3656,39 @@ Do NOT:
                   console.log('[AI STATE] AUDIO_RECEIVED - dead air protection cleared');
                 }
               }
+              if (message.type === 'response.audio.done') {
+                console.log('[OPENAI RECV] response.audio.done');
+                console.log('[FINAL GOODBYE AUDIO DONE] Audio generation complete for final goodbye');
+                
+                // Terminal closing detection - end call after final audio is done
+                if (terminalClosingResponseStarted && !hangupScheduled) {
+                  console.log('[FINAL GOODBYE HANGUP BUFFER START] Starting 6 second buffer after audio.done');
+                  console.log('[FINAL GOODBYE HANGUP BUFFER START] Timestamp:', new Date().toISOString());
+                  
+                  hangupScheduled = true;
+                  (twilioHandler as any).hangupScheduled = hangupScheduled;
+                  
+                  // Schedule hangup after 6 second buffer to ensure full goodbye message plays
+                  setTimeout(async () => {
+                    console.log('[FINAL GOODBYE HANGUP BUFFER COMPLETE] 6 second buffer complete');
+                    console.log('[FINAL GOODBYE HANGUP BUFFER COMPLETE] Timestamp:', new Date().toISOString());
+                    console.log('[AUTO HANGUP START] Executing hangup now');
+                    
+                    try {
+                      await endCallCleanly(ws, twilioHandler);
+                      console.log('[AUTO HANGUP COMPLETE] Call terminated successfully');
+                      callState = 'closed';
+                      (twilioHandler as any).callState = callState;
+                    } catch (error) {
+                      console.log('[AUTO HANGUP FAILED] Error during hangup:', error);
+                    }
+                  }, 6000); // 6 second buffer to ensure audio plays completely
+                }
+              }
               if (message.type === 'response.done') {
                 console.log('[OPENAI RECV] response.done');
 
-                // Set assistant speaking to false when audio is done
+                // Set assistant speaking to false when response is done
                 if (assistantSpeaking) {
                   assistantSpeaking = false;
                   console.log('[AI ASSISTANT SPEAKING FALSE]');
@@ -3670,29 +3696,9 @@ Do NOT:
                 }
 
                 console.log('[FINAL GOODBYE RESPONSE DONE] Final goodbye response completed');
-
-                // Terminal closing detection - end call after final audio done
-                if (terminalClosingResponseStarted && !hangupScheduled) {
-                  console.log('[AI TERMINAL CLOSING AUDIO DONE] Terminal closing audio completed');
-                  console.log('[AI TERMINAL CLOSING AUDIO DONE] Scheduling hangup after 4000ms buffer to ensure full goodbye plays');
-
-                  // Schedule hangup after 4000ms buffer to ensure full goodbye message plays
-                  setTimeout(async () => {
-                    if (!hangupScheduled) {
-                      console.log('[AI TERMINAL HANGUP SCHEDULED] Buffer complete, executing hangup');
-                      hangupScheduled = true;
-
-                      try {
-                        await endCallCleanly(ws, twilioHandler);
-                        console.log('[AI TERMINAL CALL ENDED] Call terminated successfully');
-                        callState = 'closed';
-                        (twilioHandler as any).callState = callState;
-                      } catch (error) {
-                        console.log('[AI TERMINAL HANGUP FAILED] Error during hangup:', error);
-                      }
-                    }
-                  }, 1500); // 1.5 second buffer
-                }
+                
+                // DO NOT trigger hangup on response.done anymore
+                // Wait for response.audio.done instead to ensure audio generation is complete
               }
               if (message.type === 'response.content') {
                 console.log('[TRANSCRIPT] response.content', { content: message.content });
