@@ -157,15 +157,19 @@ export class TwilioStreamHandler {
               const callState = (this as any).callState || 'active';
               const assistantSpeaking = (this as any).assistantSpeaking || false;
               const terminalClosingResponseStarted = (this as any).terminalClosingResponseStarted || false;
+              const confirmationState = (this as any).confirmationState || 'collecting_info';
 
               // Hard guard: Do not append caller audio during terminal closing or when assistant is speaking
-              if (terminalClosingResponseStarted || callState !== 'active') {
-                console.log('[INBOUND CALLER AUDIO BLOCKED - TERMINAL CLOSING]', { callState, terminalClosingResponseStarted });
+              // BUT allow caller audio during confirmation states (summarizing, awaiting_confirmation_audio, awaiting_confirmation_response)
+              const isDuringConfirmation = confirmationState === 'summarizing' || confirmationState === 'awaiting_confirmation_audio' || confirmationState === 'awaiting_confirmation_response';
+              
+              if (terminalClosingResponseStarted || (callState !== 'active' && !isDuringConfirmation)) {
+                console.log('[INBOUND CALLER AUDIO BLOCKED - TERMINAL CLOSING]', { callState, terminalClosingResponseStarted, confirmationState });
                 return;
               }
 
-              if (assistantSpeaking) {
-                console.log('[INBOUND CALLER AUDIO SKIPPED - ASSISTANT SPEAKING]', { assistantSpeaking });
+              if (assistantSpeaking && !isDuringConfirmation) {
+                console.log('[INBOUND CALLER AUDIO SKIPPED - ASSISTANT SPEAKING]', { assistantSpeaking, confirmationState });
                 return;
               }
 

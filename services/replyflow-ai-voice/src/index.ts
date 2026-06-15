@@ -215,9 +215,8 @@ function createIntakeData(businessName: string, callSid: string, businessId: str
 }
 
 function generateConfirmationMessage(intake: IntakeData): string {
-  console.log('[CONFIRMATION PATH USED] generateConfirmationMessage-hardcoded-function');
-  console.log('[CONFIRMATION QUESTION REQUIRED] Is that correct?');
-  console.log('[CONFIRMATION DATA] Creating confirmation message with collected data:', {
+  console.log('[SUMMARY PATH USED] generateConfirmationMessage-hardcoded-function');
+  console.log('[SUMMARY DATA] Creating summary message with collected data:', {
     customerName: intake.customerName,
     serviceRequested: intake.serviceRequested,
     issueDescription: intake.issueDescription,
@@ -246,14 +245,12 @@ function generateConfirmationMessage(intake: IntakeData): string {
     allRequired: !!(intake.customerName && intake.serviceRequested && intake.issueDescription && intake.serviceAddress && intake.callbackTime && intake.urgency && intake.callbackNumber)
   });
 
-  const confirmation = `Let me make sure I have everything right. Your name is ${name}. You're calling about ${service}. The additional details are ${issue}. The urgency is ${urgency}. The address is ${location}. The best callback time is ${callbackTime}. The best callback number is ${callbackNumber}.
+  // Generate summary WITHOUT the confirmation question
+  const summary = `Let me make sure I have everything right. Your name is ${name}. You're calling about ${service}. The additional details are ${issue}. The urgency is ${urgency}. The address is ${location}. The best callback time is ${callbackTime}. The best callback number is ${callbackNumber}.`;
 
-Is all of that correct?`;
-
-  console.log('[AI FULL CONFIRMATION GENERATED]', { confirmation });
-  console.log('[CONFIRMATION GENERATED] Generated confirmation message:', confirmation);
-  console.log('[CONFIRMATION GENERATED] confirmationState: pending');
-  return confirmation;
+  console.log('[SUMMARY GENERATED]', { summary });
+  console.log('[SUMMARY GENERATED] confirmationState: pending');
+  return summary;
 }
 
 function getIntakeResponse(intake: IntakeData, transcript?: string): { response: string; nextStage: IntakeStage } {
@@ -1672,6 +1669,7 @@ async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: 
   
   console.log('[RACE CONDITION DEBUG] callState set to closing at:', new Date().toISOString());
   console.log('[AI CLOSING STATE SET] callState: closing, terminalClosingResponseStarted: true, intakeComplete: true, confirmationState: final_goodbye');
+  console.log('[FINAL GOODBYE START] Starting final goodbye at:', new Date().toISOString());
   
   // Send final goodbye message immediately
   const finalClosingMessage = {
@@ -1689,12 +1687,12 @@ async function sendFinalGoodbyeAndHangup(ws: any, twilioHandler: any, openAiWs: 
   // Wait 1500ms for audio to play, then hangup
   const hangupScheduled = (ws as any).hangupScheduled;
   if (!hangupScheduled) {
-    console.log('[TWILIO HANGUP ATTEMPT] Scheduling hangup after 1500ms for audio playback');
+    console.log('[AUTO HANGUP START] Scheduling hangup after 1500ms for audio playback at:', new Date().toISOString());
     (ws as any).hangupScheduled = true;
     (twilioHandler as any).hangupScheduled = true;
     
     setTimeout(async () => {
-      console.log('[TWILIO HANGUP ATTEMPT] Audio buffer complete, executing hangup');
+      console.log('[FINAL GOODBYE AUDIO DONE] Audio buffer complete, executing hangup at:', new Date().toISOString());
       try {
         await endCallCleanly(ws, twilioHandler);
         console.log('[TWILIO HANGUP SUCCESS] Call terminated successfully');
@@ -1839,6 +1837,8 @@ wss.on('connection', (ws, req) => {
     const url = new URL(req.url || '', `http://${req.headers.host}`);
 
     log(LogLevel.INFO, '[AI POC] raw websocket request url:', req.url);
+    log(LogLevel.INFO, '[VERSION] Commit: 95f41acc - Mark-based playback barrier implementation');
+    log(LogLevel.INFO, '[VERSION] Confirmation: Separate dedicated confirmation response design');
 
     const urlSessionId = url.searchParams.get('sessionId');
     const urlBusinessId = url.searchParams.get('businessId');
@@ -1874,13 +1874,14 @@ wss.on('connection', (ws, req) => {
     let terminalClosingResponseStarted = false;
 
     // Explicit confirmation lifecycle states
-    type ConfirmationState = 'collecting_info' | 'confirmation_pending' | 'awaiting_confirmation' | 'confirmed' | 'final_goodbye';
+    type ConfirmationState = 'collecting_info' | 'summarizing' | 'awaiting_confirmation_audio' | 'awaiting_confirmation_response' | 'confirmed' | 'final_goodbye';
     let confirmationState: ConfirmationState = 'collecting_info';
 
     let intakeComplete = false;
     let confirmationAccepted = false;
     let pendingConfirmationAccepted = false;
     let confirmationMarkReceived = false;
+    let dedicatedConfirmationResponseInProgress = false;
 
     let callerPhone: string = '';
     let sessionId: string = '';
@@ -1901,13 +1902,36 @@ wss.on('connection', (ws, req) => {
     // Set up mark received callback
     twilioHandler.setOnMarkReceived((markName: string) => {
       console.log('[MARK RECEIVED CALLBACK]', { markName, confirmationState, callState });
-      if (markName === 'confirmation_complete') {
+      
+      if (markName === 'summary_complete' && confirmationState === 'awaiting_confirmation_audio') {
+        console.log('[SUMMARY MARK RECEIVED] Summary audio playback complete at:', new Date().toISOString());
+        console.log('[SUMMARY MARK RECEIVED] Triggering dedicated confirmation response');
+        confirmationState = 'awaiting_confirmation_response';
+        (twilioHandler as any).confirmationState = confirmationState;
+        console.log('[CONFIRMATION RESPONSE START] confirmationState: awaiting_confirmation_audio -> awaiting_confirmation_response');
+        
+        // Trigger dedicated confirmation response
+        const confirmationPayload = {
+          type: 'response.create',
+          response: {
+            instructions: 'Say exactly: "Is that correct?"'
+          }
+        };
+        
+        console.log('[CONFIRMATION RESPONSE START] Sending dedicated confirmation response');
+        if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
+          openAiWs.send(JSON.stringify(confirmationPayload));
+          console.log('[CONFIRMATION RESPONSE START] Dedicated confirmation response sent');
+        }
+      }
+      
+      if (markName === 'confirmation_complete' && confirmationState === 'awaiting_confirmation_response') {
         console.log('[CONFIRMATION MARK RECEIVED] Confirmation audio playback complete at:', new Date().toISOString());
         confirmationMarkReceived = true;
         console.log('[CONFIRMATION MARK RECEIVED] confirmationMarkReceived = true');
         
         // Check if user confirmed early while audio was playing
-        if (pendingConfirmationAccepted && confirmationState === 'confirmed') {
+        if (pendingConfirmationAccepted) {
           console.log('[PROCESSING PENDING CONFIRMATION AFTER MARK] User confirmed early, processing now that mark is received');
           console.log('[PROCESSING PENDING CONFIRMATION AFTER MARK] Proceeding to final goodbye');
           // Now trigger the final goodbye since audio playback is confirmed complete
@@ -1919,6 +1943,7 @@ wss.on('connection', (ws, req) => {
     // Pass state variables to twilioHandler for audio append guards
     (twilioHandler as any).callState = callState;
     (twilioHandler as any).assistantSpeaking = assistantSpeaking;
+    (twilioHandler as any).confirmationState = confirmationState;
 
     log(LogLevel.INFO, '[AI POC] waiting for Twilio start event');
 
@@ -3633,20 +3658,20 @@ Do NOT:
 
                     if (isConfirmationAccepted(userTranscript)) {
                       const timestamp = new Date().toISOString();
-                      console.log('[EARLY CONFIRMATION RECEIVED] User confirmed before audio completed at:', timestamp);
-                      console.log('[EARLY CONFIRMATION RECEIVED] User transcript:', userTranscript);
-                      console.log('[EARLY CONFIRMATION RECEIVED] Current callState:', callState);
-                      console.log('[EARLY CONFIRMATION RECEIVED] Current confirmationState:', confirmationState);
-                      console.log('[EARLY CONFIRMATION RECEIVED] confirmationResponseId:', (ws as any).confirmationResponseId || 'unknown');
+                      console.log('[CALLER CONFIRMATION RECEIVED] User confirmed at:', timestamp);
+                      console.log('[CALLER CONFIRMATION RECEIVED] User transcript:', userTranscript);
+                      console.log('[CALLER CONFIRMATION RECEIVED] Current callState:', callState);
+                      console.log('[CALLER CONFIRMATION RECEIVED] Current confirmationState:', confirmationState);
+                      console.log('[CALLER CONFIRMATION RECEIVED] confirmationResponseId:', (ws as any).confirmationResponseId || 'unknown');
                       
                       // Store pending confirmation instead of immediately closing
                       pendingConfirmationAccepted = true;
-                      console.log('[STORED PENDING CONFIRMATION] User confirmation stored, waiting for audio completion');
+                      console.log('[STORED PENDING CONFIRMATION] User confirmation stored, waiting for confirmation mark');
                       console.log('[CONFIRMATION ACCEPTED] User confirmed the information');
-                      console.log('[CONFIRMATION ACCEPTED] confirmationState: accepted');
                       confirmationState = 'confirmed';
-                      console.log('[CALL STATE CHANGE] confirmationState: awaiting_confirmation -> confirmed');
-                      console.log('[EXIT AWAITING_CONFIRMATION] Caller confirmed, waiting for audio completion before closing');
+                      (twilioHandler as any).confirmationState = confirmationState;
+                      console.log('[CALL STATE CHANGE] confirmationState: awaiting_confirmation_response -> confirmed');
+                      console.log('[EXIT AWAITING_CONFIRMATION] Caller confirmed, waiting for confirmation mark before closing');
                       return; // Skip all other processing
 
                       // Check if all required fields are collected
@@ -3827,8 +3852,8 @@ Do NOT:
                     // Set state flags
                     confirmationSummaryInProgress = true;
                     awaitingFinalConfirmationQuestion = true;
-                    confirmationState = 'confirmation_pending';
-                    console.log('[CALL STATE CHANGE] confirmationState: collecting_info -> confirmation_pending');
+                    confirmationState = 'summarizing';
+                    console.log('[SUMMARY RESPONSE START] confirmationState: collecting_info -> summarizing');
                     
                     // Send confirmation summary via direct response.create
                     const confirmationPayload = {
@@ -3901,12 +3926,23 @@ Do NOT:
                 console.log('[RACE CONDITION DEBUG] Current confirmationState:', confirmationState);
 
                 // Log confirmation response start
-                if (confirmationState === 'confirmation_pending' || confirmationState === 'awaiting_confirmation') {
-                  console.log('[CONFIRMATION AUDIO START] Confirmation response created at:', new Date().toISOString());
+                if (confirmationState === 'summarizing' || confirmationState === 'awaiting_confirmation_audio') {
+                  console.log('[SUMMARY AUDIO START] Summary response created at:', new Date().toISOString());
                   console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE CREATED with response_id:', responseId);
                   console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE CREATED at:', new Date().toISOString());
-                  console.log('[CONFIRMATION AUDIO START] Confirmation response created');
-                  console.log('[CONFIRMATION AUDIO START] confirmationState:', confirmationState);
+                  console.log('[SUMMARY AUDIO START] Summary response created');
+                  console.log('[SUMMARY AUDIO START] confirmationState:', confirmationState);
+                  // Store confirmation response ID for tracking
+                  (ws as any).confirmationResponseId = responseId;
+                }
+                
+                // Log dedicated confirmation response start
+                if (confirmationState === 'awaiting_confirmation_response') {
+                  console.log('[CONFIRMATION RESPONSE START] Dedicated confirmation response created at:', new Date().toISOString());
+                  console.log('[CONFIRMATION RESPONSE START] response_id:', responseId);
+                  console.log('[CONFIRMATION RESPONSE START] confirmationState:', confirmationState);
+                  dedicatedConfirmationResponseInProgress = true;
+                  console.log('[CONFIRMATION RESPONSE START] dedicatedConfirmationResponseInProgress = true');
                   // Store confirmation response ID for tracking
                   (ws as any).confirmationResponseId = responseId;
                 }
@@ -4133,21 +4169,32 @@ Do NOT:
 
                 // Check if this was a confirmation summary response
                 if (confirmationSummaryInProgress) {
-                  console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE DONE at:', new Date().toISOString());
-                  console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE DONE response_id:', responseId);
-                  console.log('[RACE CONDITION DEBUG] CONFIRMATION RESPONSE DONE callState:', callState);
-                  console.log('[CONFIRMATION AUDIO PRODUCTION COMPLETE] OpenAI finished producing confirmation audio at:', new Date().toISOString());
-                  console.log('[CONFIRMATION AUDIO PRODUCTION COMPLETE] confirmationResponseId:', responseId);
-                  console.log('[CONFIRMATION SUMMARY DONE MATCHED]', message.response_id || 'unknown');
-                  console.log('[CONFIRMATION SUMMARY DONE] Confirmation summary response completed');
-                  console.log('[CONFIRMATION SUMMARY DONE] confirmationSummarySpoken = true');
+                  console.log('[SUMMARY AUDIO PRODUCTION COMPLETE] OpenAI finished producing summary audio at:', new Date().toISOString());
+                  console.log('[SUMMARY AUDIO PRODUCTION COMPLETE] confirmationResponseId:', responseId);
+                  console.log('[SUMMARY AUDIO DONE] Summary response completed at:', new Date().toISOString());
+                  console.log('[SUMMARY AUDIO DONE] confirmationResponseId:', responseId);
+                  console.log('[SUMMARY AUDIO DONE] confirmationSummarySpoken = true');
                   confirmationSummaryInProgress = false;
-                  confirmationState = 'awaiting_confirmation';
-                  console.log('[CALL STATE CHANGE] confirmationState: confirmation_pending -> awaiting_confirmation');
-                  console.log('[ENTER AWAITING_CONFIRMATION] Waiting for caller response');
+                  confirmationState = 'awaiting_confirmation_audio';
+                  (twilioHandler as any).confirmationState = confirmationState;
+                  console.log('[SUMMARY AUDIO DONE] confirmationState: summarizing -> awaiting_confirmation_audio');
+                  console.log('[SUMMARY AUDIO DONE] Waiting to trigger dedicated confirmation response');
                   
-                  // Send Twilio mark to track when audio playback is actually complete
-                  console.log('[SENDING CONFIRMATION MARK] Sending mark to track audio playback completion');
+                  // Send Twilio mark to track when summary audio playback is actually complete
+                  console.log('[SENDING SUMMARY MARK] Sending mark to track summary audio playback completion');
+                  twilioHandler.sendMark('summary_complete');
+                  console.log('[SENDING SUMMARY MARK] Mark sent, waiting for Twilio mark received event');
+                }
+                
+                // Check if this was the dedicated confirmation response
+                if (dedicatedConfirmationResponseInProgress) {
+                  console.log('[CONFIRMATION AUDIO DONE] Dedicated confirmation response completed at:', new Date().toISOString());
+                  console.log('[CONFIRMATION AUDIO DONE] confirmationResponseId:', responseId);
+                  console.log('[CONFIRMATION AUDIO DONE] dedicatedConfirmationResponseInProgress = false');
+                  dedicatedConfirmationResponseInProgress = false;
+                  
+                  // Send Twilio mark to track when confirmation audio playback is actually complete
+                  console.log('[SENDING CONFIRMATION MARK] Sending mark to track confirmation audio playback completion');
                   twilioHandler.sendMark('confirmation_complete');
                   console.log('[SENDING CONFIRMATION MARK] Mark sent, waiting for Twilio mark received event');
                 }
@@ -4251,7 +4298,7 @@ Do NOT:
                   const cleanTranscript = message.transcript.replace(/\[CALL_COMPLETE\]|CALL_COMPLETE|call complete/gi, '').trim();
                   
                   // Special logging for confirmation transcript
-                  if (confirmationState === 'confirmation_pending' || confirmationState === 'awaiting_confirmation') {
+                  if (confirmationState === 'summarizing' || confirmationState === 'awaiting_confirmation_audio' || confirmationState === 'awaiting_confirmation_response') {
                     console.log('[CONFIRMATION TRANSCRIPT]', { text: cleanTranscript, confirmationState: confirmationState });
                     console.log('[CONFIRMATION TRANSCRIPT] Contains "Is that correct?":', cleanTranscript.includes('Is that correct?'));
                   }
@@ -4394,16 +4441,12 @@ Do NOT:
                 }
 
                 // Special logging for confirmation audio
-                if (confirmationState === 'confirmation_pending' || confirmationState === 'awaiting_confirmation') {
+                if (confirmationState === 'summarizing' || confirmationState === 'awaiting_confirmation_audio' || confirmationState === 'awaiting_confirmation_response') {
                   const confirmationResponseId = (ws as any).confirmationResponseId || 'unknown';
-                  console.log('[RACE CONDITION DEBUG] CONFIRMATION AUDIO DELTA received at:', new Date().toISOString());
-                  console.log('[RACE CONDITION DEBUG] CONFIRMATION AUDIO DELTA response_id:', confirmationResponseId);
-                  console.log('[RACE CONDITION DEBUG] CONFIRMATION AUDIO DELTA bytes:', message.delta.length);
-                  console.log('[RACE CONDITION DEBUG] CONFIRMATION AUDIO DELTA callState:', callState);
-                  console.log('[CONFIRMATION AUDIO DELTA RECEIVED]', {
-                    bytes: message.delta.length,
-                    confirmationState: confirmationState
-                  });
+                  console.log('[CONFIRMATION AUDIO DELTA] Confirmation audio delta received at:', new Date().toISOString());
+                  console.log('[CONFIRMATION AUDIO DELTA] response_id:', confirmationResponseId);
+                  console.log('[CONFIRMATION AUDIO DELTA] bytes:', message.delta.length);
+                  console.log('[CONFIRMATION AUDIO DELTA] confirmationState:', confirmationState);
                 }
 
                 console.log('[OUTBOUND ASSISTANT AUDIO FORWARDED TO TWILIO]', { bytes: message.delta.length });
@@ -4420,7 +4463,7 @@ Do NOT:
                 ws.send(JSON.stringify(mediaMessage));
 
                 // Special logging for confirmation audio
-                if (confirmationState === 'confirmation_pending' || confirmationState === 'awaiting_confirmation') {
+                if (confirmationState === 'summarizing' || confirmationState === 'awaiting_confirmation_audio' || confirmationState === 'awaiting_confirmation_response') {
                   console.log('[CONFIRMATION AUDIO DELTA FORWARDED TO TWILIO]', {
                     bytes: message.delta.length,
                     confirmationState: confirmationState
