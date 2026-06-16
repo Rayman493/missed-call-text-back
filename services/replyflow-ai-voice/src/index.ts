@@ -1720,6 +1720,8 @@ wss.on('connection', (ws, req) => {
     let hangupScheduled = false;
     let postCallSmsSent = false;
     let assistantSpeaking = false;
+    let finalGoodbyeMarkReceived = false; // Track when final-goodbye-complete mark is received
+    let finalGoodbyeMarkSent = false; // Track when final-goodbye-complete mark is sent
 
     let intakeComplete = false;
 
@@ -1745,6 +1747,57 @@ wss.on('connection', (ws, req) => {
     // Pass state variables to twilioHandler for audio append guards
     (twilioHandler as any).callState = callState;
     (twilioHandler as any).assistantSpeaking = assistantSpeaking;
+
+    // Set up mark received callback to track when Twilio acknowledges final goodbye audio playback
+    twilioHandler.setOnMarkReceived((markName: string) => {
+      console.log('[MARK RECEIVED CALLBACK] Mark received from Twilio:', { markName, timestamp: new Date().toISOString() });
+      
+      if (markName === 'final-goodbye-complete') {
+        console.log('[FINAL GOODBYE MARK RECEIVED] final-goodbye-complete mark received');
+        console.log('[FINAL GOODBYE MARK RECEIVED] Timestamp:', new Date().toISOString());
+        console.log('[FINAL GOODBYE MARK RECEIVED] callState:', callState);
+        console.log('[FINAL GOODBYE MARK RECEIVED] finalClosingStarted:', finalClosingStarted);
+        console.log('[FINAL GOODBYE MARK RECEIVED] hangupScheduled:', hangupScheduled);
+        
+        finalGoodbyeMarkReceived = true;
+        (twilioHandler as any).finalGoodbyeMarkReceived = finalGoodbyeMarkReceived;
+        
+        // Schedule hangup after mark received with 2 second safety buffer
+        // This ensures audio has actually finished playing to the caller
+        if (finalClosingStarted && !hangupScheduled) {
+          console.log('[HANGUP SOURCE] final-goodbye-complete mark received');
+          console.log('[FINAL GOODBYE MARK BUFFER WAITING 2S] Starting 2 second safety buffer after mark received');
+          console.log('[FINAL GOODBYE MARK BUFFER WAITING 2S] Timestamp:', new Date().toISOString());
+          
+          hangupScheduled = true;
+          (twilioHandler as any).hangupScheduled = hangupScheduled;
+          
+          const HANGUP_BUFFER_MS = 2000; // 2 second safety buffer after mark received
+          
+          setTimeout(async () => {
+            console.log('[FINAL GOODBYE MARK BUFFER COMPLETE] 2 second safety buffer complete');
+            console.log('[FINAL GOODBYE MARK BUFFER COMPLETE] Timestamp:', new Date().toISOString());
+            console.log('[AUTO HANGUP START] Executing hangup now');
+            console.log('[AUTO HANGUP START] Call SID:', callSid);
+            
+            try {
+              await endCallCleanly(ws, twilioHandler);
+              console.log('[AUTO HANGUP COMPLETE] Call terminated successfully');
+              console.log('[AUTO HANGUP COMPLETE] Timestamp:', new Date().toISOString());
+              callState = 'closed';
+              (twilioHandler as any).callState = callState;
+            } catch (error) {
+              console.log('[AUTO HANGUP FAILED] Error during hangup:', error);
+              console.log('[AUTO HANGUP FAILED] Error details:', error instanceof Error ? error.message : String(error));
+            }
+          }, HANGUP_BUFFER_MS);
+        } else {
+          console.log('[FINAL GOODBYE MARK RECEIVED SKIPPED] Not scheduling hangup because:');
+          console.log('[FINAL GOODBYE MARK RECEIVED SKIPPED] finalClosingStarted:', finalClosingStarted);
+          console.log('[FINAL GOODBYE MARK RECEIVED SKIPPED] hangupScheduled:', hangupScheduled);
+        }
+      }
+    });
 
     log(LogLevel.INFO, '[AI POC] waiting for Twilio start event');
 
@@ -3529,6 +3582,13 @@ Do NOT:
                   (twilioHandler as any).assistantSpeaking = assistantSpeaking;
                 }
 
+                // Log when final goodbye audio delta is received
+                if (finalClosingStarted) {
+                  console.log('[FINAL GOODBYE AUDIO DELTA] Final goodbye audio delta received');
+                  console.log('[FINAL GOODBYE AUDIO DELTA] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL GOODBYE AUDIO DELTA] callState:', callState);
+                }
+
                 // Clear dead air timeout since we received audio
                 if (!audioReceived) {
                   audioReceived = true;
@@ -3541,44 +3601,56 @@ Do NOT:
                 console.log('[OPENAI RECV] response.audio.done');
                 console.log('[FINAL GOODBYE AUDIO DONE] Audio generation complete for final goodbye');
                 console.log('[FINAL GOODBYE AUDIO DONE] Timestamp:', new Date().toISOString());
+                console.log('[FINAL GOODBYE AUDIO DONE] finalClosingStarted:', finalClosingStarted);
                 
-                // Terminal closing detection - end call after final audio is done
-                // Only hangup if this is after final closing has started
-                if (finalClosingStarted && !hangupScheduled) {
-                  console.log('[HANGUP SOURCE] response.audio.done');
-                  console.log('[FINAL GOODBYE BUFFER WAITING 15S] Starting 15 second buffer after audio.done');
-                  console.log('[FINAL GOODBYE BUFFER WAITING 15S] Timestamp:', new Date().toISOString());
-                  console.log('[FINAL GOODBYE BUFFER WAITING 15S] Buffer ensures audio playback completes before hangup');
+                // Terminal closing detection - send mark after audio generation is complete
+                // Only send mark if this is after final closing has started
+                if (finalClosingStarted && !finalGoodbyeMarkSent) {
+                  console.log('[FINAL GOODBYE MARK SENDING] Sending final-goodbye-complete mark after audio.done');
+                  console.log('[FINAL GOODBYE MARK SENDING] Timestamp:', new Date().toISOString());
                   
-                  hangupScheduled = true;
-                  (twilioHandler as any).hangupScheduled = hangupScheduled;
+                  finalGoodbyeMarkSent = true;
+                  (twilioHandler as any).finalGoodbyeMarkSent = finalGoodbyeMarkSent;
                   
-                  // Schedule hangup after 15 second buffer to ensure full goodbye message plays
-                  // This buffer accounts for audio transmission to Twilio and playback to caller
-                  // Increased from 10s to 15s to prevent audio cutoff issues
-                  const HANGUP_BUFFER_MS = 15000; // 15 seconds conservative buffer
+                  // Send mark to Twilio to track when audio has been played
+                  twilioHandler.sendMark('final-goodbye-complete');
+                  
+                  // Add fallback timeout in case mark is never received
+                  // This prevents calls from hanging indefinitely
+                  const FALLBACK_TIMEOUT_MS = 10000; // 10 second fallback timeout
+                  console.log('[FINAL GOODBYE FALLBACK TIMEOUT] Setting 10 second fallback timeout');
+                  console.log('[FINAL GOODBYE FALLBACK TIMEOUT] Timestamp:', new Date().toISOString());
                   
                   setTimeout(async () => {
-                    console.log('[FINAL GOODBYE BUFFER COMPLETE] 15 second buffer complete');
-                    console.log('[FINAL GOODBYE BUFFER COMPLETE] Timestamp:', new Date().toISOString());
-                    console.log('[AUTO HANGUP START] Executing hangup now');
-                    console.log('[AUTO HANGUP START] Call SID:', callSid);
-                    
-                    try {
-                      await endCallCleanly(ws, twilioHandler);
-                      console.log('[AUTO HANGUP COMPLETE] Call terminated successfully');
-                      console.log('[AUTO HANGUP COMPLETE] Timestamp:', new Date().toISOString());
-                      callState = 'closed';
-                      (twilioHandler as any).callState = callState;
-                    } catch (error) {
-                      console.log('[AUTO HANGUP FAILED] Error during hangup:', error);
-                      console.log('[AUTO HANGUP FAILED] Error details:', error instanceof Error ? error.message : String(error));
+                    if (finalClosingStarted && !finalGoodbyeMarkReceived && !hangupScheduled) {
+                      console.log('[FINAL GOODBYE FALLBACK TIMEOUT TRIGGERED] Mark not received, using fallback');
+                      console.log('[FINAL GOODBYE FALLBACK TIMEOUT TRIGGERED] Timestamp:', new Date().toISOString());
+                      console.log('[HANGUP SOURCE] fallback timeout (mark not received)');
+                      
+                      hangupScheduled = true;
+                      (twilioHandler as any).hangupScheduled = hangupScheduled;
+                      
+                      try {
+                        await endCallCleanly(ws, twilioHandler);
+                        console.log('[AUTO HANGUP COMPLETE] Call terminated successfully (fallback)');
+                        console.log('[AUTO HANGUP COMPLETE] Timestamp:', new Date().toISOString());
+                        callState = 'closed';
+                        (twilioHandler as any).callState = callState;
+                      } catch (error) {
+                        console.log('[AUTO HANGUP FAILED] Error during hangup (fallback):', error);
+                        console.log('[AUTO HANGUP FAILED] Error details:', error instanceof Error ? error.message : String(error));
+                      }
+                    } else {
+                      console.log('[FINAL GOODBYE FALLBACK TIMEOUT SKIPPED] Not needed because:');
+                      console.log('[FINAL GOODBYE FALLBACK TIMEOUT SKIPPED] finalClosingStarted:', finalClosingStarted);
+                      console.log('[FINAL GOODBYE FALLBACK TIMEOUT SKIPPED] finalGoodbyeMarkReceived:', finalGoodbyeMarkReceived);
+                      console.log('[FINAL GOODBYE FALLBACK TIMEOUT SKIPPED] hangupScheduled:', hangupScheduled);
                     }
-                  }, HANGUP_BUFFER_MS);
+                  }, FALLBACK_TIMEOUT_MS);
                 } else {
-                  console.log('[FINAL GOODBYE AUDIO DONE SKIPPED] Not scheduling hangup because:');
-                  console.log('[FINAL GOODBYE AUDIO DONE SKIPPED] finalClosingStarted:', finalClosingStarted);
-                  console.log('[FINAL GOODBYE AUDIO DONE SKIPPED] hangupScheduled:', hangupScheduled);
+                  console.log('[FINAL GOODBYE MARK SENDING SKIPPED] Not sending mark because:');
+                  console.log('[FINAL GOODBYE MARK SENDING SKIPPED] finalClosingStarted:', finalClosingStarted);
+                  console.log('[FINAL GOODBYE MARK SENDING SKIPPED] finalGoodbyeMarkSent:', finalGoodbyeMarkSent);
                 }
               }
               if (message.type === 'response.done') {
@@ -5281,6 +5353,10 @@ Details: ${extractedFields.importantDetails || 'None'}`;
               console.log('[OPENAI WEBSOCKET CLOSE] code:', code, 'reason:', reason?.toString());
               console.log('[OPENAI WEBSOCKET CLOSE] callSid:', callSid);
               console.log('[OPENAI WEBSOCKET CLOSE] businessId:', businessId);
+              console.log('[OPENAI WEBSOCKET CLOSE] callState:', callState);
+              console.log('[OPENAI WEBSOCKET CLOSE] finalClosingStarted:', finalClosingStarted);
+              console.log('[OPENAI WEBSOCKET CLOSE] hangupScheduled:', hangupScheduled);
+              console.log('[OPENAI WEBSOCKET CLOSE] finalGoodbyeMarkReceived:', finalGoodbyeMarkReceived);
               console.log('[OPENAI AUDIT] close listener attached');
               console.log('[OPENAI RAW] close');
               log(LogLevel.INFO, '[STREAM OPENAI] close event fired');
@@ -5302,15 +5378,6 @@ Details: ${extractedFields.importantDetails || 'None'}`;
               });
             });
             console.log('[OPENAI AUDIT] error listener attached');
-
-            console.log('[OPENAI AUDIT] attaching close listener');
-            openAiWs.on('close', (code, reason) => {
-              console.log('[OPENAI CONNECT CLOSED]', code, reason);
-              console.log('[STREAM CLONED] CLOSE event, code:', code, 'reason:', reason);
-              console.log('[OPENAI AUDIT] close listener attached');
-              log(LogLevel.INFO, '[STREAM OPENAI] close event fired', { code, reason: reason?.toString() });
-            });
-            console.log('[OPENAI AUDIT] close listener attached');
 
             console.log('[OPENAI AUDIT] attaching unexpected-response listener');
             openAiWs.on('unexpected-response', (request, response) => {
@@ -5367,6 +5434,10 @@ Details: ${extractedFields.importantDetails || 'None'}`;
       console.log('[TWILIO WEBSOCKET CLOSE] Twilio WebSocket closing');
       console.log('[TWILIO WEBSOCKET CLOSE] code:', code, 'reason:', reason?.toString());
       console.log('[TWILIO WEBSOCKET CLOSE] callSid:', callSid);
+      console.log('[TWILIO WEBSOCKET CLOSE] callState:', callState);
+      console.log('[TWILIO WEBSOCKET CLOSE] finalClosingStarted:', finalClosingStarted);
+      console.log('[TWILIO WEBSOCKET CLOSE] hangupScheduled:', hangupScheduled);
+      console.log('[TWILIO WEBSOCKET CLOSE] finalGoodbyeMarkReceived:', finalGoodbyeMarkReceived);
       
       // Clear AI timeout timer if it exists
       if (aiTimeoutTimer) {
@@ -5374,11 +5445,17 @@ Details: ${extractedFields.importantDetails || 'None'}`;
         aiTimeoutTimer = null;
       }
       
-      // Close OpenAI WebSocket if it's still open
+      // Only close OpenAI WebSocket if we're not in the middle of final closing
+      // If finalClosingStarted is true, let the mark-based hangup handle cleanup
       if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
-        console.log('[OPENAI WEBSOCKET CLEANUP] Closing OpenAI WebSocket due to Twilio call end');
-        console.log('[OPENAI WEBSOCKET CLEANUP] callSid:', callSid);
-        openAiWs.close(1000, 'Twilio call ended');
+        if (finalClosingStarted && !finalGoodbyeMarkReceived) {
+          console.log('[TWILIO WEBSOCKET CLOSE] OpenAI WebSocket left open during final closing');
+          console.log('[TWILIO WEBSOCKET CLOSE] Waiting for final-goodbye-complete mark before cleanup');
+        } else {
+          console.log('[OPENAI WEBSOCKET CLEANUP] Closing OpenAI WebSocket due to Twilio call end');
+          console.log('[OPENAI WEBSOCKET CLEANUP] callSid:', callSid);
+          openAiWs.close(1000, 'Twilio call ended');
+        }
       } else if (openAiWs) {
         console.log('[OPENAI WEBSOCKET CLEANUP] OpenAI WebSocket already closed or closing');
         console.log('[OPENAI WEBSOCKET CLEANUP] readyState:', openAiWs.readyState);
@@ -5558,12 +5635,14 @@ async function sendAIConfirmationSMS(
 
 // Start server
 server.listen(PORT, () => {
-  console.log('[AI VOICE SERVICE VERSION] commit=hangup-buffer-15s-v1 audio-cutoff-fix');
+  console.log('[AI VOICE SERVICE VERSION] commit=mark-based-hangup-v1 deterministic-closing');
   console.log('[SCHEMA COMPATIBILITY CHECK] conversations table columns: lead_id, business_id, status, created_at, updated_at (NO call_sid)');
   console.log('[SCHEMA COMPATIBILITY CHECK] leads table columns: id, business_id, phone, name, email, status, raw_metadata, created_at, updated_at (NO source)');
   console.log('[SCHEMA COMPATIBILITY CHECK] ai_call_records table columns: id, business_id, lead_id, conversation_id, caller_phone, call_sid, ai_session_id, transcript, outcome, extracted_info, summary, extraction_failed, created_at, updated_at');
   console.log('[AI VOICE SERVICE VERSION] commit=473dfc1 language-lock-enabled=true');
-  console.log('[AI VOICE SERVICE VERSION] hangup buffer increased from 10s to 15s to prevent audio cutoff');
+  console.log('[AI VOICE SERVICE VERSION] Mark-based hangup: uses Twilio marks to track audio playback completion');
+  console.log('[AI VOICE SERVICE VERSION] Hangup now waits for final-goodbye-complete mark + 2s buffer');
+  console.log('[AI VOICE SERVICE VERSION] Fallback timeout: 10s if mark never received');
   log(LogLevel.INFO, `AI Voice Service POC listening on port ${PORT}`);
   log(LogLevel.INFO, `Health check: http://localhost:${PORT}/health`);
   log(LogLevel.INFO, `WebSocket: ws://localhost:${PORT}/stream`);

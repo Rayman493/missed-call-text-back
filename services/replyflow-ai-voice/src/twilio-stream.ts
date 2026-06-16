@@ -255,6 +255,17 @@ export class TwilioStreamHandler {
    */
   sendAudio(audioData: Buffer) {
     if (this.ws?.readyState === WebSocket.OPEN) {
+      const callState = (this as any).callState || 'active';
+      const finalClosingStarted = (this as any).finalClosingStarted || false;
+      
+      // Log when final goodbye audio is sent to Twilio
+      if (finalClosingStarted) {
+        console.log('[FINAL GOODBYE AUDIO SENT] Final goodbye audio sent to Twilio');
+        console.log('[FINAL GOODBYE AUDIO SENT] Timestamp:', new Date().toISOString());
+        console.log('[FINAL GOODBYE AUDIO SENT] callState:', callState);
+        console.log('[FINAL GOODBYE AUDIO SENT] audioLength:', audioData.length);
+      }
+      
       const message = {
         event: 'media',
         media: {
