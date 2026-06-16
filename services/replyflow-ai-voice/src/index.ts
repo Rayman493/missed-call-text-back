@@ -270,6 +270,156 @@ function getMissingRequiredFields(intake: IntakeData): string[] {
   return missing;
 }
 
+function areAllRequiredFieldsCollected(intake: IntakeData): boolean {
+  const allCollected = !!(
+    intake.customerName &&
+    intake.serviceRequested &&
+    intake.issueDescription &&
+    intake.urgency &&
+    intake.serviceAddress &&
+    intake.callbackTime &&
+    intake.callbackNumber
+  );
+  console.log('[REQUIRED_FIELDS_STATUS] =========================================');
+  console.log('[REQUIRED_FIELDS_STATUS] All required fields collected:', allCollected);
+  console.log('[REQUIRED_FIELDS_STATUS] customerName:', !!intake.customerName);
+  console.log('[REQUIRED_FIELDS_STATUS] serviceRequested:', !!intake.serviceRequested);
+  console.log('[REQUIRED_FIELDS_STATUS] issueDescription:', !!intake.issueDescription);
+  console.log('[REQUIRED_FIELDS_STATUS] urgency:', !!intake.urgency);
+  console.log('[REQUIRED_FIELDS_STATUS] serviceAddress:', !!intake.serviceAddress);
+  console.log('[REQUIRED_FIELDS_STATUS] callbackTime:', !!intake.callbackTime);
+  console.log('[REQUIRED_FIELDS_STATUS] callbackNumber:', !!intake.callbackNumber);
+  console.log('[REQUIRED_FIELDS_STATUS] Timestamp:', new Date().toISOString());
+  console.log('[REQUIRED_FIELDS_STATUS] =========================================');
+  return allCollected;
+}
+
+function getNextMissingField(intake: IntakeData): string | null {
+  if (!intake.customerName) {
+    console.log('[NEXT_MISSING_FIELD] customerName');
+    return 'customerName';
+  }
+  if (!intake.serviceRequested) {
+    console.log('[NEXT_MISSING_FIELD] serviceRequested');
+    return 'serviceRequested';
+  }
+  if (!intake.issueDescription) {
+    console.log('[NEXT_MISSING_FIELD] issueDescription');
+    return 'issueDescription';
+  }
+  if (!intake.urgency) {
+    console.log('[NEXT_MISSING_FIELD] urgency');
+    return 'urgency';
+  }
+  if (!intake.serviceAddress) {
+    console.log('[NEXT_MISSING_FIELD] serviceAddress');
+    return 'serviceAddress';
+  }
+  if (!intake.callbackTime) {
+    console.log('[NEXT_MISSING_FIELD] callbackTime');
+    return 'callbackTime';
+  }
+  if (!intake.callbackNumber) {
+    console.log('[NEXT_MISSING_FIELD] callbackNumber');
+    return 'callbackNumber';
+  }
+  console.log('[NEXT_MISSING_FIELD] All fields collected');
+  return null;
+}
+
+function isConfirmationAccepted(transcript: string): boolean {
+  const affirmativePhrases = ['yes', 'correct', 'that\'s right', 'that is right', 'that\'s correct', 'that is correct', 'sounds good', 'perfect', 'yep', 'yeah', 'confirmed'];
+  const lowerTranscript = transcript.toLowerCase().trim();
+  const isAccepted = affirmativePhrases.some(phrase => lowerTranscript.includes(phrase));
+  
+  if (isAccepted) {
+    console.log('[CONFIRMATION_ACCEPTED] =========================================');
+    console.log('[CONFIRMATION_ACCEPTED] Caller confirmed the information');
+    console.log('[CONFIRMATION_ACCEPTED] Transcript:', transcript);
+    console.log('[CONFIRMATION_ACCEPTED] Timestamp:', new Date().toISOString());
+    console.log('[CONFIRMATION_ACCEPTED] =========================================');
+  } else {
+    console.log('[CONFIRMATION_UNCLEAR] =========================================');
+    console.log('[CONFIRMATION_UNCLEAR] Caller response unclear, asking again');
+    console.log('[CONFIRMATION_UNCLEAR] Transcript:', transcript);
+    console.log('[CONFIRMATION_UNCLEAR] Timestamp:', new Date().toISOString());
+    console.log('[CONFIRMATION_UNCLEAR] =========================================');
+  }
+  
+  return isAccepted;
+}
+
+function transitionToConfirmation(intake: IntakeData, closingState: any, openAiWs: any): void {
+  console.log('[TRANSITION_TO_CONFIRMATION] =========================================');
+  console.log('[TRANSITION_TO_CONFIRMATION] Transitioning to confirmation stage');
+  console.log('[TRANSITION_TO_CONFIRMATION] Timestamp:', new Date().toISOString());
+  console.log('[TRANSITION_TO_CONFIRMATION] =========================================');
+  
+  intake.stage = 'confirmation';
+  closingState.confirmationState = 'confirmation_sent';
+  
+  const confirmationMessage = generateConfirmationMessage(intake);
+  console.log('[TRANSITION_TO_CONFIRMATION] Sending confirmation summary:', confirmationMessage);
+  
+  if (openAiWs) {
+    openAiWs.send(JSON.stringify({
+      type: 'response.create',
+      response: {
+        instructions: `Say exactly: "${confirmationMessage}"`
+      }
+    }));
+  }
+}
+
+function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, openAiWs: any): void {
+  console.log('[ENTER_TERMINAL_CLOSE] =========================================');
+  console.log('[ENTER_TERMINAL_CLOSE] Entering terminal close mode');
+  console.log('[ENTER_TERMINAL_CLOSE] Timestamp:', new Date().toISOString());
+  console.log('[ENTER_TERMINAL_CLOSE] =========================================');
+  
+  closingState.confirmationState = 'completed';
+  closingState.intakeTerminalComplete = true;
+  closingState.terminalClosingResponseStarted = true;
+  closingState.finalClosingStarted = true;
+  closingState.callState = 'closing';
+  
+  // Sync individual variables for backward compatibility
+  const callState = closingState.callState;
+  const finalClosingStarted = closingState.finalClosingStarted;
+  const terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
+  const confirmationState = closingState.confirmationState;
+  
+  // Sync to twilioHandler
+  (twilioHandler as any).closingState = closingState;
+  (twilioHandler as any).callState = closingState.callState;
+  (twilioHandler as any).finalClosingStarted = closingState.finalClosingStarted;
+  (twilioHandler as any).terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
+  (twilioHandler as any).intakeTerminalComplete = closingState.intakeTerminalComplete;
+  
+  // Generate and track authorized final response ID
+  const authorizedFinalResponseId = `final_${Date.now()}`;
+  (twilioHandler as any).authorizedFinalResponseId = authorizedFinalResponseId;
+  
+  // Send exact final closing sentence
+  const exactClosingSentence = "Perfect. I have everything I need. The team will follow up with you soon.";
+  
+  console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] =========================================');
+  console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Creating authorized final response with exact closing sentence');
+  console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Closing sentence:', exactClosingSentence);
+  console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Response ID:', authorizedFinalResponseId);
+  console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Timestamp:', new Date().toISOString());
+  console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] =========================================');
+  
+  if (openAiWs) {
+    openAiWs.send(JSON.stringify({
+      type: 'response.create',
+      response: {
+        instructions: `Say exactly: "${exactClosingSentence}"`
+      }
+    }));
+  }
+}
+
 function createIntakeData(businessName: string, callSid: string, businessId: string, sessionId: string): IntakeData {
   return {
     stage: 'ask_name',
@@ -593,6 +743,39 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[AI ISSUE DESCRIPTION CAPTURED]', intake.issueDescription);
     } else {
       console.log('[AI ISSUE DESCRIPTION SKIPPED] Simple service request detected, not setting issueDescription');
+    }
+  }
+
+  // Extract callback time if not already captured
+  if (!intake.callbackTime) {
+    const callbackTimePatterns = [
+      'anytime tomorrow',
+      'tomorrow morning',
+      'tomorrow afternoon',
+      'tomorrow evening',
+      'this afternoon',
+      'this evening',
+      'this morning',
+      'after 5',
+      'before noon',
+      'before 5',
+      'after noon',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
+      'next week',
+      'today',
+      'asap'
+    ];
+    
+    const foundTime = callbackTimePatterns.find(pattern => lowerTranscript.includes(pattern));
+    if (foundTime) {
+      intake.callbackTime = foundTime.charAt(0).toUpperCase() + foundTime.slice(1);
+      console.log('[AI CALLBACK TIME CAPTURED]', intake.callbackTime);
     }
   }
 }
@@ -3747,101 +3930,64 @@ Do NOT:
                     console.log('[AI ISSUE DESCRIPTION ACCEPTED] Issue description is valid');
 
                     // Check if all required fields are collected
-                      const missingFields = getMissingRequiredFields(intakeData!);
-                      if (missingFields.length > 0) {
-                        console.log('[MISSING REQUIRED FIELDS]', { missingFields });
-                        console.log('[INTAKE INCOMPLETE] Cannot finalize - missing required fields');
+                    if (!areAllRequiredFieldsCollected(intakeData!)) {
+                      const nextMissing = getNextMissingField(intakeData!);
+                      console.log('[MISSING REQUIRED FIELDS]', { nextMissing });
+                      console.log('[INTAKE INCOMPLETE] Cannot finalize - missing required fields');
 
-                        // Ask for the next missing field
-                        const nextMissing = missingFields[0];
-                        const followUpResponse = getResponseForMissingField(nextMissing, intakeData!);
+                      // Ask for the next missing field
+                      const followUpResponse = getResponseForMissingField(nextMissing!, intakeData!);
 
-                        const followUpPayload = {
-                          type: 'response.create',
-                          response: {
-                            instructions: `Say exactly: "${followUpResponse.response}"`
-                          }
-                        };
-
-                        console.log('[AI RESPONSE.CREATE SEND SITE]', {
-                          label: 'MISSING_FIELD_FOLLOWUP',
-                          currentStage: intakeData?.stage || 'unknown',
-                          nextStage: 'not_applicable',
-                          intakeComplete: intakeComplete,
-                          instructions: `Say exactly: "${followUpResponse.response}"`.substring(0, 200)
-                        });
-
-                        if (openAiWs) {
-                          openAiWs.send(JSON.stringify(followUpPayload));
-                          console.log('[FOLLOW-UP SENT]', { field: nextMissing, message: followUpResponse.response });
-                        }
-                        return; // Skip normal intake processing
-                      }
-
-                      
-                      // Immediately enter terminal mode on confirmation acceptance
-                      console.log('[CONFIRMATION_ACCEPTED_TERMINAL_MODE_STARTED] =========================================');
-                      console.log('[CONFIRMATION_ACCEPTED_TERMINAL_MODE_STARTED] Terminal mode started on confirmation acceptance');
-                      console.log('[CONFIRMATION_ACCEPTED_TERMINAL_MODE_STARTED] Blocking all caller audio and preventing new responses');
-                      console.log('[CONFIRMATION_ACCEPTED_TERMINAL_MODE_STARTED] Timestamp:', new Date().toISOString());
-                      console.log('[CONFIRMATION_ACCEPTED_TERMINAL_MODE_STARTED] =========================================');
-
-                      closingState.intakeTerminalComplete = true;
-                      closingState.callState = 'closing';
-                      closingState.terminalClosingResponseStarted = true;
-                      closingState.finalClosingStarted = true;
-                      closingState.confirmationState = 'completed';
-
-                      // Sync individual variables for backward compatibility
-                      callState = closingState.callState;
-                      finalClosingStarted = closingState.finalClosingStarted;
-                      terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
-                      confirmationState = closingState.confirmationState;
-
-                      // Sync to twilioHandler
-                      (twilioHandler as any).closingState = closingState;
-                      (twilioHandler as any).callState = closingState.callState;
-                      (twilioHandler as any).finalClosingStarted = closingState.finalClosingStarted;
-                      (twilioHandler as any).terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
-                      (twilioHandler as any).intakeTerminalComplete = closingState.intakeTerminalComplete;
-
-                      // Generate and track authorized final response ID
-                      const authorizedFinalResponseId = `final_${Date.now()}`;
-                      (twilioHandler as any).authorizedFinalResponseId = authorizedFinalResponseId;
-
-                      // Send authorized final closing sentence
-                      const exactClosingSentence = "Perfect. I have everything I need. The team will follow up with you soon.";
-                      
-                      console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] =========================================');
-                      console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Creating authorized final response with exact closing sentence');
-                      console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Closing sentence:', exactClosingSentence);
-                      console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Response ID:', authorizedFinalResponseId);
-                      console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Timestamp:', new Date().toISOString());
-                      console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] =========================================');
-
-                      const finalClosingMessage = {
+                      const followUpPayload = {
                         type: 'response.create',
                         response: {
-                          instructions: `Say exactly: "${exactClosingSentence}"`
+                          instructions: `Say exactly: "${followUpResponse.response}"`
                         }
                       };
 
+                      console.log('[AI RESPONSE.CREATE SEND SITE]', {
+                        label: 'MISSING_FIELD_FOLLOWUP',
+                        currentStage: intakeData?.stage || 'unknown',
+                        nextStage: 'not_applicable',
+                        intakeComplete: intakeComplete,
+                        instructions: `Say exactly: "${followUpResponse.response}"`.substring(0, 200)
+                      });
+
                       if (openAiWs) {
-                        openAiWs.send(JSON.stringify(finalClosingMessage));
-                        console.log('[AI FINAL CLOSING SENTENCE SENT] Authorized final closing sentence sent to OpenAI');
+                        openAiWs.send(JSON.stringify(followUpPayload));
+                        console.log('[FOLLOW-UP SENT]', { field: nextMissing, message: followUpResponse.response });
                       }
+                      return; // Skip normal intake processing
+                    }
 
-                      // Start 15-second emergency hangup timer from terminal mode start
-                      console.log('[EMERGENCY_HANGUP_TIMER_STARTED] =========================================');
-                      console.log('[EMERGENCY_HANGUP_TIMER_STARTED] Starting 15-second emergency hangup timer from terminal mode start');
-                      console.log('[EMERGENCY_HANGUP_TIMER_STARTED] This ensures call terminates even if audio.done never fires');
-                      console.log('[EMERGENCY_HANGUP_TIMER_STARTED] Timestamp:', new Date().toISOString());
-                      console.log('[EMERGENCY_HANGUP_TIMER_STARTED] =========================================');
+                    // All fields collected - check if caller confirms
+                    if (isConfirmationAccepted(userTranscript)) {
+                      // Caller confirmed - enter terminal close
+                      closingState.confirmationState = 'confirmed';
+                      enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
+                    } else {
+                      // Caller response unclear - ask again
+                      const askAgainPayload = {
+                        type: 'response.create',
+                        response: {
+                          instructions: 'Say exactly: "Is that correct?"'
+                        }
+                      };
 
-                      // Emergency hangup timer removed - using hardStopTimer from startAuthoritativeFinalClose instead
-                      // The 15s emergency timer is started when terminal mode begins
+                      console.log('[AI RESPONSE.CREATE SEND SITE]', {
+                        label: 'CONFIRMATION_ASK_AGAIN',
+                        currentStage: intakeData?.stage || 'unknown',
+                        nextStage: 'confirmation',
+                        intakeComplete: intakeComplete,
+                        instructions: 'Say exactly: "Is that correct?"'
+                      });
 
-                      return; // Skip the normal intake processing
+                      if (openAiWs) {
+                        openAiWs.send(JSON.stringify(askAgainPayload));
+                        console.log('[CONFIRMATION_ASK_AGAIN] Asking caller to confirm again');
+                      }
+                    }
+                    return; // Skip normal intake processing
                   }
                   
                   // Get next intake response
