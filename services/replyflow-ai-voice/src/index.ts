@@ -3401,12 +3401,12 @@ YOU MUST collect ALL required fields before finalizing. Do not end the call earl
 YOU MUST collect all 7 required fields before finalizing. Do not end the call early.
 
 CALL ENDING SEQUENCE:
-Once you have collected ALL 7 required fields, provide a brief closing sentence:
-"Perfect. I'll pass this information along to the business and someone will follow up with you soon. Thank you for calling. Have a great day."
+Once you have collected ALL 7 required fields, the system will handle the call termination.
+DO NOT say "Thank you for calling" or any closing phrase on your own.
+Wait for the system to provide the final goodbye and end the call.
+Continue gathering information until the system takes over the closing sequence.
 
-Then end the call naturally. Do NOT ask for confirmation or summarize the information.
-
-CRITICAL: Do NOT summarize the collected information. Do NOT ask "Is that correct?". Just provide the closing sentence and end the call.
+CRITICAL: Do NOT summarize the collected information. Do NOT ask "Is that correct?". Do NOT say any closing phrases. Just continue gathering required information.
 
 AWKWARD LOOP PREVENTION:
 Do NOT ask:
@@ -3686,9 +3686,14 @@ Do NOT:
                   
                                     
                   // Check for goodbye phrases after final message
-                  if (callState === 'closing' || callState === 'closing_audio_playing') {
-                    console.log('[AI CLOSING IGNORE USER AUDIO] Ignoring caller audio during closing state');
-                    console.log('[AI CLOSING IGNORE USER AUDIO] callState:', callState);
+                  if (closingState.terminalClosingResponseStarted || closingState.finalClosingStarted) {
+                    console.log('[CALLER_AUDIO_IGNORED_DURING_TERMINAL_CLOSE] =========================================');
+                    console.log('[CALLER_AUDIO_IGNORED_DURING_TERMINAL_CLOSE] Ignoring caller audio during terminal close');
+                    console.log('[CALLER_AUDIO_IGNORED_DURING_TERMINAL_CLOSE] terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
+                    console.log('[CALLER_AUDIO_IGNORED_DURING_TERMINAL_CLOSE] finalClosingStarted:', closingState.finalClosingStarted);
+                    console.log('[CALLER_AUDIO_IGNORED_DURING_TERMINAL_CLOSE] callState:', closingState.callState);
+                    console.log('[CALLER_AUDIO_IGNORED_DURING_TERMINAL_CLOSE] Timestamp:', new Date().toISOString());
+                    console.log('[CALLER_AUDIO_IGNORED_DURING_TERMINAL_CLOSE] =========================================');
                     return; // Skip processing user audio during closing
                   }
                 } else {
@@ -3829,6 +3834,14 @@ Do NOT:
                       }
 
                       // Send final goodbye message immediately
+                      console.log('[AUTHORITATIVE_FINAL_GOODBYE_REQUESTED] =========================================');
+                      console.log('[AUTHORITATIVE_FINAL_GOODBYE_REQUESTED] Code explicitly creating final goodbye response');
+                      console.log('[AUTHORITATIVE_FINAL_GOODBYE_REQUESTED] Source: confirmation handler after user confirmation');
+                      console.log('[AUTHORITATIVE_FINAL_GOODBYE_REQUESTED] Timestamp:', new Date().toISOString());
+                      console.log('[AUTHORITATIVE_FINAL_GOODBYE_REQUESTED] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+                      console.log('[AUTHORITATIVE_FINAL_GOODBYE_REQUESTED] finalClosingStarted:', finalClosingStarted);
+                      console.log('[AUTHORITATIVE_FINAL_GOODBYE_REQUESTED] =========================================');
+
                       const finalClosingMessage = {
                         type: 'response.create',
                         response: {
@@ -4532,14 +4545,40 @@ Do NOT:
                     "thanks for calling"
                   ];
                   if (legacyGoodbyePhrases.some(phrase => cleanTranscript.toLowerCase().includes(phrase))) {
-                    console.log('[MODEL GENERATED LEGACY GOODBYE] =========================================');
-                    console.log('[MODEL GENERATED LEGACY GOODBYE] Model generated goodbye message instead of app');
-                    console.log('[MODEL GENERATED LEGACY GOODBYE]', {
+                    console.log('[MODEL GENERATED UNAUTHORIZED GOODBYE_DETECTED] =========================================');
+                    console.log('[MODEL GENERATED UNAUTHORIZED GOODBYE_DETECTED] Model generated goodbye message without terminalClosingResponseStarted');
+                    console.log('[MODEL GENERATED UNAUTHORIZED GOODBYE_DETECTED]', {
                       transcript: cleanTranscript,
-                      callState: callState,
+                      terminalClosingResponseStarted: closingState.terminalClosingResponseStarted,
+                      confirmationState: closingState.confirmationState,
+                      callState: closingState.callState,
                       matchedPhrases: legacyGoodbyePhrases.filter(p => cleanTranscript.toLowerCase().includes(p))
                     });
-                    console.log('[MODEL GENERATED LEGACY GOODBYE] =========================================');
+                    console.log('[MODEL GENERATED UNAUTHORIZED GOODBYE_DETECTED] =========================================');
+
+                    // Trigger recovery if terminalClosingResponseStarted is false
+                    if (!closingState.terminalClosingResponseStarted) {
+                      console.log('[TERMINAL_GOODBYE_RECOVERY_TRIGGERED] =========================================');
+                      console.log('[TERMINAL_GOODBYE_RECOVERY_TRIGGERED] Triggering startAuthoritativeFinalClose for unauthorized goodbye');
+                      console.log('[TERMINAL_GOODBYE_RECOVERY_TRIGGERED] Source: detected unauthorized goodbye in transcript');
+                      console.log('[TERMINAL_GOODBYE_RECOVERY_TRIGGERED] Timestamp:', new Date().toISOString());
+                      console.log('[TERMINAL_GOODBYE_RECOVERY_TRIGGERED] =========================================');
+
+                      const recoverySuccess = startAuthoritativeFinalClose(
+                        closingState,
+                        twilioHandler,
+                        'detected_terminal_goodbye_recovery at line 4535'
+                      );
+
+                      if (recoverySuccess) {
+                        // Sync individual variables from closingState
+                        finalClosingStarted = closingState.finalClosingStarted;
+                        terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
+                        confirmationState = closingState.confirmationState;
+                        callState = closingState.callState;
+                        console.log('[TERMINAL_GOODBYE_RECOVERY_TRIGGERED] Recovery successful, state synced');
+                      }
+                    }
                   }
                   
                   // Check for final closing phrase - do NOT schedule hangup here, wait for response.audio.done
