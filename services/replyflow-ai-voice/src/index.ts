@@ -1866,6 +1866,9 @@ wss.on('connection', (ws, req) => {
         // Schedule hangup after mark received with 3 second safety buffer
         // This ensures audio has actually finished playing to the caller
         if (finalClosingStarted && !hangupScheduled) {
+          console.log('[FINAL_MARK_RECEIVED_HANGUP_SCHEDULED] final-goodbye-complete mark received, scheduling hangup');
+          console.log('[FINAL_MARK_RECEIVED_HANGUP_SCHEDULED] Timestamp:', new Date().toISOString());
+          console.log('[FINAL_MARK_RECEIVED_HANGUP_SCHEDULED] Starting 3 second safety buffer after mark received');
           console.log('[HANGUP SOURCE] final-goodbye-complete mark received');
           console.log('[FINAL GOODBYE MARK BUFFER WAITING 3S] Starting 3 second safety buffer after mark received');
           console.log('[FINAL GOODBYE MARK BUFFER WAITING 3S] Timestamp:', new Date().toISOString());
@@ -3584,6 +3587,42 @@ Do NOT:
                       }
 
                       
+                      // Call authoritative final close BEFORE sending final goodbye response
+                      console.log('[FINAL_CLOSE_STARTED_BEFORE_RESPONSE_CREATE] Starting authoritative final close sequence');
+                      console.log('[FINAL_CLOSE_STARTED_BEFORE_RESPONSE_CREATE] Timestamp:', new Date().toISOString());
+                      console.log('[FINAL_CLOSE_STARTED_BEFORE_RESPONSE_CREATE] Current states:', {
+                        callState,
+                        finalClosingStarted,
+                        terminalClosingResponseStarted,
+                        confirmationState
+                      });
+
+                      const closeSuccess = startAuthoritativeFinalClose(
+                        { value: callState },
+                        { value: finalClosingStarted },
+                        { value: terminalClosingResponseStarted },
+                        { value: confirmationState },
+                        twilioHandler
+                      );
+
+                      if (closeSuccess) {
+                        // Update local variables from the function's changes
+                        finalClosingStarted = (twilioHandler as any).finalClosingStarted;
+                        terminalClosingResponseStarted = (twilioHandler as any).terminalClosingResponseStarted;
+                        confirmationState = (twilioHandler as any).confirmationState;
+                        callState = (twilioHandler as any).callState;
+
+                        console.log('[FINAL_CLOSE_STARTED_BEFORE_RESPONSE_CREATE] Authoritative final close completed successfully');
+                        console.log('[FINAL_CLOSE_STARTED_BEFORE_RESPONSE_CREATE] New states:', {
+                          callState,
+                          finalClosingStarted,
+                          terminalClosingResponseStarted,
+                          confirmationState
+                        });
+                      } else {
+                        console.log('[FINAL_CLOSE_STARTED_BEFORE_RESPONSE_CREATE] Authoritative final close failed');
+                      }
+
                       // Send final goodbye message immediately
                       const finalClosingMessage = {
                         type: 'response.create',
@@ -3591,6 +3630,11 @@ Do NOT:
                           instructions: `Say exactly: "Perfect. I'll pass this information along and someone will follow up with you soon. Thanks for calling."`
                         }
                       };
+
+                      console.log('[FINAL_GOODBYE_RESPONSE_CREATE] Creating final goodbye response');
+                      console.log('[FINAL_GOODBYE_RESPONSE_CREATE] Timestamp:', new Date().toISOString());
+                      console.log('[FINAL_GOODBYE_RESPONSE_CREATE] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+                      console.log('[FINAL_GOODBYE_RESPONSE_CREATE] finalClosingStarted:', finalClosingStarted);
 
                       console.log('[AI RESPONSE.CREATE SEND SITE]', {
                         label: 'FINAL_CLOSING',
@@ -3732,9 +3776,11 @@ Do NOT:
 
                 // Log when final goodbye audio delta is received
                 if (finalClosingStarted) {
-                  console.log('[FINAL GOODBYE AUDIO DELTA] Final goodbye audio delta received');
-                  console.log('[FINAL GOODBYE AUDIO DELTA] Timestamp:', new Date().toISOString());
-                  console.log('[FINAL GOODBYE AUDIO DELTA] callState:', callState);
+                  console.log('[FINAL_AUDIO_DELTA_ACCEPTED] Final goodbye audio delta received');
+                  console.log('[FINAL_AUDIO_DELTA_ACCEPTED] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+                  console.log('[FINAL_AUDIO_DELTA_ACCEPTED] callState:', callState);
+                  console.log('[FINAL_AUDIO_DELTA_ACCEPTED] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL_AUDIO_DELTA_ACCEPTED] callState transition to closing allowed');
                 }
 
                 // Clear dead air timeout since we received audio
@@ -3757,8 +3803,10 @@ Do NOT:
                 // Terminal closing detection - send mark after audio generation is complete
                 // Only send mark if this is after final closing has started
                 if (finalClosingStarted && !finalGoodbyeMarkSent) {
-                  console.log('[FINAL GOODBYE MARK SENDING] Sending final-goodbye-complete mark after audio.done');
-                  console.log('[FINAL GOODBYE MARK SENDING] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL_AUDIO_DONE_MARK_SENT] Sending final-goodbye-complete mark after audio.done');
+                  console.log('[FINAL_AUDIO_DONE_MARK_SENT] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL_AUDIO_DONE_MARK_SENT] finalClosingStarted:', finalClosingStarted);
+                  console.log('[FINAL_AUDIO_DONE_MARK_SENT] callState:', callState);
                   
                   finalGoodbyeMarkSent = true;
                   (twilioHandler as any).finalGoodbyeMarkSent = finalGoodbyeMarkSent;
