@@ -6,7 +6,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber } from '@/lib/utils'
 import { isReadyForForwardingSetup, hasActiveAccess, deriveSetupState } from '@/lib/subscription-utils'
-import { X, CheckCircle2, Copy, Phone, ArrowLeft } from 'lucide-react'
+import { X, CheckCircle2, Copy, Phone, ArrowLeft, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
@@ -52,6 +52,7 @@ export default function PhoneForwardingPage() {
   const [ctaHighlighted, setCtaHighlighted] = useState(false)
   const [forwardingCompleted, setForwardingCompleted] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [showHelpSection, setShowHelpSection] = useState(false)
 
   // Initialize business_phone_carrier from business data if available
   useEffect(() => {
@@ -315,7 +316,7 @@ export default function PhoneForwardingPage() {
               {/* Reassuring explanation */}
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6">
                 <p className="text-sm text-blue-800 dark:text-blue-200 text-center font-medium">
-                  ReplyFlow only answers calls you miss or decline. Your business phone will still ring normally first.
+                  Your business phone still rings first. ReplyFlow only answers calls you miss or decline.
                 </p>
               </div>
 
@@ -337,14 +338,17 @@ export default function PhoneForwardingPage() {
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-base font-semibold text-foreground">Your ReplyFlow Number</p>
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
-                    Replaces your voicemail
+                    Handles missed calls
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-3">
                   <p className="text-3xl font-mono font-bold text-foreground">
                     {formatPhoneNumber(business?.twilio_phone_number)}
                   </p>
                 </div>
+                <p className="text-sm text-muted-foreground">
+                  This is the number your missed calls are forwarded to. Customers continue calling your normal business number.
+                </p>
               </div>
 
               {/* Carrier Selection */}
@@ -435,7 +439,10 @@ export default function PhoneForwardingPage() {
                       )}
                       {selectedCarrier === 't-mobile' && (
                         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3">
-                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                          <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                            This code forwards unanswered calls after approximately 20 seconds. You can copy and paste it directly into your phone's dialer.
+                          </p>
+                          <p className="text-xs text-blue-700/80 dark:text-blue-300/80">
                             Some T-Mobile plans or devices may use different forwarding methods. Contact T-Mobile if this code doesn't work.
                           </p>
                         </div>
@@ -483,7 +490,7 @@ export default function PhoneForwardingPage() {
                     </div>
                   ) : (
                     <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm text-amber-700 dark:text-amber-300">
-                      Contact your carrier to learn how to forward unanswered calls to{' '}
+                      Search for your carrier's conditional call forwarding instructions, or contact your carrier and ask how to forward unanswered or missed calls to{' '}
                       <span className="font-mono font-semibold">{formatPhoneNumber(business?.twilio_phone_number)}</span>.
                     </div>
                   )}
@@ -516,6 +523,68 @@ export default function PhoneForwardingPage() {
                   </div>
                 </div>
               )}
+
+              {/* Collapsible Help Section */}
+              <div className="mt-6">
+                <button
+                  onClick={() => setShowHelpSection(!showHelpSection)}
+                  className="w-full flex items-center justify-between p-4 bg-muted/50 border border-border rounded-xl hover:bg-muted transition-colors"
+                >
+                  <span className="font-medium text-foreground">Need Help?</span>
+                  <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${showHelpSection ? 'rotate-180' : ''}`} />
+                </button>
+                {showHelpSection && (
+                  <div className="mt-3 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {/* Disable Forwarding */}
+                    <div className="bg-muted border border-border rounded-xl p-4">
+                      <p className="text-sm font-semibold text-foreground mb-3">Disable Call Forwarding</p>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        If you need to temporarily disable ReplyFlow, use your carrier's disable code:
+                      </p>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium text-foreground w-16">Verizon:</span>
+                          <code className="font-mono text-foreground">*73</code>
+                          <span className="text-muted-foreground">and press Call</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium text-foreground w-16">AT&T:</span>
+                          <code className="font-mono text-foreground">*93</code>
+                          <span className="text-muted-foreground">and press Call</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium text-foreground w-16">T-Mobile:</span>
+                          <code className="font-mono text-foreground">##61#</code>
+                          <span className="text-muted-foreground">and press Call</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          <span className="font-medium text-foreground">Other:</span> Contact your carrier to remove conditional call forwarding
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Re-enable Forwarding */}
+                    <div className="bg-muted border border-border rounded-xl p-4">
+                      <p className="text-sm font-semibold text-foreground mb-2">Re-enable Call Forwarding</p>
+                      <p className="text-sm text-muted-foreground">
+                        To restore ReplyFlow, revisit this page and re-enter your carrier's forwarding code shown above.
+                      </p>
+                    </div>
+
+                    {/* Common Issues */}
+                    <div className="bg-muted border border-border rounded-xl p-4">
+                      <p className="text-sm font-semibold text-foreground mb-3">Common Issues</p>
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        <li>• <span className="text-foreground font-medium">Calls not forwarding:</span> Verify the code was entered correctly and restart your phone</li>
+                        <li>• <span className="text-foreground font-medium">After switching carriers:</span> Re-enter the new carrier's forwarding code</li>
+                        <li>• <span className="text-foreground font-medium">After changing phones:</span> Forwarding settings may need to be re-enabled on the new device</li>
+                        <li>• <span className="text-foreground font-medium">After making changes:</span> Use "Verify Again" to confirm everything is working</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {showSuccess && (
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6 mb-6 mt-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="flex items-center gap-3">
@@ -574,26 +643,29 @@ export default function PhoneForwardingPage() {
                       <div className="flex items-center gap-3 mb-4">
                         <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
                         <p className="font-semibold text-green-700 dark:text-green-300 text-base">
-                          Last successfully verified
+                          Forwarding Verified
                         </p>
                       </div>
                       <div className="mb-4">
                         <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-1">
-                          Last verified:
+                          Verified on:
                         </p>
                         <p className="text-sm text-green-600/90 dark:text-green-400/90">
                           {new Date(business.phone_setup_completed_at).toLocaleDateString()} at {new Date(business.phone_setup_completed_at).toLocaleTimeString()}
                         </p>
                       </div>
-                      <p className="text-sm text-green-600/80 dark:text-green-400/80 mb-4">
+                      <p className="text-sm text-green-600/80 dark:text-green-400/80 mb-3">
                         ReplyFlow successfully verified your forwarding setup during testing. If you change your carrier settings later, run another test call to confirm everything is still working.
+                      </p>
+                      <p className="text-xs text-green-600/60 dark:text-green-400/60 mb-4">
+                        You only need to verify again if you change your forwarding settings, switch carriers, or experience issues.
                       </p>
                       <Link
                         href="/dashboard/test-setup"
                         className="inline-flex items-center justify-center gap-2 w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition-all"
                       >
                         <Phone className="w-4 h-4" />
-                        Run Test Call
+                        Verify Again
                       </Link>
                     </div>
                   ) : (
@@ -615,16 +687,6 @@ export default function PhoneForwardingPage() {
                   )}
                 </div>
               )}
-            </div>
-
-            {/* Finish later / Back to Dashboard link */}
-            <div className="text-center">
-              <Link
-                href="/dashboard"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {isReviewMode ? 'Back to Dashboard' : 'Finish later'}
-              </Link>
             </div>
           </div>
         </div>

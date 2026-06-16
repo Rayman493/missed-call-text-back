@@ -4,9 +4,10 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { Business } from '@/lib/types'
 import { hasActiveSubscription, deriveSetupState } from '@/lib/subscription-utils'
-import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Settings, Loader2 } from 'lucide-react'
+import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Settings, Loader2, HelpCircle, X } from 'lucide-react'
 import { formatPhoneNumber } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
+import HelpTroubleshootingModal from '@/components/HelpTroubleshootingModal'
 
 interface SetupStatusCardProps {
   business: Business | null
@@ -36,6 +37,7 @@ export default function SetupStatusCard({
   const [isOpeningBilling, setIsOpeningBilling] = useState(false)
   const [billingError, setBillingError] = useState<string | null>(null)
   const [successDismissed, setSuccessDismissed] = useState(false)
+  const [showHelpModal, setShowHelpModal] = useState(false)
   const { user } = useAuth()
   const setupState = deriveSetupState(business)
   const hasSubscription = hasActiveSubscription(business)
@@ -522,7 +524,7 @@ export default function SetupStatusCard({
             </div>
           </div>
           <p className="text-blue-200 text-xs mt-3 pt-3 border-t border-white/10">
-            Your existing business phone number stays the same. You'll simply forward missed calls to your ReplyFlow number.
+            Your business phone number stays the same. ReplyFlow simply receives your forwarded missed calls and automatically texts customers back.
           </p>
         </div>
 
@@ -558,12 +560,25 @@ export default function SetupStatusCard({
                 className="inline-flex items-center justify-center px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 <Settings className="w-4 h-4 mr-2" />
-                View Forwarding Instructions
+                Review Forwarding Setup
               </Link>
+              <button
+                onClick={() => setShowHelpModal(true)}
+                className="inline-flex items-center justify-center px-4 py-2 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <HelpCircle className="w-4 h-4 mr-2" />
+                Help & Troubleshooting
+              </button>
             </div>
           </div>
         )}
       </div>
+
+      <HelpTroubleshootingModal
+        isOpen={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
+        twilioPhoneNumber={business?.twilio_phone_number}
+      />
     </div>
   )
 }
