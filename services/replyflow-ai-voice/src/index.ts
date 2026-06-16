@@ -246,7 +246,7 @@ function generateConfirmationMessage(intake: IntakeData): string {
   });
 
   // Generate summary WITHOUT the confirmation question
-  const summary = `Let me make sure I have everything right. Your name is ${name}. You're calling about ${service}. The additional details are ${issue}. The urgency is ${urgency}. The address is ${location}. The best callback time is ${callbackTime}. The best callback number is ${callbackNumber}.`;
+  const summary = `Let me make sure I have everything right. Your name is ${name}. You're calling about ${service}. The additional details are ${issue}. The urgency is ${urgency}. The location is ${location}. The best callback time is ${callbackTime}. The best callback number is ${callbackNumber}.`;
 
   console.log('[SUMMARY GENERATED]', { summary });
   return summary;
@@ -315,9 +315,9 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
           nextStage: 'ask_callback_time'
         };
       }
-      // Ask for address again if not captured
+      // Ask for location with flexible wording
       return {
-        response: 'What is the service address or location?',
+        response: 'Where would this take place — for example at your address, at the business, or online?',
         nextStage: 'ask_address'
       };
 
@@ -444,6 +444,38 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
     }
   }
 
+  // Extract location/service address if not already captured (accept flexible responses)
+  if (!intake.serviceAddress) {
+    // Check for online/virtual/remote responses
+    const onlineKeywords = ['online', 'virtual', 'remote', 'zoom', 'google meet', 'discord', 'over the phone', 'phone'];
+    const hasOnlineKeyword = onlineKeywords.some(keyword => lowerTranscript.includes(keyword));
+    if (hasOnlineKeyword) {
+      intake.serviceAddress = 'Online';
+      console.log('[AI LOCATION CAPTURED]', intake.serviceAddress);
+    } else {
+      // Check for business location responses
+      const businessLocationKeywords = ['at your business', 'at your shop', 'at your office', 'at your place', 'your business', 'your shop', 'your office', "i'll come to you", 'come to you'];
+      const hasBusinessLocationKeyword = businessLocationKeywords.some(keyword => lowerTranscript.includes(keyword));
+      if (hasBusinessLocationKeyword) {
+        intake.serviceAddress = 'At business location';
+        console.log('[AI LOCATION CAPTURED]', intake.serviceAddress);
+      } else {
+        // Check for residential responses
+        const residentialKeywords = ['at my house', 'my house', 'my home', 'at my home', 'my place'];
+        const hasResidentialKeyword = residentialKeywords.some(keyword => lowerTranscript.includes(keyword));
+        if (hasResidentialKeyword) {
+          intake.serviceAddress = 'At caller\'s residence';
+          console.log('[AI LOCATION CAPTURED]', intake.serviceAddress);
+        } else if (transcript.trim().length > 5) {
+          // If transcript contains location-like content, preserve it as-is
+          // This captures city names, neighborhoods, or specific addresses
+          intake.serviceAddress = transcript.trim();
+          console.log('[AI LOCATION CAPTURED]', intake.serviceAddress);
+        }
+      }
+    }
+  }
+
   // Only set issue description if transcript has substantial detail beyond service category
   if (!intake.issueDescription && transcript.trim().length > 20) {
     // Check if this is just a simple service request (don't set issueDescription)
@@ -536,7 +568,7 @@ function getResponseForMissingField(missingField: string, intake: IntakeData): {
       };
     case 'service address':
       return {
-        response: 'What is the service address or location?',
+        response: 'Where would this take place — for example at your address, at the business, or online?',
         nextStage: 'ask_callback_time'
       };
     case 'callback time':
@@ -3155,7 +3187,7 @@ INFORMATION GATHERING PRIORITY ORDER:
 2. Caller name (for personalization)
 3. Additional details about the issue or project
 4. Whether it is urgent or time-sensitive
-5. Address or service location (where the work is needed)
+5. Location or where this would take place (accept flexible responses)
 6. Best time to call back
 7. Best callback number
 
@@ -3165,7 +3197,7 @@ YOU MUST collect ALL required fields before finalizing. Do not end the call earl
 - Caller name (required)
 - Additional details about the issue or project (required)
 - Whether it is urgent or time-sensitive (required)
-- Address or service location (required - if caller declines, mark as "Not provided")
+- Location or where this would take place (required - accept flexible responses like online, virtual, at your business, at my house, city name, etc.)
 - Best time to call back (required - if caller says anytime/no preference, mark as "Anytime")
 - Best callback number (required - even if caller ID exists, ask: "Is this the best number to reach you at, or is there another number?")
 
@@ -3207,7 +3239,7 @@ BEHAVIOR REQUIREMENTS:
 IMPORTANT GUIDELINES:
 - If the caller already provided information, do not ask for it again
 - Even if caller ID exists, still ask: "Is this the best number to reach you at, or is there another number?"
-- Address is always required for service businesses; if declined, store "Not provided"
+- Location/where this would take place is always required. Ask: "Where would this take place — for example at your address, at the business, or online?" Accept flexible responses like online, virtual, remote, Zoom, Google Meet, at your business/shop/office, at my house, city name, or specific street address
 - Urgency is always required; ask "Is this urgent or time-sensitive?"
 - Best callback time is always required; "anytime" is valid
 - Additional details about the issue or project is always required
