@@ -1579,7 +1579,7 @@ export default function SettingsContent() {
                           {!getAutomationSettings().spamRepeatFilteringEnabled && !formBusiness.business_hours_enabled && (
                             <div className="flex items-center gap-2">
                               <span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0"></span>
-                              <span>Automation turned off - enable settings above to respond to missed calls</span>
+                              <span>Respond to missed calls - enable settings above to activate automation</span>
                             </div>
                           )}
                         </div>

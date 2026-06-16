@@ -52,10 +52,10 @@ export default function DashboardEmptyState() {
 
       {/* Empty State Message */}
       <h2 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-2 text-center">
-        Recovered leads will appear here
+        You're ready to start recovering leads
       </h2>
       <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-6 max-w-md">
-        Your missed calls and customer conversations will appear here after your first missed call.
+        Your first missed call will appear here automatically.
       </p>
 
       {/* SMS Status */}
@@ -101,13 +101,13 @@ export default function DashboardEmptyState() {
         >
           <div className="bg-card rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto" tabIndex={-1}>
             <h2 id="test-modal-title" className="text-xl font-bold text-foreground mb-4">
-              Test Real Missed Calls
+              Test Your Setup
             </h2>
             
             {/* Introductory helper text */}
             <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <p className="text-sm text-green-800 dark:text-green-200 leading-relaxed">
-                You've already experienced ReplyFlow demo. This optional test verifies that real missed calls forward correctly.
+                This test verifies that real missed calls forward correctly.
               </p>
             </div>
 
@@ -150,7 +150,7 @@ export default function DashboardEmptyState() {
                   <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">3</span>
                 </div>
                 <p className="leading-relaxed">
-                  Your missed call should forward to ReplyFlow.
+                  Your missed call will forward to ReplyFlow.
                 </p>
               </div>
               <div className="flex items-start gap-3">
@@ -158,7 +158,7 @@ export default function DashboardEmptyState() {
                   <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">4</span>
                 </div>
                 <p className="leading-relaxed">
-                  ReplyFlow should automatically text the caller.
+                  ReplyFlow will automatically text the caller.
                 </p>
               </div>
               <div className="flex items-start gap-3">
@@ -174,7 +174,7 @@ export default function DashboardEmptyState() {
             {/* Fallback Guidance */}
             <div className="bg-muted rounded-lg p-4 mb-6">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                <strong>No pressure:</strong> If you haven't enabled forwarding yet, you can continue using ReplyFlow and configure forwarding later.
+                <strong>Note:</strong> If you haven't enabled forwarding yet, you can configure it later.
               </p>
             </div>
 
