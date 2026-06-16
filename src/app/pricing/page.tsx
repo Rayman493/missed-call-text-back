@@ -148,6 +148,9 @@ export default function PricingPage() {
                   >
                     Start Your 14-Day Free Trial
                   </Link>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-2">
+                    Cancel anytime during your 14-day free trial.
+                  </p>
                   <Link
                     href="/"
                     className="w-full flex items-center justify-center px-6 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200"
