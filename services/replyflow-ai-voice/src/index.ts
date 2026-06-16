@@ -166,6 +166,7 @@ interface IntakeData {
   serviceRequested?: string;
   issueDescription?: string;
   serviceAddress?: string;
+  locationType?: 'service_address' | 'business_location' | 'caller_location' | 'online';
   callbackTime?: string;
   urgency?: 'urgent' | 'normal' | 'not_specified';
   callbackNumber?: string;
@@ -190,6 +191,62 @@ interface LeadSummary {
   businessName: string;
 }
 
+// Service location categories
+type ServiceLocationCategory = 'onsite' | 'flexible' | 'virtual';
+
+// Classify service request into location category based on service keywords
+function getServiceLocationCategory(serviceRequested: string): ServiceLocationCategory {
+  if (!serviceRequested) return 'flexible';
+
+  const serviceLower = serviceRequested.toLowerCase();
+
+  // Category A: On-site services - always require physical presence
+  const onsiteKeywords = [
+    'lawn', 'grass', 'mow', 'landscap', 'pressure wash', 'roof', 'hvac', 'heating', 'cooling',
+    'plumb', 'electrical', 'electric', 'clean', 'pest control', 'paint', 'handyman',
+    'carpentry', 'floor', 'tile', 'window', 'gutter', 'insulation', 'concrete', 'paving',
+    'tree', 'hedge', 'snow', 'junk', 'trash', 'move', 'organize', 'declutter'
+  ];
+
+  // Category C: Usually virtual - typically done online/remote
+  const virtualKeywords = [
+    'gaming', 'consult', 'market', 'resume', 'review', 'seo', 'web design', 'graphic design',
+    'social media', 'data entry', 'transcription', 'translation', 'writing', 'editing',
+    'bookkeeping', 'accounting', 'tax', 'financial planning', 'legal advice', 'coaching'
+  ];
+
+  // Check for on-site keywords first (most specific)
+  for (const keyword of onsiteKeywords) {
+    if (serviceLower.includes(keyword)) {
+      return 'onsite';
+    }
+  }
+
+  // Check for virtual keywords
+  for (const keyword of virtualKeywords) {
+    if (serviceLower.includes(keyword)) {
+      return 'virtual';
+    }
+  }
+
+  // Default to flexible for everything else
+  return 'flexible';
+}
+
+// Get appropriate location prompt based on service category
+function getLocationPrompt(category: ServiceLocationCategory): string {
+  switch (category) {
+    case 'onsite':
+      return 'What is the service address?';
+    case 'flexible':
+      return 'Where would this take place — at your address, at the business, or online?';
+    case 'virtual':
+      return 'Will this take place online or at a specific location?';
+    default:
+      return 'Where would this take place — at your address, at the business, or online?';
+  }
+}
+
 // Intake state machine functions
 function getMissingRequiredFields(intake: IntakeData): string[] {
   const missing: string[] = [];
@@ -197,7 +254,17 @@ function getMissingRequiredFields(intake: IntakeData): string[] {
   if (!intake.serviceRequested) missing.push('service requested');
   if (!intake.issueDescription) missing.push('issue description');
   if (!intake.urgency) missing.push('urgency');
-  if (!intake.serviceAddress) missing.push('service address');
+  
+  // Location validation: accept flexible responses based on location type
+  // For service_address type, require actual address
+  // For business_location, caller_location, and online types, simple values are acceptable
+  if (!intake.serviceAddress) {
+    missing.push('service address');
+  } else if (intake.locationType === 'service_address' && intake.serviceAddress.length < 5) {
+    // If location type is service_address but the value is too short, consider it missing
+    missing.push('service address');
+  }
+  
   if (!intake.callbackTime) missing.push('callback time');
   if (!intake.callbackNumber) missing.push('callback number');
   return missing;
@@ -315,9 +382,11 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
           nextStage: 'ask_callback_time'
         };
       }
-      // Ask for location with flexible wording
+      // Ask for location with context-aware prompt based on service category
+      const category = getServiceLocationCategory(intake.serviceRequested || '');
+      const prompt = getLocationPrompt(category);
       return {
-        response: 'Where would this take place — for example at your address, at the business, or online?',
+        response: prompt,
         nextStage: 'ask_address'
       };
 
@@ -451,26 +520,30 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
     const hasOnlineKeyword = onlineKeywords.some(keyword => lowerTranscript.includes(keyword));
     if (hasOnlineKeyword) {
       intake.serviceAddress = 'Online';
-      console.log('[AI LOCATION CAPTURED]', intake.serviceAddress);
+      intake.locationType = 'online';
+      console.log('[AI LOCATION CAPTURED]', intake.serviceAddress, 'locationType:', intake.locationType);
     } else {
       // Check for business location responses
       const businessLocationKeywords = ['at your business', 'at your shop', 'at your office', 'at your place', 'your business', 'your shop', 'your office', "i'll come to you", 'come to you'];
       const hasBusinessLocationKeyword = businessLocationKeywords.some(keyword => lowerTranscript.includes(keyword));
       if (hasBusinessLocationKeyword) {
         intake.serviceAddress = 'At business location';
-        console.log('[AI LOCATION CAPTURED]', intake.serviceAddress);
+        intake.locationType = 'business_location';
+        console.log('[AI LOCATION CAPTURED]', intake.serviceAddress, 'locationType:', intake.locationType);
       } else {
         // Check for residential responses
         const residentialKeywords = ['at my house', 'my house', 'my home', 'at my home', 'my place'];
         const hasResidentialKeyword = residentialKeywords.some(keyword => lowerTranscript.includes(keyword));
         if (hasResidentialKeyword) {
           intake.serviceAddress = 'At caller\'s residence';
-          console.log('[AI LOCATION CAPTURED]', intake.serviceAddress);
+          intake.locationType = 'caller_location';
+          console.log('[AI LOCATION CAPTURED]', intake.serviceAddress, 'locationType:', intake.locationType);
         } else if (transcript.trim().length > 5) {
           // If transcript contains location-like content, preserve it as-is
           // This captures city names, neighborhoods, or specific addresses
           intake.serviceAddress = transcript.trim();
-          console.log('[AI LOCATION CAPTURED]', intake.serviceAddress);
+          intake.locationType = 'service_address';
+          console.log('[AI LOCATION CAPTURED]', intake.serviceAddress, 'locationType:', intake.locationType);
         }
       }
     }
@@ -3307,7 +3380,7 @@ INFORMATION GATHERING PRIORITY ORDER:
 2. Caller name (for personalization)
 3. Additional details about the issue or project
 4. Whether it is urgent or time-sensitive
-5. Location or where this would take place (accept flexible responses)
+5. Location or where this would take place (accept flexible responses based on service type)
 6. Best time to call back
 7. Best callback number
 
@@ -3317,7 +3390,11 @@ YOU MUST collect ALL required fields before finalizing. Do not end the call earl
 - Caller name (required)
 - Additional details about the issue or project (required)
 - Whether it is urgent or time-sensitive (required)
-- Location or where this would take place (required - accept flexible responses like online, virtual, at your business, at my house, city name, etc.)
+- Location or where this would take place (required - context-aware based on service type)
+  * For on-site services (lawn care, landscaping, pressure washing, roofing, HVAC, plumbing, electrical, cleaning, pest control, painting, etc.): ask "What is the service address?"
+  * For flexible services (dog training, tutoring, music lessons, coaching, photography, etc.): ask "Where would this take place — at your address, at the business, or online?"
+  * For virtual services (gaming coaching, consulting, marketing help, resume review, etc.): ask "Will this take place online or at a specific location?"
+  * Accept flexible responses like online, virtual, remote, Zoom, Google Meet, at your business/shop/office, at my house, city name, or specific street address
 - Best time to call back (required - if caller says anytime/no preference, mark as "Anytime")
 - Best callback number (required - even if caller ID exists, ask: "Is this the best number to reach you at, or is there another number?")
 
