@@ -1098,7 +1098,15 @@ export default function SettingsContent() {
                       
                       {!phoneCooldown?.inCooldown && (
                         <p className="text-xs text-slate-600 dark:text-slate-400">
-                          Changing your business phone number requires updating your call forwarding settings. After saving, ReplyFlow will guide you through re-verifying forwarding so missed calls continue to be captured.
+                          {business?.forwarding_verified ? (
+                            <>
+                              Your forwarding settings are verified. No action needed unless you change carriers or forwarding settings.
+                            </>
+                          ) : (
+                            <>
+                              Changing your business phone number requires updating your call forwarding settings. After saving, ReplyFlow will guide you through re-verifying forwarding so missed calls continue to be captured.
+                            </>
+                          )}
                         </p>
                       )}
                       

@@ -344,7 +344,7 @@ export default function SetupStatusCard({
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-base sm:text-lg font-semibold text-white">ReplyFlow Active</h3>
-              <p className="text-green-100 text-sm">All systems operational</p>
+              <p className="text-green-100 text-sm">All systems operational. No action needed.</p>
             </div>
           </div>
           <button
