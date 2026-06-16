@@ -416,19 +416,19 @@ export default function SettingsContent() {
 
       if (error) {
         console.error('Password update error:', error)
-        setPasswordError('Failed to update password. Please try again.')
+        setPasswordError('Failed to update password')
         return
       }
 
       // Success
-      showToast('Password updated successfully.', 'success')
+      showToast('Password updated successfully', 'success')
       setShowChangePasswordModal(false)
       setNewPassword('')
       setConfirmNewPassword('')
       setPasswordError('')
     } catch (err) {
       console.error('Password update error:', err)
-      setPasswordError('An unexpected error occurred. Please try again.')
+      setPasswordError('An unexpected error occurred')
     } finally {
       setIsChangingPassword(false)
     }
@@ -596,7 +596,7 @@ export default function SettingsContent() {
                 year: 'numeric'
               })
             : '7 days from now'
-          setPhoneChangeError(`This number was recently changed. You can update it again on ${nextDate}. Need to switch sooner? Contact support.`)
+          setPhoneChangeError(`This number was recently changed. You can update it again on ${nextDate}. Contact support if you need to switch sooner.`)
         } else {
           setPhoneChangeError(data.error || 'Failed to update phone number')
         }
@@ -604,7 +604,7 @@ export default function SettingsContent() {
       }
 
       // Success
-      showToast('Business phone number updated. Please review your call forwarding settings to continue capturing missed calls.', 'success')
+      showToast('Phone number updated successfully', 'success')
       setShowPhoneChangeModal(false)
       setNewPhoneNumber('')
       refreshBusiness()

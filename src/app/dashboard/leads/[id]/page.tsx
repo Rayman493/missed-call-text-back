@@ -1216,7 +1216,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           error_message: 'Network error occurred'
         }))
       }
-      setError('Failed to send message. Please try again.')
+      setError('Failed to send message')
     } finally {
       setSending(false)
     }

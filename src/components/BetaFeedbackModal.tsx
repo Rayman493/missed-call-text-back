@@ -57,7 +57,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
         onClose()
       }, 2000)
     } catch (err: any) {
-      setError(err.message || 'Failed to submit feedback. Please try again.')
+      setError(err.message || 'Failed to submit feedback')
     } finally {
       setIsSubmitting(false)
     }

@@ -88,7 +88,7 @@ export default function CalendarPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'We couldn\'t add this event. Please try again.')
+        throw new Error(errorData.error || 'Failed to add event')
       }
 
       const data = await response.json()
@@ -98,7 +98,7 @@ export default function CalendarPage() {
       await fetchEvents()
     } catch (error) {
       console.error('Failed to create event:', error)
-      showToast('We couldn\'t add this event. Please try again.', 'error')
+      showToast('Failed to add event', 'error')
       throw error
     }
   }
@@ -134,7 +134,7 @@ export default function CalendarPage() {
       window.location.href = data.authUrl
     } catch (error) {
       console.error('Failed to connect calendar:', error)
-      showToast('Failed to connect Google Calendar. Please try again.', 'error')
+      showToast('Failed to connect calendar', 'error')
       setIsConnecting(false)
     }
   }
