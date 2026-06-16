@@ -1277,9 +1277,9 @@ if (!OPENAI_API_KEY) {
 console.log('='.repeat(80));
 console.log('[SERVICE STARTUP] ========================================');
 console.log('[SERVICE STARTUP] ReplyFlow AI Voice Service');
-console.log('[SERVICE STARTUP] Commit: ad84f7f9');
+console.log('[SERVICE STARTUP] Commit: e26bfd33');
 console.log('[SERVICE STARTUP] Deployment Timestamp:', new Date().toISOString());
-console.log('[SERVICE STARTUP] Closing Strategy: mark-based-v2-no-audio-buffer');
+console.log('[SERVICE STARTUP] Closing Strategy: mark-based-v3-with-hard-stop');
 console.log('[SERVICE STARTUP] Node Version:', process.version);
 console.log('[SERVICE STARTUP] ========================================');
 console.log('='.repeat(80));
@@ -1629,6 +1629,7 @@ function startAuthoritativeFinalClose(
   finalClosingStartedRef: { value: boolean },
   terminalClosingResponseStartedRef: { value: boolean },
   confirmationStateRef: { value: string },
+  hardStopExecutedRef: { value: boolean },
   twilioHandler: any
 ) {
   console.log('[AUTHORITATIVE FINAL CLOSE] Starting authoritative final close sequence');
@@ -1661,6 +1662,53 @@ function startAuthoritativeFinalClose(
   (twilioHandler as any).finalClosingStarted = finalClosingStartedRef.value;
 
   console.log('[AUTHORITATIVE FINAL CLOSE] Step 4: callState -> closing (will be set when audio starts)');
+
+  // Start absolute hard-stop timer (10 seconds)
+  // This ensures call terminates even if all other mechanisms fail
+  const hardStopTimerRef = (twilioHandler as any).hardStopTimer;
+  if (!hardStopExecutedRef.value) {
+    console.log('[FINAL_CLOSING_HARD_STOP_TIMER_STARTED] Starting 10 second absolute hard-stop timer');
+    console.log('[FINAL_CLOSING_HARD_STOP_TIMER_STARTED] Timestamp:', new Date().toISOString());
+    console.log('[FINAL_CLOSING_HARD_STOP_TIMER_STARTED] This ensures call terminates even if all other mechanisms fail');
+
+    const wsRef = (twilioHandler as any).wsRef;
+    const callStateRef = (twilioHandler as any).callStateRef;
+
+    (twilioHandler as any).hardStopTimer = setTimeout(async () => {
+      const currentCallState = callStateRef?.value || 'active';
+      const currentHardStopExecuted = hardStopExecutedRef?.value || false;
+
+      console.log('[FINAL_CLOSING_HARD_STOP_EXECUTED] Hard-stop timer fired');
+      console.log('[FINAL_CLOSING_HARD_STOP_EXECUTED] Timestamp:', new Date().toISOString());
+      console.log('[FINAL_CLOSING_HARD_STOP_EXECUTED] Current callState:', currentCallState);
+      console.log('[FINAL_CLOSING_HARD_STOP_EXECUTED] hardStopExecuted:', currentHardStopExecuted);
+
+      if (currentCallState !== 'closed' && !currentHardStopExecuted) {
+        console.log('[FINAL_CLOSING_HARD_STOP_EXECUTED] Call not closed, executing endCallCleanly directly');
+        console.log('[FINAL_CLOSING_HARD_STOP_EXECUTED] Reason: 10 second hard-stop timer expired');
+
+        if (hardStopExecutedRef) {
+          hardStopExecutedRef.value = true;
+        }
+
+        try {
+          await endCallCleanly(wsRef, twilioHandler);
+          console.log('[FINAL_CLOSING_HARD_STOP_COMPLETE] Call terminated successfully via hard-stop');
+          console.log('[FINAL_CLOSING_HARD_STOP_COMPLETE] Timestamp:', new Date().toISOString());
+          if (callStateRef) {
+            callStateRef.value = 'closed';
+          }
+        } catch (error) {
+          console.log('[FINAL_CLOSING_HARD_STOP_FAILED] Error during hard-stop hangup:', error);
+          console.log('[FINAL_CLOSING_HARD_STOP_FAILED] Error details:', error instanceof Error ? error.message : String(error));
+        }
+      } else {
+        console.log('[FINAL_CLOSING_HARD_STOP_SKIPPED] Hard-stop not needed because:');
+        console.log('[FINAL_CLOSING_HARD_STOP_SKIPPED] callState:', currentCallState);
+        console.log('[FINAL_CLOSING_HARD_STOP_SKIPPED] hardStopExecuted:', currentHardStopExecuted);
+      }
+    }, 10000); // 10 second hard-stop
+  }
   // Note: callState will be set to 'closing' when the actual audio delta starts
   // This prevents blocking audio before it's ready
 
@@ -1823,6 +1871,8 @@ wss.on('connection', (ws, req) => {
     let finalAudioFallbackStarted = false; // Track if fallback timer has been started
     let directHangupFallbackTimer: NodeJS.Timeout | null = null; // Direct hangup fallback timer
     let directHangupFallbackExecuted = false; // Track if direct hangup fallback has been executed
+    let hardStopTimer: NodeJS.Timeout | null = null; // Absolute hard-stop timer
+    let hardStopExecuted = false; // Track if hard-stop has been executed
 
     // Confirmation flow state
     type ConfirmationState = 'not_started' | 'collecting_info' | 'confirmation_sent' | 'confirmed' | 'completed';
@@ -1866,6 +1916,14 @@ wss.on('connection', (ws, req) => {
         
         finalGoodbyeMarkReceived = true;
         (twilioHandler as any).finalGoodbyeMarkReceived = finalGoodbyeMarkReceived;
+
+        // Clear hard-stop timer since normal hangup path is working
+        const hardStopTimer = (twilioHandler as any).hardStopTimer;
+        if (hardStopTimer) {
+          clearTimeout(hardStopTimer);
+          (twilioHandler as any).hardStopTimer = null;
+          console.log('[FINAL_CLOSING_HARD_STOP_CLEARED] Hard-stop timer cleared since normal hangup path is working');
+        }
 
         // Clear direct hangup fallback timer since mark was received
         if (directHangupFallbackTimer) {
@@ -3613,8 +3671,14 @@ Do NOT:
                         { value: finalClosingStarted },
                         { value: terminalClosingResponseStarted },
                         { value: confirmationState },
+                        { value: hardStopExecuted },
                         twilioHandler
                       );
+
+                      // Store references for hard-stop timer
+                      (twilioHandler as any).wsRef = ws;
+                      (twilioHandler as any).callStateRef = { value: callState };
+                      (twilioHandler as any).hardStopExecutedRef = { value: hardStopExecuted };
 
                       if (closeSuccess) {
                         // Update local variables from the function's changes
@@ -4176,8 +4240,14 @@ Do NOT:
                     { value: finalClosingStarted },
                     { value: terminalClosingResponseStarted },
                     { value: confirmationState },
+                    { value: hardStopExecuted },
                     twilioHandler
                   );
+
+                  // Store references for hard-stop timer
+                  (twilioHandler as any).wsRef = ws;
+                  (twilioHandler as any).callStateRef = { value: callState };
+                  (twilioHandler as any).hardStopExecutedRef = { value: hardStopExecuted };
                   
                   if (closeSuccess) {
                     // Update local variables from the function's changes
