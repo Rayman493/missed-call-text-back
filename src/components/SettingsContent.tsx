@@ -300,6 +300,10 @@ export default function SettingsContent() {
 
   // Remove ignored contact
   const removeIgnoredContact = async (contactId: string) => {
+    if (!confirm('Remove this contact from your ignore list? This will allow ReplyFlow to capture missed calls from this number again.')) {
+      return
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -493,6 +497,10 @@ export default function SettingsContent() {
   }
 
   const handleDisconnectCalendar = async () => {
+    if (!confirm('Disconnect Google Calendar? This will stop syncing your calendar events with ReplyFlow.')) {
+      return
+    }
+
     setIsDisconnectingCalendar(true)
     try {
       const response = await fetch('/api/google/calendar/disconnect', {
