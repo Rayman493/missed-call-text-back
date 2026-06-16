@@ -331,6 +331,32 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
   const missingFields = getMissingRequiredFields(intake);
   console.log('[AI INTAKE] Missing fields:', missingFields);
 
+  // Detect courtesy phrases during required intake stages and redirect to re-ask missing field
+  if (transcript && missingFields.length > 0) {
+    const lowerTranscript = transcript.toLowerCase().trim();
+    const courtesyPhrases = ['thank you', 'thanks', 'you too', 'bye', 'that\'s all', 'goodbye', 'alright'];
+    const isCourtesyPhrase = courtesyPhrases.some(phrase => lowerTranscript === phrase || lowerTranscript.startsWith(phrase + ' ') || lowerTranscript.endsWith(phrase));
+
+    if (isCourtesyPhrase) {
+      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] =========================================');
+      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] Courtesy phrase detected during required intake');
+      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] Transcript:', transcript);
+      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] Current stage:', intake.stage);
+      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] Missing fields:', missingFields);
+      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] Redirecting to re-ask missing field');
+      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] Timestamp:', new Date().toISOString());
+      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] =========================================');
+
+      // Briefly acknowledge and re-ask the current missing field
+      const missingFieldResponse = getResponseForMissingField(missingFields[0], intake);
+      const courtesyAck = 'You\'re welcome. ';
+      return {
+        response: courtesyAck + missingFieldResponse.response,
+        nextStage: missingFieldResponse.nextStage
+      };
+    }
+  }
+
   switch (intake.stage) {
     case 'ask_name':
       // Check if name was captured
