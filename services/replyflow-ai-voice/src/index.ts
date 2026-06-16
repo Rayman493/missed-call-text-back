@@ -4487,64 +4487,12 @@ Do NOT:
                     (twilioHandler as any).finalClosingStarted = closingState.finalClosingStarted;
                     (twilioHandler as any).terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
 
-                    console.log('[FINAL_GOODBYE_PHRASE_DETECTED] States set, starting hard-close timer');
+                    console.log('[FINAL_GOODBYE_PHRASE_DETECTED] States set, waiting for transcript completion before hard-close');
+                    console.log('[FINAL_GOODBYE_PHRASE_DETECTED] Hard-close timer will start after response.output_audio_transcript.done');
 
-                    // Start hard-close timer (2000ms)
-                    console.log('[HARD_CLOSE_AFTER_GOODBYE_STARTED] =========================================');
-                    console.log('[HARD_CLOSE_AFTER_GOODBYE_STARTED] Starting 2000ms hard-close timer');
-                    console.log('[HARD_CLOSE_AFTER_GOODBYE_STARTED] Timestamp:', new Date().toISOString());
-                    console.log('[HARD_CLOSE_AFTER_GOODBYE_STARTED] This will call endCallCleanly without waiting for marks or response events');
-                    console.log('[HARD_CLOSE_AFTER_GOODBYE_STARTED] =========================================');
-
-                    setTimeout(async () => {
-                      if (closingState.callState !== 'closed') {
-                        console.log('[HARD_CLOSE_AFTER_GOODBYE_EXECUTED] =========================================');
-                        console.log('[HARD_CLOSE_AFTER_GOODBYE_EXECUTED] Hard-close timer fired, calling endCallCleanly');
-                        console.log('[HARD_CLOSE_AFTER_GOODBYE_EXECUTED] Timestamp:', new Date().toISOString());
-                        console.log('[HARD_CLOSE_AFTER_GOODBYE_EXECUTED] Current callState:', closingState.callState);
-                        console.log('[HARD_CLOSE_AFTER_GOODBYE_EXECUTED] =========================================');
-
-                        try {
-                          await endCallCleanly(ws, twilioHandler);
-                          closingState.callState = 'closed';
-                          (twilioHandler as any).callState = closingState.callState;
-                          console.log('[HARD_CLOSE_AFTER_GOODBYE_EXECUTED] endCallCleanly completed successfully');
-                        } catch (error) {
-                          console.log('[HARD_CLOSE_AFTER_GOODBYE_ERROR] Error during hard-close:', error);
-                        }
-                      } else {
-                        console.log('[HARD_CLOSE_AFTER_GOODBYE_SKIPPED] Call already closed, hard-close skipped');
-                      }
-                    }, 2000); // 2000ms hard-close timer
-
-                    // Start backup 8-second hard-close timer in case hard-close timer fails
-                    console.log('[BACKUP_HARD_CLOSE_TIMER_STARTED] =========================================');
-                    console.log('[BACKUP_HARD_CLOSE_TIMER_STARTED] Starting 8-second backup hard-close timer');
-                    console.log('[BACKUP_HARD_CLOSE_TIMER_STARTED] This will close the call if hard-close timer fails');
-                    console.log('[BACKUP_HARD_CLOSE_TIMER_STARTED] Timestamp:', new Date().toISOString());
-                    console.log('[BACKUP_HARD_CLOSE_TIMER_STARTED] =========================================');
-
-                    setTimeout(async () => {
-                      if (closingState.callState !== 'closed') {
-                        console.log('[BACKUP_HARD_CLOSE_TIMER_EXECUTED] =========================================');
-                        console.log('[BACKUP_HARD_CLOSE_TIMER_EXECUTED] Backup timer fired - hard-close timer failed');
-                        console.log('[BACKUP_HARD_CLOSE_TIMER_EXECUTED] Calling endCallCleanly as backup');
-                        console.log('[BACKUP_HARD_CLOSE_TIMER_EXECUTED] Timestamp:', new Date().toISOString());
-                        console.log('[BACKUP_HARD_CLOSE_TIMER_EXECUTED] Current callState:', closingState.callState);
-                        console.log('[BACKUP_HARD_CLOSE_TIMER_EXECUTED] =========================================');
-
-                        try {
-                          await endCallCleanly(ws, twilioHandler);
-                          closingState.callState = 'closed';
-                          (twilioHandler as any).callState = closingState.callState;
-                          console.log('[BACKUP_HARD_CLOSE_TIMER_EXECUTED] Backup hard-close completed successfully');
-                        } catch (error) {
-                          console.log('[BACKUP_HARD_CLOSE_TIMER_ERROR] Error during backup hard-close:', error);
-                        }
-                      } else {
-                        console.log('[BACKUP_HARD_CLOSE_TIMER_SKIPPED] Call already closed, backup timer skipped');
-                      }
-                    }, 8000); // 8-second backup timer
+                    // DO NOT start hard-close timer here
+                    // Wait for response.output_audio_transcript.done to start hard-close timer
+                    // This ensures assistant audio finishes completely before closing
                   }
                 }
               }
@@ -4564,6 +4512,37 @@ Do NOT:
                   }
                 });
                 activeAssistantTranscripts.clear();
+                
+                // Start hard-close timer if terminal mode is active
+                if (closingState.intakeTerminalComplete && closingState.callState !== 'closed') {
+                  console.log('[TRANSCRIPT_DONE_TERMINAL_MODE] =========================================');
+                  console.log('[TRANSCRIPT_DONE_TERMINAL_MODE] Transcript completed while terminal mode is active');
+                  console.log('[TRANSCRIPT_DONE_TERMINAL_MODE] Starting 1.5s hard-close buffer');
+                  console.log('[TRANSCRIPT_DONE_TERMINAL_MODE] Timestamp:', new Date().toISOString());
+                  console.log('[TRANSCRIPT_DONE_TERMINAL_MODE] =========================================');
+
+                  setTimeout(async () => {
+                    if (closingState.callState !== 'closed') {
+                      console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_DONE] =========================================');
+                      console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_DONE] Hard-close buffer fired after transcript completion');
+                      console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_DONE] Calling endCallCleanly');
+                      console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_DONE] Timestamp:', new Date().toISOString());
+                      console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_DONE] Current callState:', closingState.callState);
+                      console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_DONE] =========================================');
+
+                      try {
+                        await endCallCleanly(ws, twilioHandler);
+                        closingState.callState = 'closed';
+                        (twilioHandler as any).callState = closingState.callState;
+                        console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_DONE] Hard-close completed successfully');
+                      } catch (error) {
+                        console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_ERROR] Error during hard-close:', error);
+                      }
+                    } else {
+                      console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_SKIPPED] Call already closed, hard-close skipped');
+                    }
+                  }, 1500); // 1.5 second buffer after transcript completion
+                }
                 
                 // Validate greeting transcript
                 if (greetingSent && message.transcript) {
