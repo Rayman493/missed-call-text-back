@@ -138,14 +138,14 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
 
   if (loading) {
     return (
-      <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3">
+      <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-foreground">Recent Activity</h3>
+          <h3 className="text-base font-semibold text-foreground">Activity Timeline</h3>
           <div className="text-xs text-muted-foreground">Loading...</div>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="flex items-center gap-2">
+            <div key={i} className="flex items-center gap-2.5">
               <div className="w-6 h-6 bg-muted rounded-full animate-pulse"></div>
               <div className="flex-1">
                 <div className="h-3 bg-muted rounded w-3/4 mb-1"></div>
@@ -159,24 +159,24 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
   }
 
   return (
-    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-3.5">
-      <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">Activity Timeline</h3>
+    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4 sm:p-4">
+      <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-3">Activity Timeline</h3>
 
       {activities.length === 0 ? (
-        <div className="text-center py-4">
+        <div className="text-center py-6">
           <p className="text-sm text-slate-500 dark:text-slate-400">No recent activity</p>
         </div>
       ) : (
         <div className="space-y-0">
           {activities.map((activity, index) => (
-            <div key={activity.id} className="flex items-start gap-2.5 py-2 sm:py-2.5 border-b border-slate-100 dark:border-slate-800 last:border-0">
+            <div key={activity.id} className="flex items-start gap-2.5 py-3 sm:py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
               <div className="flex-shrink-0 pt-0.5">
                 <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center ${activity.color} bg-slate-100 dark:bg-slate-800`}>
                   {activity.icon}
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-0.5">
+                <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-medium text-slate-900 dark:text-foreground">{activity.title}</p>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-2 whitespace-nowrap">{formatRelativeTime(activity.timestamp)}</span>
                 </div>
