@@ -3873,32 +3873,32 @@ Do NOT:
                       // Set terminal mode immediately on confirmation acceptance
                       console.log('[TERMINAL_MODE_ACTIVATED] =========================================');
                       console.log('[TERMINAL_MODE_ACTIVATED] Terminal mode activated on confirmation acceptance');
-                      console.log('[TERMINAL_MODE_ACTIVATED] This will hard-close after 8 seconds even if no phrase matches');
+                      console.log('[TERMINAL_MODE_ACTIVATED] This will hard-close after 15 seconds even if no phrase matches');
                       console.log('[TERMINAL_MODE_ACTIVATED] Timestamp:', new Date().toISOString());
                       console.log('[TERMINAL_MODE_ACTIVATED] =========================================');
 
-                      // Start 8-second terminal mode hard-close backup timer
+                      // Start 15-second terminal mode hard-close backup timer
                       setTimeout(async () => {
                         if (closingState.callState !== 'closed') {
-                          console.log('[TERMINAL_MODE_HARD_CLOSE_EXECUTED] =========================================');
-                          console.log('[TERMINAL_MODE_HARD_CLOSE_EXECUTED] Terminal mode hard-close timer fired');
-                          console.log('[TERMINAL_MODE_HARD_CLOSE_EXECUTED] No phrase detected, closing as backup');
-                          console.log('[TERMINAL_MODE_HARD_CLOSE_EXECUTED] Timestamp:', new Date().toISOString());
-                          console.log('[TERMINAL_MODE_HARD_CLOSE_EXECUTED] Current callState:', closingState.callState);
-                          console.log('[TERMINAL_MODE_HARD_CLOSE_EXECUTED] =========================================');
+                          console.log('[EMERGENCY_TERMINAL_CLOSE_EXECUTED] =========================================');
+                          console.log('[EMERGENCY_TERMINAL_CLOSE_EXECUTED] Emergency terminal mode hard-close timer fired');
+                          console.log('[EMERGENCY_TERMINAL_CLOSE_EXECUTED] No phrase detected or audio done, closing as emergency backup');
+                          console.log('[EMERGENCY_TERMINAL_CLOSE_EXECUTED] Timestamp:', new Date().toISOString());
+                          console.log('[EMERGENCY_TERMINAL_CLOSE_EXECUTED] Current callState:', closingState.callState);
+                          console.log('[EMERGENCY_TERMINAL_CLOSE_EXECUTED] =========================================');
 
                           try {
                             await endCallCleanly(ws, twilioHandler);
                             closingState.callState = 'closed';
                             (twilioHandler as any).callState = closingState.callState;
-                            console.log('[TERMINAL_MODE_HARD_CLOSE_EXECUTED] Terminal mode hard-close completed successfully');
+                            console.log('[EMERGENCY_TERMINAL_CLOSE_EXECUTED] Emergency terminal mode hard-close completed successfully');
                           } catch (error) {
-                            console.log('[TERMINAL_MODE_HARD_CLOSE_ERROR] Error during terminal mode hard-close:', error);
+                            console.log('[EMERGENCY_TERMINAL_CLOSE_ERROR] Error during emergency terminal mode hard-close:', error);
                           }
                         } else {
-                          console.log('[TERMINAL_MODE_HARD_CLOSE_SKIPPED] Call already closed, terminal mode hard-close skipped');
+                          console.log('[EMERGENCY_TERMINAL_CLOSE_SKIPPED] Call already closed, emergency terminal mode hard-close skipped');
                         }
-                      }, 8000); // 8-second terminal mode hard-close backup
+                      }, 15000); // 15-second emergency terminal mode hard-close backup
 
                       return; // Skip the normal intake processing
                   }
@@ -4173,13 +4173,51 @@ Do NOT:
                 console.log('[FINAL_AUDIO_DONE] hangupScheduled:', hangupScheduled);
                 console.log('[FINAL_AUDIO_DONE] finalGoodbyeMarkSent:', finalGoodbyeMarkSent);
                 
-                // Terminal closing detection - DISABLED - using phrase-based hard-close instead
-                // We now rely on detecting "Have a great day" phrase and hard-close after 2000ms
-                console.log('[AUDIO_DONE_HANGUP_DISABLED] Mark-based hangup disabled, using phrase-based hard-close instead');
-                console.log('[AUDIO_DONE_HANGUP_DISABLED] Waiting for final goodbye phrase detection');
+                console.log('[TERMINAL_AUDIO_DONE_RECEIVED] =========================================');
+                console.log('[TERMINAL_AUDIO_DONE_RECEIVED] Audio generation complete event received');
+                console.log('[TERMINAL_AUDIO_DONE_RECEIVED] Timestamp:', new Date().toISOString());
+                console.log('[TERMINAL_AUDIO_DONE_RECEIVED] Terminal mode active:', closingState.intakeTerminalComplete);
+                console.log('[TERMINAL_AUDIO_DONE_RECEIVED] =========================================');
+                
+                // Start hard-close timer if terminal mode is active
+                if (closingState.intakeTerminalComplete && closingState.callState !== 'closed') {
+                  console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_STARTED] =========================================');
+                  console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_STARTED] Starting 5-second hard-close buffer after audio done');
+                  console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_STARTED] This ensures audio playback completes before hangup');
+                  console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_STARTED] Timestamp:', new Date().toISOString());
+                  console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_STARTED] =========================================');
+
+                  setTimeout(async () => {
+                    if (closingState.callState !== 'closed') {
+                      console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_EXECUTED] =========================================');
+                      console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_EXECUTED] Hard-close buffer fired after audio done');
+                      console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_EXECUTED] Calling endCallCleanly');
+                      console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_EXECUTED] Timestamp:', new Date().toISOString());
+                      console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_EXECUTED] Current callState:', closingState.callState);
+                      console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_EXECUTED] =========================================');
+
+                      try {
+                        await endCallCleanly(ws, twilioHandler);
+                        closingState.callState = 'closed';
+                        (twilioHandler as any).callState = closingState.callState;
+                        console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_EXECUTED] Hard-close completed successfully');
+                      } catch (error) {
+                        console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_ERROR] Error during hard-close:', error);
+                      }
+                    } else {
+                      console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_SKIPPED] Call already closed, hard-close skipped');
+                    }
+                  }, 5000); // 5 second buffer after audio done
+                }
               }
               if (message.type === 'response.done') {
                 console.log('[OPENAI RECV] response.done');
+
+                console.log('[TERMINAL_RESPONSE_DONE_RECEIVED] =========================================');
+                console.log('[TERMINAL_RESPONSE_DONE_RECEIVED] Response done event received');
+                console.log('[TERMINAL_RESPONSE_DONE_RECEIVED] Timestamp:', new Date().toISOString());
+                console.log('[TERMINAL_RESPONSE_DONE_RECEIVED] Terminal mode active:', closingState.intakeTerminalComplete);
+                console.log('[TERMINAL_RESPONSE_DONE_RECEIVED] =========================================');
 
                 // Set assistant speaking to false when response is done
                 if (assistantSpeaking) {
@@ -4513,36 +4551,10 @@ Do NOT:
                 });
                 activeAssistantTranscripts.clear();
                 
-                // Start hard-close timer if terminal mode is active
-                if (closingState.intakeTerminalComplete && closingState.callState !== 'closed') {
-                  console.log('[TRANSCRIPT_DONE_TERMINAL_MODE] =========================================');
-                  console.log('[TRANSCRIPT_DONE_TERMINAL_MODE] Transcript completed while terminal mode is active');
-                  console.log('[TRANSCRIPT_DONE_TERMINAL_MODE] Starting 1.5s hard-close buffer');
-                  console.log('[TRANSCRIPT_DONE_TERMINAL_MODE] Timestamp:', new Date().toISOString());
-                  console.log('[TRANSCRIPT_DONE_TERMINAL_MODE] =========================================');
-
-                  setTimeout(async () => {
-                    if (closingState.callState !== 'closed') {
-                      console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_DONE] =========================================');
-                      console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_DONE] Hard-close buffer fired after transcript completion');
-                      console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_DONE] Calling endCallCleanly');
-                      console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_DONE] Timestamp:', new Date().toISOString());
-                      console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_DONE] Current callState:', closingState.callState);
-                      console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_DONE] =========================================');
-
-                      try {
-                        await endCallCleanly(ws, twilioHandler);
-                        closingState.callState = 'closed';
-                        (twilioHandler as any).callState = closingState.callState;
-                        console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_DONE] Hard-close completed successfully');
-                      } catch (error) {
-                        console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_ERROR] Error during hard-close:', error);
-                      }
-                    } else {
-                      console.log('[HARD_CLOSE_AFTER_TRANSCRIPT_SKIPPED] Call already closed, hard-close skipped');
-                    }
-                  }, 1500); // 1.5 second buffer after transcript completion
-                }
+                // DO NOT start hard-close timer here
+                // response.output_audio_transcript.done is NOT safe as final playback-complete signal
+                // It fires while audio is still streaming
+                // Hard-close timer will be started in response.audio.done or response.done instead
                 
                 // Validate greeting transcript
                 if (greetingSent && message.transcript) {
