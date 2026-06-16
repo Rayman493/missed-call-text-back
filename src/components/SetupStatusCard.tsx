@@ -577,7 +577,7 @@ export default function SetupStatusCard({
       <HelpTroubleshootingModal
         isOpen={showHelpModal}
         onClose={() => setShowHelpModal(false)}
-        twilioPhoneNumber={business?.twilio_phone_number}
+        twilioPhoneNumber={business?.twilio_phone_number ?? undefined}
       />
     </div>
   )
