@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { Phone, Users, MessageSquare, Reply, TrendingUp, Activity, PhoneMissed } from 'lucide-react'
+import { Phone, Users, MessageSquare, Reply, TrendingUp, Activity, PhoneMissed, HelpCircle } from 'lucide-react'
 
 interface DashboardMetricsProps {
   business: Business | null
@@ -247,11 +247,30 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       case 'leads':
         return 'Total leads generated from missed calls and customer inquiries'
       case 'messages':
-        return 'Automated messages sent to customers'
+        return 'Automated and manual text messages sent by ReplyFlow'
       case 'conversations':
-        return 'Active customer conversations in progress'
+        return 'Leads with ongoing conversations that have not been completed'
+      case 'recovery':
+        return 'Percentage of missed callers successfully engaged by ReplyFlow'
       default:
         return 'Business metric'
+    }
+  }
+
+  const getMetricTooltip = (type: string) => {
+    switch (type) {
+      case 'missedCalls':
+        return null
+      case 'leads':
+        return null
+      case 'messages':
+        return 'Automated and manual text messages sent by ReplyFlow'
+      case 'conversations':
+        return 'Leads with ongoing conversations that have not been completed'
+      case 'recovery':
+        return 'Percentage of missed callers successfully engaged by ReplyFlow'
+      default:
+        return null
     }
   }
 
@@ -292,8 +311,15 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
               <div className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
                 {metric.type === 'recovery' ? `${metric.value}%` : metric.value.toLocaleString()}
               </div>
-              <div className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">
-                {getMetricLabel(metric.type)}
+              <div className="flex items-center gap-1">
+                <div className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {getMetricLabel(metric.type)}
+                </div>
+                {getMetricTooltip(metric.type) && (
+                  <span className="inline-flex items-center cursor-help" title={getMetricTooltip(metric.type)}>
+                    <HelpCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
+                  </span>
+                )}
               </div>
               {metric.value === 0 && metric.type !== 'recovery' && (
                 <div className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500">
@@ -325,8 +351,15 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
               <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-foreground leading-tight">
                 {metric.value.toLocaleString()}
               </div>
-              <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                {getMetricLabel(metric.type)}
+              <div className="flex items-center gap-1">
+                <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                  {getMetricLabel(metric.type)}
+                </div>
+                {getMetricTooltip(metric.type) && (
+                  <span className="inline-flex items-center cursor-help" title={getMetricTooltip(metric.type)}>
+                    <HelpCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
+                  </span>
+                )}
               </div>
             </div>
           </div>
