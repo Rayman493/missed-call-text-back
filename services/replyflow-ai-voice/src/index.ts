@@ -3790,115 +3790,83 @@ Do NOT:
                       }
 
                       
-                      // Call authoritative final close BEFORE sending final goodbye response
-                      console.log('[FINAL_CLOSE_STARTED_BEFORE_RESPONSE_CREATE] Starting authoritative final close sequence');
-                      console.log('[FINAL_CLOSE_STARTED_BEFORE_RESPONSE_CREATE] Timestamp:', new Date().toISOString());
-                      console.log('[FINAL_CLOSE_STARTED_BEFORE_RESPONSE_CREATE] Current states:', {
-                        callState,
-                        finalClosingStarted,
-                        terminalClosingResponseStarted,
-                        confirmationState
-                      });
+                      // Immediately enter terminal mode on confirmation acceptance
+                      console.log('[CONFIRMATION_ACCEPTED_TERMINAL_MODE_STARTED] =========================================');
+                      console.log('[CONFIRMATION_ACCEPTED_TERMINAL_MODE_STARTED] Terminal mode started on confirmation acceptance');
+                      console.log('[CONFIRMATION_ACCEPTED_TERMINAL_MODE_STARTED] Blocking all caller audio and preventing new responses');
+                      console.log('[CONFIRMATION_ACCEPTED_TERMINAL_MODE_STARTED] Timestamp:', new Date().toISOString());
+                      console.log('[CONFIRMATION_ACCEPTED_TERMINAL_MODE_STARTED] =========================================');
 
-                      const closeSuccess = startAuthoritativeFinalClose(
-                        closingState,
-                        twilioHandler,
-                        'response.output_audio.delta handler at line 3713'
-                      );
+                      closingState.intakeTerminalComplete = true;
+                      closingState.callState = 'closing';
+                      closingState.terminalClosingResponseStarted = true;
+                      closingState.finalClosingStarted = true;
+                      closingState.confirmationState = 'completed';
 
-                      // Pass closingState to twilioHandler for hard-stop timer access
-                      (twilioHandler as any).wsRef = ws;
+                      // Sync individual variables for backward compatibility
+                      callState = closingState.callState;
+                      finalClosingStarted = closingState.finalClosingStarted;
+                      terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
+                      confirmationState = closingState.confirmationState;
+
+                      // Sync to twilioHandler
                       (twilioHandler as any).closingState = closingState;
+                      (twilioHandler as any).callState = closingState.callState;
+                      (twilioHandler as any).finalClosingStarted = closingState.finalClosingStarted;
+                      (twilioHandler as any).terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
+                      (twilioHandler as any).intakeTerminalComplete = closingState.intakeTerminalComplete;
 
-                      if (closeSuccess) {
-                        // Sync individual variables from closingState for backward compatibility
-                        console.log('[STATE_SYNC] Syncing individual variables from closingState');
-                        console.log('[STATE_SYNC] Source: response.output_audio.delta handler at line 3713');
-                        console.log('[STATE_SYNC] Timestamp:', new Date().toISOString());
-                        finalClosingStarted = closingState.finalClosingStarted;
-                        console.log('[FINAL_CLOSING_SYNC] finalClosingStartedsynced to:', finalClosingStarted);
-                        terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
-                        console.log('[TERMINAL_CLOSING_SYNC] terminalClosingResponseStartedsynced to:', terminalClosingResponseStarted);
-                        confirmationState = closingState.confirmationState;
-                        callState = closingState.callState;
-                        console.log('[CALL_STATE_SYNC] callState synced to:', callState);
+                      // Generate and track authorized final response ID
+                      const authorizedFinalResponseId = `final_${Date.now()}`;
+                      (twilioHandler as any).authorizedFinalResponseId = authorizedFinalResponseId;
 
-                        console.log('[FINAL_CLOSE_STARTED_BEFORE_RESPONSE_CREATE] Authoritative final close completed successfully');
-                        console.log('[FINAL_CLOSE_STARTED_BEFORE_RESPONSE_CREATE] New states:', {
-                          callState,
-                          finalClosingStarted,
-                          terminalClosingResponseStarted,
-                          confirmationState
-                        });
-                      } else {
-                        console.log('[FINAL_CLOSE_STARTED_BEFORE_RESPONSE_CREATE] Authoritative final close failed');
-                      }
-
-                      // Send final goodbye message immediately
-                      console.log('[AUTHORITATIVE_FINAL_GOODBYE_REQUESTED] =========================================');
-                      console.log('[AUTHORITATIVE_FINAL_GOODBYE_REQUESTED] Code explicitly creating final goodbye response');
-                      console.log('[AUTHORITATIVE_FINAL_GOODBYE_REQUESTED] Source: confirmation handler after user confirmation');
-                      console.log('[AUTHORITATIVE_FINAL_GOODBYE_REQUESTED] Timestamp:', new Date().toISOString());
-                      console.log('[AUTHORITATIVE_FINAL_GOODBYE_REQUESTED] terminalClosingResponseStarted:', terminalClosingResponseStarted);
-                      console.log('[AUTHORITATIVE_FINAL_GOODBYE_REQUESTED] finalClosingStarted:', finalClosingStarted);
-                      console.log('[AUTHORITATIVE_FINAL_GOODBYE_REQUESTED] =========================================');
+                      // Send authorized final closing sentence
+                      const exactClosingSentence = "Perfect. I have everything I need. The team will follow up with you soon.";
+                      
+                      console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] =========================================');
+                      console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Creating authorized final response with exact closing sentence');
+                      console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Closing sentence:', exactClosingSentence);
+                      console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Response ID:', authorizedFinalResponseId);
+                      console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Timestamp:', new Date().toISOString());
+                      console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] =========================================');
 
                       const finalClosingMessage = {
                         type: 'response.create',
                         response: {
-                          instructions: `Say exactly: "Perfect. I'll pass this information along and someone will follow up with you soon. Thanks for calling."`
+                          instructions: `Say exactly: "${exactClosingSentence}"`
                         }
                       };
 
-                      console.log('[FINAL_GOODBYE_RESPONSE_CREATE] Creating final goodbye response');
-                      console.log('[FINAL_GOODBYE_RESPONSE_CREATE] Timestamp:', new Date().toISOString());
-                      console.log('[FINAL_GOODBYE_RESPONSE_CREATE] terminalClosingResponseStarted:', terminalClosingResponseStarted);
-                      console.log('[FINAL_GOODBYE_RESPONSE_CREATE] finalClosingStarted:', finalClosingStarted);
-
-                      console.log('[AI RESPONSE.CREATE SEND SITE]', {
-                        label: 'FINAL_CLOSING',
-                        currentStage: intakeData?.stage || 'unknown',
-                        nextStage: 'complete',
-                        intakeComplete: intakeComplete,
-                        instructions: `Say exactly: "Perfect. I'll pass this information along and someone will follow up with you soon. Thanks for calling."`.substring(0, 200)
-                      });
-
-                      console.log('[FINAL GOODBYE START] Starting final goodbye at:', new Date().toISOString());
-
                       if (openAiWs) {
                         openAiWs.send(JSON.stringify(finalClosingMessage));
-                        console.log('[AI FINAL GOODBYE CREATE SENT] Final closing message sent to OpenAI');
+                        console.log('[AI FINAL CLOSING SENTENCE SENT] Authorized final closing sentence sent to OpenAI');
                       }
 
-                      // Set terminal mode immediately on confirmation acceptance
-                      console.log('[TERMINAL_MODE_ACTIVATED] =========================================');
-                      console.log('[TERMINAL_MODE_ACTIVATED] Terminal mode activated on confirmation acceptance');
-                      console.log('[TERMINAL_MODE_ACTIVATED] This will hard-close after 15 seconds even if no phrase matches');
-                      console.log('[TERMINAL_MODE_ACTIVATED] Timestamp:', new Date().toISOString());
-                      console.log('[TERMINAL_MODE_ACTIVATED] =========================================');
+                      // Start 15-second emergency hangup timer from terminal mode start
+                      console.log('[EMERGENCY_HANGUP_TIMER_STARTED] =========================================');
+                      console.log('[EMERGENCY_HANGUP_TIMER_STARTED] Starting 15-second emergency hangup timer from terminal mode start');
+                      console.log('[EMERGENCY_HANGUP_TIMER_STARTED] This ensures call terminates even if audio.done never fires');
+                      console.log('[EMERGENCY_HANGUP_TIMER_STARTED] Timestamp:', new Date().toISOString());
+                      console.log('[EMERGENCY_HANGUP_TIMER_STARTED] =========================================');
 
-                      // Start 15-second terminal mode hard-close backup timer
                       setTimeout(async () => {
                         if (closingState.callState !== 'closed') {
-                          console.log('[EMERGENCY_TERMINAL_CLOSE_EXECUTED] =========================================');
-                          console.log('[EMERGENCY_TERMINAL_CLOSE_EXECUTED] Emergency terminal mode hard-close timer fired');
-                          console.log('[EMERGENCY_TERMINAL_CLOSE_EXECUTED] No phrase detected or audio done, closing as emergency backup');
-                          console.log('[EMERGENCY_TERMINAL_CLOSE_EXECUTED] Timestamp:', new Date().toISOString());
-                          console.log('[EMERGENCY_TERMINAL_CLOSE_EXECUTED] Current callState:', closingState.callState);
-                          console.log('[EMERGENCY_TERMINAL_CLOSE_EXECUTED] =========================================');
+                          console.log('[EMERGENCY_HANGUP_EXECUTED] =========================================');
+                          console.log('[EMERGENCY_HANGUP_EXECUTED] Emergency hangup timer fired');
+                          console.log('[EMERGENCY_HANGUP_EXECUTED] Calling endCallCleanly');
+                          console.log('[EMERGENCY_HANGUP_EXECUTED] Timestamp:', new Date().toISOString());
+                          console.log('[EMERGENCY_HANGUP_EXECUTED] =========================================');
 
                           try {
                             await endCallCleanly(ws, twilioHandler);
                             closingState.callState = 'closed';
                             (twilioHandler as any).callState = closingState.callState;
-                            console.log('[EMERGENCY_TERMINAL_CLOSE_EXECUTED] Emergency terminal mode hard-close completed successfully');
+                            console.log('[EMERGENCY_HANGUP_EXECUTED] Emergency hangup completed successfully');
                           } catch (error) {
-                            console.log('[EMERGENCY_TERMINAL_CLOSE_ERROR] Error during emergency terminal mode hard-close:', error);
+                            console.log('[EMERGENCY_HANGUP_ERROR] Error during emergency hangup:', error);
                           }
-                        } else {
-                          console.log('[EMERGENCY_TERMINAL_CLOSE_SKIPPED] Call already closed, emergency terminal mode hard-close skipped');
                         }
-                      }, 15000); // 15-second emergency terminal mode hard-close backup
+                      }, 15000); // 15-second emergency hangup
 
                       return; // Skip the normal intake processing
                   }
@@ -3967,6 +3935,20 @@ Do NOT:
                 console.log('[OPENAI RECV] response.created with response_id:', responseId);
                 console.log('[RACE CONDITION DEBUG] response.created at:', new Date().toISOString());
                 console.log('[RACE CONDITION DEBUG] Current callState:', callState);
+                
+                // Block non-final response.create in terminal mode
+                if (closingState.intakeTerminalComplete) {
+                  const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
+                  if (responseId !== authorizedFinalResponseId) {
+                    console.log('[UNAUTHORIZED_RESPONSE_BLOCKED_AFTER_TERMINAL] =========================================');
+                    console.log('[UNAUTHORIZED_RESPONSE_BLOCKED_AFTER_TERMINAL] Response created after terminal mode started');
+                    console.log('[UNAUTHORIZED_RESPONSE_BLOCKED_AFTER_TERMINAL] Response ID:', responseId);
+                    console.log('[UNAUTHORIZED_RESPONSE_BLOCKED_AFTER_TERMINAL] Authorized response ID:', authorizedFinalResponseId);
+                    console.log('[UNAUTHORIZED_RESPONSE_BLOCKED_AFTER_TERMINAL] Timestamp:', new Date().toISOString());
+                    console.log('[UNAUTHORIZED_RESPONSE_BLOCKED_AFTER_TERMINAL] =========================================');
+                    return; // Do not process this response
+                  }
+                }
               }
               if (message.type === 'response.output_item.added') {
                 console.log('[OPENAI RECV] response.output_item.added');
@@ -4173,39 +4155,39 @@ Do NOT:
                 console.log('[FINAL_AUDIO_DONE] hangupScheduled:', hangupScheduled);
                 console.log('[FINAL_AUDIO_DONE] finalGoodbyeMarkSent:', finalGoodbyeMarkSent);
                 
-                console.log('[TERMINAL_AUDIO_DONE_RECEIVED] =========================================');
-                console.log('[TERMINAL_AUDIO_DONE_RECEIVED] Audio generation complete event received');
-                console.log('[TERMINAL_AUDIO_DONE_RECEIVED] Timestamp:', new Date().toISOString());
-                console.log('[TERMINAL_AUDIO_DONE_RECEIVED] Terminal mode active:', closingState.intakeTerminalComplete);
-                console.log('[TERMINAL_AUDIO_DONE_RECEIVED] =========================================');
+                console.log('[AUTHORIZED_FINAL_RESPONSE_AUDIO_DONE] =========================================');
+                console.log('[AUTHORIZED_FINAL_RESPONSE_AUDIO_DONE] Authorized final response audio generation complete');
+                console.log('[AUTHORIZED_FINAL_RESPONSE_AUDIO_DONE] Timestamp:', new Date().toISOString());
+                console.log('[AUTHORIZED_FINAL_RESPONSE_AUDIO_DONE] Terminal mode active:', closingState.intakeTerminalComplete);
+                console.log('[AUTHORIZED_FINAL_RESPONSE_AUDIO_DONE] =========================================');
                 
                 // Start hard-close timer if terminal mode is active
                 if (closingState.intakeTerminalComplete && closingState.callState !== 'closed') {
-                  console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_STARTED] =========================================');
-                  console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_STARTED] Starting 5-second hard-close buffer after audio done');
-                  console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_STARTED] This ensures audio playback completes before hangup');
-                  console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_STARTED] Timestamp:', new Date().toISOString());
-                  console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_STARTED] =========================================');
+                  console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] =========================================');
+                  console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] Starting 5-second hangup buffer after authorized final response audio done');
+                  console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] This ensures audio playback completes before hangup');
+                  console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] =========================================');
 
                   setTimeout(async () => {
                     if (closingState.callState !== 'closed') {
-                      console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_EXECUTED] =========================================');
-                      console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_EXECUTED] Hard-close buffer fired after audio done');
-                      console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_EXECUTED] Calling endCallCleanly');
-                      console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_EXECUTED] Timestamp:', new Date().toISOString());
-                      console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_EXECUTED] Current callState:', closingState.callState);
-                      console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_EXECUTED] =========================================');
+                      console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] =========================================');
+                      console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] Hangup buffer fired after authorized final response audio done');
+                      console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] Calling endCallCleanly');
+                      console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] Timestamp:', new Date().toISOString());
+                      console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] Current callState:', closingState.callState);
+                      console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] =========================================');
 
                       try {
                         await endCallCleanly(ws, twilioHandler);
                         closingState.callState = 'closed';
                         (twilioHandler as any).callState = closingState.callState;
-                        console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_EXECUTED] Hard-close completed successfully');
+                        console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] Hangup completed successfully');
                       } catch (error) {
-                        console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_ERROR] Error during hard-close:', error);
+                        console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE_ERROR] Error during hangup:', error);
                       }
                     } else {
-                      console.log('[HARD_CLOSE_AFTER_AUDIO_DONE_SKIPPED] Call already closed, hard-close skipped');
+                      console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE_SKIPPED] Call already closed, hangup skipped');
                     }
                   }, 5000); // 5 second buffer after audio done
                 }
@@ -4354,6 +4336,16 @@ Do NOT:
               if (message.type === 'input_audio_buffer.committed') {
                 console.log('[OPENAI RECV] input_audio_buffer.committed');
                 console.log('[USER TRANSCRIPT] committed:', message.transcript || 'null');
+                
+                // Block input_audio_buffer commits in terminal mode
+                if (closingState.intakeTerminalComplete) {
+                  console.log('[TERMINAL_USER_AUDIO_EVENT_IGNORED] =========================================');
+                  console.log('[TERMINAL_USER_AUDIO_EVENT_IGNORED] User audio commit ignored - terminal mode is active');
+                  console.log('[TERMINAL_USER_AUDIO_EVENT_IGNORED] Transcript:', message.transcript || 'null');
+                  console.log('[TERMINAL_USER_AUDIO_EVENT_IGNORED] Timestamp:', new Date().toISOString());
+                  console.log('[TERMINAL_USER_AUDIO_EVENT_IGNORED] =========================================');
+                  return; // Do not process this commit
+                }
               }
               if (message.type === 'response.created') {
                 console.log('[OPENAI RECV] response.created');
@@ -4448,90 +4440,9 @@ Do NOT:
                     current_buffer_length: updatedBuffer.length 
                   });
                   
-                  // Check for final goodbye phrases in accumulated buffer
-                  console.log('[FINAL_GOODBYE_PHRASE_MATCH_ATTEMPT] =========================================');
-                  console.log('[FINAL_GOODBYE_PHRASE_MATCH_ATTEMPT] Checking accumulated buffer for final goodbye phrases');
-                  console.log('[FINAL_GOODBYE_PHRASE_MATCH_ATTEMPT] Buffer length:', updatedBuffer.length);
-                  console.log('[FINAL_GOODBYE_PHRASE_MATCH_ATTEMPT] Buffer preview:', updatedBuffer.substring(0, 100));
-                  
-                  const triggerPhrases = [
-                    "have a great day",
-                    "thank you for calling",
-                    "i'll pass this information along",
-                    "thanks for calling",
-                    "the team will follow up",
-                    "will follow up with you soon",
-                    "follow up with you soon",
-                    "someone will follow up",
-                    "we'll follow up",
-                    "they'll follow up",
-                    "a team member will follow up",
-                    "the business will follow up"
-                  ];
-                  
-                  const bufferLower = updatedBuffer.toLowerCase();
-                  const phraseMatched = triggerPhrases.some(phrase => bufferLower.includes(phrase));
-                  
-                  // Terminal intent detector: follow-up phrase + no question mark + no request for more info
-                  const hasQuestionMark = updatedBuffer.includes('?');
-                  const requestPhrases = [
-                    "what is your",
-                    "can you tell me",
-                    "could you provide",
-                    "would you like",
-                    "do you need",
-                    "is there anything"
-                  ];
-                  const hasRequest = requestPhrases.some(phrase => bufferLower.includes(phrase));
-                  
-                  // Terminal intent: follow-up phrase without question or request
-                  const terminalIntent = phraseMatched && !hasQuestionMark && !hasRequest;
-                  
-                  console.log('[FINAL_GOODBYE_PHRASE_MATCH_ATTEMPT] Phrase matched:', phraseMatched);
-                  console.log('[FINAL_GOODBYE_PHRASE_MATCH_ATTEMPT] Has question mark:', hasQuestionMark);
-                  console.log('[FINAL_GOODBYE_PHRASE_MATCH_ATTEMPT] Has request:', hasRequest);
-                  console.log('[FINAL_GOODBYE_PHRASE_MATCH_ATTEMPT] Terminal intent:', terminalIntent);
-                  console.log('[FINAL_GOODBYE_PHRASE_MATCH_ATTEMPT] =========================================');
-                  
-                  if (terminalIntent && !closingState.intakeTerminalComplete) {
-                    console.log('[FINAL_GOODBYE_PHRASE_DETECTED] =========================================');
-                    console.log('[FINAL_GOODBYE_PHRASE_DETECTED] Final goodbye phrase detected in transcript delta');
-                    console.log('[FINAL_GOODBYE_PHRASE_DETECTED] Buffer:', updatedBuffer);
-                    console.log('[FINAL_GOODBYE_PHRASE_DETECTED] Timestamp:', new Date().toISOString());
-                    console.log('[FINAL_GOODBYE_PHRASE_DETECTED] Current states before hard-close:', {
-                      callState: closingState.callState,
-                      terminalClosingResponseStarted: closingState.terminalClosingResponseStarted,
-                      finalClosingStarted: closingState.finalClosingStarted,
-                      intakeTerminalComplete: closingState.intakeTerminalComplete
-                    });
-                    console.log('[FINAL_GOODBYE_PHRASE_DETECTED] =========================================');
-
-                    // Set terminal complete flag and all closing states
-                    closingState.intakeTerminalComplete = true;
-                    closingState.callState = 'closing';
-                    closingState.terminalClosingResponseStarted = true;
-                    closingState.finalClosingStarted = true;
-                    closingState.confirmationState = 'completed';
-
-                    // Sync individual variables for backward compatibility
-                    callState = closingState.callState;
-                    finalClosingStarted = closingState.finalClosingStarted;
-                    terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
-                    confirmationState = closingState.confirmationState;
-
-                    // Sync to twilioHandler
-                    (twilioHandler as any).closingState = closingState;
-                    (twilioHandler as any).callState = closingState.callState;
-                    (twilioHandler as any).finalClosingStarted = closingState.finalClosingStarted;
-                    (twilioHandler as any).terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
-
-                    console.log('[FINAL_GOODBYE_PHRASE_DETECTED] States set, waiting for transcript completion before hard-close');
-                    console.log('[FINAL_GOODBYE_PHRASE_DETECTED] Hard-close timer will start after response.output_audio_transcript.done');
-
-                    // DO NOT start hard-close timer here
-                    // Wait for response.output_audio_transcript.done to start hard-close timer
-                    // This ensures assistant audio finishes completely before closing
-                  }
+                  // Phrase detection removed - using simplified approach with exact closing sentence
+                  // Terminal mode is now set immediately on confirmation acceptance
+                  // No need to detect phrases in the delta handler
                 }
               }
               if (message.type === 'response.output_audio_transcript.done') {
