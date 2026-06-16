@@ -316,7 +316,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
                   {getMetricLabel(metric.type)}
                 </div>
                 {getMetricTooltip(metric.type) && (
-                  <span className="inline-flex items-center cursor-help" title={getMetricTooltip(metric.type)}>
+                  <span className="inline-flex items-center cursor-help" title={getMetricTooltip(metric.type) ?? undefined}>
                     <HelpCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
                   </span>
                 )}
@@ -356,7 +356,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
                   {getMetricLabel(metric.type)}
                 </div>
                 {getMetricTooltip(metric.type) && (
-                  <span className="inline-flex items-center cursor-help" title={getMetricTooltip(metric.type)}>
+                  <span className="inline-flex items-center cursor-help" title={getMetricTooltip(metric.type) ?? undefined}>
                     <HelpCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
                   </span>
                 )}
