@@ -1625,24 +1625,29 @@ async function closeCallAfterConfirmation(ws: any, twilioHandler: any, openAiWs:
 // Authoritative final-close function that sets all closing flags together
 // This is the ONLY place where final closing state transitions should happen
 function startAuthoritativeFinalClose(
-  callStateRef: { value: string },
-  finalClosingStartedRef: { value: boolean },
-  terminalClosingResponseStartedRef: { value: boolean },
-  confirmationStateRef: { value: string },
-  hardStopExecutedRef: { value: boolean },
-  twilioHandler: any
+  closingState: {
+    callState: string;
+    confirmationState: string;
+    finalClosingStarted: boolean;
+    terminalClosingResponseStarted: boolean;
+    hardStopStarted: boolean;
+    hardStopExecuted: boolean;
+  },
+  twilioHandler: any,
+  source: string
 ) {
   console.log('[AUTHORITATIVE FINAL CLOSE] Starting authoritative final close sequence');
+  console.log('[AUTHORITATIVE FINAL CLOSE] Source:', source);
   console.log('[AUTHORITATIVE FINAL CLOSE] Timestamp:', new Date().toISOString());
   console.log('[AUTHORITATIVE FINAL CLOSE] Current states:', {
-    callState: callStateRef.value,
-    finalClosingStarted: finalClosingStartedRef.value,
-    terminalClosingResponseStarted: terminalClosingResponseStartedRef.value,
-    confirmationState: confirmationStateRef.value
+    callState: closingState.callState,
+    finalClosingStarted: closingState.finalClosingStarted,
+    terminalClosingResponseStarted: closingState.terminalClosingResponseStarted,
+    confirmationState: closingState.confirmationState
   });
 
   // Validate preconditions
-  if (confirmationStateRef.value === 'collecting_info') {
+  if (closingState.confirmationState === 'collecting_info') {
     console.log('[AUTHORITATIVE FINAL CLOSE ERROR] Cannot start final close while confirmationState is collecting_info');
     console.log('[AUTHORITATIVE FINAL CLOSE ERROR] This indicates intake is not yet complete');
     return false;
@@ -1650,43 +1655,49 @@ function startAuthoritativeFinalClose(
 
   // Set all flags together in the correct sequence
   console.log('[AUTHORITATIVE FINAL CLOSE] Step 1: confirmationState -> completed');
-  confirmationStateRef.value = 'completed';
-  (twilioHandler as any).confirmationState = confirmationStateRef.value;
+  closingState.confirmationState = 'completed';
+  (twilioHandler as any).confirmationState = closingState.confirmationState;
 
   console.log('[AUTHORITATIVE FINAL CLOSE] Step 2: terminalClosingResponseStarted -> true');
   console.log('[TERMINAL_CLOSING_SET_TRUE] Setting terminalClosingResponseStarted to true');
-  console.log('[TERMINAL_CLOSING_SET_TRUE] Source: startAuthoritativeFinalClose at line 1657');
+  console.log('[TERMINAL_CLOSING_SET_TRUE] Source: startAuthoritativeFinalClose at', source);
   console.log('[TERMINAL_CLOSING_SET_TRUE] Stack: startAuthoritativeFinalClose -> called from event handler');
   console.log('[TERMINAL_CLOSING_SET_TRUE] Timestamp:', new Date().toISOString());
-  terminalClosingResponseStartedRef.value = true;
-  (twilioHandler as any).terminalClosingResponseStarted = terminalClosingResponseStartedRef.value;
-  console.log('[TERMINAL_CLOSING_SET_TRUE] Value after set:', terminalClosingResponseStartedRef.value);
+  closingState.terminalClosingResponseStarted = true;
+  (twilioHandler as any).terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
+  console.log('[TERMINAL_CLOSING_SET_TRUE] Value after set:', closingState.terminalClosingResponseStarted);
 
   console.log('[AUTHORITATIVE FINAL CLOSE] Step 3: finalClosingStarted -> true');
   console.log('[FINAL_CLOSING_SET_TRUE] Setting finalClosingStarted to true');
-  console.log('[FINAL_CLOSING_SET_TRUE] Source: startAuthoritativeFinalClose at line 1666');
+  console.log('[FINAL_CLOSING_SET_TRUE] Source: startAuthoritativeFinalClose at', source);
   console.log('[FINAL_CLOSING_SET_TRUE] Stack: startAuthoritativeFinalClose -> called from event handler');
   console.log('[FINAL_CLOSING_SET_TRUE] Timestamp:', new Date().toISOString());
-  finalClosingStartedRef.value = true;
-  (twilioHandler as any).finalClosingStarted = finalClosingStartedRef.value;
-  console.log('[FINAL_CLOSING_SET_TRUE] Value after set:', finalClosingStartedRef.value);
+  closingState.finalClosingStarted = true;
+  (twilioHandler as any).finalClosingStarted = closingState.finalClosingStarted;
+  console.log('[FINAL_CLOSING_SET_TRUE] Value after set:', closingState.finalClosingStarted);
 
-  console.log('[AUTHORITATIVE FINAL CLOSE] Step 4: callState -> closing (will be set when audio starts)');
+  console.log('[AUTHORITATIVE FINAL CLOSE] Step 4: callState -> closing (set immediately, not waiting for audio)');
+  console.log('[CALL_STATE_SET_CLOSING] Setting callState to closing immediately');
+  console.log('[CALL_STATE_SET_CLOSING] Source: startAuthoritativeFinalClose at', source);
+  console.log('[CALL_STATE_SET_CLOSING] Stack: startAuthoritativeFinalClose -> immediate state transition');
+  console.log('[CALL_STATE_SET_CLOSING] Timestamp:', new Date().toISOString());
+  closingState.callState = 'closing';
+  (twilioHandler as any).callState = closingState.callState;
+  console.log('[CALL_STATE_SET_CLOSING] Value after set:', closingState.callState);
 
   // Start absolute hard-stop timer (10 seconds)
   // This ensures call terminates even if all other mechanisms fail
   const hardStopTimerRef = (twilioHandler as any).hardStopTimer;
-  if (!hardStopExecutedRef.value) {
+  if (!closingState.hardStopExecuted) {
     console.log('[FINAL_CLOSING_HARD_STOP_TIMER_STARTED] Starting 10 second absolute hard-stop timer');
     console.log('[FINAL_CLOSING_HARD_STOP_TIMER_STARTED] Timestamp:', new Date().toISOString());
     console.log('[FINAL_CLOSING_HARD_STOP_TIMER_STARTED] This ensures call terminates even if all other mechanisms fail');
 
     const wsRef = (twilioHandler as any).wsRef;
-    const callStateRef = (twilioHandler as any).callStateRef;
 
     (twilioHandler as any).hardStopTimer = setTimeout(async () => {
-      const currentCallState = callStateRef?.value || 'active';
-      const currentHardStopExecuted = hardStopExecutedRef?.value || false;
+      const currentCallState = closingState.callState;
+      const currentHardStopExecuted = closingState.hardStopExecuted;
 
       console.log('[FINAL_CLOSING_HARD_STOP_EXECUTED] Hard-stop timer fired');
       console.log('[FINAL_CLOSING_HARD_STOP_EXECUTED] Timestamp:', new Date().toISOString());
@@ -1697,17 +1708,15 @@ function startAuthoritativeFinalClose(
         console.log('[FINAL_CLOSING_HARD_STOP_EXECUTED] Call not closed, executing endCallCleanly directly');
         console.log('[FINAL_CLOSING_HARD_STOP_EXECUTED] Reason: 10 second hard-stop timer expired');
 
-        if (hardStopExecutedRef) {
-          hardStopExecutedRef.value = true;
-        }
+        closingState.hardStopExecuted = true;
+        (twilioHandler as any).hardStopExecuted = closingState.hardStopExecuted;
 
         try {
           await endCallCleanly(wsRef, twilioHandler);
           console.log('[FINAL_CLOSING_HARD_STOP_COMPLETE] Call terminated successfully via hard-stop');
           console.log('[FINAL_CLOSING_HARD_STOP_COMPLETE] Timestamp:', new Date().toISOString());
-          if (callStateRef) {
-            callStateRef.value = 'closed';
-          }
+          closingState.callState = 'closed';
+          (twilioHandler as any).callState = closingState.callState;
         } catch (error) {
           console.log('[FINAL_CLOSING_HARD_STOP_FAILED] Error during hard-stop hangup:', error);
           console.log('[FINAL_CLOSING_HARD_STOP_FAILED] Error details:', error instanceof Error ? error.message : String(error));
@@ -1724,10 +1733,10 @@ function startAuthoritativeFinalClose(
 
   console.log('[AUTHORITATIVE FINAL CLOSE] Complete - all flags set');
   console.log('[AUTHORITATIVE FINAL CLOSE] New states:', {
-    callState: callStateRef.value,
-    finalClosingStarted: finalClosingStartedRef.value,
-    terminalClosingResponseStarted: terminalClosingResponseStartedRef.value,
-    confirmationState: confirmationStateRef.value
+    callState: closingState.callState,
+    finalClosingStarted: closingState.finalClosingStarted,
+    terminalClosingResponseStarted: closingState.terminalClosingResponseStarted,
+    confirmationState: closingState.confirmationState
   });
 
   return true;
@@ -1868,20 +1877,33 @@ wss.on('connection', (ws, req) => {
 
     // Call state for clean call ending - deterministic state machine
     type CallState = 'active' | 'closing' | 'closing_audio_playing' | 'closing_error' | 'closed';
+    type ConfirmationState = 'not_started' | 'collecting_info' | 'confirmation_sent' | 'confirmed' | 'completed';
+
+    // Single shared closing state object - single source of truth
+    const closingState = {
+      callState: 'active' as CallState,
+      confirmationState: 'collecting_info' as ConfirmationState,
+      finalClosingStarted: false,
+      terminalClosingResponseStarted: false,
+      finalClosingAudioDone: false,
+      hangupScheduled: false,
+      hardStopStarted: false,
+      hardStopExecuted: false
+    };
+
+    console.log('[CLOSING_STATE_INIT] Shared closing state object created');
+    console.log('[CLOSING_STATE_INIT] Initial state:', JSON.stringify(closingState, null, 2));
+    console.log('[CLOSING_STATE_INIT] Timestamp:', new Date().toISOString());
+
+    // Individual variables kept for backward compatibility during transition
+    // These will be deprecated once all code uses closingState directly
     let callState: CallState = 'active';
-    console.log('[CALL_STATE_INIT] callState initialized to:', callState);
-    console.log('[CALL_STATE_INIT] Source: ws.on(message) handler at line 1861');
-    console.log('[CALL_STATE_INIT] Timestamp:', new Date().toISOString());
     let finalClosingStarted = false;
-    console.log('[FINAL_CLOSING_INIT] finalClosingStarted initialized to:', finalClosingStarted);
-    console.log('[FINAL_CLOSING_INIT] Source: ws.on(message) handler at line 1862');
-    console.log('[FINAL_CLOSING_INIT] Timestamp:', new Date().toISOString());
-    let terminalClosingResponseStarted = false; // Indicates the actual terminal goodbye response has started
-    console.log('[TERMINAL_CLOSING_INIT] terminalClosingResponseStarted initialized to:', terminalClosingResponseStarted);
-    console.log('[TERMINAL_CLOSING_INIT] Source: ws.on(message) handler at line 1863');
-    console.log('[TERMINAL_CLOSING_INIT] Timestamp:', new Date().toISOString());
+    let terminalClosingResponseStarted = false;
     let finalClosingAudioDone = false;
     let hangupScheduled = false;
+    let confirmationState: ConfirmationState = 'collecting_info';
+    let hardStopExecuted = false;
     let postCallSmsSent = false;
     let assistantSpeaking = false;
     let finalGoodbyeMarkReceived = false; // Track when final-goodbye-complete mark is received
@@ -1891,15 +1913,10 @@ wss.on('connection', (ws, req) => {
     let directHangupFallbackTimer: NodeJS.Timeout | null = null; // Direct hangup fallback timer
     let directHangupFallbackExecuted = false; // Track if direct hangup fallback has been executed
     let hardStopTimer: NodeJS.Timeout | null = null; // Absolute hard-stop timer
-    let hardStopExecuted = false; // Track if hard-stop has been executed
 
     // Listener count tracking
     let openAiMessageListenerCount = 0;
     let streamCloneCount = 0;
-
-    // Confirmation flow state
-    type ConfirmationState = 'not_started' | 'collecting_info' | 'confirmation_sent' | 'confirmed' | 'completed';
-    let confirmationState: ConfirmationState = 'collecting_info';
 
     let intakeComplete = false;
 
@@ -1922,8 +1939,8 @@ wss.on('connection', (ws, req) => {
     // Simplified confirmation flow - no mark complexity
     // We use response.done events to sequence the responses deterministically
 
-    // Pass state variables to twilioHandler for audio append guards
-    (twilioHandler as any).callState = callState;
+    // Pass shared closing state to twilioHandler for audio append guards
+    (twilioHandler as any).closingState = closingState;
     (twilioHandler as any).assistantSpeaking = assistantSpeaking;
 
     // Set up mark received callback to track when Twilio acknowledges final goodbye audio playback
@@ -3701,30 +3718,26 @@ Do NOT:
                       });
 
                       const closeSuccess = startAuthoritativeFinalClose(
-                        { value: callState },
-                        { value: finalClosingStarted },
-                        { value: terminalClosingResponseStarted },
-                        { value: confirmationState },
-                        { value: hardStopExecuted },
-                        twilioHandler
+                        closingState,
+                        twilioHandler,
+                        'response.output_audio.delta handler at line 3713'
                       );
 
-                      // Store references for hard-stop timer
+                      // Pass closingState to twilioHandler for hard-stop timer access
                       (twilioHandler as any).wsRef = ws;
-                      (twilioHandler as any).callStateRef = { value: callState };
-                      (twilioHandler as any).hardStopExecutedRef = { value: hardStopExecuted };
+                      (twilioHandler as any).closingState = closingState;
 
                       if (closeSuccess) {
-                        // Update local variables from the function's changes
-                        console.log('[STATE_SYNC] Updating local variables from twilioHandler after startAuthoritativeFinalClose');
-                        console.log('[STATE_SYNC] Source: response.output_audio.delta handler at line 3683');
+                        // Sync individual variables from closingState for backward compatibility
+                        console.log('[STATE_SYNC] Syncing individual variables from closingState');
+                        console.log('[STATE_SYNC] Source: response.output_audio.delta handler at line 3713');
                         console.log('[STATE_SYNC] Timestamp:', new Date().toISOString());
-                        finalClosingStarted = (twilioHandler as any).finalClosingStarted;
+                        finalClosingStarted = closingState.finalClosingStarted;
                         console.log('[FINAL_CLOSING_SYNC] finalClosingStartedsynced to:', finalClosingStarted);
-                        terminalClosingResponseStarted = (twilioHandler as any).terminalClosingResponseStarted;
+                        terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
                         console.log('[TERMINAL_CLOSING_SYNC] terminalClosingResponseStartedsynced to:', terminalClosingResponseStarted);
-                        confirmationState = (twilioHandler as any).confirmationState;
-                        callState = (twilioHandler as any).callState;
+                        confirmationState = closingState.confirmationState;
+                        callState = closingState.callState;
                         console.log('[CALL_STATE_SYNC] callState synced to:', callState);
 
                         console.log('[FINAL_CLOSE_STARTED_BEFORE_RESPONSE_CREATE] Authoritative final close completed successfully');
@@ -3884,14 +3897,14 @@ Do NOT:
                   console.log('[CALL STATE UPDATED] terminalClosingResponseStarted:', terminalClosingResponseStarted);
                   console.log('[CALL STATE UPDATED] confirmationState:', confirmationState);
                   console.log('[CALL STATE UPDATED] finalClosingStarted:', finalClosingStarted);
-                } else if (callState === 'active' && !terminalClosingResponseStarted) {
+                } else if (callState === 'active' && !closingState.terminalClosingResponseStarted) {
                   // Log warning if trying to set callState to closing without terminalClosingResponseStarted
                   console.log('[CALL STATE BLOCKED] Cannot set callState to closing - terminalClosingResponseStarted is false');
                   console.log('[CALL STATE BLOCKED] This indicates the terminal closing sequence has not been started');
                   console.log('[CALL STATE BLOCKED] callState:', callState);
-                  console.log('[CALL STATE BLOCKED] terminalClosingResponseStarted:', terminalClosingResponseStarted);
-                  console.log('[CALL STATE BLOCKED] finalClosingStarted:', finalClosingStarted);
-                  console.log('[CALL STATE BLOCKED] confirmationState:', confirmationState);
+                  console.log('[CALL STATE BLOCKED] terminalClosingResponseStarted (from closingState):', closingState.terminalClosingResponseStarted);
+                  console.log('[CALL STATE BLOCKED] finalClosingStarted (from closingState):', closingState.finalClosingStarted);
+                  console.log('[CALL STATE BLOCKED] confirmationState (from closingState):', closingState.confirmationState);
                   console.log('[CALL STATE BLOCKED] Timestamp:', new Date().toISOString());
                   console.log('[CALL STATE BLOCKED] callState remains active - allowing audio to continue');
                 } else if (callState === 'closing') {
@@ -3900,6 +3913,30 @@ Do NOT:
                   console.log('[CALL STATE ALREADY CLOSING] terminalClosingResponseStarted:', terminalClosingResponseStarted);
                   console.log('[CALL STATE ALREADY CLOSING] confirmationState:', confirmationState);
                   console.log('[CALL STATE ALREADY CLOSING] Timestamp:', new Date().toISOString());
+                }
+
+                // Recovery logic: if final audio arrives without closing state being set
+                if (!closingState.terminalClosingResponseStarted && confirmationState === 'completed') {
+                  console.log('[FINAL_AUDIO_WITHOUT_CLOSING_STATE] Final audio delta received but terminalClosingResponseStarted is false');
+                  console.log('[FINAL_AUDIO_WITHOUT_CLOSING_STATE] This indicates startAuthoritativeFinalClose was not called');
+                  console.log('[FINAL_AUDIO_WITHOUT_CLOSING_STATE] Triggering recovery call to startAuthoritativeFinalClose');
+                  console.log('[FINAL_AUDIO_WITHOUT_CLOSING_STATE] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL_AUDIO_WITHOUT_CLOSING_STATE] Current closingState:', JSON.stringify(closingState, null, 2));
+
+                  const recoverySuccess = startAuthoritativeFinalClose(
+                    closingState,
+                    twilioHandler,
+                    'recovery_from_final_audio_without_closing_state at line 3915'
+                  );
+
+                  if (recoverySuccess) {
+                    // Sync individual variables from closingState
+                    finalClosingStarted = closingState.finalClosingStarted;
+                    terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
+                    confirmationState = closingState.confirmationState;
+                    callState = closingState.callState;
+                    console.log('[FINAL_AUDIO_WITHOUT_CLOSING_STATE] Recovery successful, state synced');
+                  }
                 }
 
                 // Log when final goodbye audio delta is received
@@ -4296,30 +4333,26 @@ Do NOT:
                   
                   // Use the authoritative final-close function to set all flags together
                   const closeSuccess = startAuthoritativeFinalClose(
-                    { value: callState },
-                    { value: finalClosingStarted },
-                    { value: terminalClosingResponseStarted },
-                    { value: confirmationState },
-                    { value: hardStopExecuted },
-                    twilioHandler
+                    closingState,
+                    twilioHandler,
+                    'response.done handler at line 4305'
                   );
 
-                  // Store references for hard-stop timer
+                  // Pass closingState to twilioHandler for hard-stop timer access
                   (twilioHandler as any).wsRef = ws;
-                  (twilioHandler as any).callStateRef = { value: callState };
-                  (twilioHandler as any).hardStopExecutedRef = { value: hardStopExecuted };
+                  (twilioHandler as any).closingState = closingState;
                   
                   if (closeSuccess) {
-                    // Update local variables from the function's changes
-                    console.log('[STATE_SYNC] Updating local variables from twilioHandler after startAuthoritativeFinalClose');
-                    console.log('[STATE_SYNC] Source: response.done handler at line 4252');
+                    // Sync individual variables from closingState for backward compatibility
+                    console.log('[STATE_SYNC] Syncing individual variables from closingState');
+                    console.log('[STATE_SYNC] Source: response.done handler at line 4305');
                     console.log('[STATE_SYNC] Timestamp:', new Date().toISOString());
-                    finalClosingStarted = (twilioHandler as any).finalClosingStarted;
+                    finalClosingStarted = closingState.finalClosingStarted;
                     console.log('[FINAL_CLOSING_SYNC] finalClosingStartedsynced to:', finalClosingStarted);
-                    terminalClosingResponseStarted = (twilioHandler as any).terminalClosingResponseStarted;
+                    terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
                     console.log('[TERMINAL_CLOSING_SYNC] terminalClosingResponseStartedsynced to:', terminalClosingResponseStarted);
-                    confirmationState = (twilioHandler as any).confirmationState;
-                    callState = (twilioHandler as any).callState;
+                    confirmationState = closingState.confirmationState;
+                    callState = closingState.callState;
                     console.log('[CALL_STATE_SYNC] callState synced to:', callState);
                     
                     // Use the deterministic goodbye and hangup function
