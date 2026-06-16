@@ -1821,6 +1821,8 @@ wss.on('connection', (ws, req) => {
     let finalGoodbyeMarkSent = false; // Track when final-goodbye-complete mark is sent
     let finalAudioFallbackTimer: NodeJS.Timeout | null = null; // Fallback timer for mark sending
     let finalAudioFallbackStarted = false; // Track if fallback timer has been started
+    let directHangupFallbackTimer: NodeJS.Timeout | null = null; // Direct hangup fallback timer
+    let directHangupFallbackExecuted = false; // Track if direct hangup fallback has been executed
 
     // Confirmation flow state
     type ConfirmationState = 'not_started' | 'collecting_info' | 'confirmation_sent' | 'confirmed' | 'completed';
@@ -1864,7 +1866,14 @@ wss.on('connection', (ws, req) => {
         
         finalGoodbyeMarkReceived = true;
         (twilioHandler as any).finalGoodbyeMarkReceived = finalGoodbyeMarkReceived;
-        
+
+        // Clear direct hangup fallback timer since mark was received
+        if (directHangupFallbackTimer) {
+          clearTimeout(directHangupFallbackTimer);
+          directHangupFallbackTimer = null;
+          console.log('[DIRECT_HANGUP_FALLBACK_CLEARED] Direct hangup fallback timer cleared since mark was received');
+        }
+
         // Schedule hangup after mark received with 3 second safety buffer
         // This ensures audio has actually finished playing to the caller
         if (finalClosingStarted && !hangupScheduled) {
@@ -3796,11 +3805,25 @@ Do NOT:
                   if (!finalAudioFallbackStarted && !finalGoodbyeMarkSent) {
                     console.log('[FINAL_MARK_FALLBACK_TIMER_STARTED] Starting 3 second fallback timer for mark');
                     console.log('[FINAL_MARK_FALLBACK_TIMER_STARTED] Timestamp:', new Date().toISOString());
+                    console.log('[FINAL_MARK_FALLBACK_TIMER_STARTED] finalClosingStarted:', finalClosingStarted);
+                    console.log('[FINAL_MARK_FALLBACK_TIMER_STARTED] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+                    console.log('[FINAL_MARK_FALLBACK_TIMER_STARTED] finalGoodbyeMarkSent:', finalGoodbyeMarkSent);
                     finalAudioFallbackStarted = true;
                     (twilioHandler as any).finalAudioFallbackStarted = finalAudioFallbackStarted;
 
                     finalAudioFallbackTimer = setTimeout(async () => {
-                      if (finalClosingStarted && !finalGoodbyeMarkSent && !finalGoodbyeMarkReceived) {
+                      console.log('[FINAL_MARK_FALLBACK_TIMER_FIRED] Fallback timer fired');
+                      console.log('[FINAL_MARK_FALLBACK_TIMER_FIRED] Timestamp:', new Date().toISOString());
+                      console.log('[FINAL_MARK_FALLBACK_TIMER_FIRED] Pre-check values:');
+                      console.log('[FINAL_MARK_FALLBACK_TIMER_FIRED] finalClosingStarted:', finalClosingStarted);
+                      console.log('[FINAL_MARK_FALLBACK_TIMER_FIRED] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+                      console.log('[FINAL_MARK_FALLBACK_TIMER_FIRED] finalGoodbyeMarkSent:', finalGoodbyeMarkSent);
+                      console.log('[FINAL_MARK_FALLBACK_TIMER_FIRED] finalGoodbyeMarkReceived:', finalGoodbyeMarkReceived);
+                      console.log('[FINAL_MARK_FALLBACK_TIMER_FIRED] streamSid:', twilioHandler.getStreamSid() || 'not available');
+                      console.log('[FINAL_MARK_FALLBACK_TIMER_FIRED] twilioHandler.sendMark:', typeof (twilioHandler as any).sendMark);
+
+                      // Send mark if finalClosingStarted and terminalClosingResponseStarted are true
+                      if (finalClosingStarted && terminalClosingResponseStarted && !finalGoodbyeMarkSent) {
                         console.log('[FINAL_MARK_SENT_BY_FALLBACK] Sending final-goodbye-complete mark via fallback timer');
                         console.log('[FINAL_MARK_SENT_BY_FALLBACK] Timestamp:', new Date().toISOString());
                         console.log('[FINAL_MARK_SENT_BY_FALLBACK] Reason: response.audio.done did not fire within 3 seconds');
@@ -3810,9 +3833,43 @@ Do NOT:
 
                         // Send mark to Twilio
                         twilioHandler.sendMark('final-goodbye-complete');
+                        console.log('[FINAL_MARK_SENT_BY_FALLBACK] Mark sent to Twilio');
+
+                        // Start direct hangup fallback timer (5 seconds)
+                        if (!directHangupFallbackExecuted) {
+                          console.log('[DIRECT_HANGUP_FALLBACK_TIMER_STARTED] Starting 5 second direct hangup fallback timer');
+                          console.log('[DIRECT_HANGUP_FALLBACK_TIMER_STARTED] Timestamp:', new Date().toISOString());
+                          directHangupFallbackTimer = setTimeout(async () => {
+                            if (!finalGoodbyeMarkReceived && !directHangupFallbackExecuted) {
+                              console.log('[FINAL_MARK_NOT_RECEIVED_DIRECT_HANGUP_FALLBACK] Mark not received within 5 seconds, calling endCallCleanly directly');
+                              console.log('[FINAL_MARK_NOT_RECEIVED_DIRECT_HANGUP_FALLBACK] Timestamp:', new Date().toISOString());
+                              console.log('[FINAL_MARK_NOT_RECEIVED_DIRECT_HANGUP_FALLBACK] finalGoodbyeMarkReceived:', finalGoodbyeMarkReceived);
+                              console.log('[FINAL_MARK_NOT_RECEIVED_DIRECT_HANGUP_FALLBACK] directHangupFallbackExecuted:', directHangupFallbackExecuted);
+
+                              directHangupFallbackExecuted = true;
+                              (twilioHandler as any).directHangupFallbackExecuted = directHangupFallbackExecuted;
+
+                              try {
+                                await endCallCleanly(ws, twilioHandler);
+                                console.log('[DIRECT_HANGUP_FALLBACK_COMPLETE] Call terminated successfully via direct fallback');
+                                console.log('[DIRECT_HANGUP_FALLBACK_COMPLETE] Timestamp:', new Date().toISOString());
+                                callState = 'closed';
+                                (twilioHandler as any).callState = callState;
+                              } catch (error) {
+                                console.log('[DIRECT_HANGUP_FALLBACK_FAILED] Error during direct hangup fallback:', error);
+                                console.log('[DIRECT_HANGUP_FALLBACK_FAILED] Error details:', error instanceof Error ? error.message : String(error));
+                              }
+                            } else {
+                              console.log('[DIRECT_HANGUP_FALLBACK_SKIPPED] Not needed because:');
+                              console.log('[DIRECT_HANGUP_FALLBACK_SKIPPED] finalGoodbyeMarkReceived:', finalGoodbyeMarkReceived);
+                              console.log('[DIRECT_HANGUP_FALLBACK_SKIPPED] directHangupFallbackExecuted:', directHangupFallbackExecuted);
+                            }
+                          }, 5000); // 5 second direct hangup fallback
+                        }
                       } else {
                         console.log('[FINAL_MARK_FALLBACK_SKIPPED] Fallback not needed because:');
                         console.log('[FINAL_MARK_FALLBACK_SKIPPED] finalClosingStarted:', finalClosingStarted);
+                        console.log('[FINAL_MARK_FALLBACK_SKIPPED] terminalClosingResponseStarted:', terminalClosingResponseStarted);
                         console.log('[FINAL_MARK_FALLBACK_SKIPPED] finalGoodbyeMarkSent:', finalGoodbyeMarkSent);
                         console.log('[FINAL_MARK_FALLBACK_SKIPPED] finalGoodbyeMarkReceived:', finalGoodbyeMarkReceived);
                       }
@@ -3857,6 +3914,39 @@ Do NOT:
 
                   // Send mark to Twilio to track when audio has been played
                   twilioHandler.sendMark('final-goodbye-complete');
+                  console.log('[FINAL_MARK_SENT_BY_AUDIO_DONE] Mark sent to Twilio');
+
+                  // Start direct hangup fallback timer (5 seconds)
+                  if (!directHangupFallbackExecuted) {
+                    console.log('[DIRECT_HANGUP_FALLBACK_TIMER_STARTED] Starting 5 second direct hangup fallback timer');
+                    console.log('[DIRECT_HANGUP_FALLBACK_TIMER_STARTED] Timestamp:', new Date().toISOString());
+                    directHangupFallbackTimer = setTimeout(async () => {
+                      if (!finalGoodbyeMarkReceived && !directHangupFallbackExecuted) {
+                        console.log('[FINAL_MARK_NOT_RECEIVED_DIRECT_HANGUP_FALLBACK] Mark not received within 5 seconds, calling endCallCleanly directly');
+                        console.log('[FINAL_MARK_NOT_RECEIVED_DIRECT_HANGUP_FALLBACK] Timestamp:', new Date().toISOString());
+                        console.log('[FINAL_MARK_NOT_RECEIVED_DIRECT_HANGUP_FALLBACK] finalGoodbyeMarkReceived:', finalGoodbyeMarkReceived);
+                        console.log('[FINAL_MARK_NOT_RECEIVED_DIRECT_HANGUP_FALLBACK] directHangupFallbackExecuted:', directHangupFallbackExecuted);
+
+                        directHangupFallbackExecuted = true;
+                        (twilioHandler as any).directHangupFallbackExecuted = directHangupFallbackExecuted;
+
+                        try {
+                          await endCallCleanly(ws, twilioHandler);
+                          console.log('[DIRECT_HANGUP_FALLBACK_COMPLETE] Call terminated successfully via direct fallback');
+                          console.log('[DIRECT_HANGUP_FALLBACK_COMPLETE] Timestamp:', new Date().toISOString());
+                          callState = 'closed';
+                          (twilioHandler as any).callState = callState;
+                        } catch (error) {
+                          console.log('[DIRECT_HANGUP_FALLBACK_FAILED] Error during direct hangup fallback:', error);
+                          console.log('[DIRECT_HANGUP_FALLBACK_FAILED] Error details:', error instanceof Error ? error.message : String(error));
+                        }
+                      } else {
+                        console.log('[DIRECT_HANGUP_FALLBACK_SKIPPED] Not needed because:');
+                        console.log('[DIRECT_HANGUP_FALLBACK_SKIPPED] finalGoodbyeMarkReceived:', finalGoodbyeMarkReceived);
+                        console.log('[DIRECT_HANGUP_FALLBACK_SKIPPED] directHangupFallbackExecuted:', directHangupFallbackExecuted);
+                      }
+                    }, 5000); // 5 second direct hangup fallback
+                  }
                   
                   // Add fallback timeout in case mark is never received
                   // This prevents calls from hanging indefinitely
