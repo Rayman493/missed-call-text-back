@@ -77,7 +77,7 @@ export default function DemoPage() {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
               }`}
             >
-              SMS Recovery
+              Automated Missed-Call Text
             </button>
           </div>
         </div>
@@ -186,85 +186,92 @@ export default function DemoPage() {
         ) : (
           <div className="max-w-2xl mx-auto">
             <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-6 sm:p-8 shadow-lg">
-              {/* Missed Call Event */}
+              {/* Step 1: Missed Call Event */}
               <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4 mb-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-sm font-bold">1</span>
+                  </div>
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">Arctic Air HVAC</p>
-                    <p className="text-sm text-orange-700 dark:text-orange-300 font-medium">Missed Call</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">Missed Call Detected</p>
+                    <p className="text-sm text-orange-700 dark:text-orange-300">Arctic Air HVAC</p>
                   </div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">2:33 PM</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 ml-auto">2:33 PM</p>
                 </div>
               </div>
 
-              {/* Automated Text Sent */}
+              {/* Step 2: Automated Text Sent */}
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Automated Text Sent</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">2:34 PM</p>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-sm font-bold">2</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">Automated Text Sent</p>
+                    <p className="text-sm text-blue-700 dark:text-blue-300">Instant text-back to caller</p>
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 ml-auto">2:34 PM</p>
+                </div>
+                <div className="mt-3 bg-blue-600 rounded-2xl rounded-br-none px-4 py-3 shadow-sm max-w-[85%] ml-11">
+                  <p className="text-sm text-white">Sorry we missed your call — this is Arctic Air HVAC. We received your request and will follow up soon.</p>
+                  <p className="text-xs text-blue-200 mt-1">2:34 PM</p>
                 </div>
               </div>
 
-              <div className="bg-slate-100 dark:bg-slate-900/50 rounded-2xl p-6 sm:p-8 shadow-lg">
-                {/* Business Message 1 */}
-                <div className="flex justify-end mb-4">
-                  <div className="bg-blue-600 rounded-2xl rounded-br-none px-4 py-3 shadow-sm max-w-[85%]">
-                    <p className="text-sm text-white">Sorry we missed your call — this is Arctic Air HVAC. What issue are you experiencing?</p>
-                    <p className="text-xs text-blue-200 mt-1">2:34 PM</p>
+              {/* Step 3: Customer Reply */}
+              <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-sm font-bold">3</span>
                   </div>
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">Customer Reply</p>
+                    <p className="text-sm text-purple-700 dark:text-purple-300">Correction/Additional Detail</p>
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 ml-auto">2:35 PM</p>
                 </div>
-
-                {/* Customer Message 1 */}
-                <div className="flex justify-start mb-4">
-                  <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm max-w-[85%]">
-                    <p className="text-sm text-slate-800 dark:text-slate-200">My upstairs AC isn't cooling.</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:35 PM</p>
-                  </div>
-                </div>
-
-                {/* Business Message 2 */}
-                <div className="flex justify-end mb-4">
-                  <div className="bg-blue-600 rounded-2xl rounded-br-none px-4 py-3 shadow-sm max-w-[85%]">
-                    <p className="text-sm text-white">We can help with that. What city are you located in?</p>
-                    <p className="text-xs text-blue-200 mt-1">2:36 PM</p>
-                  </div>
-                </div>
-
-                {/* Customer Message 2 */}
-                <div className="flex justify-start mb-4">
-                  <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm max-w-[85%]">
-                    <p className="text-sm text-slate-800 dark:text-slate-200">Pittsburgh</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:37 PM</p>
-                  </div>
-                </div>
-
-                {/* Business Message 3 */}
-                <div className="flex justify-end mb-4">
-                  <div className="bg-blue-600 rounded-2xl rounded-br-none px-4 py-3 shadow-sm max-w-[85%]">
-                    <p className="text-sm text-white">Thanks — a technician can reach out shortly to schedule service.</p>
-                    <p className="text-xs text-blue-200 mt-1">2:38 PM</p>
-                  </div>
+                <div className="mt-3 bg-white dark:bg-slate-800 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm max-w-[85%] ml-11">
+                  <p className="text-sm text-slate-800 dark:text-slate-200">Actually, the issue is the upstairs AC not cooling.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">2:35 PM</p>
                 </div>
               </div>
 
-              {/* Lead Card */}
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mt-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  <p className="font-semibold text-green-900 dark:text-green-100">Lead Created</p>
+              {/* Step 4: Lead Updated */}
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 mb-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-sm font-bold">4</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">Lead Details Updated</p>
+                    <p className="text-sm text-emerald-700 dark:text-emerald-300">ReplyFlow recognized the correction</p>
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 ml-auto">2:35 PM</p>
                 </div>
-                <div className="space-y-2 text-sm">
+                <div className="mt-3 bg-white dark:bg-slate-800 rounded-lg px-4 py-3 shadow-sm ml-11 border border-emerald-200 dark:border-emerald-800">
+                  <p className="text-sm text-emerald-800 dark:text-emerald-200 font-medium">Issue changed to: Upstairs AC not cooling</p>
+                </div>
+              </div>
+
+              {/* Step 5: Lead Created in Dashboard */}
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-sm font-bold">5</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-green-900 dark:text-green-100">Lead Created in Dashboard</p>
+                    <p className="text-sm text-green-700 dark:text-green-300">Business owner sees updated lead</p>
+                  </div>
+                </div>
+                <div className="ml-11 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-green-700 dark:text-green-300">Phone:</span>
                     <span className="text-green-900 dark:text-green-100 font-medium">(412) 555-0123</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-green-700 dark:text-green-300">Issue:</span>
-                    <span className="text-green-900 dark:text-green-100 font-medium">AC not cooling</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-green-700 dark:text-green-300">Location:</span>
-                    <span className="text-green-900 dark:text-green-100 font-medium">Pittsburgh</span>
+                    <span className="text-green-900 dark:text-green-100 font-medium">Upstairs AC not cooling</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-green-700 dark:text-green-300">Status:</span>
@@ -300,10 +307,10 @@ export default function DemoPage() {
           </div>
           <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-4 text-center">
             <div className="flex justify-center mb-2">
-              <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
             </div>
-            <p className="text-sm font-medium text-slate-900 dark:text-white">Lead Captured</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Conversation saved in your dashboard</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">Lead Updates</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Customer corrections update lead details</p>
           </div>
         </div>
       </div>
