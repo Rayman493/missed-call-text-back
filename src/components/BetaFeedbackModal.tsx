@@ -90,6 +90,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
             onClick={onClose}
             className="p-2 hover:bg-muted rounded-lg transition-colors"
             disabled={isSubmitting}
+            aria-label="Close feedback modal"
           >
             <X className="w-5 h-5 text-muted-foreground" />
           </button>

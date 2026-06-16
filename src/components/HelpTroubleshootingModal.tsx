@@ -18,10 +18,22 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
     setTimeout(() => setCopiedCode(null), 2000)
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      onClose()
+    }
+  }
+
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="help-modal-title"
+      onKeyDown={handleKeyDown}
+    >
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -29,7 +41,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
       />
 
       {/* Modal */}
-      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" tabIndex={-1}>
         {/* Header */}
         <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -37,13 +49,14 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
               <HelpCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Help & Troubleshooting</h2>
+              <h2 id="help-modal-title" className="text-lg font-semibold text-foreground">Help & Troubleshooting</h2>
               <p className="text-sm text-muted-foreground">Forwarding setup support</p>
             </div>
           </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-muted rounded-lg transition-colors"
+            aria-label="Close help modal"
           >
             <X className="w-5 h-5 text-muted-foreground" />
           </button>

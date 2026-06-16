@@ -23,6 +23,16 @@ export default function DashboardEmptyState() {
     setShowTestModal(true)
   }
 
+  const handleCloseTestModal = () => {
+    setShowTestModal(false)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      handleCloseTestModal()
+    }
+  }
+
   const handleViewInstructions = () => {
     if (!business?.twilio_phone_number) {
       alert('Your ReplyFlow number is still being assigned. Please try again in a few minutes.')
@@ -82,9 +92,15 @@ export default function DashboardEmptyState() {
 
       {/* Test My Setup Modal */}
       {showTestModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-card rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-foreground mb-4">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="test-modal-title"
+          onKeyDown={handleKeyDown}
+        >
+          <div className="bg-card rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto" tabIndex={-1}>
+            <h2 id="test-modal-title" className="text-xl font-bold text-foreground mb-4">
               Test Real Missed Calls
             </h2>
             
@@ -164,7 +180,7 @@ export default function DashboardEmptyState() {
 
             {/* Close Button */}
             <button
-              onClick={() => setShowTestModal(false)}
+              onClick={handleCloseTestModal}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium"
             >
               Close

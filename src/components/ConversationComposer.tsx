@@ -169,6 +169,7 @@ export default function ConversationComposer({
                   onClick={() => removeImage(img.id)}
                   className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
                   type="button"
+                  aria-label="Remove image"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -198,6 +199,7 @@ export default function ConversationComposer({
               onClick={() => fileInputRef.current?.click()}
               className="p-2.5 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 rounded-xl hover:bg-muted/50 h-11 flex items-center justify-center"
               disabled={sending}
+              aria-label="Attach image"
             >
               <ImageIcon className="w-5 h-5" />
             </button>
