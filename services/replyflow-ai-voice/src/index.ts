@@ -1819,6 +1819,8 @@ wss.on('connection', (ws, req) => {
     let assistantSpeaking = false;
     let finalGoodbyeMarkReceived = false; // Track when final-goodbye-complete mark is received
     let finalGoodbyeMarkSent = false; // Track when final-goodbye-complete mark is sent
+    let finalAudioFallbackTimer: NodeJS.Timeout | null = null; // Fallback timer for mark sending
+    let finalAudioFallbackStarted = false; // Track if fallback timer has been started
 
     // Confirmation flow state
     type ConfirmationState = 'not_started' | 'collecting_info' | 'confirmation_sent' | 'confirmed' | 'completed';
@@ -3715,6 +3717,14 @@ Do NOT:
               if (message.type === 'response.output_item.added') {
                 console.log('[OPENAI RECV] response.output_item.added');
               }
+              if (message.type === 'response.output_item.done') {
+                console.log('[OPENAI RECV] response.output_item.done');
+                console.log('[FINAL_OUTPUT_ITEM_DONE] Output item complete');
+                console.log('[FINAL_OUTPUT_ITEM_DONE] Timestamp:', new Date().toISOString());
+                console.log('[FINAL_OUTPUT_ITEM_DONE] finalClosingStarted:', finalClosingStarted);
+                console.log('[FINAL_OUTPUT_ITEM_DONE] callState:', callState);
+                console.log('[FINAL_OUTPUT_ITEM_DONE] item_id:', message.item_id || 'unknown');
+              }
               if (message.type === 'response.output_audio.delta') {
                 if (process.env.DEBUG_AI_VOICE === 'true') {
                   console.log('[OPENAI RECV] response.output_audio.delta');
@@ -3781,6 +3791,33 @@ Do NOT:
                   console.log('[FINAL_AUDIO_DELTA_ACCEPTED] callState:', callState);
                   console.log('[FINAL_AUDIO_DELTA_ACCEPTED] Timestamp:', new Date().toISOString());
                   console.log('[FINAL_AUDIO_DELTA_ACCEPTED] callState transition to closing allowed');
+
+                  // Start fallback timer if not already started
+                  if (!finalAudioFallbackStarted && !finalGoodbyeMarkSent) {
+                    console.log('[FINAL_MARK_FALLBACK_TIMER_STARTED] Starting 3 second fallback timer for mark');
+                    console.log('[FINAL_MARK_FALLBACK_TIMER_STARTED] Timestamp:', new Date().toISOString());
+                    finalAudioFallbackStarted = true;
+                    (twilioHandler as any).finalAudioFallbackStarted = finalAudioFallbackStarted;
+
+                    finalAudioFallbackTimer = setTimeout(async () => {
+                      if (finalClosingStarted && !finalGoodbyeMarkSent && !finalGoodbyeMarkReceived) {
+                        console.log('[FINAL_MARK_SENT_BY_FALLBACK] Sending final-goodbye-complete mark via fallback timer');
+                        console.log('[FINAL_MARK_SENT_BY_FALLBACK] Timestamp:', new Date().toISOString());
+                        console.log('[FINAL_MARK_SENT_BY_FALLBACK] Reason: response.audio.done did not fire within 3 seconds');
+
+                        finalGoodbyeMarkSent = true;
+                        (twilioHandler as any).finalGoodbyeMarkSent = finalGoodbyeMarkSent;
+
+                        // Send mark to Twilio
+                        twilioHandler.sendMark('final-goodbye-complete');
+                      } else {
+                        console.log('[FINAL_MARK_FALLBACK_SKIPPED] Fallback not needed because:');
+                        console.log('[FINAL_MARK_FALLBACK_SKIPPED] finalClosingStarted:', finalClosingStarted);
+                        console.log('[FINAL_MARK_FALLBACK_SKIPPED] finalGoodbyeMarkSent:', finalGoodbyeMarkSent);
+                        console.log('[FINAL_MARK_FALLBACK_SKIPPED] finalGoodbyeMarkReceived:', finalGoodbyeMarkReceived);
+                      }
+                    }, 3000); // 3 second fallback
+                  }
                 }
 
                 // Clear dead air timeout since we received audio
@@ -3793,24 +3830,31 @@ Do NOT:
               }
               if (message.type === 'response.audio.done') {
                 console.log('[OPENAI RECV] response.audio.done');
-                console.log('[FINAL GOODBYE AUDIO DONE] Audio generation complete');
-                console.log('[FINAL GOODBYE AUDIO DONE] Timestamp:', new Date().toISOString());
-                console.log('[FINAL GOODBYE AUDIO DONE] finalClosingStarted:', finalClosingStarted);
-                console.log('[FINAL GOODBYE AUDIO DONE] callState:', callState);
-                console.log('[FINAL GOODBYE AUDIO DONE] hangupScheduled:', hangupScheduled);
-                console.log('[FINAL GOODBYE AUDIO DONE] finalGoodbyeMarkSent:', finalGoodbyeMarkSent);
+                console.log('[FINAL_AUDIO_DONE] Audio generation complete');
+                console.log('[FINAL_AUDIO_DONE] Timestamp:', new Date().toISOString());
+                console.log('[FINAL_AUDIO_DONE] finalClosingStarted:', finalClosingStarted);
+                console.log('[FINAL_AUDIO_DONE] callState:', callState);
+                console.log('[FINAL_AUDIO_DONE] hangupScheduled:', hangupScheduled);
+                console.log('[FINAL_AUDIO_DONE] finalGoodbyeMarkSent:', finalGoodbyeMarkSent);
                 
                 // Terminal closing detection - send mark after audio generation is complete
                 // Only send mark if this is after final closing has started
                 if (finalClosingStarted && !finalGoodbyeMarkSent) {
-                  console.log('[FINAL_AUDIO_DONE_MARK_SENT] Sending final-goodbye-complete mark after audio.done');
-                  console.log('[FINAL_AUDIO_DONE_MARK_SENT] Timestamp:', new Date().toISOString());
-                  console.log('[FINAL_AUDIO_DONE_MARK_SENT] finalClosingStarted:', finalClosingStarted);
-                  console.log('[FINAL_AUDIO_DONE_MARK_SENT] callState:', callState);
-                  
+                  console.log('[FINAL_MARK_SENT_BY_AUDIO_DONE] Sending final-goodbye-complete mark after audio.done');
+                  console.log('[FINAL_MARK_SENT_BY_AUDIO_DONE] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL_MARK_SENT_BY_AUDIO_DONE] finalClosingStarted:', finalClosingStarted);
+                  console.log('[FINAL_MARK_SENT_BY_AUDIO_DONE] callState:', callState);
+
+                  // Clear fallback timer since audio.done fired
+                  if (finalAudioFallbackTimer) {
+                    clearTimeout(finalAudioFallbackTimer);
+                    finalAudioFallbackTimer = null;
+                    console.log('[FINAL_MARK_FALLBACK_CLEARED] Fallback timer cleared since audio.done fired');
+                  }
+
                   finalGoodbyeMarkSent = true;
                   (twilioHandler as any).finalGoodbyeMarkSent = finalGoodbyeMarkSent;
-                  
+
                   // Send mark to Twilio to track when audio has been played
                   twilioHandler.sendMark('final-goodbye-complete');
                   
@@ -3998,8 +4042,11 @@ Do NOT:
               if (message.type === 'response.done') {
                 const responseId = message.response_id || 'unknown';
                 console.log('[OPENAI RECV] response.done');
-                console.log('[AI RESPONSE DONE] Response completed');
-                console.log('[AI RESPONSE DONE] response_id:', responseId);
+                console.log('[FINAL_RESPONSE_DONE] Response completed');
+                console.log('[FINAL_RESPONSE_DONE] response_id:', responseId);
+                console.log('[FINAL_RESPONSE_DONE] Timestamp:', new Date().toISOString());
+                console.log('[FINAL_RESPONSE_DONE] finalClosingStarted:', finalClosingStarted);
+                console.log('[FINAL_RESPONSE_DONE] callState:', callState);
                 console.log('[RACE CONDITION DEBUG] response.done at:', new Date().toISOString());
                 console.log('[RACE CONDITION DEBUG] response.done response_id:', responseId);
                 console.log('[RACE CONDITION DEBUG] Current callState:', callState);
@@ -4257,8 +4304,12 @@ Do NOT:
               }
               if (message.type === 'response.output_audio_transcript.done') {
                 console.log('[OPENAI RECV] response.output_audio_transcript.done');
+                console.log('[FINAL_TRANSCRIPT_DONE] Transcript complete');
+                console.log('[FINAL_TRANSCRIPT_DONE] Timestamp:', new Date().toISOString());
+                console.log('[FINAL_TRANSCRIPT_DONE] finalClosingStarted:', finalClosingStarted);
+                console.log('[FINAL_TRANSCRIPT_DONE] callState:', callState);
                 console.log('[AI TRANSCRIPT DONE]', message.transcript || 'null');
-                
+
                 // Do NOT trigger hangup on transcript completion - wait for response.audio.done only
                 // This prevents premature hangup before audio has finished generating
               }
