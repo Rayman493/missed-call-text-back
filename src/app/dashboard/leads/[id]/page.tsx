@@ -1732,9 +1732,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   {/* Quick Actions */}
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Primary Action: Message */}
+                    <button
+                      onClick={() => {
+                        const composer = document.querySelector('textarea[name="message"]') as HTMLTextAreaElement
+                        if (composer) composer.focus()
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors border border-blue-600 text-sm font-semibold shadow-sm"
+                      aria-label="Send text message"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <span className="hidden sm:inline">Message</span>
+                    </button>
+                    
+                    {/* Secondary Actions */}
                     <button
                       onClick={() => window.open(`tel:${lead?.caller_phone}`, '_self')}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors border border-slate-200 dark:border-slate-700 text-sm font-medium"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors border border-slate-200 dark:border-slate-700 text-sm font-medium"
                       aria-label="Call lead"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1743,21 +1759,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <span className="hidden sm:inline">Call</span>
                     </button>
                     <button
-                      onClick={() => {
-                        const composer = document.querySelector('textarea[name="message"]') as HTMLTextAreaElement
-                        if (composer) composer.focus()
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-100 dark:bg-blue-900/20 hover:bg-blue-200 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 transition-colors border border-blue-200 dark:border-blue-800 text-sm font-medium"
-                      aria-label="Send text message"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      <span className="hidden sm:inline">Message</span>
-                    </button>
-                    <button
                       onClick={handleScheduleClick}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-100 dark:bg-green-900/20 hover:bg-green-200 dark:hover:bg-green-900/30 text-green-700 dark:text-green-300 transition-colors border border-green-200 dark:border-green-800 text-sm font-medium"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors border border-slate-200 dark:border-slate-700 text-sm font-medium"
                       aria-label="Schedule appointment"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1765,16 +1768,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </svg>
                       <span className="hidden sm:inline">Schedule</span>
                     </button>
+                    
+                    {/* Separator */}
+                    <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-1" />
+                    
+                    {/* Utility Actions */}
                     <LeadStatusDropdown
                       currentStatus={leadData?.status || 'new'}
                       onStatusChange={async (newStatus) => {
                         // Status change handled by dropdown
                       }}
                     />
-                    {/* Icon-only secondary actions */}
                     <button
                       onClick={() => setShowDeleteModal(true)}
-                      className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border border-red-200 dark:border-red-800"
+                      className="p-2 text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
                       aria-label="Delete lead"
                       title="Delete lead"
                     >
@@ -1816,18 +1823,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
-                {/* Icon-only refresh button */}
+                {/* Icon-only refresh button - Aligned with action bar */}
                 <button
                   onClick={handleRefresh}
                   disabled={refreshing}
-                  className="p-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Refresh lead"
                   aria-label="Refresh lead"
                 >
-                  <svg 
-                    className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} 
-                    fill="none" 
-                    stroke="currentColor" 
+                  <svg
+                    className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
