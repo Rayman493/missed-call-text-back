@@ -922,7 +922,7 @@ export default async function Home() {
                   href="/demo"
                   className="h-11 sm:h-12 px-5 sm:px-7 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-semibold rounded-xl shadow-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center text-sm sm:text-base border border-blue-200 dark:border-blue-800"
                 >
-                  Watch Demo
+                  See How It Works
                 </Link>
               </div>
               
