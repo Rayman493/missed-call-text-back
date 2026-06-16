@@ -6,8 +6,8 @@ import PageBackground from '@/components/PageBackground'
 import LegalNavigation from '@/components/LegalNavigation'
 
 export const metadata: Metadata = {
-  title: 'ReplyFlowHQ Terms of Service | Conversational Messaging Platform',
-  description: 'ReplyFlowHQ terms of service for conversational missed-call response automation. Service agreement, responsibilities, and usage terms.',
+  title: 'ReplyFlowHQ Terms of Service | Automated Missed-Call Text Response',
+  description: 'ReplyFlowHQ terms of service for automated missed-call text responses. Service agreement, responsibilities, and usage terms.',
 }
 
 export default function TermsPage() {
@@ -59,7 +59,7 @@ export default function TermsPage() {
               Terms of Service
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              ReplyFlowHQ service agreement for conversational missed-call response automation.
+              ReplyFlowHQ service agreement for automated missed-call text responses.
             </p>
             <p className="text-sm text-muted-foreground mt-4">
               Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -72,79 +72,81 @@ export default function TermsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="lg:grid lg:grid-cols-4 lg:gap-12">
           {/* Table of Contents - Desktop Only */}
-          <aside className="hidden lg:block lg:col-span-1">
+          <aside className="hidden lg:block lg:col-span-[1.25]">
             <div className="sticky top-8">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                Table of Contents
-              </h3>
-              <nav className="space-y-2" aria-label="Table of contents">
+              <div className="bg-card rounded-xl shadow-md border border-border p-6">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5">
+                  Contents
+                </h3>
+                <nav className="space-y-3" aria-label="Table of contents">
                 <a
                   href="#service-agreement"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Service Agreement
                 </a>
                 <a
                   href="#service-description"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Service Description
                 </a>
                 <a
                   href="#user-responsibilities"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   User Responsibilities
                 </a>
                 <a
                   href="#prohibited-uses"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Prohibited Uses
                 </a>
                 <a
                   href="#ai-communications"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   AI Communications
                 </a>
                 <a
                   href="#payment-terms"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Payment Terms
                 </a>
                 <a
                   href="#service-termination"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Service Termination
                 </a>
                 <a
                   href="#limitation-of-liability"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Liability
                 </a>
                 <a
                   href="#service-availability"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Service Availability
                 </a>
                 <a
                   href="#sms-terms"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   SMS Terms
                 </a>
                 <a
                   href="#contact-information"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Contact Information
                 </a>
               </nav>
+              </div>
             </div>
           </aside>
 
@@ -160,7 +162,7 @@ export default function TermsPage() {
                 </h2>
                 <div className="prose prose-gray dark:prose-invert max-w-none">
                   <p className="text-muted-foreground leading-relaxed">
-                    By using ReplyFlowHQ's conversational messaging services, you agree to these terms of service. 
+                    By using ReplyFlowHQ's automated missed-call text response services, you agree to these terms of service. 
                     ReplyFlowHQ provides <strong>missed-call response automation</strong> services for businesses 
                     to communicate with customers who have initiated contact by calling.
                   </p>
@@ -190,7 +192,7 @@ export default function TermsPage() {
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
                       <p className="text-muted-foreground">
-                        <strong>Conversational Messaging</strong> - Automated text responses to missed customer calls
+                        <strong>Automated Text Responses</strong> - Automated text responses to missed customer calls
                       </p>
                     </div>
                     <div className="flex items-start gap-3">
@@ -221,7 +223,7 @@ export default function TermsPage() {
                   <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                     <p className="text-sm text-amber-800 dark:text-amber-200">
                       <strong>Important:</strong> ReplyFlowHQ is <strong>not</strong> a bulk marketing platform. 
-                      Services are limited to conversational messaging initiated by customer contact.
+                      Services are limited to automated missed-call text responses initiated by customer contact.
                     </p>
                   </div>
                 </div>

@@ -6,8 +6,8 @@ import PageBackground from '@/components/PageBackground'
 import LegalNavigation from '@/components/LegalNavigation'
 
 export const metadata: Metadata = {
-  title: 'ReplyFlowHQ Compliance | Conversational Messaging Standards',
-  description: 'ReplyFlowHQ compliance information for conversational missed-call response automation. TCPA compliance, opt-out procedures, and regulatory adherence.',
+  title: 'ReplyFlowHQ Compliance | Automated Missed-Call Text Response',
+  description: 'ReplyFlowHQ compliance information for automated missed-call text responses. TCPA compliance, opt-out procedures, and regulatory adherence.',
 }
 
 export default function CompliancePage() {
@@ -59,7 +59,7 @@ export default function CompliancePage() {
               Compliance & Standards
             </h1>
             <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
-              ReplyFlowHQ LLC maintains compliance standards for conversational messaging and regulatory adherence.
+              ReplyFlowHQ LLC maintains compliance standards for automated missed-call text responses and regulatory adherence.
             </p>
           </div>
         </div>
@@ -69,95 +69,97 @@ export default function CompliancePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="lg:grid lg:grid-cols-4 lg:gap-12">
           {/* Table of Contents - Desktop Only */}
-          <aside className="hidden lg:block lg:col-span-1">
+          <aside className="hidden lg:block lg:col-span-[1.25]">
             <div className="sticky top-8">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                Table of Contents
-              </h3>
-              <nav className="space-y-2" aria-label="Table of contents">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-6">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5">
+                  Contents
+                </h3>
+                <nav className="space-y-3" aria-label="Table of contents">
                 <a
                   href="#messaging-use-case"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Messaging Use Case
                 </a>
                 <a
                   href="#missed-call-workflow"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Missed-Call Workflow
                 </a>
                 <a
                   href="#consent-disclosures"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Consent & Disclosures
                 </a>
                 <a
                   href="#opt-in-process"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Opt-In Process
                 </a>
                 <a
                   href="#stop-help"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   STOP/HELP Compliance
                 </a>
                 <a
                   href="#data-privacy"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Data Privacy
                 </a>
                 <a
                   href="#ai-voicemail"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   AI Voicemail Compliance
                 </a>
                 <a
                   href="#call-recording"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Call Recording Notice
                 </a>
                 <a
                   href="#voice-sms"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Voice + SMS Compliance
                 </a>
                 <a
                   href="#business-responsibilities"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Business Responsibilities
                 </a>
                 <a
                   href="#contact-support"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Contact Support
                 </a>
               </nav>
+              </div>
             </div>
           </aside>
 
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-12">
           
-          {/* Conversational Messaging Use Case */}
+          {/* Messaging Use Case */}
           <section id="messaging-use-case">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
-                  Conversational Messaging Use Case
+                  Messaging Use Case
                 </h2>
                 <div className="prose prose-invert max-w-none">
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                    ReplyFlowHQ LLC provides <strong>conversational messaging services</strong> 
+                    ReplyFlowHQ LLC provides <strong>automated missed-call text response services</strong> 
                     triggered by inbound customer contact. Our use case is fundamentally different from bulk marketing:
                   </p>
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -165,7 +167,7 @@ export default function CompliancePage() {
                       <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">ReplyFlowHQ LLC Platform</h3>
                       <ul className="space-y-2 text-sm text-green-800 dark:text-green-200">
                         <li>• Customer-initiated contact</li>
-                        <li>• Conversational context</li>
+                        <li>• Customer-initiated context</li>
                         <li>• Automated response delivery</li>
                         <li>• Customer communication workflows</li>
                       </ul>
@@ -236,7 +238,7 @@ export default function CompliancePage() {
                           </svg>
                         </div>
                         <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Text Sent</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Conversational response</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Automated response</p>
                       </div>
                     </div>
                   </div>

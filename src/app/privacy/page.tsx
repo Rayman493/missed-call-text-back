@@ -7,7 +7,7 @@ import LegalNavigation from '@/components/LegalNavigation'
 
 export const metadata: Metadata = {
   title: 'ReplyFlowHQ Privacy Policy | Data Protection & Security',
-  description: 'ReplyFlowHQ privacy policy for conversational missed-call response automation. How we protect customer and business data.',
+  description: 'ReplyFlowHQ privacy policy for automated missed-call text responses. How we protect customer and business data.',
 }
 
 export default function PrivacyPage() {
@@ -72,67 +72,69 @@ export default function PrivacyPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="lg:grid lg:grid-cols-4 lg:gap-12">
           {/* Table of Contents - Desktop Only */}
-          <aside className="hidden lg:block lg:col-span-1">
+          <aside className="hidden lg:block lg:col-span-[1.25]">
             <div className="sticky top-8">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                Table of Contents
-              </h3>
-              <nav className="space-y-2" aria-label="Table of contents">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-6">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5">
+                  Contents
+                </h3>
+                <nav className="space-y-3" aria-label="Table of contents">
                 <a
                   href="#introduction"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Our Commitment to Privacy
                 </a>
                 <a
                   href="#information-we-collect"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Information We Collect
                 </a>
                 <a
                   href="#how-we-use-information"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   How We Use Information
                 </a>
                 <a
                   href="#voice-ai-services"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Voice & AI Services
                 </a>
                 <a
                   href="#data-security"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Data Security
                 </a>
                 <a
                   href="#data-retention"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Data Retention
                 </a>
                 <a
                   href="#third-party-providers"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Third-Party Providers
                 </a>
                 <a
                   href="#your-rights"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Your Privacy Rights
                 </a>
                 <a
                   href="#contact-information"
-                  className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
                   Contact Us
                 </a>
               </nav>
+              </div>
             </div>
           </aside>
 
@@ -150,10 +152,10 @@ export default function PrivacyPage() {
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                     ReplyFlowHQ LLC is committed to protecting the privacy and security of our users and their customers. 
                     This privacy policy explains how we collect, use, and protect information in connection with our 
-                    conversational missed-call response automation service.
+                    automated missed-call text response service.
                   </p>
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed mt-4">
-                    ReplyFlowHQ LLC provides <strong>conversational messaging services</strong> that help businesses 
+                    ReplyFlowHQ LLC provides <strong>automated missed-call text response services</strong> that help businesses 
                     respond to missed customer calls through automated text messages. We are not a bulk marketing 
                     platform and only facilitate communications initiated by customer contact.
                   </p>
@@ -231,7 +233,7 @@ export default function PrivacyPage() {
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
                       <p className="text-gray-600 dark:text-gray-400">
-                        <strong>Service Delivery</strong> - To provide conversational messaging services and respond to missed calls
+                        <strong>Service Delivery</strong> - To provide automated missed-call text response services
                       </p>
                     </div>
                     <div className="flex items-start gap-3">

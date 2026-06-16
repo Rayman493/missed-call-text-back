@@ -8,7 +8,7 @@ import LegalNavigation from '@/components/LegalNavigation'
 
 export const metadata: Metadata = {
   title: 'ReplyFlowHQ FAQ | Missed Call Response Automation',
-  description: 'Learn how ReplyFlowHQ provides conversational customer messaging through missed-call response automation. Setup, pricing, and compliance questions answered.',
+  description: 'Learn how ReplyFlowHQ provides automated missed-call text responses and lead management. Setup, pricing, and compliance questions answered.',
 }
 
 export default function FAQPage() {
@@ -66,7 +66,7 @@ export default function FAQPage() {
               Frequently Asked Questions
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Everything you need to know about ReplyFlowHQ's conversational missed-call response automation
+              Everything you need to know about ReplyFlowHQ's automated missed-call text responses and lead management
             </p>
           </div>
         </div>
@@ -84,9 +84,9 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  ReplyFlowHQ provides <strong>conversational missed-call response automation</strong> for businesses. 
+                  ReplyFlowHQ provides <strong>automated missed-call text responses</strong> for businesses. 
                   When a customer calls your business and the call is missed, ReplyFlow automatically sends a 
-                  personalized text message to continue the conversation and capture the lead.
+                  text message to acknowledge the call and help capture the lead.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
                   This is <strong>not</strong> bulk marketing or cold outreach. Messages are only sent after 
@@ -140,7 +140,7 @@ export default function FAQPage() {
                     </div>
                     <div>
                       <p className="text-muted-foreground">
-                        <strong>Conversation continues</strong> - Customer replies appear in your ReplyFlow dashboard for ongoing communication
+                        <strong>Customer can reply</strong> - Customer replies appear in your ReplyFlow dashboard for follow-up
                       </p>
                     </div>
                   </div>
@@ -157,7 +157,7 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  <strong>No, absolutely not.</strong> ReplyFlowHQ is designed for <strong>conversational customer messaging</strong> only.
+                  <strong>No, absolutely not.</strong> ReplyFlowHQ is designed for <strong>automated missed-call text responses</strong> only.
                 </p>
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center gap-3">
@@ -171,12 +171,6 @@ export default function FAQPage() {
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                     <span className="text-muted-foreground">Messages only occur after inbound customer calls</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-muted-foreground">Pure conversational customer communication</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
@@ -433,7 +427,7 @@ export default function FAQPage() {
                   </div>
                 </div>
                 <p className="text-muted-foreground mt-4">
-                  Continue the conversation naturally through the ReplyFlowHQ dashboard interface.
+                  Continue conversations naturally through the ReplyFlowHQ dashboard interface. Certain supported customer corrections may automatically update lead details.
                 </p>
               </div>
             </div>
@@ -510,7 +504,7 @@ export default function FAQPage() {
                   <strong>No.</strong> Keep your existing business number and forward unanswered calls to ReplyFlow.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  ReplyFlow works alongside your current phone system. When calls go unanswered, they can be forwarded to ReplyFlow for AI-assisted intake or automatic SMS responses, while you keep using the business number you already advertise everywhere.
+                  ReplyFlow works alongside your current phone system. When calls go unanswered, they can be forwarded to ReplyFlow for AI voicemail intake or automated SMS responses, while you keep using the business number you already advertise everywhere.
                 </p>
               </div>
             </div>
@@ -524,10 +518,10 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  When a call goes unanswered and forwards to ReplyFlow, AI captures caller information through voicemail.
+                  When a call goes unanswered and forwards to ReplyFlow, AI voicemail intake captures caller information through voicemail.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  AI voicemail intake can capture the caller's name, reason for calling, urgency level, and preferred callback time. This information is then stored in your ReplyFlow dashboard for easy follow-up.
+                  AI voicemail intake can collect the caller's name, reason for calling, urgency level, and preferred callback time. This information is then stored in your ReplyFlow dashboard for easy follow-up.
                 </p>
               </div>
             </div>
@@ -544,7 +538,7 @@ export default function FAQPage() {
                   <strong>Yes.</strong> Businesses can use SMS-only workflows without enabling AI voicemail intake.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  ReplyFlow offers flexible options - you can use traditional missed-call text responses, or enable AI voicemail intake for caller information capture after missed calls. Choose what works best for your business.
+                  ReplyFlow offers flexible options - you can use automated missed-call text responses, or enable AI voicemail intake for caller information capture after missed calls. Choose what works best for your business.
                 </p>
               </div>
             </div>
