@@ -1241,6 +1241,17 @@ if (!OPENAI_API_KEY) {
   process.exit(1);
 }
 
+// Startup logging - print version information
+console.log('='.repeat(80));
+console.log('[SERVICE STARTUP] ========================================');
+console.log('[SERVICE STARTUP] ReplyFlow AI Voice Service');
+console.log('[SERVICE STARTUP] Commit: ad84f7f9');
+console.log('[SERVICE STARTUP] Deployment Timestamp:', new Date().toISOString());
+console.log('[SERVICE STARTUP] Closing Strategy: mark-based-v2-no-audio-buffer');
+console.log('[SERVICE STARTUP] Node Version:', process.version);
+console.log('[SERVICE STARTUP] ========================================');
+console.log('='.repeat(80));
+
 // Add process-level error handlers
 process.on('uncaughtException', (error) => {
   console.error('[PROCESS] uncaughtException', error);
