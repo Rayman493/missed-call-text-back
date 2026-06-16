@@ -3870,9 +3870,35 @@ Do NOT:
                         console.log('[AI FINAL GOODBYE CREATE SENT] Final closing message sent to OpenAI');
                       }
 
-                      // DO NOT schedule hangup timer here - wait for phrase detection in delta handler
-                      // Backup timer will be started when final goodbye phrase is detected
-                      // This ensures audio has finished generating before we start the hangup buffer
+                      // Set terminal mode immediately on confirmation acceptance
+                      console.log('[TERMINAL_MODE_ACTIVATED] =========================================');
+                      console.log('[TERMINAL_MODE_ACTIVATED] Terminal mode activated on confirmation acceptance');
+                      console.log('[TERMINAL_MODE_ACTIVATED] This will hard-close after 8 seconds even if no phrase matches');
+                      console.log('[TERMINAL_MODE_ACTIVATED] Timestamp:', new Date().toISOString());
+                      console.log('[TERMINAL_MODE_ACTIVATED] =========================================');
+
+                      // Start 8-second terminal mode hard-close backup timer
+                      setTimeout(async () => {
+                        if (closingState.callState !== 'closed') {
+                          console.log('[TERMINAL_MODE_HARD_CLOSE_EXECUTED] =========================================');
+                          console.log('[TERMINAL_MODE_HARD_CLOSE_EXECUTED] Terminal mode hard-close timer fired');
+                          console.log('[TERMINAL_MODE_HARD_CLOSE_EXECUTED] No phrase detected, closing as backup');
+                          console.log('[TERMINAL_MODE_HARD_CLOSE_EXECUTED] Timestamp:', new Date().toISOString());
+                          console.log('[TERMINAL_MODE_HARD_CLOSE_EXECUTED] Current callState:', closingState.callState);
+                          console.log('[TERMINAL_MODE_HARD_CLOSE_EXECUTED] =========================================');
+
+                          try {
+                            await endCallCleanly(ws, twilioHandler);
+                            closingState.callState = 'closed';
+                            (twilioHandler as any).callState = closingState.callState;
+                            console.log('[TERMINAL_MODE_HARD_CLOSE_EXECUTED] Terminal mode hard-close completed successfully');
+                          } catch (error) {
+                            console.log('[TERMINAL_MODE_HARD_CLOSE_ERROR] Error during terminal mode hard-close:', error);
+                          }
+                        } else {
+                          console.log('[TERMINAL_MODE_HARD_CLOSE_SKIPPED] Call already closed, terminal mode hard-close skipped');
+                        }
+                      }, 8000); // 8-second terminal mode hard-close backup
 
                       return; // Skip the normal intake processing
                   }
@@ -4394,16 +4420,42 @@ Do NOT:
                     "have a great day",
                     "thank you for calling",
                     "i'll pass this information along",
-                    "thanks for calling"
+                    "thanks for calling",
+                    "the team will follow up",
+                    "will follow up with you soon",
+                    "follow up with you soon",
+                    "someone will follow up",
+                    "we'll follow up",
+                    "they'll follow up",
+                    "a team member will follow up",
+                    "the business will follow up"
                   ];
                   
                   const bufferLower = updatedBuffer.toLowerCase();
                   const phraseMatched = triggerPhrases.some(phrase => bufferLower.includes(phrase));
                   
+                  // Terminal intent detector: follow-up phrase + no question mark + no request for more info
+                  const hasQuestionMark = updatedBuffer.includes('?');
+                  const requestPhrases = [
+                    "what is your",
+                    "can you tell me",
+                    "could you provide",
+                    "would you like",
+                    "do you need",
+                    "is there anything"
+                  ];
+                  const hasRequest = requestPhrases.some(phrase => bufferLower.includes(phrase));
+                  
+                  // Terminal intent: follow-up phrase without question or request
+                  const terminalIntent = phraseMatched && !hasQuestionMark && !hasRequest;
+                  
                   console.log('[FINAL_GOODBYE_PHRASE_MATCH_ATTEMPT] Phrase matched:', phraseMatched);
+                  console.log('[FINAL_GOODBYE_PHRASE_MATCH_ATTEMPT] Has question mark:', hasQuestionMark);
+                  console.log('[FINAL_GOODBYE_PHRASE_MATCH_ATTEMPT] Has request:', hasRequest);
+                  console.log('[FINAL_GOODBYE_PHRASE_MATCH_ATTEMPT] Terminal intent:', terminalIntent);
                   console.log('[FINAL_GOODBYE_PHRASE_MATCH_ATTEMPT] =========================================');
                   
-                  if (phraseMatched && !closingState.intakeTerminalComplete) {
+                  if (terminalIntent && !closingState.intakeTerminalComplete) {
                     console.log('[FINAL_GOODBYE_PHRASE_DETECTED] =========================================');
                     console.log('[FINAL_GOODBYE_PHRASE_DETECTED] Final goodbye phrase detected in transcript delta');
                     console.log('[FINAL_GOODBYE_PHRASE_DETECTED] Buffer:', updatedBuffer);
