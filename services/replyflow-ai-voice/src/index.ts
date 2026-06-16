@@ -134,7 +134,7 @@ interface CallContext {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_name' | 'ask_service' | 'ask_issue' | 'ask_address' | 'ask_callback_time' | 'ask_urgency' | 'ask_callback_number' | 'collecting_complete' | 'confirmation' | 'complete';
+type IntakeStage = 'ask_name' | 'ask_service' | 'ask_issue' | 'ask_address' | 'ask_callback_time' | 'ask_urgency' | 'collecting_complete' | 'confirmation' | 'complete';
 
 // AI session state tracking types
 type AISessionState = 'AI_CONNECTING' | 'AI_CONNECTED' | 'SESSION_UPDATING' | 'SESSION_READY' | 'GREETING_SENT' | 'AUDIO_RECEIVED' | 'FAILED';
@@ -266,7 +266,6 @@ function getMissingRequiredFields(intake: IntakeData): string[] {
   }
   
   if (!intake.callbackTime) missing.push('callback time');
-  if (!intake.callbackNumber) missing.push('callback number');
   return missing;
 }
 
@@ -277,8 +276,7 @@ function areAllRequiredFieldsCollected(intake: IntakeData): boolean {
     intake.issueDescription &&
     intake.urgency &&
     intake.serviceAddress &&
-    intake.callbackTime &&
-    intake.callbackNumber
+    intake.callbackTime
   );
   console.log('[REQUIRED_FIELDS_STATUS] =========================================');
   console.log('[REQUIRED_FIELDS_STATUS] All required fields collected:', allCollected);
@@ -288,7 +286,7 @@ function areAllRequiredFieldsCollected(intake: IntakeData): boolean {
   console.log('[REQUIRED_FIELDS_STATUS] urgency:', !!intake.urgency);
   console.log('[REQUIRED_FIELDS_STATUS] serviceAddress:', !!intake.serviceAddress);
   console.log('[REQUIRED_FIELDS_STATUS] callbackTime:', !!intake.callbackTime);
-  console.log('[REQUIRED_FIELDS_STATUS] callbackNumber:', !!intake.callbackNumber);
+  console.log('[REQUIRED_FIELDS_STATUS] callbackNumber (optional):', !!intake.callbackNumber);
   console.log('[REQUIRED_FIELDS_STATUS] Timestamp:', new Date().toISOString());
   console.log('[REQUIRED_FIELDS_STATUS] =========================================');
   return allCollected;
@@ -318,10 +316,6 @@ function getNextMissingField(intake: IntakeData): string | null {
   if (!intake.callbackTime) {
     console.log('[NEXT_MISSING_FIELD] callbackTime');
     return 'callbackTime';
-  }
-  if (!intake.callbackNumber) {
-    console.log('[NEXT_MISSING_FIELD] callbackNumber');
-    return 'callbackNumber';
   }
   console.log('[NEXT_MISSING_FIELD] All fields collected');
   return null;
@@ -449,7 +443,6 @@ function generateConfirmationMessage(intake: IntakeData): string {
   const location = intake.serviceAddress || 'not specified';
   const callbackTime = intake.callbackTime || 'anytime';
   const urgency = intake.urgency === 'urgent' ? 'urgent/time-sensitive' : 'not urgent';
-  const callbackNumber = intake.callbackNumber || 'not specified';
 
   console.log('[AI REQUIRED FIELDS STATUS]', {
     hasCustomerName: !!intake.customerName,
@@ -459,11 +452,11 @@ function generateConfirmationMessage(intake: IntakeData): string {
     hasCallbackTime: !!intake.callbackTime,
     hasUrgency: !!intake.urgency,
     hasCallbackNumber: !!intake.callbackNumber,
-    allRequired: !!(intake.customerName && intake.serviceRequested && intake.issueDescription && intake.serviceAddress && intake.callbackTime && intake.urgency && intake.callbackNumber)
+    allRequired: !!(intake.customerName && intake.serviceRequested && intake.issueDescription && intake.serviceAddress && intake.callbackTime && intake.urgency)
   });
 
-  // Generate summary WITHOUT the confirmation question
-  const summary = `Let me make sure I have everything right. Your name is ${name}. You're calling about ${service}. The additional details are ${issue}. The urgency is ${urgency}. The location is ${location}. The best callback time is ${callbackTime}. The best callback number is ${callbackNumber}.`;
+  // Generate summary WITHOUT the confirmation question and WITHOUT callback number
+  const summary = `Let me make sure I have everything right. Your name is ${name}. You're calling about ${service}. The additional details are ${issue}. The urgency is ${urgency}. The location is ${location}. The best callback time is ${callbackTime}.`;
 
   console.log('[SUMMARY GENERATED]', { summary });
   return summary;
@@ -571,8 +564,8 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       // Check if callback time was captured
       if (intake.callbackTime) {
         return {
-          response: 'Is this the best number to reach you at, or is there another number?',
-          nextStage: 'ask_callback_number'
+          response: 'Thank you.',
+          nextStage: 'collecting_complete'
         };
       }
       // Ask for callback time again if not captured
@@ -593,21 +586,6 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       return {
         response: 'Is this urgent or time-sensitive?',
         nextStage: 'ask_urgency'
-      };
-
-    case 'ask_callback_number':
-      // Check if callback number was captured
-      if (intake.callbackNumber) {
-        // Move to next stage - confirmation will be triggered when all fields are collected
-        return {
-          response: 'Thank you.',
-          nextStage: 'collecting_complete'
-        };
-      }
-      // Ask for callback number again if not captured
-      return {
-        response: 'Is this the best number to reach you at, or is there another number?',
-        nextStage: 'ask_callback_number'
       };
 
     case 'collecting_complete':
@@ -858,12 +836,7 @@ function getResponseForMissingField(missingField: string, intake: IntakeData): {
     case 'callback time':
       return {
         response: 'What is the best time for someone to follow up with you?',
-        nextStage: 'ask_callback_number'
-      };
-    case 'callback number':
-      return {
-        response: 'Is this the best number to reach you at, or is there another number?',
-        nextStage: 'confirmation'
+        nextStage: 'collecting_complete'
       };
     default:
       return {
@@ -2994,7 +2967,7 @@ Return only JSON, no other text.`;
             call_sid: sessionCallSid || 'unknown',
             transcript: Array.isArray(transcript) ? transcript : [],
             outcome: 'completed',
-            extracted_info: null,
+            extracted_info: { callbackNumber: sessionCallerPhone },
             summary: fullTranscript || 'AI call completed',
             extraction_failed: true
           };
@@ -3552,7 +3525,6 @@ INFORMATION GATHERING PRIORITY ORDER:
 4. Whether it is urgent or time-sensitive
 5. Location or where this would take place (accept flexible responses based on service type)
 6. Best time to call back
-7. Best callback number
 
 CALL COMPLETION POLICY:
 YOU MUST collect ALL required fields before finalizing. Do not end the call early:
@@ -3566,12 +3538,11 @@ YOU MUST collect ALL required fields before finalizing. Do not end the call earl
   * For virtual services (gaming coaching, consulting, marketing help, resume review, etc.): ask "Will this take place online or at a specific location?"
   * Accept flexible responses like online, virtual, remote, Zoom, Google Meet, at your business/shop/office, at my house, city name, or specific street address
 - Best time to call back (required - if caller says anytime/no preference, mark as "Anytime")
-- Best callback number (required - even if caller ID exists, ask: "Is this the best number to reach you at, or is there another number?")
 
-YOU MUST collect all 7 required fields before finalizing. Do not end the call early.
+YOU MUST collect all 6 required fields before finalizing. Do not end the call early.
 
 CALL ENDING SEQUENCE:
-Once you have collected ALL 7 required fields, the system will handle the call termination.
+Once you have collected ALL 6 required fields, the system will handle the call termination.
 DO NOT say "Thank you for calling" or any closing phrase on your own.
 Wait for the system to provide the final goodbye and end the call.
 Continue gathering information until the system takes over the closing sequence.
