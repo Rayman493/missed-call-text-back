@@ -2983,9 +2983,22 @@ Return only JSON, no other text.`;
 
         // Log parsed frame (non-media only, or first media, or every 100th media)
         if (message.event === 'media') {
-          // Safety fallback: ignore audio during closing
-          if (callState === 'closing') {
-            console.log('[AI IGNORING AUDIO DURING CLOSING] callState is closing, dropping audio packet');
+          // Safety fallback: ignore audio during closing - check ALL terminal state flags
+          const terminalStateActive = 
+            closingState.intakeTerminalComplete ||
+            closingState.terminalClosingResponseStarted ||
+            closingState.finalClosingStarted ||
+            closingState.callState === 'closing';
+
+          if (terminalStateActive) {
+            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] =========================================');
+            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] Caller audio dropped - terminal mode is active');
+            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] intakeTerminalComplete:', closingState.intakeTerminalComplete);
+            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
+            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] finalClosingStarted:', closingState.finalClosingStarted);
+            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] callState:', closingState.callState);
+            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] Timestamp:', new Date().toISOString());
+            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] =========================================');
             return;
           }
           
@@ -3595,6 +3608,16 @@ Do NOT:
               if (message.type === 'conversation.item.created') {
                 console.log('[OPENAI USER MESSAGE CREATED]');
                 console.log('[USER ITEM] created:', message.item?.type || 'unknown');
+                
+                // Ignore user item creation in terminal mode
+                if (closingState.intakeTerminalComplete && message.item?.type === 'user') {
+                  console.log('[TERMINAL_USER_EVENT_IGNORED] =========================================');
+                  console.log('[TERMINAL_USER_EVENT_IGNORED] User item creation ignored - terminal mode is active');
+                  console.log('[TERMINAL_USER_EVENT_IGNORED] Timestamp:', new Date().toISOString());
+                  console.log('[TERMINAL_USER_EVENT_IGNORED] =========================================');
+                  return;
+                }
+                
                 if (message.item?.type === 'user') {
                   const userTranscript = message.item.content?.[0]?.transcript || '';
                   console.log('[USER TRANSCRIPT FOUND]', {
@@ -3936,16 +3959,26 @@ Do NOT:
                 console.log('[RACE CONDITION DEBUG] response.created at:', new Date().toISOString());
                 console.log('[RACE CONDITION DEBUG] Current callState:', callState);
                 
-                // Block non-final response.create in terminal mode
+                // Cancel unauthorized responses in terminal mode
                 if (closingState.intakeTerminalComplete) {
                   const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
                   if (responseId !== authorizedFinalResponseId) {
-                    console.log('[UNAUTHORIZED_RESPONSE_BLOCKED_AFTER_TERMINAL] =========================================');
-                    console.log('[UNAUTHORIZED_RESPONSE_BLOCKED_AFTER_TERMINAL] Response created after terminal mode started');
-                    console.log('[UNAUTHORIZED_RESPONSE_BLOCKED_AFTER_TERMINAL] Response ID:', responseId);
-                    console.log('[UNAUTHORIZED_RESPONSE_BLOCKED_AFTER_TERMINAL] Authorized response ID:', authorizedFinalResponseId);
-                    console.log('[UNAUTHORIZED_RESPONSE_BLOCKED_AFTER_TERMINAL] Timestamp:', new Date().toISOString());
-                    console.log('[UNAUTHORIZED_RESPONSE_BLOCKED_AFTER_TERMINAL] =========================================');
+                    console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] =========================================');
+                    console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] Unauthorized response created after terminal mode started');
+                    console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] Response ID:', responseId);
+                    console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] Authorized response ID:', authorizedFinalResponseId);
+                    console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] Timestamp:', new Date().toISOString());
+                    console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] Canceling this response immediately');
+                    console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] =========================================');
+                    
+                    // Cancel the unauthorized response
+                    if (openAiWs) {
+                      openAiWs.send(JSON.stringify({
+                        type: 'response.cancel',
+                        response_id: responseId
+                      }));
+                      console.log('[UNAUTHORIZED_RESPONSE_CANCELED] Response cancel command sent');
+                    }
                     return; // Do not process this response
                   }
                 }
@@ -3964,6 +3997,21 @@ Do NOT:
               if (message.type === 'response.output_audio.delta') {
                 if (process.env.DEBUG_AI_VOICE === 'true') {
                   console.log('[OPENAI RECV] response.output_audio.delta');
+                }
+                
+                // Drop unauthorized audio in terminal mode
+                if (closingState.intakeTerminalComplete) {
+                  const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
+                  const currentResponseId = message.response_id || 'unknown';
+                  if (currentResponseId !== authorizedFinalResponseId) {
+                    console.log('[UNAUTHORIZED_AUDIO_DROPPED_AFTER_FINAL] =========================================');
+                    console.log('[UNAUTHORIZED_AUDIO_DROPPED_AFTER_FINAL] Unauthorized audio dropped - terminal mode is active');
+                    console.log('[UNAUTHORIZED_AUDIO_DROPPED_AFTER_FINAL] Response ID:', currentResponseId);
+                    console.log('[UNAUTHORIZED_AUDIO_DROPPED_AFTER_FINAL] Authorized response ID:', authorizedFinalResponseId);
+                    console.log('[UNAUTHORIZED_AUDIO_DROPPED_AFTER_FINAL] Timestamp:', new Date().toISOString());
+                    console.log('[UNAUTHORIZED_AUDIO_DROPPED_AFTER_FINAL] =========================================');
+                    return; // Do not forward this audio to Twilio
+                  }
                 }
 
                 // Set assistant speaking to true when audio starts
@@ -4329,9 +4377,27 @@ Do NOT:
               // Log specific OpenAI events for debugging
               if (message.type === 'input_audio_buffer.speech_started') {
                 console.log('[OPENAI RECV] input_audio_buffer.speech_started');
+                
+                // Ignore user speech started in terminal mode
+                if (closingState.intakeTerminalComplete) {
+                  console.log('[TERMINAL_USER_EVENT_IGNORED] =========================================');
+                  console.log('[TERMINAL_USER_EVENT_IGNORED] User speech started ignored - terminal mode is active');
+                  console.log('[TERMINAL_USER_EVENT_IGNORED] Timestamp:', new Date().toISOString());
+                  console.log('[TERMINAL_USER_EVENT_IGNORED] =========================================');
+                  return;
+                }
               }
               if (message.type === 'input_audio_buffer.speech_stopped') {
                 console.log('[OPENAI RECV] input_audio_buffer.speech_stopped');
+                
+                // Ignore user speech stopped in terminal mode
+                if (closingState.intakeTerminalComplete) {
+                  console.log('[TERMINAL_USER_EVENT_IGNORED] =========================================');
+                  console.log('[TERMINAL_USER_EVENT_IGNORED] User speech stopped ignored - terminal mode is active');
+                  console.log('[TERMINAL_USER_EVENT_IGNORED] Timestamp:', new Date().toISOString());
+                  console.log('[TERMINAL_USER_EVENT_IGNORED] =========================================');
+                  return;
+                }
               }
               if (message.type === 'input_audio_buffer.committed') {
                 console.log('[OPENAI RECV] input_audio_buffer.committed');
@@ -4440,9 +4506,66 @@ Do NOT:
                     current_buffer_length: updatedBuffer.length 
                   });
                   
-                  // Phrase detection removed - using simplified approach with exact closing sentence
-                  // Terminal mode is now set immediately on confirmation acceptance
-                  // No need to detect phrases in the delta handler
+                  // Final sentence self-defense detection
+                  // This ensures terminal mode is set when the actual final sentence appears in the transcript
+                  const exactClosingSentence = "Perfect. I have everything I need. The team will follow up with you soon.";
+                  const followUpPhrase = "The team will follow up with you soon";
+                  
+                  const bufferLower = updatedBuffer.toLowerCase();
+                  const hasExactClosing = bufferLower.includes(exactClosingSentence.toLowerCase());
+                  const hasFollowUpPhrase = bufferLower.includes(followUpPhrase.toLowerCase());
+                  
+                  if ((hasExactClosing || hasFollowUpPhrase) && !closingState.intakeTerminalComplete) {
+                    console.log('[FINAL_SENTENCE_DETECTED_IN_TRANSCRIPT] =========================================');
+                    console.log('[FINAL_SENTENCE_DETECTED_IN_TRANSCRIPT] Final sentence detected in transcript delta');
+                    console.log('[FINAL_SENTENCE_DETECTED_IN_TRANSCRIPT] Exact closing:', hasExactClosing);
+                    console.log('[FINAL_SENTENCE_DETECTED_IN_TRANSCRIPT] Follow-up phrase:', hasFollowUpPhrase);
+                    console.log('[FINAL_SENTENCE_DETECTED_IN_TRANSCRIPT] Buffer:', updatedBuffer);
+                    console.log('[FINAL_SENTENCE_DETECTED_IN_TRANSCRIPT] Timestamp:', new Date().toISOString());
+                    console.log('[FINAL_SENTENCE_DETECTED_IN_TRANSCRIPT] =========================================');
+
+                    // Set terminal mode immediately
+                    closingState.intakeTerminalComplete = true;
+                    closingState.callState = 'closing';
+                    closingState.terminalClosingResponseStarted = true;
+                    closingState.finalClosingStarted = true;
+                    closingState.confirmationState = 'completed';
+
+                    // Sync individual variables for backward compatibility
+                    callState = closingState.callState;
+                    finalClosingStarted = closingState.finalClosingStarted;
+                    terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
+                    confirmationState = closingState.confirmationState;
+
+                    // Sync to twilioHandler
+                    (twilioHandler as any).closingState = closingState;
+                    (twilioHandler as any).callState = closingState.callState;
+                    (twilioHandler as any).finalClosingStarted = closingState.finalClosingStarted;
+                    (twilioHandler as any).terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
+                    (twilioHandler as any).intakeTerminalComplete = closingState.intakeTerminalComplete;
+
+                    console.log('[FINAL_SENTENCE_DETECTED_IN_TRANSCRIPT] Terminal mode set, starting 10s hard hangup timer');
+
+                    // Start 10-second hard hangup timer
+                    setTimeout(async () => {
+                      if (closingState.callState !== 'closed') {
+                        console.log('[FINAL_SENTENCE_HARD_HANGUP_EXECUTED] =========================================');
+                        console.log('[FINAL_SENTENCE_HARD_HANGUP_EXECUTED] Hard hangup timer fired after final sentence detection');
+                        console.log('[FINAL_SENTENCE_HARD_HANGUP_EXECUTED] Calling endCallCleanly');
+                        console.log('[FINAL_SENTENCE_HARD_HANGUP_EXECUTED] Timestamp:', new Date().toISOString());
+                        console.log('[FINAL_SENTENCE_HARD_HANGUP_EXECUTED] =========================================');
+
+                        try {
+                          await endCallCleanly(ws, twilioHandler);
+                          closingState.callState = 'closed';
+                          (twilioHandler as any).callState = closingState.callState;
+                          console.log('[FINAL_SENTENCE_HARD_HANGUP_EXECUTED] Hard hangup completed successfully');
+                        } catch (error) {
+                          console.log('[FINAL_SENTENCE_HARD_HANGUP_ERROR] Error during hard hangup:', error);
+                        }
+                      }
+                    }, 10000); // 10-second hard hangup
+                  }
                 }
               }
               if (message.type === 'response.output_audio_transcript.done') {
