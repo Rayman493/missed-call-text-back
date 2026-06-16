@@ -1623,18 +1623,23 @@ export default function SettingsContent() {
                       <button
                         onClick={calendarConnected ? handleDisconnectCalendar : handleConnectCalendar}
                         disabled={isConnectingCalendar || isDisconnectingCalendar}
-                        className={`flex-shrink-0 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 ${
+                        className={`flex-shrink-0 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2 ${
                           calendarConnected
                             ? 'bg-red-600 hover:bg-red-700 text-white shadow-md'
                             : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
                         }`}
                       >
-                        {isConnectingCalendar || isDisconnectingCalendar
-                          ? 'Processing...'
-                          : calendarConnected
-                            ? 'Disconnect'
-                            : 'Connect'
-                        }
+                        {isConnectingCalendar || isDisconnectingCalendar ? (
+                          <>
+                            <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span>Processing...</span>
+                          </>
+                        ) : (
+                          <span>{calendarConnected ? 'Disconnect' : 'Connect'}</span>
+                        )}
                       </button>
                     )}
                   </div>
@@ -1866,9 +1871,19 @@ export default function SettingsContent() {
                           <button
                             onClick={() => handleBillingActionClick('portal')}
                             disabled={isOpeningPortal}
-                            className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs"
+                            className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs flex items-center gap-2"
                           >
-                            {business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Manage Billing' : 'Subscribe Now'}
+                            {isOpeningPortal ? (
+                              <>
+                                <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                <span>{business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Opening...' : 'Loading...'}</span>
+                              </>
+                            ) : (
+                              <span>{business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Manage Billing' : 'Subscribe Now'}</span>
+                            )}
                           </button>
                         )}
                       </div>
@@ -1878,9 +1893,19 @@ export default function SettingsContent() {
                     <button
                       onClick={() => handleBillingActionClick('upgrade')}
                       disabled={isStartingCheckout}
-                      className="w-full px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs"
+                      className="w-full px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs flex items-center justify-center gap-2"
                     >
-                      Upgrade Plan
+                      {isStartingCheckout ? (
+                        <>
+                          <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          <span>Processing...</span>
+                        </>
+                      ) : (
+                        <span>Upgrade Plan</span>
+                      )}
                     </button>
                   )}
                 </div>
