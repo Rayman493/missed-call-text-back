@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { X, MessageCircle } from 'lucide-react'
+import { X, MessageCircle, CheckCircle } from 'lucide-react'
 
 interface BetaFeedbackModalProps {
   isOpen: boolean
@@ -13,6 +13,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
   const [message, setMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showSuccess, setShowSuccess] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,14 +46,16 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
         throw new Error(data.error || 'Failed to submit feedback')
       }
 
-      // Success - close modal and show toast
-      onClose()
-      // Show success toast (you can integrate with your toast system)
-      alert('Thanks! Your feedback has been sent to the ReplyFlow team.')
-      
-      // Reset form
+      // Success - clear form and show success message
       setCategory('')
       setMessage('')
+      setShowSuccess(true)
+      
+      // Hide success message after 2 seconds, then close modal
+      setTimeout(() => {
+        setShowSuccess(false)
+        onClose()
+      }, 2000)
     } catch (err: any) {
       setError(err.message || 'Failed to submit feedback. Please try again.')
     } finally {
@@ -80,12 +83,13 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
             </div>
             <div>
               <h2 className="text-xl font-semibold text-foreground">Beta Feedback</h2>
-              <p className="text-sm text-muted-foreground">Help us improve ReplyFlow</p>
+              <p className="text-sm text-muted-foreground">Help us improve ReplyFlow. Report bugs, request features, or share ideas.</p>
             </div>
           </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-muted rounded-lg transition-colors"
+            disabled={isSubmitting}
           >
             <X className="w-5 h-5 text-muted-foreground" />
           </button>
@@ -96,6 +100,17 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
           <p className="text-sm text-muted-foreground mb-6">
             Found a bug or have an idea? We'd love to hear your feedback as we improve ReplyFlow during the beta period.
           </p>
+
+          {/* Success Message */}
+          {showSuccess && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6 flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-green-900 dark:text-green-100">Thanks for your feedback!</p>
+                <p className="text-xs text-green-700 dark:text-green-300">Your feedback has been sent to the ReplyFlow team.</p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Category Dropdown */}
@@ -109,6 +124,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
+                disabled={isSubmitting}
               >
                 <option value="">Select a category</option>
                 <option value="bug_report">Bug Report</option>
@@ -131,6 +147,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
                 className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 placeholder="Describe your feedback in detail..."
                 required
+                disabled={isSubmitting}
               />
             </div>
 
