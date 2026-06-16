@@ -20,9 +20,9 @@ export interface HelpContext {
 export const KNOWLEDGE_BASE: HelpArticle[] = [
   {
     id: 'forwarding-direction',
-    keywords: ['forward', 'direction', 'which number', 'forwarding setup', 'common mistake'],
+    keywords: ['forward', 'direction', 'which number', 'forwarding setup', 'common mistake', 'conditional forwarding'],
     question: 'Which number do I forward?',
-    answer: 'Forward YOUR BUSINESS NUMBER TO the ReplyFlow number. Do NOT forward the ReplyFlow number to your business number. Your customers still call your normal business number, and when you don\'t answer, the call forwards to ReplyFlow.',
+    answer: 'Forward YOUR BUSINESS NUMBER to the ReplyFlow number. Do NOT forward the ReplyFlow number to your business number. Your customers call your normal business number first. When you don\'t answer, the call forwards to ReplyFlow. This is called conditional call forwarding - calls only forward when you\'re unavailable. Carrier-specific setup instructions are available in onboarding or settings. Ignored contacts may still forward depending on your carrier settings.',
     category: 'Call Forwarding',
     source: 'Onboarding Guide'
   },
@@ -94,7 +94,7 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     id: 'pricing',
     keywords: ['pricing', 'cost', 'price', 'how much', 'subscription'],
     question: 'How much does ReplyFlow cost?',
-    answer: 'ReplyFlow is $49/month with a 14-day free trial. No contracts required. Cancel anytime.',
+    answer: 'ReplyFlow is $49/month with a 14-day free trial. No contracts required. You can cancel anytime during the trial with no charge. Billing is managed through the Stripe portal accessible from Dashboard → Settings → Subscription.',
     category: 'Billing',
     source: 'Pricing Page'
   },
@@ -102,7 +102,7 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     id: 'trial-billing',
     keywords: ['trial', 'free trial', 'charged during trial', 'trial cost'],
     question: 'Will I be charged during the trial?',
-    answer: 'No. The trial is free with no charge. You\'ll only be charged after the trial ends if you choose to continue.',
+    answer: 'No. The 14-day trial is free with no charge. You\'ll only be charged after the trial ends if you choose to continue. Billing is managed through Stripe. You can cancel anytime during the trial via Dashboard → Settings → Subscription.',
     category: 'Billing',
     source: 'Beta FAQ'
   },
@@ -110,7 +110,7 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     id: 'cancel-trial',
     keywords: ['cancel', 'cancel trial', 'cancel subscription', 'how to cancel'],
     question: 'How do I cancel before the trial ends?',
-    answer: 'Go to Dashboard → Settings → Subscription and click "Cancel Subscription." No charges will be made if you cancel before the trial ends.',
+    answer: 'Go to Dashboard → Settings → Subscription and click "Cancel Subscription" to access the Stripe portal. You can cancel anytime during the 14-day trial with no charge. After cancellation, you won\'t be billed when the trial ends.',
     category: 'Billing',
     source: 'Beta FAQ'
   },
@@ -118,23 +118,23 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     id: 'ai-voicemail',
     keywords: ['ai', 'voicemail', 'ai voicemail', 'ai intake', 'voicemail intake'],
     question: 'How does AI voicemail intake work?',
-    answer: 'When a call goes unanswered and forwards to ReplyFlow, AI captures caller information through voicemail. AI voicemail intake can capture the caller\'s name, reason for calling, urgency level, and preferred callback time.',
+    answer: 'When a call goes unanswered and forwards to ReplyFlow, AI captures caller information from the voicemail. AI voicemail intake can collect the caller\'s name, reason for calling, urgency level, and preferred callback time. This is separate from SMS automation - SMS handles missed-call acknowledgments while AI voicemail captures information from voice messages.',
     category: 'Features',
     source: 'FAQ'
   },
   {
     id: 'ai-without-voicemail',
-    keywords: ['ai without voicemail', 'sms only', 'no ai'],
+    keywords: ['ai without voicemail', 'sms only', 'no ai', 'toggle ai off'],
     question: 'Can I use ReplyFlow without AI?',
-    answer: 'Yes. Businesses can use SMS-only workflows without enabling AI voicemail intake. ReplyFlow offers flexible options - you can use traditional missed-call text responses, or enable AI voicemail intake for caller information capture.',
+    answer: 'AI voicemail intake is a core feature that helps capture caller information after missed calls. If you prefer not to use AI intake, contact support to discuss options. ReplyFlow always sends automated SMS acknowledgments for missed calls regardless of AI settings.',
     category: 'Features',
     source: 'FAQ'
   },
   {
     id: 'customer-corrections',
-    keywords: ['correction', 'address correction', 'customer reply address'],
+    keywords: ['correction', 'address correction', 'customer reply address', 'update information'],
     question: 'Can customers correct their address?',
-    answer: 'Yes. ReplyFlow can detect and process address corrections from customer replies. When a customer provides a corrected address in their message, ReplyFlow extracts and updates the lead metadata with the new address information.',
+    answer: 'Yes, ReplyFlow can detect and process address corrections from customer replies. When a customer provides a corrected address in their message, ReplyFlow extracts and updates the lead metadata with the new address information. This correction feature is supported for address/location fields only. Other lead fields may require manual updates.',
     category: 'Features',
     source: 'Feature Documentation'
   },
@@ -214,7 +214,7 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     id: 'lead-statuses',
     keywords: ['lead status', 'statuses', 'what do statuses mean', 'lead meaning'],
     question: 'What do lead statuses mean?',
-    answer: 'New: No messages sent yet. Active: Ongoing conversation. Replied: Customer has responded. Ignored: You\'ve marked as not interested. Completed: Issue resolved. Statuses help you track lead progress.',
+    answer: 'New: No messages sent yet. Active: Ongoing conversation with the customer. Replied: Customer has responded to your message. Ignored: You\'ve marked as not interested. Completed: Issue resolved or conversation ended. Statuses help you track lead progress. When a customer replies, the lead status automatically changes to "Replied."',
     category: 'Leads',
     source: 'FAQ'
   },
@@ -230,7 +230,7 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     id: 'follow-ups-work',
     keywords: ['follow-ups', 'automatic follow-up', 'how follow-ups work'],
     question: 'How do follow-ups work?',
-    answer: 'ReplyFlow can automatically send follow-up messages to customers who don\'t reply. You can configure follow-up sequences in Settings. Follow-ups help re-engage leads and prevent lost opportunities.',
+    answer: 'ReplyFlow sends automated follow-up messages to customers who don\'t reply to the initial SMS. These are pre-configured messages designed to re-engage leads. Follow-ups are not a conversational AI chatbot - they are scheduled messages based on your settings. You configure follow-up sequences in Settings.',
     category: 'Leads',
     source: 'FAQ'
   },
@@ -318,7 +318,7 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     id: 'no-lead-appeared',
     keywords: ['no lead', 'lead not showing', 'lead missing', 'call didn\'t show', 'call not in dashboard', 'where is my lead', 'lead not created'],
     question: 'No lead appeared after my test call',
-    answer: 'If no lead appeared: 1) Verify forwarding is active by calling from a different phone, 2) Check that the call actually forwarded to ReplyFlow (you should hear the ReplyFlow voicemail), 3) Allow 1-2 minutes for the lead to appear in your dashboard, 4) Check the Leads page to see if the lead was created. If the call didn\'t forward, re-check your carrier forwarding setup.',
+    answer: 'If no lead appeared: 1) Verify forwarding is active by calling from a different phone, 2) Check that the call actually forwarded to ReplyFlow (you should hear voicemail), 3) Allow 1-2 minutes for the lead to appear in your dashboard, 4) Check the Leads page to see if the lead was created. If the call didn\'t forward, re-check your carrier forwarding setup. Always test from a different phone - forwarding doesn\'t work from the same phone being forwarded.',
     category: 'Troubleshooting',
     source: 'Support Guide'
   },
@@ -326,7 +326,7 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     id: 'sms-not-sent',
     keywords: ['sms not sent', 'text not sent', 'message not delivered', 'sms failed', 'no text received', 'text didn\'t arrive', 'delivery failed'],
     question: 'SMS did not send after missed call',
-    answer: 'If no SMS was sent: 1) Check that the lead exists in your dashboard, 2) Verify your ReplyFlow messaging number is active, 3) Some carriers may delay SMS delivery by 2-5 minutes, 4) Check if the customer\'s carrier is blocking short codes or automated messages, 5) Try sending a manual message from the lead detail page to test SMS functionality. If issues persist, contact support.',
+    answer: 'If no SMS was sent: 1) Check that the lead exists in your dashboard, 2) Verify your ReplyFlow messaging number is active, 3) Some carriers may delay SMS delivery by 2-5 minutes, 4) Check if the customer\'s carrier is blocking short codes or automated messages, 5) Try sending a manual message from the lead detail page to test SMS functionality. If issues persist, contact support at support@replyflowhq.com.',
     category: 'Troubleshooting',
     source: 'Support Guide'
   },
@@ -334,7 +334,7 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     id: 'ai-intake-incomplete',
     keywords: ['ai incomplete', 'ai missed details', 'ai not working', 'ai partial', 'intake incomplete', 'ai didn\'t capture', 'missing ai data'],
     question: 'AI intake is incomplete or missing details',
-    answer: 'AI intake depends on voicemail quality. If details are missing: 1) The caller may not have provided the information, 2) Voicemail may have been unclear or cut off, 3) Background noise can interfere with AI transcription. You can manually add details to the lead. AI intake is designed to capture what\'s available from the voicemail.',
+    answer: 'AI intake depends on voicemail quality. If details are missing: 1) The caller may not have provided the information, 2) Voicemail may have been unclear or cut off, 3) Background noise can interfere with AI transcription. AI intake is designed to capture what\'s available from the voicemail - it cannot guarantee complete data capture from every call. You can manually add missing details to the lead.',
     category: 'Troubleshooting',
     source: 'Support Guide'
   },
@@ -382,7 +382,7 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     id: 'calendar-not-connected',
     keywords: ['calendar not connected', 'calendar sync failed', 'calendar not working', 'google calendar error', 'calendar connection issue'],
     question: 'Calendar not connected or not syncing',
-    answer: 'If calendar isn\'t connected: 1) Go to Dashboard → Calendar and click "Connect Google Calendar", 2) Ensure you authorize the connection when prompted, 3) Check that you\'re not blocking pop-ups, 4) Verify your Google account has calendar access. If connected but not syncing: Check that conversations have appointment dates/times set. Events sync within 5 minutes.',
+    answer: 'If calendar isn\'t connected: 1) Go to Dashboard → Calendar and click "Connect Google Calendar", 2) Ensure you authorize the connection when prompted, 3) Check that you\'re not blocking pop-ups, 4) Verify your Google account has calendar access. If connected but not syncing: Check that conversations have appointment dates/times set. Events sync within 5 minutes. If issues persist, contact support at support@replyflowhq.com.',
     category: 'Troubleshooting',
     source: 'Support Guide'
   },
@@ -390,7 +390,7 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     id: 'forwarding-not-working',
     keywords: ['forwarding not working', 'forwarding broken', 'calls not forwarding', 'forwarding setup failed'],
     question: 'Call forwarding is not working',
-    answer: 'If calls aren\'t forwarding: 1) Verify you used the correct carrier code, 2) Confirm you dialed the code on your business phone (not a different phone), 3) Test by calling from a different phone, 4) Check with your carrier that forwarding is enabled on your line, 5) For VoIP providers, check the web dashboard settings. Verizon: *73 to disable, *71+number to enable. AT&T: ##004# to disable, *004*number# to enable.',
+    answer: 'If calls aren\'t forwarding: 1) Verify you used the correct carrier code, 2) Confirm you dialed the code on your business phone (not a different phone), 3) Test by calling from a different phone, 4) Check with your carrier that forwarding is enabled on your line, 5) For VoIP providers, check the web dashboard settings. Always test from a different phone. Carrier-specific codes: Verizon (*73 disable, *71+number enable), AT&T (##004# disable, *004*number# enable), T-Mobile (##004# disable, **21*number# enable).',
     category: 'Troubleshooting',
     source: 'Support Guide'
   },
@@ -432,6 +432,14 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     question: 'How do I contact support?',
     answer: 'For account-specific issues, SMS delivery failures, billing questions, or technical problems, email support at support@replyflowhq.com. Include your business name and a description of the issue. For general questions, use this help assistant to search our knowledge base.',
     category: 'Support',
+    source: 'Support Guide'
+  },
+  {
+    id: 'billing-portal-issues',
+    keywords: ['billing portal', 'stripe portal', 'can\'t access billing', 'subscription not showing', 'stripe error'],
+    question: 'Billing portal not accessible or not working',
+    answer: 'If you can\'t access the billing portal: 1) Go to Dashboard → Settings → Subscription, 2) Click "Manage Subscription" to access Stripe, 3) Ensure you\'re logged into the correct Stripe account, 4) Try clearing your browser cache and cookies, 5) If the Stripe portal shows an error, it may be a temporary Stripe issue - try again later. For persistent billing portal issues, contact support at support@replyflowhq.com.',
+    category: 'Troubleshooting',
     source: 'Support Guide'
   }
 ]
@@ -478,16 +486,16 @@ const FAILURE_KEYWORDS = [
 
 export function searchKnowledgeBase(query: string, context?: HelpContext): HelpArticle | null {
   const normalizedQuery = query.toLowerCase().trim()
-  
+
   // Check for account-specific questions first
   for (const keyword of ACCOUNT_SPECIFIC_KEYWORDS) {
     if (normalizedQuery.includes(keyword)) {
       return null // Will trigger account-specific fallback
     }
   }
-  
+
   const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 2)
-  
+
   // Expand query with synonyms
   const expandedQueryWords = [...queryWords]
   for (const word of queryWords) {
@@ -496,26 +504,26 @@ export function searchKnowledgeBase(query: string, context?: HelpContext): HelpA
       expandedQueryWords.push(...synonyms)
     }
   }
-  
+
   let bestMatch: HelpArticle | null = null
   let bestScore = 0
-  
+
   // Check if query contains failure language
   const hasFailureLanguage = FAILURE_KEYWORDS.some(kw => normalizedQuery.includes(kw))
-  
+
   for (const article of KNOWLEDGE_BASE) {
     let score = 0
-    
+
     // Check exact question match
     if (article.question.toLowerCase() === normalizedQuery) {
       return article
     }
-    
+
     // Boost troubleshooting articles for failure language
     if (hasFailureLanguage && article.category === 'Troubleshooting') {
       score += 5
     }
-    
+
     // Check keyword matches
     for (const keyword of article.keywords) {
       const normalizedKeyword = keyword.toLowerCase()
@@ -523,7 +531,7 @@ export function searchKnowledgeBase(query: string, context?: HelpContext): HelpA
         score += 3
       }
     }
-    
+
     // Check expanded word matches in keywords
     for (const queryWord of expandedQueryWords) {
       for (const keyword of article.keywords) {
@@ -532,7 +540,7 @@ export function searchKnowledgeBase(query: string, context?: HelpContext): HelpA
         }
       }
     }
-    
+
     // Check word matches in question
     const questionWords = article.question.toLowerCase().split(/\s+/)
     for (const queryWord of queryWords) {
@@ -542,44 +550,45 @@ export function searchKnowledgeBase(query: string, context?: HelpContext): HelpA
         }
       }
     }
-    
+
     // Context-based boosting
     if (context) {
       // Boost forwarding articles if forwarding not verified
-      if (context.forwardingVerified === false && article.category === 'Troubleshooting' && 
+      if (context.forwardingVerified === false && article.category === 'Troubleshooting' &&
           (article.id.includes('forwarding') || article.id.includes('test-call'))) {
         score += 3
       }
-      
+
       // Boost calendar articles if calendar not connected
       if (context.calendarConnected === false && article.category === 'Troubleshooting' &&
           article.id.includes('calendar')) {
         score += 3
       }
-      
+
       // Boost lead/troubleshooting articles if no leads
       if (context.hasLeads === false && article.category === 'Troubleshooting' &&
           (article.id.includes('lead') || article.id.includes('test'))) {
         score += 3
       }
-      
+
       // Boost billing articles if on trial
       if (context.isTrial && article.category === 'Billing') {
         score += 2
       }
     }
-    
+
     if (score > bestScore) {
       bestScore = score
       bestMatch = article
     }
   }
-  
-  // Only return if we have a meaningful match
-  if (bestMatch && bestScore >= 1) {
+
+  // Conservative threshold - only return if we have a strong match
+  // Higher threshold ensures we don't give inaccurate answers
+  if (bestMatch && bestScore >= 3) {
     return bestMatch
   }
-  
+
   return null
 }
 
