@@ -332,7 +332,8 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
   console.log('[AI INTAKE] Missing fields:', missingFields);
 
   // Detect courtesy phrases during required intake stages and redirect to re-ask missing field
-  if (transcript && missingFields.length > 0) {
+  // Only applies before terminal mode starts (check if we're still collecting required fields)
+  if (transcript && missingFields.length > 0 && intake.stage !== 'collecting_complete' && intake.stage !== 'confirmation') {
     const lowerTranscript = transcript.toLowerCase().trim();
     const courtesyPhrases = ['thank you', 'thanks', 'you too', 'bye', 'that\'s all', 'goodbye', 'alright'];
     const isCourtesyPhrase = courtesyPhrases.some(phrase => lowerTranscript === phrase || lowerTranscript.startsWith(phrase + ' ') || lowerTranscript.endsWith(phrase));
@@ -2970,14 +2971,7 @@ Return only JSON, no other text.`;
             closingState.callState === 'closing';
 
           if (terminalStateActive) {
-            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] =========================================');
-            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] Caller audio dropped - terminal mode is active');
-            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] intakeTerminalComplete:', closingState.intakeTerminalComplete);
-            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
-            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] finalClosingStarted:', closingState.finalClosingStarted);
-            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] callState:', closingState.callState);
-            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] Timestamp:', new Date().toISOString());
-            console.log('[CALLER_AUDIO_DROPPED_IN_TERMINAL_MODE] =========================================');
+            // Silently drop caller audio in terminal mode
             return;
           }
           
@@ -4113,7 +4107,7 @@ Do NOT:
                     } else {
                       console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE_SKIPPED] Call already closed, hangup skipped');
                     }
-                  }, 5000); // 5 second buffer after audio done
+                  }, 2000); // 2 second buffer after audio done
                 }
               }
               if (message.type === 'response.done') {
