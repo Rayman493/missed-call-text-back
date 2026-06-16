@@ -112,23 +112,26 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-slate-900 dark:bg-slate-900 rounded-xl border border-slate-700/60 shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/60">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-blue-400" />
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/60">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-blue-400" />
             </div>
-            <h2 className="text-base font-semibold text-white tracking-tight">Create Event</h2>
+            <div>
+              <h2 className="text-lg font-semibold text-white tracking-tight">Create Event</h2>
+              <p className="text-sm text-slate-400">Add a new calendar event</p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
           >
-            <X className="w-4 h-4 text-slate-400" />
+            <X className="w-5 h-5 text-slate-400" />
           </button>
         </div>
 
         {/* Form */}
-        <div className="p-5 space-y-4">
+        <div className="p-6 space-y-4">
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">
