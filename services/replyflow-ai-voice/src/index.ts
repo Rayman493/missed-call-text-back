@@ -1766,7 +1766,7 @@ wss.on('connection', (ws, req) => {
     const activeAssistantTranscripts = new Map<string, string>(); // Buffer keyed by item_id
 
     // Call state for clean call ending - deterministic state machine
-    type CallState = 'active' | 'closing' | 'closing_audio_playing' | 'closed';
+    type CallState = 'active' | 'closing' | 'closing_audio_playing' | 'closing_error' | 'closed';
     let callState: CallState = 'active';
     let finalClosingStarted = false;
     let terminalClosingResponseStarted = false; // Indicates the actual terminal goodbye response has started
@@ -3642,6 +3642,8 @@ Do NOT:
 
                 // Set callState to 'closing' when final goodbye audio is being sent
                 // This should only happen after terminalClosingResponseStarted is true
+                // CRITICAL: This is the ONLY place where callState should be set to 'closing'
+                // All other code paths must use 'closing_error' for emergency cleanup
                 if (terminalClosingResponseStarted && callState === 'active') {
                   // Add warning if confirmationState is still collecting_info
                   if (confirmationState === 'collecting_info') {
@@ -3651,21 +3653,38 @@ Do NOT:
                     console.log('[CALL STATE WARNING] terminalClosingResponseStarted:', terminalClosingResponseStarted);
                     console.log('[CALL STATE WARNING] confirmationState:', confirmationState);
                   }
-                  
-                  console.log('[CALL STATE CHANGE] active -> closing (final goodbye audio starting)');
+
+                  console.log('[CALL STATE TRANSITION] Source: response.output_audio.delta (terminal goodbye audio)');
+                  console.log('[CALL STATE TRANSITION] Reason: final_goodbye_audio_starting');
+                  console.log('[CALL STATE TRANSITION] active -> closing');
+                  console.log('[CALL STATE TRANSITION] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+                  console.log('[CALL STATE TRANSITION] confirmationState:', confirmationState);
+                  console.log('[CALL STATE TRANSITION] finalClosingStarted:', finalClosingStarted);
+                  console.log('[CALL STATE TRANSITION] Timestamp:', new Date().toISOString());
+
                   callState = 'closing';
                   (twilioHandler as any).callState = callState;
+
                   console.log('[CALL STATE UPDATED] callState set to closing during final goodbye audio transmission');
                   console.log('[CALL STATE UPDATED] terminalClosingResponseStarted:', terminalClosingResponseStarted);
                   console.log('[CALL STATE UPDATED] confirmationState:', confirmationState);
+                  console.log('[CALL STATE UPDATED] finalClosingStarted:', finalClosingStarted);
                 } else if (callState === 'active' && !terminalClosingResponseStarted) {
                   // Log warning if trying to set callState to closing without terminalClosingResponseStarted
-                  console.log('[CALL STATE WARNING] Cannot set callState to closing - terminalClosingResponseStarted is false');
-                  console.log('[CALL STATE WARNING] This indicates the terminal closing sequence has not been started');
-                  console.log('[CALL STATE WARNING] callState:', callState);
-                  console.log('[CALL STATE WARNING] terminalClosingResponseStarted:', terminalClosingResponseStarted);
-                  console.log('[CALL STATE WARNING] finalClosingStarted:', finalClosingStarted);
-                  console.log('[CALL STATE WARNING] confirmationState:', confirmationState);
+                  console.log('[CALL STATE BLOCKED] Cannot set callState to closing - terminalClosingResponseStarted is false');
+                  console.log('[CALL STATE BLOCKED] This indicates the terminal closing sequence has not been started');
+                  console.log('[CALL STATE BLOCKED] callState:', callState);
+                  console.log('[CALL STATE BLOCKED] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+                  console.log('[CALL STATE BLOCKED] finalClosingStarted:', finalClosingStarted);
+                  console.log('[CALL STATE BLOCKED] confirmationState:', confirmationState);
+                  console.log('[CALL STATE BLOCKED] Timestamp:', new Date().toISOString());
+                  console.log('[CALL STATE BLOCKED] callState remains active - allowing audio to continue');
+                } else if (callState === 'closing') {
+                  // Log if already in closing state
+                  console.log('[CALL STATE ALREADY CLOSING] callState is already closing');
+                  console.log('[CALL STATE ALREADY CLOSING] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+                  console.log('[CALL STATE ALREADY CLOSING] confirmationState:', confirmationState);
+                  console.log('[CALL STATE ALREADY CLOSING] Timestamp:', new Date().toISOString());
                 }
 
                 // Log when final goodbye audio delta is received

@@ -156,11 +156,24 @@ export class TwilioStreamHandler {
               const greetingSent = (this as any).greetingSent || false;
               const callState = (this as any).callState || 'active';
               const assistantSpeaking = (this as any).assistantSpeaking || false;
+              const terminalClosingResponseStarted = (this as any).terminalClosingResponseStarted || false;
+              const confirmationState = (this as any).confirmationState || 'collecting_info';
 
               // Hard guard: Do not append caller audio when call is not active or assistant is speaking
               if (callState !== 'active') {
-                console.log('[INBOUND CALLER AUDIO BLOCKED - CALL STATE]', { callState });
-                return;
+                // CRITICAL: Check if this is an invalid closing state
+                if (callState === 'closing' && !terminalClosingResponseStarted) {
+                  console.log('[CRITICAL_INVALID_CLOSING_STATE] callState is closing but terminalClosingResponseStarted is false');
+                  console.log('[CRITICAL_INVALID_CLOSING_STATE] This indicates premature closing before terminal goodbye started');
+                  console.log('[CRITICAL_INVALID_CLOSING_STATE] callState:', callState);
+                  console.log('[CRITICAL_INVALID_CLOSING_STATE] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+                  console.log('[CRITICAL_INVALID_CLOSING_STATE] confirmationState:', confirmationState);
+                  console.log('[CRITICAL_INVALID_CLOSING_STATE] NOT treating as terminal closing - allowing audio to continue');
+                  // Do NOT block audio - this is an invalid state
+                } else {
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - CALL STATE]', { callState });
+                  return;
+                }
               }
 
               if (assistantSpeaking) {
