@@ -24,6 +24,7 @@ type CardState =
   | 'needs-forwarding'
   | 'needs-verification'
   | 'setup-complete'
+  | 'setup-complete-success'
   | 'healthy'
 
 export default function SetupStatusCard({ 
@@ -34,9 +35,26 @@ export default function SetupStatusCard({
   const [isExpanded, setIsExpanded] = useState(false)
   const [isOpeningBilling, setIsOpeningBilling] = useState(false)
   const [billingError, setBillingError] = useState<string | null>(null)
+  const [successDismissed, setSuccessDismissed] = useState(false)
   const { user } = useAuth()
   const setupState = deriveSetupState(business)
   const hasSubscription = hasActiveSubscription(business)
+
+  // Check if success state has been dismissed (localStorage)
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && business?.id) {
+      const dismissed = localStorage.getItem(`setup-success-dismissed-${business.id}`)
+      setSuccessDismissed(dismissed === 'true')
+    }
+  }, [business?.id])
+
+  // Handle dismissing the success state
+  const handleDismissSuccess = () => {
+    if (business?.id) {
+      localStorage.setItem(`setup-success-dismissed-${business.id}`, 'true')
+      setSuccessDismissed(true)
+    }
+  }
   
   // Handle opening billing portal or checkout
   const handleOpenBilling = async () => {
@@ -132,23 +150,29 @@ export default function SetupStatusCard({
       return 'needs-verification'
     }
     
-    // Priority 5: Setup complete but no leads yet
+    // Priority 5: Setup complete success (first lead captured, not yet dismissed)
+    if (setupHealth?.forwardingVerified && missedCallCount > 0 && !successDismissed) {
+      return 'setup-complete-success'
+    }
+    
+    // Priority 6: Setup complete but no leads yet
     if (setupHealth?.forwardingVerified && missedCallCount === 0) {
       return 'setup-complete'
     }
     
-    // Priority 6: Healthy active account
+    // Priority 7: Healthy active account
     return 'healthy'
   }
   
   const cardState = getCardState()
   
-  // Auto-expand during setup states, collapse after setup
+  // Auto-expand during setup states and success state, collapse after setup
   const shouldAutoExpand = 
     cardState === 'needs-forwarding' || 
     cardState === 'needs-verification' ||
     cardState === 'billing-blocker' ||
-    cardState === 'critical-issue'
+    cardState === 'critical-issue' ||
+    cardState === 'setup-complete-success'
   
   React.useEffect(() => {
     if (shouldAutoExpand) {
@@ -268,7 +292,43 @@ export default function SetupStatusCard({
       </div>
     )
   }
-  
+
+  // Render setup complete success state (first lead captured)
+  if (cardState === 'setup-complete-success') {
+    return (
+      <div className="bg-gradient-to-br from-green-600 to-emerald-700 dark:from-green-700 dark:to-emerald-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-green-500/30">
+        <div className="flex flex-col gap-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-7 h-7 text-white" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Setup Complete!</h1>
+              <p className="text-green-100 text-base sm:text-lg">ReplyFlow successfully captured your first missed call. You're all set.</p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center px-6 py-3 bg-white hover:bg-green-50 text-green-600 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+            >
+              View Lead
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Link>
+            <button
+              onClick={handleDismissSuccess}
+              className="inline-flex items-center justify-center px-6 py-3 bg-green-700/50 hover:bg-green-700/70 text-white text-base font-semibold rounded-xl transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // Render collapsed state (after setup is complete)
   if (!isExpanded && (cardState === 'setup-complete' || cardState === 'healthy')) {
     return (
@@ -341,7 +401,7 @@ export default function SetupStatusCard({
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span className="text-white text-sm">ReplyFlow number activated</span>
+                <span className="text-white text-sm">Your ReplyFlow number is ready</span>
               </div>
               {cardState === 'needs-verification' && (
                 <div className="flex items-center gap-3">
@@ -404,6 +464,47 @@ export default function SetupStatusCard({
           </div>
         )}
 
+        {/* Status Indicators - Only show for setup-complete and healthy states */}
+        {(cardState === 'setup-complete' || cardState === 'healthy') && (
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <span className="text-white text-sm font-medium">Call Forwarding</span>
+                  <span className="text-green-200 text-xs block">Verified</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <span className="text-white text-sm font-medium">AI Receptionist</span>
+                  <span className="text-green-200 text-xs block">Active</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <span className="text-white text-sm font-medium">SMS Replies</span>
+                  <span className="text-green-200 text-xs block">Active</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Phone Numbers - Always show in expanded state */}
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -420,6 +521,9 @@ export default function SetupStatusCard({
               </span>
             </div>
           </div>
+          <p className="text-blue-200 text-xs mt-3 pt-3 border-t border-white/10">
+            Your existing business phone number stays the same. You'll simply forward missed calls to your ReplyFlow number.
+          </p>
         </div>
 
         {/* CTA Button - Based on current state */}
