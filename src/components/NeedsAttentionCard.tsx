@@ -269,7 +269,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
 
       {visibleItems.length === 0 ? (
         <div className="text-center py-4">
-          <p className="text-sm text-slate-500 dark:text-slate-400">All caught up</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Everything looks good. No action needed right now.</p>
         </div>
       ) : (
         <div className="space-y-3">

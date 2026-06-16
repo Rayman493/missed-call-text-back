@@ -407,8 +407,8 @@ export default function NavbarNotifications() {
                 <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Bell className="w-8 h-8 text-slate-400" />
                 </div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">You're all caught up!</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">New activity will appear here.</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Everything looks good. No new notifications.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">New activity will appear here when available.</p>
               </div>
             ) : (
               <>
