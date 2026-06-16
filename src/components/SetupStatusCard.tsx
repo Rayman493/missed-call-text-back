@@ -557,14 +557,14 @@ export default function SetupStatusCard({
             <div className="flex gap-3">
               <Link
                 href="/setup/phone-forwarding?mode=review"
-                className="inline-flex items-center justify-center px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors min-h-[40px]"
               >
                 <Settings className="w-4 h-4 mr-2" />
                 Review Forwarding Setup
               </Link>
               <button
                 onClick={() => setShowHelpModal(true)}
-                className="inline-flex items-center justify-center px-4 py-2 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-sm font-medium rounded-lg transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-sm font-medium rounded-lg transition-colors min-h-[40px]"
               >
                 <HelpCircle className="w-4 h-4 mr-2" />
                 Help & Troubleshooting
