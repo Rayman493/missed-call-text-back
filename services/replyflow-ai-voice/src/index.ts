@@ -731,7 +731,14 @@ function sendControlledAssistantText(text: string, reason: string, openAiWs: any
     'callback number',
     'another number',
     'best number to reach',
-    "what's the best phone number"
+    "what's the best phone number",
+    'best person to contact',
+    'person to contact',
+    'primary contact',
+    'contact person',
+    'who should we speak with',
+    'who can we reach',
+    'who should the business contact'
   ];
 
   const lowerText = text.toLowerCase();
