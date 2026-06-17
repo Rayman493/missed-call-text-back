@@ -1150,6 +1150,14 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
         const name = extractName(transcript);
         if (name && name.length > 1) {
           intake.customerName = name;
+          console.log('[CUSTOMER NAME EXTRACTION] =========================================');
+          console.log('[CUSTOMER NAME EXTRACTION] stage:', intake.stage);
+          console.log('[CUSTOMER NAME EXTRACTION] transcript:', transcript);
+          console.log('[CUSTOMER NAME EXTRACTION] extractedCustomerName:', name);
+          console.log('[CUSTOMER NAME EXTRACTION] previousCustomerName:', oldName);
+          console.log('[CUSTOMER NAME EXTRACTION] updatedCustomerName:', intake.customerName);
+          console.log('[CUSTOMER NAME EXTRACTION] Timestamp:', new Date().toISOString());
+          console.log('[CUSTOMER NAME EXTRACTION] =========================================');
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[FIELD ASSIGNMENT] field: customerName');
           console.log('[FIELD ASSIGNMENT] oldValue:', oldName);
@@ -1161,6 +1169,13 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[LIVE EXTRACTION MAPPED] customerName:', intake.customerName);
         }
+      } else {
+        // Preserve existing customerName - do not overwrite with undefined
+        console.log('[CUSTOMER NAME PRESERVED] =========================================');
+        console.log('[CUSTOMER NAME PRESERVED] previousCustomerName:', intake.customerName);
+        console.log('[CUSTOMER NAME PRESERVED] reason: prevent overwrite with undefined');
+        console.log('[CUSTOMER NAME PRESERVED] Timestamp:', new Date().toISOString());
+        console.log('[CUSTOMER NAME PRESERVED] =========================================');
       }
 
       // Extract service requested with heuristic fallback
@@ -1528,6 +1543,76 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[FIELD EXTRACTION SKIPPED] =========================================');
       console.log('[FIELD EXTRACTION SKIPPED] field: callbackTime');
       console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_completion_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      break;
+
+    case 'ask_callback_time':
+      // Allowed: callbackTime
+      // Forbidden: customerName, serviceRequested, issueDescription, serviceAddress, desiredCompletionTime
+      
+      // Extract callback time
+      if (!intake.callbackTime) {
+        const oldCallbackTime = intake.callbackTime;
+        const callbackTimePatterns = [
+          'morning', 'afternoon', 'evening', 'noon',
+          'anytime', 'any time', 'whenever',
+          'today', 'tomorrow',
+          'tomorrow morning', 'tomorrow afternoon', 'tomorrow evening',
+          'this morning', 'this afternoon', 'this evening',
+          'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+          'next week', 'as soon as possible', 'asap', 'after work', 'before noon', 'around lunch'
+        ];
+
+        const foundCallbackTime = callbackTimePatterns.find(pattern => lowerTranscript.includes(pattern));
+        if (foundCallbackTime) {
+          intake.callbackTime = foundCallbackTime.charAt(0).toUpperCase() + foundCallbackTime.slice(1);
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[FIELD ASSIGNMENT] field: callbackTime');
+          console.log('[FIELD ASSIGNMENT] oldValue:', oldCallbackTime);
+          console.log('[FIELD ASSIGNMENT] newValue:', intake.callbackTime);
+          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (pattern match)');
+          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[LIVE EXTRACTION MAPPED] callbackTime:', intake.callbackTime);
+        }
+      }
+
+      // Log skipped extractions
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: customerName');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: serviceRequested');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: issueDescription');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: serviceAddress');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: desiredCompletionTime');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
       console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
       console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
       console.log('[FIELD EXTRACTION SKIPPED] =========================================');
@@ -5568,6 +5653,20 @@ Do NOT:
                     console.log('[CALLBACK TIME EXTRACTION] =========================================');
 
                     intakeData!.callbackTime = normalizedCallbackTime;
+                    
+                    // Fallback recovery: if customerName is missing, try to recover from transcript
+                    if (!intakeData!.customerName) {
+                      const recoveredName = extractName(userTranscript);
+                      if (recoveredName && recoveredName.length > 1) {
+                        console.log('[FINAL REQUIRED FIELD RECOVERY] =========================================');
+                        console.log('[FINAL REQUIRED FIELD RECOVERY] missingFields: [customerName]');
+                        console.log('[FINAL REQUIRED FIELD RECOVERY] recoveredCustomerName:', recoveredName);
+                        console.log('[FINAL REQUIRED FIELD RECOVERY] nextAction: Setting customerName and continuing with completion check');
+                        console.log('[FINAL REQUIRED FIELD RECOVERY] Timestamp:', new Date().toISOString());
+                        console.log('[FINAL REQUIRED FIELD RECOVERY] =========================================');
+                        intakeData!.customerName = recoveredName;
+                      }
+                    }
                     
                     // Check if all required fields are collected after callback time
                     if (areAllRequiredFieldsCollected(intakeData!)) {
