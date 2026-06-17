@@ -725,7 +725,13 @@ function sendControlledAssistantText(text: string, reason: string, openAiWs: any
     'loose connection',
     'under the sink',
     'near the toilet',
-    'shower area'
+    'shower area',
+    'best phone number',
+    'phone number to reach',
+    'callback number',
+    'another number',
+    'best number to reach',
+    "what's the best phone number"
   ];
 
   const lowerText = text.toLowerCase();
@@ -941,7 +947,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       }
       // Ask for location
       return {
-        response: 'Thanks. What address or location is this for?',
+        response: 'Thanks. Where will the service take place?',
         nextStage: 'ask_location'
       };
 
