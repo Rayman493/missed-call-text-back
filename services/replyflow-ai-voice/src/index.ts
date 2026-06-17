@@ -4364,9 +4364,17 @@ Return only JSON, no other text.`;
         // Call follow-up creation API
         try {
           console.log('[FOLLOWUP DEBUG API START - ACTIVE] Fetching from follow-up API');
-          const followUpApiUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+          const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+          const followUpApiUrl = appBaseUrl;
           const internalApiSecret = process.env.INTERNAL_API_SECRET;
-          
+
+          console.log('[MAIN APP API CONFIG] =========================================');
+          console.log('[MAIN APP API CONFIG] nodeEnv:', process.env.NODE_ENV);
+          console.log('[MAIN APP API CONFIG] appBaseUrl:', appBaseUrl);
+          console.log('[MAIN APP API CONFIG] sourceEnvUsed:', process.env.MAIN_APP_URL ? 'MAIN_APP_URL' : process.env.NEXT_PUBLIC_APP_URL ? 'NEXT_PUBLIC_APP_URL' : process.env.APP_BASE_URL ? 'APP_BASE_URL' : 'fallback');
+          console.log('[MAIN APP API CONFIG] Timestamp:', new Date().toISOString());
+          console.log('[MAIN APP API CONFIG] =========================================');
+
           console.log('[FOLLOWUP DEBUG API URL - ACTIVE]', followUpApiUrl);
           console.log('[FOLLOWUP DEBUG AUTH - ACTIVE]', {
             hasInternalApiSecret: !!internalApiSecret,
@@ -4818,8 +4826,16 @@ Return only JSON, no other text.`;
           console.log('[INCOMPLETE FOLLOWUP CREATE START] =========================================');
 
           try {
-            const followUpApiUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+            const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+            const followUpApiUrl = appBaseUrl;
             const internalApiSecret = process.env.INTERNAL_API_SECRET;
+
+            console.log('[MAIN APP API CONFIG] =========================================');
+            console.log('[MAIN APP API CONFIG] nodeEnv:', process.env.NODE_ENV);
+            console.log('[MAIN APP API CONFIG] appBaseUrl:', appBaseUrl);
+            console.log('[MAIN APP API CONFIG] sourceEnvUsed:', process.env.MAIN_APP_URL ? 'MAIN_APP_URL' : process.env.NEXT_PUBLIC_APP_URL ? 'NEXT_PUBLIC_APP_URL' : process.env.APP_BASE_URL ? 'APP_BASE_URL' : 'fallback');
+            console.log('[MAIN APP API CONFIG] Timestamp:', new Date().toISOString());
+            console.log('[MAIN APP API CONFIG] =========================================');
             
             const headers: Record<string, string> = {
               'Content-Type': 'application/json',
