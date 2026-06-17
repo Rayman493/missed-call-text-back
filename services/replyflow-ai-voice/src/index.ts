@@ -851,7 +851,14 @@ function sendControlledAssistantText(text: string, reason: string, openAiWs: any
   }
 }
 
-function sendStagePrompt(stage: string, openAiWs: any): void {
+function sendStagePrompt(
+  stage: string, 
+  openAiWs: any,
+  promptedStages: Set<IntakeStage>,
+  lastPromptAt: number,
+  assistantSpeaking: boolean,
+  activeResponseId: string | null
+): void {
   console.log('[ACTIVE INTAKE STAGE] =========================================');
   console.log('[ACTIVE INTAKE STAGE] stage:', stage);
 
@@ -859,7 +866,8 @@ function sendStagePrompt(stage: string, openAiWs: any): void {
     'ask_name_reason': 'Hi, I\'m the assistant for the business. Can you please let me know your name and your reason for calling?',
     'ask_details': 'Got it. Can you share any important details the business should know?',
     'ask_location': 'Thanks. Where will the service take place?',
-    'ask_completion_time': 'Got it. When would you like this work completed?'
+    'ask_completion_time': 'Got it. When would you like this work completed?',
+    'ask_callback_time': 'What\'s the best time for the business to call you back?'
   };
 
   const prompt = stagePrompts[stage];
@@ -871,11 +879,39 @@ function sendStagePrompt(stage: string, openAiWs: any): void {
     return;
   }
 
+  // Per-stage prompt guard to prevent duplicate prompts
+  const alreadyPrompted = promptedStages.has(stage as IntakeStage);
+  const timeSinceLastPrompt = Date.now() - lastPromptAt;
+  
+  console.log('[STAGE PROMPT REQUESTED] =========================================');
+  console.log('[STAGE PROMPT REQUESTED] stage:', stage);
+  console.log('[STAGE PROMPT REQUESTED] prompt:', prompt);
+  console.log('[STAGE PROMPT REQUESTED] alreadyPrompted:', alreadyPrompted);
+  console.log('[STAGE PROMPT REQUESTED] assistantSpeaking:', assistantSpeaking);
+  console.log('[STAGE PROMPT REQUESTED] activeResponseId:', activeResponseId);
+  console.log('[STAGE PROMPT REQUESTED] timeSinceLastPrompt:', timeSinceLastPrompt);
+  console.log('[STAGE PROMPT REQUESTED] Timestamp:', new Date().toISOString());
+  console.log('[STAGE PROMPT REQUESTED] =========================================');
+
+  // Skip duplicate prompt if already sent for this stage and no user transcript received
+  if (alreadyPrompted && timeSinceLastPrompt < 5000) {
+    console.log('[STAGE PROMPT SKIPPED DUPLICATE] =========================================');
+    console.log('[STAGE PROMPT SKIPPED DUPLICATE] stage:', stage);
+    console.log('[STAGE PROMPT SKIPPED DUPLICATE] reason: already prompted and no user transcript received');
+    console.log('[STAGE PROMPT SKIPPED DUPLICATE] timeSinceLastPrompt:', timeSinceLastPrompt);
+    console.log('[STAGE PROMPT SKIPPED DUPLICATE] Timestamp:', new Date().toISOString());
+    console.log('[STAGE PROMPT SKIPPED DUPLICATE] =========================================');
+    return;
+  }
+
   console.log('[STAGE PROMPT SELECTED] =========================================');
   console.log('[STAGE PROMPT SELECTED] Stage:', stage);
   console.log('[STAGE PROMPT SELECTED] Prompt:', prompt);
   console.log('[STAGE PROMPT SELECTED] Timestamp:', new Date().toISOString());
   console.log('[STAGE PROMPT SELECTED] =========================================');
+
+  // Mark this stage as prompted
+  promptedStages.add(stage as IntakeStage);
 
   // Start watchdog timer to detect if response is not sent within 500ms
   let responseSent = false;
@@ -3497,6 +3533,12 @@ wss.on('connection', (ws, req) => {
     let assistantSpeaking = false;
     let finalGoodbyeMarkReceived = false; // Track when final-goodbye-complete mark is received
     let finalGoodbyeMarkSent = false; // Track when final-goodbye-complete mark is sent
+    
+    // Per-stage prompt guard to prevent duplicate prompts
+    const promptedStages = new Set<IntakeStage>();
+    let lastPromptStage: IntakeStage | null = null;
+    let lastPromptAt: number = 0;
+    let activeResponseId: string | null = null;
     let finalAudioFallbackTimer: NodeJS.Timeout | null = null; // Fallback timer for mark sending
     let finalAudioFallbackStarted = false; // Track if fallback timer has been started
     let directHangupFallbackTimer: NodeJS.Timeout | null = null; // Direct hangup fallback timer
@@ -5409,6 +5451,13 @@ Do NOT:
                     console.log('[STAGE SPECIFIC FIELD CAPTURE] Timestamp:', new Date().toISOString());
                     console.log('[STAGE SPECIFIC FIELD CAPTURE] =========================================');
 
+                    // Clear promptedStages when user provides new transcript to allow next prompt
+                    promptedStages.clear();
+                    console.log('[PROMPTED STAGES CLEARED] =========================================');
+                    console.log('[PROMPTED STAGES CLEARED] User provided new transcript, clearing prompted stages');
+                    console.log('[PROMPTED STAGES CLEARED] Timestamp:', new Date().toISOString());
+                    console.log('[PROMPTED STAGES CLEARED] =========================================');
+
                     // Normalize simple answers
                     let normalizedCompletionTime = userTranscript.trim();
                     const lowerTranscript = normalizedCompletionTime.toLowerCase();
@@ -5530,7 +5579,7 @@ Do NOT:
                     intakeComplete = true;
                   } else {
                     // Send the stage prompt explicitly
-                    sendStagePrompt(intakeData!.stage, openAiWs);
+                    sendStagePrompt(intakeData!.stage, openAiWs, promptedStages, lastPromptAt, assistantSpeaking, activeResponseId);
                   }
                 }
               }
@@ -5601,6 +5650,21 @@ Do NOT:
                 console.log('[FINAL_OUTPUT_ITEM_DONE] finalClosingStarted:', finalClosingStarted);
                 console.log('[FINAL_OUTPUT_ITEM_DONE] callState:', callState);
                 console.log('[FINAL_OUTPUT_ITEM_DONE] item_id:', message.item_id || 'unknown');
+                
+                // Reset assistantSpeaking when output item is complete
+                const previousAssistantSpeaking = assistantSpeaking;
+                if (assistantSpeaking) {
+                  assistantSpeaking = false;
+                  console.log('[ASSISTANT SPEAKING RESET] =========================================');
+                  console.log('[ASSISTANT SPEAKING RESET] source: response.output_item.done');
+                  console.log('[ASSISTANT SPEAKING RESET] responseId:', message.response_id || 'unknown');
+                  console.log('[ASSISTANT SPEAKING RESET] itemId:', message.item_id || 'unknown');
+                  console.log('[ASSISTANT SPEAKING RESET] previousAssistantSpeaking:', previousAssistantSpeaking);
+                  console.log('[ASSISTANT SPEAKING RESET] newAssistantSpeaking:', assistantSpeaking);
+                  console.log('[ASSISTANT SPEAKING RESET] Timestamp:', new Date().toISOString());
+                  console.log('[ASSISTANT SPEAKING RESET] =========================================');
+                  (twilioHandler as any).assistantSpeaking = assistantSpeaking;
+                }
               }
               if (message.type === 'response.output_audio.delta') {
                 if (process.env.DEBUG_AI_VOICE === 'true') {
@@ -5791,6 +5855,21 @@ Do NOT:
                 console.log('[FINAL_AUDIO_DONE] callState:', callState);
                 console.log('[FINAL_AUDIO_DONE] hangupScheduled:', hangupScheduled);
                 console.log('[FINAL_AUDIO_DONE] finalGoodbyeMarkSent:', finalGoodbyeMarkSent);
+                
+                // Reset assistantSpeaking when audio generation is complete
+                const previousAssistantSpeaking = assistantSpeaking;
+                if (assistantSpeaking) {
+                  assistantSpeaking = false;
+                  console.log('[ASSISTANT SPEAKING RESET] =========================================');
+                  console.log('[ASSISTANT SPEAKING RESET] source: response.audio.done');
+                  console.log('[ASSISTANT SPEAKING RESET] responseId:', message.response_id || 'unknown');
+                  console.log('[ASSISTANT SPEAKING RESET] itemId:', message.item_id || 'unknown');
+                  console.log('[ASSISTANT SPEAKING RESET] previousAssistantSpeaking:', previousAssistantSpeaking);
+                  console.log('[ASSISTANT SPEAKING RESET] newAssistantSpeaking:', assistantSpeaking);
+                  console.log('[ASSISTANT SPEAKING RESET] Timestamp:', new Date().toISOString());
+                  console.log('[ASSISTANT SPEAKING RESET] =========================================');
+                  (twilioHandler as any).assistantSpeaking = assistantSpeaking;
+                }
                 
                 console.log('[AUTHORIZED_FINAL_RESPONSE_AUDIO_DONE] =========================================');
                 console.log('[AUTHORIZED_FINAL_RESPONSE_AUDIO_DONE] Authorized final response audio generation complete');

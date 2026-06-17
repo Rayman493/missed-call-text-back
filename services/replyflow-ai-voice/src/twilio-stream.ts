@@ -188,6 +188,21 @@ export class TwilioStreamHandler {
 
               if (assistantSpeaking) {
                 console.log('[INBOUND CALLER AUDIO SKIPPED - ASSISTANT SPEAKING]', { assistantSpeaking });
+                
+                // Add enhanced logging for user audio blocked while speaking
+                const lastPromptStage = (this as any).lastPromptStage || 'unknown';
+                const lastPromptAt = (this as any).lastPromptAt || 0;
+                const activeResponseId = (this as any).activeResponseId || 'unknown';
+                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] =========================================');
+                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] stage:', lastPromptStage);
+                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] assistantSpeaking:', assistantSpeaking);
+                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] activeResponseId:', activeResponseId);
+                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] lastPromptStage:', lastPromptStage);
+                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] lastPromptAt:', lastPromptAt);
+                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] timeSinceLastPrompt:', Date.now() - lastPromptAt);
+                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] Timestamp:', new Date().toISOString());
+                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] =========================================');
+                
                 return;
               }
 
