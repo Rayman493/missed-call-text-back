@@ -5452,7 +5452,26 @@ Do NOT:
                       return; // Skip normal intake processing - NO MORE AI RESPONSES
                     }
                     
-                    // Not all fields collected yet, continue normal processing
+                    // Not all fields collected yet - advance to ask_callback_time
+                    console.log('[STAGE TRANSITION] =========================================');
+                    console.log('[STAGE TRANSITION] from: ask_completion_time');
+                    console.log('[STAGE TRANSITION] to: ask_callback_time');
+                    console.log('[STAGE TRANSITION] reason: desiredCompletionTime collected');
+                    console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+                    console.log('[STAGE TRANSITION] =========================================');
+                    
+                    intakeData!.stage = 'ask_callback_time';
+                    
+                    // Send next prompt immediately
+                    const callbackTimePrompt = "What's the best time for the business to call you back?";
+                    console.log('[NEXT PROMPT SENT] =========================================');
+                    console.log('[NEXT PROMPT SENT] stage: ask_callback_time');
+                    console.log('[NEXT PROMPT SENT] prompt:', callbackTimePrompt);
+                    console.log('[NEXT PROMPT SENT] Timestamp:', new Date().toISOString());
+                    console.log('[NEXT PROMPT SENT] =========================================');
+                    
+                    sendControlledAssistantText(callbackTimePrompt, 'ASK_CALLBACK_TIME', openAiWs);
+                    
                     return; // Skip normal intake processing
                   }
                   
