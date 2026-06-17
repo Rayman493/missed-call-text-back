@@ -827,7 +827,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       const correctedFields: Array<{ field: string; oldValue: string; newValue: string }> = []
 
       for (const correction of correctionResult.corrections) {
-        console.log('[CORRECTION DETECTED]', {
+        console.log('[AI CORRECTION DETECTED]', {
           leadId: lead.id,
           field: correction.field,
           oldValue: correction.oldValue,
@@ -893,6 +893,14 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         })
 
         // Update AI call record (RC1: don't regenerate summary, just update extracted_info)
+        console.log('[AI CORRECTION PERSIST START]', {
+          leadId: lead.id,
+          aiCallRecordId: aiCallRecord.id,
+          field: correctedFields[0]?.field,
+          oldValue: correctedFields[0]?.oldValue,
+          newValue: correctedFields[0]?.newValue
+        })
+
         const updatePayload: any = {
           extracted_info: updatedExtractedInfo,
           updated_at: now
@@ -906,13 +914,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           .single()
 
         if (!aiUpdateError && updatedAiRecord) {
-          console.log('[AI RECORD UPDATED]', {
+          console.log('[AI CORRECTION PERSIST SUCCESS]', {
             callRecordId: updatedAiRecord.id,
             totalCorrections: correctedFields.length,
             extracted_info: updatedAiRecord.extracted_info
           })
         } else {
-          console.error('[CORRECTION AI INTAKE UPDATE ERROR]', {
+          console.error('[AI CORRECTION PERSIST FAILED]', {
             callRecordId: aiCallRecord.id,
             error: aiUpdateError
           })
@@ -987,7 +995,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         })
 
         if (leadWithCorrection) {
-          console.log('[CORRECTION SAVED]', {
+          console.log('[AI CORRECTION LEAD METADATA PERSIST SUCCESS]', {
             leadId: leadWithCorrection.id,
             corrections_count: correctedMetadata.corrections_count,
             totalCorrections: correctedFields.length,
