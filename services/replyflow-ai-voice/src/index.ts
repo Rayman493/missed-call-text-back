@@ -1197,23 +1197,36 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
           intake.locationType = 'caller_location';
           console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
         } else if (transcript.trim().length > 5 && !lowerTranscript.startsWith('my name is') && !lowerTranscript.startsWith('i need') && !lowerTranscript.startsWith('i want')) {
-          // If transcript contains location-like content (not name or service request), preserve it as-is
-          // This captures city names, neighborhoods, or specific addresses
-          intake.serviceAddress = transcript.trim();
-          intake.locationType = 'service_address';
+          // Check if this is project detail (not a location)
+          const projectDetailKeywords = ['yard', 'acre', 'square feet', 'sq ft', 'sqft', 'property', 'the yard is', 'my yard', 'the property is', 'my property'];
+          const hasProjectDetailKeyword = projectDetailKeywords.some(keyword => lowerTranscript.includes(keyword));
           
-          // Check if this might be a business name (no location indicator)
-          const locationIndicators = ['street', 'ave', 'avenue', 'road', 'lane', 'drive', 'blvd', 'boulevard', 'at', 'near', 'in', 'on', 'suite', 'unit', '#'];
-          const hasLocationIndicator = locationIndicators.some(indicator => lowerTranscript.includes(indicator));
-          
-          if (!hasLocationIndicator && transcript.trim().length > 5) {
-            console.log('[LOCATION POSSIBLE BUSINESS NAME] =========================================');
-            console.log('[LOCATION POSSIBLE BUSINESS NAME] rawTranscript:', transcript);
-            console.log('[LOCATION POSSIBLE BUSINESS NAME] Timestamp:', new Date().toISOString());
-            console.log('[LOCATION POSSIBLE BUSINESS NAME] =========================================');
+          if (hasProjectDetailKeyword) {
+            console.log('[LOCATION PROJECT DETECTED] =========================================');
+            console.log('[LOCATION PROJECT DETECTED] Transcript contains project detail, not location');
+            console.log('[LOCATION PROJECT DETECTED] rawTranscript:', transcript);
+            console.log('[LOCATION PROJECT DETECTED] Timestamp:', new Date().toISOString());
+            console.log('[LOCATION PROJECT DETECTED] Skipping serviceAddress extraction');
+            console.log('[LOCATION PROJECT DETECTED] =========================================');
+          } else {
+            // If transcript contains location-like content (not name or service request), preserve it as-is
+            // This captures city names, neighborhoods, or specific addresses
+            intake.serviceAddress = transcript.trim();
+            intake.locationType = 'service_address';
+            
+            // Check if this might be a business name (no location indicator)
+            const locationIndicators = ['street', 'ave', 'avenue', 'road', 'lane', 'drive', 'blvd', 'boulevard', 'at', 'near', 'in', 'on', 'suite', 'unit', '#'];
+            const hasLocationIndicator = locationIndicators.some(indicator => lowerTranscript.includes(indicator));
+            
+            if (!hasLocationIndicator && transcript.trim().length > 5) {
+              console.log('[LOCATION POSSIBLE BUSINESS NAME] =========================================');
+              console.log('[LOCATION POSSIBLE BUSINESS NAME] rawTranscript:', transcript);
+              console.log('[LOCATION POSSIBLE BUSINESS NAME] Timestamp:', new Date().toISOString());
+              console.log('[LOCATION POSSIBLE BUSINESS NAME] =========================================');
+            }
+            
+            console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
           }
-          
-          console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
         }
       }
     }
@@ -1366,6 +1379,11 @@ async function finalizeIncompleteIntake(
   console.log('[AI INCOMPLETE FINALIZATION] Useful data collected, proceeding with finalization');
   
   // Build extracted fields from intake data
+  console.log('[AI INCOMPLETE STEP 1] =========================================');
+  console.log('[AI INCOMPLETE STEP 1] Building extracted fields from intake data');
+  console.log('[AI INCOMPLETE STEP 1] Timestamp:', new Date().toISOString());
+  console.log('[AI INCOMPLETE STEP 1] =========================================');
+  
   const extractedFields = {
     callerName: intakeData?.customerName || null,
     reasonForCalling: intakeData?.serviceRequested || null,
@@ -1376,9 +1394,19 @@ async function finalizeIncompleteIntake(
     summary: `Partial intake: ${intakeData?.customerName || 'Unknown'} called about ${intakeData?.serviceRequested || 'unknown issue'}. Some details may be missing.`
   };
   
-  console.log('[AI INCOMPLETE FINALIZATION] Extracted fields:', extractedFields);
+  console.log('[AI INCOMPLETE STEP 1 SUCCESS] =========================================');
+  console.log('[AI INCOMPLETE STEP 1 SUCCESS] Extracted fields:', extractedFields);
+  console.log('[AI INCOMPLETE STEP 1 SUCCESS] Timestamp:', new Date().toISOString());
+  console.log('[AI INCOMPLETE STEP 1 SUCCESS] =========================================');
   
   // Create or update lead
+  console.log('[AI INCOMPLETE STEP 2] =========================================');
+  console.log('[AI INCOMPLETE STEP 2] Creating or updating lead');
+  console.log('[AI INCOMPLETE STEP 2] businessId:', businessId);
+  console.log('[AI INCOMPLETE STEP 2] callerPhone:', callerPhone);
+  console.log('[AI INCOMPLETE STEP 2] Timestamp:', new Date().toISOString());
+  console.log('[AI INCOMPLETE STEP 2] =========================================');
+  
   const { data: lead, error: leadError } = await supabase
     .from('leads')
     .upsert({
@@ -1392,13 +1420,27 @@ async function finalizeIncompleteIntake(
     .single();
   
   if (leadError) {
-    console.log('[AI INCOMPLETE FINALIZATION] Lead creation failed:', leadError);
+    console.error('[AI INCOMPLETE STEP 2 FAILED] =========================================');
+    console.error('[AI INCOMPLETE STEP 2 FAILED] Lead creation failed');
+    console.error('[AI INCOMPLETE STEP 2 FAILED] error:', leadError);
+    console.error('[AI INCOMPLETE STEP 2 FAILED] stack:', leadError.stack);
+    console.error('[AI INCOMPLETE STEP 2 FAILED] Timestamp:', new Date().toISOString());
+    console.error('[AI INCOMPLETE STEP 2 FAILED] =========================================');
     return;
   }
   
-  console.log('[AI INCOMPLETE FINALIZATION] Lead created/updated:', lead.id);
+  console.log('[AI INCOMPLETE STEP 2 SUCCESS] =========================================');
+  console.log('[AI INCOMPLETE STEP 2 SUCCESS] Lead created/updated:', lead.id);
+  console.log('[AI INCOMPLETE STEP 2 SUCCESS] Timestamp:', new Date().toISOString());
+  console.log('[AI INCOMPLETE STEP 2 SUCCESS] =========================================');
   
   // Create or update conversation
+  console.log('[AI INCOMPLETE STEP 3] =========================================');
+  console.log('[AI INCOMPLETE STEP 3] Creating or updating conversation');
+  console.log('[AI INCOMPLETE STEP 3] leadId:', lead.id);
+  console.log('[AI INCOMPLETE STEP 3] Timestamp:', new Date().toISOString());
+  console.log('[AI INCOMPLETE STEP 3] =========================================');
+  
   let conversation;
   const { data: existingConversation } = await supabase
     .from('conversations')
@@ -1408,6 +1450,7 @@ async function finalizeIncompleteIntake(
   
   if (existingConversation) {
     conversation = existingConversation;
+    console.log('[AI INCOMPLETE STEP 3] Using existing conversation:', conversation.id);
   } else {
     const result = await supabase
       .from('conversations')
@@ -1422,9 +1465,18 @@ async function finalizeIncompleteIntake(
     conversation = result.data;
   }
   
-  console.log('[AI INCOMPLETE FINALIZATION] Conversation:', conversation.id);
+  console.log('[AI INCOMPLETE STEP 3 SUCCESS] =========================================');
+  console.log('[AI INCOMPLETE STEP 3 SUCCESS] Conversation:', conversation.id);
+  console.log('[AI INCOMPLETE STEP 3 SUCCESS] Timestamp:', new Date().toISOString());
+  console.log('[AI INCOMPLETE STEP 3 SUCCESS] =========================================');
   
   // Insert AI call record with incomplete outcome
+  console.log('[AI INCOMPLETE STEP 4] =========================================');
+  console.log('[AI INCOMPLETE STEP 4] Inserting AI call record with incomplete outcome');
+  console.log('[AI INCOMPLETE STEP 4] callSid:', callSid);
+  console.log('[AI INCOMPLETE STEP 4] Timestamp:', new Date().toISOString());
+  console.log('[AI INCOMPLETE STEP 4] =========================================');
+  
   const { error: recordError } = await supabase
     .from('ai_call_records')
     .insert({
@@ -1441,21 +1493,30 @@ async function finalizeIncompleteIntake(
     });
   
   if (recordError) {
-    console.log('[AI INCOMPLETE FINALIZATION] AI call record creation failed:', recordError);
+    console.error('[AI INCOMPLETE STEP 4 FAILED] =========================================');
+    console.error('[AI INCOMPLETE STEP 4 FAILED] AI call record creation failed');
+    console.error('[AI INCOMPLETE STEP 4 FAILED] error:', recordError);
+    console.error('[AI INCOMPLETE STEP 4 FAILED] stack:', recordError.stack);
+    console.error('[AI INCOMPLETE STEP 4 FAILED] Timestamp:', new Date().toISOString());
+    console.error('[AI INCOMPLETE STEP 4 FAILED] =========================================');
     return;
   }
   
-  console.log('[AI INCOMPLETE FINALIZATION] AI call record created with outcome: incomplete');
+  console.log('[AI INCOMPLETE STEP 4 SUCCESS] =========================================');
+  console.log('[AI INCOMPLETE STEP 4 SUCCESS] AI call record created with outcome: incomplete');
+  console.log('[AI INCOMPLETE STEP 4 SUCCESS] Timestamp:', new Date().toISOString());
+  console.log('[AI INCOMPLETE STEP 4 SUCCESS] =========================================');
   
   // Send partial AI summary SMS
+  console.log('[AI INCOMPLETE STEP 5] =========================================');
+  console.log('[AI INCOMPLETE STEP 5] Sending partial summary SMS');
+  console.log('[AI INCOMPLETE STEP 5] businessId:', businessId);
+  console.log('[AI INCOMPLETE STEP 5] leadId:', lead.id);
+  console.log('[AI INCOMPLETE STEP 5] conversationId:', conversation.id);
+  console.log('[AI INCOMPLETE STEP 5] Timestamp:', new Date().toISOString());
+  console.log('[AI INCOMPLETE STEP 5] =========================================');
+  
   try {
-    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST STARTED] =========================================');
-    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST STARTED] businessId:', businessId);
-    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST STARTED] leadId:', lead.id);
-    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST STARTED] conversationId:', conversation.id);
-    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST STARTED] Timestamp:', new Date().toISOString());
-    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST STARTED] =========================================');
-    
     await sendAIConfirmationSMS(
       businessId,
       lead.id,
@@ -1465,31 +1526,34 @@ async function finalizeIncompleteIntake(
       extractedFields
     );
     
-    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST SUCCESS] =========================================');
-    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST SUCCESS] Partial summary SMS sent successfully');
-    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST SUCCESS] Timestamp:', new Date().toISOString());
-    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST SUCCESS] =========================================');
+    console.log('[AI INCOMPLETE STEP 5 SUCCESS] =========================================');
+    console.log('[AI INCOMPLETE STEP 5 SUCCESS] Partial summary SMS sent successfully');
+    console.log('[AI INCOMPLETE STEP 5 SUCCESS] Timestamp:', new Date().toISOString());
+    console.log('[AI INCOMPLETE STEP 5 SUCCESS] =========================================');
   } catch (smsError) {
-    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST FAILED] =========================================');
-    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST FAILED] SMS send failed:', smsError);
-    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST FAILED] Timestamp:', new Date().toISOString());
-    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST FAILED] =========================================');
+    console.error('[AI INCOMPLETE STEP 5 FAILED] =========================================');
+    console.error('[AI INCOMPLETE STEP 5 FAILED] SMS send failed');
+    console.error('[AI INCOMPLETE STEP 5 FAILED] error:', smsError);
+    console.error('[AI INCOMPLETE STEP 5 FAILED] stack:', smsError.stack);
+    console.error('[AI INCOMPLETE STEP 5 FAILED] Timestamp:', new Date().toISOString());
+    console.error('[AI INCOMPLETE STEP 5 FAILED] =========================================');
   }
   
   // Create follow-up jobs
+  console.log('[AI INCOMPLETE STEP 6] =========================================');
+  console.log('[AI INCOMPLETE STEP 6] Creating follow-up jobs');
+  console.log('[AI INCOMPLETE STEP 6] businessId:', businessId);
+  console.log('[AI INCOMPLETE STEP 6] leadId:', lead.id);
+  console.log('[AI INCOMPLETE STEP 6] conversationId:', conversation.id);
+  console.log('[AI INCOMPLETE STEP 6] Timestamp:', new Date().toISOString());
+  console.log('[AI INCOMPLETE STEP 6] =========================================');
+  
   try {
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST STARTED] =========================================');
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST STARTED] businessId:', businessId);
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST STARTED] leadId:', lead.id);
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST STARTED] conversationId:', conversation.id);
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST STARTED] Timestamp:', new Date().toISOString());
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST STARTED] =========================================');
-    
     const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
     const internalApiSecret = process.env.INTERNAL_API_SECRET;
     
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST] API URL:', notificationApiUrl);
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST] INTERNAL_API_SECRET present:', !!internalApiSecret);
+    console.log('[AI INCOMPLETE STEP 6] API URL:', notificationApiUrl);
+    console.log('[AI INCOMPLETE STEP 6] INTERNAL_API_SECRET present:', !!internalApiSecret);
     
     const headers: any = {
       'Content-Type': 'application/json',
@@ -1498,7 +1562,7 @@ async function finalizeIncompleteIntake(
       headers['Authorization'] = `Bearer ${internalApiSecret}`;
     }
     
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST] Headers:', JSON.stringify({
+    console.log('[AI INCOMPLETE STEP 6] Headers:', JSON.stringify({
       'Content-Type': headers['Content-Type'],
       'Authorization': headers['Authorization'] ? 'Bearer ***' : 'none'
     }));
@@ -1510,7 +1574,7 @@ async function finalizeIncompleteIntake(
       businessName
     };
     
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST] Request body:', JSON.stringify(requestBody));
+    console.log('[AI INCOMPLETE STEP 6] Request body:', JSON.stringify(requestBody));
     
     const response = await fetch(`${notificationApiUrl}/api/follow-ups/create-jobs`, {
       method: 'POST',
@@ -1518,31 +1582,31 @@ async function finalizeIncompleteIntake(
       body: JSON.stringify(requestBody)
     });
     
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE RESPONSE] =========================================');
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE RESPONSE] status:', response.status);
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE RESPONSE] statusText:', response.statusText);
+    console.log('[AI INCOMPLETE STEP 6] Response status:', response.status);
+    console.log('[AI INCOMPLETE STEP 6] Response statusText:', response.statusText);
     
     const responseBody = await response.text();
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE RESPONSE] body:', responseBody);
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE RESPONSE] =========================================');
+    console.log('[AI INCOMPLETE STEP 6] Response body:', responseBody);
     
     if (!response.ok) {
-      console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] =========================================');
-      console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] Non-OK status code:', response.status);
-      console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] response body:', responseBody);
-      console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] Timestamp:', new Date().toISOString());
-      console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] =========================================');
+      console.error('[AI INCOMPLETE STEP 6 FAILED] =========================================');
+      console.error('[AI INCOMPLETE STEP 6 FAILED] Non-OK status code:', response.status);
+      console.error('[AI INCOMPLETE STEP 6 FAILED] response body:', responseBody);
+      console.error('[AI INCOMPLETE STEP 6 FAILED] Timestamp:', new Date().toISOString());
+      console.error('[AI INCOMPLETE STEP 6 FAILED] =========================================');
     } else {
-      console.log('[AI INCOMPLETE FOLLOWUP CREATE SUCCESS] =========================================');
-      console.log('[AI INCOMPLETE FOLLOWUP CREATE SUCCESS] Follow-up jobs created successfully');
-      console.log('[AI INCOMPLETE FOLLOWUP CREATE SUCCESS] Timestamp:', new Date().toISOString());
-      console.log('[AI INCOMPLETE FOLLOWUP CREATE SUCCESS] =========================================');
+      console.log('[AI INCOMPLETE STEP 6 SUCCESS] =========================================');
+      console.log('[AI INCOMPLETE STEP 6 SUCCESS] Follow-up jobs created successfully');
+      console.log('[AI INCOMPLETE STEP 6 SUCCESS] Timestamp:', new Date().toISOString());
+      console.log('[AI INCOMPLETE STEP 6 SUCCESS] =========================================');
     }
   } catch (followUpError) {
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] =========================================');
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] Follow-up creation failed:', followUpError);
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] Timestamp:', new Date().toISOString());
-    console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] =========================================');
+    console.error('[AI INCOMPLETE STEP 6 FAILED] =========================================');
+    console.error('[AI INCOMPLETE STEP 6 FAILED] Follow-up creation failed');
+    console.error('[AI INCOMPLETE STEP 6 FAILED] error:', followUpError);
+    console.error('[AI INCOMPLETE STEP 6 FAILED] stack:', followUpError.stack);
+    console.error('[AI INCOMPLETE STEP 6 FAILED] Timestamp:', new Date().toISOString());
+    console.error('[AI INCOMPLETE STEP 6 FAILED] =========================================');
   }
   
   console.log('[AI INCOMPLETE FINALIZATION COMPLETE] =========================================');
@@ -1646,10 +1710,52 @@ function getResponseForMissingField(missingField: string, intake: IntakeData): {
 }
 
 function extractName(transcript: string): string {
-  // Simple name extraction - look for common patterns
-  const words = transcript.trim().split(' ');
-  // Return first 1-2 words as potential name
-  return words.slice(0, 2).join(' ');
+  const trimmed = transcript.trim();
+  const lowerTranscript = trimmed.toLowerCase();
+  
+  console.log('[NAME EXTRACTION] =========================================');
+  console.log('[NAME EXTRACTION] rawTranscript:', trimmed);
+  console.log('[NAME EXTRACTION] Timestamp:', new Date().toISOString());
+  console.log('[NAME EXTRACTION] =========================================');
+  
+  // Pattern: "My name is X" or "I am X" or "This is X"
+  const namePatterns = [
+    /my name is\s+(.+?)(?:\s|$)/i,
+    /i am\s+(.+?)(?:\s|$)/i,
+    /i'm\s+(.+?)(?:\s|$)/i,
+    /this is\s+(.+?)(?:\s|$)/i,
+  ];
+  
+  for (const pattern of namePatterns) {
+    const match = trimmed.match(pattern);
+    if (match && match[1]) {
+      const extractedName = match[1].trim();
+      // Take only the first word of the extracted name (the actual name)
+      const nameWords = extractedName.split(' ');
+      const finalName = nameWords[0];
+      
+      console.log('[NAME EXTRACTION] Pattern matched:', pattern);
+      console.log('[NAME EXTRACTION] extractedName:', extractedName);
+      console.log('[NAME EXTRACTION] finalName:', finalName);
+      console.log('[NAME EXTRACTION] =========================================');
+      
+      return finalName;
+    }
+  }
+  
+  // Fallback: If no pattern matches, take the last word (often the name in "X is my name")
+  const words = trimmed.split(' ');
+  if (words.length > 0) {
+    const fallbackName = words[words.length - 1];
+    console.log('[NAME EXTRACTION] No pattern matched, using fallback');
+    console.log('[NAME EXTRACTION] fallbackName:', fallbackName);
+    console.log('[NAME EXTRACTION] =========================================');
+    return fallbackName;
+  }
+  
+  console.log('[NAME EXTRACTION] No name could be extracted');
+  console.log('[NAME EXTRACTION] =========================================');
+  return trimmed;
 }
 
 function extractPhoneNumber(transcript: string): string {
