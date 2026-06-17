@@ -4600,6 +4600,13 @@ Return only JSON, no other text.`;
           console.log('[AI LEAD UPSERT FAILED]', { businessId: sessionBusinessId, callerPhone: sessionCallerPhone, error: fallbackLeadError.message });
         }
 
+        console.log('[INCOMPLETE FOLLOWUP STEP 1] =========================================');
+        console.log('[INCOMPLETE FOLLOWUP STEP 1] fallbackLead exists:', !!fallbackLead);
+        console.log('[INCOMPLETE FOLLOWUP STEP 1] fallbackLeadId:', fallbackLead?.id || 'null');
+        console.log('[INCOMPLETE FOLLOWUP STEP 1] fallbackLeadError:', fallbackLeadError?.message || 'none');
+        console.log('[INCOMPLETE FOLLOWUP STEP 1] Timestamp:', new Date().toISOString());
+        console.log('[INCOMPLETE FOLLOWUP STEP 1] =========================================');
+
         let fallbackConversationId: string | null = null;
         if (fallbackLead) {
           console.log('[AI LEAD UPSERT RESULT]', { leadId: fallbackLead.id, businessId: sessionBusinessId, callerPhone: sessionCallerPhone });
@@ -4651,7 +4658,14 @@ Return only JSON, no other text.`;
             fallbackConversationId = fallbackConversation.id;
           }
         }
-        
+
+        console.log('[INCOMPLETE FOLLOWUP STEP 2] =========================================');
+        console.log('[INCOMPLETE FOLLOWUP STEP 2] fallbackLead exists:', !!fallbackLead);
+        console.log('[INCOMPLETE FOLLOWUP STEP 2] fallbackConversationId exists:', !!fallbackConversationId);
+        console.log('[INCOMPLETE FOLLOWUP STEP 2] fallbackConversationId:', fallbackConversationId || 'null');
+        console.log('[INCOMPLETE FOLLOWUP STEP 2] Timestamp:', new Date().toISOString());
+        console.log('[INCOMPLETE FOLLOWUP STEP 2] =========================================');
+
         // If we have lead and conversation, insert AI call record with transcript only
         if (fallbackLead && fallbackConversationId) {
           console.log('[INCOMPLETE FINALIZATION ENTER] =========================================');
@@ -4786,6 +4800,14 @@ Return only JSON, no other text.`;
           }
 
           // Create follow-up jobs using the proper API
+          console.log('[INCOMPLETE FOLLOWUP STEP 3] =========================================');
+          console.log('[INCOMPLETE FOLLOWUP STEP 3] About to call follow-up API');
+          console.log('[INCOMPLETE FOLLOWUP STEP 3] businessId:', sessionBusinessId);
+          console.log('[INCOMPLETE FOLLOWUP STEP 3] leadId:', fallbackLead.id);
+          console.log('[INCOMPLETE FOLLOWUP STEP 3] conversationId:', fallbackConversationId);
+          console.log('[INCOMPLETE FOLLOWUP STEP 3] Timestamp:', new Date().toISOString());
+          console.log('[INCOMPLETE FOLLOWUP STEP 3] =========================================');
+
           console.log('[INCOMPLETE FOLLOWUP CREATE START] =========================================');
           console.log('[INCOMPLETE FOLLOWUP CREATE START] businessId:', sessionBusinessId);
           console.log('[INCOMPLETE FOLLOWUP CREATE START] leadId:', fallbackLead.id);
@@ -4838,6 +4860,18 @@ Return only JSON, no other text.`;
             console.log('[INCOMPLETE FOLLOWUP CREATE FAILED] Timestamp:', new Date().toISOString());
             console.log('[INCOMPLETE FOLLOWUP CREATE FAILED] =========================================');
           }
+
+          console.log('[INCOMPLETE FOLLOWUP STEP 4] =========================================');
+          console.log('[INCOMPLETE FOLLOWUP STEP 4] Follow-up API call completed');
+          console.log('[INCOMPLETE FOLLOWUP STEP 4] Timestamp:', new Date().toISOString());
+          console.log('[INCOMPLETE FOLLOWUP STEP 4] =========================================');
+        } else {
+          console.log('[INCOMPLETE FOLLOWUP STEP 4 SKIPPED] =========================================');
+          console.log('[INCOMPLETE FOLLOWUP STEP 4 SKIPPED] reason: fallbackLead or fallbackConversationId is null');
+          console.log('[INCOMPLETE FOLLOWUP STEP 4 SKIPPED] fallbackLead exists:', !!fallbackLead);
+          console.log('[INCOMPLETE FOLLOWUP STEP 4 SKIPPED] fallbackConversationId exists:', !!fallbackConversationId);
+          console.log('[INCOMPLETE FOLLOWUP STEP 4 SKIPPED] Timestamp:', new Date().toISOString());
+          console.log('[INCOMPLETE FOLLOWUP STEP 4 SKIPPED] =========================================');
         }
         
         console.log('[INGEST CALL DATA EXIT] =========================================');
