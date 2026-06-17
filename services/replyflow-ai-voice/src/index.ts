@@ -447,7 +447,10 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   console.log('[ENTER TERMINAL CLOSE STEP 1] =========================================');
   console.log('[ENTER TERMINAL CLOSE STEP 1] Starting OpenAI-based final close');
   console.log('[ENTER TERMINAL CLOSE STEP 1] Timestamp:', new Date().toISOString());
-  console.log('[ENTER TERMINAL CLOSE STEP 1] =========================================');
+  console.log('[COMPLETE FINALIZATION STEP 1] =========================================');
+  console.log('[COMPLETE FINALIZATION STEP 1] enterTerminalClose() called - Starting complete intake finalization');
+  console.log('[COMPLETE FINALIZATION STEP 1] Timestamp:', new Date().toISOString());
+  console.log('[COMPLETE FINALIZATION STEP 1] =========================================');
   
   console.log('[OPENAI FINAL CLOSE STARTED] =========================================');
   console.log('[OPENAI FINAL CLOSE STARTED] Starting OpenAI-based final close');
@@ -648,6 +651,11 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
 
 // Execute OpenAI final close hangup via Twilio REST API
 function executeOpenaiFinalHangup(ws: any, twilioHandler: any, closingState: any): void {
+  console.log('[COMPLETE FINALIZATION STEP 2] =========================================');
+  console.log('[COMPLETE FINALIZATION STEP 2] executeOpenaiFinalHangup() called - Initiating hangup');
+  console.log('[COMPLETE FINALIZATION STEP 2] Timestamp:', new Date().toISOString());
+  console.log('[COMPLETE FINALIZATION STEP 2] =========================================');
+  
   console.log('[OPENAI FINAL TWILIO HANGUP REQUESTED] =========================================');
   console.log('[OPENAI FINAL TWILIO HANGUP REQUESTED] Calling Twilio API to hangup after OpenAI final sentence');
   console.log('[OPENAI FINAL TWILIO HANGUP REQUESTED] Timestamp:', new Date().toISOString());
@@ -659,11 +667,18 @@ function executeOpenaiFinalHangup(ws: any, twilioHandler: any, closingState: any
   if (callSid && twilioClient) {
     twilioClient.calls(callSid).update({ status: 'completed' })
       .then(() => {
+        console.log('[COMPLETE FINALIZATION STEP 2 SUCCESS] =========================================');
+        console.log('[COMPLETE FINALIZATION STEP 2 SUCCESS] Twilio hangup API call succeeded');
+        console.log('[COMPLETE FINALIZATION STEP 2 SUCCESS] Call SID:', callSid);
+        console.log('[COMPLETE FINALIZATION STEP 2 SUCCESS] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETE FINALIZATION STEP 2 SUCCESS] =========================================');
+        
         console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] =========================================');
         console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] OpenAI final close hangup succeeded');
         console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] Call SID:', callSid);
         console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] Timestamp:', new Date().toISOString());
         console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] =========================================');
+        
         if (ws && ws.readyState === ws.OPEN) {
           ws.close();
         }
@@ -3645,6 +3660,11 @@ wss.on('connection', (ws, req) => {
 
     // Ingestion function to save call data - moved to correct scope
     const ingestCallData = async () => {
+      console.log('[COMPLETE FINALIZATION STEP 3] =========================================');
+      console.log('[COMPLETE FINALIZATION STEP 3] ingestCallData() triggered - WebSocket closed');
+      console.log('[COMPLETE FINALIZATION STEP 3] Timestamp:', new Date().toISOString());
+      console.log('[COMPLETE FINALIZATION STEP 3] =========================================');
+      
       console.log('[INGEST CALL DATA ENTER] =========================================');
       console.log('[INGEST CALL DATA ENTER] Function entry');
       console.log('[INGEST CALL DATA ENTER] Timestamp:', new Date().toISOString());
@@ -3661,6 +3681,12 @@ wss.on('connection', (ws, req) => {
       
       // Check if incomplete finalization owns this call
       if (finalizationInProgressByCallSid.has(sessionCallSid) || incompleteFinalizedCallSids.has(sessionCallSid)) {
+        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
+        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] ingestCallData() skipped - incomplete finalization owns call');
+        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] callSid:', sessionCallSid);
+        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
+        
         console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] =========================================');
         console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] callSid:', sessionCallSid);
         console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] finalizationInProgress:', finalizationInProgressByCallSid.has(sessionCallSid));
@@ -3687,6 +3713,11 @@ wss.on('connection', (ws, req) => {
       
       // Check for existing AI call record (idempotency protection)
       if (!supabase) {
+        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
+        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] ingestCallData() failed - supabase client not available');
+        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
+        
         console.log('[AI INGEST FAILED] supabase client not available for ingestion');
         console.log('[INGEST CALL DATA RETURN] =========================================');
         console.log('[INGEST CALL DATA RETURN] reason: supabase client not available');
@@ -3707,6 +3738,12 @@ wss.on('connection', (ws, req) => {
         .single();
       
       if (existingError && existingError.code !== 'PGRST116') {
+        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
+        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] ingestCallData() failed - error checking existing record');
+        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] Error:', existingError.message);
+        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
+        
         console.log('[AI INGEST FAILED] error checking existing record', existingError);
         console.log('[INGEST CALL DATA RETURN] =========================================');
         console.log('[INGEST CALL DATA RETURN] reason: error checking existing record');
@@ -3988,6 +4025,11 @@ Return only JSON, no other text.`;
         }
 
         // Create lead and conversation BEFORE inserting ai_call_records
+        console.log('[COMPLETE FINALIZATION STEP 4] =========================================');
+        console.log('[COMPLETE FINALIZATION STEP 4] Creating lead record');
+        console.log('[COMPLETE FINALIZATION STEP 4] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETE FINALIZATION STEP 4] =========================================');
+        
         console.log('[LEAD CREATE START] Starting lead creation');
         console.log('[AI LEAD LOOKUP START]', { 
           businessId: sessionBusinessId,
@@ -4013,6 +4055,12 @@ Return only JSON, no other text.`;
         });
 
         if (leadError) {
+          console.log('[COMPLETE FINALIZATION STEP 4 FAILED] =========================================');
+          console.log('[COMPLETE FINALIZATION STEP 4 FAILED] Lead creation failed');
+          console.log('[COMPLETE FINALIZATION STEP 4 FAILED] Error:', leadError.message);
+          console.log('[COMPLETE FINALIZATION STEP 4 FAILED] Timestamp:', new Date().toISOString());
+          console.log('[COMPLETE FINALIZATION STEP 4 FAILED] =========================================');
+          
           console.log('[AI LEAD UPSERT FAILED]', { businessId: sessionBusinessId, callerPhone: sessionCallerPhone, error: leadError.message });
           throw leadError;
         }
@@ -4020,7 +4068,18 @@ Return only JSON, no other text.`;
         console.log('[LEAD CREATE SUCCESS] Lead created successfully');
         console.log('[AI LEAD UPSERT RESULT]', { leadId: lead.id, businessId: sessionBusinessId, callerPhone: sessionCallerPhone });
 
+        console.log('[COMPLETE FINALIZATION STEP 4 SUCCESS] =========================================');
+        console.log('[COMPLETE FINALIZATION STEP 4 SUCCESS] Lead record created successfully');
+        console.log('[COMPLETE FINALIZATION STEP 4 SUCCESS] Lead ID:', lead.id);
+        console.log('[COMPLETE FINALIZATION STEP 4 SUCCESS] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETE FINALIZATION STEP 4 SUCCESS] =========================================');
+
         // Create or update conversation
+        console.log('[COMPLETE FINALIZATION STEP 5] =========================================');
+        console.log('[COMPLETE FINALIZATION STEP 5] Creating conversation record');
+        console.log('[COMPLETE FINALIZATION STEP 5] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETE FINALIZATION STEP 5] =========================================');
+        
         console.log('[AI CONVERSATION LOOKUP START]', { 
           businessId: sessionBusinessId,
           leadId: lead.id,
@@ -4061,13 +4120,30 @@ Return only JSON, no other text.`;
         });
 
         if (conversationError) {
+          console.log('[COMPLETE FINALIZATION STEP 5 FAILED] =========================================');
+          console.log('[COMPLETE FINALIZATION STEP 5 FAILED] Conversation creation failed');
+          console.log('[COMPLETE FINALIZATION STEP 5 FAILED] Error:', conversationError.message);
+          console.log('[COMPLETE FINALIZATION STEP 5 FAILED] Timestamp:', new Date().toISOString());
+          console.log('[COMPLETE FINALIZATION STEP 5 FAILED] =========================================');
+          
           console.log('[AI CONVERSATION UPSERT FAILED]', conversationError);
           throw conversationError;
         }
 
         console.log('[AI CONVERSATION UPSERT RESULT]', { conversationId: conversation.id, leadId: lead.id });
 
+        console.log('[COMPLETE FINALIZATION STEP 5 SUCCESS] =========================================');
+        console.log('[COMPLETE FINALIZATION STEP 5 SUCCESS] Conversation record created successfully');
+        console.log('[COMPLETE FINALIZATION STEP 5 SUCCESS] Conversation ID:', conversation.id);
+        console.log('[COMPLETE FINALIZATION STEP 5 SUCCESS] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETE FINALIZATION STEP 5 SUCCESS] =========================================');
+
         // Create new AI call record with populated IDs
+        console.log('[COMPLETE FINALIZATION STEP 6] =========================================');
+        console.log('[COMPLETE FINALIZATION STEP 6] Inserting ai_call_records');
+        console.log('[COMPLETE FINALIZATION STEP 6] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETE FINALIZATION STEP 6] =========================================');
+        
         console.log('[AI SAVE START] creating new AI call record...');
         
         // Determine outcome based on whether all required fields are present
@@ -4118,6 +4194,12 @@ Return only JSON, no other text.`;
           .single();
 
         if (newRecordError) {
+          console.log('[COMPLETE FINALIZATION STEP 6 FAILED] =========================================');
+          console.log('[COMPLETE FINALIZATION STEP 6 FAILED] ai_call_records insert failed');
+          console.log('[COMPLETE FINALIZATION STEP 6 FAILED] Error:', newRecordError.message);
+          console.log('[COMPLETE FINALIZATION STEP 6 FAILED] Timestamp:', new Date().toISOString());
+          console.log('[COMPLETE FINALIZATION STEP 6 FAILED] =========================================');
+          
           console.log('[AI SAVE RESULT]', { 
             success: false, 
             error: newRecordError.message,
@@ -4135,6 +4217,12 @@ Return only JSON, no other text.`;
           summarySaved: !!newRecord.summary
         });
 
+        console.log('[COMPLETE FINALIZATION STEP 6 SUCCESS] =========================================');
+        console.log('[COMPLETE FINALIZATION STEP 6 SUCCESS] ai_call_records inserted successfully');
+        console.log('[COMPLETE FINALIZATION STEP 6 SUCCESS] Record ID:', newRecord.id);
+        console.log('[COMPLETE FINALIZATION STEP 6 SUCCESS] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETE FINALIZATION STEP 6 SUCCESS] =========================================');
+
         console.log('[ACTIVE PATH AFTER SAVE RESULT REACHED]', {
           businessId: sessionBusinessId,
           leadId: lead.id,
@@ -4144,6 +4232,11 @@ Return only JSON, no other text.`;
         });
 
         // Create follow-up jobs for successful AI intake
+        console.log('[COMPLETE FINALIZATION STEP 7] =========================================');
+        console.log('[COMPLETE FINALIZATION STEP 7] Creating follow-up jobs');
+        console.log('[COMPLETE FINALIZATION STEP 7] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETE FINALIZATION STEP 7] =========================================');
+        
         console.log('[ACTIVE PATH FOLLOWUP START]', {
           businessId: sessionBusinessId,
           leadId: lead.id,
@@ -4193,6 +4286,11 @@ Return only JSON, no other text.`;
               leadId: lead.id,
               jobCount: result.jobCount 
             });
+            console.log('[COMPLETE FINALIZATION STEP 7 SUCCESS] =========================================');
+            console.log('[COMPLETE FINALIZATION STEP 7 SUCCESS] Follow-up jobs created successfully');
+            console.log('[COMPLETE FINALIZATION STEP 7 SUCCESS] Job Count:', result.jobCount);
+            console.log('[COMPLETE FINALIZATION STEP 7 SUCCESS] Timestamp:', new Date().toISOString());
+            console.log('[COMPLETE FINALIZATION STEP 7 SUCCESS] =========================================');
           } else {
             console.error('[FOLLOWUP DEBUG ERROR - ACTIVE]', { 
               businessId: sessionBusinessId, 
@@ -4200,6 +4298,11 @@ Return only JSON, no other text.`;
               status: response.status,
               statusText: response.statusText
             });
+            console.log('[COMPLETE FINALIZATION STEP 7 FAILED] =========================================');
+            console.log('[COMPLETE FINALIZATION STEP 7 FAILED] Follow-up API call failed');
+            console.log('[COMPLETE FINALIZATION STEP 7 FAILED] Status:', response.status);
+            console.log('[COMPLETE FINALIZATION STEP 7 FAILED] Timestamp:', new Date().toISOString());
+            console.log('[COMPLETE FINALIZATION STEP 7 FAILED] =========================================');
           }
         } catch (followUpError) {
           console.error('[FOLLOWUP DEBUG ERROR - ACTIVE]', { 
@@ -4207,10 +4310,20 @@ Return only JSON, no other text.`;
             leadId: lead.id,
             error: followUpError
           });
+          console.log('[COMPLETE FINALIZATION STEP 7 FAILED] =========================================');
+          console.log('[COMPLETE FINALIZATION STEP 7 FAILED] Follow-up API call threw error');
+          console.log('[COMPLETE FINALIZATION STEP 7 FAILED] Error:', followUpError);
+          console.log('[COMPLETE FINALIZATION STEP 7 FAILED] Timestamp:', new Date().toISOString());
+          console.log('[COMPLETE FINALIZATION STEP 7 FAILED] =========================================');
         }
         console.log('[FOLLOWUP DEBUG COMPLETE - ACTIVE] Follow-up API call finished');
         
         // Create notification directly using Supabase
+        console.log('[COMPLETE FINALIZATION STEP 8] =========================================');
+        console.log('[COMPLETE FINALIZATION STEP 8] Creating notification record');
+        console.log('[COMPLETE FINALIZATION STEP 8] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETE FINALIZATION STEP 8] =========================================');
+        
         console.log('[NOTIFICATION DIRECT INSERT START]', { 
           businessId: sessionBusinessId, 
           leadId: lead.id
@@ -4255,14 +4368,28 @@ Return only JSON, no other text.`;
               message: notificationError.message,
               details: notificationError.details
             });
+            console.log('[COMPLETE FINALIZATION STEP 8 FAILED] =========================================');
+            console.log('[COMPLETE FINALIZATION STEP 8 FAILED] Notification insert failed');
+            console.log('[COMPLETE FINALIZATION STEP 8 FAILED] Error:', notificationError.message);
+            console.log('[COMPLETE FINALIZATION STEP 8 FAILED] Timestamp:', new Date().toISOString());
+            console.log('[COMPLETE FINALIZATION STEP 8 FAILED] =========================================');
           } else {
             console.log('[NOTIFICATION DIRECT INSERT SUCCESS]', { 
               businessId: sessionBusinessId, 
               leadId: lead.id
             });
+            console.log('[COMPLETE FINALIZATION STEP 8 SUCCESS] =========================================');
+            console.log('[COMPLETE FINALIZATION STEP 8 SUCCESS] Notification created successfully');
+            console.log('[COMPLETE FINALIZATION STEP 8 SUCCESS] Timestamp:', new Date().toISOString());
+            console.log('[COMPLETE FINALIZATION STEP 8 SUCCESS] =========================================');
           }
         } catch (notificationError) {
           console.log('[ACTIVE PATH NOTIFICATION ERROR]', notificationError);
+          console.log('[COMPLETE FINALIZATION STEP 8 FAILED] =========================================');
+          console.log('[COMPLETE FINALIZATION STEP 8 FAILED] Notification insert threw error');
+          console.log('[COMPLETE FINALIZATION STEP 8 FAILED] Error:', notificationError);
+          console.log('[COMPLETE FINALIZATION STEP 8 FAILED] Timestamp:', new Date().toISOString());
+          console.log('[COMPLETE FINALIZATION STEP 8 FAILED] =========================================');
         }
 
         console.log('[AI RECORD INSERT SUCCESS - ACTIVE PATH]', {
@@ -4282,6 +4409,11 @@ Return only JSON, no other text.`;
         console.log('[AI INGEST INSERT SUCCESS] ingestion completed successfully');
 
         // Send confirmation SMS after successful AI intake
+        console.log('[COMPLETE FINALIZATION STEP 9] =========================================');
+        console.log('[COMPLETE FINALIZATION STEP 9] Sending AI confirmation SMS');
+        console.log('[COMPLETE FINALIZATION STEP 9] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETE FINALIZATION STEP 9] =========================================');
+        
         console.log('[SUMMARY SMS START] Starting AI summary SMS');
         console.log('[AI CONFIRMATION SMS CALL SITE]', {
           businessId: sessionBusinessId,
@@ -4307,6 +4439,11 @@ Return only JSON, no other text.`;
           businessId: sessionBusinessId,
           leadId: lead.id
         });
+
+        console.log('[COMPLETE FINALIZATION STEP 9 SUCCESS] =========================================');
+        console.log('[COMPLETE FINALIZATION STEP 9 SUCCESS] AI confirmation SMS sent successfully');
+        console.log('[COMPLETE FINALIZATION STEP 9 SUCCESS] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETE FINALIZATION STEP 9 SUCCESS] =========================================');
 
         console.log('[INGEST CALL DATA COMPLETE] Post-call persistence completed successfully');
         console.log('[INGEST CALL DATA EXIT] =========================================');
@@ -7748,6 +7885,12 @@ async function sendAIConfirmationSMS(
     });
 
     if (businessError || !business) {
+      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] =========================================');
+      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] AI confirmation SMS failed - business fetch error');
+      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Error:', businessError?.message || 'Business not found');
+      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Timestamp:', new Date().toISOString());
+      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] =========================================');
+      
       console.error('[AI CONFIRMATION SMS ERROR] Failed to fetch business:', businessError);
       return;
     }
@@ -7807,6 +7950,13 @@ async function sendAIConfirmationSMS(
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] =========================================');
+      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] AI confirmation SMS failed - API call failed');
+      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Status:', response.status);
+      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Error:', errorText);
+      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Timestamp:', new Date().toISOString());
+      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] =========================================');
+      
       console.error('[AI CONFIRMATION SMS ERROR] API call failed:', {
         status: response.status,
         error: errorText
@@ -7818,6 +7968,12 @@ async function sendAIConfirmationSMS(
     console.log('[AI CONFIRMATION SMS SUCCESS]', result);
 
   } catch (error) {
+    console.log('[COMPLETE FINALIZATION STEP 9 FAILED] =========================================');
+    console.log('[COMPLETE FINALIZATION STEP 9 FAILED] AI confirmation SMS failed - exception thrown');
+    console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Error:', error instanceof Error ? error.message : String(error));
+    console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Timestamp:', new Date().toISOString());
+    console.log('[COMPLETE FINALIZATION STEP 9 FAILED] =========================================');
+    
     console.error('[AI CONFIRMATION SMS ERROR]', error);
     // Don't fail the AI ingestion if SMS fails
   }
