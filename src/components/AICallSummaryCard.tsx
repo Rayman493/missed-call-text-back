@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime } from '@/lib/utils'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
-import { Phone, User, Briefcase, FileText, MapPin, Clock, TriangleAlert, ChevronDown } from 'lucide-react'
+import { Phone, User, Briefcase, FileText, MapPin, Clock, ChevronDown } from 'lucide-react'
 
 interface AICallRecord {
   id: string
@@ -20,7 +20,7 @@ interface AICallRecord {
   extracted_info: {
     callerName?: string
     reasonForCalling?: string
-    urgencyLevel?: string
+    desiredCompletionTime?: string
     importantDetails?: string
     addressOrLocation?: string
     preferredCallbackTime?: string
@@ -106,34 +106,6 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
     }
   }
 
-  const getUrgencyColor = (urgency?: string) => {
-    if (!urgency) return {
-      bg: 'bg-gray-100 dark:bg-gray-800',
-      text: 'text-gray-600 dark:text-gray-400',
-      border: 'border-gray-200 dark:border-gray-700'
-    }
-    
-    const lowerUrgency = urgency.toLowerCase()
-    if (lowerUrgency.includes('urgent') || lowerUrgency.includes('high')) {
-      return {
-        bg: 'bg-red-100 dark:bg-red-900/20',
-        text: 'text-red-700 dark:text-red-300',
-        border: 'border-red-200 dark:border-red-800'
-      }
-    } else if (lowerUrgency.includes('medium') || lowerUrgency.includes('flexible')) {
-      return {
-        bg: 'bg-amber-100 dark:bg-amber-900/20',
-        text: 'text-amber-700 dark:text-amber-300',
-        border: 'border-amber-200 dark:border-amber-800'
-      }
-    } else {
-      return {
-        bg: 'bg-green-100 dark:bg-green-900/20',
-        text: 'text-green-700 dark:text-green-300',
-        border: 'border-green-200 dark:border-green-800'
-      }
-    }
-  }
 
   const getOutcomeStatus = (outcome?: string) => {
     if (!outcome) return { label: 'Unknown', color: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' }
@@ -280,15 +252,15 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
               </div>
             )}
 
-            {/* Urgency Level - only show if not a placeholder */}
-            {extractedInfo.urgencyLevel && !isPlaceholderValue(extractedInfo.urgencyLevel) && (
+            {/* Desired Completion Time - only show if not a placeholder */}
+            {extractedInfo.desiredCompletionTime && !isPlaceholderValue(extractedInfo.desiredCompletionTime) && (
               <div className="flex items-center justify-between py-2.5 border-b border-border/50">
                 <div className="flex items-center gap-2.5">
-                  <TriangleAlert className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">Urgency</span>
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground font-medium">Desired Completion Time</span>
                 </div>
-                <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(extractedInfo.urgencyLevel).bg} ${getUrgencyColor(extractedInfo.urgencyLevel).text} ${getUrgencyColor(extractedInfo.urgencyLevel).border}`}>
-                  {extractedInfo.urgencyLevel}
+                <span className="text-sm text-foreground">
+                  {extractedInfo.desiredCompletionTime}
                 </span>
               </div>
             )}

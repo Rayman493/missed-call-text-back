@@ -11,10 +11,9 @@ export const CANONICAL_FIELDS = {
   callerName: 'callerName',
   reasonForCalling: 'reasonForCalling',
   importantDetails: 'importantDetails',
-  urgencyLevel: 'urgencyLevel',
+  desiredCompletionTime: 'desiredCompletionTime',
   addressOrLocation: 'addressOrLocation',
   preferredCallbackTime: 'preferredCallbackTime',
-  callbackNumber: 'callbackNumber',
   summary: 'summary'
 } as const
 
@@ -36,9 +35,11 @@ const FIELD_ALIASES: Record<string, keyof typeof CANONICAL_FIELDS> = {
   'importantDetails': 'importantDetails',
   'important details': 'importantDetails',
 
-  'urgency': 'urgencyLevel',
-  'urgencyLevel': 'urgencyLevel',
-  'urgency level': 'urgencyLevel',
+  'urgency': 'desiredCompletionTime',
+  'urgencyLevel': 'desiredCompletionTime',
+  'urgency level': 'desiredCompletionTime',
+  'desiredCompletionTime': 'desiredCompletionTime',
+  'desired completion time': 'desiredCompletionTime',
 
   'location': 'addressOrLocation',
   'address': 'addressOrLocation',
@@ -51,11 +52,7 @@ const FIELD_ALIASES: Record<string, keyof typeof CANONICAL_FIELDS> = {
   'callbackTime': 'preferredCallbackTime',
   'preferredCallbackTime': 'preferredCallbackTime',
   'preferred callback time': 'preferredCallbackTime',
-  'callback_time': 'preferredCallbackTime',
-
-  'callbackNumber': 'callbackNumber',
-  'callback number': 'callbackNumber',
-  'callback_number': 'callbackNumber'
+  'callback_time': 'preferredCallbackTime'
 }
 
 /**
@@ -66,10 +63,9 @@ export function normalizeExtractedInfo(extractedInfo: any): {
   callerName?: string
   reasonForCalling?: string
   importantDetails?: string
-  urgencyLevel?: string
+  desiredCompletionTime?: string
   addressOrLocation?: string
   preferredCallbackTime?: string
-  callbackNumber?: string
   summary?: string
 } {
   const normalized: any = {}
@@ -108,10 +104,9 @@ export function canonicalizeExtractedInfo(extractedInfo: any): {
   callerName?: string
   reasonForCalling?: string
   importantDetails?: string
-  urgencyLevel?: string
+  desiredCompletionTime?: string
   addressOrLocation?: string
   preferredCallbackTime?: string
-  callbackNumber?: string
   summary?: string
 } {
   const canonical: any = {}

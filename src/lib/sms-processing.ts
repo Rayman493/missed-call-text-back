@@ -109,12 +109,12 @@ function generateSummaryFromExtractedInfo(extractedInfo: any): string {
     parts.push(`Location: ${normalizePunctuation(normalized.addressOrLocation)}`)
   }
   
-  if (normalized.urgencyLevel) {
-    parts.push(`Urgency: ${normalizePunctuation(normalized.urgencyLevel)}`)
+  if (normalized.desiredCompletionTime) {
+    parts.push(`Desired Completion Time: ${normalizePunctuation(normalized.desiredCompletionTime)}`)
   }
   
   if (normalized.preferredCallbackTime) {
-    parts.push(`Preferred callback time: ${normalizePunctuation(normalized.preferredCallbackTime)}`)
+    parts.push(`Best Callback Time: ${normalizePunctuation(normalized.preferredCallbackTime)}`)
   }
   
   if (normalized.importantDetails) {

@@ -55,6 +55,8 @@ interface ConfirmationSMSRequest {
     urgency?: string
     urgencyLevel?: string
     urgency_level?: string
+    desiredCompletionTime?: string
+    desired_completion_time?: string
     location?: string
     address?: string
     addressOrLocation?: string
@@ -422,8 +424,8 @@ export async function POST(request: NextRequest) {
       summaryParts.push(`- Details: ${normalizePunctuation(safeFieldToString(extracted.importantDetails))}`)
     }
 
-    if (extracted.urgencyLevel) {
-      summaryParts.push(`- Urgency: ${normalizePunctuation(safeFieldToString(extracted.urgencyLevel))}`)
+    if (extracted.desiredCompletionTime) {
+      summaryParts.push(`- Desired Completion Time: ${normalizePunctuation(safeFieldToString(extracted.desiredCompletionTime))}`)
     }
 
     if (extracted.addressOrLocation) {
@@ -431,13 +433,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (extracted.preferredCallbackTime) {
-      summaryParts.push(`- Callback time: ${normalizePunctuation(safeFieldToString(extracted.preferredCallbackTime))}`)
-    }
-
-    // Callback number: use extracted.callbackNumber if present, otherwise fallback to callerPhone
-    const callbackNumber = extracted.callbackNumber || callerPhone
-    if (callbackNumber) {
-      summaryParts.push(`- Callback number: ${normalizePunctuation(safeFieldToString(callbackNumber))}`)
+      summaryParts.push(`- Best Callback Time: ${normalizePunctuation(safeFieldToString(extracted.preferredCallbackTime))}`)
     }
 
     console.log('[AI SMS FIELD VALUES]', {
@@ -445,21 +441,20 @@ export async function POST(request: NextRequest) {
       callerName: extracted.callerName,
       reasonForCalling: extracted.reasonForCalling,
       importantDetails: extracted.importantDetails,
-      urgencyLevel: extracted.urgencyLevel,
+      desiredCompletionTime: extracted.desiredCompletionTime,
       addressOrLocation: extracted.addressOrLocation,
       preferredCallbackTime: extracted.preferredCallbackTime,
-      callbackNumber: extracted.callbackNumber,
       summaryPartsCount: summaryParts.length
     })
 
     // Build comprehensive confirmation message
-    let messageBody = `Hi, this is ${businessName}. Thanks for calling — we received your request.\n\n`
+    let messageBody = `Thanks for calling ${businessName}.\n\n`
 
     // Add details section
-    messageBody += `Details:\n${summaryParts.join('\n')}\n\n`
+    messageBody += `Here's a summary of your request:\n${summaryParts.join('\n')}\n\n`
 
     // Add next step and reply instruction
-    messageBody += `We'll follow up as soon as possible. If anything above is wrong or you want to add more, just reply to this text.`
+    messageBody += `We'll be in touch soon.\n\nReply to this message if you'd like to add or correct anything.`
 
     console.log('[AI SMS FINAL BODY]', {
       route: '/api/ai-confirmation-sms',

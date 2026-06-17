@@ -24,10 +24,9 @@ export interface VoicemailExtractedInfo {
   callerName?: string
   reasonForCalling?: string
   importantDetails?: string
-  urgencyLevel?: string
+  desiredCompletionTime?: string
   addressOrLocation?: string
   preferredCallbackTime?: string
-  callbackNumber?: string
 }
 
 export interface VoicemailExtractionResult {
@@ -378,10 +377,9 @@ export function safeMergeVoicemailExtraction(
     callerName: mergeField('callerName', voicemailExtractedInfo.callerName, existingExtractedInfo.callerName),
     reasonForCalling: mergeField('reasonForCalling', voicemailExtractedInfo.reasonForCalling, existingExtractedInfo.reasonForCalling),
     importantDetails: mergeField('importantDetails', voicemailExtractedInfo.importantDetails, existingExtractedInfo.importantDetails),
-    urgencyLevel: mergeField('urgencyLevel', voicemailExtractedInfo.urgencyLevel, existingExtractedInfo.urgencyLevel),
+    desiredCompletionTime: mergeField('desiredCompletionTime', voicemailExtractedInfo.desiredCompletionTime, existingExtractedInfo.desiredCompletionTime),
     addressOrLocation: mergeField('addressOrLocation', voicemailExtractedInfo.addressOrLocation, existingExtractedInfo.addressOrLocation),
-    preferredCallbackTime: mergeField('preferredCallbackTime', voicemailExtractedInfo.preferredCallbackTime, existingExtractedInfo.preferredCallbackTime),
-    callbackNumber: mergeField('callbackNumber', voicemailExtractedInfo.callbackNumber, existingExtractedInfo.callbackNumber)
+    preferredCallbackTime: mergeField('preferredCallbackTime', voicemailExtractedInfo.preferredCallbackTime, existingExtractedInfo.preferredCallbackTime)
   }
 
   // Update sources for fields that were updated from voicemail
@@ -394,17 +392,14 @@ export function safeMergeVoicemailExtraction(
   if (voicemailExtractedInfo.importantDetails && mergedExtractedInfo.importantDetails === voicemailExtractedInfo.importantDetails) {
     sources.importantDetails = 'voicemail'
   }
-  if (voicemailExtractedInfo.urgencyLevel && mergedExtractedInfo.urgencyLevel === voicemailExtractedInfo.urgencyLevel) {
-    sources.urgencyLevel = 'voicemail'
+  if (voicemailExtractedInfo.desiredCompletionTime && mergedExtractedInfo.desiredCompletionTime === voicemailExtractedInfo.desiredCompletionTime) {
+    sources.desiredCompletionTime = 'voicemail'
   }
   if (voicemailExtractedInfo.addressOrLocation && mergedExtractedInfo.addressOrLocation === voicemailExtractedInfo.addressOrLocation) {
     sources.addressOrLocation = 'voicemail'
   }
   if (voicemailExtractedInfo.preferredCallbackTime && mergedExtractedInfo.preferredCallbackTime === voicemailExtractedInfo.preferredCallbackTime) {
     sources.preferredCallbackTime = 'voicemail'
-  }
-  if (voicemailExtractedInfo.callbackNumber && mergedExtractedInfo.callbackNumber === voicemailExtractedInfo.callbackNumber) {
-    sources.callbackNumber = 'voicemail'
   }
 
   return {
@@ -695,17 +690,17 @@ export async function safeMergeSmsExtraction(
       }
       return newValue
     })(),
-    urgencyLevel: (() => {
-      const shouldUse = isSmsBetter('urgencyLevel', smsExtractedInfo.urgencyLevel, existingExtractedInfo.urgencyLevel)
-      if (shouldUse && existingExtractedInfo.urgencyLevel && smsExtractedInfo.urgencyLevel && existingExtractedInfo.urgencyLevel !== smsExtractedInfo.urgencyLevel) {
-        fieldCorrections.urgencyLevel = {
-          from: existingExtractedInfo.urgencyLevel,
-          to: smsExtractedInfo.urgencyLevel,
+    desiredCompletionTime: (() => {
+      const shouldUse = isSmsBetter('desiredCompletionTime', smsExtractedInfo.desiredCompletionTime, existingExtractedInfo.desiredCompletionTime)
+      if (shouldUse && existingExtractedInfo.desiredCompletionTime && smsExtractedInfo.desiredCompletionTime && existingExtractedInfo.desiredCompletionTime !== smsExtractedInfo.desiredCompletionTime) {
+        fieldCorrections.desiredCompletionTime = {
+          from: existingExtractedInfo.desiredCompletionTime,
+          to: smsExtractedInfo.desiredCompletionTime,
           source: 'sms',
           correctedAt: new Date().toISOString()
         }
       }
-      return shouldUse ? smsExtractedInfo.urgencyLevel : existingExtractedInfo.urgencyLevel
+      return shouldUse ? smsExtractedInfo.desiredCompletionTime : existingExtractedInfo.desiredCompletionTime
     })(),
     addressOrLocation: (() => {
       const shouldUse = isSmsBetter('addressOrLocation', smsExtractedInfo.addressOrLocation, existingExtractedInfo.addressOrLocation)
@@ -730,18 +725,6 @@ export async function safeMergeSmsExtraction(
         }
       }
       return shouldUse ? smsExtractedInfo.preferredCallbackTime : existingExtractedInfo.preferredCallbackTime
-    })(),
-    callbackNumber: (() => {
-      const shouldUse = isSmsBetter('callbackNumber', smsExtractedInfo.callbackNumber, existingExtractedInfo.callbackNumber)
-      if (shouldUse && existingExtractedInfo.callbackNumber && smsExtractedInfo.callbackNumber && existingExtractedInfo.callbackNumber !== smsExtractedInfo.callbackNumber) {
-        fieldCorrections.callbackNumber = {
-          from: existingExtractedInfo.callbackNumber,
-          to: smsExtractedInfo.callbackNumber,
-          source: 'sms',
-          correctedAt: new Date().toISOString()
-        }
-      }
-      return shouldUse ? smsExtractedInfo.callbackNumber : existingExtractedInfo.callbackNumber
     })()
   }
 
@@ -768,17 +751,14 @@ export async function safeMergeSmsExtraction(
   if (smsExtractedInfo.importantDetails && mergedExtractedInfo.importantDetails === smsExtractedInfo.importantDetails) {
     sources.importantDetails = 'sms'
   }
-  if (smsExtractedInfo.urgencyLevel && mergedExtractedInfo.urgencyLevel === smsExtractedInfo.urgencyLevel) {
-    sources.urgencyLevel = 'sms'
+  if (smsExtractedInfo.desiredCompletionTime && mergedExtractedInfo.desiredCompletionTime === smsExtractedInfo.desiredCompletionTime) {
+    sources.desiredCompletionTime = 'sms'
   }
   if (smsExtractedInfo.addressOrLocation && mergedExtractedInfo.addressOrLocation === smsExtractedInfo.addressOrLocation) {
     sources.addressOrLocation = 'sms'
   }
   if (smsExtractedInfo.preferredCallbackTime && mergedExtractedInfo.preferredCallbackTime === smsExtractedInfo.preferredCallbackTime) {
     sources.preferredCallbackTime = 'sms'
-  }
-  if (smsExtractedInfo.callbackNumber && mergedExtractedInfo.callbackNumber === smsExtractedInfo.callbackNumber) {
-    sources.callbackNumber = 'sms'
   }
 
   const result = {

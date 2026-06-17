@@ -20,7 +20,7 @@ interface AICallRecord {
   extracted_info: {
     callerName?: string
     reasonForCalling?: string
-    urgencyLevel?: string
+    desiredCompletionTime?: string
     importantDetails?: string
     addressOrLocation?: string
     preferredCallbackTime?: string
@@ -110,20 +110,6 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
     const seconds = durationSeconds % 60
     
     return `${minutes}m ${seconds}s`
-  }
-
-  const getUrgencyColor = (urgency?: string) => {
-    switch (urgency?.toLowerCase()) {
-      case 'urgent':
-      case 'high':
-        return 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20'
-      case 'medium':
-        return 'text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20'
-      case 'low':
-        return 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20'
-      default:
-        return 'text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20'
-    }
   }
 
   const getOutcomeColor = (outcome: string) => {
@@ -425,19 +411,15 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 </div>
               )}
 
-              {/* Urgency - Visually distinct chip */}
+              {/* Desired Completion Time */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5">
-                  <TriangleAlert className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Urgency</span>
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Desired Completion Time</span>
                 </div>
-                {extractedInfo?.urgencyLevel ? (
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
-                    {sentenceCase(extractedInfo.urgencyLevel)}
-                  </span>
-                ) : (
-                  <span className="text-xs text-muted-foreground">Unknown</span>
-                )}
+                <p className="text-xs text-foreground leading-snug line-clamp-2">
+                  {sentenceCase(extractedInfo.desiredCompletionTime) || 'Not Provided'}
+                </p>
               </div>
             </div>
           </div>
@@ -532,19 +514,15 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 </div>
               )}
 
-              {/* Urgency - Visually distinct chip */}
+              {/* Desired Completion Time */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5">
-                  <TriangleAlert className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Urgency</span>
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Desired Completion Time</span>
                 </div>
-                {extractedInfo?.urgencyLevel ? (
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border ${getUrgencyColor(extractedInfo.urgencyLevel)}`}>
-                    {sentenceCase(extractedInfo.urgencyLevel)}
-                  </span>
-                ) : (
-                  <span className="text-xs text-muted-foreground">Unknown</span>
-                )}
+                <p className="text-xs text-foreground leading-snug line-clamp-2">
+                  {sentenceCase(extractedInfo.desiredCompletionTime) || 'Not Provided'}
+                </p>
               </div>
             </div>
           </div>
