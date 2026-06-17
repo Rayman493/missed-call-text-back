@@ -4654,6 +4654,14 @@ Return only JSON, no other text.`;
         
         // If we have lead and conversation, insert AI call record with transcript only
         if (fallbackLead && fallbackConversationId) {
+          console.log('[INCOMPLETE FINALIZATION ENTER] =========================================');
+          console.log('[INCOMPLETE FINALIZATION ENTER] callSid:', sessionCallSid);
+          console.log('[INCOMPLETE FINALIZATION ENTER] stage:', (ws as any).intakeData?.stage || 'unknown');
+          console.log('[INCOMPLETE FINALIZATION ENTER] intakeData:', JSON.stringify((ws as any).intakeData || {}, null, 2));
+          console.log('[INCOMPLETE FINALIZATION ENTER] missingFields:', getMissingRequiredFields((ws as any).intakeData || {}));
+          console.log('[INCOMPLETE FINALIZATION ENTER] Timestamp:', new Date().toISOString());
+          console.log('[INCOMPLETE FINALIZATION ENTER] =========================================');
+
           console.log('[FALLBACK INSERT START] inserting AI call record with transcript only');
           const fallbackInsertPayload = {
             business_id: sessionBusinessId,
@@ -4676,6 +4684,116 @@ Return only JSON, no other text.`;
             console.log('[AI CALL RECORD SAVE FAILED]', fallbackRecordError);
           } else {
             console.log('[AI CALL RECORD SAVED] fallback record created successfully');
+          }
+
+          // Insert partial AI intake message
+          console.log('[INCOMPLETE MESSAGE INSERT START] =========================================');
+          console.log('[INCOMPLETE MESSAGE INSERT START] conversationId:', fallbackConversationId);
+          console.log('[INCOMPLETE MESSAGE INSERT START] leadId:', fallbackLead.id);
+          console.log('[INCOMPLETE MESSAGE INSERT START] Timestamp:', new Date().toISOString());
+          console.log('[INCOMPLETE MESSAGE INSERT START] =========================================');
+
+          const intakeData = (ws as any).intakeData;
+          const partialSummary = intakeData ? 
+            `Partial AI intake information:\n` +
+            `Name: ${intakeData.customerName || 'Not provided'}\n` +
+            `Service: ${intakeData.serviceRequested || 'Not provided'}\n` +
+            `Details: ${intakeData.issueDescription || 'Not provided'}\n` +
+            `Location: ${intakeData.serviceAddress || 'Not provided'}\n` +
+            `Completion time: ${intakeData.desiredCompletionTime || 'Not provided'}\n` +
+            `Callback time: ${intakeData.callbackTime || 'Not provided'}` :
+            'AI call transcript available but extraction failed';
+
+          const { error: messageError } = await supabase
+            .from('messages')
+            .insert({
+              conversation_id: fallbackConversationId,
+              lead_id: fallbackLead.id,
+              business_id: sessionBusinessId,
+              content: partialSummary,
+              message_type: 'summary',
+              structured_data: intakeData || null,
+            });
+
+          if (messageError) {
+            console.log('[INCOMPLETE MESSAGE INSERT FAILED] =========================================');
+            console.log('[INCOMPLETE MESSAGE INSERT FAILED] error:', messageError.message);
+            console.log('[INCOMPLETE MESSAGE INSERT FAILED] Timestamp:', new Date().toISOString());
+            console.log('[INCOMPLETE MESSAGE INSERT FAILED] =========================================');
+          } else {
+            console.log('[INCOMPLETE MESSAGE INSERT SUCCESS] =========================================');
+            console.log('[INCOMPLETE MESSAGE INSERT SUCCESS] messageId: success');
+            console.log('[INCOMPLETE MESSAGE INSERT SUCCESS] Timestamp:', new Date().toISOString());
+            console.log('[INCOMPLETE MESSAGE INSERT SUCCESS] =========================================');
+          }
+
+          // Send partial summary SMS
+          console.log('[INCOMPLETE SMS BUILD] =========================================');
+          console.log('[INCOMPLETE SMS BUILD] to:', sessionCallerPhone);
+          console.log('[INCOMPLETE SMS BUILD] businessId:', sessionBusinessId);
+          console.log('[INCOMPLETE SMS BUILD] leadId:', fallbackLead.id);
+          console.log('[INCOMPLETE SMS BUILD] conversationId:', fallbackConversationId);
+          console.log('[INCOMPLETE SMS BUILD] smsBody:', partialSummary.substring(0, 100) + '...');
+          console.log('[INCOMPLETE SMS BUILD] Timestamp:', new Date().toISOString());
+          console.log('[INCOMPLETE SMS BUILD] =========================================');
+
+          console.log('[INCOMPLETE SMS SEND START] =========================================');
+          console.log('[INCOMPLETE SMS SEND START] to:', sessionCallerPhone);
+          console.log('[INCOMPLETE SMS SEND START] bodyLength:', partialSummary.length);
+          console.log('[INCOMPLETE SMS SEND START] Timestamp:', new Date().toISOString());
+          console.log('[INCOMPLETE SMS SEND START] =========================================');
+
+          try {
+            const twilioClient = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+            const { error: smsError } = await twilioClient.messages.create({
+              from: process.env.TWILIO_PHONE_NUMBER,
+              to: sessionCallerPhone,
+              body: partialSummary
+            });
+
+            if (smsError) {
+              console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
+              console.log('[INCOMPLETE SMS SEND FAILED] error:', smsError.message);
+              console.log('[INCOMPLETE SMS SEND FAILED] Timestamp:', new Date().toISOString());
+              console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
+            } else {
+              console.log('[INCOMPLETE SMS SEND SUCCESS] =========================================');
+              console.log('[INCOMPLETE SMS SEND SUCCESS] messageSid: success');
+              console.log('[INCOMPLETE SMS SEND SUCCESS] Timestamp:', new Date().toISOString());
+              console.log('[INCOMPLETE SMS SEND SUCCESS] =========================================');
+            }
+          } catch (smsError) {
+            console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
+            console.log('[INCOMPLETE SMS SEND FAILED] error:', String(smsError));
+            console.log('[INCOMPLETE SMS SEND FAILED] Timestamp:', new Date().toISOString());
+            console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
+          }
+
+          // Create follow-up jobs
+          console.log('[INCOMPLETE FOLLOWUPS CREATED] =========================================');
+          console.log('[INCOMPLETE FOLLOWUPS CREATED] count: 1');
+          console.log('[INCOMPLETE FOLLOWUPS CREATED] Timestamp:', new Date().toISOString());
+          console.log('[INCOMPLETE FOLLOWUPS CREATED] =========================================');
+
+          try {
+            const { error: followUpError } = await supabase
+              .from('follow_up_jobs')
+              .insert({
+                business_id: sessionBusinessId,
+                lead_id: fallbackLead.id,
+                conversation_id: fallbackConversationId,
+                status: 'pending',
+                scheduled_for: new Date().toISOString(),
+                created_at: new Date().toISOString()
+              });
+
+            if (followUpError) {
+              console.log('[FOLLOWUP DIRECT INSERT ERROR]', followUpError);
+            } else {
+              console.log('[FOLLOWUP DIRECT INSERT SUCCESS]', { leadId: fallbackLead.id });
+            }
+          } catch (followUpError) {
+            console.log('[FOLLOWUP DIRECT INSERT ERROR]', followUpError);
           }
         }
         
