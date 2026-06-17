@@ -1273,7 +1273,14 @@ function isAIIntakeComplete(extractedFields: any): boolean {
 
 // Helper function to check if any useful field was collected during incomplete intake
 function hasUsefulCollectedFields(intakeData: IntakeData | null): boolean {
-  if (!intakeData) return false;
+  console.log('[USEFUL COLLECTED FIELDS CHECK] =========================================');
+  console.log('[USEFUL COLLECTED FIELDS CHECK] intakeData:', JSON.stringify(intakeData, null, 2));
+  
+  if (!intakeData) {
+    console.log('[USEFUL COLLECTED FIELDS CHECK] intakeData is null, returning false');
+    console.log('[USEFUL COLLECTED FIELDS CHECK] =========================================');
+    return false;
+  }
   
   const usefulFields = [
     intakeData.customerName,
@@ -1286,10 +1293,9 @@ function hasUsefulCollectedFields(intakeData: IntakeData | null): boolean {
   
   const hasAnyField = usefulFields.some(field => field && field.trim() !== '');
   
-  console.log('[USEFUL COLLECTED FIELDS CHECK]', {
-    hasAnyField,
-    fields: usefulFields
-  });
+  console.log('[USEFUL COLLECTED FIELDS CHECK] usefulFields:', usefulFields);
+  console.log('[USEFUL COLLECTED FIELDS CHECK] hasAnyField:', hasAnyField);
+  console.log('[USEFUL COLLECTED FIELDS CHECK] =========================================');
   
   return hasAnyField;
 }
@@ -6994,6 +7000,23 @@ Details: ${extractedFields.importantDetails || 'None'}`;
       console.log('[TWILIO WEBSOCKET CLOSE] hangupScheduled:', hangupScheduled);
       console.log('[TWILIO WEBSOCKET CLOSE] finalGoodbyeMarkReceived:', finalGoodbyeMarkReceived);
       
+      // Log handler entry state before any conditional logic
+      console.log('[WS CLOSE HANDLER ENTRY] =========================================');
+      console.log('[WS CLOSE HANDLER ENTRY] callState:', callState);
+      console.log('[WS CLOSE HANDLER ENTRY] finalClosingStarted:', finalClosingStarted);
+      console.log('[WS CLOSE HANDLER ENTRY] terminalClosingResponseStarted:', closingState?.terminalClosingResponseStarted);
+      console.log('[WS CLOSE HANDLER ENTRY] incompleteFinalizationStarted:', incompleteFinalizationStarted);
+      console.log('[WS CLOSE HANDLER ENTRY] sessionId:', sessionId);
+      console.log('[WS CLOSE HANDLER ENTRY] callSid:', callSid);
+      console.log('[WS CLOSE HANDLER ENTRY] Timestamp:', new Date().toISOString());
+      console.log('[WS CLOSE HANDLER ENTRY] =========================================');
+      
+      // Log intake data for debugging
+      console.log('[WS CLOSE HANDLER INTAKE DATA] =========================================');
+      console.log('[WS CLOSE HANDLER INTAKE DATA] intakeData:', JSON.stringify(intakeData, null, 2));
+      console.log('[WS CLOSE HANDLER INTAKE DATA] transcript length:', transcript.length);
+      console.log('[WS CLOSE HANDLER INTAKE DATA] =========================================');
+      
       // Clear AI timeout timer if it exists
       if (aiTimeoutTimer) {
         clearTimeout(aiTimeoutTimer);
@@ -7027,6 +7050,24 @@ Details: ${extractedFields.importantDetails || 'None'}`;
         ).catch(error => {
           console.log('[TWILIO WEBSOCKET CLOSE] Incomplete finalization failed:', error);
         });
+      } else {
+        // Log why incomplete finalization was skipped
+        console.log('[INCOMPLETE FINALIZATION SKIPPED] =========================================');
+        if (incompleteFinalizationStarted) {
+          console.log('[INCOMPLETE FINALIZATION SKIPPED] reason: incompleteFinalizationStarted is true');
+        }
+        if (callState !== 'active') {
+          console.log('[INCOMPLETE FINALIZATION SKIPPED] reason: callState is not active');
+          console.log('[INCOMPLETE FINALIZATION SKIPPED] callState:', callState);
+        }
+        if (finalClosingStarted) {
+          console.log('[INCOMPLETE FINALIZATION SKIPPED] reason: finalClosingStarted is true');
+        }
+        if (hangupScheduled) {
+          console.log('[INCOMPLETE FINALIZATION SKIPPED] reason: hangupScheduled is true');
+        }
+        console.log('[INCOMPLETE FINALIZATION SKIPPED] Timestamp:', new Date().toISOString());
+        console.log('[INCOMPLETE FINALIZATION SKIPPED] =========================================');
       }
       
       // Only close OpenAI WebSocket if we're not in the middle of final closing
