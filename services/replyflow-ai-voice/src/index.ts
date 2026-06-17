@@ -1246,6 +1246,31 @@ function isValidCallbackTimeAnswer(transcript: string): boolean {
   return hasValidPattern || hasTimeMention || !isOnlyInvalidWord;
 }
 
+// Helper function to check if all required AI intake fields are present
+function isAIIntakeComplete(extractedFields: any): boolean {
+  if (!extractedFields) return false;
+  
+  const requiredFields = [
+    'callerName',
+    'reasonForCalling',
+    'importantDetails',
+    'addressOrLocation',
+    'desiredCompletionTime',
+    'preferredCallbackTime'
+  ];
+  
+  const missingFields = requiredFields.filter(field => !extractedFields[field] || extractedFields[field].trim() === '');
+  
+  console.log('[AI INTAKE COMPLETENESS CHECK]', {
+    requiredFields,
+    extractedFieldsKeys: Object.keys(extractedFields),
+    missingFields,
+    isComplete: missingFields.length === 0
+  });
+  
+  return missingFields.length === 0;
+}
+
 // Helper function to validate issue description
 function isValidIssueDescription(issueDescription: string, serviceRequested?: string): boolean {
   if (!issueDescription || issueDescription.trim().length === 0) {
@@ -2942,7 +2967,7 @@ Return only JSON, no other text.`;
             caller_phone: sessionCallerPhone || 'unknown',
             call_sid: sessionCallSid || 'unknown',
             transcript: [],
-            outcome: 'completed',
+            outcome: 'incomplete',
             extracted_info: null,
             summary: 'AI call completed (no transcript)',
             extraction_failed: true
@@ -3158,6 +3183,11 @@ Return only JSON, no other text.`;
 
         // Create new AI call record with populated IDs
         console.log('[AI SAVE START] creating new AI call record...');
+        
+        // Determine outcome based on whether all required fields are present
+        const intakeComplete = isAIIntakeComplete(extractedFields);
+        const outcome = intakeComplete ? 'completed' : 'incomplete';
+        
         const mainInsertPayload = {
             business_id: sessionBusinessId,
             lead_id: lead.id,
@@ -3166,7 +3196,7 @@ Return only JSON, no other text.`;
             call_sid: sessionCallSid || 'unknown',
             ai_session_id: sessionSessionId,
             transcript: Array.isArray(transcript) ? transcript : [],
-            outcome: 'completed',
+            outcome: outcome,
             extraction_failed: false,
             extracted_info: extractedFields,
             summary: extractedFields.summary

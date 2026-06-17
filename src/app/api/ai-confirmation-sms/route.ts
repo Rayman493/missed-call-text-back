@@ -447,20 +447,40 @@ export async function POST(request: NextRequest) {
       summaryPartsCount: summaryParts.length
     })
 
+    // Check if all required fields are present
+    const requiredFields = ['callerName', 'reasonForCalling', 'importantDetails', 'addressOrLocation', 'desiredCompletionTime', 'preferredCallbackTime'];
+    const missingFields = requiredFields.filter(field => {
+      const value = (extracted as any)[field];
+      return !value || value.trim() === '';
+    });
+    const isComplete = missingFields.length === 0;
+
     // Build comprehensive confirmation message
-    let messageBody = `Thanks for calling ${businessName}.\n\n`
+    let messageBody: string;
 
-    // Add details section
-    messageBody += `Here's a summary of your request:\n${summaryParts.join('\n')}\n\n`
-
-    // Add next step and reply instruction
-    messageBody += `We'll be in touch soon.\n\nReply to this message if you'd like to add or correct anything.`
+    if (isComplete) {
+      // Complete intake message
+      messageBody = `Thanks for calling ${businessName}.\n\n`;
+      messageBody += `Here's a summary of your request:\n${summaryParts.join('\n')}\n\n`;
+      messageBody += `We'll be in touch soon.\n\nReply to this message if you'd like to add or correct anything.`;
+    } else {
+      // Incomplete intake message
+      messageBody = `Thanks for calling ${businessName}. We received part of your request.\n\n`;
+      
+      if (summaryParts.length > 0) {
+        messageBody += `Here's what we have:\n${summaryParts.join('\n')}\n\n`;
+      }
+      
+      messageBody += `Reply here with any missing details and we'll pass them along.`;
+    }
 
     console.log('[AI SMS FINAL BODY]', {
       route: '/api/ai-confirmation-sms',
       businessName,
       messageBodyLength: messageBody.length,
-      summaryPartsCount: summaryParts.length
+      summaryPartsCount: summaryParts.length,
+      isComplete,
+      missingFields
     })
 
     // Send SMS using sendSms (which handles message insertion and idempotency)

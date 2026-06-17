@@ -131,19 +131,44 @@ export async function POST(request: NextRequest) {
     // Suppress follow-up creation for completed AI intake leads
     // Customer already completed intake and is awaiting business response
     if (aiCallRecords && aiCallRecords.outcome === 'completed') {
-      console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] =========================================');
-      console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] leadId:', leadId);
-      console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] conversationId:', conversationId);
-      console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] reason: Customer already completed intake and is awaiting business response');
-      console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] aiCallRecordId:', aiCallRecords.id);
-      console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] Timestamp:', new Date().toISOString());
-      console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] =========================================');
-      return NextResponse.json({
-        success: true,
-        skipped: true,
-        reason: 'completed_ai_intake',
-        aiCallRecordId: aiCallRecords.id
-      })
+      // Verify that all required fields are present before suppressing follow-ups
+      const extractedInfo = aiCallRecords.extracted_info || {};
+      const requiredFields = [
+        'callerName',
+        'reasonForCalling',
+        'importantDetails',
+        'addressOrLocation',
+        'desiredCompletionTime',
+        'preferredCallbackTime'
+      ];
+      
+      const missingFields = requiredFields.filter(field => !extractedInfo[field] || extractedInfo[field].trim() === '');
+      
+      if (missingFields.length > 0) {
+        console.log('[FOLLOWUP ALLOWED INCOMPLETE AI INTAKE] =========================================');
+        console.log('[FOLLOWUP ALLOWED INCOMPLETE AI INTAKE] leadId:', leadId);
+        console.log('[FOLLOWUP ALLOWED INCOMPLETE AI INTAKE] conversationId:', conversationId);
+        console.log('[FOLLOWUP ALLOWED INCOMPLETE AI INTAKE] reason: AI intake is incomplete, missing required fields');
+        console.log('[FOLLOWUP ALLOWED INCOMPLETE AI INTAKE] missingFields:', missingFields);
+        console.log('[FOLLOWUP ALLOWED INCOMPLETE AI INTAKE] aiCallRecordId:', aiCallRecords.id);
+        console.log('[FOLLOWUP ALLOWED INCOMPLETE AI INTAKE] Timestamp:', new Date().toISOString());
+        console.log('[FOLLOWUP ALLOWED INCOMPLETE AI INTAKE] =========================================');
+        // Continue with follow-up creation
+      } else {
+        console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] =========================================');
+        console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] leadId:', leadId);
+        console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] conversationId:', conversationId);
+        console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] reason: Customer already completed intake and is awaiting business response');
+        console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] aiCallRecordId:', aiCallRecords.id);
+        console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] Timestamp:', new Date().toISOString());
+        console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] =========================================');
+        return NextResponse.json({
+          success: true,
+          skipped: true,
+          reason: 'completed_ai_intake',
+          aiCallRecordId: aiCallRecords.id
+        })
+      }
     }
 
     const jobs = await createFollowUpJobs({
