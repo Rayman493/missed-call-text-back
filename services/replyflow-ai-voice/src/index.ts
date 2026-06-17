@@ -449,7 +449,7 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   (twilioHandler as any).authorizedFinalResponseId = authorizedFinalResponseId;
   
   // Send exact final closing sentence
-  const exactClosingSentence = "Thank you for calling. I'll pass this information along to the business and they will get back to you as soon as possible. Have a great day.";
+  const exactClosingSentence = "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you as soon as possible. Have a great day.";
   
   console.log('[FINAL CLOSING SENTENCE SENT] =========================================');
   console.log('[FINAL CLOSING SENTENCE SENT] Sending fixed final closing sentence');
@@ -590,11 +590,11 @@ function sendControlledAssistantText(text: string, reason: string, openAiWs: any
 
 function sendStagePrompt(stage: string, openAiWs: any): void {
   const stagePrompts: { [key: string]: string } = {
-    'ask_name_reason': 'Thanks for calling. Can I get your name and the reason for your call?',
-    'ask_details': 'Can you tell me any additional details about what you need?',
-    'ask_location': 'What address or location is this for?',
-    'ask_completion_time': 'When would you like this work completed?',
-    'ask_callback_time': 'What is the best time for the business to call you back?'
+    'ask_name_reason': 'Hi, I\'m the assistant for the business. Can you please let me know your name and your reason for calling?',
+    'ask_details': 'Got it. Can you share any important details the business should know?',
+    'ask_location': 'Thanks. What address or location is this for?',
+    'ask_completion_time': 'Got it. When would you like this work completed?',
+    'ask_callback_time': 'Thanks. What is the best time for the business to call you back?'
   };
 
   const prompt = stagePrompts[stage];
@@ -670,8 +670,22 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
     case 'ask_name_reason':
       // Check if name and reason were captured
       if (intake.customerName && intake.serviceRequested) {
+        // If reason is already detailed (more than 10 characters), skip ask_details and go to location
+        if (intake.serviceRequested.length > 10) {
+          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] =========================================');
+          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Reason is already detailed');
+          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Reason:', intake.serviceRequested);
+          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Skipping ask_details, moving to ask_location');
+          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Timestamp:', new Date().toISOString());
+          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] =========================================');
+          intake.issueDescription = intake.serviceRequested;
+          return {
+            response: 'Thanks. What address or location is this for?',
+            nextStage: 'ask_location'
+          };
+        }
         return {
-          response: 'Can you tell me any additional details about what you need?',
+          response: 'Got it. Can you share any important details the business should know?',
           nextStage: 'ask_details'
         };
       }
@@ -679,21 +693,35 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       if (intake.customerName && !intake.serviceRequested) {
         console.log('[MAX-STAGE PROGRESSION] Name captured, moving to details stage');
         return {
-          response: 'Can you tell me any additional details about what you need?',
+          response: 'Got it. Can you share any important details the business should know?',
           nextStage: 'ask_details'
         };
       }
       // Max-stage progression guard: if reason is captured but not name, move to next stage
       if (!intake.customerName && intake.serviceRequested) {
         console.log('[MAX-STAGE PROGRESSION] Service captured, moving to details stage');
+        // If reason is already detailed, skip ask_details
+        if (intake.serviceRequested.length > 10) {
+          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] =========================================');
+          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Reason is already detailed');
+          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Reason:', intake.serviceRequested);
+          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Skipping ask_details, moving to ask_location');
+          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Timestamp:', new Date().toISOString());
+          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] =========================================');
+          intake.issueDescription = intake.serviceRequested;
+          return {
+            response: 'Thanks. What address or location is this for?',
+            nextStage: 'ask_location'
+          };
+        }
         return {
-          response: 'Can you tell me any additional details about what you need?',
+          response: 'Got it. Can you share any important details the business should know?',
           nextStage: 'ask_details'
         };
       }
       // Ask for name and reason again if not captured
       return {
-        response: 'Thanks for calling. Can I get your name and the reason for your call?',
+        response: 'Hi, I\'m the assistant for the business. Can you please let me know your name and your reason for calling?',
         nextStage: 'ask_name_reason'
       };
 
@@ -4558,11 +4586,11 @@ Do NOT:
                 // Send exactly one greeting response.create after session.updated
                 if (!greetingSent) {
                   console.log('[CODE OWNED FIRST PROMPT SENT] =========================================');
-                  console.log('[CODE OWNED FIRST PROMPT SENT] Sending exact name/reason prompt');
+                  console.log('[CODE OWNED FIRST PROMPT SENT] Sending exact greeting prompt');
                   console.log('[CODE OWNED FIRST PROMPT SENT] Timestamp:', new Date().toISOString());
                   console.log('[CODE OWNED FIRST PROMPT SENT] =========================================');
                   
-                  const greetingText = `Thanks for calling. Can I get your name and the reason for your call?`;
+                  const greetingText = `Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?`;
                   sendControlledAssistantText(greetingText, 'INITIAL_PROMPT', openAiWs);
                   greetingSent = true;
                   updateAISessionState(aiSessionTracker, 'GREETING_SENT', 'Greeting response.create sent');
