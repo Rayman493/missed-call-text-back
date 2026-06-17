@@ -170,7 +170,7 @@ interface CallContext {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_name_reason' | 'ask_details' | 'ask_location' | 'ask_completion_time' | 'complete';
+type IntakeStage = 'ask_name_reason' | 'ask_details' | 'ask_location' | 'ask_completion_time' | 'ask_callback_time' | 'complete';
 
 /**
  * AI Intake Flow Documentation
