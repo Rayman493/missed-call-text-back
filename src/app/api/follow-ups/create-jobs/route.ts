@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     // Check for completed AI intake to suppress follow-up creation
     const { data: aiCallRecords, error: aiError } = await supabaseAdmin
       .from('ai_call_records')
-      .select('id, outcome, lead_id, conversation_id, call_sid')
+      .select('id, outcome, lead_id, conversation_id, call_sid, extracted_info')
       .or(`lead_id.eq.${leadId}${conversationId ? `,conversation_id.eq.${conversationId}` : ''}`)
       .maybeSingle()
 
