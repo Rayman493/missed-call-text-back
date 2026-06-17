@@ -2078,9 +2078,17 @@ async function finalizeIncompleteIntake(
   console.log('[AI INCOMPLETE STEP 6] =========================================');
   
   try {
-    const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+    const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+    const notificationApiUrl = appBaseUrl;
     const internalApiSecret = process.env.INTERNAL_API_SECRET;
-    
+
+    console.log('[MAIN APP API CONFIG] =========================================');
+    console.log('[MAIN APP API CONFIG] nodeEnv:', process.env.NODE_ENV);
+    console.log('[MAIN APP API CONFIG] appBaseUrl:', appBaseUrl);
+    console.log('[MAIN APP API CONFIG] sourceEnvUsed:', process.env.MAIN_APP_URL ? 'MAIN_APP_URL' : process.env.NEXT_PUBLIC_APP_URL ? 'NEXT_PUBLIC_APP_URL' : process.env.APP_BASE_URL ? 'APP_BASE_URL' : 'fallback');
+    console.log('[MAIN APP API CONFIG] Timestamp:', new Date().toISOString());
+    console.log('[MAIN APP API CONFIG] =========================================');
+
     console.log('[AI INCOMPLETE STEP 6] API URL:', notificationApiUrl);
     console.log('[AI INCOMPLETE STEP 6] INTERNAL_API_SECRET present:', !!internalApiSecret);
     
@@ -7168,7 +7176,8 @@ Return only JSON, no other text.`;
                 });
 
                 try {
-                  const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+                  const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+                  const notificationApiUrl = appBaseUrl;
                   console.log('[NOTIFICATION SERVICE URL - PATH-C]', notificationApiUrl);
 
                   const internalApiSecret = process.env.INTERNAL_API_SECRET;
@@ -7526,7 +7535,8 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   });
 
                   try {
-                    const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+                    const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+                    const notificationApiUrl = appBaseUrl;
                     console.log('[NOTIFICATION SERVICE URL - PATH-D]', notificationApiUrl);
 
                     const internalApiSecret = process.env.INTERNAL_API_SECRET;
@@ -7833,7 +7843,8 @@ Details: ${extractedFields.importantDetails || 'None'}`;
                   });
 
                   try {
-                    const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+                    const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+                    const notificationApiUrl = appBaseUrl;
                     console.log('[NOTIFICATION SERVICE URL - PATH-E]', notificationApiUrl);
 
                     const internalApiSecret = process.env.INTERNAL_API_SECRET;
@@ -8482,4 +8493,7 @@ process.on('SIGINT', () => {
       process.exit(0);
     });
   });
+});
+});
+});
 });
