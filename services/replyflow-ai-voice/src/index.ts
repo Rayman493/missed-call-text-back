@@ -171,7 +171,7 @@ type IntakeStage = 'ask_name_reason' | 'ask_details' | 'ask_location' | 'ask_com
  * Stage Prompts:
  * - ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?"
  * - ask_details: "Got it. Can you share any important details the business should know?"
- * - ask_location: "Thanks. What address or location is this for?"
+ * - ask_location: "Thanks. Where will the service take place?"
  * - ask_completion_time: "Got it. When would you like this work completed?"
  * - ask_callback_time: "Thanks. What is the best time for the business to call you back?"
  * - complete: Final sentence: "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day."
@@ -851,7 +851,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
           console.log('[SKIP DETAILS - REASON ALREADY DETAILED] =========================================');
           intake.issueDescription = intake.serviceRequested;
           return {
-            response: 'Thanks. What address or location is this for?',
+            response: 'Thanks. Where will the service take place?',
             nextStage: 'ask_location'
           };
         }
@@ -881,7 +881,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
           console.log('[SKIP DETAILS - REASON ALREADY DETAILED] =========================================');
           intake.issueDescription = intake.serviceRequested;
           return {
-            response: 'Thanks. What address or location is this for?',
+            response: 'Thanks. Where will the service take place?',
             nextStage: 'ask_location'
           };
         }
@@ -906,7 +906,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
         console.log('[DETAILS CAPTURED MOVING TO LOCATION] Timestamp:', new Date().toISOString());
         console.log('[DETAILS CAPTURED MOVING TO LOCATION] =========================================');
         return {
-          response: 'Thanks. What address or location is this for?',
+          response: 'Thanks. Where will the service take place?',
           nextStage: 'ask_location'
         };
       }
@@ -915,7 +915,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
         console.log('[MAX-STAGE PROGRESSION] Using serviceRequested as issueDescription');
         intake.issueDescription = intake.serviceRequested;
         return {
-          response: 'Thanks. What address or location is this for?',
+          response: 'Thanks. Where will the service take place?',
           nextStage: 'ask_location'
         };
       }
@@ -1101,7 +1101,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
   // Extract location/service address if not already captured (accept flexible responses)
   if (!intake.serviceAddress) {
     // Check for online/virtual/remote responses
-    const onlineKeywords = ['online', 'virtual', 'remote', 'zoom', 'google meet', 'discord', 'over the phone', 'phone'];
+    const onlineKeywords = ['online', 'virtual', 'remote', 'zoom', 'google meet', 'discord', 'over the phone', 'phone', 'phone call'];
     const hasOnlineKeyword = onlineKeywords.some(keyword => lowerTranscript.includes(keyword));
     if (hasOnlineKeyword) {
       intake.serviceAddress = 'Online';
@@ -1109,7 +1109,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
     } else {
       // Check for business location responses
-      const businessLocationKeywords = ['at your business', 'at your shop', 'at your office', 'at your place', 'your business', 'your shop', 'your office', "i'll come to you", 'come to you'];
+      const businessLocationKeywords = ['at your business', 'at your shop', 'at your office', 'at your place', 'at your facility', 'at your location', 'your business', 'your shop', 'your office', 'your facility', 'your location', "i'll come to you", 'come to you'];
       const hasBusinessLocationKeyword = businessLocationKeywords.some(keyword => lowerTranscript.includes(keyword));
       if (hasBusinessLocationKeyword) {
         intake.serviceAddress = 'At business location';
