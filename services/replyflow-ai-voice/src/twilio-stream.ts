@@ -26,6 +26,7 @@ export class TwilioStreamHandler {
   private turnDetectionTimer: NodeJS.Timeout | null = null;
   private lastAudioTime: number = 0;
   private twilioClient: any = null;
+  private callerAudioBlockedLogged: boolean = false;
 
   constructor(config: StreamConfig, openAiClient?: OpenAIRealtimeClient) {
     this.config = config;
@@ -171,9 +172,18 @@ export class TwilioStreamHandler {
                   console.log('[CRITICAL_INVALID_CLOSING_STATE] NOT treating as terminal closing - allowing audio to continue');
                   // Do NOT block audio - this is an invalid state
                 } else {
-                  console.log('[INBOUND CALLER AUDIO BLOCKED - CALL STATE]', { callState });
+                  // Log only once when blocking starts
+                  if (!this.callerAudioBlockedLogged) {
+                    console.log('[INBOUND CALLER AUDIO BLOCKED - CALL STATE]', { callState });
+                    this.callerAudioBlockedLogged = true;
+                  }
                   return;
                 }
+              }
+
+              // Reset the flag when call state becomes active again
+              if (callState === 'active') {
+                this.callerAudioBlockedLogged = false;
               }
 
               if (assistantSpeaking) {

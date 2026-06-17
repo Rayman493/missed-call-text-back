@@ -151,6 +151,38 @@ interface CallContext {
 // Intake state machine types
 type IntakeStage = 'ask_name_reason' | 'ask_details' | 'ask_location' | 'ask_completion_time' | 'ask_callback_time' | 'complete';
 
+/**
+ * AI Intake Flow Documentation
+ * 
+ * Purpose: Collect required information from callers in a structured, controlled manner.
+ * Prevents free-form AI conversation and ensures consistent data collection.
+ * 
+ * Required Fields:
+ * - customerName: Caller's name
+ * - serviceRequested: Reason for calling (service type)
+ * - issueDescription: Important details about the issue
+ * - serviceAddress: Location for the service
+ * - desiredCompletionTime: When the work should be completed
+ * - callbackTime: Best time for the business to call back
+ * 
+ * Flow:
+ * ask_name_reason → ask_details → ask_location → ask_completion_time → ask_callback_time → complete
+ * 
+ * Stage Prompts:
+ * - ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?"
+ * - ask_details: "Got it. Can you share any important details the business should know?"
+ * - ask_location: "Thanks. What address or location is this for?"
+ * - ask_completion_time: "Got it. When would you like this work completed?"
+ * - ask_callback_time: "Thanks. What is the best time for the business to call you back?"
+ * - complete: Final sentence: "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day."
+ * 
+ * Notes:
+ * - Do not change the intake flow or add new questions.
+ * - Do not reintroduce urgency, callback number, confirmation, or free-form AI conversation.
+ * - All prompts must match the exact wording specified above.
+ * - Field extraction uses heuristics to capture multiple answers from single responses.
+ */
+
 // AI session state tracking types
 type AISessionState = 'AI_CONNECTING' | 'AI_CONNECTED' | 'SESSION_UPDATING' | 'SESSION_READY' | 'GREETING_SENT' | 'AUDIO_RECEIVED' | 'FAILED';
 
@@ -184,7 +216,6 @@ interface IntakeData {
   locationType?: 'service_address' | 'business_location' | 'caller_location' | 'online';
   callbackTime?: string;
   desiredCompletionTime?: string;
-  callbackNumber?: string;
   businessName: string;
   callSid: string;
   businessId: string;
@@ -194,9 +225,8 @@ interface IntakeData {
 
 interface LeadSummary {
   callerName?: string;
-  callbackNumber?: string;
   reason?: string;
-  urgency?: 'urgent' | 'normal' | 'not_specified';
+  desiredCompletionTime?: string;
   addressOrLocation?: string;
   preferredCallbackTime?: string;
   summary: string;
@@ -355,7 +385,6 @@ function areAllRequiredFieldsCollected(intake: IntakeData): boolean {
   console.log('[REQUIRED_FIELDS_STATUS] serviceAddress:', !!intake.serviceAddress);
   console.log('[REQUIRED_FIELDS_STATUS] desiredCompletionTime:', !!intake.desiredCompletionTime);
   console.log('[REQUIRED_FIELDS_STATUS] callbackTime:', !!intake.callbackTime);
-  console.log('[REQUIRED_FIELDS_STATUS] callbackNumber (optional):', !!intake.callbackNumber);
   console.log('[REQUIRED_FIELDS_STATUS] Timestamp:', new Date().toISOString());
   console.log('[REQUIRED_FIELDS_STATUS] =========================================');
   return allCollected;
@@ -389,50 +418,6 @@ function getNextMissingField(intake: IntakeData): string | null {
   console.log('[NEXT_MISSING_FIELD] All fields collected');
   return null;
 }
-
-function isConfirmationAccepted(transcript: string): boolean {
-  const affirmativePhrases = ['yes', 'correct', 'that\'s right', 'that is right', 'that\'s correct', 'that is correct', 'sounds good', 'perfect', 'yep', 'yeah', 'confirmed'];
-  const lowerTranscript = transcript.toLowerCase().trim();
-  const isAccepted = affirmativePhrases.some(phrase => lowerTranscript.includes(phrase));
-  
-  if (isAccepted) {
-    console.log('[CONFIRMATION_ACCEPTED] =========================================');
-    console.log('[CONFIRMATION_ACCEPTED] Caller confirmed the information');
-    console.log('[CONFIRMATION_ACCEPTED] Transcript:', transcript);
-    console.log('[CONFIRMATION_ACCEPTED] Timestamp:', new Date().toISOString());
-    console.log('[CONFIRMATION_ACCEPTED] =========================================');
-  } else {
-    console.log('[CONFIRMATION_UNCLEAR] =========================================');
-    console.log('[CONFIRMATION_UNCLEAR] Caller response unclear, asking again');
-    console.log('[CONFIRMATION_UNCLEAR] Transcript:', transcript);
-    console.log('[CONFIRMATION_UNCLEAR] Timestamp:', new Date().toISOString());
-    console.log('[CONFIRMATION_UNCLEAR] =========================================');
-  }
-  
-  return isAccepted;
-}
-
-// function transitionToConfirmation(intake: IntakeData, closingState: any, openAiWs: any): void {
-//   console.log('[TRANSITION_TO_CONFIRMATION] =========================================');
-//   console.log('[TRANSITION_TO_CONFIRMATION] Transitioning to confirmation stage');
-//   console.log('[TRANSITION_TO_CONFIRMATION] Timestamp:', new Date().toISOString());
-//   console.log('[TRANSITION_TO_CONFIRMATION] =========================================');
-//   
-//   intake.stage = 'confirmation';
-//   closingState.confirmationState = 'confirmation_sent';
-//   
-//   const confirmationMessage = generateConfirmationMessage(intake);
-//   console.log('[TRANSITION_TO_CONFIRMATION] Sending confirmation summary:', confirmationMessage);
-//   
-//   if (openAiWs) {
-//     openAiWs.send(JSON.stringify({
-//       type: 'response.create',
-//       response: {
-//         instructions: `Say exactly: "${confirmationMessage}"`
-//       }
-//     }));
-//   }
-// }
 
 function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, openAiWs: any): void {
   console.log('[ENTER TERMINAL CLOSE FUNCTION CALLED] =========================================');
@@ -719,43 +704,6 @@ function createIntakeData(businessName: string, callSid: string, businessId: str
   };
 }
 
-function generateConfirmationMessage(intake: IntakeData): string {
-  console.log('[SUMMARY PATH USED] generateConfirmationMessage-hardcoded-function');
-  console.log('[SUMMARY DATA] Creating summary message with collected data:', {
-    customerName: intake.customerName,
-    serviceRequested: intake.serviceRequested,
-    issueDescription: intake.issueDescription,
-    serviceAddress: intake.serviceAddress,
-    callbackTime: intake.callbackTime,
-    desiredCompletionTime: intake.desiredCompletionTime,
-    callbackNumber: intake.callbackNumber
-  });
-
-  const name = intake.customerName || 'there';
-  const service = intake.serviceRequested || 'your inquiry';
-  const issue = intake.issueDescription || 'not specified';
-  const location = intake.serviceAddress || 'not specified';
-  const callbackTime = intake.callbackTime || 'anytime';
-  const completionTime = intake.desiredCompletionTime || 'not specified';
-
-  console.log('[AI REQUIRED FIELDS STATUS]', {
-    hasCustomerName: !!intake.customerName,
-    hasServiceRequested: !!intake.serviceRequested,
-    hasIssueDescription: !!intake.issueDescription,
-    hasServiceAddress: !!intake.serviceAddress,
-    hasDesiredCompletionTime: !!intake.desiredCompletionTime,
-    hasCallbackTime: !!intake.callbackTime,
-    hasCallbackNumber: !!intake.callbackNumber,
-    allRequired: !!(intake.customerName && intake.serviceRequested && intake.issueDescription && intake.serviceAddress && intake.desiredCompletionTime && intake.callbackTime)
-  });
-
-  // Generate summary WITHOUT the confirmation question and WITHOUT callback number
-  const summary = `Let me make sure I have everything right. Your name is ${name}. You're calling about ${service}. The additional details are ${issue}. The desired completion time is ${completionTime}. The location is ${location}. The best callback time is ${callbackTime}.`;
-
-  console.log('[SUMMARY GENERATED]', { summary });
-  return summary;
-}
-
 function sendControlledAssistantText(text: string, reason: string, openAiWs: any): void {
   console.log('[CONTROLLED ASSISTANT TEXT SENT] =========================================');
   console.log('[CONTROLLED ASSISTANT TEXT SENT] Reason:', reason);
@@ -958,7 +906,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
         console.log('[DETAILS CAPTURED MOVING TO LOCATION] Timestamp:', new Date().toISOString());
         console.log('[DETAILS CAPTURED MOVING TO LOCATION] =========================================');
         return {
-          response: 'What address or location is this for?',
+          response: 'Thanks. What address or location is this for?',
           nextStage: 'ask_location'
         };
       }
@@ -967,13 +915,13 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
         console.log('[MAX-STAGE PROGRESSION] Using serviceRequested as issueDescription');
         intake.issueDescription = intake.serviceRequested;
         return {
-          response: 'What address or location is this for?',
+          response: 'Thanks. What address or location is this for?',
           nextStage: 'ask_location'
         };
       }
       // Ask for details again if not captured
       return {
-        response: 'Can you tell me any additional details about what you need?',
+        response: 'Got it. Can you share any important details the business should know?',
         nextStage: 'ask_details'
       };
 
@@ -981,13 +929,13 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       // Check if location was captured
       if (intake.serviceAddress) {
         return {
-          response: 'When would you like this work completed?',
+          response: 'Got it. When would you like this work completed?',
           nextStage: 'ask_completion_time'
         };
       }
       // Ask for location
       return {
-        response: 'What address or location is this for?',
+        response: 'Thanks. What address or location is this for?',
         nextStage: 'ask_location'
       };
 
@@ -995,13 +943,13 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       // Check if desired completion time was captured
       if (intake.desiredCompletionTime) {
         return {
-          response: 'What is the best time for the business to call you back?',
+          response: 'Thanks. What is the best time for the business to call you back?',
           nextStage: 'ask_callback_time'
         };
       }
       // Ask for completion time again if not captured
       return {
-        response: 'When would you like this work completed?',
+        response: 'Got it. When would you like this work completed?',
         nextStage: 'ask_completion_time'
       };
 
@@ -1020,7 +968,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       }
       // Ask for callback time again if not captured
       return {
-        response: 'What is the best time for the business to call you back?',
+        response: 'Thanks. What is the best time for the business to call you back?',
         nextStage: 'ask_callback_time'
       };
 
@@ -1312,18 +1260,6 @@ function extractPhoneNumber(transcript: string): string {
   const phoneRegex = /(\d{3}[-.\s]?\d{3}[-.\s]?\d{4}|\(\d{3}\)\s*\d{3}[-.\s]?\d{4}|\d{10})/;
   const match = transcript.match(phoneRegex);
   return match ? match[1] : transcript.trim();
-}
-
-function extractUrgency(transcript: string): 'urgent' | 'normal' | 'not_specified' {
-  const urgent = transcript.toLowerCase().match(/\burgent\b|\bemergency\b|\basap\b|\bimmediately\b|\bright away\b/);
-  if (urgent) {
-    return 'urgent';
-  }
-  const normal = transcript.toLowerCase().match(/\bnormal\b|\bnot urgent\b|\blater\b|\bflexible\b|\bno rush\b/);
-  if (normal) {
-    return 'normal';
-  }
-  return 'not_specified';
 }
 
 // AI session state tracking functions
@@ -1929,9 +1865,8 @@ function generateLeadSummary(intake: IntakeData): LeadSummary {
 
   return {
     callerName: intake.customerName,
-    callbackNumber: undefined,
     reason: intake.serviceRequested,
-    urgency: 'normal',
+    desiredCompletionTime: intake.desiredCompletionTime,
     addressOrLocation: intake.serviceAddress,
     preferredCallbackTime: intake.callbackTime,
     summary,
