@@ -269,6 +269,60 @@ function getMissingRequiredFields(intake: IntakeData): string[] {
   return missing;
 }
 
+function isGoodEnoughForBetaIntake(intake: IntakeData): boolean {
+  console.log('[GOOD ENOUGH INTAKE CHECK] =========================================');
+  console.log('[GOOD ENOUGH INTAKE CHECK] Checking if intake is good enough for beta');
+  console.log('[GOOD ENOUGH INTAKE CHECK] customerName:', !!intake.customerName);
+  console.log('[GOOD ENOUGH INTAKE CHECK] serviceRequested:', !!intake.serviceRequested);
+  console.log('[GOOD ENOUGH INTAKE CHECK] issueDescription:', !!intake.issueDescription);
+  console.log('[GOOD ENOUGH INTAKE CHECK] serviceAddress:', !!intake.serviceAddress);
+  console.log('[GOOD ENOUGH INTAKE CHECK] desiredCompletionTime:', !!intake.desiredCompletionTime);
+  console.log('[GOOD ENOUGH INTAKE CHECK] callbackTime:', !!intake.callbackTime);
+  console.log('[GOOD ENOUGH INTAKE CHECK] Timestamp:', new Date().toISOString());
+  console.log('[GOOD ENOUGH INTAKE CHECK] =========================================');
+
+  // Tolerant completion check - we need:
+  // - customerName OR fallback to caller ID
+  // - serviceRequested OR issueDescription (at least one job description)
+  // - serviceAddress (location)
+  // - desiredCompletionTime OR callbackTime (timing info)
+  // - callbackTime OR "as soon as possible" fallback
+
+  const hasName = !!intake.customerName;
+  const hasJobDescription = !!(intake.serviceRequested || intake.issueDescription);
+  const hasLocation = !!intake.serviceAddress;
+  const hasTiming = !!(intake.desiredCompletionTime || intake.callbackTime);
+  const hasCallbackTime = !!intake.callbackTime;
+
+  const isGoodEnough = hasName && hasJobDescription && hasLocation && hasTiming && hasCallbackTime;
+
+  if (isGoodEnough) {
+    console.log('[GOOD ENOUGH INTAKE TRUE] =========================================');
+    console.log('[GOOD ENOUGH INTAKE TRUE] Intake is good enough for beta completion');
+    console.log('[GOOD ENOUGH INTAKE TRUE] Has name:', hasName);
+    console.log('[GOOD ENOUGH INTAKE TRUE] Has job description:', hasJobDescription);
+    console.log('[GOOD ENOUGH INTAKE TRUE] Has location:', hasLocation);
+    console.log('[GOOD ENOUGH INTAKE TRUE] Has timing:', hasTiming);
+    console.log('[GOOD ENOUGH INTAKE TRUE] Has callback time:', hasCallbackTime);
+    console.log('[GOOD ENOUGH INTAKE TRUE] Timestamp:', new Date().toISOString());
+    console.log('[GOOD ENOUGH INTAKE TRUE] =========================================');
+  } else {
+    console.log('[GOOD ENOUGH INTAKE FALSE] =========================================');
+    console.log('[GOOD ENOUGH INTAKE FALSE] Intake not good enough yet');
+    console.log('[GOOD ENOUGH INTAKE FALSE] Missing:', {
+      name: !hasName,
+      jobDescription: !hasJobDescription,
+      location: !hasLocation,
+      timing: !hasTiming,
+      callbackTime: !hasCallbackTime
+    });
+    console.log('[GOOD ENOUGH INTAKE FALSE] Timestamp:', new Date().toISOString());
+    console.log('[GOOD ENOUGH INTAKE FALSE] =========================================');
+  }
+
+  return isGoodEnough;
+}
+
 function areAllRequiredFieldsCollected(intake: IntakeData): boolean {
   const allCollected = !!(
     intake.customerName &&
@@ -534,6 +588,22 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
           nextStage: 'ask_details'
         };
       }
+      // Max-stage progression guard: if name is captured but not reason, move to next stage
+      if (intake.customerName && !intake.serviceRequested) {
+        console.log('[MAX-STAGE PROGRESSION] Name captured, moving to details stage');
+        return {
+          response: 'Can you tell me a little more about what you need?',
+          nextStage: 'ask_details'
+        };
+      }
+      // Max-stage progression guard: if reason is captured but not name, move to next stage
+      if (!intake.customerName && intake.serviceRequested) {
+        console.log('[MAX-STAGE PROGRESSION] Service captured, moving to details stage');
+        return {
+          response: 'Can you tell me a little more about what you need?',
+          nextStage: 'ask_details'
+        };
+      }
       // Ask for name and reason again if not captured
       return {
         response: 'Thanks for calling. Can I get your name and the reason for your call?',
@@ -543,6 +613,15 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
     case 'ask_details':
       // Check if issue description was captured
       if (intake.issueDescription && intake.issueDescription.length > 5) {
+        return {
+          response: 'What address or location is this regarding?',
+          nextStage: 'ask_location'
+        };
+      }
+      // Max-stage progression guard: if we have serviceRequested but no issueDescription, use serviceRequested as description
+      if (intake.serviceRequested && !intake.issueDescription) {
+        console.log('[MAX-STAGE PROGRESSION] Using serviceRequested as issueDescription');
+        intake.issueDescription = intake.serviceRequested;
         return {
           response: 'What address or location is this regarding?',
           nextStage: 'ask_location'
@@ -615,23 +694,40 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
 // Helper function to extract multiple answers from single response
 function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
   const lowerTranscript = transcript.toLowerCase().trim();
+  
+  console.log('[LIVE EXTRACTION RAW] =========================================');
+  console.log('[LIVE EXTRACTION RAW] Transcript:', transcript);
+  console.log('[LIVE EXTRACTION RAW] Timestamp:', new Date().toISOString());
+  console.log('[LIVE EXTRACTION RAW] =========================================');
 
   // Extract name if not already captured
   if (!intake.customerName) {
     const name = extractName(transcript);
     if (name && name.length > 1) {
       intake.customerName = name;
-      console.log('[AI NAME CAPTURED]', intake.customerName);
+      console.log('[LIVE EXTRACTION MAPPED] customerName:', intake.customerName);
     }
   }
 
-  // Extract service requested (simple keyword matching)
+  // Extract service requested with heuristic fallback
   if (!intake.serviceRequested) {
-    const serviceKeywords = ['plumbing', 'hvac', 'electrical', 'landscaping', 'roofing', 'cleaning', 'pest control', 'painting', 'carpentry', 'masonry', 'excavation', 'concrete', 'windows', 'doors', 'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage', 'junk removal', 'grass cutting', 'mowing', 'lawn care'];
+    const serviceKeywords = ['plumbing', 'hvac', 'electrical', 'landscaping', 'roofing', 'cleaning', 'pest control', 'painting', 'carpentry', 'masonry', 'excavation', 'concrete', 'windows', 'doors', 'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage', 'junk removal', 'grass cutting', 'mowing', 'lawn care', 'toilet', 'toilet installation', 'toilet plumbing', 'grass cut', 'cut grass', 'mow lawn', 'lawn mowing'];
     const foundService = serviceKeywords.find(keyword => lowerTranscript.includes(keyword));
     if (foundService) {
       intake.serviceRequested = foundService.charAt(0).toUpperCase() + foundService.slice(1);
-      console.log('[AI SERVICE CAPTURED]', intake.serviceRequested);
+      console.log('[LIVE EXTRACTION MAPPED] serviceRequested:', intake.serviceRequested);
+    } else {
+      // Heuristic fallback: infer service from common phrases
+      if (lowerTranscript.includes('grass') || lowerTranscript.includes('lawn') || lowerTranscript.includes('mow')) {
+        intake.serviceRequested = 'Lawn care';
+        console.log('[FIELD MAPPING FALLBACK APPLIED] serviceRequested inferred as "Lawn care" from:', transcript);
+      } else if (lowerTranscript.includes('plumbing') || lowerTranscript.includes('plumb') || lowerTranscript.includes('pipe') || lowerTranscript.includes('toilet') || lowerTranscript.includes('drain')) {
+        intake.serviceRequested = 'Plumbing';
+        console.log('[FIELD MAPPING FALLBACK APPLIED] serviceRequested inferred as "Plumbing" from:', transcript);
+      } else if (lowerTranscript.includes('install') || lowerTranscript.includes('installed')) {
+        intake.serviceRequested = 'Installation';
+        console.log('[FIELD MAPPING FALLBACK APPLIED] serviceRequested inferred as "Installation" from:', transcript);
+      }
     }
   }
 
@@ -669,16 +765,39 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
     const foundTime = completionTimePatterns.find(pattern => lowerTranscript.includes(pattern));
     if (foundTime) {
       intake.desiredCompletionTime = foundTime.charAt(0).toUpperCase() + foundTime.slice(1);
-      console.log('[AI DESIRED COMPLETION TIME CAPTURED]', intake.desiredCompletionTime);
+      console.log('[LIVE EXTRACTION MAPPED] desiredCompletionTime:', intake.desiredCompletionTime);
     }
   }
 
-  // Extract callback number if not already captured
-  if (!intake.callbackNumber) {
-    const phoneNumber = extractPhoneNumber(transcript);
-    if (phoneNumber) {
-      intake.callbackNumber = phoneNumber;
-      console.log('[AI CALLBACK NUMBER CAPTURED]', intake.callbackNumber);
+  // Extract callback time if not already captured
+  if (!intake.callbackTime) {
+    const callbackTimePatterns = [
+      'as soon as possible',
+      'asap',
+      'anytime',
+      'whenever',
+      'today',
+      'tomorrow',
+      'tomorrow morning',
+      'tomorrow afternoon',
+      'this morning',
+      'this afternoon',
+      'this evening',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'next week'
+    ];
+
+    const foundCallbackTime = callbackTimePatterns.find(pattern => lowerTranscript.includes(pattern));
+    if (foundCallbackTime) {
+      intake.callbackTime = foundCallbackTime.charAt(0).toUpperCase() + foundCallbackTime.slice(1);
+      console.log('[LIVE EXTRACTION MAPPED] callbackTime:', intake.callbackTime);
+    } else if (lowerTranscript.includes('as soon as possible')) {
+      intake.callbackTime = 'As soon as possible';
+      console.log('[FIELD MAPPING FALLBACK APPLIED] callbackTime set to "As soon as possible"');
     }
   }
 
@@ -690,7 +809,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
     if (hasOnlineKeyword) {
       intake.serviceAddress = 'Online';
       intake.locationType = 'online';
-      console.log('[AI LOCATION CAPTURED]', intake.serviceAddress, 'locationType:', intake.locationType);
+      console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
     } else {
       // Check for business location responses
       const businessLocationKeywords = ['at your business', 'at your shop', 'at your office', 'at your place', 'your business', 'your shop', 'your office', "i'll come to you", 'come to you'];
@@ -698,7 +817,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       if (hasBusinessLocationKeyword) {
         intake.serviceAddress = 'At business location';
         intake.locationType = 'business_location';
-        console.log('[AI LOCATION CAPTURED]', intake.serviceAddress, 'locationType:', intake.locationType);
+        console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
       } else {
         // Check for residential responses
         const residentialKeywords = ['at my house', 'my house', 'my home', 'at my home', 'my place'];
@@ -706,69 +825,36 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
         if (hasResidentialKeyword) {
           intake.serviceAddress = 'At caller\'s residence';
           intake.locationType = 'caller_location';
-          console.log('[AI LOCATION CAPTURED]', intake.serviceAddress, 'locationType:', intake.locationType);
-        } else if (transcript.trim().length > 5) {
-          // If transcript contains location-like content, preserve it as-is
+          console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
+        } else if (transcript.trim().length > 5 && !lowerTranscript.startsWith('my name is') && !lowerTranscript.startsWith('i need') && !lowerTranscript.startsWith('i want')) {
+          // If transcript contains location-like content (not name or service request), preserve it as-is
           // This captures city names, neighborhoods, or specific addresses
           intake.serviceAddress = transcript.trim();
           intake.locationType = 'service_address';
-          console.log('[AI LOCATION CAPTURED]', intake.serviceAddress, 'locationType:', intake.locationType);
+          console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
         }
       }
     }
   }
 
-  // Only set issue description if transcript has substantial detail beyond service category
-  if (!intake.issueDescription && transcript.trim().length > 20) {
-    // Check if this is just a simple service request (don't set issueDescription)
-    const simpleServicePatterns = [
-      /^i need (plumbing|hvac|electrical|landscaping|roofing|cleaning|pest control|painting|carpentry|masonry|excavation|concrete|windows|doors|insulation|solar|security|fencing|deck|pool|moving|storage|junk removal|grass cutting|mowing|lawn care)/i,
-      /^help with (plumbing|hvac|electrical|landscaping|roofing|cleaning|pest control|painting|carpentry|masonry|excavation|concrete|windows|doors|insulation|solar|security|fencing|deck|pool|moving|storage|junk removal|grass cutting|mowing|lawn care)/i,
-      /^(plumbing|hvac|electrical|landscaping|roofing|cleaning|pest control|painting|carpentry|masonry|excavation|concrete|windows|doors|insulation|solar|security|fencing|deck|pool|moving|storage|junk removal|grass cutting|mowing|lawn care)/i
-    ];
-
-    const isSimpleServiceRequest = simpleServicePatterns.some(pattern => pattern.test(transcript.trim()));
-
-    if (!isSimpleServiceRequest) {
+  // Extract issue description with heuristic fallback
+  if (!intake.issueDescription) {
+    if (transcript.trim().length > 10) {
+      // Use the transcript as issue description if it's not just a name or service request
       intake.issueDescription = transcript.trim();
-      console.log('[AI ISSUE DESCRIPTION CAPTURED]', intake.issueDescription);
-    } else {
-      console.log('[AI ISSUE DESCRIPTION SKIPPED] Simple service request detected, not setting issueDescription');
+      console.log('[LIVE EXTRACTION MAPPED] issueDescription:', intake.issueDescription);
     }
   }
 
-  // Extract callback time if not already captured
-  if (!intake.callbackTime) {
-    const callbackTimePatterns = [
-      'anytime tomorrow',
-      'tomorrow morning',
-      'tomorrow afternoon',
-      'tomorrow evening',
-      'this afternoon',
-      'this evening',
-      'this morning',
-      'after 5',
-      'before noon',
-      'before 5',
-      'after noon',
-      'monday',
-      'tuesday',
-      'wednesday',
-      'thursday',
-      'friday',
-      'saturday',
-      'sunday',
-      'next week',
-      'today',
-      'asap'
-    ];
-    
-    const foundTime = callbackTimePatterns.find(pattern => lowerTranscript.includes(pattern));
-    if (foundTime) {
-      intake.callbackTime = foundTime.charAt(0).toUpperCase() + foundTime.slice(1);
-      console.log('[AI CALLBACK TIME CAPTURED]', intake.callbackTime);
-    }
-  }
+  console.log('[LIVE EXTRACTION COMPLETE] =========================================');
+  console.log('[LIVE EXTRACTION COMPLETE] customerName:', intake.customerName);
+  console.log('[LIVE EXTRACTION COMPLETE] serviceRequested:', intake.serviceRequested);
+  console.log('[LIVE EXTRACTION COMPLETE] issueDescription:', intake.issueDescription);
+  console.log('[LIVE EXTRACTION COMPLETE] serviceAddress:', intake.serviceAddress);
+  console.log('[LIVE EXTRACTION COMPLETE] desiredCompletionTime:', intake.desiredCompletionTime);
+  console.log('[LIVE EXTRACTION COMPLETE] callbackTime:', intake.callbackTime);
+  console.log('[LIVE EXTRACTION COMPLETE] Timestamp:', new Date().toISOString());
+  console.log('[LIVE EXTRACTION COMPLETE] =========================================');
 }
 
 // Helper function to validate issue description
@@ -3898,6 +3984,27 @@ Do NOT:
                     console.log('[ALL REQUIRED FIELDS COLLECTED] Triggering app-controlled closing');
                     console.log('[ALL REQUIRED FIELDS COLLECTED] Timestamp:', new Date().toISOString());
                     console.log('[ALL REQUIRED FIELDS COLLECTED] =========================================');
+                    
+                    console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
+                    console.log('[APP CONTROLLED CLOSING STARTED] Setting intake stage to complete');
+                    console.log('[APP CONTROLLED CLOSING STARTED] Setting intakeComplete flag to true');
+                    console.log('[APP CONTROLLED CLOSING STARTED] Calling enterTerminalClose');
+                    console.log('[APP CONTROLLED CLOSING STARTED] Timestamp:', new Date().toISOString());
+                    console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
+                    
+                    intakeData!.stage = 'complete';
+                    intakeComplete = true;
+                    enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
+                    return; // Skip normal intake processing - NO MORE AI RESPONSES
+                  }
+
+                  // Check if intake is good enough for beta completion (tolerant check)
+                  if (isGoodEnoughForBetaIntake(intakeData!)) {
+                    console.log('[GOOD ENOUGH INTAKE TRIGGERED CLOSING] =========================================');
+                    console.log('[GOOD ENOUGH INTAKE TRIGGERED CLOSING] Intake is good enough for beta');
+                    console.log('[GOOD ENOUGH INTAKE TRIGGERED CLOSING] Triggering app-controlled closing');
+                    console.log('[GOOD ENOUGH INTAKE TRIGGERED CLOSING] Timestamp:', new Date().toISOString());
+                    console.log('[GOOD ENOUGH INTAKE TRIGGERED CLOSING] =========================================');
                     
                     console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
                     console.log('[APP CONTROLLED CLOSING STARTED] Setting intake stage to complete');
