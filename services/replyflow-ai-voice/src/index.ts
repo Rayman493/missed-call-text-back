@@ -494,15 +494,15 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   (twilioHandler as any).finalSentenceStartTime = finalSentenceStartTime;
   (twilioHandler as any).finalCloseAudioStarted = false;
   
-  // Generate and track authorized final response ID
-  const authorizedFinalResponseId = `final_${Date.now()}`;
-  (twilioHandler as any).authorizedFinalResponseId = authorizedFinalResponseId;
-  (twilioHandler as any).finalClosingResponseId = authorizedFinalResponseId;
+  // Clear any previous authorized response ID - we'll use the actual OpenAI response ID
+  (twilioHandler as any).authorizedFinalResponseId = null;
+  (twilioHandler as any).finalClosingResponseId = null;
   
-  console.log('[OPENAI FINAL RESPONSE ID GENERATED] =========================================');
-  console.log('[OPENAI FINAL RESPONSE ID GENERATED] Response ID:', authorizedFinalResponseId);
-  console.log('[OPENAI FINAL RESPONSE ID GENERATED] Timestamp:', new Date().toISOString());
-  console.log('[OPENAI FINAL RESPONSE ID GENERATED] =========================================');
+  console.log('[OPENAI FINAL RESPONSE ID CLEARED] =========================================');
+  console.log('[OPENAI FINAL RESPONSE ID CLEARED] Cleared previous response IDs');
+  console.log('[OPENAI FINAL RESPONSE ID CLEARED] Will use actual OpenAI response ID from response.created');
+  console.log('[OPENAI FINAL RESPONSE ID CLEARED] Timestamp:', new Date().toISOString());
+  console.log('[OPENAI FINAL RESPONSE ID CLEARED] =========================================');
   
   console.log('[ENTER TERMINAL CLOSE STEP 4] =========================================');
   console.log('[ENTER TERMINAL CLOSE STEP 4] Checking OpenAI websocket state');
@@ -551,7 +551,7 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   
   console.log('[OPENAI FINAL RESPONSE CREATE SENT] =========================================');
   console.log('[OPENAI FINAL RESPONSE CREATE SENT] Sending response.create for final sentence');
-  console.log('[OPENAI FINAL RESPONSE CREATE SENT] Response ID:', authorizedFinalResponseId);
+  console.log('[OPENAI FINAL RESPONSE CREATE SENT] Response ID will be captured from response.created');
   console.log('[OPENAI FINAL RESPONSE CREATE SENT] Timestamp:', new Date().toISOString());
   console.log('[OPENAI FINAL RESPONSE CREATE SENT] =========================================');
   
@@ -560,7 +560,7 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   
   console.log('[OPENAI FINAL RESPONSE CREATED] =========================================');
   console.log('[OPENAI FINAL RESPONSE CREATED] Response.create sent successfully');
-  console.log('[OPENAI FINAL RESPONSE CREATED] Response ID:', authorizedFinalResponseId);
+  console.log('[OPENAI FINAL RESPONSE CREATED] Response ID will be captured from response.created');
   console.log('[OPENAI FINAL RESPONSE CREATED] Timestamp:', new Date().toISOString());
   console.log('[OPENAI FINAL RESPONSE CREATED] =========================================');
   
@@ -4644,6 +4644,25 @@ Do NOT:
                 const currentResponseId = message.response_id || 'unknown';
                 const isFinalResponse = currentResponseId === authorizedFinalResponseId;
                 
+                // Log response ID comparison for debugging
+                if ((twilioHandler as any).finalClosingStarted) {
+                  console.log('[FINAL AUDIO RESPONSE ID CHECK] =========================================');
+                  console.log('[FINAL AUDIO RESPONSE ID CHECK] Current response ID:', currentResponseId);
+                  console.log('[FINAL AUDIO RESPONSE ID CHECK] Authorized response ID:', authorizedFinalResponseId);
+                  console.log('[FINAL AUDIO RESPONSE ID CHECK] Match:', isFinalResponse);
+                  console.log('[FINAL AUDIO RESPONSE ID CHECK] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL AUDIO RESPONSE ID CHECK] =========================================');
+                  
+                  if (!isFinalResponse) {
+                    console.log('[FINAL AUDIO REJECTED] =========================================');
+                    console.log('[FINAL AUDIO REJECTED] Audio delta rejected - response ID mismatch');
+                    console.log('[FINAL AUDIO REJECTED] Expected response ID:', authorizedFinalResponseId);
+                    console.log('[FINAL AUDIO REJECTED] Actual response ID:', currentResponseId);
+                    console.log('[FINAL AUDIO REJECTED] Timestamp:', new Date().toISOString());
+                    console.log('[FINAL AUDIO REJECTED] =========================================');
+                  }
+                }
+                
                 if (isFinalResponse) {
                   console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] =========================================');
                   console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] Audio delta for final closing response');
@@ -5026,6 +5045,24 @@ Do NOT:
               }
               if (message.type === 'response.created') {
                 console.log('[OPENAI RECV] response.created');
+                const actualResponseId = message.response_id || 'unknown';
+                console.log('[OPENAI ACTUAL RESPONSE ID] =========================================');
+                console.log('[OPENAI ACTUAL RESPONSE ID] Actual OpenAI response ID:', actualResponseId);
+                console.log('[OPENAI ACTUAL RESPONSE ID] Authorized final response ID:', (twilioHandler as any).authorizedFinalResponseId);
+                console.log('[OPENAI ACTUAL RESPONSE ID] Final closing started:', (twilioHandler as any).finalClosingStarted);
+                console.log('[OPENAI ACTUAL RESPONSE ID] Timestamp:', new Date().toISOString());
+                console.log('[OPENAI ACTUAL RESPONSE ID] =========================================');
+                
+                // If this is the final close response, store the actual OpenAI response ID
+                if ((twilioHandler as any).finalClosingStarted) {
+                  (twilioHandler as any).finalClosingResponseId = actualResponseId;
+                  (twilioHandler as any).authorizedFinalResponseId = actualResponseId;
+                  console.log('[OPENAI FINAL RESPONSE ID STORED] =========================================');
+                  console.log('[OPENAI FINAL RESPONSE ID STORED] Storing actual OpenAI response ID as finalClosingResponseId');
+                  console.log('[OPENAI FINAL RESPONSE ID STORED] Response ID:', actualResponseId);
+                  console.log('[OPENAI FINAL RESPONSE ID STORED] Timestamp:', new Date().toISOString());
+                  console.log('[OPENAI FINAL RESPONSE ID STORED] =========================================');
+                }
               }
               if (message.type === 'response.done') {
                 const responseId = message.response_id || 'unknown';
