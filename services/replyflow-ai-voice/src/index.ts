@@ -4676,15 +4676,31 @@ Return only JSON, no other text.`;
           };
           
           console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackInsertPayload);
+          
+          let recordInsertSuccess = true;
           const { error: fallbackRecordError } = await supabase
             .from('ai_call_records')
             .insert(fallbackInsertPayload);
           
           if (fallbackRecordError) {
             console.log('[AI CALL RECORD SAVE FAILED]', fallbackRecordError);
+            console.log('[AI INCOMPLETE RECORD INSERT FAILED - CONTINUING] =========================================');
+            console.log('[AI INCOMPLETE RECORD INSERT FAILED - CONTINUING] error:', fallbackRecordError.message);
+            console.log('[AI INCOMPLETE RECORD INSERT FAILED - CONTINUING] callSid:', sessionCallSid);
+            console.log('[AI INCOMPLETE RECORD INSERT FAILED - CONTINUING] leadId:', fallbackLead.id);
+            console.log('[AI INCOMPLETE RECORD INSERT FAILED - CONTINUING] conversationId:', fallbackConversationId);
+            console.log('[AI INCOMPLETE RECORD INSERT FAILED - CONTINUING] Timestamp:', new Date().toISOString());
+            console.log('[AI INCOMPLETE RECORD INSERT FAILED - CONTINUING] =========================================');
+            console.log('[INCOMPLETE CONTINUING AFTER RECORD FAILURE] =========================================');
+            console.log('[INCOMPLETE CONTINUING AFTER RECORD FAILURE] nextStep: partial_sms_and_followups');
+            console.log('[INCOMPLETE CONTINUING AFTER RECORD FAILURE] Timestamp:', new Date().toISOString());
+            console.log('[INCOMPLETE CONTINUING AFTER RECORD FAILURE] =========================================');
+            recordInsertSuccess = false;
           } else {
             console.log('[AI CALL RECORD SAVED] fallback record created successfully');
           }
+
+          // Continue with partial message, SMS, and followups even if record insert failed
 
           // Insert partial AI intake message
           console.log('[INCOMPLETE MESSAGE INSERT START] =========================================');
