@@ -377,16 +377,31 @@ function areAllRequiredFieldsCollected(intake: IntakeData): boolean {
     intake.desiredCompletionTime &&
     intake.callbackTime
   );
-  console.log('[REQUIRED_FIELDS_STATUS] =========================================');
-  console.log('[REQUIRED_FIELDS_STATUS] All required fields collected:', allCollected);
-  console.log('[REQUIRED_FIELDS_STATUS] customerName:', !!intake.customerName);
-  console.log('[REQUIRED_FIELDS_STATUS] serviceRequested:', !!intake.serviceRequested);
-  console.log('[REQUIRED_FIELDS_STATUS] issueDescription:', !!intake.issueDescription);
-  console.log('[REQUIRED_FIELDS_STATUS] serviceAddress:', !!intake.serviceAddress);
-  console.log('[REQUIRED_FIELDS_STATUS] desiredCompletionTime:', !!intake.desiredCompletionTime);
-  console.log('[REQUIRED_FIELDS_STATUS] callbackTime:', !!intake.callbackTime);
-  console.log('[REQUIRED_FIELDS_STATUS] Timestamp:', new Date().toISOString());
-  console.log('[REQUIRED_FIELDS_STATUS] =========================================');
+  console.log('[REQUIRED FIELDS CHECK] =========================================');
+  console.log('[REQUIRED FIELDS CHECK] customerName:', intake.customerName);
+  console.log('[REQUIRED FIELDS CHECK] serviceRequested:', intake.serviceRequested);
+  console.log('[REQUIRED FIELDS CHECK] issueDescription:', intake.issueDescription);
+  console.log('[REQUIRED FIELDS CHECK] serviceAddress:', intake.serviceAddress);
+  console.log('[REQUIRED FIELDS CHECK] desiredCompletionTime:', intake.desiredCompletionTime);
+  console.log('[REQUIRED FIELDS CHECK] callbackTime:', intake.callbackTime);
+  console.log('[REQUIRED FIELDS CHECK] result:', allCollected);
+  console.log('[REQUIRED FIELDS CHECK] Timestamp:', new Date().toISOString());
+  console.log('[REQUIRED FIELDS CHECK] =========================================');
+  
+  if (!allCollected) {
+    const missingFields = [];
+    if (!intake.customerName) missingFields.push('customerName');
+    if (!intake.serviceRequested) missingFields.push('serviceRequested');
+    if (!intake.issueDescription) missingFields.push('issueDescription');
+    if (!intake.serviceAddress) missingFields.push('serviceAddress');
+    if (!intake.desiredCompletionTime) missingFields.push('desiredCompletionTime');
+    if (!intake.callbackTime) missingFields.push('callbackTime');
+    console.log('[REQUIRED FIELDS MISSING] =========================================');
+    console.log('[REQUIRED FIELDS MISSING] missingFields:', missingFields);
+    console.log('[REQUIRED FIELDS MISSING] Timestamp:', new Date().toISOString());
+    console.log('[REQUIRED FIELDS MISSING] =========================================');
+  }
+  
   return allCollected;
 }
 
@@ -449,6 +464,13 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   console.log('[CLOSING STATE SET] callState: closing');
   console.log('[CLOSING STATE SET] Timestamp:', new Date().toISOString());
   console.log('[CLOSING STATE SET] =========================================');
+  
+  console.log('[CONFIRMATION STATE CHANGE] =========================================');
+  console.log('[CONFIRMATION STATE CHANGE] from:', closingState.confirmationState);
+  console.log('[CONFIRMATION STATE CHANGE] to: completed');
+  console.log('[CONFIRMATION STATE CHANGE] reason: enterTerminalClose called');
+  console.log('[CONFIRMATION STATE CHANGE] Timestamp:', new Date().toISOString());
+  console.log('[CONFIRMATION STATE CHANGE] =========================================');
   
   closingState.confirmationState = 'completed';
   closingState.intakeTerminalComplete = true;
@@ -818,6 +840,21 @@ function sendStagePrompt(stage: string, openAiWs: any): void {
 }
 
 function getIntakeResponse(intake: IntakeData, transcript?: string): { response: string; nextStage: IntakeStage } {
+  console.log('[INTAKE STAGE TRANSITION] =========================================');
+  console.log('[INTAKE STAGE TRANSITION] from:', intake.stage);
+  console.log('[INTAKE STAGE TRANSITION] reason: processing transcript');
+  console.log('[INTAKE STAGE TRANSITION] currentIntakeData:', JSON.stringify({
+    customerName: intake.customerName,
+    serviceRequested: intake.serviceRequested,
+    issueDescription: intake.issueDescription,
+    serviceAddress: intake.serviceAddress,
+    desiredCompletionTime: intake.desiredCompletionTime,
+    callbackTime: intake.callbackTime,
+    stage: intake.stage
+  }, null, 2));
+  console.log('[INTAKE STAGE TRANSITION] timestamp:', new Date().toISOString());
+  console.log('[INTAKE STAGE TRANSITION] =========================================');
+  
   console.log('[AI INTAKE STAGE] current stage:', intake.stage);
 
   // Extract multiple answers from single response
@@ -4774,12 +4811,25 @@ Do NOT:
                     }
 
                     console.log('[CALLBACK TIME CAPTURED] =========================================');
-                    console.log('[CALLBACK TIME CAPTURED] Callback time captured:', normalizedCallbackTime);
-                    console.log('[CALLBACK TIME CAPTURED] Original transcript:', userTranscript);
+                    console.log('[CALLBACK TIME CAPTURED] callbackTime:', normalizedCallbackTime);
+                    console.log('[CALLBACK TIME CAPTURED] rawTranscript:', userTranscript);
                     console.log('[CALLBACK TIME CAPTURED] Timestamp:', new Date().toISOString());
                     console.log('[CALLBACK TIME CAPTURED] =========================================');
 
                     intakeData!.callbackTime = normalizedCallbackTime;
+
+                    console.log('[CALLBACK TIME COMPLETION CHECK] =========================================');
+                    console.log('[CALLBACK TIME COMPLETION CHECK] Checking if all required fields are collected after callback time');
+                    console.log('[CALLBACK TIME COMPLETION CHECK] areAllRequiredFieldsCollected:', areAllRequiredFieldsCollected(intakeData!));
+                    console.log('[CALLBACK TIME COMPLETION CHECK] missingFields:', getMissingRequiredFields(intakeData!));
+                    console.log('[CALLBACK TIME COMPLETION CHECK] intakeData:', JSON.stringify(intakeData!, null, 2));
+                    console.log('[CALLBACK TIME COMPLETION CHECK] Timestamp:', new Date().toISOString());
+                    console.log('[CALLBACK TIME COMPLETION CHECK] =========================================');
+
+                    console.log('[CALLBACK TIME ADVANCING TO COMPLETE] =========================================');
+                    console.log('[CALLBACK TIME ADVANCING TO COMPLETE] Advancing to complete stage');
+                    console.log('[CALLBACK TIME ADVANCING TO COMPLETE] Timestamp:', new Date().toISOString());
+                    console.log('[CALLBACK TIME ADVANCING TO COMPLETE] =========================================');
 
                     console.log('[CALLBACK TIME CAPTURED CLOSING NOW] =========================================');
                     console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Callback time captured, closing now');
@@ -4880,6 +4930,13 @@ Do NOT:
                   console.log('[AI INTAKE] advancing to stage:', intakeResponse.nextStage);
 
                   // Update stage
+                  console.log('[CURRENT STAGE SET] =========================================');
+                  console.log('[CURRENT STAGE SET] oldStage:', intakeData!.stage);
+                  console.log('[CURRENT STAGE SET] newStage:', intakeResponse.nextStage);
+                  console.log('[CURRENT STAGE SET] sourceFunction: getIntakeResponse');
+                  console.log('[CURRENT STAGE SET] Timestamp:', new Date().toISOString());
+                  console.log('[CURRENT STAGE SET] =========================================');
+                  
                   intakeData!.stage = intakeResponse.nextStage;
                   
                   if (intakeData!.stage === 'complete') {
@@ -5112,6 +5169,18 @@ Do NOT:
                   console.log('[CALL STATE UPDATED] finalClosingStarted:', finalClosingStarted);
                 } else if (callState === 'active' && !closingState.terminalClosingResponseStarted) {
                   // Log warning if trying to set callState to closing without terminalClosingResponseStarted
+                  console.log('[CALL STATE BLOCKED FULL CONTEXT] =========================================');
+                  console.log('[CALL STATE BLOCKED FULL CONTEXT] requestedState: closing');
+                  console.log('[CALL STATE BLOCKED FULL CONTEXT] currentState:', callState);
+                  console.log('[CALL STATE BLOCKED FULL CONTEXT] terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
+                  console.log('[CALL STATE BLOCKED FULL CONTEXT] finalClosingStarted:', closingState.finalClosingStarted);
+                  console.log('[CALL STATE BLOCKED FULL CONTEXT] confirmationState:', closingState.confirmationState);
+                  console.log('[CALL STATE BLOCKED FULL CONTEXT] currentStage:', intakeData?.stage);
+                  console.log('[CALL STATE BLOCKED FULL CONTEXT] intakeData:', JSON.stringify(intakeData, null, 2));
+                  console.log('[CALL STATE BLOCKED FULL CONTEXT] closingState:', JSON.stringify(closingState, null, 2));
+                  console.log('[CALL STATE BLOCKED FULL CONTEXT] Timestamp:', new Date().toISOString());
+                  console.log('[CALL STATE BLOCKED FULL CONTEXT] =========================================');
+                  
                   console.log('[CALL STATE BLOCKED] Cannot set callState to closing - terminalClosingResponseStarted is false');
                   console.log('[CALL STATE BLOCKED] This indicates the terminal closing sequence has not been started');
                   console.log('[CALL STATE BLOCKED] callState:', callState);
