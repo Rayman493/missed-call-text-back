@@ -990,9 +990,22 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           correctedFieldsAfter: correctedMetadata.corrected_fields
         })
 
-        const leadWithCorrection = await db.updateLead(lead.id, {
+        // Check if name was corrected and update lead.contact_name
+        const nameCorrection = correctedFields.find(c => c.field === 'name' || c.field === 'callerName')
+        const leadUpdatePayload: any = {
           raw_metadata: correctedMetadata
-        })
+        }
+
+        if (nameCorrection && nameCorrection.newValue) {
+          leadUpdatePayload.contact_name = nameCorrection.newValue
+          console.log('[AI CORRECTION UPDATING LEAD CONTACT_NAME]', {
+            leadId: lead.id,
+            oldContactName: lead.contact_name,
+            newContactName: nameCorrection.newValue
+          })
+        }
+
+        const leadWithCorrection = await db.updateLead(lead.id, leadUpdatePayload)
 
         if (leadWithCorrection) {
           console.log('[AI CORRECTION LEAD METADATA PERSIST SUCCESS]', {
