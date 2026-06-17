@@ -879,6 +879,18 @@ function sendStagePrompt(
     return;
   }
 
+  // Block any phone number prompts
+  const lowerPrompt = prompt.toLowerCase();
+  if (lowerPrompt.includes('phone number') || lowerPrompt.includes('callback number') || lowerPrompt.includes('best number')) {
+    console.log('[CALLBACK NUMBER PROMPT BLOCKED] =========================================');
+    console.log('[CALLBACK NUMBER PROMPT BLOCKED] reason: callbackNumber optional / removed from required intake');
+    console.log('[CALLBACK NUMBER PROMPT BLOCKED] prompt:', prompt);
+    console.log('[CALLBACK NUMBER PROMPT BLOCKED] stage:', stage);
+    console.log('[CALLBACK NUMBER PROMPT BLOCKED] Timestamp:', new Date().toISOString());
+    console.log('[CALLBACK NUMBER PROMPT BLOCKED] =========================================');
+    return;
+  }
+
   // Per-stage prompt guard to prevent duplicate prompts
   const alreadyPrompted = promptedStages.has(stage as IntakeStage);
   const timeSinceLastPrompt = Date.now() - lastPromptAt;
@@ -1090,6 +1102,21 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
     case 'ask_completion_time':
       // Check if desired completion time was captured
       if (intake.desiredCompletionTime) {
+        // Move to callback time stage
+        return {
+          response: 'Got it. What\'s the best time for the business to call you back?',
+          nextStage: 'ask_callback_time'
+        };
+      }
+      // Ask for completion time again if not captured
+      return {
+        response: 'Got it. When would you like this work completed?',
+        nextStage: 'ask_completion_time'
+      };
+
+    case 'ask_callback_time':
+      // Check if callback time was captured
+      if (intake.callbackTime) {
         // All required fields collected, close the intake
         console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] =========================================');
         console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] All 6 required fields collected');
@@ -1106,10 +1133,10 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
           nextStage: 'complete'
         };
       }
-      // Ask for completion time again if not captured
+      // Ask for callback time again if not captured
       return {
-        response: 'Got it. When would you like this work completed?',
-        nextStage: 'ask_completion_time'
+        response: 'What\'s the best time for the business to call you back?',
+        nextStage: 'ask_callback_time'
       };
 
     case 'complete':
@@ -5158,6 +5185,7 @@ IMPORTANT GUIDELINES:
 STRICTLY FORBIDDEN:
 - NEVER ask for urgency or "Is this urgent or time-sensitive?"
 - NEVER ask for callback number or "Is this the best number to reach you at, or is there another number?"
+- NEVER ask for phone number or "What's your phone number?" or "And what's your phone number?"
 - NEVER ask for confirmation or "Is that correct?"
 - NEVER ask "Anything else?", "How else can I help?", or similar questions
 - NEVER generate your own closing or goodbye phrase
