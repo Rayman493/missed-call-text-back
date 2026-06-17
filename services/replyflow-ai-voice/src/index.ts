@@ -1406,12 +1406,12 @@ async function finalizeIncompleteIntake(
   
   // Send partial AI summary SMS
   try {
-    console.log('[AI INCOMPLETE FINALIZATION SMS SENT] =========================================');
-    console.log('[AI INCOMPLETE FINALIZATION SMS SENT] businessId:', businessId);
-    console.log('[AI INCOMPLETE FINALIZATION SMS SENT] leadId:', lead.id);
-    console.log('[AI INCOMPLETE FINALIZATION SMS SENT] conversationId:', conversation.id);
-    console.log('[AI INCOMPLETE FINALIZATION SMS SENT] Timestamp:', new Date().toISOString());
-    console.log('[AI INCOMPLETE FINALIZATION SMS SENT] =========================================');
+    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST STARTED] =========================================');
+    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST STARTED] businessId:', businessId);
+    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST STARTED] leadId:', lead.id);
+    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST STARTED] conversationId:', conversation.id);
+    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST STARTED] Timestamp:', new Date().toISOString());
+    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST STARTED] =========================================');
     
     await sendAIConfirmationSMS(
       businessId,
@@ -1422,22 +1422,31 @@ async function finalizeIncompleteIntake(
       extractedFields
     );
     
-    console.log('[AI INCOMPLETE FINALIZATION SMS SUCCESS] Partial summary SMS sent successfully');
+    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST SUCCESS] =========================================');
+    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST SUCCESS] Partial summary SMS sent successfully');
+    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST SUCCESS] Timestamp:', new Date().toISOString());
+    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST SUCCESS] =========================================');
   } catch (smsError) {
-    console.log('[AI INCOMPLETE FINALIZATION SMS FAILED] SMS send failed:', smsError);
+    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST FAILED] =========================================');
+    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST FAILED] SMS send failed:', smsError);
+    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST FAILED] Timestamp:', new Date().toISOString());
+    console.log('[AI INCOMPLETE PARTIAL SMS REQUEST FAILED] =========================================');
   }
   
   // Create follow-up jobs
   try {
-    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS REQUESTED] =========================================');
-    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS REQUESTED] businessId:', businessId);
-    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS REQUESTED] leadId:', lead.id);
-    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS REQUESTED] conversationId:', conversation.id);
-    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS REQUESTED] Timestamp:', new Date().toISOString());
-    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS REQUESTED] =========================================');
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST STARTED] =========================================');
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST STARTED] businessId:', businessId);
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST STARTED] leadId:', lead.id);
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST STARTED] conversationId:', conversation.id);
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST STARTED] Timestamp:', new Date().toISOString());
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST STARTED] =========================================');
     
     const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
     const internalApiSecret = process.env.INTERNAL_API_SECRET;
+    
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST] API URL:', notificationApiUrl);
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST] INTERNAL_API_SECRET present:', !!internalApiSecret);
     
     const headers: any = {
       'Content-Type': 'application/json',
@@ -1446,20 +1455,51 @@ async function finalizeIncompleteIntake(
       headers['Authorization'] = `Bearer ${internalApiSecret}`;
     }
     
-    await fetch(`${notificationApiUrl}/api/follow-ups/create-jobs`, {
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST] Headers:', JSON.stringify({
+      'Content-Type': headers['Content-Type'],
+      'Authorization': headers['Authorization'] ? 'Bearer ***' : 'none'
+    }));
+    
+    const requestBody = {
+      businessId,
+      leadId: lead.id,
+      conversationId: conversation.id,
+      businessName
+    };
+    
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE REQUEST] Request body:', JSON.stringify(requestBody));
+    
+    const response = await fetch(`${notificationApiUrl}/api/follow-ups/create-jobs`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        businessId,
-        leadId: lead.id,
-        conversationId: conversation.id,
-        businessName
-      })
+      body: JSON.stringify(requestBody)
     });
     
-    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS SUCCESS] Follow-up jobs created successfully');
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE RESPONSE] =========================================');
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE RESPONSE] status:', response.status);
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE RESPONSE] statusText:', response.statusText);
+    
+    const responseBody = await response.text();
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE RESPONSE] body:', responseBody);
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE RESPONSE] =========================================');
+    
+    if (!response.ok) {
+      console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] =========================================');
+      console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] Non-OK status code:', response.status);
+      console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] response body:', responseBody);
+      console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] Timestamp:', new Date().toISOString());
+      console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] =========================================');
+    } else {
+      console.log('[AI INCOMPLETE FOLLOWUP CREATE SUCCESS] =========================================');
+      console.log('[AI INCOMPLETE FOLLOWUP CREATE SUCCESS] Follow-up jobs created successfully');
+      console.log('[AI INCOMPLETE FOLLOWUP CREATE SUCCESS] Timestamp:', new Date().toISOString());
+      console.log('[AI INCOMPLETE FOLLOWUP CREATE SUCCESS] =========================================');
+    }
   } catch (followUpError) {
-    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS FAILED] Follow-up creation failed:', followUpError);
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] =========================================');
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] Follow-up creation failed:', followUpError);
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] Timestamp:', new Date().toISOString());
+    console.log('[AI INCOMPLETE FOLLOWUP CREATE FAILED] =========================================');
   }
   
   console.log('[AI INCOMPLETE FINALIZATION COMPLETE] =========================================');
