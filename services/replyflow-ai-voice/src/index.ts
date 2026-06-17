@@ -550,6 +550,11 @@ function sendControlledAssistantText(text: string, reason: string, openAiWs: any
 
   if (openAiWs) {
     openAiWs.send(JSON.stringify(message));
+    console.log('[CONTROLLED RESPONSE CREATE SENT] =========================================');
+    console.log('[CONTROLLED RESPONSE CREATE SENT] Response.create sent');
+    console.log('[CONTROLLED RESPONSE CREATE SENT] Reason:', reason);
+    console.log('[CONTROLLED RESPONSE CREATE SENT] Timestamp:', new Date().toISOString());
+    console.log('[CONTROLLED RESPONSE CREATE SENT] =========================================');
   }
 }
 
@@ -574,7 +579,22 @@ function sendStagePrompt(stage: string, openAiWs: any): void {
   console.log('[STAGE PROMPT SELECTED] Timestamp:', new Date().toISOString());
   console.log('[STAGE PROMPT SELECTED] =========================================');
 
+  // Start watchdog timer to detect if response is not sent within 500ms
+  let responseSent = false;
+  const watchdogTimer = setTimeout(() => {
+    if (!responseSent) {
+      console.log('[STAGE PROMPT SELECTED BUT NOT SENT] =========================================');
+      console.log('[STAGE PROMPT SELECTED BUT NOT SENT] Stage prompt selected but response not sent within 500ms');
+      console.log('[STAGE PROMPT SELECTED BUT NOT SENT] Stage:', stage);
+      console.log('[STAGE PROMPT SELECTED BUT NOT SENT] Prompt:', prompt);
+      console.log('[STAGE PROMPT SELECTED BUT NOT SENT] Timestamp:', new Date().toISOString());
+      console.log('[STAGE PROMPT SELECTED BUT NOT SENT] =========================================');
+    }
+  }, 500);
+
   sendControlledAssistantText(prompt, `STAGE_PROMPT_${stage.toUpperCase()}`, openAiWs);
+  responseSent = true;
+  clearTimeout(watchdogTimer);
 }
 
 function getIntakeResponse(intake: IntakeData, transcript?: string): { response: string; nextStage: IntakeStage } {
@@ -4111,9 +4131,8 @@ Do NOT:
                     return; // Do not create any more responses after terminal goodbye
                   }
 
-                  // Check if this is a confirmation message and send it via direct response.create
-                  // Let VAD handle responses naturally
-                  console.log('[AI INTAKE] VAD will handle response naturally');
+                  // Send controlled stage prompt instead of relying on VAD
+                  console.log('[AI INTAKE] Sending controlled stage prompt');
                   console.log('[AI INTAKE] advancing to stage:', intakeResponse.nextStage);
 
                   // Update stage
@@ -4122,6 +4141,9 @@ Do NOT:
                   if (intakeData!.stage === 'complete') {
                     console.log('[INTAKE COMPLETE] All required fields collected');
                     intakeComplete = true;
+                  } else {
+                    // Send the stage prompt explicitly
+                    sendStagePrompt(intakeData!.stage, openAiWs);
                   }
                 }
               }
@@ -4410,28 +4432,7 @@ Do NOT:
                   console.log('[CODE OWNED FIRST PROMPT SENT] =========================================');
                   
                   const greetingText = `Thanks for calling. Can I get your name and the reason for your call?`;
-                  const exactInstruction = `Say exactly this sentence and nothing else: "${greetingText}"`;
-                  const greetingMessage = {
-                    type: 'response.create',
-                    response: {
-                      instructions: exactInstruction,
-                    },
-                  };
-                  console.log('[AI RESPONSE.CREATE SEND SITE]', {
-                    label: 'FIRST_PROMPT',
-                    currentStage: intakeData?.stage || 'not_started',
-                    nextStage: 'not_applicable',
-                    intakeComplete: intakeComplete,
-                    instructions: exactInstruction.substring(0, 200)
-                  });
-                  console.log('[FINAL GREETING TEXT]', greetingText);
-                  console.log('[FINAL BUSINESS NAME]', businessName || 'we');
-                  console.log('[GREETING EXACT MODE]', exactInstruction);
-                  console.log('[GREETING RESPONSE.CREATE RAW]', JSON.stringify(greetingMessage, null, 2));
-                  console.log('[GREETING RESPONSE.CREATE SENT]');
-                  if (openAiWs) {
-                    openAiWs.send(JSON.stringify(greetingMessage));
-                  }
+                  sendControlledAssistantText(greetingText, 'INITIAL_PROMPT', openAiWs);
                   greetingSent = true;
                   updateAISessionState(aiSessionTracker, 'GREETING_SENT', 'Greeting response.create sent');
                   console.log('[GREETING SENT]');
