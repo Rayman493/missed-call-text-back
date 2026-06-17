@@ -5523,6 +5523,71 @@ Do NOT:
                     
                     return; // Skip normal intake processing
                   }
+
+                  // Stage-specific field capture for callback time
+                  if (intakeData!.stage === 'ask_callback_time' && userTranscript && userTranscript.trim().length > 0) {
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] =========================================');
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Current stage: ask_callback_time');
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Capturing callback time from transcript');
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Transcript:', userTranscript);
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Timestamp:', new Date().toISOString());
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] =========================================');
+
+                    // Clear promptedStages when user provides new transcript to allow next prompt
+                    promptedStages.clear();
+                    console.log('[PROMPTED STAGES CLEARED] =========================================');
+                    console.log('[PROMPTED STAGES CLEARED] User provided new transcript, clearing prompted stages');
+                    console.log('[PROMPTED STAGES CLEARED] Timestamp:', new Date().toISOString());
+                    console.log('[PROMPTED STAGES CLEARED] =========================================');
+
+                    // Normalize simple answers
+                    let normalizedCallbackTime = userTranscript.trim();
+                    const lowerTranscript = normalizedCallbackTime.toLowerCase();
+                    
+                    if (lowerTranscript === 'anytime' || lowerTranscript === 'any time') {
+                      normalizedCallbackTime = 'Anytime';
+                    } else if (lowerTranscript === 'today') {
+                      normalizedCallbackTime = 'Today';
+                    } else if (lowerTranscript === 'tomorrow') {
+                      normalizedCallbackTime = 'Tomorrow';
+                    } else if (lowerTranscript === 'morning' || lowerTranscript.includes('morning')) {
+                      normalizedCallbackTime = 'Morning';
+                    } else if (lowerTranscript === 'afternoon' || lowerTranscript.includes('afternoon')) {
+                      normalizedCallbackTime = 'Afternoon';
+                    } else if (lowerTranscript === 'evening' || lowerTranscript.includes('evening')) {
+                      normalizedCallbackTime = 'Evening';
+                    }
+
+                    console.log('[CALLBACK TIME EXTRACTION] =========================================');
+                    console.log('[CALLBACK TIME EXTRACTION] stage:', intakeData!.stage);
+                    console.log('[CALLBACK TIME EXTRACTION] transcript:', userTranscript);
+                    console.log('[CALLBACK TIME EXTRACTION] extractedCallbackTime:', normalizedCallbackTime);
+                    console.log('[CALLBACK TIME EXTRACTION] previousCallbackTime:', intakeData!.callbackTime || 'undefined');
+                    console.log('[CALLBACK TIME EXTRACTION] updatedCallbackTime:', normalizedCallbackTime);
+                    console.log('[CALLBACK TIME EXTRACTION] Timestamp:', new Date().toISOString());
+                    console.log('[CALLBACK TIME EXTRACTION] =========================================');
+
+                    intakeData!.callbackTime = normalizedCallbackTime;
+                    
+                    // Check if all required fields are collected after callback time
+                    if (areAllRequiredFieldsCollected(intakeData!)) {
+                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] =========================================');
+                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] All 6 required fields collected');
+                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] customerName:', !!intakeData!.customerName);
+                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] serviceRequested:', !!intakeData!.serviceRequested);
+                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] issueDescription:', !!intakeData!.issueDescription);
+                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] serviceAddress:', !!intakeData!.serviceAddress);
+                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] desiredCompletionTime:', !!intakeData!.desiredCompletionTime);
+                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] callbackTime:', !!intakeData!.callbackTime);
+                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] Timestamp:', new Date().toISOString());
+                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] =========================================');
+                      
+                      intakeData!.stage = 'complete';
+                      intakeComplete = true;
+                      enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
+                      return; // Skip normal intake processing - NO MORE AI RESPONSES
+                    }
+                  }
                   
                   // Get next intake response
                   const intakeResponse = getIntakeResponse(intakeData!, userTranscript);
