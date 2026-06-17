@@ -267,6 +267,9 @@ export default function FollowUpsSettingsPage() {
         {/* Follow-up Configurations - Compact Rows */}
         <div className="bg-card border rounded-xl p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Follow-Up Sequence</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Follow-ups are only sent when a customer has not completed the intake process or additional information is still needed. Customers who complete an AI intake will not receive follow-up messages.
+          </p>
           <div className="space-y-4">
             {settings.followUps.map((followUp) => (
               <div key={followUp.step} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">

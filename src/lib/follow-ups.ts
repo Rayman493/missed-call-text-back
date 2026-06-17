@@ -136,12 +136,17 @@ export const DEFAULT_FOLLOW_UP_SCHEDULE = [
   {
     step: 1,
     delayMinutes: 30, // 30 minutes after missed call
-    message: (businessName: string) => `Just checking in from ${businessName || 'My Business'} - would you still like help?`
+    message: (businessName: string) => `Hi, this is ${businessName || 'My Business'}. We weren't able to get all the details we needed. Reply here if you'd still like help and we'll continue where we left off.`
   },
   {
     step: 2,
     delayMinutes: 24 * 60, // 24 hours after missed call
-    message: (businessName: string) => `Hi, this is ${businessName || 'My Business'}. We wanted to follow up one more time. Reply here if you still need anything.`
+    message: (businessName: string) => `Hi, this is ${businessName || 'My Business'}. Just checking in one more time. If you'd still like assistance, simply reply to this message.`
+  },
+  {
+    step: 3,
+    delayMinutes: 48 * 60, // 48 hours after missed call
+    message: (businessName: string) => `Hi, this is ${businessName || 'My Business'}. We'll close this request for now, but feel free to reply anytime if you still need help.`
   }
 ]
 
