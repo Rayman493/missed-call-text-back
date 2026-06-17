@@ -50,9 +50,14 @@ const MIN_FINAL_SENTENCE_PLAYBACK_MS = 12000; // 12 seconds minimum playback tim
 const FINAL_AUDIO_INACTIVITY_THRESHOLD_MS = 2500; // 2.5 seconds of no audio deltas before fallback
 
 // Final closing voice and text configuration
-const FINAL_CLOSE_TWILIO_VOICE = "Polly.Joanna-Neural"; // Natural neural voice
-const FINAL_CLOSE_SENTENCE = "Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day.";
+const FINAL_CLOSE_TWILIO_VOICE = "Polly.Joanna-Neural"; // Natural neural voice (emergency fallback)
+const FINAL_CLOSE_SENTENCE = "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day.";
 const FINAL_CLOSE_BRIDGE_PHRASE = "Perfect."; // Short bridge phrase from AI voice before redirect
+
+// OpenAI final close timing
+const FINAL_CLOSE_OPENAI_HANGUP_DELAY_MS = 9000; // 9 seconds fixed delay after OpenAI final sentence
+const MIN_OPENAI_FINAL_PLAYBACK_MS = 7000; // 7 seconds minimum playback before hangup
+const OPENAI_FINAL_EMERGENCY_FALLBACK_MS = 3000; // 3 seconds before falling back to TwiML
 
 const PORT = process.env.PORT || 8080;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -430,10 +435,10 @@ function isConfirmationAccepted(transcript: string): boolean {
 // }
 
 function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, openAiWs: any): void {
-  console.log('[ENTER TERMINAL CLOSE START] =========================================');
-  console.log('[ENTER TERMINAL CLOSE START] Entering terminal close mode');
-  console.log('[ENTER TERMINAL CLOSE START] Timestamp:', new Date().toISOString());
-  console.log('[ENTER TERMINAL CLOSE START] =========================================');
+  console.log('[OPENAI FINAL CLOSE STARTED] =========================================');
+  console.log('[OPENAI FINAL CLOSE STARTED] Starting OpenAI-based final close');
+  console.log('[OPENAI FINAL CLOSE STARTED] Timestamp:', new Date().toISOString());
+  console.log('[OPENAI FINAL CLOSE STARTED] =========================================');
   
   console.log('[CLOSING STATE SET] =========================================');
   console.log('[CLOSING STATE SET] Setting terminal flags');
@@ -464,12 +469,109 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   (twilioHandler as any).terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
   (twilioHandler as any).intakeTerminalComplete = closingState.intakeTerminalComplete;
   
-  // Redirect Twilio call to TwiML endpoint for final sentence
-  console.log('[TWILIO FINAL CLOSE REDIRECT REQUESTED] =========================================');
-  console.log('[TWILIO FINAL CLOSE REDIRECT REQUESTED] Redirecting Twilio call to final close TwiML');
-  console.log('[TWILIO FINAL CLOSE REDIRECT REQUESTED] Timestamp:', new Date().toISOString());
-  console.log('[TWILIO FINAL CLOSE REDIRECT REQUESTED] =========================================');
+  // Track final sentence start time
+  const finalSentenceStartTime = Date.now();
+  (twilioHandler as any).finalSentenceStartTime = finalSentenceStartTime;
+  (twilioHandler as any).finalCloseAudioStarted = false;
   
+  console.log('[OPENAI FINAL SENTENCE SENT] =========================================');
+  console.log('[OPENAI FINAL SENTENCE SENT] Sending final sentence through OpenAI Realtime');
+  console.log('[OPENAI FINAL SENTENCE SENT] Sentence:', FINAL_CLOSE_SENTENCE);
+  console.log('[OPENAI FINAL SENTENCE SENT] Timestamp:', new Date().toISOString());
+  console.log('[OPENAI FINAL SENTENCE SENT] =========================================');
+  
+  console.log('[OPENAI FINAL RESPONSE CREATE SENT] =========================================');
+  console.log('[OPENAI FINAL RESPONSE CREATE SENT] Sending response.create for final sentence');
+  console.log('[OPENAI FINAL RESPONSE CREATE SENT] Timestamp:', new Date().toISOString());
+  console.log('[OPENAI FINAL RESPONSE CREATE SENT] =========================================');
+  
+  // Send final sentence through OpenAI Realtime
+  sendControlledAssistantText(FINAL_CLOSE_SENTENCE, 'FINAL_CLOSE_OPENAI', openAiWs);
+  
+  console.log('[OPENAI FINAL HANGUP TIMER STARTED] =========================================');
+  console.log('[OPENAI FINAL HANGUP TIMER STARTED] Starting fixed delay hangup timer');
+  console.log('[OPENAI FINAL HANGUP TIMER STARTED] Delay:', FINAL_CLOSE_OPENAI_HANGUP_DELAY_MS, 'ms');
+  console.log('[OPENAI FINAL HANGUP TIMER STARTED] Minimum playback:', MIN_OPENAI_FINAL_PLAYBACK_MS, 'ms');
+  console.log('[OPENAI FINAL HANGUP TIMER STARTED] Timestamp:', new Date().toISOString());
+  console.log('[OPENAI FINAL HANGUP TIMER STARTED] =========================================');
+  
+  // Schedule fixed delay hangup
+  setTimeout(() => {
+    const elapsed = Date.now() - finalSentenceStartTime;
+    console.log('[OPENAI FINAL MIN PLAYBACK SATISFIED] =========================================');
+    console.log('[OPENAI FINAL MIN PLAYBACK SATISFIED] Minimum playback time satisfied');
+    console.log('[OPENAI FINAL MIN PLAYBACK SATISFIED] Elapsed:', elapsed, 'ms');
+    console.log('[OPENAI FINAL MIN PLAYBACK SATISFIED] Minimum required:', MIN_OPENAI_FINAL_PLAYBACK_MS, 'ms');
+    console.log('[OPENAI FINAL MIN PLAYBACK SATISFIED] Timestamp:', new Date().toISOString());
+    console.log('[OPENAI FINAL MIN PLAYBACK SATISFIED] =========================================');
+    
+    executeOpenaiFinalHangup(ws, twilioHandler, closingState);
+  }, FINAL_CLOSE_OPENAI_HANGUP_DELAY_MS);
+  
+  // Emergency fallback: if no audio delta received within 3 seconds, redirect to TwiML
+  setTimeout(() => {
+    if (!(twilioHandler as any).finalCloseAudioStarted) {
+      console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] =========================================');
+      console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] No audio delta received within emergency fallback window');
+      console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] Emergency fallback time:', OPENAI_FINAL_EMERGENCY_FALLBACK_MS, 'ms');
+      console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] Redirecting to TwiML endpoint');
+      console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] Timestamp:', new Date().toISOString());
+      console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] =========================================');
+      
+      executeTwilioFallback(ws, twilioHandler, closingState);
+    }
+  }, OPENAI_FINAL_EMERGENCY_FALLBACK_MS);
+}
+
+// Execute OpenAI final close hangup via Twilio REST API
+function executeOpenaiFinalHangup(ws: any, twilioHandler: any, closingState: any): void {
+  console.log('[OPENAI FINAL TWILIO HANGUP REQUESTED] =========================================');
+  console.log('[OPENAI FINAL TWILIO HANGUP REQUESTED] Calling Twilio API to hangup after OpenAI final sentence');
+  console.log('[OPENAI FINAL TWILIO HANGUP REQUESTED] Timestamp:', new Date().toISOString());
+  console.log('[OPENAI FINAL TWILIO HANGUP REQUESTED] =========================================');
+  
+  const callSid = (ws as any).callSid;
+  const twilioClient = (twilioHandler as any).twilioClient;
+  
+  if (callSid && twilioClient) {
+    twilioClient.calls(callSid).update({ status: 'completed' })
+      .then(() => {
+        console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] =========================================');
+        console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] OpenAI final close hangup succeeded');
+        console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] Call SID:', callSid);
+        console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] Timestamp:', new Date().toISOString());
+        console.log('[OPENAI FINAL TWILIO HANGUP SUCCESS] =========================================');
+        if (ws && ws.readyState === ws.OPEN) {
+          ws.close();
+        }
+      })
+      .catch((error: any) => {
+        console.log('[OPENAI FINAL TWILIO HANGUP FAILED] =========================================');
+        console.log('[OPENAI FINAL TWILIO HANGUP FAILED] OpenAI final close hangup failed');
+        console.log('[OPENAI FINAL TWILIO HANGUP FAILED] Error:', error.message);
+        console.log('[OPENAI FINAL TWILIO HANGUP FAILED] Timestamp:', new Date().toISOString());
+        console.log('[OPENAI FINAL TWILIO HANGUP FAILED] =========================================');
+        // Fallback: close WebSocket
+        if (ws && ws.readyState === ws.OPEN) {
+          ws.close();
+        }
+      });
+  } else {
+    console.log('[OPENAI FINAL TWILIO HANGUP FAILED] =========================================');
+    console.log('[OPENAI FINAL TWILIO HANGUP FAILED] No callSid or twilioClient available');
+    console.log('[OPENAI FINAL TWILIO HANGUP FAILED] callSid:', callSid);
+    console.log('[OPENAI FINAL TWILIO HANGUP FAILED] twilioClient:', !!twilioClient);
+    console.log('[OPENAI FINAL TWILIO HANGUP FAILED] Timestamp:', new Date().toISOString());
+    console.log('[OPENAI FINAL TWILIO HANGUP FAILED] =========================================');
+    // Fallback: close WebSocket
+    if (ws && ws.readyState === ws.OPEN) {
+      ws.close();
+    }
+  }
+}
+
+// Execute Twilio fallback (redirect to TwiML endpoint)
+function executeTwilioFallback(ws: any, twilioHandler: any, closingState: any): void {
   const callSid = (ws as any).callSid;
   const twilioClient = (twilioHandler as any).twilioClient;
   const baseUrl = process.env.BASE_URL || 'https://replyflow-ai-voice.fly.dev';
@@ -482,40 +584,33 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
     })
       .then(() => {
         console.log('[TWILIO FINAL CLOSE REDIRECT SUCCESS] =========================================');
-        console.log('[TWILIO FINAL CLOSE REDIRECT SUCCESS] Call redirected to final close TwiML');
+        console.log('[TWILIO FINAL CLOSE REDIRECT SUCCESS] Emergency fallback redirect succeeded');
         console.log('[TWILIO FINAL CLOSE REDIRECT SUCCESS] Call SID:', callSid);
         console.log('[TWILIO FINAL CLOSE REDIRECT SUCCESS] TwiML URL:', finalCloseUrl);
         console.log('[TWILIO FINAL CLOSE REDIRECT SUCCESS] Timestamp:', new Date().toISOString());
         console.log('[TWILIO FINAL CLOSE REDIRECT SUCCESS] =========================================');
         
-        // Close WebSocket after redirect
         if (ws && ws.readyState === ws.OPEN) {
           ws.close();
         }
       })
       .catch((error: any) => {
         console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] =========================================');
-        console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] Failed to redirect call to final close TwiML');
+        console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] Emergency fallback redirect failed');
         console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] Error:', error.message);
-        console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] Call SID:', callSid);
-        console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] TwiML URL:', finalCloseUrl);
         console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] Timestamp:', new Date().toISOString());
         console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] =========================================');
         
-        // Fallback: close WebSocket
         if (ws && ws.readyState === ws.OPEN) {
           ws.close();
         }
       });
   } else {
     console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] =========================================');
-    console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] No callSid or twilioClient available');
-    console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] callSid:', callSid);
-    console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] twilioClient:', !!twilioClient);
+    console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] No callSid or twilioClient available for emergency fallback');
     console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] Timestamp:', new Date().toISOString());
     console.log('[TWILIO FINAL CLOSE REDIRECT FAILED] =========================================');
     
-    // Fallback: close WebSocket
     if (ws && ws.readyState === ws.OPEN) {
       ws.close();
     }
@@ -4472,6 +4567,14 @@ Do NOT:
                   console.log('[FINAL AUDIO DELTA COUNT] Audio delta count:', audioDeltaCount);
                   console.log('[FINAL AUDIO DELTA COUNT] Timestamp:', new Date().toISOString());
                   console.log('[FINAL AUDIO DELTA COUNT] =========================================');
+                  
+                  // Track OpenAI final close audio started
+                  (twilioHandler as any).finalCloseAudioStarted = true;
+                  console.log('[OPENAI FINAL AUDIO DELTA RECEIVED] =========================================');
+                  console.log('[OPENAI FINAL AUDIO DELTA RECEIVED] OpenAI final close audio delta received');
+                  console.log('[OPENAI FINAL AUDIO DELTA RECEIVED] Delta length:', message.delta?.length || 0);
+                  console.log('[OPENAI FINAL AUDIO DELTA RECEIVED] Timestamp:', new Date().toISOString());
+                  console.log('[OPENAI FINAL AUDIO DELTA RECEIVED] =========================================');
                 }
                 
                 // Drop unauthorized audio in terminal mode
