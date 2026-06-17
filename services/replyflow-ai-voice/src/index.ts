@@ -4601,8 +4601,19 @@ Do NOT:
                 }
                 
                 // Cancel unauthorized responses in terminal mode
+                // BUT allow the final close response to be created even if authorizedFinalResponseId is not yet set
                 if (closingState.intakeTerminalComplete) {
-                  if (responseId !== authorizedFinalResponseId) {
+                  // If we're in final close mode and authorizedFinalResponseId is null, allow this response
+                  // The second response.created handler will store the actual ID
+                  if ((twilioHandler as any).finalClosingStarted && authorizedFinalResponseId === null) {
+                    console.log('[FINAL CLOSE RESPONSE ALLOWED] =========================================');
+                    console.log('[FINAL CLOSE RESPONSE ALLOWED] Allowing final close response creation');
+                    console.log('[FINAL CLOSE RESPONSE ALLOWED] Response ID:', responseId);
+                    console.log('[FINAL CLOSE RESPONSE ALLOWED] Authorized ID will be set by second handler');
+                    console.log('[FINAL CLOSE RESPONSE ALLOWED] Timestamp:', new Date().toISOString());
+                    console.log('[FINAL CLOSE RESPONSE ALLOWED] =========================================');
+                    // Do not cancel - let the response proceed
+                  } else if (responseId !== authorizedFinalResponseId) {
                     console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] =========================================');
                     console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] Unauthorized response created after terminal mode started');
                     console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] Response ID:', responseId);
@@ -4707,8 +4718,19 @@ Do NOT:
                 }
                 
                 // Drop unauthorized audio in terminal mode
+                // BUT allow the final close response audio even if authorizedFinalResponseId is not yet set
                 if (closingState.intakeTerminalComplete) {
-                  if (currentResponseId !== authorizedFinalResponseId) {
+                  // If we're in final close mode and authorizedFinalResponseId is null, allow this audio
+                  // The response ID will be set by the second response.created handler
+                  if ((twilioHandler as any).finalClosingStarted && authorizedFinalResponseId === null) {
+                    console.log('[FINAL CLOSE AUDIO ALLOWED] =========================================');
+                    console.log('[FINAL CLOSE AUDIO ALLOWED] Allowing final close audio delta');
+                    console.log('[FINAL CLOSE AUDIO ALLOWED] Response ID:', currentResponseId);
+                    console.log('[FINAL CLOSE AUDIO ALLOWED] Authorized ID will be set by second handler');
+                    console.log('[FINAL CLOSE AUDIO ALLOWED] Timestamp:', new Date().toISOString());
+                    console.log('[FINAL CLOSE AUDIO ALLOWED] =========================================');
+                    // Do not drop - let the audio proceed
+                  } else if (currentResponseId !== authorizedFinalResponseId) {
                     console.log('[UNAUTHORIZED_AUDIO_DROPPED_AFTER_FINAL] =========================================');
                     console.log('[UNAUTHORIZED_AUDIO_DROPPED_AFTER_FINAL] Unauthorized audio dropped - terminal mode is active');
                     console.log('[UNAUTHORIZED_AUDIO_DROPPED_AFTER_FINAL] Response ID:', currentResponseId);
