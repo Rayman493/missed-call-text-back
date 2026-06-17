@@ -45,8 +45,9 @@ function normalizePhoneNumberForStorage(phone: string): string {
 }
 
 // Final closing timing constants
-const FINAL_CLOSING_FALLBACK_MS = 14000; // 14 seconds fallback timeout
-const MIN_FINAL_SENTENCE_PLAYBACK_MS = 9000; // 9 seconds minimum playback time
+const FINAL_CLOSING_FALLBACK_MS = 22000; // 22 seconds fallback timeout
+const MIN_FINAL_SENTENCE_PLAYBACK_MS = 12000; // 12 seconds minimum playback time
+const FINAL_AUDIO_INACTIVITY_THRESHOLD_MS = 2500; // 2.5 seconds of no audio deltas before fallback
 
 const PORT = process.env.PORT || 8080;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -467,6 +468,12 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   const finalSentenceStartTime = Date.now();
   (twilioHandler as any).finalSentenceStartTime = finalSentenceStartTime;
   
+  // Track final audio activity
+  (twilioHandler as any).finalSentenceAudioStartedAt = null;
+  (twilioHandler as any).finalSentenceLastAudioDeltaAt = null;
+  (twilioHandler as any).finalSentenceAudioDeltaCount = 0;
+  (twilioHandler as any).finalSentenceTranscriptDeltaCount = 0;
+  
   // Send exact final closing sentence (shortened version)
   const exactClosingSentence = "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day.";
   
@@ -489,6 +496,7 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   console.log('[FINAL SENTENCE PLAYBACK TIMER STARTED] Final sentence playback timer started');
   console.log('[FINAL SENTENCE PLAYBACK TIMER STARTED] Minimum playback time:', MIN_FINAL_SENTENCE_PLAYBACK_MS, 'ms');
   console.log('[FINAL SENTENCE PLAYBACK TIMER STARTED] Fallback timeout:', FINAL_CLOSING_FALLBACK_MS, 'ms');
+  console.log('[FINAL SENTENCE PLAYBACK TIMER STARTED] Audio inactivity threshold:', FINAL_AUDIO_INACTIVITY_THRESHOLD_MS, 'ms');
   console.log('[FINAL SENTENCE PLAYBACK TIMER STARTED] Timestamp:', new Date().toISOString());
   console.log('[FINAL SENTENCE PLAYBACK TIMER STARTED] =========================================');
   
@@ -496,13 +504,39 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   setTimeout(() => {
     if (closingState.callState === 'closing' && !closingState.finalClosingAudioDone) {
       const elapsed = Date.now() - finalSentenceStartTime;
+      const lastAudioDeltaAt = (twilioHandler as any).finalSentenceLastAudioDeltaAt;
+      const audioDeltaCount = (twilioHandler as any).finalSentenceAudioDeltaCount || 0;
+      const lastDeltaAge = lastAudioDeltaAt ? Date.now() - lastAudioDeltaAt : elapsed;
       
-      console.log('[SAFETY FALLBACK TRIGGERED] =========================================');
-      console.log('[SAFETY FALLBACK TRIGGERED] Final speech completion not received within fallback timeout');
-      console.log('[SAFETY FALLBACK TRIGGERED] Elapsed time:', elapsed, 'ms');
-      console.log('[SAFETY FALLBACK TRIGGERED] Fallback timeout:', FINAL_CLOSING_FALLBACK_MS, 'ms');
-      console.log('[SAFETY FALLBACK TRIGGERED] Timestamp:', new Date().toISOString());
-      console.log('[SAFETY FALLBACK TRIGGERED] =========================================');
+      console.log('[FINAL CLOSING FALLBACK CHECK] =========================================');
+      console.log('[FINAL CLOSING FALLBACK CHECK] Checking fallback conditions');
+      console.log('[FINAL CLOSING FALLBACK CHECK] Elapsed time:', elapsed, 'ms');
+      console.log('[FINAL CLOSING FALLBACK CHECK] Fallback timeout:', FINAL_CLOSING_FALLBACK_MS, 'ms');
+      console.log('[FINAL CLOSING FALLBACK CHECK] Minimum playback:', MIN_FINAL_SENTENCE_PLAYBACK_MS, 'ms');
+      console.log('[FINAL CLOSING FALLBACK CHECK] Audio delta count:', audioDeltaCount);
+      console.log('[FINAL CLOSING FALLBACK CHECK] Last audio delta age:', lastDeltaAge, 'ms');
+      console.log('[FINAL CLOSING FALLBACK CHECK] Inactivity threshold:', FINAL_AUDIO_INACTIVITY_THRESHOLD_MS, 'ms');
+      console.log('[FINAL CLOSING FALLBACK CHECK] Timestamp:', new Date().toISOString());
+      console.log('[FINAL CLOSING FALLBACK CHECK] =========================================');
+      
+      // Check if audio is still actively arriving
+      if (lastDeltaAge < FINAL_AUDIO_INACTIVITY_THRESHOLD_MS && elapsed < FINAL_CLOSING_FALLBACK_MS) {
+        const delayNeeded = FINAL_AUDIO_INACTIVITY_THRESHOLD_MS - lastDeltaAge;
+        console.log('[FINAL CLOSING FALLBACK DELAYED - AUDIO STILL ACTIVE] =========================================');
+        console.log('[FINAL CLOSING FALLBACK DELAYED - AUDIO STILL ACTIVE] Audio deltas still arriving');
+        console.log('[FINAL CLOSING FALLBACK DELAYED - AUDIO STILL ACTIVE] Last delta age:', lastDeltaAge, 'ms');
+        console.log('[FINAL CLOSING FALLBACK DELAYED - AUDIO STILL ACTIVE] Delaying fallback by:', delayNeeded, 'ms');
+        console.log('[FINAL CLOSING FALLBACK DELAYED - AUDIO STILL ACTIVE] Timestamp:', new Date().toISOString());
+        console.log('[FINAL CLOSING FALLBACK DELAYED - AUDIO STILL ACTIVE] =========================================');
+        
+        // Delay fallback until audio is inactive
+        setTimeout(() => {
+          if (closingState.callState === 'closing' && !closingState.finalClosingAudioDone) {
+            checkFallbackConditions(ws, twilioHandler, closingState, finalSentenceStartTime);
+          }
+        }, delayNeeded);
+        return;
+      }
       
       // Check if minimum playback time has been satisfied
       if (elapsed < MIN_FINAL_SENTENCE_PLAYBACK_MS) {
@@ -518,26 +552,84 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
         // Delay hangup until minimum playback time is satisfied
         setTimeout(() => {
           if (closingState.callState === 'closing' && !closingState.finalClosingAudioDone) {
-            console.log('[FINAL CLOSING FALLBACK ELIGIBLE] =========================================');
-            console.log('[FINAL CLOSING FALLBACK ELIGIBLE] Minimum playback time satisfied');
-            console.log('[FINAL CLOSING FALLBACK ELIGIBLE] Proceeding with fallback hangup');
-            console.log('[FINAL CLOSING FALLBACK ELIGIBLE] Timestamp:', new Date().toISOString());
-            console.log('[FINAL CLOSING FALLBACK ELIGIBLE] =========================================');
-            executeFallbackHangup(ws, twilioHandler, closingState);
+            checkFallbackConditions(ws, twilioHandler, closingState, finalSentenceStartTime);
           }
         }, delayNeeded);
       } else {
-        console.log('[FINAL CLOSING FALLBACK ELIGIBLE] =========================================');
-        console.log('[FINAL CLOSING FALLBACK ELIGIBLE] Minimum playback time already satisfied');
-        console.log('[FINAL CLOSING FALLBACK ELIGIBLE] Elapsed:', elapsed, 'ms');
-        console.log('[FINAL CLOSING FALLBACK ELIGIBLE] Minimum required:', MIN_FINAL_SENTENCE_PLAYBACK_MS, 'ms');
-        console.log('[FINAL CLOSING FALLBACK ELIGIBLE] Proceeding with fallback hangup');
-        console.log('[FINAL CLOSING FALLBACK ELIGIBLE] Timestamp:', new Date().toISOString());
-        console.log('[FINAL CLOSING FALLBACK ELIGIBLE] =========================================');
+        console.log('[FINAL CLOSING FALLBACK PROCEEDING] =========================================');
+        console.log('[FINAL CLOSING FALLBACK PROCEEDING] All conditions satisfied');
+        console.log('[FINAL CLOSING FALLBACK PROCEEDING] Elapsed:', elapsed, 'ms');
+        console.log('[FINAL CLOSING FALLBACK PROCEEDING] Minimum required:', MIN_FINAL_SENTENCE_PLAYBACK_MS, 'ms');
+        console.log('[FINAL CLOSING FALLBACK PROCEEDING] Audio inactive for:', lastDeltaAge, 'ms');
+        console.log('[FINAL CLOSING FALLBACK PROCEEDING] Proceeding with fallback hangup');
+        console.log('[FINAL CLOSING FALLBACK PROCEEDING] Timestamp:', new Date().toISOString());
+        console.log('[FINAL CLOSING FALLBACK PROCEEDING] =========================================');
         executeFallbackHangup(ws, twilioHandler, closingState);
       }
     }
   }, FINAL_CLOSING_FALLBACK_MS);
+}
+
+// Check fallback conditions and proceed if met
+function checkFallbackConditions(ws: any, twilioHandler: any, closingState: any, finalSentenceStartTime: number): void {
+  const elapsed = Date.now() - finalSentenceStartTime;
+  const lastAudioDeltaAt = (twilioHandler as any).finalSentenceLastAudioDeltaAt;
+  const audioDeltaCount = (twilioHandler as any).finalSentenceAudioDeltaCount || 0;
+  const lastDeltaAge = lastAudioDeltaAt ? Date.now() - lastAudioDeltaAt : elapsed;
+  
+  console.log('[FINAL CLOSING FALLBACK CHECK] =========================================');
+  console.log('[FINAL CLOSING FALLBACK CHECK] Re-checking fallback conditions');
+  console.log('[FINAL CLOSING FALLBACK CHECK] Elapsed time:', elapsed, 'ms');
+  console.log('[FINAL CLOSING FALLBACK CHECK] Audio delta count:', audioDeltaCount);
+  console.log('[FINAL CLOSING FALLBACK CHECK] Last audio delta age:', lastDeltaAge, 'ms');
+  console.log('[FINAL CLOSING FALLBACK CHECK] Timestamp:', new Date().toISOString());
+  console.log('[FINAL CLOSING FALLBACK CHECK] =========================================');
+  
+  // Check if audio is still actively arriving
+  if (lastDeltaAge < FINAL_AUDIO_INACTIVITY_THRESHOLD_MS && elapsed < FINAL_CLOSING_FALLBACK_MS) {
+    const delayNeeded = FINAL_AUDIO_INACTIVITY_THRESHOLD_MS - lastDeltaAge;
+    console.log('[FINAL CLOSING FALLBACK DELAYED - AUDIO STILL ACTIVE] =========================================');
+    console.log('[FINAL CLOSING FALLBACK DELAYED - AUDIO STILL ACTIVE] Audio deltas still arriving');
+    console.log('[FINAL CLOSING FALLBACK DELAYED - AUDIO STILL ACTIVE] Last delta age:', lastDeltaAge, 'ms');
+    console.log('[FINAL CLOSING FALLBACK DELAYED - AUDIO STILL ACTIVE] Delaying fallback by:', delayNeeded, 'ms');
+    console.log('[FINAL CLOSING FALLBACK DELAYED - AUDIO STILL ACTIVE] Timestamp:', new Date().toISOString());
+    console.log('[FINAL CLOSING FALLBACK DELAYED - AUDIO STILL ACTIVE] =========================================');
+    
+    setTimeout(() => {
+      if (closingState.callState === 'closing' && !closingState.finalClosingAudioDone) {
+        checkFallbackConditions(ws, twilioHandler, closingState, finalSentenceStartTime);
+      }
+    }, delayNeeded);
+    return;
+  }
+  
+  // Check if minimum playback time has been satisfied
+  if (elapsed < MIN_FINAL_SENTENCE_PLAYBACK_MS) {
+    const delayNeeded = MIN_FINAL_SENTENCE_PLAYBACK_MS - elapsed;
+    console.log('[FINAL CLOSING FALLBACK DELAYED] =========================================');
+    console.log('[FINAL CLOSING FALLBACK DELAYED] Minimum playback time not yet satisfied');
+    console.log('[FINAL CLOSING FALLBACK DELAYED] Elapsed:', elapsed, 'ms');
+    console.log('[FINAL CLOSING FALLBACK DELAYED] Minimum required:', MIN_FINAL_SENTENCE_PLAYBACK_MS, 'ms');
+    console.log('[FINAL CLOSING FALLBACK DELAYED] Delaying hangup by:', delayNeeded, 'ms');
+    console.log('[FINAL CLOSING FALLBACK DELAYED] Timestamp:', new Date().toISOString());
+    console.log('[FINAL CLOSING FALLBACK DELAYED] =========================================');
+    
+    setTimeout(() => {
+      if (closingState.callState === 'closing' && !closingState.finalClosingAudioDone) {
+        checkFallbackConditions(ws, twilioHandler, closingState, finalSentenceStartTime);
+      }
+    }, delayNeeded);
+  } else {
+    console.log('[FINAL CLOSING FALLBACK PROCEEDING] =========================================');
+    console.log('[FINAL CLOSING FALLBACK PROCEEDING] All conditions satisfied');
+    console.log('[FINAL CLOSING FALLBACK PROCEEDING] Elapsed:', elapsed, 'ms');
+    console.log('[FINAL CLOSING FALLBACK PROCEEDING] Minimum required:', MIN_FINAL_SENTENCE_PLAYBACK_MS, 'ms');
+    console.log('[FINAL CLOSING FALLBACK PROCEEDING] Audio inactive for:', lastDeltaAge, 'ms');
+    console.log('[FINAL CLOSING FALLBACK PROCEEDING] Proceeding with fallback hangup');
+    console.log('[FINAL CLOSING FALLBACK PROCEEDING] Timestamp:', new Date().toISOString());
+    console.log('[FINAL CLOSING FALLBACK PROCEEDING] =========================================');
+    executeFallbackHangup(ws, twilioHandler, closingState);
+  }
 }
 
 // Execute fallback hangup via Twilio API
@@ -4482,6 +4574,23 @@ Do NOT:
                   console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] Delta length:', message.delta?.length || 0);
                   console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] Timestamp:', new Date().toISOString());
                   console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] =========================================');
+                  
+                  // Track final audio activity
+                  if (!(twilioHandler as any).finalSentenceAudioStartedAt) {
+                    (twilioHandler as any).finalSentenceAudioStartedAt = Date.now();
+                    console.log('[FINAL AUDIO STARTED] =========================================');
+                    console.log('[FINAL AUDIO STARTED] First audio delta for final sentence received');
+                    console.log('[FINAL AUDIO STARTED] Timestamp:', new Date().toISOString());
+                    console.log('[FINAL AUDIO STARTED] =========================================');
+                  }
+                  (twilioHandler as any).finalSentenceLastAudioDeltaAt = Date.now();
+                  (twilioHandler as any).finalSentenceAudioDeltaCount = ((twilioHandler as any).finalSentenceAudioDeltaCount || 0) + 1;
+                  
+                  const audioDeltaCount = (twilioHandler as any).finalSentenceAudioDeltaCount;
+                  console.log('[FINAL AUDIO DELTA COUNT] =========================================');
+                  console.log('[FINAL AUDIO DELTA COUNT] Audio delta count:', audioDeltaCount);
+                  console.log('[FINAL AUDIO DELTA COUNT] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL AUDIO DELTA COUNT] =========================================');
                 }
                 
                 // Drop unauthorized audio in terminal mode
@@ -4616,8 +4725,15 @@ Do NOT:
                 
                 // Start hard-close timer if terminal mode is active
                 if (closingState.intakeTerminalComplete && closingState.callState !== 'closed') {
+                  console.log('[NORMAL FINAL COMPLETION HANGUP] =========================================');
+                  console.log('[NORMAL FINAL COMPLETION HANGUP] Normal completion via response.audio.done');
+                  console.log('[NORMAL FINAL COMPLETION HANGUP] Starting 2-second hangup buffer');
+                  console.log('[NORMAL FINAL COMPLETION HANGUP] This ensures audio playback completes before hangup');
+                  console.log('[NORMAL FINAL COMPLETION HANGUP] Timestamp:', new Date().toISOString());
+                  console.log('[NORMAL FINAL COMPLETION HANGUP] =========================================');
+                  
                   console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] =========================================');
-                  console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] Starting 5-second hangup buffer after authorized final response audio done');
+                  console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] Starting 2-second hangup buffer after authorized final response audio done');
                   console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] This ensures audio playback completes before hangup');
                   console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] Timestamp:', new Date().toISOString());
                   console.log('[FINAL_CLOSE_HANGUP_AFTER_AUDIO_DONE] =========================================');
