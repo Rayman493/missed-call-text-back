@@ -49,6 +49,10 @@ const FINAL_CLOSING_FALLBACK_MS = 22000; // 22 seconds fallback timeout
 const MIN_FINAL_SENTENCE_PLAYBACK_MS = 12000; // 12 seconds minimum playback time
 const FINAL_AUDIO_INACTIVITY_THRESHOLD_MS = 2500; // 2.5 seconds of no audio deltas before fallback
 
+// Per-call finalization guards to prevent race conditions between finalizeIncompleteIntake() and ingestCallData()
+const finalizationInProgressByCallSid = new Set<string>();
+const incompleteFinalizedCallSids = new Set<string>();
+
 // Final closing voice and text configuration
 const FINAL_CLOSE_TWILIO_VOICE = "Polly.Joanna-Neural"; // Natural neural voice (emergency fallback)
 const FINAL_CLOSE_SENTENCE = "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day.";
@@ -1361,6 +1365,35 @@ async function finalizeIncompleteIntake(
   forwardedFrom: string,
   supabase: any
 ): Promise<void> {
+  console.log('[FINALIZE INCOMPLETE ENTER] =========================================');
+  console.log('[FINALIZE INCOMPLETE ENTER] Function entry');
+  console.log('[FINALIZE INCOMPLETE ENTER] callSid:', callSid);
+  console.log('[FINALIZE INCOMPLETE ENTER] businessId:', businessId);
+  console.log('[FINALIZE INCOMPLETE ENTER] callerPhone:', callerPhone);
+  console.log('[FINALIZE INCOMPLETE ENTER] Timestamp:', new Date().toISOString());
+  console.log('[FINALIZE INCOMPLETE ENTER] =========================================');
+  
+  // Acquire finalization lock
+  if (finalizationInProgressByCallSid.has(callSid)) {
+    console.log('[FINALIZATION SKIPPED ALREADY IN PROGRESS] =========================================');
+    console.log('[FINALIZATION SKIPPED ALREADY IN PROGRESS] callSid:', callSid);
+    console.log('[FINALIZATION SKIPPED ALREADY IN PROGRESS] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZATION SKIPPED ALREADY IN PROGRESS] =========================================');
+    console.log('[FINALIZE INCOMPLETE EXIT] =========================================');
+    console.log('[FINALIZE INCOMPLETE EXIT] Function exit (skipped)');
+    console.log('[FINALIZE INCOMPLETE EXIT] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZE INCOMPLETE EXIT] =========================================');
+    return;
+  }
+  
+  finalizationInProgressByCallSid.add(callSid);
+  incompleteFinalizedCallSids.add(callSid);
+  
+  console.log('[FINALIZATION LOCK ACQUIRED] =========================================');
+  console.log('[FINALIZATION LOCK ACQUIRED] callSid:', callSid);
+  console.log('[FINALIZATION LOCK ACQUIRED] Timestamp:', new Date().toISOString());
+  console.log('[FINALIZATION LOCK ACQUIRED] =========================================');
+  
   console.log('[AI INCOMPLETE FINALIZATION STARTED] =========================================');
   console.log('[AI INCOMPLETE FINALIZATION STARTED] callSid:', callSid);
   console.log('[AI INCOMPLETE FINALIZATION STARTED] businessId:', businessId);
@@ -1372,7 +1405,10 @@ async function finalizeIncompleteIntake(
   const hasUsefulData = hasUsefulCollectedFields(intakeData);
   
   if (!hasUsefulData) {
-    console.log('[AI INCOMPLETE FINALIZATION SKIPPED] No useful data collected, skipping finalization');
+    console.log('[FINALIZE INCOMPLETE RETURN] =========================================');
+    console.log('[FINALIZE INCOMPLETE RETURN] reason: No useful data collected, skipping finalization');
+    console.log('[FINALIZE INCOMPLETE RETURN] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZE INCOMPLETE RETURN] =========================================');
     return;
   }
   
@@ -1470,31 +1506,70 @@ async function finalizeIncompleteIntake(
   console.log('[AI INCOMPLETE STEP 3 SUCCESS] Timestamp:', new Date().toISOString());
   console.log('[AI INCOMPLETE STEP 3 SUCCESS] =========================================');
   
-  // Insert AI call record with incomplete outcome
+  // Insert AI call record with incomplete outcome (idempotent)
   console.log('[AI INCOMPLETE STEP 4] =========================================');
-  console.log('[AI INCOMPLETE STEP 4] Inserting AI call record with incomplete outcome');
+  console.log('[AI INCOMPLETE STEP 4] Inserting AI call record with incomplete outcome (idempotent)');
   console.log('[AI INCOMPLETE STEP 4] callSid:', callSid);
   console.log('[AI INCOMPLETE STEP 4] Timestamp:', new Date().toISOString());
   console.log('[AI INCOMPLETE STEP 4] =========================================');
   
-  const { error: recordError } = await supabase
+  // Check for existing record by call_sid
+  const { data: existingRecord, error: checkError } = await supabase
     .from('ai_call_records')
-    .insert({
-      business_id: businessId,
-      lead_id: lead.id,
-      conversation_id: conversation.id,
-      caller_phone: callerPhone,
-      call_sid: callSid,
-      transcript: transcript,
-      outcome: 'incomplete',
-      extracted_info: extractedFields,
-      summary: extractedFields.summary,
-      extraction_failed: false
-    });
+    .select('id, outcome')
+    .eq('call_sid', callSid)
+    .maybeSingle();
+  
+  if (checkError && checkError.code !== 'PGRST116') {
+    console.error('[AI INCOMPLETE STEP 4 FAILED] =========================================');
+    console.error('[AI INCOMPLETE STEP 4 FAILED] Error checking existing record');
+    console.error('[AI INCOMPLETE STEP 4 FAILED] error:', checkError);
+    console.error('[AI INCOMPLETE STEP 4 FAILED] stack:', checkError.stack);
+    console.error('[AI INCOMPLETE STEP 4 FAILED] Timestamp:', new Date().toISOString());
+    console.error('[AI INCOMPLETE STEP 4 FAILED] =========================================');
+    return;
+  }
+  
+  let recordError;
+  if (existingRecord) {
+    console.log('[AI INCOMPLETE STEP 4] Existing record found, updating instead of inserting');
+    // Update existing record
+    const { error: updateError } = await supabase
+      .from('ai_call_records')
+      .update({
+        outcome: 'incomplete',
+        extracted_info: extractedFields,
+        summary: extractedFields.summary,
+        extraction_failed: false,
+        lead_id: lead.id,
+        conversation_id: conversation.id,
+        transcript: transcript
+      })
+      .eq('id', existingRecord.id);
+    recordError = updateError;
+  } else {
+    // Insert new record
+    const { error: insertError } = await supabase
+      .from('ai_call_records')
+      .insert({
+        business_id: businessId,
+        lead_id: lead.id,
+        conversation_id: conversation.id,
+        caller_phone: callerPhone,
+        call_sid: callSid,
+        transcript: transcript,
+        outcome: 'incomplete',
+        extracted_info: extractedFields,
+        summary: extractedFields.summary,
+        extraction_failed: false
+      });
+    recordError = insertError;
+  }
   
   if (recordError) {
     console.error('[AI INCOMPLETE STEP 4 FAILED] =========================================');
-    console.error('[AI INCOMPLETE STEP 4 FAILED] AI call record creation failed');
+    console.error('[AI INCOMPLETE STEP 4 FAILED] AI call record operation failed');
+    console.error('[AI INCOMPLETE STEP 4 FAILED] existingRecord:', !!existingRecord);
     console.error('[AI INCOMPLETE STEP 4 FAILED] error:', recordError);
     console.error('[AI INCOMPLETE STEP 4 FAILED] stack:', recordError.stack);
     console.error('[AI INCOMPLETE STEP 4 FAILED] Timestamp:', new Date().toISOString());
@@ -1503,7 +1578,8 @@ async function finalizeIncompleteIntake(
   }
   
   console.log('[AI INCOMPLETE STEP 4 SUCCESS] =========================================');
-  console.log('[AI INCOMPLETE STEP 4 SUCCESS] AI call record created with outcome: incomplete');
+  console.log('[AI INCOMPLETE STEP 4 SUCCESS] AI call record operation completed with outcome: incomplete');
+  console.log('[AI INCOMPLETE STEP 4 SUCCESS] existingRecord:', !!existingRecord);
   console.log('[AI INCOMPLETE STEP 4 SUCCESS] Timestamp:', new Date().toISOString());
   console.log('[AI INCOMPLETE STEP 4 SUCCESS] =========================================');
   
@@ -1539,9 +1615,9 @@ async function finalizeIncompleteIntake(
     console.error('[AI INCOMPLETE STEP 5 FAILED] =========================================');
   }
   
-  // Create follow-up jobs
+  // Create follow-up jobs (idempotent via API)
   console.log('[AI INCOMPLETE STEP 6] =========================================');
-  console.log('[AI INCOMPLETE STEP 6] Creating follow-up jobs');
+  console.log('[AI INCOMPLETE STEP 6] Creating follow-up jobs (idempotent)');
   console.log('[AI INCOMPLETE STEP 6] businessId:', businessId);
   console.log('[AI INCOMPLETE STEP 6] leadId:', lead.id);
   console.log('[AI INCOMPLETE STEP 6] conversationId:', conversation.id);
@@ -1613,6 +1689,19 @@ async function finalizeIncompleteIntake(
   console.log('[AI INCOMPLETE FINALIZATION COMPLETE] callSid:', callSid);
   console.log('[AI INCOMPLETE FINALIZATION COMPLETE] Timestamp:', new Date().toISOString());
   console.log('[AI INCOMPLETE FINALIZATION COMPLETE] =========================================');
+  
+  // Release finalization lock
+  finalizationInProgressByCallSid.delete(callSid);
+  
+  console.log('[FINALIZATION LOCK RELEASED] =========================================');
+  console.log('[FINALIZATION LOCK RELEASED] callSid:', callSid);
+  console.log('[FINALIZATION LOCK RELEASED] Timestamp:', new Date().toISOString());
+  console.log('[FINALIZATION LOCK RELEASED] =========================================');
+  
+  console.log('[FINALIZE INCOMPLETE EXIT] =========================================');
+  console.log('[FINALIZE INCOMPLETE EXIT] Function exit');
+  console.log('[FINALIZE INCOMPLETE EXIT] Timestamp:', new Date().toISOString());
+  console.log('[FINALIZE INCOMPLETE EXIT] =========================================');
 }
 
 // Helper function to validate issue description
@@ -3193,6 +3282,11 @@ wss.on('connection', (ws, req) => {
 
     // Ingestion function to save call data - moved to correct scope
     const ingestCallData = async () => {
+      console.log('[INGEST CALL DATA ENTER] =========================================');
+      console.log('[INGEST CALL DATA ENTER] Function entry');
+      console.log('[INGEST CALL DATA ENTER] Timestamp:', new Date().toISOString());
+      console.log('[INGEST CALL DATA ENTER] =========================================');
+      
       console.log('[CALL END DETECTED] WebSocket closed, starting post-call persistence');
       console.log('[INGEST CALL DATA START] Function called');
       
@@ -3201,6 +3295,21 @@ wss.on('connection', (ws, req) => {
       const sessionCallSid = (ws as any).callSid || '';
       const sessionCallerPhone = (ws as any).callerPhone || '';
       const sessionForwardedFrom = (ws as any).forwardedFrom || '';
+      
+      // Check if incomplete finalization owns this call
+      if (finalizationInProgressByCallSid.has(sessionCallSid) || incompleteFinalizedCallSids.has(sessionCallSid)) {
+        console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] =========================================');
+        console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] callSid:', sessionCallSid);
+        console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] finalizationInProgress:', finalizationInProgressByCallSid.has(sessionCallSid));
+        console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] incompleteFinalized:', incompleteFinalizedCallSids.has(sessionCallSid));
+        console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] Timestamp:', new Date().toISOString());
+        console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] =========================================');
+        console.log('[INGEST CALL DATA EXIT] =========================================');
+        console.log('[INGEST CALL DATA EXIT] Function exit (skipped - owned by incomplete finalization)');
+        console.log('[INGEST CALL DATA EXIT] Timestamp:', new Date().toISOString());
+        console.log('[INGEST CALL DATA EXIT] =========================================');
+        return;
+      }
       
       console.log('[AI INGEST START] call ended');
       console.log('[AI INGEST TRANSCRIPT COUNT]', { transcriptLength: transcript.length });
@@ -3216,6 +3325,14 @@ wss.on('connection', (ws, req) => {
       // Check for existing AI call record (idempotency protection)
       if (!supabase) {
         console.log('[AI INGEST FAILED] supabase client not available for ingestion');
+        console.log('[INGEST CALL DATA RETURN] =========================================');
+        console.log('[INGEST CALL DATA RETURN] reason: supabase client not available');
+        console.log('[INGEST CALL DATA RETURN] Timestamp:', new Date().toISOString());
+        console.log('[INGEST CALL DATA RETURN] =========================================');
+        console.log('[INGEST CALL DATA EXIT] =========================================');
+        console.log('[INGEST CALL DATA EXIT] Function exit');
+        console.log('[INGEST CALL DATA EXIT] Timestamp:', new Date().toISOString());
+        console.log('[INGEST CALL DATA EXIT] =========================================');
         return;
       }
       
@@ -3228,6 +3345,14 @@ wss.on('connection', (ws, req) => {
       
       if (existingError && existingError.code !== 'PGRST116') {
         console.log('[AI INGEST FAILED] error checking existing record', existingError);
+        console.log('[INGEST CALL DATA RETURN] =========================================');
+        console.log('[INGEST CALL DATA RETURN] reason: error checking existing record');
+        console.log('[INGEST CALL DATA RETURN] Timestamp:', new Date().toISOString());
+        console.log('[INGEST CALL DATA RETURN] =========================================');
+        console.log('[INGEST CALL DATA EXIT] =========================================');
+        console.log('[INGEST CALL DATA EXIT] Function exit');
+        console.log('[INGEST CALL DATA EXIT] Timestamp:', new Date().toISOString());
+        console.log('[INGEST CALL DATA EXIT] =========================================');
         return;
       }
       
@@ -3307,6 +3432,10 @@ Return only JSON, no other text.`;
           }
           
           console.log('[AI INGEST INSERT SUCCESS] existing record updated successfully');
+          console.log('[INGEST CALL DATA EXIT] =========================================');
+          console.log('[INGEST CALL DATA EXIT] Function exit');
+          console.log('[INGEST CALL DATA EXIT] Timestamp:', new Date().toISOString());
+          console.log('[INGEST CALL DATA EXIT] =========================================');
           return;
         } catch (error) {
           console.log('[AI INGEST FAILED] extraction failed during update, updating with transcript only', error);
@@ -3324,6 +3453,10 @@ Return only JSON, no other text.`;
           } else {
             console.log('[AI INGEST INSERT SUCCESS] fallback update successful');
           }
+          console.log('[INGEST CALL DATA EXIT] =========================================');
+          console.log('[INGEST CALL DATA EXIT] Function exit');
+          console.log('[INGEST CALL DATA EXIT] Timestamp:', new Date().toISOString());
+          console.log('[INGEST CALL DATA EXIT] =========================================');
           return;
         }
       }
@@ -3425,6 +3558,10 @@ Return only JSON, no other text.`;
           }
           console.log('[NOTIFICATION DIRECT INSERT COMPLETE - PATH-B]');
         }
+        console.log('[INGEST CALL DATA EXIT] =========================================');
+        console.log('[INGEST CALL DATA EXIT] Function exit');
+        console.log('[INGEST CALL DATA EXIT] Timestamp:', new Date().toISOString());
+        console.log('[INGEST CALL DATA EXIT] =========================================');
         return;
       }
       
@@ -3809,6 +3946,10 @@ Return only JSON, no other text.`;
         });
 
         console.log('[INGEST CALL DATA COMPLETE] Post-call persistence completed successfully');
+        console.log('[INGEST CALL DATA EXIT] =========================================');
+        console.log('[INGEST CALL DATA EXIT] Function exit');
+        console.log('[INGEST CALL DATA EXIT] Timestamp:', new Date().toISOString());
+        console.log('[INGEST CALL DATA EXIT] =========================================');
         return;
 
       } catch (error) {
@@ -3893,129 +4034,38 @@ Return only JSON, no other text.`;
             fallbackConversationId = fallbackConversation.id;
           }
         }
-
-        // Create with transcript only if extraction failed
-        const fallbackInsertPayload = {
+        
+        // If we have lead and conversation, insert AI call record with transcript only
+        if (fallbackLead && fallbackConversationId) {
+          console.log('[FALLBACK INSERT START] inserting AI call record with transcript only');
+          const fallbackInsertPayload = {
             business_id: sessionBusinessId,
-            lead_id: fallbackLead?.id || null,
+            lead_id: fallbackLead.id,
             conversation_id: fallbackConversationId,
             caller_phone: sessionCallerPhone || 'unknown',
             call_sid: sessionCallSid || 'unknown',
-            transcript: Array.isArray(transcript) ? transcript : [],
-            outcome: 'completed',
+            transcript: transcript,
+            outcome: 'incomplete',
             extracted_info: null,
-            summary: fullTranscript || 'AI call completed',
-            extraction_failed: true
+            summary: 'AI call completed (extraction failed)'
           };
-        console.log('[AI CALL RECORD OUTCOME]', {
-          outcome: fallbackInsertPayload.outcome,
-          callSid: fallbackInsertPayload.call_sid,
-          businessId: fallbackInsertPayload.business_id,
-          leadId: fallbackInsertPayload.lead_id,
-          conversationId: fallbackInsertPayload.conversation_id
-        });
-        console.log('[INSERT PATH B] main AI save fallback after lead/conversation link error', {
-          file: 'services/replyflow-ai-voice/src/index.ts',
-          line: 1647,
-          lead_id: fallbackInsertPayload.lead_id,
-          conversation_id: fallbackInsertPayload.conversation_id
-        });
-        console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackInsertPayload);
-
-        console.log('[AI CALL RECORD INSERT ACTIVE PATH]', {
-          file: 'services/replyflow-ai-voice/src/index.ts',
-          function: 'main AI save fallback after lead/conversation link error',
-          sessionId: 'unknown',
-          callSid: sessionCallSid,
-          businessId: sessionBusinessId,
-          callerPhone: sessionCallerPhone
-        });
-
-        const { data: fallbackRecord, error: fallbackError } = await supabase
-          .from('ai_call_records')
-          .insert(fallbackInsertPayload)
-          .select()
-          .single();
-
-        if (fallbackError) {
-          console.log('[AI CALL RECORD SAVE FAILED]', fallbackError);
-        } else {
-          console.log('[AI CALL RECORD SAVE SUCCESS]', { recordId: fallbackRecord.id });
-
-          if (fallbackLead?.id && fallbackConversationId) {
-            console.log('[AI LINK SUCCESS]', {
-              aiCallRecordId: fallbackRecord.id,
-              leadId: fallbackLead.id,
-              conversationId: fallbackConversationId
-            });
-            
-            console.log('[AI RECORD INSERT SUCCESS - FALLBACK PATH]', {
-              businessId: sessionBusinessId,
-              leadId: fallbackLead.id,
-              conversationId: fallbackConversationId,
-              callSid: sessionCallSid
-            });
-            
-            // Create follow-up jobs for the new lead (fallback path)
-            console.log('[FOLLOWUP DEBUG REACHED - FALLBACK] About to call follow-up API');
-            try {
-              console.log('[FOLLOWUP DEBUG API START - FALLBACK] Fetching from follow-up API');
-              const followUpApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
-              console.log('[FOLLOWUP DEBUG API URL - FALLBACK]', followUpApiUrl);
-              
-              const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  businessId: sessionBusinessId,
-                  leadId: fallbackLead.id,
-                  conversationId: fallbackConversationId,
-                  businessName: null
-                })
-              });
-              
-              console.log('[FOLLOWUP DEBUG API RESPONSE - FALLBACK]', response.status);
-              
-              if (response.ok) {
-                const result = await response.json() as { success: boolean; jobCount: number };
-                console.log('[FOLLOWUP DEBUG SUCCESS - FALLBACK]', { 
-                  businessId: sessionBusinessId, 
-                  leadId: fallbackLead.id,
-                  jobCount: result.jobCount 
-                });
-              } else {
-                console.error('[FOLLOWUP DEBUG ERROR - FALLBACK]', { 
-                  businessId: sessionBusinessId, 
-                  leadId: fallbackLead.id,
-                  status: response.status,
-                  statusText: response.statusText
-                });
-              }
-            } catch (followUpError) {
-              console.error('[FOLLOWUP DEBUG ERROR - FALLBACK]', { 
-                businessId: sessionBusinessId, 
-                leadId: fallbackLead.id,
-                error: followUpError
-              });
-            }
-            console.log('[FOLLOWUP DEBUG COMPLETE - FALLBACK] Follow-up API call finished');
-
-            // AI confirmation SMS skipped in fallback path to prevent duplicates
-            // Active success path (line 2449) handles SMS sending for completed AI intake
-            console.log('[AI CONFIRMATION SMS SKIPPED FALLBACK PATH]', {
-              reason: 'active_path_handles_sms',
-              leadId: fallbackLead?.id,
-              conversationId: fallbackConversationId,
-              callSid: sessionCallSid,
-              note: 'Falling back to transcript-only processing, but SMS is handled by active path'
-            });
-
-            // Notification is now created in PATH-E via API endpoint (uses notificationServiceServer)
+          
+          console.log('[AI CALL RECORD INSERT PAYLOAD]', fallbackInsertPayload);
+          const { error: fallbackRecordError } = await supabase
+            .from('ai_call_records')
+            .insert(fallbackInsertPayload);
+          
+          if (fallbackRecordError) {
+            console.log('[AI CALL RECORD SAVE FAILED]', fallbackRecordError);
+          } else {
+            console.log('[AI CALL RECORD SAVED] fallback record created successfully');
           }
         }
-        return;
+        
+        console.log('[INGEST CALL DATA EXIT] =========================================');
+        console.log('[INGEST CALL DATA EXIT] Function exit');
+        console.log('[INGEST CALL DATA EXIT] Timestamp:', new Date().toISOString());
+        console.log('[INGEST CALL DATA EXIT] =========================================');
       }
     };
 
