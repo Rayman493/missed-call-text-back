@@ -153,14 +153,14 @@ interface CallContext {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_name_reason' | 'ask_details' | 'ask_location' | 'ask_completion_time' | 'ask_callback_time' | 'complete';
+type IntakeStage = 'ask_name_reason' | 'ask_details' | 'ask_location' | 'ask_completion_time' | 'complete';
 
 /**
  * AI Intake Flow Documentation
- * 
+ *
  * Purpose: Collect required information from callers in a structured, controlled manner.
  * Prevents free-form AI conversation and ensures consistent data collection.
- * 
+ *
  * Required Fields:
  * - customerName: Caller's name
  * - serviceRequested: Reason for calling (service type)
@@ -168,23 +168,23 @@ type IntakeStage = 'ask_name_reason' | 'ask_details' | 'ask_location' | 'ask_com
  * - serviceAddress: Location for the service
  * - desiredCompletionTime: When the work should be completed
  * - callbackTime: Best time for the business to call back
- * 
+ *
  * Flow:
- * ask_name_reason → ask_details → ask_location → ask_completion_time → ask_callback_time → complete
- * 
+ * ask_name_reason → ask_details → ask_location → ask_completion_time → complete
+ *
  * Stage Prompts:
  * - ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?"
  * - ask_details: "Got it. Can you share any important details the business should know?"
  * - ask_location: "Thanks. Where will the service take place?"
  * - ask_completion_time: "Got it. When would you like this work completed?"
- * - ask_callback_time: "Thanks. What is the best time for the business to call you back?"
  * - complete: Final sentence: "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day."
- * 
+ *
  * Notes:
  * - Do not change the intake flow or add new questions.
  * - Do not reintroduce urgency, callback number, confirmation, or free-form AI conversation.
  * - All prompts must match the exact wording specified above.
  * - Field extraction uses heuristics to capture multiple answers from single responses.
+ * - Callback number must never be asked - the business already has the caller's phone number.
  */
 
 // AI session state tracking types
@@ -842,8 +842,7 @@ function sendStagePrompt(stage: string, openAiWs: any): void {
     'ask_name_reason': 'Hi, I\'m the assistant for the business. Can you please let me know your name and your reason for calling?',
     'ask_details': 'Got it. Can you share any important details the business should know?',
     'ask_location': 'Thanks. Where will the service take place?',
-    'ask_completion_time': 'Got it. When would you like this work completed?',
-    'ask_callback_time': 'Thanks. What is the best time for the business to call you back?'
+    'ask_completion_time': 'Got it. When would you like this work completed?'
   };
 
   const prompt = stagePrompts[stage];
@@ -1038,51 +1037,26 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
     case 'ask_completion_time':
       // Check if desired completion time was captured
       if (intake.desiredCompletionTime) {
+        // All required fields collected, close the intake
+        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] =========================================');
+        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] All 6 required fields collected');
+        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] customerName:', !!intake.customerName);
+        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] serviceRequested:', !!intake.serviceRequested);
+        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] issueDescription:', !!intake.issueDescription);
+        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] serviceAddress:', !!intake.serviceAddress);
+        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] desiredCompletionTime:', !!intake.desiredCompletionTime);
+        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] callbackTime:', !!intake.callbackTime);
+        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] Timestamp:', new Date().toISOString());
+        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] =========================================');
         return {
-          response: 'Thanks. What is the best time for the business to call you back?',
-          nextStage: 'ask_callback_time'
+          response: '',
+          nextStage: 'complete'
         };
       }
       // Ask for completion time again if not captured
       return {
         response: 'Got it. When would you like this work completed?',
         nextStage: 'ask_completion_time'
-      };
-
-    case 'ask_callback_time':
-      // Check if callback time was captured
-      if (intake.callbackTime) {
-        // Validate callback time answer
-        const isValid = isValidCallbackTimeAnswer(intake.callbackTime);
-        
-        if (!isValid) {
-          console.log('[CALLBACK TIME INVALID] =========================================');
-          console.log('[CALLBACK TIME INVALID] rawTranscript:', intake.callbackTime);
-          console.log('[CALLBACK TIME INVALID] Timestamp:', new Date().toISOString());
-          console.log('[CALLBACK TIME INVALID] =========================================');
-          
-          // Clear invalid callback time and re-ask
-          intake.callbackTime = '';
-          return {
-            response: 'Thanks. What is the best time for the business to call you back?',
-            nextStage: 'ask_callback_time'
-          };
-        }
-        
-        console.log('[CALLBACK TIME CAPTURED CLOSING NOW] =========================================');
-        console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Callback time captured, closing now');
-        console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Callback time:', intake.callbackTime);
-        console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Timestamp:', new Date().toISOString());
-        console.log('[CALLBACK TIME CAPTURED CLOSING NOW] =========================================');
-        return {
-          response: '',
-          nextStage: 'complete'
-        };
-      }
-      // Ask for callback time again if not captured
-      return {
-        response: 'Thanks. What is the best time for the business to call you back?',
-        nextStage: 'ask_callback_time'
       };
 
     case 'complete':
@@ -1506,98 +1480,6 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[FIELD EXTRACTION SKIPPED] =========================================');
       break;
 
-    case 'ask_callback_time':
-      // Allowed: callbackTime
-      // Forbidden: customerName, serviceRequested, issueDescription, serviceAddress, desiredCompletionTime
-      
-      // Extract callback time
-      if (!intake.callbackTime) {
-        const oldCallback = intake.callbackTime;
-        const callbackTimePatterns = [
-          'as soon as possible',
-          'asap',
-          'anytime',
-          'whenever',
-          'today',
-          'tomorrow',
-          'tomorrow morning',
-          'tomorrow afternoon',
-          'this morning',
-          'this afternoon',
-          'this evening',
-          'monday',
-          'tuesday',
-          'wednesday',
-          'thursday',
-          'friday',
-          'next week'
-        ];
-
-        const foundCallbackTime = callbackTimePatterns.find(pattern => lowerTranscript.includes(pattern));
-        if (foundCallbackTime) {
-          intake.callbackTime = foundCallbackTime.charAt(0).toUpperCase() + foundCallbackTime.slice(1);
-          console.log('[FIELD ASSIGNMENT] =========================================');
-          console.log('[FIELD ASSIGNMENT] field: callbackTime');
-          console.log('[FIELD ASSIGNMENT] oldValue:', oldCallback);
-          console.log('[FIELD ASSIGNMENT] newValue:', intake.callbackTime);
-          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (pattern match)');
-          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
-          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
-          console.log('[FIELD ASSIGNMENT] =========================================');
-          console.log('[LIVE EXTRACTION MAPPED] callbackTime:', intake.callbackTime);
-        } else if (lowerTranscript.includes('as soon as possible')) {
-          intake.callbackTime = 'As soon as possible';
-          console.log('[FIELD ASSIGNMENT] =========================================');
-          console.log('[FIELD ASSIGNMENT] field: callbackTime');
-          console.log('[FIELD ASSIGNMENT] oldValue:', oldCallback);
-          console.log('[FIELD ASSIGNMENT] newValue:', intake.callbackTime);
-          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (heuristic fallback)');
-          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
-          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
-          console.log('[FIELD ASSIGNMENT] =========================================');
-          console.log('[FIELD MAPPING FALLBACK APPLIED] callbackTime set to "As soon as possible"');
-        }
-      }
-
-      // Log skipped extractions
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: customerName');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: serviceRequested');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: issueDescription');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: serviceAddress');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: desiredCompletionTime');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      break;
-
     default:
       // Unknown stage - skip all extractions
       console.log('[FIELD EXTRACTION SKIPPED] =========================================');
@@ -1726,7 +1608,8 @@ async function finalizeIncompleteIntake(
   callSid: string,
   businessName: string,
   forwardedFrom: string,
-  supabase: any
+  supabase: any,
+  closingState?: any
 ): Promise<void> {
   console.log('[FINALIZE INCOMPLETE ENTER] =========================================');
   console.log('[FINALIZE INCOMPLETE ENTER] Function entry');
@@ -1735,6 +1618,48 @@ async function finalizeIncompleteIntake(
   console.log('[FINALIZE INCOMPLETE ENTER] callerPhone:', callerPhone);
   console.log('[FINALIZE INCOMPLETE ENTER] Timestamp:', new Date().toISOString());
   console.log('[FINALIZE INCOMPLETE ENTER] =========================================');
+  
+  // INCOMPLETE FINALIZATION OWNERSHIP CHECK
+  const stage = intakeData?.stage || 'unknown';
+  const allRequiredFieldsCollected = intakeData ? areAllRequiredFieldsCollected(intakeData) : false;
+  const finalClosingStarted = closingState?.finalClosingStarted || false;
+  const terminalClosingResponseStarted = closingState?.terminalClosingResponseStarted || false;
+  
+  console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] =========================================');
+  console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] stage:', stage);
+  console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] allRequiredFieldsCollected:', allRequiredFieldsCollected);
+  console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] finalClosingStarted:', finalClosingStarted);
+  console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+  console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] =========================================');
+  
+  // Verify call is truly incomplete before claiming ownership
+  const willClaimCall = stage !== 'complete' && 
+                        !allRequiredFieldsCollected && 
+                        !finalClosingStarted && 
+                        !terminalClosingResponseStarted;
+  
+  console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] =========================================');
+  console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] willClaimCall:', willClaimCall);
+  console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION OWNERSHIP CHECK] =========================================');
+  
+  if (!willClaimCall) {
+    console.log('[INCOMPLETE FINALIZATION NOT CLAIMED - COMPLETE CALL] =========================================');
+    console.log('[INCOMPLETE FINALIZATION NOT CLAIMED - COMPLETE CALL] Call is complete, incomplete finalization will NOT claim ownership');
+    console.log('[INCOMPLETE FINALIZATION NOT CLAIMED - COMPLETE CALL] stage:', stage);
+    console.log('[INCOMPLETE FINALIZATION NOT CLAIMED - COMPLETE CALL] allRequiredFieldsCollected:', allRequiredFieldsCollected);
+    console.log('[INCOMPLETE FINALIZATION NOT CLAIMED - COMPLETE CALL] finalClosingStarted:', finalClosingStarted);
+    console.log('[INCOMPLETE FINALIZATION NOT CLAIMED - COMPLETE CALL] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+    console.log('[INCOMPLETE FINALIZATION NOT CLAIMED - COMPLETE CALL] Timestamp:', new Date().toISOString());
+    console.log('[INCOMPLETE FINALIZATION NOT CLAIMED - COMPLETE CALL] =========================================');
+    
+    console.log('[FINALIZE INCOMPLETE EXIT] =========================================');
+    console.log('[FINALIZE INCOMPLETE EXIT] Function exit (call is complete)');
+    console.log('[FINALIZE INCOMPLETE EXIT] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZE INCOMPLETE EXIT] =========================================');
+    return;
+  }
   
   // Acquire finalization lock
   if (finalizationInProgressByCallSid.has(callSid)) {
@@ -2146,12 +2071,6 @@ function getResponseForMissingField(missingField: string, intake: IntakeData): {
       return {
         response: 'When would you like this work completed?',
         nextStage: 'ask_completion_time'
-      };
-    case 'callback time':
-    case 'callbackTime':
-      return {
-        response: 'What is the best time for the business to call you back?',
-        nextStage: 'ask_callback_time'
       };
     default:
       return {
@@ -3681,23 +3600,50 @@ wss.on('connection', (ws, req) => {
       
       // Check if incomplete finalization owns this call
       if (finalizationInProgressByCallSid.has(sessionCallSid) || incompleteFinalizedCallSids.has(sessionCallSid)) {
-        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
-        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] ingestCallData() skipped - incomplete finalization owns call');
-        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] callSid:', sessionCallSid);
-        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] Timestamp:', new Date().toISOString());
-        console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
+        // Verify call is truly incomplete before skipping
+        // If call reached complete/terminal close, allow full persistence
+        const stage = intakeData?.stage || 'unknown';
+        const allRequiredFieldsCollected = intakeData ? areAllRequiredFieldsCollected(intakeData) : false;
+        const finalClosingStarted = closingState?.finalClosingStarted || false;
+        const terminalClosingResponseStarted = closingState?.terminalClosingResponseStarted || false;
         
-        console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] =========================================');
-        console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] callSid:', sessionCallSid);
-        console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] finalizationInProgress:', finalizationInProgressByCallSid.has(sessionCallSid));
-        console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] incompleteFinalized:', incompleteFinalizedCallSids.has(sessionCallSid));
-        console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] Timestamp:', new Date().toISOString());
-        console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] =========================================');
-        console.log('[INGEST CALL DATA EXIT] =========================================');
-        console.log('[INGEST CALL DATA EXIT] Function exit (skipped - owned by incomplete finalization)');
-        console.log('[INGEST CALL DATA EXIT] Timestamp:', new Date().toISOString());
-        console.log('[INGEST CALL DATA EXIT] =========================================');
-        return;
+        const isCompleteCall = stage === 'complete' || 
+                              allRequiredFieldsCollected || 
+                              finalClosingStarted || 
+                              terminalClosingResponseStarted;
+        
+        if (isCompleteCall) {
+          console.log('[COMPLETE INGEST ALLOWED DESPITE FINALIZATION FLAGS] =========================================');
+          console.log('[COMPLETE INGEST ALLOWED DESPITE FINALIZATION FLAGS] Call is complete, allowing full persistence');
+          console.log('[COMPLETE INGEST ALLOWED DESPITE FINALIZATION FLAGS] stage:', stage);
+          console.log('[COMPLETE INGEST ALLOWED DESPITE FINALIZATION FLAGS] allRequiredFieldsCollected:', allRequiredFieldsCollected);
+          console.log('[COMPLETE INGEST ALLOWED DESPITE FINALIZATION FLAGS] finalClosingStarted:', finalClosingStarted);
+          console.log('[COMPLETE INGEST ALLOWED DESPITE FINALIZATION FLAGS] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+          console.log('[COMPLETE INGEST ALLOWED DESPITE FINALIZATION FLAGS] Timestamp:', new Date().toISOString());
+          console.log('[COMPLETE INGEST ALLOWED DESPITE FINALIZATION FLAGS] =========================================');
+          
+          // Continue with full persistence - don't skip
+        } else {
+          console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
+          console.log('[COMPLETE FINALIZATION STEP 3 FAILED] ingestCallData() skipped - incomplete finalization owns call');
+          console.log('[COMPLETE FINALIZATION STEP 3 FAILED] callSid:', sessionCallSid);
+          console.log('[COMPLETE FINALIZATION STEP 3 FAILED] Timestamp:', new Date().toISOString());
+          console.log('[COMPLETE FINALIZATION STEP 3 FAILED] =========================================');
+          
+          console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] =========================================');
+          console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] callSid:', sessionCallSid);
+          console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] finalizationInProgress:', finalizationInProgressByCallSid.has(sessionCallSid));
+          console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] incompleteFinalized:', incompleteFinalizedCallSids.has(sessionCallSid));
+          console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] stage:', stage);
+          console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] allRequiredFieldsCollected:', allRequiredFieldsCollected);
+          console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] Timestamp:', new Date().toISOString());
+          console.log('[INGEST SKIPPED - INCOMPLETE FINALIZATION OWNS CALL] =========================================');
+          console.log('[INGEST CALL DATA EXIT] =========================================');
+          console.log('[INGEST CALL DATA EXIT] Function exit (skipped - owned by incomplete finalization)');
+          console.log('[INGEST CALL DATA EXIT] Timestamp:', new Date().toISOString());
+          console.log('[INGEST CALL DATA EXIT] =========================================');
+          return;
+        }
       }
       
       console.log('[AI INGEST START] call ended');
@@ -3789,9 +3735,9 @@ wss.on('connection', (ws, req) => {
         try {
           // Extract structured fields from transcript
           console.log('[AI INGEST] extracting fields...');
-          const extractionPrompt = `Extract the following information from this AI call transcript. Return JSON with these keys: callerName, reasonForCalling, urgencyLevel, importantDetails, addressOrLocation, preferredCallbackTime, summary. If a field is not found, set it to null.
+          const extractionPrompt = `Extract the following information from this AI call transcript. Return JSON with these keys: callerName, reasonForCalling, importantDetails, addressOrLocation, preferredCallbackTime, summary. If a field is not found, set it to null.
 
-The summary should be concise and business-facing. Example: "John Smith called regarding a leaking water heater. Issue appears urgent because water is actively leaking. Caller requested callback this afternoon."
+The summary should be concise and business-facing. Example: "John Smith called regarding a leaking water heater. Water is actively leaking. Caller requested callback this afternoon."
 
 Transcript:
 ${fullTranscript}
@@ -5437,75 +5383,6 @@ Do NOT:
                     return; // Skip normal intake processing - NO MORE AI RESPONSES
                   }
 
-                  // Stage-specific field capture for callback time
-                  if (intakeData!.stage === 'ask_callback_time' && userTranscript && userTranscript.trim().length > 0) {
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] =========================================');
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Current stage: ask_callback_time');
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Capturing callback time from transcript');
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Transcript:', userTranscript);
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Timestamp:', new Date().toISOString());
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] =========================================');
-
-                    // Normalize simple answers
-                    let normalizedCallbackTime = userTranscript.trim();
-                    const lowerTranscript = normalizedCallbackTime.toLowerCase();
-                    
-                    if (lowerTranscript === 'as soon as possible' || lowerTranscript === 'asap') {
-                      normalizedCallbackTime = 'As soon as possible';
-                    } else if (lowerTranscript === 'anytime' || lowerTranscript === 'whenever') {
-                      normalizedCallbackTime = 'Anytime';
-                    } else if (lowerTranscript === 'today') {
-                      normalizedCallbackTime = 'Today';
-                    } else if (lowerTranscript === 'tomorrow') {
-                      normalizedCallbackTime = 'Tomorrow';
-                    } else if (lowerTranscript === 'morning') {
-                      normalizedCallbackTime = 'Morning';
-                    } else if (lowerTranscript === 'afternoon') {
-                      normalizedCallbackTime = 'Afternoon';
-                    } else if (lowerTranscript === 'evening') {
-                      normalizedCallbackTime = 'Evening';
-                    }
-
-                    console.log('[CALLBACK TIME CAPTURED] =========================================');
-                    console.log('[CALLBACK TIME CAPTURED] callbackTime:', normalizedCallbackTime);
-                    console.log('[CALLBACK TIME CAPTURED] rawTranscript:', userTranscript);
-                    console.log('[CALLBACK TIME CAPTURED] Timestamp:', new Date().toISOString());
-                    console.log('[CALLBACK TIME CAPTURED] =========================================');
-
-                    intakeData!.callbackTime = normalizedCallbackTime;
-
-                    console.log('[CALLBACK TIME COMPLETION CHECK] =========================================');
-                    console.log('[CALLBACK TIME COMPLETION CHECK] Checking if all required fields are collected after callback time');
-                    console.log('[CALLBACK TIME COMPLETION CHECK] areAllRequiredFieldsCollected:', areAllRequiredFieldsCollected(intakeData!));
-                    console.log('[CALLBACK TIME COMPLETION CHECK] missingFields:', getMissingRequiredFields(intakeData!));
-                    console.log('[CALLBACK TIME COMPLETION CHECK] intakeData:', JSON.stringify(intakeData!, null, 2));
-                    console.log('[CALLBACK TIME COMPLETION CHECK] Timestamp:', new Date().toISOString());
-                    console.log('[CALLBACK TIME COMPLETION CHECK] =========================================');
-
-                    console.log('[CALLBACK TIME ADVANCING TO COMPLETE] =========================================');
-                    console.log('[CALLBACK TIME ADVANCING TO COMPLETE] Advancing to complete stage');
-                    console.log('[CALLBACK TIME ADVANCING TO COMPLETE] Timestamp:', new Date().toISOString());
-                    console.log('[CALLBACK TIME ADVANCING TO COMPLETE] =========================================');
-
-                    console.log('[CALLBACK TIME CAPTURED CLOSING NOW] =========================================');
-                    console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Callback time captured, closing now');
-                    console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Callback time:', intakeData!.callbackTime);
-                    console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Timestamp:', new Date().toISOString());
-                    console.log('[CALLBACK TIME CAPTURED CLOSING NOW] =========================================');
-
-                    console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
-                    console.log('[APP CONTROLLED CLOSING STARTED] Setting intake stage to complete');
-                    console.log('[APP CONTROLLED CLOSING STARTED] Setting intakeComplete flag to true');
-                    console.log('[APP CONTROLLED CLOSING STARTED] Calling enterTerminalClose');
-                    console.log('[APP CONTROLLED CLOSING STARTED] Timestamp:', new Date().toISOString());
-                    console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
-
-                    intakeData!.stage = 'complete';
-                    intakeComplete = true;
-                    enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
-                    return; // Skip normal intake processing - NO MORE AI RESPONSES
-                  }
-
                   // Stage-specific field capture for completion time
                   if (intakeData!.stage === 'ask_completion_time' && userTranscript && userTranscript.trim().length > 0) {
                     console.log('[STAGE SPECIFIC FIELD CAPTURE] =========================================');
@@ -5538,10 +5415,27 @@ Do NOT:
                     console.log('[COMPLETION TIME CAPTURED] =========================================');
 
                     intakeData!.desiredCompletionTime = normalizedCompletionTime;
-                    intakeData!.stage = 'ask_callback_time';
-
-                    // Send callback time prompt
-                    sendStagePrompt('ask_callback_time', openAiWs);
+                    
+                    // Check if all required fields are collected after completion time
+                    if (areAllRequiredFieldsCollected(intakeData!)) {
+                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] =========================================');
+                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] All 6 required fields collected');
+                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] customerName:', !!intakeData!.customerName);
+                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] serviceRequested:', !!intakeData!.serviceRequested);
+                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] issueDescription:', !!intakeData!.issueDescription);
+                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] serviceAddress:', !!intakeData!.serviceAddress);
+                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] desiredCompletionTime:', !!intakeData!.desiredCompletionTime);
+                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] callbackTime:', !!intakeData!.callbackTime);
+                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] Timestamp:', new Date().toISOString());
+                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] =========================================');
+                      
+                      intakeData!.stage = 'complete';
+                      intakeComplete = true;
+                      enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
+                      return; // Skip normal intake processing - NO MORE AI RESPONSES
+                    }
+                    
+                    // Not all fields collected yet, continue normal processing
                     return; // Skip normal intake processing
                   }
                   
@@ -7748,7 +7642,8 @@ Details: ${extractedFields.importantDetails || 'None'}`;
           callSid || '',
           businessName || '',
           forwardedFrom || '',
-          supabase
+          supabase,
+          closingState
         ).catch(error => {
           console.log('[TWILIO WEBSOCKET CLOSE] Incomplete finalization failed:', error);
         });
