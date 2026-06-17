@@ -975,6 +975,23 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
     case 'ask_callback_time':
       // Check if callback time was captured
       if (intake.callbackTime) {
+        // Validate callback time answer
+        const isValid = isValidCallbackTimeAnswer(intake.callbackTime);
+        
+        if (!isValid) {
+          console.log('[CALLBACK TIME INVALID] =========================================');
+          console.log('[CALLBACK TIME INVALID] rawTranscript:', intake.callbackTime);
+          console.log('[CALLBACK TIME INVALID] Timestamp:', new Date().toISOString());
+          console.log('[CALLBACK TIME INVALID] =========================================');
+          
+          // Clear invalid callback time and re-ask
+          intake.callbackTime = '';
+          return {
+            response: 'Thanks. What is the best time for the business to call you back?',
+            nextStage: 'ask_callback_time'
+          };
+        }
+        
         console.log('[CALLBACK TIME CAPTURED CLOSING NOW] =========================================');
         console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Callback time captured, closing now');
         console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Callback time:', intake.callbackTime);
@@ -1123,15 +1140,15 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
     const onlineKeywords = ['online', 'virtual', 'remote', 'zoom', 'google meet', 'discord', 'over the phone', 'phone', 'phone call'];
     const hasOnlineKeyword = onlineKeywords.some(keyword => lowerTranscript.includes(keyword));
     if (hasOnlineKeyword) {
-      intake.serviceAddress = 'Online';
+      intake.serviceAddress = 'Virtual / Online';
       intake.locationType = 'online';
       console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
     } else {
-      // Check for business location responses
-      const businessLocationKeywords = ['at your business', 'at your shop', 'at your office', 'at your place', 'at your facility', 'at your location', 'your business', 'your shop', 'your office', 'your facility', 'your location', "i'll come to you", 'come to you'];
+      // Check for business location responses (expanded list)
+      const businessLocationKeywords = ['at the business', 'at your business', 'at your shop', 'at your office', 'at your place', 'at your facility', 'at your location', 'your business', 'your shop', 'your office', 'your facility', 'your location', "i'll come to you", 'come to you', 'at the studio', 'at the shop'];
       const hasBusinessLocationKeyword = businessLocationKeywords.some(keyword => lowerTranscript.includes(keyword));
       if (hasBusinessLocationKeyword) {
-        intake.serviceAddress = 'At business location';
+        intake.serviceAddress = 'Business location';
         intake.locationType = 'business_location';
         console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
       } else {
@@ -1147,6 +1164,18 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
           // This captures city names, neighborhoods, or specific addresses
           intake.serviceAddress = transcript.trim();
           intake.locationType = 'service_address';
+          
+          // Check if this might be a business name (no location indicator)
+          const locationIndicators = ['street', 'ave', 'avenue', 'road', 'lane', 'drive', 'blvd', 'boulevard', 'at', 'near', 'in', 'on', 'suite', 'unit', '#'];
+          const hasLocationIndicator = locationIndicators.some(indicator => lowerTranscript.includes(indicator));
+          
+          if (!hasLocationIndicator && transcript.trim().length > 5) {
+            console.log('[LOCATION POSSIBLE BUSINESS NAME] =========================================');
+            console.log('[LOCATION POSSIBLE BUSINESS NAME] rawTranscript:', transcript);
+            console.log('[LOCATION POSSIBLE BUSINESS NAME] Timestamp:', new Date().toISOString());
+            console.log('[LOCATION POSSIBLE BUSINESS NAME] =========================================');
+          }
+          
           console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
         }
       }
@@ -1171,6 +1200,50 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
   console.log('[LIVE EXTRACTION COMPLETE] callbackTime:', intake.callbackTime);
   console.log('[LIVE EXTRACTION COMPLETE] Timestamp:', new Date().toISOString());
   console.log('[LIVE EXTRACTION COMPLETE] =========================================');
+}
+
+// Helper function to validate callback time answer
+function isValidCallbackTimeAnswer(transcript: string): boolean {
+  const lowerTranscript = transcript.toLowerCase().trim();
+  
+  // Valid callback time patterns
+  const validPatterns = [
+    // Time of day
+    'morning', 'mornings', 'afternoon', 'afternoons', 'evening', 'evenings', 'noon',
+    // General timing
+    'anytime', 'whenever', 'today', 'tomorrow',
+    // Specific day combinations
+    'tomorrow morning', 'tomorrow afternoon', 'tomorrow evening',
+    'this morning', 'this afternoon', 'this evening',
+    // Days of week
+    'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+    // Relative timing
+    'next week', 'as soon as possible', 'asap', 'after work', 'before noon', 'around lunch',
+    // Time ranges
+    'between', 'after', 'before',
+    // Time with AM/PM
+    'am', 'pm',
+    // Common time indicators
+    'call', 'reach', 'contact', 'speak'
+  ];
+  
+  // Check if transcript contains any valid pattern
+  const hasValidPattern = validPatterns.some(pattern => lowerTranscript.includes(pattern));
+  
+  // Check for explicit time mentions (e.g., "3 PM", "10 AM")
+  const timePattern = /\d+\s*(am|pm|o'clock|:00|:30)/i;
+  const hasTimeMention = timePattern.test(lowerTranscript);
+  
+  // Reject if transcript is too short (likely invalid)
+  if (lowerTranscript.length < 3) {
+    return false;
+  }
+  
+  // Reject if transcript contains only random words (check against common invalid words)
+  const invalidWords = ['moon', 'banana', 'purple', 'dog', 'piano', 'cat', 'apple', 'car', 'house', 'tree', 'book', 'computer', 'phone'];
+  const isOnlyInvalidWord = invalidWords.includes(lowerTranscript);
+  
+  return hasValidPattern || hasTimeMention || !isOnlyInvalidWord;
 }
 
 // Helper function to validate issue description
