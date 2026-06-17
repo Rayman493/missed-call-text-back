@@ -420,10 +420,20 @@ function isConfirmationAccepted(transcript: string): boolean {
 // }
 
 function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, openAiWs: any): void {
-  console.log('[ENTER_TERMINAL_CLOSE] =========================================');
-  console.log('[ENTER_TERMINAL_CLOSE] Entering terminal close mode');
-  console.log('[ENTER_TERMINAL_CLOSE] Timestamp:', new Date().toISOString());
-  console.log('[ENTER_TERMINAL_CLOSE] =========================================');
+  console.log('[ENTER TERMINAL CLOSE START] =========================================');
+  console.log('[ENTER TERMINAL CLOSE START] Entering terminal close mode');
+  console.log('[ENTER TERMINAL CLOSE START] Timestamp:', new Date().toISOString());
+  console.log('[ENTER TERMINAL CLOSE START] =========================================');
+  
+  console.log('[CLOSING STATE SET] =========================================');
+  console.log('[CLOSING STATE SET] Setting terminal flags');
+  console.log('[CLOSING STATE SET] confirmationState: completed');
+  console.log('[CLOSING STATE SET] intakeTerminalComplete: true');
+  console.log('[CLOSING STATE SET] terminalClosingResponseStarted: true');
+  console.log('[CLOSING STATE SET] finalClosingStarted: true');
+  console.log('[CLOSING STATE SET] callState: closing');
+  console.log('[CLOSING STATE SET] Timestamp:', new Date().toISOString());
+  console.log('[CLOSING STATE SET] =========================================');
   
   closingState.confirmationState = 'completed';
   closingState.intakeTerminalComplete = true;
@@ -447,16 +457,22 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   // Generate and track authorized final response ID
   const authorizedFinalResponseId = `final_${Date.now()}`;
   (twilioHandler as any).authorizedFinalResponseId = authorizedFinalResponseId;
+  (twilioHandler as any).finalClosingResponseId = authorizedFinalResponseId;
   
   // Send exact final closing sentence
   const exactClosingSentence = "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you as soon as possible. Have a great day.";
   
-  console.log('[FINAL CLOSING SENTENCE SENT] =========================================');
-  console.log('[FINAL CLOSING SENTENCE SENT] Sending fixed final closing sentence');
-  console.log('[FINAL CLOSING SENTENCE SENT] Sentence:', exactClosingSentence);
-  console.log('[FINAL CLOSING SENTENCE SENT] Response ID:', authorizedFinalResponseId);
-  console.log('[FINAL CLOSING SENTENCE SENT] Timestamp:', new Date().toISOString());
-  console.log('[FINAL CLOSING SENTENCE SENT] =========================================');
+  console.log('[FINAL SENTENCE TEXT] =========================================');
+  console.log('[FINAL SENTENCE TEXT] Final closing sentence:', exactClosingSentence);
+  console.log('[FINAL SENTENCE TEXT] Response ID:', authorizedFinalResponseId);
+  console.log('[FINAL SENTENCE TEXT] Timestamp:', new Date().toISOString());
+  console.log('[FINAL SENTENCE TEXT] =========================================');
+  
+  console.log('[FINAL SENTENCE RESPONSE CREATE SENT] =========================================');
+  console.log('[FINAL SENTENCE RESPONSE CREATE SENT] Sending response.create for final sentence');
+  console.log('[FINAL SENTENCE RESPONSE CREATE SENT] Response ID:', authorizedFinalResponseId);
+  console.log('[FINAL SENTENCE RESPONSE CREATE SENT] Timestamp:', new Date().toISOString());
+  console.log('[FINAL SENTENCE RESPONSE CREATE SENT] =========================================');
   
   sendControlledAssistantText(exactClosingSentence, 'FIXED_FINAL_CLOSING', openAiWs);
 
@@ -464,6 +480,7 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   console.log('[SAFETY FALLBACK TIMER STARTED] =========================================');
   console.log('[SAFETY FALLBACK TIMER STARTED] Starting 8-second safety timer');
   console.log('[SAFETY FALLBACK TIMER STARTED] Will force hangup if final speech completion not received');
+  console.log('[SAFETY FALLBACK TIMER STARTED] Response ID:', authorizedFinalResponseId);
   console.log('[SAFETY FALLBACK TIMER STARTED] Timestamp:', new Date().toISOString());
   console.log('[SAFETY FALLBACK TIMER STARTED] =========================================');
   
@@ -475,11 +492,48 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
       console.log('[SAFETY FALLBACK TRIGGERED] Timestamp:', new Date().toISOString());
       console.log('[SAFETY FALLBACK TRIGGERED] =========================================');
       
-      if (ws && ws.readyState === ws.OPEN) {
-        ws.send(JSON.stringify({
-          event: 'hangup'
-        }));
-        console.log('[TWILIO CALL HANGUP REQUESTED] Safety fallback hangup sent');
+      console.log('[SAFETY FALLBACK HANGUP REQUESTED] =========================================');
+      console.log('[SAFETY FALLBACK HANGUP REQUESTED] Calling Twilio API to hangup');
+      console.log('[SAFETY FALLBACK HANGUP REQUESTED] Timestamp:', new Date().toISOString());
+      console.log('[SAFETY FALLBACK HANGUP REQUESTED] =========================================');
+      
+      // Call Twilio API to hangup
+      const callSid = (ws as any).callSid;
+      const twilioClient = (twilioHandler as any).twilioClient;
+      if (callSid && twilioClient) {
+        twilioClient.calls(callSid).update({ status: 'completed' })
+          .then(() => {
+            console.log('[TWILIO CALL HANGUP SUCCESS] =========================================');
+            console.log('[TWILIO CALL HANGUP SUCCESS] Safety fallback hangup succeeded');
+            console.log('[TWILIO CALL HANGUP SUCCESS] Call SID:', callSid);
+            console.log('[TWILIO CALL HANGUP SUCCESS] Timestamp:', new Date().toISOString());
+            console.log('[TWILIO CALL HANGUP SUCCESS] =========================================');
+            if (ws && ws.readyState === ws.OPEN) {
+              ws.close();
+            }
+          })
+          .catch((error: any) => {
+            console.log('[TWILIO CALL HANGUP FAILED] =========================================');
+            console.log('[TWILIO CALL HANGUP FAILED] Safety fallback hangup failed');
+            console.log('[TWILIO CALL HANGUP FAILED] Error:', error.message);
+            console.log('[TWILIO CALL HANGUP FAILED] Timestamp:', new Date().toISOString());
+            console.log('[TWILIO CALL HANGUP FAILED] =========================================');
+            // Fallback: close WebSocket
+            if (ws && ws.readyState === ws.OPEN) {
+              ws.close();
+            }
+          });
+      } else {
+        console.log('[TWILIO CALL HANGUP FAILED] =========================================');
+        console.log('[TWILIO CALL HANGUP FAILED] No callSid or twilioClient available');
+        console.log('[TWILIO CALL HANGUP FAILED] callSid:', callSid);
+        console.log('[TWILIO CALL HANGUP FAILED] twilioClient:', !!twilioClient);
+        console.log('[TWILIO CALL HANGUP FAILED] Timestamp:', new Date().toISOString());
+        console.log('[TWILIO CALL HANGUP FAILED] =========================================');
+        // Fallback: close WebSocket
+        if (ws && ws.readyState === ws.OPEN) {
+          ws.close();
+        }
       }
     }
   }, 8000);
@@ -4319,9 +4373,18 @@ Do NOT:
                 const responseId = message.response?.id || 'unknown';
                 console.log('[OPENAI RECV] response.created with response_id:', responseId);
                 
+                // Check if this is the final closing response
+                const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
+                if (responseId === authorizedFinalResponseId) {
+                  console.log('[FINAL SENTENCE RESPONSE CREATED] =========================================');
+                  console.log('[FINAL SENTENCE RESPONSE CREATED] Final closing response created by OpenAI');
+                  console.log('[FINAL SENTENCE RESPONSE CREATED] Response ID:', responseId);
+                  console.log('[FINAL SENTENCE RESPONSE CREATED] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL SENTENCE RESPONSE CREATED] =========================================');
+                }
+                
                 // Cancel unauthorized responses in terminal mode
                 if (closingState.intakeTerminalComplete) {
-                  const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
                   if (responseId !== authorizedFinalResponseId) {
                     console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] =========================================');
                     console.log('[UNAUTHORIZED_RESPONSE_CREATED_AFTER_FINAL] Unauthorized response created after terminal mode started');
@@ -4359,10 +4422,22 @@ Do NOT:
                   console.log('[OPENAI RECV] response.output_audio.delta');
                 }
                 
+                // Check if this is the final closing response audio
+                const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
+                const currentResponseId = message.response_id || 'unknown';
+                const isFinalResponse = currentResponseId === authorizedFinalResponseId;
+                
+                if (isFinalResponse) {
+                  console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] =========================================');
+                  console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] Audio delta for final closing response');
+                  console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] Response ID:', currentResponseId);
+                  console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] Delta length:', message.delta?.length || 0);
+                  console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] =========================================');
+                }
+                
                 // Drop unauthorized audio in terminal mode
                 if (closingState.intakeTerminalComplete) {
-                  const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
-                  const currentResponseId = message.response_id || 'unknown';
                   if (currentResponseId !== authorizedFinalResponseId) {
                     console.log('[UNAUTHORIZED_AUDIO_DROPPED_AFTER_FINAL] =========================================');
                     console.log('[UNAUTHORIZED_AUDIO_DROPPED_AFTER_FINAL] Unauthorized audio dropped - terminal mode is active');
@@ -4524,6 +4599,19 @@ Do NOT:
               }
               if (message.type === 'response.done') {
                 console.log('[OPENAI RECV] response.done');
+
+                // Check if this is the final closing response
+                const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
+                const currentResponseId = message.response?.id || 'unknown';
+                const isFinalResponse = currentResponseId === authorizedFinalResponseId;
+                
+                if (isFinalResponse) {
+                  console.log('[FINAL SENTENCE RESPONSE DONE] =========================================');
+                  console.log('[FINAL SENTENCE RESPONSE DONE] Final closing response done event received');
+                  console.log('[FINAL SENTENCE RESPONSE DONE] Response ID:', currentResponseId);
+                  console.log('[FINAL SENTENCE RESPONSE DONE] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL SENTENCE RESPONSE DONE] =========================================');
+                }
 
                 console.log('[TERMINAL_RESPONSE_DONE_RECEIVED] =========================================');
                 console.log('[TERMINAL_RESPONSE_DONE_RECEIVED] Response done event received');
