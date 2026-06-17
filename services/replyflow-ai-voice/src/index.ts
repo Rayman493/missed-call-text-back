@@ -7621,14 +7621,44 @@ Details: ${extractedFields.importantDetails || 'None'}`;
       
       // Handle incomplete intake finalization
       // Only run if intake is incomplete (caller hung up before completing intake)
+      
+      // Log all condition components for audit
+      const stage = intakeData?.stage || 'unknown';
+      const allRequiredFieldsCollected = intakeData ? areAllRequiredFieldsCollected(intakeData) : false;
+      const terminalClosingResponseStarted = closingState?.terminalClosingResponseStarted || false;
+      
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] =========================================');
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] !incompleteFinalizationStarted:', !incompleteFinalizationStarted);
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] callState === "active":', callState === 'active');
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] callState:', callState);
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] !finalClosingStarted:', !finalClosingStarted);
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] finalClosingStarted:', finalClosingStarted);
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] !hangupScheduled:', !hangupScheduled);
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] hangupScheduled:', hangupScheduled);
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] intakeData.stage:', stage);
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] stage !== "complete":', stage !== 'complete');
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] !allRequiredFieldsCollected:', !allRequiredFieldsCollected);
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] allRequiredFieldsCollected:', allRequiredFieldsCollected);
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] !terminalClosingResponseStarted:', !terminalClosingResponseStarted);
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] Timestamp:', new Date().toISOString());
+      console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] =========================================');
+      
+      // Corrected condition: prevent ANY call that reached complete or terminal close from entering incomplete finalization
       if (!incompleteFinalizationStarted && 
           callState === 'active' && 
           !finalClosingStarted && 
-          !hangupScheduled) {
+          !hangupScheduled &&
+          stage !== 'complete' &&
+          !allRequiredFieldsCollected &&
+          !terminalClosingResponseStarted) {
         console.log('[TWILIO WEBSOCKET CLOSE] Detecting incomplete intake - caller hung up before completing intake');
         console.log('[TWILIO WEBSOCKET CLOSE] callState:', callState);
         console.log('[TWILIO WEBSOCKET CLOSE] finalClosingStarted:', finalClosingStarted);
         console.log('[TWILIO WEBSOCKET CLOSE] hangupScheduled:', hangupScheduled);
+        console.log('[TWILIO WEBSOCKET CLOSE] stage:', stage);
+        console.log('[TWILIO WEBSOCKET CLOSE] allRequiredFieldsCollected:', allRequiredFieldsCollected);
+        console.log('[TWILIO WEBSOCKET CLOSE] terminalClosingResponseStarted:', terminalClosingResponseStarted);
         console.log('[TWILIO WEBSOCKET CLOSE] Triggering incomplete intake finalization');
         
         incompleteFinalizationStarted = true;
