@@ -4785,31 +4785,58 @@ Return only JSON, no other text.`;
             console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
           }
 
-          // Create follow-up jobs
-          console.log('[INCOMPLETE FOLLOWUPS CREATED] =========================================');
-          console.log('[INCOMPLETE FOLLOWUPS CREATED] count: 1');
-          console.log('[INCOMPLETE FOLLOWUPS CREATED] Timestamp:', new Date().toISOString());
-          console.log('[INCOMPLETE FOLLOWUPS CREATED] =========================================');
+          // Create follow-up jobs using the proper API
+          console.log('[INCOMPLETE FOLLOWUP CREATE START] =========================================');
+          console.log('[INCOMPLETE FOLLOWUP CREATE START] businessId:', sessionBusinessId);
+          console.log('[INCOMPLETE FOLLOWUP CREATE START] leadId:', fallbackLead.id);
+          console.log('[INCOMPLETE FOLLOWUP CREATE START] conversationId:', fallbackConversationId);
+          console.log('[INCOMPLETE FOLLOWUP CREATE START] callerPhone:', sessionCallerPhone);
+          console.log('[INCOMPLETE FOLLOWUP CREATE START] settingsEnabled: true');
+          console.log('[INCOMPLETE FOLLOWUP CREATE START] Timestamp:', new Date().toISOString());
+          console.log('[INCOMPLETE FOLLOWUP CREATE START] =========================================');
 
           try {
-            const { error: followUpError } = await supabase
-              .from('follow_up_jobs')
-              .insert({
-                business_id: sessionBusinessId,
-                lead_id: fallbackLead.id,
-                conversation_id: fallbackConversationId,
-                status: 'pending',
-                scheduled_for: new Date().toISOString(),
-                created_at: new Date().toISOString()
-              });
-
-            if (followUpError) {
-              console.log('[FOLLOWUP DIRECT INSERT ERROR]', followUpError);
+            const followUpApiUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+            const internalApiSecret = process.env.INTERNAL_API_SECRET;
+            
+            const headers: Record<string, string> = {
+              'Content-Type': 'application/json',
+            };
+            
+            if (internalApiSecret) {
+              headers['Authorization'] = `Bearer ${internalApiSecret}`;
+            }
+            
+            const response = await fetch(`${followUpApiUrl}/api/follow-ups/create-jobs`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                businessId: sessionBusinessId,
+                leadId: fallbackLead.id,
+                conversationId: fallbackConversationId,
+                businessName: null
+              })
+            });
+            
+            if (response.ok) {
+              const result = await response.json() as { success: boolean; jobCount: number; jobs?: any[] };
+              console.log('[INCOMPLETE FOLLOWUP CREATE RESULT] =========================================');
+              console.log('[INCOMPLETE FOLLOWUP CREATE RESULT] createdCount:', result.jobCount);
+              console.log('[INCOMPLETE FOLLOWUP CREATE RESULT] jobs:', JSON.stringify(result.jobs || [], null, 2));
+              console.log('[INCOMPLETE FOLLOWUP CREATE RESULT] Timestamp:', new Date().toISOString());
+              console.log('[INCOMPLETE FOLLOWUP CREATE RESULT] =========================================');
             } else {
-              console.log('[FOLLOWUP DIRECT INSERT SUCCESS]', { leadId: fallbackLead.id });
+              console.log('[INCOMPLETE FOLLOWUP CREATE FAILED] =========================================');
+              console.log('[INCOMPLETE FOLLOWUP CREATE FAILED] error:', response.statusText);
+              console.log('[INCOMPLETE FOLLOWUP CREATE FAILED] status:', response.status);
+              console.log('[INCOMPLETE FOLLOWUP CREATE FAILED] Timestamp:', new Date().toISOString());
+              console.log('[INCOMPLETE FOLLOWUP CREATE FAILED] =========================================');
             }
           } catch (followUpError) {
-            console.log('[FOLLOWUP DIRECT INSERT ERROR]', followUpError);
+            console.log('[INCOMPLETE FOLLOWUP CREATE FAILED] =========================================');
+            console.log('[INCOMPLETE FOLLOWUP CREATE FAILED] error:', String(followUpError));
+            console.log('[INCOMPLETE FOLLOWUP CREATE FAILED] Timestamp:', new Date().toISOString());
+            console.log('[INCOMPLETE FOLLOWUP CREATE FAILED] =========================================');
           }
         }
         

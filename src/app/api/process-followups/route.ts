@@ -53,8 +53,18 @@ export async function POST(request: Request) {
     console.log('[FOLLOWUP CRON] Authorized successfully');
     console.log('[FOLLOWUP CRON START] Processing started');
     
-    // Fetch up to 10 pending jobs where scheduled_for <= now()
+    // Add query logs
     const now = new Date().toISOString();
+    console.log('[FOLLOWUP PROCESSOR QUERY] =========================================');
+    console.log('[FOLLOWUP PROCESSOR QUERY] now:', now);
+    console.log('[FOLLOWUP PROCESSOR QUERY] businessIdFilter: none (all businesses)');
+    console.log('[FOLLOWUP PROCESSOR QUERY] statusFilter: pending');
+    console.log('[FOLLOWUP PROCESSOR QUERY] scheduledAtLte:', now);
+    console.log('[FOLLOWUP PROCESSOR QUERY] enabledSettings: N/A (query all pending jobs)');
+    console.log('[FOLLOWUP PROCESSOR QUERY] Timestamp:', new Date().toISOString());
+    console.log('[FOLLOWUP PROCESSOR QUERY] =========================================');
+    
+    // Fetch up to 10 pending jobs where scheduled_for <= now()
     const { data: jobs, error: jobsError } = await supabase
       .from('follow_up_jobs')
       .select('*')
@@ -62,6 +72,13 @@ export async function POST(request: Request) {
       .lte('scheduled_for', now)
       .limit(10)
       .order('scheduled_for', { ascending: true });
+
+    console.log('[FOLLOWUP PROCESSOR RESULT] =========================================');
+    console.log('[FOLLOWUP PROCESSOR RESULT] pendingCount:', jobs?.length || 0);
+    console.log('[FOLLOWUP PROCESSOR RESULT] jobs:', JSON.stringify(jobs || [], null, 2));
+    console.log('[FOLLOWUP PROCESSOR RESULT] queryError:', jobsError?.message || 'none');
+    console.log('[FOLLOWUP PROCESSOR RESULT] Timestamp:', new Date().toISOString());
+    console.log('[FOLLOWUP PROCESSOR RESULT] =========================================');
 
     if (jobsError) {
       console.error('[SYSTEM] [FOLLOWUP] Error fetching jobs:', jobsError);
