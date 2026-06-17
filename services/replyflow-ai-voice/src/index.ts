@@ -458,14 +458,7 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   console.log('[FINAL CLOSING SENTENCE SENT] Timestamp:', new Date().toISOString());
   console.log('[FINAL CLOSING SENTENCE SENT] =========================================');
   
-  if (openAiWs) {
-    openAiWs.send(JSON.stringify({
-      type: 'response.create',
-      response: {
-        instructions: `Say exactly: "${exactClosingSentence}"`
-      }
-    }));
-  }
+  sendControlledAssistantText(exactClosingSentence, 'FIXED_FINAL_CLOSING', openAiWs);
 
   // Start safety fallback timer - force hangup if final speech completion doesn't arrive within 8 seconds
   console.log('[SAFETY FALLBACK TIMER STARTED] =========================================');
@@ -540,6 +533,26 @@ function generateConfirmationMessage(intake: IntakeData): string {
   return summary;
 }
 
+function sendControlledAssistantText(text: string, reason: string, openAiWs: any): void {
+  console.log('[CONTROLLED ASSISTANT TEXT SENT] =========================================');
+  console.log('[CONTROLLED ASSISTANT TEXT SENT] Reason:', reason);
+  console.log('[CONTROLLED ASSISTANT TEXT SENT] Text:', text);
+  console.log('[CONTROLLED ASSISTANT TEXT SENT] Timestamp:', new Date().toISOString());
+  console.log('[CONTROLLED ASSISTANT TEXT SENT] =========================================');
+
+  const exactInstruction = `Say exactly this sentence and nothing else: "${text}"`;
+  const message = {
+    type: 'response.create',
+    response: {
+      instructions: exactInstruction,
+    },
+  };
+
+  if (openAiWs) {
+    openAiWs.send(JSON.stringify(message));
+  }
+}
+
 function sendStagePrompt(stage: string, openAiWs: any): void {
   const stagePrompts: { [key: string]: string } = {
     'ask_name_reason': 'Thanks for calling. Can I get your name and the reason for your call?',
@@ -561,24 +574,7 @@ function sendStagePrompt(stage: string, openAiWs: any): void {
   console.log('[STAGE PROMPT SELECTED] Timestamp:', new Date().toISOString());
   console.log('[STAGE PROMPT SELECTED] =========================================');
 
-  const exactInstruction = `Say exactly this sentence and nothing else: "${prompt}"`;
-  const message = {
-    type: 'response.create',
-    response: {
-      instructions: exactInstruction,
-    },
-  };
-
-  console.log('[STAGE PROMPT SENT] =========================================');
-  console.log('[STAGE PROMPT SENT] Sending exact stage prompt');
-  console.log('[STAGE PROMPT SENT] Stage:', stage);
-  console.log('[STAGE PROMPT SENT] Prompt:', prompt);
-  console.log('[STAGE PROMPT SENT] Timestamp:', new Date().toISOString());
-  console.log('[STAGE PROMPT SENT] =========================================');
-
-  if (openAiWs) {
-    openAiWs.send(JSON.stringify(message));
-  }
+  sendControlledAssistantText(prompt, `STAGE_PROMPT_${stage.toUpperCase()}`, openAiWs);
 }
 
 function getIntakeResponse(intake: IntakeData, transcript?: string): { response: string; nextStage: IntakeStage } {
@@ -3278,6 +3274,14 @@ Return only JSON, no other text.`;
             closingState.callState === 'closing';
 
           if (terminalStateActive) {
+            console.log('[CALLER AUDIO BLOCKED] =========================================');
+            console.log('[CALLER AUDIO BLOCKED] Caller audio blocked - terminal mode active');
+            console.log('[CALLER AUDIO BLOCKED] intakeTerminalComplete:', closingState.intakeTerminalComplete);
+            console.log('[CALLER AUDIO BLOCKED] terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
+            console.log('[CALLER AUDIO BLOCKED] finalClosingStarted:', closingState.finalClosingStarted);
+            console.log('[CALLER AUDIO BLOCKED] callState:', closingState.callState);
+            console.log('[CALLER AUDIO BLOCKED] Timestamp:', new Date().toISOString());
+            console.log('[CALLER AUDIO BLOCKED] =========================================');
             // Silently drop caller audio in terminal mode
             return;
           }
@@ -3747,7 +3751,7 @@ Do NOT:
                         threshold: 0.5,
                         prefix_padding_ms: 500,
                         silence_duration_ms: 1800,
-                        create_response: true
+                        create_response: false
                       },
                       transcription: {
                         model: "whisper-1"
@@ -4003,6 +4007,12 @@ Do NOT:
                 
                 // Process intake stage advancement after FINAL transcript
                 if (intakeData && intakeData.stage !== 'complete' && openAiWs && sessionReady && !intakeComplete) {
+                  console.log('[AUTO MODEL RESPONSE DISABLED] =========================================');
+                  console.log('[AUTO MODEL RESPONSE DISABLED] Automatic model responses disabled');
+                  console.log('[AUTO MODEL RESPONSE DISABLED] App controls all assistant responses');
+                  console.log('[AUTO MODEL RESPONSE DISABLED] Timestamp:', new Date().toISOString());
+                  console.log('[AUTO MODEL RESPONSE DISABLED] =========================================');
+                  
                   console.log('[INTAKE FIELD CHECK] =========================================');
                   console.log('[INTAKE FIELD CHECK] Checking required fields after transcript');
                   console.log('[INTAKE FIELD CHECK] customerName:', !!intakeData.customerName);
