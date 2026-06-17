@@ -760,15 +760,21 @@ function sendControlledAssistantText(text: string, reason: string, openAiWs: any
 }
 
 function sendStagePrompt(stage: string, openAiWs: any): void {
+  console.log('[ACTIVE INTAKE STAGE] =========================================');
+  console.log('[ACTIVE INTAKE STAGE] stage:', stage);
+
   const stagePrompts: { [key: string]: string } = {
     'ask_name_reason': 'Hi, I\'m the assistant for the business. Can you please let me know your name and your reason for calling?',
     'ask_details': 'Got it. Can you share any important details the business should know?',
-    'ask_location': 'Thanks. What address or location is this for?',
+    'ask_location': 'Thanks. Where will the service take place?',
     'ask_completion_time': 'Got it. When would you like this work completed?',
     'ask_callback_time': 'Thanks. What is the best time for the business to call you back?'
   };
 
   const prompt = stagePrompts[stage];
+  console.log('[ACTIVE INTAKE STAGE] prompt:', prompt);
+  console.log('[ACTIVE INTAKE STAGE] =========================================');
+
   if (!prompt) {
     console.log('[STAGE PROMPT NOT FOUND] Stage:', stage);
     return;
@@ -1225,7 +1231,7 @@ function getResponseForMissingField(missingField: string, intake: IntakeData): {
     case 'service address':
     case 'serviceAddress':
       return {
-        response: 'What address or location is this regarding?',
+        response: 'Where will the service take place?',
         nextStage: 'ask_location'
       };
     case 'desired completion time':
@@ -2927,7 +2933,7 @@ Return only JSON, no other text.`;
       try {
         // Extract structured fields from transcript
         console.log('[AI INGEST] extracting fields...');
-        const extractionPrompt = `Extract the following information from this AI call transcript. Return JSON with these keys: callerName, reasonForCalling, urgencyLevel, importantDetails, addressOrLocation, preferredCallbackTime, summary. If a field is not found, set it to null.
+        const extractionPrompt = `Extract the following information from this AI call transcript. Return JSON with these keys: callerName, reasonForCalling, desiredCompletionTime, importantDetails, addressOrLocation, preferredCallbackTime, summary. If a field is not found, set it to null.
 
 The summary should be concise and business-facing. Example: "John Smith called regarding a leaking water heater. Issue appears urgent because water is actively leaking. Caller requested callback this afternoon."
 
@@ -3394,7 +3400,7 @@ Return only JSON, no other text.`;
             call_sid: sessionCallSid || 'unknown',
             transcript: Array.isArray(transcript) ? transcript : [],
             outcome: 'completed',
-            extracted_info: { callbackNumber: sessionCallerPhone },
+            extracted_info: null,
             summary: fullTranscript || 'AI call completed',
             extraction_failed: true
           };
