@@ -474,6 +474,39 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   (twilioHandler as any).finalSentenceStartTime = finalSentenceStartTime;
   (twilioHandler as any).finalCloseAudioStarted = false;
   
+  // Generate and track authorized final response ID
+  const authorizedFinalResponseId = `final_${Date.now()}`;
+  (twilioHandler as any).authorizedFinalResponseId = authorizedFinalResponseId;
+  (twilioHandler as any).finalClosingResponseId = authorizedFinalResponseId;
+  
+  console.log('[OPENAI FINAL RESPONSE ID GENERATED] =========================================');
+  console.log('[OPENAI FINAL RESPONSE ID GENERATED] Response ID:', authorizedFinalResponseId);
+  console.log('[OPENAI FINAL RESPONSE ID GENERATED] Timestamp:', new Date().toISOString());
+  console.log('[OPENAI FINAL RESPONSE ID GENERATED] =========================================');
+  
+  // Check if OpenAI websocket is open
+  if (!openAiWs || openAiWs.readyState !== openAiWs.OPEN) {
+    console.log('[OPENAI FINAL WS NOT OPEN] =========================================');
+    console.log('[OPENAI FINAL WS NOT OPEN] OpenAI websocket is not open');
+    console.log('[OPENAI FINAL WS NOT OPEN] readyState:', openAiWs ? openAiWs.readyState : 'null');
+    console.log('[OPENAI FINAL WS NOT OPEN] Timestamp:', new Date().toISOString());
+    console.log('[OPENAI FINAL WS NOT OPEN] =========================================');
+    
+    console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] =========================================');
+    console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] OpenAI websocket not open, falling back to TwiML');
+    console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] Timestamp:', new Date().toISOString());
+    console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] =========================================');
+    
+    executeTwilioFallback(ws, twilioHandler, closingState);
+    return;
+  }
+  
+  console.log('[OPENAI FINAL SEND ATTEMPT] =========================================');
+  console.log('[OPENAI FINAL SEND ATTEMPT] Attempting to send final sentence through OpenAI');
+  console.log('[OPENAI FINAL SEND ATTEMPT] Sentence:', FINAL_CLOSE_SENTENCE);
+  console.log('[OPENAI FINAL SEND ATTEMPT] Timestamp:', new Date().toISOString());
+  console.log('[OPENAI FINAL SEND ATTEMPT] =========================================');
+  
   console.log('[OPENAI FINAL SENTENCE SENT] =========================================');
   console.log('[OPENAI FINAL SENTENCE SENT] Sending final sentence through OpenAI Realtime');
   console.log('[OPENAI FINAL SENTENCE SENT] Sentence:', FINAL_CLOSE_SENTENCE);
@@ -482,11 +515,18 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   
   console.log('[OPENAI FINAL RESPONSE CREATE SENT] =========================================');
   console.log('[OPENAI FINAL RESPONSE CREATE SENT] Sending response.create for final sentence');
+  console.log('[OPENAI FINAL RESPONSE CREATE SENT] Response ID:', authorizedFinalResponseId);
   console.log('[OPENAI FINAL RESPONSE CREATE SENT] Timestamp:', new Date().toISOString());
   console.log('[OPENAI FINAL RESPONSE CREATE SENT] =========================================');
   
   // Send final sentence through OpenAI Realtime
   sendControlledAssistantText(FINAL_CLOSE_SENTENCE, 'FINAL_CLOSE_OPENAI', openAiWs);
+  
+  console.log('[OPENAI FINAL RESPONSE CREATED] =========================================');
+  console.log('[OPENAI FINAL RESPONSE CREATED] Response.create sent successfully');
+  console.log('[OPENAI FINAL RESPONSE CREATED] Response ID:', authorizedFinalResponseId);
+  console.log('[OPENAI FINAL RESPONSE CREATED] Timestamp:', new Date().toISOString());
+  console.log('[OPENAI FINAL RESPONSE CREATED] =========================================');
   
   console.log('[OPENAI FINAL HANGUP TIMER STARTED] =========================================');
   console.log('[OPENAI FINAL HANGUP TIMER STARTED] Starting fixed delay hangup timer');
@@ -4575,6 +4615,15 @@ Do NOT:
                   console.log('[OPENAI FINAL AUDIO DELTA RECEIVED] Delta length:', message.delta?.length || 0);
                   console.log('[OPENAI FINAL AUDIO DELTA RECEIVED] Timestamp:', new Date().toISOString());
                   console.log('[OPENAI FINAL AUDIO DELTA RECEIVED] =========================================');
+                }
+                
+                // Log when audio is sent to Twilio
+                if (isFinalResponse) {
+                  console.log('[OPENAI FINAL AUDIO DELTA SENT TO TWILIO] =========================================');
+                  console.log('[OPENAI FINAL AUDIO DELTA SENT TO TWILIO] Final audio delta sent to Twilio');
+                  console.log('[OPENAI FINAL AUDIO DELTA SENT TO TWILIO] Delta length:', message.delta?.length || 0);
+                  console.log('[OPENAI FINAL AUDIO DELTA SENT TO TWILIO] Timestamp:', new Date().toISOString());
+                  console.log('[OPENAI FINAL AUDIO DELTA SENT TO TWILIO] =========================================');
                 }
                 
                 // Drop unauthorized audio in terminal mode
