@@ -540,11 +540,41 @@ function sendControlledAssistantText(text: string, reason: string, openAiWs: any
   console.log('[CONTROLLED ASSISTANT TEXT SENT] Timestamp:', new Date().toISOString());
   console.log('[CONTROLLED ASSISTANT TEXT SENT] =========================================');
 
-  const exactInstruction = `Say exactly this sentence and nothing else: "${text}"`;
+  // Response guard: check for forbidden phrases
+  const forbiddenPhrases = [
+    'could be',
+    'might be',
+    'you might want',
+    'check if',
+    'guidance',
+    'diagnose',
+    'tricky',
+    'wax ring',
+    'supply line',
+    'loose connection',
+    'under the sink',
+    'near the toilet',
+    'shower area'
+  ];
+
+  const lowerText = text.toLowerCase();
+  const foundForbidden = forbiddenPhrases.find(phrase => lowerText.includes(phrase));
+
+  if (foundForbidden) {
+    console.log('[FORBIDDEN PHRASE DETECTED] =========================================');
+    console.log('[FORBIDDEN PHRASE DETECTED] Forbidden phrase detected:', foundForbidden);
+    console.log('[FORBIDDEN PHRASE DETECTED] Original text:', text);
+    console.log('[FORBIDDEN PHRASE DETECTED] Blocking this response');
+    console.log('[FORBIDDEN PHRASE DETECTED] Timestamp:', new Date().toISOString());
+    console.log('[FORBIDDEN PHRASE DETECTED] =========================================');
+    return; // Block the response
+  }
+
+  const strictInstruction = `You are only collecting intake information. Do not answer questions, give advice, troubleshoot, diagnose, or provide guidance. Ask only the exact next intake question. Say exactly this sentence and nothing else: "${text}"`;
   const message = {
     type: 'response.create',
     response: {
-      instructions: exactInstruction,
+      instructions: strictInstruction,
     },
   };
 
@@ -668,8 +698,14 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       };
 
     case 'ask_details':
-      // Check if issue description was captured
-      if (intake.issueDescription && intake.issueDescription.length > 5) {
+      // Check if issue description was captured - any useful details should move to location
+      if (intake.issueDescription && intake.issueDescription.length > 0) {
+        console.log('[DETAILS CAPTURED MOVING TO LOCATION] =========================================');
+        console.log('[DETAILS CAPTURED MOVING TO LOCATION] Issue description captured');
+        console.log('[DETAILS CAPTURED MOVING TO LOCATION] Description:', intake.issueDescription);
+        console.log('[DETAILS CAPTURED MOVING TO LOCATION] Moving to ask_location');
+        console.log('[DETAILS CAPTURED MOVING TO LOCATION] Timestamp:', new Date().toISOString());
+        console.log('[DETAILS CAPTURED MOVING TO LOCATION] =========================================');
         return {
           response: 'What address or location is this for?',
           nextStage: 'ask_location'
