@@ -7645,20 +7645,33 @@ Details: ${extractedFields.importantDetails || 'None'}`;
       console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] =========================================');
       
       // Corrected condition: prevent ANY call that reached complete or terminal close from entering incomplete finalization
+      // FIXED: Read from closingState instead of local variables to prevent race condition
       if (!incompleteFinalizationStarted && 
-          callState === 'active' && 
-          !finalClosingStarted && 
-          !hangupScheduled &&
+          closingState.callState === 'active' && 
+          !closingState.finalClosingStarted && 
+          !closingState.hangupScheduled &&
           stage !== 'complete' &&
           !allRequiredFieldsCollected &&
-          !terminalClosingResponseStarted) {
+          !closingState.terminalClosingResponseStarted) {
+        console.log('[FINALIZE INCOMPLETE CALLSITE] =========================================');
+        console.log('[FINALIZE INCOMPLETE CALLSITE] source: WebSocket close handler (Twilio)');
+        console.log('[FINALIZE INCOMPLETE CALLSITE] callSid:', callSid);
+        console.log('[FINALIZE INCOMPLETE CALLSITE] stage:', stage);
+        console.log('[FINALIZE INCOMPLETE CALLSITE] allRequiredFieldsCollected:', allRequiredFieldsCollected);
+        console.log('[FINALIZE INCOMPLETE CALLSITE] closingState.callState:', closingState.callState);
+        console.log('[FINALIZE INCOMPLETE CALLSITE] closingState.finalClosingStarted:', closingState.finalClosingStarted);
+        console.log('[FINALIZE INCOMPLETE CALLSITE] closingState.hangupScheduled:', closingState.hangupScheduled);
+        console.log('[FINALIZE INCOMPLETE CALLSITE] closingState.terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
+        console.log('[FINALIZE INCOMPLETE CALLSITE] timestamp:', new Date().toISOString());
+        console.log('[FINALIZE INCOMPLETE CALLSITE] =========================================');
+        
         console.log('[TWILIO WEBSOCKET CLOSE] Detecting incomplete intake - caller hung up before completing intake');
-        console.log('[TWILIO WEBSOCKET CLOSE] callState:', callState);
-        console.log('[TWILIO WEBSOCKET CLOSE] finalClosingStarted:', finalClosingStarted);
-        console.log('[TWILIO WEBSOCKET CLOSE] hangupScheduled:', hangupScheduled);
+        console.log('[TWILIO WEBSOCKET CLOSE] callState:', closingState.callState);
+        console.log('[TWILIO WEBSOCKET CLOSE] finalClosingStarted:', closingState.finalClosingStarted);
+        console.log('[TWILIO WEBSOCKET CLOSE] hangupScheduled:', closingState.hangupScheduled);
         console.log('[TWILIO WEBSOCKET CLOSE] stage:', stage);
         console.log('[TWILIO WEBSOCKET CLOSE] allRequiredFieldsCollected:', allRequiredFieldsCollected);
-        console.log('[TWILIO WEBSOCKET CLOSE] terminalClosingResponseStarted:', terminalClosingResponseStarted);
+        console.log('[TWILIO WEBSOCKET CLOSE] terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
         console.log('[TWILIO WEBSOCKET CLOSE] Triggering incomplete intake finalization');
         
         incompleteFinalizationStarted = true;
