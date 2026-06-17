@@ -397,12 +397,12 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   // Send exact final closing sentence
   const exactClosingSentence = "Thank you for calling. I'll pass this information along to the business and they will get back to you as soon as possible. Have a great day.";
   
-  console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] =========================================');
-  console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Creating authorized final response with exact closing sentence');
-  console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Closing sentence:', exactClosingSentence);
-  console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Response ID:', authorizedFinalResponseId);
-  console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] Timestamp:', new Date().toISOString());
-  console.log('[AUTHORIZED_FINAL_CLOSING_SENTENCE_REQUESTED] =========================================');
+  console.log('[FINAL CLOSING SENTENCE SENT] =========================================');
+  console.log('[FINAL CLOSING SENTENCE SENT] Sending fixed final closing sentence');
+  console.log('[FINAL CLOSING SENTENCE SENT] Sentence:', exactClosingSentence);
+  console.log('[FINAL CLOSING SENTENCE SENT] Response ID:', authorizedFinalResponseId);
+  console.log('[FINAL CLOSING SENTENCE SENT] Timestamp:', new Date().toISOString());
+  console.log('[FINAL CLOSING SENTENCE SENT] =========================================');
   
   if (openAiWs) {
     openAiWs.send(JSON.stringify({
@@ -412,6 +412,30 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
       }
     }));
   }
+
+  // Start safety fallback timer - force hangup if final speech completion doesn't arrive within 8 seconds
+  console.log('[SAFETY FALLBACK TIMER STARTED] =========================================');
+  console.log('[SAFETY FALLBACK TIMER STARTED] Starting 8-second safety timer');
+  console.log('[SAFETY FALLBACK TIMER STARTED] Will force hangup if final speech completion not received');
+  console.log('[SAFETY FALLBACK TIMER STARTED] Timestamp:', new Date().toISOString());
+  console.log('[SAFETY FALLBACK TIMER STARTED] =========================================');
+  
+  setTimeout(() => {
+    if (closingState.callState === 'closing' && !closingState.finalClosingAudioDone) {
+      console.log('[SAFETY FALLBACK TRIGGERED] =========================================');
+      console.log('[SAFETY FALLBACK TRIGGERED] Final speech completion not received within 8 seconds');
+      console.log('[SAFETY FALLBACK TRIGGERED] Forcing hangup');
+      console.log('[SAFETY FALLBACK TRIGGERED] Timestamp:', new Date().toISOString());
+      console.log('[SAFETY FALLBACK TRIGGERED] =========================================');
+      
+      if (ws && ws.readyState === ws.OPEN) {
+        ws.send(JSON.stringify({
+          event: 'hangup'
+        }));
+        console.log('[TWILIO CALL HANGUP REQUESTED] Safety fallback hangup sent');
+      }
+    }
+  }, 8000);
 }
 
 function createIntakeData(businessName: string, callSid: string, businessId: string, sessionId: string): IntakeData {
@@ -3559,11 +3583,18 @@ BEHAVIOR REQUIREMENTS:
 
 IMPORTANT GUIDELINES:
 - If the caller already provided information, do not ask for it again
-- Even if caller ID exists, still ask: "Is this the best number to reach you at, or is there another number?"
 - Location/where this would take place is always required. Ask: "Where would this take place — for example at your address, at the business, or online?" Accept flexible responses like online, virtual, remote, Zoom, Google Meet, at your business/shop/office, at my house, city name, or specific street address
-- Urgency is always required; ask "Is this urgent or time-sensitive?"
 - Best callback time is always required; "anytime" is valid
 - Additional details about the issue or project is always required
+
+STRICTLY FORBIDDEN:
+- NEVER ask for urgency or "Is this urgent or time-sensitive?"
+- NEVER ask for callback number or "Is this the best number to reach you at, or is there another number?"
+- NEVER ask for confirmation or "Is that correct?"
+- NEVER ask "Anything else?", "How else can I help?", or similar questions
+- NEVER generate your own closing or goodbye phrase
+- NEVER say "I have everything I need" or similar completion phrases
+- Once the app has collected all 6 required fields, stop normal conversation immediately
 
 Do NOT:
 - give long explanations
@@ -3840,6 +3871,17 @@ Do NOT:
                 
                 // Process intake stage advancement after FINAL transcript
                 if (intakeData && intakeData.stage !== 'complete' && openAiWs && sessionReady && !intakeComplete) {
+                  console.log('[INTAKE FIELD CHECK] =========================================');
+                  console.log('[INTAKE FIELD CHECK] Checking required fields after transcript');
+                  console.log('[INTAKE FIELD CHECK] customerName:', !!intakeData.customerName);
+                  console.log('[INTAKE FIELD CHECK] serviceRequested:', !!intakeData.serviceRequested);
+                  console.log('[INTAKE FIELD CHECK] issueDescription:', !!intakeData.issueDescription);
+                  console.log('[INTAKE FIELD CHECK] serviceAddress:', !!intakeData.serviceAddress);
+                  console.log('[INTAKE FIELD CHECK] desiredCompletionTime:', !!intakeData.desiredCompletionTime);
+                  console.log('[INTAKE FIELD CHECK] callbackTime:', !!intakeData.callbackTime);
+                  console.log('[INTAKE FIELD CHECK] Timestamp:', new Date().toISOString());
+                  console.log('[INTAKE FIELD CHECK] =========================================');
+                  
                   console.log('[AI USER TRANSCRIPT ROUTER]', { 
                     currentStage: intakeData.stage, 
                     intakeComplete: intakeComplete, 
@@ -3849,13 +3891,25 @@ Do NOT:
                   console.log('[INTAKE COMPLETION CHECK] User transcript:', userTranscript);
                   console.log('[INTAKE COMPLETION CHECK] Session ready:', sessionReady);
                   
-                  // Check if all required fields are collected
+                  // Check if all required fields are collected - HARD APP-LEVEL ENFORCEMENT
                   if (areAllRequiredFieldsCollected(intakeData!)) {
-                    console.log('[INTAKE COMPLETE] All required fields collected, entering terminal close');
+                    console.log('[ALL REQUIRED FIELDS COLLECTED] =========================================');
+                    console.log('[ALL REQUIRED FIELDS COLLECTED] All 6 required fields collected');
+                    console.log('[ALL REQUIRED FIELDS COLLECTED] Triggering app-controlled closing');
+                    console.log('[ALL REQUIRED FIELDS COLLECTED] Timestamp:', new Date().toISOString());
+                    console.log('[ALL REQUIRED FIELDS COLLECTED] =========================================');
+                    
+                    console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
+                    console.log('[APP CONTROLLED CLOSING STARTED] Setting intake stage to complete');
+                    console.log('[APP CONTROLLED CLOSING STARTED] Setting intakeComplete flag to true');
+                    console.log('[APP CONTROLLED CLOSING STARTED] Calling enterTerminalClose');
+                    console.log('[APP CONTROLLED CLOSING STARTED] Timestamp:', new Date().toISOString());
+                    console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
+                    
                     intakeData!.stage = 'complete';
                     intakeComplete = true;
                     enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
-                    return; // Skip normal intake processing
+                    return; // Skip normal intake processing - NO MORE AI RESPONSES
                   }
                   
                   // Get next intake response
