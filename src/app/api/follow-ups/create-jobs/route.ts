@@ -128,15 +128,21 @@ export async function POST(request: NextRequest) {
       isAIIntake: !!aiCallRecords && aiCallRecords.outcome === 'completed'
     })
 
-    // AI intake leads now participate in follow-up automation
-    // Previously suppressed, but now all leads use the same follow-up system
+    // Suppress follow-up creation for completed AI intake leads
+    // Customer already completed intake and is awaiting business response
     if (aiCallRecords && aiCallRecords.outcome === 'completed') {
-      console.log('[FOLLOWUP CREATE-JOBS AI LEAD]', {
-        leadId,
-        conversationId,
-        aiCallRecordId: aiCallRecords.id,
-        outcome: aiCallRecords.outcome,
-        reason: 'AI intake completed, proceeding with follow-up creation'
+      console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] =========================================');
+      console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] leadId:', leadId);
+      console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] conversationId:', conversationId);
+      console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] reason: Customer already completed intake and is awaiting business response');
+      console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] aiCallRecordId:', aiCallRecords.id);
+      console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] Timestamp:', new Date().toISOString());
+      console.log('[FOLLOWUP SUPPRESSED COMPLETED AI INTAKE] =========================================');
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        reason: 'completed_ai_intake',
+        aiCallRecordId: aiCallRecords.id
       })
     }
 
