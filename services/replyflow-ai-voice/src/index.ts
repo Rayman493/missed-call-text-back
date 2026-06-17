@@ -1086,184 +1086,511 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
   }
 }
 
-// Helper function to extract multiple answers from single response
+// Helper function to extract multiple answers from single response (STAGE-AWARE)
 function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
   const lowerTranscript = transcript.toLowerCase().trim();
   
   console.log('[LIVE EXTRACTION RAW] =========================================');
   console.log('[LIVE EXTRACTION RAW] Transcript:', transcript);
+  console.log('[LIVE EXTRACTION RAW] Current Stage:', intake.stage);
   console.log('[LIVE EXTRACTION RAW] Timestamp:', new Date().toISOString());
   console.log('[LIVE EXTRACTION RAW] =========================================');
 
-  // Extract name if not already captured
-  if (!intake.customerName) {
-    const name = extractName(transcript);
-    if (name && name.length > 1) {
-      intake.customerName = name;
-      console.log('[LIVE EXTRACTION MAPPED] customerName:', intake.customerName);
-    }
-  }
-
-  // Extract service requested with heuristic fallback
-  if (!intake.serviceRequested) {
-    const serviceKeywords = ['plumbing', 'hvac', 'electrical', 'landscaping', 'roofing', 'cleaning', 'pest control', 'painting', 'carpentry', 'masonry', 'excavation', 'concrete', 'windows', 'doors', 'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage', 'junk removal', 'grass cutting', 'mowing', 'lawn care', 'toilet', 'toilet installation', 'toilet plumbing', 'grass cut', 'cut grass', 'mow lawn', 'lawn mowing'];
-    const foundService = serviceKeywords.find(keyword => lowerTranscript.includes(keyword));
-    if (foundService) {
-      intake.serviceRequested = foundService.charAt(0).toUpperCase() + foundService.slice(1);
-      console.log('[LIVE EXTRACTION MAPPED] serviceRequested:', intake.serviceRequested);
-    } else {
-      // Heuristic fallback: infer service from common phrases
-      if (lowerTranscript.includes('grass') || lowerTranscript.includes('lawn') || lowerTranscript.includes('mow')) {
-        intake.serviceRequested = 'Lawn care';
-        console.log('[FIELD MAPPING FALLBACK APPLIED] serviceRequested inferred as "Lawn care" from:', transcript);
-      } else if (lowerTranscript.includes('plumbing') || lowerTranscript.includes('plumb') || lowerTranscript.includes('pipe') || lowerTranscript.includes('toilet') || lowerTranscript.includes('drain')) {
-        intake.serviceRequested = 'Plumbing';
-        console.log('[FIELD MAPPING FALLBACK APPLIED] serviceRequested inferred as "Plumbing" from:', transcript);
-      } else if (lowerTranscript.includes('install') || lowerTranscript.includes('installed')) {
-        intake.serviceRequested = 'Installation';
-        console.log('[FIELD MAPPING FALLBACK APPLIED] serviceRequested inferred as "Installation" from:', transcript);
+  // Stage-aware extraction: only extract fields relevant to current stage
+  switch (intake.stage) {
+    case 'ask_name_reason':
+      // Allowed: customerName, serviceRequested
+      // Forbidden: issueDescription, serviceAddress, desiredCompletionTime, callbackTime
+      
+      // Extract name if not already captured
+      if (!intake.customerName) {
+        const oldName = intake.customerName;
+        const name = extractName(transcript);
+        if (name && name.length > 1) {
+          intake.customerName = name;
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[FIELD ASSIGNMENT] field: customerName');
+          console.log('[FIELD ASSIGNMENT] oldValue:', oldName);
+          console.log('[FIELD ASSIGNMENT] newValue:', intake.customerName);
+          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractName');
+          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[LIVE EXTRACTION MAPPED] customerName:', intake.customerName);
+        }
       }
-    }
-  }
 
-  // Extract desired completion time if not already captured
-  if (!intake.desiredCompletionTime) {
-    const completionTimePatterns = [
-      'today',
-      'tomorrow',
-      'this week',
-      'next week',
-      'as soon as possible',
-      'asap',
-      'as soon as you can',
-      'right away',
-      'immediately',
-      'soon',
-      'by the end of the week',
-      'by the end of the month',
-      'within a few days',
-      'within a week',
-      'monday',
-      'tuesday',
-      'wednesday',
-      'thursday',
-      'friday',
-      'saturday',
-      'sunday',
-      'next monday',
-      'next tuesday',
-      'next wednesday',
-      'next thursday',
-      'next friday'
-    ];
-
-    const foundTime = completionTimePatterns.find(pattern => lowerTranscript.includes(pattern));
-    if (foundTime) {
-      intake.desiredCompletionTime = foundTime.charAt(0).toUpperCase() + foundTime.slice(1);
-      console.log('[LIVE EXTRACTION MAPPED] desiredCompletionTime:', intake.desiredCompletionTime);
-    }
-  }
-
-  // Extract callback time if not already captured
-  if (!intake.callbackTime) {
-    const callbackTimePatterns = [
-      'as soon as possible',
-      'asap',
-      'anytime',
-      'whenever',
-      'today',
-      'tomorrow',
-      'tomorrow morning',
-      'tomorrow afternoon',
-      'this morning',
-      'this afternoon',
-      'this evening',
-      'monday',
-      'tuesday',
-      'wednesday',
-      'thursday',
-      'friday',
-      'next week'
-    ];
-
-    const foundCallbackTime = callbackTimePatterns.find(pattern => lowerTranscript.includes(pattern));
-    if (foundCallbackTime) {
-      intake.callbackTime = foundCallbackTime.charAt(0).toUpperCase() + foundCallbackTime.slice(1);
-      console.log('[LIVE EXTRACTION MAPPED] callbackTime:', intake.callbackTime);
-    } else if (lowerTranscript.includes('as soon as possible')) {
-      intake.callbackTime = 'As soon as possible';
-      console.log('[FIELD MAPPING FALLBACK APPLIED] callbackTime set to "As soon as possible"');
-    }
-  }
-
-  // Extract location/service address if not already captured (accept flexible responses)
-  if (!intake.serviceAddress) {
-    // Check for online/virtual/remote responses
-    const onlineKeywords = ['online', 'virtual', 'remote', 'zoom', 'google meet', 'discord', 'over the phone', 'phone', 'phone call'];
-    const hasOnlineKeyword = onlineKeywords.some(keyword => lowerTranscript.includes(keyword));
-    if (hasOnlineKeyword) {
-      intake.serviceAddress = 'Virtual / Online';
-      intake.locationType = 'online';
-      console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
-    } else {
-      // Check for business location responses (expanded list)
-      const businessLocationKeywords = ['at the business', 'at your business', 'at your shop', 'at your office', 'at your place', 'at your facility', 'at your location', 'your business', 'your shop', 'your office', 'your facility', 'your location', "i'll come to you", 'come to you', 'at the studio', 'at the shop'];
-      const hasBusinessLocationKeyword = businessLocationKeywords.some(keyword => lowerTranscript.includes(keyword));
-      if (hasBusinessLocationKeyword) {
-        intake.serviceAddress = 'Business location';
-        intake.locationType = 'business_location';
-        console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
-      } else {
-        // Check for residential responses
-        const residentialKeywords = ['at my house', 'my house', 'my home', 'at my home', 'my place'];
-        const hasResidentialKeyword = residentialKeywords.some(keyword => lowerTranscript.includes(keyword));
-        if (hasResidentialKeyword) {
-          intake.serviceAddress = 'At caller\'s residence';
-          intake.locationType = 'caller_location';
-          console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
-        } else if (transcript.trim().length > 5 && !lowerTranscript.startsWith('my name is') && !lowerTranscript.startsWith('i need') && !lowerTranscript.startsWith('i want')) {
-          // Check if this is project detail (not a location)
-          const projectDetailKeywords = ['yard', 'acre', 'square feet', 'sq ft', 'sqft', 'property', 'the yard is', 'my yard', 'the property is', 'my property'];
-          const hasProjectDetailKeyword = projectDetailKeywords.some(keyword => lowerTranscript.includes(keyword));
-          
-          if (hasProjectDetailKeyword) {
-            console.log('[LOCATION PROJECT DETECTED] =========================================');
-            console.log('[LOCATION PROJECT DETECTED] Transcript contains project detail, not location');
-            console.log('[LOCATION PROJECT DETECTED] rawTranscript:', transcript);
-            console.log('[LOCATION PROJECT DETECTED] Timestamp:', new Date().toISOString());
-            console.log('[LOCATION PROJECT DETECTED] Skipping serviceAddress extraction');
-            console.log('[LOCATION PROJECT DETECTED] =========================================');
-          } else {
-            // If transcript contains location-like content (not name or service request), preserve it as-is
-            // This captures city names, neighborhoods, or specific addresses
-            intake.serviceAddress = transcript.trim();
-            intake.locationType = 'service_address';
-            
-            // Check if this might be a business name (no location indicator)
-            const locationIndicators = ['street', 'ave', 'avenue', 'road', 'lane', 'drive', 'blvd', 'boulevard', 'at', 'near', 'in', 'on', 'suite', 'unit', '#'];
-            const hasLocationIndicator = locationIndicators.some(indicator => lowerTranscript.includes(indicator));
-            
-            if (!hasLocationIndicator && transcript.trim().length > 5) {
-              console.log('[LOCATION POSSIBLE BUSINESS NAME] =========================================');
-              console.log('[LOCATION POSSIBLE BUSINESS NAME] rawTranscript:', transcript);
-              console.log('[LOCATION POSSIBLE BUSINESS NAME] Timestamp:', new Date().toISOString());
-              console.log('[LOCATION POSSIBLE BUSINESS NAME] =========================================');
-            }
-            
-            console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
+      // Extract service requested with heuristic fallback
+      if (!intake.serviceRequested) {
+        const oldService = intake.serviceRequested;
+        const serviceKeywords = ['plumbing', 'hvac', 'electrical', 'landscaping', 'roofing', 'cleaning', 'pest control', 'painting', 'carpentry', 'masonry', 'excavation', 'concrete', 'windows', 'doors', 'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage', 'junk removal', 'grass cutting', 'mowing', 'lawn care', 'toilet', 'toilet installation', 'toilet plumbing', 'grass cut', 'cut grass', 'mow lawn', 'lawn mowing'];
+        const foundService = serviceKeywords.find(keyword => lowerTranscript.includes(keyword));
+        if (foundService) {
+          intake.serviceRequested = foundService.charAt(0).toUpperCase() + foundService.slice(1);
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[FIELD ASSIGNMENT] field: serviceRequested');
+          console.log('[FIELD ASSIGNMENT] oldValue:', oldService);
+          console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceRequested);
+          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (keyword match)');
+          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[LIVE EXTRACTION MAPPED] serviceRequested:', intake.serviceRequested);
+        } else {
+          // Heuristic fallback: infer service from common phrases
+          if (lowerTranscript.includes('grass') || lowerTranscript.includes('lawn') || lowerTranscript.includes('mow')) {
+            intake.serviceRequested = 'Lawn care';
+            console.log('[FIELD ASSIGNMENT] =========================================');
+            console.log('[FIELD ASSIGNMENT] field: serviceRequested');
+            console.log('[FIELD ASSIGNMENT] oldValue:', oldService);
+            console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceRequested);
+            console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+            console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (heuristic fallback - grass/lawn/mow)');
+            console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+            console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+            console.log('[FIELD ASSIGNMENT] =========================================');
+            console.log('[FIELD MAPPING FALLBACK APPLIED] serviceRequested inferred as "Lawn care" from:', transcript);
+          } else if (lowerTranscript.includes('plumbing') || lowerTranscript.includes('plumb') || lowerTranscript.includes('pipe') || lowerTranscript.includes('toilet') || lowerTranscript.includes('drain')) {
+            intake.serviceRequested = 'Plumbing';
+            console.log('[FIELD ASSIGNMENT] =========================================');
+            console.log('[FIELD ASSIGNMENT] field: serviceRequested');
+            console.log('[FIELD ASSIGNMENT] oldValue:', oldService);
+            console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceRequested);
+            console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+            console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (heuristic fallback - plumbing/toilet)');
+            console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+            console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+            console.log('[FIELD ASSIGNMENT] =========================================');
+            console.log('[FIELD MAPPING FALLBACK APPLIED] serviceRequested inferred as "Plumbing" from:', transcript);
+          } else if (lowerTranscript.includes('install') || lowerTranscript.includes('installed')) {
+            intake.serviceRequested = 'Installation';
+            console.log('[FIELD ASSIGNMENT] =========================================');
+            console.log('[FIELD ASSIGNMENT] field: serviceRequested');
+            console.log('[FIELD ASSIGNMENT] oldValue:', oldService);
+            console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceRequested);
+            console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+            console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (heuristic fallback - install)');
+            console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+            console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+            console.log('[FIELD ASSIGNMENT] =========================================');
+            console.log('[FIELD MAPPING FALLBACK APPLIED] serviceRequested inferred as "Installation" from:', transcript);
           }
         }
       }
-    }
-  }
 
-  // Extract issue description with heuristic fallback
-  if (!intake.issueDescription) {
-    if (transcript.trim().length > 10) {
-      // Use the transcript as issue description if it's not just a name or service request
-      intake.issueDescription = transcript.trim();
-      console.log('[LIVE EXTRACTION MAPPED] issueDescription:', intake.issueDescription);
-    }
+      // Log skipped extractions
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: issueDescription');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_name_reason stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: serviceAddress');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_name_reason stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: desiredCompletionTime');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_name_reason stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: callbackTime');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_name_reason stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      break;
+
+    case 'ask_details':
+      // Allowed: issueDescription
+      // Forbidden: customerName, serviceRequested, serviceAddress, desiredCompletionTime, callbackTime
+      
+      // Extract issue description (REMOVED: dangerous entire transcript fallback)
+      if (!intake.issueDescription) {
+        const oldDescription = intake.issueDescription;
+        // Only set issueDescription if it contains specific detail patterns
+        // Do NOT copy entire transcript blindly
+        const detailPatterns = ['leaking', 'broken', 'not working', 'damaged', 'needs repair', 'problem', 'issue', 'concern'];
+        const hasDetailPattern = detailPatterns.some(pattern => lowerTranscript.includes(pattern));
+        
+        if (hasDetailPattern && transcript.trim().length > 10) {
+          intake.issueDescription = transcript.trim();
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[FIELD ASSIGNMENT] field: issueDescription');
+          console.log('[FIELD ASSIGNMENT] oldValue:', oldDescription);
+          console.log('[FIELD ASSIGNMENT] newValue:', intake.issueDescription);
+          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (detail pattern match)');
+          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[LIVE EXTRACTION MAPPED] issueDescription:', intake.issueDescription);
+        }
+      }
+
+      // Log skipped extractions
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: customerName');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_details stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: serviceRequested');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_details stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: serviceAddress');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_details stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: desiredCompletionTime');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_details stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: callbackTime');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_details stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      break;
+
+    case 'ask_location':
+      // Allowed: serviceAddress
+      // Forbidden: customerName, serviceRequested, issueDescription, desiredCompletionTime, callbackTime
+      
+      // Extract location/service address (REMOVED: dangerous entire transcript fallback)
+      if (!intake.serviceAddress) {
+        const oldAddress = intake.serviceAddress;
+        // Check for online/virtual/remote responses
+        const onlineKeywords = ['online', 'virtual', 'remote', 'zoom', 'google meet', 'discord', 'over the phone', 'phone', 'phone call'];
+        const hasOnlineKeyword = onlineKeywords.some(keyword => lowerTranscript.includes(keyword));
+        if (hasOnlineKeyword) {
+          intake.serviceAddress = 'Virtual / Online';
+          intake.locationType = 'online';
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[FIELD ASSIGNMENT] field: serviceAddress');
+          console.log('[FIELD ASSIGNMENT] oldValue:', oldAddress);
+          console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceAddress);
+          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (online keyword)');
+          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
+        } else {
+          // Check for business location responses (expanded list)
+          const businessLocationKeywords = ['at the business', 'at your business', 'at your shop', 'at your office', 'at your place', 'at your facility', 'at your location', 'your business', 'your shop', 'your office', 'your facility', 'your location', "i'll come to you", 'come to you', 'at the studio', 'at the shop'];
+          const hasBusinessLocationKeyword = businessLocationKeywords.some(keyword => lowerTranscript.includes(keyword));
+          if (hasBusinessLocationKeyword) {
+            intake.serviceAddress = 'Business location';
+            intake.locationType = 'business_location';
+            console.log('[FIELD ASSIGNMENT] =========================================');
+            console.log('[FIELD ASSIGNMENT] field: serviceAddress');
+            console.log('[FIELD ASSIGNMENT] oldValue:', oldAddress);
+            console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceAddress);
+            console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+            console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (business keyword)');
+            console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+            console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+            console.log('[FIELD ASSIGNMENT] =========================================');
+            console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
+          } else {
+            // Check for residential responses
+            const residentialKeywords = ['at my house', 'my house', 'my home', 'at my home', 'my place'];
+            const hasResidentialKeyword = residentialKeywords.some(keyword => lowerTranscript.includes(keyword));
+            if (hasResidentialKeyword) {
+              intake.serviceAddress = 'At caller\'s residence';
+              intake.locationType = 'caller_location';
+              console.log('[FIELD ASSIGNMENT] =========================================');
+              console.log('[FIELD ASSIGNMENT] field: serviceAddress');
+              console.log('[FIELD ASSIGNMENT] oldValue:', oldAddress);
+              console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceAddress);
+              console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+              console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (residential keyword)');
+              console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+              console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+              console.log('[FIELD ASSIGNMENT] =========================================');
+              console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
+            } else {
+              // Check for location indicators (street, ave, etc.)
+              const locationIndicators = ['street', 'ave', 'avenue', 'road', 'lane', 'drive', 'blvd', 'boulevard', 'at', 'near', 'in', 'on', 'suite', 'unit', '#'];
+              const hasLocationIndicator = locationIndicators.some(indicator => lowerTranscript.includes(indicator));
+              
+              if (hasLocationIndicator && transcript.trim().length > 5) {
+                // Only set serviceAddress if it contains location indicators
+                intake.serviceAddress = transcript.trim();
+                intake.locationType = 'service_address';
+                console.log('[FIELD ASSIGNMENT] =========================================');
+                console.log('[FIELD ASSIGNMENT] field: serviceAddress');
+                console.log('[FIELD ASSIGNMENT] oldValue:', oldAddress);
+                console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceAddress);
+                console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+                console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (location indicator match)');
+                console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+                console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+                console.log('[FIELD ASSIGNMENT] =========================================');
+                console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
+              } else {
+                // Skip if no location indicators - do NOT copy entire transcript
+                console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+                console.log('[FIELD EXTRACTION SKIPPED] field: serviceAddress');
+                console.log('[FIELD EXTRACTION SKIPPED] reason: No location indicators found in transcript');
+                console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+                console.log('[FIELD EXTRACTION SKIPPED] transcript:', transcript);
+                console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+                console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+              }
+            }
+          }
+        }
+      }
+
+      // Log skipped extractions
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: customerName');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_location stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: serviceRequested');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_location stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: issueDescription');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_location stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: desiredCompletionTime');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_location stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: callbackTime');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_location stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      break;
+
+    case 'ask_completion_time':
+      // Allowed: desiredCompletionTime
+      // Forbidden: customerName, serviceRequested, issueDescription, serviceAddress, callbackTime
+      
+      // Extract desired completion time
+      if (!intake.desiredCompletionTime) {
+        const oldTime = intake.desiredCompletionTime;
+        const completionTimePatterns = [
+          'today',
+          'tomorrow',
+          'this week',
+          'next week',
+          'as soon as possible',
+          'asap',
+          'as soon as you can',
+          'right away',
+          'immediately',
+          'soon',
+          'by the end of the week',
+          'by the end of the month',
+          'within a few days',
+          'within a week',
+          'monday',
+          'tuesday',
+          'wednesday',
+          'thursday',
+          'friday',
+          'saturday',
+          'sunday',
+          'next monday',
+          'next tuesday',
+          'next wednesday',
+          'next thursday',
+          'next friday'
+        ];
+
+        const foundTime = completionTimePatterns.find(pattern => lowerTranscript.includes(pattern));
+        if (foundTime) {
+          intake.desiredCompletionTime = foundTime.charAt(0).toUpperCase() + foundTime.slice(1);
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[FIELD ASSIGNMENT] field: desiredCompletionTime');
+          console.log('[FIELD ASSIGNMENT] oldValue:', oldTime);
+          console.log('[FIELD ASSIGNMENT] newValue:', intake.desiredCompletionTime);
+          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (pattern match)');
+          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[LIVE EXTRACTION MAPPED] desiredCompletionTime:', intake.desiredCompletionTime);
+        }
+      }
+
+      // Log skipped extractions
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: customerName');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_completion_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: serviceRequested');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_completion_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: issueDescription');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_completion_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: serviceAddress');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_completion_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: callbackTime');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_completion_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      break;
+
+    case 'ask_callback_time':
+      // Allowed: callbackTime
+      // Forbidden: customerName, serviceRequested, issueDescription, serviceAddress, desiredCompletionTime
+      
+      // Extract callback time
+      if (!intake.callbackTime) {
+        const oldCallback = intake.callbackTime;
+        const callbackTimePatterns = [
+          'as soon as possible',
+          'asap',
+          'anytime',
+          'whenever',
+          'today',
+          'tomorrow',
+          'tomorrow morning',
+          'tomorrow afternoon',
+          'this morning',
+          'this afternoon',
+          'this evening',
+          'monday',
+          'tuesday',
+          'wednesday',
+          'thursday',
+          'friday',
+          'next week'
+        ];
+
+        const foundCallbackTime = callbackTimePatterns.find(pattern => lowerTranscript.includes(pattern));
+        if (foundCallbackTime) {
+          intake.callbackTime = foundCallbackTime.charAt(0).toUpperCase() + foundCallbackTime.slice(1);
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[FIELD ASSIGNMENT] field: callbackTime');
+          console.log('[FIELD ASSIGNMENT] oldValue:', oldCallback);
+          console.log('[FIELD ASSIGNMENT] newValue:', intake.callbackTime);
+          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (pattern match)');
+          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[LIVE EXTRACTION MAPPED] callbackTime:', intake.callbackTime);
+        } else if (lowerTranscript.includes('as soon as possible')) {
+          intake.callbackTime = 'As soon as possible';
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[FIELD ASSIGNMENT] field: callbackTime');
+          console.log('[FIELD ASSIGNMENT] oldValue:', oldCallback);
+          console.log('[FIELD ASSIGNMENT] newValue:', intake.callbackTime);
+          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (heuristic fallback)');
+          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[FIELD MAPPING FALLBACK APPLIED] callbackTime set to "As soon as possible"');
+        }
+      }
+
+      // Log skipped extractions
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: customerName');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: serviceRequested');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: issueDescription');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: serviceAddress');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] field: desiredCompletionTime');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_callback_time stage');
+      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      break;
+
+    default:
+      // Unknown stage - skip all extractions
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      console.log('[FIELD EXTRACTION SKIPPED] reason: Unknown stage:', intake.stage);
+      console.log('[FIELD EXTRACTION SKIPPED] Skipping all field extractions');
+      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+      break;
   }
 
   console.log('[LIVE EXTRACTION COMPLETE] =========================================');
@@ -1853,19 +2180,13 @@ function extractName(transcript: string): string {
     }
   }
   
-  // Fallback: If no pattern matches, take the last word (often the name in "X is my name")
-  const words = trimmed.split(' ');
-  if (words.length > 0) {
-    const fallbackName = words[words.length - 1];
-    console.log('[NAME EXTRACTION] No pattern matched, using fallback');
-    console.log('[NAME EXTRACTION] fallbackName:', fallbackName);
-    console.log('[NAME EXTRACTION] =========================================');
-    return fallbackName;
-  }
-  
-  console.log('[NAME EXTRACTION] No name could be extracted');
+  // REMOVED: Dangerous fallback that took the last word of transcript
+  // This caused cross-contamination (e.g., "toilet." became customerName)
+  // Now only set customerName when a valid name pattern is matched
+  console.log('[NAME EXTRACTION] No valid name pattern matched - returning null');
+  console.log('[NAME EXTRACTION] Only "My name is X", "I am X", "I\'m X", "This is X" patterns are accepted');
   console.log('[NAME EXTRACTION] =========================================');
-  return trimmed;
+  return null;
 }
 
 function extractPhoneNumber(transcript: string): string {
