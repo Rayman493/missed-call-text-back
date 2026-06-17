@@ -1960,7 +1960,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">AI Intake</span>
                         <span className="text-xs font-medium text-foreground">
-                          {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 ? 'Complete' : 'Incomplete'}
+                          {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 ? (() => {
+                            const latestAiRecord = leadData.aiCallRecords[0];
+                            const extractedInfo = latestAiRecord.extracted_info || {};
+                            const requiredFields = ['callerName', 'reasonForCalling', 'importantDetails', 'addressOrLocation', 'desiredCompletionTime', 'preferredCallbackTime'];
+                            const missingFields = requiredFields.filter(field => !extractedInfo[field] || extractedInfo[field].trim() === '');
+                            const isComplete = missingFields.length === 0;
+                            return isComplete ? 'Complete' : 'Incomplete';
+                          })() : 'Incomplete'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
