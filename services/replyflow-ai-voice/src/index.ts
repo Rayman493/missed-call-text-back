@@ -28,6 +28,23 @@ import { createClient } from '@supabase/supabase-js';
 console.log('[AUDIO TRACE BUILD VERSION] caller-audio-debug-v1');
 console.log('[AI CONFIRMATION TEMPLATE VERSION] confirmation-v3-your-name-is');
 console.log('[AI VOICE STARTUP] Service initializing');
+
+// Deployment fingerprint logging
+console.log('[BUILD INFO] =========================================');
+try {
+  const { execSync } = require('child_process');
+  const commit = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+  const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
+  console.log('[BUILD INFO] commit:', commit);
+  console.log('[BUILD INFO] branch:', branch);
+} catch (error) {
+  console.log('[BUILD INFO] commit: unavailable');
+  console.log('[BUILD INFO] branch: unavailable');
+}
+console.log('[BUILD INFO] buildTime:', new Date().toISOString());
+console.log('[BUILD INFO] nodeEnv:', process.env.NODE_ENV || 'development');
+console.log('[BUILD INFO] serviceVersion: closingState_v2 (guard fix)');
+console.log('[BUILD INFO] =========================================');
 console.log('[AI VOICE STARTUP] Timestamp:', new Date().toISOString());
 
 // Normalize phone number to E.164 US format
@@ -7621,6 +7638,19 @@ Details: ${extractedFields.importantDetails || 'None'}`;
       
       // Handle incomplete intake finalization
       // Only run if intake is incomplete (caller hung up before completing intake)
+      
+      // Runtime verification logging
+      console.log('[WS CLOSE GUARD VERSION] =========================================');
+      console.log('[WS CLOSE GUARD VERSION] callSid:', callSid);
+      try {
+        const { execSync } = require('child_process');
+        const commit = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+        console.log('[WS CLOSE GUARD VERSION] commit:', commit);
+      } catch (error) {
+        console.log('[WS CLOSE GUARD VERSION] commit: unavailable');
+      }
+      console.log('[WS CLOSE GUARD VERSION] guardVersion: closingState_v2');
+      console.log('[WS CLOSE GUARD VERSION] =========================================');
       
       // Log all condition components for audit
       const stage = intakeData?.stage || 'unknown';
