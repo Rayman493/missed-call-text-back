@@ -40,7 +40,10 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
   message: string;
 }>> {
   try {
-    console.log('[GET FOLLOWUP SCHEDULE ENTER]', { businessId });
+    console.log('[GET FOLLOWUP SCHEDULE START] =========================================');
+    console.log('[GET FOLLOWUP SCHEDULE START] businessId:', businessId);
+    console.log('[GET FOLLOWUP SCHEDULE START] Timestamp:', new Date().toISOString());
+    console.log('[GET FOLLOWUP SCHEDULE START] =========================================');
 
     const business = await db.getBusiness(businessId)
     if (!business) {
@@ -48,26 +51,46 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
       return []
     }
 
-    console.log('[GET FOLLOWUP SCHEDULE] Business found:', { businessId, businessName: business.name })
-    console.log('[GET FOLLOWUP SCHEDULE] Full automation_settings from DB:', JSON.stringify(business.automation_settings, null, 2))
+    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] =========================================');
+    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] businessId:', businessId);
+    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] automation_settings:', JSON.stringify(business.automation_settings, null, 2));
+    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] Timestamp:', new Date().toISOString());
+    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] =========================================');
+
+    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] =========================================');
+    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] businessId:', businessId);
+    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] automation_settings:', JSON.stringify(business.automation_settings, null, 2));
+    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] rawBusinessRow:', JSON.stringify(business, null, 2));
+    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] Timestamp:', new Date().toISOString());
+    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] =========================================');
 
     const automationSettings = business.automation_settings || {}
-    console.log('[GET FOLLOWUP SCHEDULE] Automation settings:', automationSettings);
-
-    // The stored shape is: automation_settings.followUps.followUps
     const followUpsContainer = automationSettings.followUps || {}
-    console.log('[GET FOLLOWUP SCHEDULE] Follow-ups container:', followUpsContainer);
-
     const followUpSettings = followUpsContainer.followUps
     const followUpsEnabled = followUpsContainer.enabled !== false // Default to enabled if not set
 
-    console.log('[GET FOLLOWUP SCHEDULE] Follow-up settings:', followUpSettings);
-    console.log('[GET FOLLOWUP SCHEDULE] Follow-ups enabled:', followUpsEnabled);
-    console.log('[GET FOLLOWUP SCHEDULE] Raw follow-up settings JSON:', JSON.stringify(followUpSettings, null, 2));
+    console.log('[GET FOLLOWUP SCHEDULE PARSED] =========================================');
+    console.log('[GET FOLLOWUP SCHEDULE PARSED] enabled:', followUpsEnabled);
+    console.log('[GET FOLLOWUP SCHEDULE PARSED] followUps:', JSON.stringify(followUpSettings, null, 2));
+    console.log('[GET FOLLOWUP SCHEDULE PARSED] scheduleLength:', followUpSettings?.length || 0);
+    console.log('[GET FOLLOWUP SCHEDULE PARSED] steps:', followUpSettings?.map((fu: any) => ({
+      step: fu.step,
+      enabled: fu.enabled,
+      delay: fu.delayDays || fu.delay,
+      unit: fu.delayUnit || fu.unit,
+      message: fu.message?.substring(0, 50)
+    })) || []);
+    console.log('[GET FOLLOWUP SCHEDULE PARSED] Timestamp:', new Date().toISOString());
+    console.log('[GET FOLLOWUP SCHEDULE PARSED] =========================================');
 
     // If no custom settings or disabled, use defaults
     if (!followUpSettings || !followUpSettings.length || !followUpsEnabled) {
-      console.log('[GET FOLLOWUP SCHEDULE] No follow-up settings or disabled, returning empty');
+      console.log('[GET FOLLOWUP SCHEDULE EMPTY] =========================================');
+      console.log('[GET FOLLOWUP SCHEDULE EMPTY] reason:', !followUpSettings ? 'followUpSettings is null/undefined' : !followUpSettings.length ? 'followUpSettings array is empty' : 'followUpsEnabled is false');
+      console.log('[GET FOLLOWUP SCHEDULE EMPTY] followUpsEnabled:', followUpsEnabled);
+      console.log('[GET FOLLOWUP SCHEDULE EMPTY] followUpSettingsLength:', followUpSettings?.length || 0);
+      console.log('[GET FOLLOWUP SCHEDULE EMPTY] Timestamp:', new Date().toISOString());
+      console.log('[GET FOLLOWUP SCHEDULE EMPTY] =========================================');
       return []
     }
 

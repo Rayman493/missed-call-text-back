@@ -122,12 +122,25 @@ export async function PUT(request: NextRequest) {
 
     const business = lookupResult.business
 
+    console.log('[FOLLOWUP SETTINGS SAVE PAYLOAD] =========================================');
+    console.log('[FOLLOWUP SETTINGS SAVE PAYLOAD] businessId:', business.id);
+    console.log('[FOLLOWUP SETTINGS SAVE PAYLOAD] payload:', JSON.stringify(settings, null, 2));
+    console.log('[FOLLOWUP SETTINGS SAVE PAYLOAD] Timestamp:', new Date().toISOString());
+    console.log('[FOLLOWUP SETTINGS SAVE PAYLOAD] =========================================');
+
     // Merge with existing automation settings
     const existingAutomationSettings = business.automation_settings || {}
     const updatedAutomationSettings = {
       ...existingAutomationSettings,
       followUps: settings
     }
+
+    console.log('[FOLLOWUP SETTINGS SAVE RESULT] =========================================');
+    console.log('[FOLLOWUP SETTINGS SAVE RESULT] success: pending');
+    console.log('[FOLLOWUP SETTINGS SAVE RESULT] savedAutomationSettings:', JSON.stringify(updatedAutomationSettings, null, 2));
+    console.log('[FOLLOWUP SETTINGS SAVE RESULT] savedFollowUps:', JSON.stringify(settings, null, 2));
+    console.log('[FOLLOWUP SETTINGS SAVE RESULT] Timestamp:', new Date().toISOString());
+    console.log('[FOLLOWUP SETTINGS SAVE RESULT] =========================================');
 
     // Update the business record
     const updatedBusiness = await db.updateBusiness(business.id, {
