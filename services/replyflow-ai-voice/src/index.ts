@@ -4094,6 +4094,101 @@ Do NOT:
                     enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
                     return; // Skip normal intake processing - NO MORE AI RESPONSES
                   }
+
+                  // Stage-specific field capture for callback time
+                  if (intakeData!.stage === 'ask_callback_time' && userTranscript && userTranscript.trim().length > 0) {
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] =========================================');
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Current stage: ask_callback_time');
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Capturing callback time from transcript');
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Transcript:', userTranscript);
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Timestamp:', new Date().toISOString());
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] =========================================');
+
+                    // Normalize simple answers
+                    let normalizedCallbackTime = userTranscript.trim();
+                    const lowerTranscript = normalizedCallbackTime.toLowerCase();
+                    
+                    if (lowerTranscript === 'as soon as possible' || lowerTranscript === 'asap') {
+                      normalizedCallbackTime = 'As soon as possible';
+                    } else if (lowerTranscript === 'anytime' || lowerTranscript === 'whenever') {
+                      normalizedCallbackTime = 'Anytime';
+                    } else if (lowerTranscript === 'today') {
+                      normalizedCallbackTime = 'Today';
+                    } else if (lowerTranscript === 'tomorrow') {
+                      normalizedCallbackTime = 'Tomorrow';
+                    } else if (lowerTranscript === 'morning') {
+                      normalizedCallbackTime = 'Morning';
+                    } else if (lowerTranscript === 'afternoon') {
+                      normalizedCallbackTime = 'Afternoon';
+                    } else if (lowerTranscript === 'evening') {
+                      normalizedCallbackTime = 'Evening';
+                    }
+
+                    console.log('[CALLBACK TIME CAPTURED] =========================================');
+                    console.log('[CALLBACK TIME CAPTURED] Callback time captured:', normalizedCallbackTime);
+                    console.log('[CALLBACK TIME CAPTURED] Original transcript:', userTranscript);
+                    console.log('[CALLBACK TIME CAPTURED] Timestamp:', new Date().toISOString());
+                    console.log('[CALLBACK TIME CAPTURED] =========================================');
+
+                    intakeData!.callbackTime = normalizedCallbackTime;
+
+                    console.log('[CALLBACK TIME CAPTURED CLOSING NOW] =========================================');
+                    console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Callback time captured, closing now');
+                    console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Callback time:', intakeData!.callbackTime);
+                    console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Timestamp:', new Date().toISOString());
+                    console.log('[CALLBACK TIME CAPTURED CLOSING NOW] =========================================');
+
+                    console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
+                    console.log('[APP CONTROLLED CLOSING STARTED] Setting intake stage to complete');
+                    console.log('[APP CONTROLLED CLOSING STARTED] Setting intakeComplete flag to true');
+                    console.log('[APP CONTROLLED CLOSING STARTED] Calling enterTerminalClose');
+                    console.log('[APP CONTROLLED CLOSING STARTED] Timestamp:', new Date().toISOString());
+                    console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
+
+                    intakeData!.stage = 'complete';
+                    intakeComplete = true;
+                    enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
+                    return; // Skip normal intake processing - NO MORE AI RESPONSES
+                  }
+
+                  // Stage-specific field capture for completion time
+                  if (intakeData!.stage === 'ask_completion_time' && userTranscript && userTranscript.trim().length > 0) {
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] =========================================');
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Current stage: ask_completion_time');
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Capturing completion time from transcript');
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Transcript:', userTranscript);
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Timestamp:', new Date().toISOString());
+                    console.log('[STAGE SPECIFIC FIELD CAPTURE] =========================================');
+
+                    // Normalize simple answers
+                    let normalizedCompletionTime = userTranscript.trim();
+                    const lowerTranscript = normalizedCompletionTime.toLowerCase();
+                    
+                    if (lowerTranscript === 'as soon as possible' || lowerTranscript === 'asap') {
+                      normalizedCompletionTime = 'As soon as possible';
+                    } else if (lowerTranscript === 'today') {
+                      normalizedCompletionTime = 'Today';
+                    } else if (lowerTranscript === 'tomorrow') {
+                      normalizedCompletionTime = 'Tomorrow';
+                    } else if (lowerTranscript === 'this week') {
+                      normalizedCompletionTime = 'This week';
+                    } else if (lowerTranscript === 'next week') {
+                      normalizedCompletionTime = 'Next week';
+                    }
+
+                    console.log('[COMPLETION TIME CAPTURED] =========================================');
+                    console.log('[COMPLETION TIME CAPTURED] Completion time captured:', normalizedCompletionTime);
+                    console.log('[COMPLETION TIME CAPTURED] Original transcript:', userTranscript);
+                    console.log('[COMPLETION TIME CAPTURED] Timestamp:', new Date().toISOString());
+                    console.log('[COMPLETION TIME CAPTURED] =========================================');
+
+                    intakeData!.desiredCompletionTime = normalizedCompletionTime;
+                    intakeData!.stage = 'ask_callback_time';
+
+                    // Send callback time prompt
+                    sendStagePrompt('ask_callback_time', openAiWs);
+                    return; // Skip normal intake processing
+                  }
                   
                   // Get next intake response
                   const intakeResponse = getIntakeResponse(intakeData!, userTranscript);
