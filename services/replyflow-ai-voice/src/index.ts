@@ -49,6 +49,11 @@ const FINAL_CLOSING_FALLBACK_MS = 22000; // 22 seconds fallback timeout
 const MIN_FINAL_SENTENCE_PLAYBACK_MS = 12000; // 12 seconds minimum playback time
 const FINAL_AUDIO_INACTIVITY_THRESHOLD_MS = 2500; // 2.5 seconds of no audio deltas before fallback
 
+// Final closing voice and text configuration
+const FINAL_CLOSE_TWILIO_VOICE = "Polly.Joanna-Neural"; // Natural neural voice
+const FINAL_CLOSE_SENTENCE = "Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day.";
+const FINAL_CLOSE_BRIDGE_PHRASE = "Perfect."; // Short bridge phrase from AI voice before redirect
+
 const PORT = process.env.PORT || 8080;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const AI_VOICE = process.env.AI_VOICE || 'alloy'; // Configurable voice: alloy, verse, cedar, marin
@@ -1844,12 +1849,20 @@ const server = createServer((req, res) => {
     console.log('[FINAL CLOSE TWIML HIT] Timestamp:', new Date().toISOString());
     console.log('[FINAL CLOSE TWIML HIT] =========================================');
     
-    const finalSentence = "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day.";
+    console.log('[FINAL CLOSE VOICE SELECTED] =========================================');
+    console.log('[FINAL CLOSE VOICE SELECTED] Voice:', FINAL_CLOSE_TWILIO_VOICE);
+    console.log('[FINAL CLOSE VOICE SELECTED] Timestamp:', new Date().toISOString());
+    console.log('[FINAL CLOSE VOICE SELECTED] =========================================');
     
     console.log('[FINAL CLOSE TWIML SAY SENT] =========================================');
-    console.log('[FINAL CLOSE TWIML SAY SENT] Final sentence to be spoken:', finalSentence);
+    console.log('[FINAL CLOSE TWIML SAY SENT] Final sentence to be spoken:', FINAL_CLOSE_SENTENCE);
     console.log('[FINAL CLOSE TWIML SAY SENT] Timestamp:', new Date().toISOString());
     console.log('[FINAL CLOSE TWIML SAY SENT] =========================================');
+    
+    console.log('[FINAL CLOSE TWIML SAY VOICE] =========================================');
+    console.log('[FINAL CLOSE TWIML SAY VOICE] Using voice:', FINAL_CLOSE_TWILIO_VOICE);
+    console.log('[FINAL CLOSE TWIML SAY VOICE] Timestamp:', new Date().toISOString());
+    console.log('[FINAL CLOSE TWIML SAY VOICE] =========================================');
     
     console.log('[FINAL CLOSE TWIML HANGUP SENT] =========================================');
     console.log('[FINAL CLOSE TWIML HANGUP SENT] Hangup instruction sent');
@@ -1858,7 +1871,7 @@ const server = createServer((req, res) => {
     
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="alice">${finalSentence}</Say>
+  <Say voice="${FINAL_CLOSE_TWILIO_VOICE}">${FINAL_CLOSE_SENTENCE}</Say>
   <Hangup/>
 </Response>`;
     
