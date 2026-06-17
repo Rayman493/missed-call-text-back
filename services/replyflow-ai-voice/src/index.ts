@@ -1276,12 +1276,12 @@ function hasUsefulCollectedFields(intakeData: IntakeData | null): boolean {
   if (!intakeData) return false;
   
   const usefulFields = [
-    intakeData.callerName,
-    intakeData.reasonForCalling,
-    intakeData.importantDetails,
-    intakeData.addressOrLocation,
+    intakeData.customerName,
+    intakeData.serviceRequested,
+    intakeData.issueDescription,
+    intakeData.serviceAddress,
     intakeData.desiredCompletionTime,
-    intakeData.preferredCallbackTime
+    intakeData.callbackTime
   ];
   
   const hasAnyField = usefulFields.some(field => field && field.trim() !== '');
@@ -1324,13 +1324,13 @@ async function finalizeIncompleteIntake(
   
   // Build extracted fields from intake data
   const extractedFields = {
-    callerName: intakeData?.callerName || null,
-    reasonForCalling: intakeData?.reasonForCalling || null,
-    importantDetails: intakeData?.importantDetails || null,
-    addressOrLocation: intakeData?.addressOrLocation || null,
+    callerName: intakeData?.customerName || null,
+    reasonForCalling: intakeData?.serviceRequested || null,
+    importantDetails: intakeData?.issueDescription || null,
+    addressOrLocation: intakeData?.serviceAddress || null,
     desiredCompletionTime: intakeData?.desiredCompletionTime || null,
-    preferredCallbackTime: intakeData?.preferredCallbackTime || null,
-    summary: `Partial intake: ${intakeData?.callerName || 'Unknown'} called about ${intakeData?.reasonForCalling || 'unknown issue'}. Some details may be missing.`
+    preferredCallbackTime: intakeData?.callbackTime || null,
+    summary: `Partial intake: ${intakeData?.customerName || 'Unknown'} called about ${intakeData?.serviceRequested || 'unknown issue'}. Some details may be missing.`
   };
   
   console.log('[AI INCOMPLETE FINALIZATION] Extracted fields:', extractedFields);
