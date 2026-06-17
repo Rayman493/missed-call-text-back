@@ -435,10 +435,25 @@ function isConfirmationAccepted(transcript: string): boolean {
 // }
 
 function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, openAiWs: any): void {
+  console.log('[ENTER TERMINAL CLOSE FUNCTION CALLED] =========================================');
+  console.log('[ENTER TERMINAL CLOSE FUNCTION CALLED] enterTerminalClose function invoked');
+  console.log('[ENTER TERMINAL CLOSE FUNCTION CALLED] Timestamp:', new Date().toISOString());
+  console.log('[ENTER TERMINAL CLOSE FUNCTION CALLED] =========================================');
+  
+  console.log('[ENTER TERMINAL CLOSE STEP 1] =========================================');
+  console.log('[ENTER TERMINAL CLOSE STEP 1] Starting OpenAI-based final close');
+  console.log('[ENTER TERMINAL CLOSE STEP 1] Timestamp:', new Date().toISOString());
+  console.log('[ENTER TERMINAL CLOSE STEP 1] =========================================');
+  
   console.log('[OPENAI FINAL CLOSE STARTED] =========================================');
   console.log('[OPENAI FINAL CLOSE STARTED] Starting OpenAI-based final close');
   console.log('[OPENAI FINAL CLOSE STARTED] Timestamp:', new Date().toISOString());
   console.log('[OPENAI FINAL CLOSE STARTED] =========================================');
+  
+  console.log('[ENTER TERMINAL CLOSE STEP 2] =========================================');
+  console.log('[ENTER TERMINAL CLOSE STEP 2] Setting terminal flags');
+  console.log('[ENTER TERMINAL CLOSE STEP 2] Timestamp:', new Date().toISOString());
+  console.log('[ENTER TERMINAL CLOSE STEP 2] =========================================');
   
   console.log('[CLOSING STATE SET] =========================================');
   console.log('[CLOSING STATE SET] Setting terminal flags');
@@ -469,6 +484,11 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   (twilioHandler as any).terminalClosingResponseStarted = closingState.terminalClosingResponseStarted;
   (twilioHandler as any).intakeTerminalComplete = closingState.intakeTerminalComplete;
   
+  console.log('[ENTER TERMINAL CLOSE STEP 3] =========================================');
+  console.log('[ENTER TERMINAL CLOSE STEP 3] Tracking final sentence start time');
+  console.log('[ENTER TERMINAL CLOSE STEP 3] Timestamp:', new Date().toISOString());
+  console.log('[ENTER TERMINAL CLOSE STEP 3] =========================================');
+  
   // Track final sentence start time
   const finalSentenceStartTime = Date.now();
   (twilioHandler as any).finalSentenceStartTime = finalSentenceStartTime;
@@ -484,6 +504,11 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   console.log('[OPENAI FINAL RESPONSE ID GENERATED] Timestamp:', new Date().toISOString());
   console.log('[OPENAI FINAL RESPONSE ID GENERATED] =========================================');
   
+  console.log('[ENTER TERMINAL CLOSE STEP 4] =========================================');
+  console.log('[ENTER TERMINAL CLOSE STEP 4] Checking OpenAI websocket state');
+  console.log('[ENTER TERMINAL CLOSE STEP 4] Timestamp:', new Date().toISOString());
+  console.log('[ENTER TERMINAL CLOSE STEP 4] =========================================');
+  
   // Check if OpenAI websocket is open
   if (!openAiWs || openAiWs.readyState !== openAiWs.OPEN) {
     console.log('[OPENAI FINAL WS NOT OPEN] =========================================');
@@ -491,6 +516,12 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
     console.log('[OPENAI FINAL WS NOT OPEN] readyState:', openAiWs ? openAiWs.readyState : 'null');
     console.log('[OPENAI FINAL WS NOT OPEN] Timestamp:', new Date().toISOString());
     console.log('[OPENAI FINAL WS NOT OPEN] =========================================');
+    
+    console.log('[OPENAI FINAL EARLY RETURN] =========================================');
+    console.log('[OPENAI FINAL EARLY RETURN] Early return: OpenAI websocket not open');
+    console.log('[OPENAI FINAL EARLY RETURN] Reason: readyState is not OPEN');
+    console.log('[OPENAI FINAL EARLY RETURN] Timestamp:', new Date().toISOString());
+    console.log('[OPENAI FINAL EARLY RETURN] =========================================');
     
     console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] =========================================');
     console.log('[OPENAI FINAL FAILED - FALLING BACK TO TWILIO FINAL CLOSE] OpenAI websocket not open, falling back to TwiML');
@@ -500,6 +531,11 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
     executeTwilioFallback(ws, twilioHandler, closingState);
     return;
   }
+  
+  console.log('[ENTER TERMINAL CLOSE STEP 5] =========================================');
+  console.log('[ENTER TERMINAL CLOSE STEP 5] Attempting to send final sentence');
+  console.log('[ENTER TERMINAL CLOSE STEP 5] Timestamp:', new Date().toISOString());
+  console.log('[ENTER TERMINAL CLOSE STEP 5] =========================================');
   
   console.log('[OPENAI FINAL SEND ATTEMPT] =========================================');
   console.log('[OPENAI FINAL SEND ATTEMPT] Attempting to send final sentence through OpenAI');
@@ -528,6 +564,11 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   console.log('[OPENAI FINAL RESPONSE CREATED] Timestamp:', new Date().toISOString());
   console.log('[OPENAI FINAL RESPONSE CREATED] =========================================');
   
+  console.log('[ENTER TERMINAL CLOSE STEP 6] =========================================');
+  console.log('[ENTER TERMINAL CLOSE STEP 6] Starting fixed delay hangup timer');
+  console.log('[ENTER TERMINAL CLOSE STEP 6] Timestamp:', new Date().toISOString());
+  console.log('[ENTER TERMINAL CLOSE STEP 6] =========================================');
+  
   console.log('[OPENAI FINAL HANGUP TIMER STARTED] =========================================');
   console.log('[OPENAI FINAL HANGUP TIMER STARTED] Starting fixed delay hangup timer');
   console.log('[OPENAI FINAL HANGUP TIMER STARTED] Delay:', FINAL_CLOSE_OPENAI_HANGUP_DELAY_MS, 'ms');
@@ -548,6 +589,11 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
     executeOpenaiFinalHangup(ws, twilioHandler, closingState);
   }, FINAL_CLOSE_OPENAI_HANGUP_DELAY_MS);
   
+  console.log('[ENTER TERMINAL CLOSE STEP 7] =========================================');
+  console.log('[ENTER TERMINAL CLOSE STEP 7] Starting emergency fallback timer');
+  console.log('[ENTER TERMINAL CLOSE STEP 7] Timestamp:', new Date().toISOString());
+  console.log('[ENTER TERMINAL CLOSE STEP 7] =========================================');
+  
   // Emergency fallback: if no audio delta received within 3 seconds, redirect to TwiML
   setTimeout(() => {
     if (!(twilioHandler as any).finalCloseAudioStarted) {
@@ -561,6 +607,11 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
       executeTwilioFallback(ws, twilioHandler, closingState);
     }
   }, OPENAI_FINAL_EMERGENCY_FALLBACK_MS);
+  
+  console.log('[ENTER TERMINAL CLOSE STEP 8] =========================================');
+  console.log('[ENTER TERMINAL CLOSE STEP 8] Function completed successfully');
+  console.log('[ENTER TERMINAL CLOSE STEP 8] Timestamp:', new Date().toISOString());
+  console.log('[ENTER TERMINAL CLOSE STEP 8] =========================================');
 }
 
 // Execute OpenAI final close hangup via Twilio REST API
@@ -4365,6 +4416,16 @@ Do NOT:
                     
                     intakeData!.stage = 'complete';
                     intakeComplete = true;
+                    
+                    console.log('[ABOUT TO CALL ENTER TERMINAL CLOSE] =========================================');
+                    console.log('[ABOUT TO CALL ENTER TERMINAL CLOSE] About to call enterTerminalClose');
+                    console.log('[ABOUT TO CALL ENTER TERMINAL CLOSE] closingState:', !!closingState);
+                    console.log('[ABOUT TO CALL ENTER TERMINAL CLOSE] ws:', !!ws);
+                    console.log('[ABOUT TO CALL ENTER TERMINAL CLOSE] twilioHandler:', !!twilioHandler);
+                    console.log('[ABOUT TO CALL ENTER TERMINAL CLOSE] openAiWs:', !!openAiWs);
+                    console.log('[ABOUT TO CALL ENTER TERMINAL CLOSE] Timestamp:', new Date().toISOString());
+                    console.log('[ABOUT TO CALL ENTER TERMINAL CLOSE] =========================================');
+                    
                     enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
                     return; // Skip normal intake processing - NO MORE AI RESPONSES
                   }
