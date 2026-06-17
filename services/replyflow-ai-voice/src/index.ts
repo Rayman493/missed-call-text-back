@@ -540,6 +540,47 @@ function generateConfirmationMessage(intake: IntakeData): string {
   return summary;
 }
 
+function sendStagePrompt(stage: string, openAiWs: any): void {
+  const stagePrompts: { [key: string]: string } = {
+    'ask_name_reason': 'Thanks for calling. Can I get your name and the reason for your call?',
+    'ask_details': 'Can you tell me any additional details about what you need?',
+    'ask_location': 'What address or location is this for?',
+    'ask_completion_time': 'When would you like this work completed?',
+    'ask_callback_time': 'What is the best time for the business to call you back?'
+  };
+
+  const prompt = stagePrompts[stage];
+  if (!prompt) {
+    console.log('[STAGE PROMPT NOT FOUND] Stage:', stage);
+    return;
+  }
+
+  console.log('[STAGE PROMPT SELECTED] =========================================');
+  console.log('[STAGE PROMPT SELECTED] Stage:', stage);
+  console.log('[STAGE PROMPT SELECTED] Prompt:', prompt);
+  console.log('[STAGE PROMPT SELECTED] Timestamp:', new Date().toISOString());
+  console.log('[STAGE PROMPT SELECTED] =========================================');
+
+  const exactInstruction = `Say exactly this sentence and nothing else: "${prompt}"`;
+  const message = {
+    type: 'response.create',
+    response: {
+      instructions: exactInstruction,
+    },
+  };
+
+  console.log('[STAGE PROMPT SENT] =========================================');
+  console.log('[STAGE PROMPT SENT] Sending exact stage prompt');
+  console.log('[STAGE PROMPT SENT] Stage:', stage);
+  console.log('[STAGE PROMPT SENT] Prompt:', prompt);
+  console.log('[STAGE PROMPT SENT] Timestamp:', new Date().toISOString());
+  console.log('[STAGE PROMPT SENT] =========================================');
+
+  if (openAiWs) {
+    openAiWs.send(JSON.stringify(message));
+  }
+}
+
 function getIntakeResponse(intake: IntakeData, transcript?: string): { response: string; nextStage: IntakeStage } {
   console.log('[AI INTAKE STAGE] current stage:', intake.stage);
 
@@ -584,7 +625,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       // Check if name and reason were captured
       if (intake.customerName && intake.serviceRequested) {
         return {
-          response: 'Can you tell me a little more about what you need?',
+          response: 'Can you tell me any additional details about what you need?',
           nextStage: 'ask_details'
         };
       }
@@ -592,7 +633,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       if (intake.customerName && !intake.serviceRequested) {
         console.log('[MAX-STAGE PROGRESSION] Name captured, moving to details stage');
         return {
-          response: 'Can you tell me a little more about what you need?',
+          response: 'Can you tell me any additional details about what you need?',
           nextStage: 'ask_details'
         };
       }
@@ -600,7 +641,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       if (!intake.customerName && intake.serviceRequested) {
         console.log('[MAX-STAGE PROGRESSION] Service captured, moving to details stage');
         return {
-          response: 'Can you tell me a little more about what you need?',
+          response: 'Can you tell me any additional details about what you need?',
           nextStage: 'ask_details'
         };
       }
@@ -614,7 +655,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       // Check if issue description was captured
       if (intake.issueDescription && intake.issueDescription.length > 5) {
         return {
-          response: 'What address or location is this regarding?',
+          response: 'What address or location is this for?',
           nextStage: 'ask_location'
         };
       }
@@ -623,13 +664,13 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
         console.log('[MAX-STAGE PROGRESSION] Using serviceRequested as issueDescription');
         intake.issueDescription = intake.serviceRequested;
         return {
-          response: 'What address or location is this regarding?',
+          response: 'What address or location is this for?',
           nextStage: 'ask_location'
         };
       }
       // Ask for details again if not captured
       return {
-        response: 'Can you tell me a little more about what you need?',
+        response: 'Can you tell me any additional details about what you need?',
         nextStage: 'ask_details'
       };
 
@@ -643,7 +684,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       }
       // Ask for location
       return {
-        response: 'What address or location is this regarding?',
+        response: 'What address or location is this for?',
         nextStage: 'ask_location'
       };
 
@@ -664,6 +705,11 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
     case 'ask_callback_time':
       // Check if callback time was captured
       if (intake.callbackTime) {
+        console.log('[CALLBACK TIME CAPTURED CLOSING NOW] =========================================');
+        console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Callback time captured, closing now');
+        console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Callback time:', intake.callbackTime);
+        console.log('[CALLBACK TIME CAPTURED CLOSING NOW] Timestamp:', new Date().toISOString());
+        console.log('[CALLBACK TIME CAPTURED CLOSING NOW] =========================================');
         return {
           response: '',
           nextStage: 'complete'
@@ -4348,8 +4394,12 @@ Do NOT:
                 
                 // Send exactly one greeting response.create after session.updated
                 if (!greetingSent) {
-                  console.log('[GREETING START] Sending greeting after session.updated');
-                  const greetingText = `Hi, this is the assistant. I can get your request over to the team. What can I help with?`;
+                  console.log('[CODE OWNED FIRST PROMPT SENT] =========================================');
+                  console.log('[CODE OWNED FIRST PROMPT SENT] Sending exact name/reason prompt');
+                  console.log('[CODE OWNED FIRST PROMPT SENT] Timestamp:', new Date().toISOString());
+                  console.log('[CODE OWNED FIRST PROMPT SENT] =========================================');
+                  
+                  const greetingText = `Thanks for calling. Can I get your name and the reason for your call?`;
                   const exactInstruction = `Say exactly this sentence and nothing else: "${greetingText}"`;
                   const greetingMessage = {
                     type: 'response.create',
@@ -4358,7 +4408,7 @@ Do NOT:
                     },
                   };
                   console.log('[AI RESPONSE.CREATE SEND SITE]', {
-                    label: 'GREETING',
+                    label: 'FIRST_PROMPT',
                     currentStage: intakeData?.stage || 'not_started',
                     nextStage: 'not_applicable',
                     intakeComplete: intakeComplete,
