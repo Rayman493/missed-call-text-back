@@ -2608,6 +2608,7 @@ wss.on('connection', (ws, req) => {
     let directHangupFallbackTimer: NodeJS.Timeout | null = null; // Direct hangup fallback timer
     let directHangupFallbackExecuted = false; // Track if direct hangup fallback has been executed
     let hardStopTimer: NodeJS.Timeout | null = null; // Absolute hard-stop timer
+    let callerAudioBlockedLogged = false; // One-time guard for CALLER AUDIO BLOCKED logging
 
     // Listener count tracking
     let openAiMessageListenerCount = 0;
@@ -3566,14 +3567,17 @@ Return only JSON, no other text.`;
             closingState.callState === 'closing';
 
           if (terminalStateActive) {
-            console.log('[CALLER AUDIO BLOCKED] =========================================');
-            console.log('[CALLER AUDIO BLOCKED] Caller audio blocked - terminal mode active');
-            console.log('[CALLER AUDIO BLOCKED] intakeTerminalComplete:', closingState.intakeTerminalComplete);
-            console.log('[CALLER AUDIO BLOCKED] terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
-            console.log('[CALLER AUDIO BLOCKED] finalClosingStarted:', closingState.finalClosingStarted);
-            console.log('[CALLER AUDIO BLOCKED] callState:', closingState.callState);
-            console.log('[CALLER AUDIO BLOCKED] Timestamp:', new Date().toISOString());
-            console.log('[CALLER AUDIO BLOCKED] =========================================');
+            if (!callerAudioBlockedLogged) {
+              callerAudioBlockedLogged = true;
+              console.log('[CALLER AUDIO BLOCKED] =========================================');
+              console.log('[CALLER AUDIO BLOCKED] Caller audio blocked - terminal mode active');
+              console.log('[CALLER AUDIO BLOCKED] intakeTerminalComplete:', closingState.intakeTerminalComplete);
+              console.log('[CALLER AUDIO BLOCKED] terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
+              console.log('[CALLER AUDIO BLOCKED] finalClosingStarted:', closingState.finalClosingStarted);
+              console.log('[CALLER AUDIO BLOCKED] callState:', closingState.callState);
+              console.log('[CALLER AUDIO BLOCKED] Timestamp:', new Date().toISOString());
+              console.log('[CALLER AUDIO BLOCKED] =========================================');
+            }
             // Silently drop caller audio in terminal mode
             return;
           }
