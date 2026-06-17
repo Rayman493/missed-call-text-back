@@ -475,12 +475,33 @@ function enterTerminalClose(closingState: any, ws: any, twilioHandler: any, open
   console.log('[CONFIRMATION STATE CHANGE] reason: enterTerminalClose called');
   console.log('[CONFIRMATION STATE CHANGE] Timestamp:', new Date().toISOString());
   console.log('[CONFIRMATION STATE CHANGE] =========================================');
-  
+
+  console.log('[CALL STATE CLOSING REQUEST - PATH 4] =========================================');
+  console.log('[CALL STATE CLOSING REQUEST - PATH 4] Source: enterTerminalClose function at line 483');
+  console.log('[CALL STATE CLOSING REQUEST - PATH 4] Trigger: Terminal close sequence initiated by app');
+  console.log('[CALL STATE CLOSING REQUEST - PATH 4] Current callState:', closingState.callState);
+  console.log('[CALL STATE CLOSING REQUEST - PATH 4] Current terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
+  console.log('[CALL STATE CLOSING REQUEST - PATH 4] Current finalClosingStarted:', closingState.finalClosingStarted);
+  console.log('[CALL STATE CLOSING REQUEST - PATH 4] Current confirmationState:', closingState.confirmationState);
+  console.log('[CALL STATE CLOSING REQUEST - PATH 4] Current intakeTerminalComplete:', closingState.intakeTerminalComplete);
+  console.log('[CALL STATE CLOSING REQUEST - PATH 4] Stack: enterTerminalClose -> state initialization');
+  console.log('[CALL STATE CLOSING REQUEST - PATH 4] Timestamp:', new Date().toISOString());
+  console.log('[CALL STATE CLOSING REQUEST - PATH 4] =========================================');
+
   closingState.confirmationState = 'completed';
   closingState.intakeTerminalComplete = true;
   closingState.terminalClosingResponseStarted = true;
   closingState.finalClosingStarted = true;
   closingState.callState = 'closing';
+
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 4] =========================================');
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 4] New callState:', closingState.callState);
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 4] New terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 4] New finalClosingStarted:', closingState.finalClosingStarted);
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 4] New confirmationState:', closingState.confirmationState);
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 4] New intakeTerminalComplete:', closingState.intakeTerminalComplete);
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 4] Timestamp:', new Date().toISOString());
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 4] =========================================');
   
   // Sync individual variables for backward compatibility
   const callState = closingState.callState;
@@ -2951,6 +2972,19 @@ function startAuthoritativeFinalClose(
   console.log('[FINAL_CLOSING_SET_TRUE] Value after set:', closingState.finalClosingStarted);
 
   console.log('[AUTHORITATIVE FINAL CLOSE] Step 4: callState -> closing (set immediately, not waiting for audio)');
+  
+  console.log('[CALL STATE CLOSING REQUEST - PATH 3] =========================================');
+  console.log('[CALL STATE CLOSING REQUEST - PATH 3] Source: startAuthoritativeFinalClose function at line 2958');
+  console.log('[CALL STATE CLOSING REQUEST - PATH 3] Trigger: Authoritative final close sequence initiated');
+  console.log('[CALL STATE CLOSING REQUEST - PATH 3] Caller source:', source);
+  console.log('[CALL STATE CLOSING REQUEST - PATH 3] Current callState:', closingState.callState);
+  console.log('[CALL STATE CLOSING REQUEST - PATH 3] Current terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
+  console.log('[CALL STATE CLOSING REQUEST - PATH 3] Current finalClosingStarted:', closingState.finalClosingStarted);
+  console.log('[CALL STATE CLOSING REQUEST - PATH 3] Current confirmationState:', closingState.confirmationState);
+  console.log('[CALL STATE CLOSING REQUEST - PATH 3] Stack: startAuthoritativeFinalClose -> immediate state transition');
+  console.log('[CALL STATE CLOSING REQUEST - PATH 3] Timestamp:', new Date().toISOString());
+  console.log('[CALL STATE CLOSING REQUEST - PATH 3] =========================================');
+  
   console.log('[CALL_STATE_SET_CLOSING] Setting callState to closing immediately');
   console.log('[CALL_STATE_SET_CLOSING] Source: startAuthoritativeFinalClose at', source);
   console.log('[CALL_STATE_SET_CLOSING] Stack: startAuthoritativeFinalClose -> immediate state transition');
@@ -2958,6 +2992,14 @@ function startAuthoritativeFinalClose(
   closingState.callState = 'closing';
   (twilioHandler as any).callState = closingState.callState;
   console.log('[CALL_STATE_SET_CLOSING] Value after set:', closingState.callState);
+  
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 3] =========================================');
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 3] New callState:', closingState.callState);
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 3] New terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 3] New finalClosingStarted:', closingState.finalClosingStarted);
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 3] New confirmationState:', closingState.confirmationState);
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 3] Timestamp:', new Date().toISOString());
+  console.log('[CALL STATE CLOSING COMPLETED - PATH 3] =========================================');
 
   // Start absolute hard-stop timer (10 seconds)
   // This ensures call terminates even if all other mechanisms fail
@@ -5289,62 +5331,19 @@ Do NOT:
                   (twilioHandler as any).assistantSpeaking = assistantSpeaking;
                 }
 
-                // Set callState to 'closing' when final goodbye audio is being sent
-                // This should only happen after terminalClosingResponseStarted is true
-                // CRITICAL: This is the ONLY place where callState should be set to 'closing'
-                // All other code paths must use 'closing_error' for emergency cleanup
-                if (terminalClosingResponseStarted && callState === 'active') {
-                  // Add warning if confirmationState is still collecting_info
-                  if (confirmationState === 'collecting_info') {
-                    console.log('[CALL STATE WARNING] Attempting to set callState to closing but confirmationState is collecting_info');
-                    console.log('[CALL STATE WARNING] This indicates intake is not yet complete');
-                    console.log('[CALL STATE WARNING] callState:', callState);
-                    console.log('[CALL STATE WARNING] terminalClosingResponseStarted:', terminalClosingResponseStarted);
-                    console.log('[CALL STATE WARNING] confirmationState:', confirmationState);
-                  }
-
-                  console.log('[CALL STATE TRANSITION] Source: response.output_audio.delta (terminal goodbye audio)');
-                  console.log('[CALL STATE TRANSITION] Reason: final_goodbye_audio_starting');
-                  console.log('[CALL STATE TRANSITION] active -> closing');
-                  console.log('[CALL STATE TRANSITION] terminalClosingResponseStarted:', terminalClosingResponseStarted);
-                  console.log('[CALL STATE TRANSITION] confirmationState:', confirmationState);
-                  console.log('[CALL STATE TRANSITION] finalClosingStarted:', finalClosingStarted);
-                  console.log('[CALL STATE TRANSITION] Timestamp:', new Date().toISOString());
-
-                  console.log('[CALL_STATE_SET_CLOSING] Setting callState to closing');
-                  console.log('[CALL_STATE_SET_CLOSING] Source: response.output_audio.delta handler at line 3870');
-                  console.log('[CALL_STATE_SET_CLOSING] Stack: response.output_audio.delta -> callState transition');
-                  console.log('[CALL_STATE_SET_CLOSING] Timestamp:', new Date().toISOString());
-                  callState = 'closing';
-                  console.log('[CALL_STATE_SET_CLOSING] Value after set:', callState);
-                  (twilioHandler as any).callState = callState;
-
-                  console.log('[CALL STATE UPDATED] callState set to closing during final goodbye audio transmission');
-                  console.log('[CALL STATE UPDATED] terminalClosingResponseStarted:', terminalClosingResponseStarted);
-                  console.log('[CALL STATE UPDATED] confirmationState:', confirmationState);
-                  console.log('[CALL STATE UPDATED] finalClosingStarted:', finalClosingStarted);
-                } else if (callState === 'active' && !closingState.terminalClosingResponseStarted) {
-                  // Log warning if trying to set callState to closing without terminalClosingResponseStarted
-                  console.log('[CALL STATE BLOCKED FULL CONTEXT] =========================================');
-                  console.log('[CALL STATE BLOCKED FULL CONTEXT] requestedState: closing');
-                  console.log('[CALL STATE BLOCKED FULL CONTEXT] currentState:', callState);
-                  console.log('[CALL STATE BLOCKED FULL CONTEXT] terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
-                  console.log('[CALL STATE BLOCKED FULL CONTEXT] finalClosingStarted:', closingState.finalClosingStarted);
-                  console.log('[CALL STATE BLOCKED FULL CONTEXT] confirmationState:', closingState.confirmationState);
-                  console.log('[CALL STATE BLOCKED FULL CONTEXT] currentStage:', intakeData?.stage);
-                  console.log('[CALL STATE BLOCKED FULL CONTEXT] intakeData:', JSON.stringify(intakeData, null, 2));
-                  console.log('[CALL STATE BLOCKED FULL CONTEXT] closingState:', JSON.stringify(closingState, null, 2));
-                  console.log('[CALL STATE BLOCKED FULL CONTEXT] Timestamp:', new Date().toISOString());
-                  console.log('[CALL STATE BLOCKED FULL CONTEXT] =========================================');
-                  
-                  console.log('[CALL STATE BLOCKED] Cannot set callState to closing - terminalClosingResponseStarted is false');
-                  console.log('[CALL STATE BLOCKED] This indicates the terminal closing sequence has not been started');
-                  console.log('[CALL STATE BLOCKED] callState:', callState);
-                  console.log('[CALL STATE BLOCKED] terminalClosingResponseStarted (from closingState):', closingState.terminalClosingResponseStarted);
-                  console.log('[CALL STATE BLOCKED] finalClosingStarted (from closingState):', closingState.finalClosingStarted);
-                  console.log('[CALL STATE BLOCKED] confirmationState (from closingState):', closingState.confirmationState);
-                  console.log('[CALL STATE BLOCKED] Timestamp:', new Date().toISOString());
-                  console.log('[CALL STATE BLOCKED] callState remains active - allowing audio to continue');
+                // REMOVED: callState = 'closing' transition from audio delta handler
+                // Closing state can only be entered through:
+                // 1. enterTerminalClose()
+                // 2. startAuthoritativeFinalClose()
+                // 3. Other explicit terminal-close functions that first set terminalClosingResponseStarted = true
+                if (callState === 'active' && !closingState.terminalClosingResponseStarted) {
+                  // Log once when terminal closing has not started
+                  console.log('[AUDIO DELTA CLOSING REQUEST IGNORED - TERMINAL NOT STARTED] =========================================');
+                  console.log('[AUDIO DELTA CLOSING REQUEST IGNORED - TERMINAL NOT STARTED] Audio delta closing request ignored');
+                  console.log('[AUDIO DELTA CLOSING REQUEST IGNORED - TERMINAL NOT STARTED] Reason: terminalClosingResponseStarted is false');
+                  console.log('[AUDIO DELTA CLOSING REQUEST IGNORED - TERMINAL NOT STARTED] callState remains active');
+                  console.log('[AUDIO DELTA CLOSING REQUEST IGNORED - TERMINAL NOT STARTED] Timestamp:', new Date().toISOString());
+                  console.log('[AUDIO DELTA CLOSING REQUEST IGNORED - TERMINAL NOT STARTED] =========================================');
                 } else if (callState === 'closing') {
                   // Log if already in closing state
                   console.log('[CALL STATE ALREADY CLOSING] callState is already closing');
@@ -5705,11 +5704,31 @@ Do NOT:
                     console.log('[FINAL_SENTENCE_DETECTED_IN_TRANSCRIPT] =========================================');
 
                     // Set terminal mode immediately
+                    console.log('[CALL STATE CLOSING REQUEST - PATH 2] =========================================');
+                    console.log('[CALL STATE CLOSING REQUEST - PATH 2] Source: response.output_audio_transcript.delta handler at line 5709');
+                    console.log('[CALL STATE CLOSING REQUEST - PATH 2] Trigger: Final sentence detected in transcript');
+                    console.log('[CALL STATE CLOSING REQUEST - PATH 2] Current callState:', callState);
+                    console.log('[CALL STATE CLOSING REQUEST - PATH 2] Current terminalClosingResponseStarted:', terminalClosingResponseStarted);
+                    console.log('[CALL STATE CLOSING REQUEST - PATH 2] Current finalClosingStarted:', finalClosingStarted);
+                    console.log('[CALL STATE CLOSING REQUEST - PATH 2] Current confirmationState:', confirmationState);
+                    console.log('[CALL STATE CLOSING REQUEST - PATH 2] Current stage:', intakeData?.stage);
+                    console.log('[CALL STATE CLOSING REQUEST - PATH 2] Stack: response.output_audio_transcript.delta -> final sentence detection -> state transition');
+                    console.log('[CALL STATE CLOSING REQUEST - PATH 2] Timestamp:', new Date().toISOString());
+                    console.log('[CALL STATE CLOSING REQUEST - PATH 2] =========================================');
+
                     closingState.intakeTerminalComplete = true;
                     closingState.callState = 'closing';
                     closingState.terminalClosingResponseStarted = true;
                     closingState.finalClosingStarted = true;
                     closingState.confirmationState = 'completed';
+
+                    console.log('[CALL STATE CLOSING COMPLETED - PATH 2] =========================================');
+                    console.log('[CALL STATE CLOSING COMPLETED - PATH 2] New callState:', closingState.callState);
+                    console.log('[CALL STATE CLOSING COMPLETED - PATH 2] New terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
+                    console.log('[CALL STATE CLOSING COMPLETED - PATH 2] New finalClosingStarted:', closingState.finalClosingStarted);
+                    console.log('[CALL STATE CLOSING COMPLETED - PATH 2] New confirmationState:', closingState.confirmationState);
+                    console.log('[CALL STATE CLOSING COMPLETED - PATH 2] Timestamp:', new Date().toISOString());
+                    console.log('[CALL STATE CLOSING COMPLETED - PATH 2] =========================================');
 
                     // Sync individual variables for backward compatibility
                     callState = closingState.callState;
