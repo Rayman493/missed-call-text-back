@@ -57,7 +57,7 @@ const FINAL_CLOSE_BRIDGE_PHRASE = "Perfect."; // Short bridge phrase from AI voi
 // OpenAI final close timing
 const FINAL_CLOSE_OPENAI_HANGUP_DELAY_MS = 9000; // 9 seconds fixed delay after OpenAI final sentence
 const MIN_OPENAI_FINAL_PLAYBACK_MS = 7000; // 7 seconds minimum playback before hangup
-const OPENAI_FINAL_EMERGENCY_FALLBACK_MS = 3000; // 3 seconds before falling back to TwiML
+const OPENAI_FINAL_EMERGENCY_FALLBACK_MS = 5000; // 5 seconds before falling back to TwiML
 
 const PORT = process.env.PORT || 8080;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -4227,6 +4227,16 @@ Do NOT:
               if (message.type === 'input_audio_buffer.committed') {
                 console.log('[USER AUDIO] committed:', message.transcript || 'null');
               }
+
+              // Log all OpenAI event types during final close
+              if ((twilioHandler as any).finalClosingStarted) {
+                console.log('[OPENAI FINAL EVENT TYPE] =========================================');
+                console.log('[OPENAI FINAL EVENT TYPE] Event type:', message.type);
+                console.log('[OPENAI FINAL EVENT TYPE] Response ID:', message.response_id || 'unknown');
+                console.log('[OPENAI FINAL EVENT TYPE] Item ID:', message.item_id || 'unknown');
+                console.log('[OPENAI FINAL EVENT TYPE] Timestamp:', new Date().toISOString());
+                console.log('[OPENAI FINAL EVENT TYPE] =========================================');
+              }
               if (message.type === 'conversation.item.created') {
                 console.log('[OPENAI USER MESSAGE CREATED]');
                 console.log('[USER ITEM] created:', message.item?.type || 'unknown');
@@ -4655,16 +4665,21 @@ Do NOT:
                 const currentResponseId = message.response_id || 'unknown';
                 const isFinalResponse = currentResponseId === authorizedFinalResponseId;
                 
+                // Force-allow final close audio if finalClosingStarted is true, regardless of response ID
+                const isFinalClosingStarted = (twilioHandler as any).finalClosingStarted;
+                const forceAllowFinalAudio = isFinalClosingStarted && message.delta && message.delta.length > 0;
+                
                 // Log response ID comparison for debugging
-                if ((twilioHandler as any).finalClosingStarted) {
+                if (isFinalClosingStarted) {
                   console.log('[FINAL AUDIO RESPONSE ID CHECK] =========================================');
                   console.log('[FINAL AUDIO RESPONSE ID CHECK] Current response ID:', currentResponseId);
                   console.log('[FINAL AUDIO RESPONSE ID CHECK] Authorized response ID:', authorizedFinalResponseId);
                   console.log('[FINAL AUDIO RESPONSE ID CHECK] Match:', isFinalResponse);
+                  console.log('[FINAL AUDIO RESPONSE ID CHECK] Force allow final audio:', forceAllowFinalAudio);
                   console.log('[FINAL AUDIO RESPONSE ID CHECK] Timestamp:', new Date().toISOString());
                   console.log('[FINAL AUDIO RESPONSE ID CHECK] =========================================');
                   
-                  if (!isFinalResponse) {
+                  if (!isFinalResponse && !forceAllowFinalAudio) {
                     console.log('[FINAL AUDIO REJECTED] =========================================');
                     console.log('[FINAL AUDIO REJECTED] Audio delta rejected - response ID mismatch');
                     console.log('[FINAL AUDIO REJECTED] Expected response ID:', authorizedFinalResponseId);
@@ -4672,9 +4687,18 @@ Do NOT:
                     console.log('[FINAL AUDIO REJECTED] Timestamp:', new Date().toISOString());
                     console.log('[FINAL AUDIO REJECTED] =========================================');
                   }
+                  
+                  if (forceAllowFinalAudio) {
+                    console.log('[FINAL CLOSE AUDIO FORCE ALLOWED] =========================================');
+                    console.log('[FINAL CLOSE AUDIO FORCE ALLOWED] Force allowing final close audio delta');
+                    console.log('[FINAL CLOSE AUDIO FORCE ALLOWED] Response ID:', currentResponseId);
+                    console.log('[FINAL CLOSE AUDIO FORCE ALLOWED] Delta length:', message.delta?.length || 0);
+                    console.log('[FINAL CLOSE AUDIO FORCE ALLOWED] Timestamp:', new Date().toISOString());
+                    console.log('[FINAL CLOSE AUDIO FORCE ALLOWED] =========================================');
+                  }
                 }
                 
-                if (isFinalResponse) {
+                if (isFinalResponse || forceAllowFinalAudio) {
                   console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] =========================================');
                   console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] Audio delta for final closing response');
                   console.log('[FINAL SENTENCE AUDIO DELTA RECEIVED] Response ID:', currentResponseId);
@@ -4722,7 +4746,7 @@ Do NOT:
                 if (closingState.intakeTerminalComplete) {
                   // If we're in final close mode and authorizedFinalResponseId is null, allow this audio
                   // The response ID will be set by the second response.created handler
-                  if ((twilioHandler as any).finalClosingStarted && authorizedFinalResponseId === null) {
+                  if (isFinalClosingStarted && authorizedFinalResponseId === null) {
                     console.log('[FINAL CLOSE AUDIO ALLOWED] =========================================');
                     console.log('[FINAL CLOSE AUDIO ALLOWED] Allowing final close audio delta');
                     console.log('[FINAL CLOSE AUDIO ALLOWED] Response ID:', currentResponseId);
@@ -4730,7 +4754,7 @@ Do NOT:
                     console.log('[FINAL CLOSE AUDIO ALLOWED] Timestamp:', new Date().toISOString());
                     console.log('[FINAL CLOSE AUDIO ALLOWED] =========================================');
                     // Do not drop - let the audio proceed
-                  } else if (currentResponseId !== authorizedFinalResponseId) {
+                  } else if (currentResponseId !== authorizedFinalResponseId && !forceAllowFinalAudio) {
                     console.log('[UNAUTHORIZED_AUDIO_DROPPED_AFTER_FINAL] =========================================');
                     console.log('[UNAUTHORIZED_AUDIO_DROPPED_AFTER_FINAL] Unauthorized audio dropped - terminal mode is active');
                     console.log('[UNAUTHORIZED_AUDIO_DROPPED_AFTER_FINAL] Response ID:', currentResponseId);
