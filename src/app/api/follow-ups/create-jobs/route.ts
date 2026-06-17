@@ -124,22 +124,19 @@ export async function POST(request: NextRequest) {
       aiOutcome: aiCallRecords?.outcome,
       leadId,
       conversationId,
-      error: aiError
+      error: aiError,
+      isAIIntake: !!aiCallRecords && aiCallRecords.outcome === 'completed'
     })
 
+    // AI intake leads now participate in follow-up automation
+    // Previously suppressed, but now all leads use the same follow-up system
     if (aiCallRecords && aiCallRecords.outcome === 'completed') {
-      console.log('[FOLLOWUP CREATE-JOBS SKIPPED AI COMPLETED]', {
+      console.log('[FOLLOWUP CREATE-JOBS AI LEAD]', {
         leadId,
         conversationId,
         aiCallRecordId: aiCallRecords.id,
         outcome: aiCallRecords.outcome,
-        reason: 'AI intake completed, suppressing follow-up creation'
-      })
-      return NextResponse.json({
-        success: true,
-        skipped: true,
-        reason: 'ai_intake_completed',
-        aiCallRecordId: aiCallRecords.id
+        reason: 'AI intake completed, proceeding with follow-up creation'
       })
     }
 
@@ -153,10 +150,11 @@ export async function POST(request: NextRequest) {
     console.log('[FOLLOWUP JOB CREATE SUCCESS - API]', { 
       businessId, 
       leadId, 
-      jobCount: jobs.length 
+      jobCount: jobs.length,
+      isAIIntake: !!aiCallRecords && aiCallRecords.outcome === 'completed'
     })
 
-    return NextResponse.json({ success: true, jobCount: jobs.length })
+    return NextResponse.json({ success: true, jobCount: jobs.length, isAIIntake: !!aiCallRecords && aiCallRecords.outcome === 'completed' })
   } catch (error) {
     console.error('[FOLLOWUP JOB CREATE ERROR - API]', { error })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
