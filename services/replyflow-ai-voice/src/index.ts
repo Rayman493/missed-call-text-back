@@ -1271,6 +1271,203 @@ function isAIIntakeComplete(extractedFields: any): boolean {
   return missingFields.length === 0;
 }
 
+// Helper function to check if any useful field was collected during incomplete intake
+function hasUsefulCollectedFields(intakeData: IntakeData | null): boolean {
+  if (!intakeData) return false;
+  
+  const usefulFields = [
+    intakeData.callerName,
+    intakeData.reasonForCalling,
+    intakeData.importantDetails,
+    intakeData.addressOrLocation,
+    intakeData.desiredCompletionTime,
+    intakeData.preferredCallbackTime
+  ];
+  
+  const hasAnyField = usefulFields.some(field => field && field.trim() !== '');
+  
+  console.log('[USEFUL COLLECTED FIELDS CHECK]', {
+    hasAnyField,
+    fields: usefulFields
+  });
+  
+  return hasAnyField;
+}
+
+// Helper function to finalize incomplete AI intake
+async function finalizeIncompleteIntake(
+  transcript: Array<{role: string, text: string}>,
+  intakeData: IntakeData | null,
+  businessId: string,
+  callerPhone: string,
+  callSid: string,
+  businessName: string,
+  forwardedFrom: string,
+  supabase: any
+): Promise<void> {
+  console.log('[AI INCOMPLETE FINALIZATION STARTED] =========================================');
+  console.log('[AI INCOMPLETE FINALIZATION STARTED] callSid:', callSid);
+  console.log('[AI INCOMPLETE FINALIZATION STARTED] businessId:', businessId);
+  console.log('[AI INCOMPLETE FINALIZATION STARTED] callerPhone:', callerPhone);
+  console.log('[AI INCOMPLETE FINALIZATION STARTED] Timestamp:', new Date().toISOString());
+  console.log('[AI INCOMPLETE FINALIZATION STARTED] =========================================');
+  
+  // Check if any useful field was collected
+  const hasUsefulData = hasUsefulCollectedFields(intakeData);
+  
+  if (!hasUsefulData) {
+    console.log('[AI INCOMPLETE FINALIZATION SKIPPED] No useful data collected, skipping finalization');
+    return;
+  }
+  
+  console.log('[AI INCOMPLETE FINALIZATION] Useful data collected, proceeding with finalization');
+  
+  // Build extracted fields from intake data
+  const extractedFields = {
+    callerName: intakeData?.callerName || null,
+    reasonForCalling: intakeData?.reasonForCalling || null,
+    importantDetails: intakeData?.importantDetails || null,
+    addressOrLocation: intakeData?.addressOrLocation || null,
+    desiredCompletionTime: intakeData?.desiredCompletionTime || null,
+    preferredCallbackTime: intakeData?.preferredCallbackTime || null,
+    summary: `Partial intake: ${intakeData?.callerName || 'Unknown'} called about ${intakeData?.reasonForCalling || 'unknown issue'}. Some details may be missing.`
+  };
+  
+  console.log('[AI INCOMPLETE FINALIZATION] Extracted fields:', extractedFields);
+  
+  // Create or update lead
+  const { data: lead, error: leadError } = await supabase
+    .from('leads')
+    .upsert({
+      business_id: businessId,
+      caller_phone: callerPhone,
+      status: 'new',
+    }, {
+      onConflict: 'business_id,caller_phone',
+    })
+    .select()
+    .single();
+  
+  if (leadError) {
+    console.log('[AI INCOMPLETE FINALIZATION] Lead creation failed:', leadError);
+    return;
+  }
+  
+  console.log('[AI INCOMPLETE FINALIZATION] Lead created/updated:', lead.id);
+  
+  // Create or update conversation
+  let conversation;
+  const { data: existingConversation } = await supabase
+    .from('conversations')
+    .select('*')
+    .eq('lead_id', lead.id)
+    .maybeSingle();
+  
+  if (existingConversation) {
+    conversation = existingConversation;
+  } else {
+    const result = await supabase
+      .from('conversations')
+      .insert({
+        business_id: businessId,
+        lead_id: lead.id,
+        status: 'open',
+        last_activity_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+    conversation = result.data;
+  }
+  
+  console.log('[AI INCOMPLETE FINALIZATION] Conversation:', conversation.id);
+  
+  // Insert AI call record with incomplete outcome
+  const { error: recordError } = await supabase
+    .from('ai_call_records')
+    .insert({
+      business_id: businessId,
+      lead_id: lead.id,
+      conversation_id: conversation.id,
+      caller_phone: callerPhone,
+      call_sid: callSid,
+      transcript: transcript,
+      outcome: 'incomplete',
+      extracted_info: extractedFields,
+      summary: extractedFields.summary,
+      extraction_failed: false
+    });
+  
+  if (recordError) {
+    console.log('[AI INCOMPLETE FINALIZATION] AI call record creation failed:', recordError);
+    return;
+  }
+  
+  console.log('[AI INCOMPLETE FINALIZATION] AI call record created with outcome: incomplete');
+  
+  // Send partial AI summary SMS
+  try {
+    console.log('[AI INCOMPLETE FINALIZATION SMS SENT] =========================================');
+    console.log('[AI INCOMPLETE FINALIZATION SMS SENT] businessId:', businessId);
+    console.log('[AI INCOMPLETE FINALIZATION SMS SENT] leadId:', lead.id);
+    console.log('[AI INCOMPLETE FINALIZATION SMS SENT] conversationId:', conversation.id);
+    console.log('[AI INCOMPLETE FINALIZATION SMS SENT] Timestamp:', new Date().toISOString());
+    console.log('[AI INCOMPLETE FINALIZATION SMS SENT] =========================================');
+    
+    await sendAIConfirmationSMS(
+      businessId,
+      lead.id,
+      conversation.id,
+      callSid,
+      callerPhone,
+      extractedFields
+    );
+    
+    console.log('[AI INCOMPLETE FINALIZATION SMS SUCCESS] Partial summary SMS sent successfully');
+  } catch (smsError) {
+    console.log('[AI INCOMPLETE FINALIZATION SMS FAILED] SMS send failed:', smsError);
+  }
+  
+  // Create follow-up jobs
+  try {
+    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS REQUESTED] =========================================');
+    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS REQUESTED] businessId:', businessId);
+    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS REQUESTED] leadId:', lead.id);
+    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS REQUESTED] conversationId:', conversation.id);
+    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS REQUESTED] Timestamp:', new Date().toISOString());
+    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS REQUESTED] =========================================');
+    
+    const notificationApiUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000';
+    const internalApiSecret = process.env.INTERNAL_API_SECRET;
+    
+    const headers: any = {
+      'Content-Type': 'application/json',
+    };
+    if (internalApiSecret) {
+      headers['Authorization'] = `Bearer ${internalApiSecret}`;
+    }
+    
+    await fetch(`${notificationApiUrl}/api/follow-ups/create-jobs`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        businessId,
+        leadId: lead.id,
+        conversationId: conversation.id,
+        businessName
+      })
+    });
+    
+    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS SUCCESS] Follow-up jobs created successfully');
+  } catch (followUpError) {
+    console.log('[AI INCOMPLETE FINALIZATION FOLLOWUPS FAILED] Follow-up creation failed:', followUpError);
+  }
+  
+  console.log('[AI INCOMPLETE FINALIZATION COMPLETE] =========================================');
+  console.log('[AI INCOMPLETE FINALIZATION COMPLETE] callSid:', callSid);
+  console.log('[AI INCOMPLETE FINALIZATION COMPLETE] Timestamp:', new Date().toISOString());
+  console.log('[AI INCOMPLETE FINALIZATION COMPLETE] =========================================');
+}
+
 // Helper function to validate issue description
 function isValidIssueDescription(issueDescription: string, serviceRequested?: string): boolean {
   if (!issueDescription || issueDescription.trim().length === 0) {
@@ -2712,7 +2909,7 @@ wss.on('connection', (ws, req) => {
     let finalAudioFallbackStarted = false; // Track if fallback timer has been started
     let directHangupFallbackTimer: NodeJS.Timeout | null = null; // Direct hangup fallback timer
     let directHangupFallbackExecuted = false; // Track if direct hangup fallback has been executed
-    let hardStopTimer: NodeJS.Timeout | null = null; // Absolute hard-stop timer
+    let incompleteFinalizationStarted = false;
     let callerAudioBlockedLogged = false; // One-time guard for CALLER AUDIO BLOCKED logging
 
     // Listener count tracking
@@ -6761,6 +6958,35 @@ Details: ${extractedFields.importantDetails || 'None'}`;
       if (aiTimeoutTimer) {
         clearTimeout(aiTimeoutTimer);
         aiTimeoutTimer = null;
+      }
+      
+      // Handle incomplete intake finalization
+      // Only run if intake is incomplete (caller hung up before completing intake)
+      if (!incompleteFinalizationStarted && 
+          callState === 'active' && 
+          !finalClosingStarted && 
+          !hangupScheduled) {
+        console.log('[TWILIO WEBSOCKET CLOSE] Detecting incomplete intake - caller hung up before completing intake');
+        console.log('[TWILIO WEBSOCKET CLOSE] callState:', callState);
+        console.log('[TWILIO WEBSOCKET CLOSE] finalClosingStarted:', finalClosingStarted);
+        console.log('[TWILIO WEBSOCKET CLOSE] hangupScheduled:', hangupScheduled);
+        console.log('[TWILIO WEBSOCKET CLOSE] Triggering incomplete intake finalization');
+        
+        incompleteFinalizationStarted = true;
+        
+        // Finalize incomplete intake asynchronously
+        finalizeIncompleteIntake(
+          transcript,
+          intakeData,
+          businessId || '',
+          callerPhone || '',
+          callSid || '',
+          businessName || '',
+          forwardedFrom || '',
+          supabase
+        ).catch(error => {
+          console.log('[TWILIO WEBSOCKET CLOSE] Incomplete finalization failed:', error);
+        });
       }
       
       // Only close OpenAI WebSocket if we're not in the middle of final closing
