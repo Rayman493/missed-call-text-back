@@ -48,6 +48,14 @@ console.log('[AI VOICE BUILD INFO] appDrivenIntakeEnabled:', true);
 console.log('[AI VOICE BUILD INFO] nodeEnv:', process.env.NODE_ENV || 'development');
 console.log('[AI VOICE BUILD INFO] =========================================');
 
+// Explicit build marker for speech path refactoring
+console.log('[AI VOICE BUILD MARKER] =========================================');
+console.log('[AI VOICE BUILD MARKER] Feature: Centralized Speech Control');
+console.log('[AI VOICE BUILD MARKER] Commit:', commitSha);
+console.log('[AI VOICE BUILD MARKER] Timestamp:', new Date().toISOString());
+console.log('[AI VOICE BUILD MARKER] Expected logs: [VOICE OUTBOUND] for each stage');
+console.log('[AI VOICE BUILD MARKER] =========================================');
+
 // Unmistakable deployment proof marker
 console.log('[AI VOICE DEPLOYMENT PROOF] =========================================');
 console.log('[AI VOICE DEPLOYMENT PROOF] expectedCommit: 596cf8c6');
