@@ -945,6 +945,12 @@ function sendStagePrompt(
   // Sync lastPromptStage and lastPromptAt to twilioHandler for audio blocking logs
   (twilioHandler as any).lastPromptStage = stage as IntakeStage;
   (twilioHandler as any).lastPromptAt = Date.now();
+  console.log('[STAGE PROMPT SYNC TO TWILIO HANDLER] =========================================');
+  console.log('[STAGE PROMPT SYNC TO TWILIO HANDLER] Synced lastPromptStage:', stage);
+  console.log('[STAGE PROMPT SYNC TO TWILIO HANDLER] Synced lastPromptAt:', Date.now());
+  console.log('[STAGE PROMPT SYNC TO TWILIO HANDLER] Verified lastPromptStage on twilioHandler:', (twilioHandler as any).lastPromptStage);
+  console.log('[STAGE PROMPT SYNC TO TWILIO HANDLER] Timestamp:', new Date().toISOString());
+  console.log('[STAGE PROMPT SYNC TO TWILIO HANDLER] =========================================');
 
   // Start watchdog timer to detect if response is not sent within 500ms
   let responseSent = false;
