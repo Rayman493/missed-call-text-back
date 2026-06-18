@@ -148,6 +148,10 @@ export default function SettingsContent() {
         business_phone_number: businessData.business_phone_number,
         business_type: businessData.business_type,
         business_type_other: businessData.business_type_other,
+        out_of_office_enabled: businessData.out_of_office_enabled,
+        out_of_office_start: businessData.out_of_office_start,
+        out_of_office_end: businessData.out_of_office_end,
+        out_of_office_message: businessData.out_of_office_message,
         auto_reply_message: businessData.auto_reply_message,
         call_forwarding_enabled: businessData.call_forwarding_enabled,
         business_hours_enabled: businessData.business_hours_enabled,
@@ -1732,6 +1736,111 @@ export default function SettingsContent() {
                           </button>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Out of Office Mode */}
+              <div id="out-of-office" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5">
+                <div className="mb-1 sm:mb-2">
+                  <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Out of Office Mode</h2>
+                    {(() => {
+                      const now = new Date()
+                      const start = formBusiness.out_of_office_start ? new Date(formBusiness.out_of_office_start) : null
+                      const end = formBusiness.out_of_office_end ? new Date(formBusiness.out_of_office_end) : null
+                      const isEnabled = formBusiness.out_of_office_enabled
+
+                      if (!isEnabled) return null
+
+                      if (start && now < start) {
+                        return <span className="text-[9px] sm:text-[10px] px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full font-medium">Scheduled</span>
+                      } else if (end && now > end) {
+                        return <span className="text-[9px] sm:text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full font-medium">Expired</span>
+                      } else if (start && end && now >= start && now <= end) {
+                        return <span className="text-[9px] sm:text-[10px] px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-medium">Active</span>
+                      }
+                      return null
+                    })()}
+                  </div>
+                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Temporarily mark yourself as unavailable for vacations, holidays, or closures.</p>
+                </div>
+
+                <div className="space-y-1.5 sm:space-y-2">
+                  {/* Enable Out of Office Mode */}
+                  <div className="flex items-start justify-between p-2 sm:p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-700/40">
+                    <div className="flex-1 pr-3 sm:pr-4">
+                      <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                        <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Enable Out of Office Mode</h3>
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">
+                        When enabled, customers will receive a special message indicating responses may be delayed.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => updateBusiness({ out_of_office_enabled: !formBusiness.out_of_office_enabled })}
+                      disabled={isSaving}
+                      className={`relative inline-flex h-5 w-10 sm:h-6 sm:w-11 items-center rounded-full transition-all duration-300 flex-shrink-0 ${
+                        formBusiness.out_of_office_enabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-600 hover:bg-slate-500'
+                      } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      aria-label={formBusiness.out_of_office_enabled ? 'Disable Out of Office Mode' : 'Enable Out of Office Mode'}
+                    >
+                      <span
+                        className={`inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-all duration-300 shadow-sm ${
+                          formBusiness.out_of_office_enabled ? 'translate-x-5 sm:translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Date Range - Only show when enabled */}
+                  {formBusiness.out_of_office_enabled && (
+                    <div className="space-y-2 sm:space-y-3 border-t border-border pt-2 sm:pt-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                        {/* Start Date/Time */}
+                        <div>
+                          <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-0.5">
+                            Start Date/Time
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={formBusiness.out_of_office_start || ''}
+                            onChange={(e) => updateBusiness({ out_of_office_start: e.target.value || null })}
+                            className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                          />
+                        </div>
+
+                        {/* End Date/Time */}
+                        <div>
+                          <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-0.5">
+                            End Date/Time
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={formBusiness.out_of_office_end || ''}
+                            onChange={(e) => updateBusiness({ out_of_office_end: e.target.value || null })}
+                            className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Custom Message */}
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-0.5">
+                          Out of Office Message
+                        </label>
+                        <textarea
+                          value={formBusiness.out_of_office_message || ''}
+                          onChange={(e) => updateBusiness({ out_of_office_message: e.target.value })}
+                          rows={3}
+                          placeholder="Thanks for contacting {{business_name}}. We are currently out of office and responses may be delayed. Please provide details about what you need and we will get back to you as soon as possible."
+                          className="w-full px-3 sm:px-4 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
+                        />
+                        <p className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                          Use {{business_name}} as a placeholder for your business name.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>

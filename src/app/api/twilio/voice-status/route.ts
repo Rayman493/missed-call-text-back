@@ -565,15 +565,30 @@ export async function POST(req: NextRequest) {
         })
       }
 
-      // Select message based on business hours
+      // Select message based on business hours and out of office status
       let autoReplyMessage
       let messageTemplate = smsDecision.template
-      let templateSource: 'custom' | 'stale_default_replaced' | 'missed_call_default' | 'after_hours'
+      let templateSource: 'custom' | 'stale_default_replaced' | 'missed_call_default' | 'after_hours' | 'out_of_office'
 
       // Define old stale default template
       const staleDefaultTemplate = 'Sorry we missed your call—how can we help?'
 
-      if (businessHoursEnabled && !withinBusinessHours && afterHoursMessage) {
+      // Priority: Out of Office Mode > After Hours > Normal
+      if (messageTemplate === 'out_of_office') {
+        // Use custom out of office message or default
+        if (business.out_of_office_message && business.out_of_office_message.trim()) {
+          autoReplyMessage = business.out_of_office_message.replace(/\{\{business_name\}\}/gi, business.name)
+        } else {
+          autoReplyMessage = `Thanks for contacting ${business.name}. We are currently out of office and responses may be delayed. Please provide details about what you need and we will get back to you as soon as possible. Reply STOP to opt out.`
+        }
+        templateSource = 'out_of_office'
+        console.log('[OUT OF OFFICE MESSAGE SELECTED]', {
+          template: messageTemplate,
+          businessId: business.id,
+          messageBody: autoReplyMessage?.substring(0, 100),
+          templateSource
+        })
+      } else if (businessHoursEnabled && !withinBusinessHours && afterHoursMessage) {
         autoReplyMessage = afterHoursMessage
         messageTemplate = 'after_hours'
         templateSource = 'after_hours'

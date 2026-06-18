@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { MessageSquare, AlertTriangle, User, Settings, Calendar, Phone, Clock, CreditCard, Check, ChevronRight } from 'lucide-react'
+import { isBusinessOutOfOffice, getOutOfOfficeStatus } from '@/lib/out-of-office'
+import { MessageSquare, AlertTriangle, User, Settings, Calendar, Phone, Clock, CreditCard, Check, ChevronRight, CalendarOff } from 'lucide-react'
 import Link from 'next/link'
 
 interface AttentionItem {
@@ -175,6 +176,30 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
         })
 
         // Recommended Items
+
+        // Out of Office Mode - only show when active
+        const outOfOfficeStatus = getOutOfOfficeStatus(business)
+        if (outOfOfficeStatus.status === 'active') {
+          const endDate = outOfOfficeStatus.endDate
+          const daysRemaining = outOfOfficeStatus.daysRemaining
+          const subtitle = endDate
+            ? `Returning ${endDate.toLocaleDateString()}${daysRemaining !== undefined ? ` (${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining)` : ''}`
+            : 'Out of Office Mode is active'
+
+          attentionItems.push({
+            id: 'out-of-office',
+            label: 'Out of Office Mode Active',
+            subtitle,
+            actionLabel: 'Settings',
+            count: 1,
+            priority: 'medium',
+            group: 'Recommended',
+            icon: CalendarOff,
+            color: 'text-blue-600 dark:text-blue-400',
+            bgColor: 'bg-blue-100 dark:bg-blue-900/20',
+            actionUrl: '/dashboard/settings#out-of-office'
+          })
+        }
 
         // Forwarding not verified - only show if business is actively using the system (has leads)
         // This avoids showing onboarding-style warnings to businesses still in setup

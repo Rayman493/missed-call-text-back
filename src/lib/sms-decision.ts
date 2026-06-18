@@ -1,9 +1,10 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { isBusinessOutOfOffice } from '@/lib/out-of-office'
 
 /**
  * SMS Decision Types
  */
-export type SmsTemplate = 'ai_summary' | 'partial_intake' | 'missed_call' | 'after_hours' | 'none'
+export type SmsTemplate = 'ai_summary' | 'partial_intake' | 'missed_call' | 'after_hours' | 'out_of_office' | 'none'
 
 export interface SmsDecisionResult {
   template: SmsTemplate
@@ -94,6 +95,30 @@ export async function determineSmsTemplate(params: {
       template: 'none',
       shouldSend: false,
       reason: 'recent_automated_sms_exists',
+      aiCompleted: false,
+      voicemailCompleted: false,
+      aiCallRecordId: aiCallRecord?.id
+    }
+  }
+
+  // Check for Out of Office Mode (priority: 2, after ignored/blocked rules)
+  const { data: business } = await supabaseAdmin
+    .from('businesses')
+    .select('id, name, out_of_office_enabled, out_of_office_start, out_of_office_end, out_of_office_message')
+    .eq('id', businessId)
+    .single()
+
+  if (business && isBusinessOutOfOffice(business as any)) {
+    console.log('[AUTO SMS DECISION] Out of Office Mode is active - using out of office message', {
+      leadId,
+      callSid,
+      businessId,
+      businessName: business.name
+    })
+    return {
+      template: 'out_of_office',
+      shouldSend: true,
+      reason: 'out_of_office_active',
       aiCompleted: false,
       voicemailCompleted: false,
       aiCallRecordId: aiCallRecord?.id

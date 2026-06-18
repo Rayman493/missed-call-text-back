@@ -72,6 +72,7 @@ import BetaFeedbackModal from '@/components/BetaFeedbackModal'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
 import { getBusinessSetupCompletionState } from '@/lib/setup-completion-state'
+import { isBusinessOutOfOffice, getOutOfOfficeStatus } from '@/lib/out-of-office'
 
 const DEBUG = process.env.NODE_ENV === 'development'
 const dlog = (...args: any[]) => { if (DEBUG) console.log(...args) }
@@ -936,6 +937,43 @@ export default function DashboardContent() {
                     missedCallCount={missedCallCount}
                   />
                 </SectionErrorBoundary>
+
+                {/* Out of Office Mode Banner */}
+                {business && isBusinessOutOfOffice(business) && (
+                  <SectionErrorBoundary sectionName="OutOfOfficeBanner">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl p-4 shadow-sm">
+                      <div className="flex items-start gap-3">
+                        <CalendarOff className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                            Out of Office Mode is currently active
+                          </h3>
+                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                            Customers are being informed that responses may be delayed.
+                          </p>
+                          {(() => {
+                            const status = getOutOfOfficeStatus(business)
+                            if (status.status === 'active' && status.endDate) {
+                              const daysRemaining = status.daysRemaining
+                              return (
+                                <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-1">
+                                  Returning {status.endDate.toLocaleDateString()}{daysRemaining !== undefined ? ` (${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining)` : ''}
+                                </p>
+                              )
+                            }
+                            return null
+                          })()}
+                        </div>
+                        <Link
+                          href="/dashboard/settings#out-of-office"
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium flex-shrink-0"
+                        >
+                          Settings
+                        </Link>
+                      </div>
+                    </div>
+                  </SectionErrorBoundary>
+                )}
 
                 {/* Old banners removed - now handled by DashboardHero */}
 

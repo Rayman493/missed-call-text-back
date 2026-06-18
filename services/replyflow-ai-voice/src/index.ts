@@ -5066,6 +5066,9 @@ Return only JSON, no other text.`;
           let businessType = '';
           let businessTypeOther = '';
           let customGreeting = '';
+          let outOfOfficeEnabled = false;
+          let outOfOfficeStart = '';
+          let outOfOfficeEnd = '';
 
           console.log('[SUPABASE CLIENT CREATED]', supabase ? 'YES' : 'NO');
           console.log('[BUSINESS LOOKUP START]', { businessId, hasSupabase: !!supabase });
@@ -5075,7 +5078,7 @@ Return only JSON, no other text.`;
               console.log('[BUSINESS LOOKUP EXECUTING]', { businessId });
               const { data: business, error } = await supabase
                 .from('businesses')
-                .select('name, business_type, business_type_other')
+                .select('name, business_type, business_type_other, out_of_office_enabled, out_of_office_start, out_of_office_end')
                 .eq('id', businessId)
                 .single() as any;
 
@@ -5086,6 +5089,9 @@ Return only JSON, no other text.`;
                   businessName: business.name,
                   businessType: business.business_type,
                   businessTypeOther: business.business_type_other,
+                  outOfOfficeEnabled: business.out_of_office_enabled,
+                  outOfOfficeStart: business.out_of_office_start,
+                  outOfOfficeEnd: business.out_of_office_end,
                   availableFields: Object.keys(business)
                 });
               }
@@ -5097,6 +5103,9 @@ Return only JSON, no other text.`;
                 businessName = business.name;
                 businessType = business.business_type || '';
                 businessTypeOther = business.business_type_other || '';
+                outOfOfficeEnabled = business.out_of_office_enabled || false;
+                outOfOfficeStart = business.out_of_office_start || '';
+                outOfOfficeEnd = business.out_of_office_end || '';
                 customGreeting = ''; // Default empty since custom_greeting column doesn't exist
                 console.log('[BUSINESS NAME RESOLVED]', businessName);
                 console.log('[BUSINESS LOOKUP SUCCESS]', {
@@ -5104,9 +5113,12 @@ Return only JSON, no other text.`;
                   businessName,
                   businessType,
                   businessTypeOther,
+                  outOfOfficeEnabled,
+                  outOfOfficeStart,
+                  outOfOfficeEnd,
                   hasCustomGreeting: !!customGreeting
                 });
-                console.log('[AI] business loaded', { businessName, businessType, businessTypeOther, hasCustomGreeting: !!customGreeting });
+                console.log('[AI] business loaded', { businessName, businessType, businessTypeOther, outOfOfficeEnabled, hasCustomGreeting: !!customGreeting });
               } else {
                 console.log('[BUSINESS LOOKUP FAILED]', { hasSupabase: true, error: 'No business found with ID' });
               }
@@ -5351,6 +5363,16 @@ BUSINESS CONTEXT:
 Business Name: ${businessName || 'Unknown'}
 ${businessType ? `Business Type: ${businessType}` : ''}
 ${businessTypeOther ? `Custom Business Type: ${businessTypeOther}` : ''}
+${(() => {
+  const now = new Date()
+  const start = outOfOfficeStart ? new Date(outOfOfficeStart) : null
+  const end = outOfOfficeEnd ? new Date(outOfOfficeEnd) : null
+  if (outOfOfficeEnabled && start && end && now >= start && now <= end) {
+    const daysRemaining = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    return `Out Of Office: Active (Returning ${end.toLocaleDateString()}${daysRemaining ? ` (${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining)` : ''})`
+  }
+  return ''
+})()}
 
 LANGUAGE RULE:
 You must speak English only.

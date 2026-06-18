@@ -69,7 +69,13 @@ export interface Business {
   // Business type for AI context
   business_type?: string | null;
   business_type_other?: string | null;
-  
+
+  // Out of Office Mode
+  out_of_office_enabled?: boolean | null;
+  out_of_office_start?: string | null;
+  out_of_office_end?: string | null;
+  out_of_office_message?: string | null;
+
   // Voicemail greeting
   voicemail_greeting_url?: string | null;
   
