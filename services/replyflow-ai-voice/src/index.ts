@@ -4750,7 +4750,7 @@ Return only JSON, no other text.`;
           console.log('[INCOMPLETE MESSAGE INSERT START] =========================================');
 
           const intakeData = (ws as any).intakeData;
-          const partialSummary = intakeData ? 
+          let partialSummary = intakeData ?
             `Partial AI intake information:\n` +
             `Name: ${intakeData.customerName || 'Not provided'}\n` +
             `Service: ${intakeData.serviceRequested || 'Not provided'}\n` +
@@ -4792,6 +4792,81 @@ Return only JSON, no other text.`;
           console.log('[INCOMPLETE SMS BUILD] smsBody:', partialSummary.substring(0, 100) + '...');
           console.log('[INCOMPLETE SMS BUILD] Timestamp:', new Date().toISOString());
           console.log('[INCOMPLETE SMS BUILD] =========================================');
+
+          // Fetch business OOO settings for incomplete SMS
+          let businessNameForOoo = 'the business';
+          let outOfOfficeEnabled = false;
+          let outOfOfficeStart = '';
+          let outOfOfficeEnd = '';
+
+          if (supabase && sessionBusinessId) {
+            try {
+              console.log('[INCOMPLETE SMS BUSINESS OOO LOOKUP]', { businessId: sessionBusinessId });
+              const { data: businessOoo, error: businessOooError } = await supabase
+                .from('businesses')
+                .select('name, out_of_office_enabled, out_of_office_start, out_of_office_end')
+                .eq('id', sessionBusinessId)
+                .single();
+
+              if (businessOoo) {
+                businessNameForOoo = businessOoo.name || 'the business';
+                outOfOfficeEnabled = businessOoo.out_of_office_enabled || false;
+                outOfOfficeStart = businessOoo.out_of_office_start || '';
+                outOfOfficeEnd = businessOoo.out_of_office_end || '';
+                console.log('[INCOMPLETE SMS BUSINESS OOO RESULT]', {
+                  businessName: businessNameForOoo,
+                  outOfOfficeEnabled,
+                  outOfOfficeStart,
+                  outOfOfficeEnd
+                });
+              }
+
+              if (businessOooError) {
+                console.log('[INCOMPLETE SMS BUSINESS OOO ERROR]', businessOooError);
+              }
+            } catch (error) {
+              console.log('[INCOMPLETE SMS BUSINESS OOO FETCH ERROR]', error);
+            }
+          }
+
+          // Check if business is currently Out of Office and append notice
+          let outOfOfficeActive = false;
+          let appendedNotice = false;
+
+          if (outOfOfficeEnabled && outOfOfficeStart && outOfOfficeEnd) {
+            const now = new Date();
+            const start = new Date(outOfOfficeStart);
+            const end = new Date(outOfOfficeEnd);
+            outOfOfficeActive = now >= start && now <= end;
+          }
+
+          console.log('[AI SUMMARY SMS OUT OF OFFICE] =========================================');
+          console.log('[AI SUMMARY SMS OUT OF OFFICE] businessId:', sessionBusinessId);
+          console.log('[AI SUMMARY SMS OUT OF OFFICE] outOfOfficeActive:', outOfOfficeActive);
+          console.log('[AI SUMMARY SMS OUT OF OFFICE] out_of_office_enabled:', outOfOfficeEnabled);
+          console.log('[AI SUMMARY SMS OUT OF OFFICE] out_of_office_start:', outOfOfficeStart);
+          console.log('[AI SUMMARY SMS OUT OF OFFICE] out_of_office_end:', outOfOfficeEnd);
+          console.log('[AI SUMMARY SMS OUT OF OFFICE] Timestamp:', new Date().toISOString());
+          console.log('[AI SUMMARY SMS OUT OF OFFICE] =========================================');
+
+          if (outOfOfficeActive) {
+            const outOfOfficeNotice = `\n\nOut of Office Notice:\n${businessNameForOoo} is currently out of office, so responses may be delayed.`;
+
+            if (outOfOfficeEnd) {
+              const endDate = new Date(outOfOfficeEnd);
+              const formattedDate = endDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+              partialSummary += outOfOfficeNotice + ` Expected return: ${formattedDate}.`;
+
+              console.log('[AI SUMMARY SMS OUT OF OFFICE] Appended notice with return date:', formattedDate);
+            } else {
+              partialSummary += outOfOfficeNotice;
+
+              console.log('[AI SUMMARY SMS OUT OF OFFICE] Appended notice without return date');
+            }
+
+            appendedNotice = true;
+            console.log('[AI SUMMARY SMS OUT OF OFFICE] appendedNotice:', appendedNotice);
+          }
 
           console.log('[INCOMPLETE SMS SEND START] =========================================');
           console.log('[INCOMPLETE SMS SEND START] to:', sessionCallerPhone);
