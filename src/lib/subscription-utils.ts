@@ -29,6 +29,8 @@ export interface Business {
   a2p_status?: string | null;
   call_forwarding_enabled?: boolean | null;
   provisioning_status?: string | null;
+  // Test call completion fields
+  first_test_call_completed_at?: string | null;
   // Manual access fields
   manual_access_enabled?: boolean | null;
   manual_access_expires_at?: string | null;
@@ -141,8 +143,11 @@ export function isReadyForForwardingSetup(business: Business | null | undefined)
  * Authoritative derived setup state function
  * This is the single source of truth for determining setup routing
  * Always check subscription status first before allowing any setup routing
+ * 
+ * @param business - The business object
+ * @param leadCount - Optional: number of leads captured (used to verify test call completion)
  */
-export function deriveSetupState(business: Business | null | undefined): SetupState {
+export function deriveSetupState(business: Business | null | undefined, leadCount: number = 0): SetupState {
   console.log('[deriveSetupState] Calculating setup state:', {
     businessId: business?.stripe_customer_id,
     subscription_status: business?.subscription_status,
@@ -152,7 +157,10 @@ export function deriveSetupState(business: Business | null | undefined): SetupSt
     messaging_status: business?.messaging_status,
     a2p_status: business?.a2p_status,
     manual_access_enabled: business?.manual_access_enabled,
-    manual_access_expires_at: business?.manual_access_expires_at
+    manual_access_expires_at: business?.manual_access_expires_at,
+    leadCount,
+    first_test_call_completed_at: business?.first_test_call_completed_at,
+    phone_setup_completed_at: business?.phone_setup_completed_at
   })
 
   // If no business data, assume loading
@@ -210,13 +218,26 @@ export function deriveSetupState(business: Business | null | undefined): SetupSt
     return 'needs_forwarding'
   }
 
-  // If forwarding is complete but not yet verified, needs final test
-  if (business.call_forwarding_enabled && !business.forwarding_verified) {
-    console.log('[deriveSetupState] Forwarding enabled but not verified - returning needs_final_test')
+  // Check if actual test call has been completed
+  // Only mark setup as complete if there's evidence of a real missed call/test call
+  const hasTestCallCompleted = Boolean(business.first_test_call_completed_at)
+  const hasLeadsCaptured = leadCount > 0
+  const hasActualActivity = hasTestCallCompleted || hasLeadsCaptured
+
+  console.log('[deriveSetupState] Test call completion check:', {
+    hasTestCallCompleted,
+    hasLeadsCaptured,
+    hasActualActivity,
+    leadCount
+  })
+
+  // If forwarding is verified but no actual test call has happened, needs final test
+  if (!hasActualActivity) {
+    console.log('[deriveSetupState] Forwarding verified but no test call completed - returning needs_final_test')
     return 'needs_final_test'
   }
 
-  // Forwarding is verified - setup is complete
+  // Forwarding is verified AND test call completed - setup is complete
   console.log('[deriveSetupState] All checks passed - returning complete')
   return 'complete'
 }

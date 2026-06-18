@@ -39,7 +39,7 @@ export default function SetupStatusCard({
   const [successDismissed, setSuccessDismissed] = useState(false)
   const [showHelpModal, setShowHelpModal] = useState(false)
   const { user } = useAuth()
-  const setupState = deriveSetupState(business)
+  const setupState = deriveSetupState(business, missedCallCount)
   const hasSubscription = hasActiveSubscription(business)
 
   // Check if success state has been dismissed (localStorage)

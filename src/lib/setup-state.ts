@@ -50,8 +50,10 @@ export function deriveSetupState(business: Business | null, realCallDataExists: 
   const step2Complete = isForwardingComplete(business)
 
   // Step 3: Test is complete
-  // Test is complete when missedCallCount > 0 OR there's real call data OR explicit test completion
+  // Test is complete when there's evidence of a real missed call/test call
+  // Priority: first_test_call_completed_at > missedCallCount > test_call_received_at/test_sms_sent_at
   const step3Complete = Boolean(
+    business.first_test_call_completed_at ||
     missedCallCount > 0 ||
     (business.forwarding_verified === true && 
     (business.test_call_received_at || business.test_sms_sent_at || realCallDataExists))
