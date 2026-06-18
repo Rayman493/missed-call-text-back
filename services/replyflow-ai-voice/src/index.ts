@@ -1090,7 +1090,7 @@ async function finalizeCompleteIntakeOnce(
   }
 }
 
-// Persist AI summary SMS message to database
+// Persist AI summary SMS message to database via main app API
 async function persistAiSummarySmsMessage(params: {
   ws: any
   businessId: string
@@ -1103,89 +1103,111 @@ async function persistAiSummarySmsMessage(params: {
   intakeData: any
   status: string
 }): Promise<void> {
-  console.log('[AI SUMMARY SMS DB INSERT START] =========================================');
-  console.log('[AI SUMMARY SMS DB INSERT START] Timestamp:', new Date().toISOString());
-  console.log('[AI SUMMARY SMS DB INSERT START] =========================================');
+  console.log('[AI SUMMARY SMS API PERSIST START] =========================================');
+  console.log('[AI SUMMARY SMS API PERSIST START] Timestamp:', new Date().toISOString());
+  console.log('[AI SUMMARY SMS API PERSIST START] =========================================');
 
   try {
     const { ws, businessId, leadId, conversationId, fromNumber, callerPhone, messageSid, smsBody, intakeData, status } = params;
 
-    console.log('[AI SUMMARY SMS DB INSERT START] =========================================');
-    console.log('[AI SUMMARY SMS DB INSERT START] leadId:', leadId);
-    console.log('[AI SUMMARY SMS DB INSERT START] conversationId:', conversationId);
-    console.log('[AI SUMMARY SMS DB INSERT START] businessId:', businessId);
-    console.log('[AI SUMMARY SMS DB INSERT START] fromNumber:', fromNumber);
-    console.log('[AI SUMMARY SMS DB INSERT START] callerPhone:', callerPhone);
-    console.log('[AI SUMMARY SMS DB INSERT START] messageSid:', messageSid);
-    console.log('[AI SUMMARY SMS DB INSERT START] Timestamp:', new Date().toISOString());
-    console.log('[AI SUMMARY SMS DB INSERT START] =========================================');
+    console.log('[AI SUMMARY SMS API PERSIST START] =========================================');
+    console.log('[AI SUMMARY SMS API PERSIST START] leadId:', leadId);
+    console.log('[AI SUMMARY SMS API PERSIST START] conversationId:', conversationId);
+    console.log('[AI SUMMARY SMS API PERSIST START] businessId:', businessId);
+    console.log('[AI SUMMARY SMS API PERSIST START] fromNumber:', fromNumber);
+    console.log('[AI SUMMARY SMS API PERSIST START] callerPhone:', callerPhone);
+    console.log('[AI SUMMARY SMS API PERSIST START] messageSid:', messageSid);
+    console.log('[AI SUMMARY SMS API PERSIST START] Timestamp:', new Date().toISOString());
+    console.log('[AI SUMMARY SMS API PERSIST START] =========================================');
 
     if (leadId && conversationId && businessId) {
-      console.log('[AI SUMMARY SMS DB INSERT START] =========================================');
-      console.log('[AI SUMMARY SMS DB INSERT START] All required IDs present, proceeding with insert');
-      console.log('[AI SUMMARY SMS DB INSERT START] Insert payload:', {
-        conversation_id: conversationId,
-        lead_id: leadId,
-        body: smsBody,
-        direction: 'outbound',
-        from_phone: fromNumber,
-        to_phone: callerPhone,
-        twilio_message_sid: messageSid,
-        status: status,
-        message_type: 'summary'
+      console.log('[AI SUMMARY SMS API PERSIST START] =========================================');
+      console.log('[AI SUMMARY SMS API PERSIST START] All required IDs present, proceeding with API call');
+      console.log('[AI SUMMARY SMS API PERSIST START] Request payload:', {
+        businessId,
+        leadId,
+        conversationId,
+        fromPhone: fromNumber,
+        toPhone: callerPhone,
+        twilioMessageSid: messageSid,
+        status,
+        smsBodyLength: smsBody?.length || 0
       });
-      console.log('[AI SUMMARY SMS DB INSERT START] Timestamp:', new Date().toISOString());
-      console.log('[AI SUMMARY SMS DB INSERT START] =========================================');
+      console.log('[AI SUMMARY SMS API PERSIST START] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS API PERSIST START] =========================================');
 
-      const { data: messageData, error: messageError } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          lead_id: leadId,
-          body: smsBody,
-          direction: 'outbound',
-          from_phone: fromNumber,
-          to_phone: callerPhone,
-          twilio_message_sid: messageSid,
-          status: status,
-          message_type: 'summary',
-          created_at: new Date().toISOString()
+      const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+      const internalApiSecret = process.env.INTERNAL_API_SECRET;
+
+      console.log('[AI SUMMARY SMS API PERSIST START] =========================================');
+      console.log('[AI SUMMARY SMS API PERSIST START] appBaseUrl:', appBaseUrl);
+      console.log('[AI SUMMARY SMS API PERSIST START] hasInternalApiSecret:', !!internalApiSecret);
+      console.log('[AI SUMMARY SMS API PERSIST START] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS API PERSIST START] =========================================');
+
+      if (!internalApiSecret) {
+        console.log('[AI SUMMARY SMS API PERSIST FAILED] =========================================');
+        console.log('[AI SUMMARY SMS API PERSIST FAILED] INTERNAL_API_SECRET not configured');
+        console.log('[AI SUMMARY SMS API PERSIST FAILED] Timestamp:', new Date().toISOString());
+        console.log('[AI SUMMARY SMS API PERSIST FAILED] =========================================');
+        return;
+      }
+
+      const apiResponse = await fetch(`${appBaseUrl}/api/ai-voice/summary-message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${internalApiSecret}`
+        },
+        body: JSON.stringify({
+          businessId,
+          leadId,
+          conversationId,
+          smsBody,
+          fromPhone: fromNumber,
+          toPhone: callerPhone,
+          twilioMessageSid: messageSid,
+          status
         })
-        .select()
-        .single();
+      });
 
-      if (messageError) {
-        console.log('[AI SUMMARY SMS DB INSERT FAILED] =========================================');
-        console.log('[AI SUMMARY SMS DB INSERT FAILED] code:', messageError.code);
-        console.log('[AI SUMMARY SMS DB INSERT FAILED] message:', messageError.message);
-        console.log('[AI SUMMARY SMS DB INSERT FAILED] details:', messageError.details);
-        console.log('[AI SUMMARY SMS DB INSERT FAILED] hint:', messageError.hint);
-        console.log('[AI SUMMARY SMS DB INSERT FAILED] Timestamp:', new Date().toISOString());
-        console.log('[AI SUMMARY SMS DB INSERT FAILED] =========================================');
+      console.log('[AI SUMMARY SMS API PERSIST RESPONSE] =========================================');
+      console.log('[AI SUMMARY SMS API PERSIST RESPONSE] status:', apiResponse.status);
+      console.log('[AI SUMMARY SMS API PERSIST RESPONSE] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS API PERSIST RESPONSE] =========================================');
+
+      if (apiResponse.ok) {
+        const result = await apiResponse.json() as { success: boolean; messageId: string };
+        console.log('[AI SUMMARY SMS API PERSIST SUCCESS] =========================================');
+        console.log('[AI SUMMARY SMS API PERSIST SUCCESS] leadId:', leadId);
+        console.log('[AI SUMMARY SMS API PERSIST SUCCESS] conversationId:', conversationId);
+        console.log('[AI SUMMARY SMS API PERSIST SUCCESS] messageId:', result.messageId);
+        console.log('[AI SUMMARY SMS API PERSIST SUCCESS] twilioMessageSid:', messageSid);
+        console.log('[AI SUMMARY SMS API PERSIST SUCCESS] status:', status);
+        console.log('[AI SUMMARY SMS API PERSIST SUCCESS] Timestamp:', new Date().toISOString());
+        console.log('[AI SUMMARY SMS API PERSIST SUCCESS] =========================================');
       } else {
-        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] =========================================');
-        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] leadId:', leadId);
-        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] conversationId:', conversationId);
-        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] messageId:', messageData.id);
-        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] twilioMessageSid:', messageSid);
-        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] status:', status);
-        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] Timestamp:', new Date().toISOString());
-        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] =========================================');
+        const errorText = await apiResponse.text();
+        console.log('[AI SUMMARY SMS API PERSIST FAILED] =========================================');
+        console.log('[AI SUMMARY SMS API PERSIST FAILED] status:', apiResponse.status);
+        console.log('[AI SUMMARY SMS API PERSIST FAILED] error:', errorText);
+        console.log('[AI SUMMARY SMS API PERSIST FAILED] Timestamp:', new Date().toISOString());
+        console.log('[AI SUMMARY SMS API PERSIST FAILED] =========================================');
       }
     } else {
-      console.log('[AI SUMMARY SMS DB INSERT SKIPPED] =========================================');
-      console.log('[AI SUMMARY SMS DB INSERT SKIPPED] reason: missing required IDs');
-      console.log('[AI SUMMARY SMS DB INSERT SKIPPED] leadId:', leadId);
-      console.log('[AI SUMMARY SMS DB INSERT SKIPPED] conversationId:', conversationId);
-      console.log('[AI SUMMARY SMS DB INSERT SKIPPED] businessId:', businessId);
-      console.log('[AI SUMMARY SMS DB INSERT SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[AI SUMMARY SMS DB INSERT SKIPPED] =========================================');
+      console.log('[AI SUMMARY SMS API PERSIST SKIPPED] =========================================');
+      console.log('[AI SUMMARY SMS API PERSIST SKIPPED] reason: missing required IDs');
+      console.log('[AI SUMMARY SMS API PERSIST SKIPPED] leadId:', leadId);
+      console.log('[AI SUMMARY SMS API PERSIST SKIPPED] conversationId:', conversationId);
+      console.log('[AI SUMMARY SMS API PERSIST SKIPPED] businessId:', businessId);
+      console.log('[AI SUMMARY SMS API PERSIST SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS API PERSIST SKIPPED] =========================================');
     }
-  } catch (dbError) {
-    console.log('[AI SUMMARY SMS DB INSERT FAILED] =========================================');
-    console.log('[AI SUMMARY SMS DB INSERT FAILED] error:', String(dbError));
-    console.log('[AI SUMMARY SMS DB INSERT FAILED] Timestamp:', new Date().toISOString());
-    console.log('[AI SUMMARY SMS DB INSERT FAILED] =========================================');
+  } catch (apiError) {
+    console.log('[AI SUMMARY SMS API PERSIST FAILED] =========================================');
+    console.log('[AI SUMMARY SMS API PERSIST FAILED] error:', String(apiError));
+    console.log('[AI SUMMARY SMS API PERSIST FAILED] Timestamp:', new Date().toISOString());
+    console.log('[AI SUMMARY SMS API PERSIST FAILED] =========================================');
   }
 }
 
