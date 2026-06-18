@@ -6483,29 +6483,11 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     intakeComplete = true;
 
                     console.log('[SCRIPTED FLOW] =========================================');
-                    console.log('[SCRIPTED FLOW] complete finalization started');
+                    console.log('[SCRIPTED FLOW] final goodbye send requested immediately');
                     console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
                     console.log('[SCRIPTED FLOW] =========================================');
 
-                    // Call finalizeCompleteIntakeOnce to send SMS
-                    await finalizeCompleteIntakeOnce(
-                      intakeData!,
-                      callSid || '',
-                      callerPhone || '',
-                      businessId || '',
-                      ws
-                    );
-
-                    console.log('[SCRIPTED FLOW] =========================================');
-                    console.log('[SCRIPTED FLOW] final goodbye send requested');
-                    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                    console.log('[SCRIPTED FLOW] =========================================');
-
-                    console.log('[TRACE COMPLETE 6] =========================================');
-                    console.log('[TRACE COMPLETE 6] Stage set to complete, about to call enterTerminalClose');
-                    console.log('[TRACE COMPLETE 6] Timestamp:', new Date().toISOString());
-                    console.log('[TRACE COMPLETE 6] =========================================');
-
+                    // Send final goodbye immediately
                     enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
 
                     console.log('[SCRIPTED FLOW] =========================================');
@@ -6513,20 +6495,47 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
                     console.log('[SCRIPTED FLOW] =========================================');
 
-                    // Schedule hard hangup if final goodbye doesn't complete within 3 seconds
+                    // Start SMS/finalization in parallel (don't await)
                     console.log('[SCRIPTED FLOW] =========================================');
-                    console.log('[SCRIPTED FLOW] hard hangup scheduled');
-                    console.log('[SCRIPTED FLOW] timeout: 3000ms');
+                    console.log('[SCRIPTED FLOW] summary SMS finalization started async');
                     console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
                     console.log('[SCRIPTED FLOW] =========================================');
 
+                    finalizeCompleteIntakeOnce(
+                      intakeData!,
+                      callSid || '',
+                      callerPhone || '',
+                      businessId || '',
+                      ws
+                    )
+                      .then(() => {
+                        console.log('[SCRIPTED FLOW] =========================================');
+                        console.log('[SCRIPTED FLOW] summary SMS finalization finished async');
+                        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                        console.log('[SCRIPTED FLOW] =========================================');
+                      })
+                      .catch((error) => {
+                        console.log('[SCRIPTED FLOW] =========================================');
+                        console.log('[SCRIPTED FLOW] summary SMS finalization failed async');
+                        console.log('[SCRIPTED FLOW] error:', String(error));
+                        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                        console.log('[SCRIPTED FLOW] =========================================');
+                      });
+
+                    console.log('[SCRIPTED FLOW] =========================================');
+                    console.log('[SCRIPTED FLOW] hard hangup scheduled after goodbye delay');
+                    console.log('[SCRIPTED FLOW] delay: 12000ms');
+                    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                    console.log('[SCRIPTED FLOW] =========================================');
+
+                    // Schedule hard hangup 12 seconds after final goodbye send request
                     setTimeout(() => {
                       console.log('[SCRIPTED FLOW] =========================================');
-                      console.log('[SCRIPTED FLOW] hard hangup executed');
+                      console.log('[SCRIPTED FLOW] hard hangup executed after goodbye delay');
                       console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
                       console.log('[SCRIPTED FLOW] =========================================');
                       executeOpenaiFinalHangup(ws, twilioHandler, closingState);
-                    }, 3000);
+                    }, 12000);
 
                     console.log('[TRACE COMPLETE 7] =========================================');
                     console.log('[TRACE COMPLETE 7] enterTerminalClose called, about to return');
@@ -6633,10 +6642,55 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       intakeData!.stage = 'complete';
                       intakeComplete = true;
 
-                      // Call idempotent finalization function
-                      finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '', ws);
+                      console.log('[SCRIPTED FLOW] =========================================');
+                      console.log('[SCRIPTED FLOW] final goodbye send requested immediately');
+                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                      console.log('[SCRIPTED FLOW] =========================================');
 
+                      // Send final goodbye immediately
                       enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
+
+                      console.log('[SCRIPTED FLOW] =========================================');
+                      console.log('[SCRIPTED FLOW] final goodbye send result: requested');
+                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                      console.log('[SCRIPTED FLOW] =========================================');
+
+                      // Start SMS/finalization in parallel (don't await)
+                      console.log('[SCRIPTED FLOW] =========================================');
+                      console.log('[SCRIPTED FLOW] summary SMS finalization started async');
+                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                      console.log('[SCRIPTED FLOW] =========================================');
+
+                      finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '', ws)
+                        .then(() => {
+                          console.log('[SCRIPTED FLOW] =========================================');
+                          console.log('[SCRIPTED FLOW] summary SMS finalization finished async');
+                          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                          console.log('[SCRIPTED FLOW] =========================================');
+                        })
+                        .catch((error) => {
+                          console.log('[SCRIPTED FLOW] =========================================');
+                          console.log('[SCRIPTED FLOW] summary SMS finalization failed async');
+                          console.log('[SCRIPTED FLOW] error:', String(error));
+                          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                          console.log('[SCRIPTED FLOW] =========================================');
+                        });
+
+                      console.log('[SCRIPTED FLOW] =========================================');
+                      console.log('[SCRIPTED FLOW] hard hangup scheduled after goodbye delay');
+                      console.log('[SCRIPTED FLOW] delay: 12000ms');
+                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                      console.log('[SCRIPTED FLOW] =========================================');
+
+                      // Schedule hard hangup 12 seconds after final goodbye send request
+                      setTimeout(() => {
+                        console.log('[SCRIPTED FLOW] =========================================');
+                        console.log('[SCRIPTED FLOW] hard hangup executed after goodbye delay');
+                        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                        console.log('[SCRIPTED FLOW] =========================================');
+                        executeOpenaiFinalHangup(ws, twilioHandler, closingState);
+                      }, 12000);
+
                       return; // Skip normal intake processing - NO MORE AI RESPONSES
                     }
                     
@@ -6742,38 +6796,53 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       intakeComplete = true;
 
                       console.log('[SCRIPTED FLOW] =========================================');
-                      console.log('[SCRIPTED FLOW] callback completion finalization started');
+                      console.log('[SCRIPTED FLOW] final goodbye send requested immediately');
                       console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
                       console.log('[SCRIPTED FLOW] =========================================');
 
-                      // Call idempotent finalization function
-                      await finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '', ws);
-
-                      console.log('[SCRIPTED FLOW] =========================================');
-                      console.log('[SCRIPTED FLOW] callback completion SMS sent');
-                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                      console.log('[SCRIPTED FLOW] =========================================');
-
-                      console.log('[SCRIPTED FLOW] =========================================');
-                      console.log('[SCRIPTED FLOW] callback completion final goodbye sent');
-                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                      console.log('[SCRIPTED FLOW] =========================================');
-
+                      // Send final goodbye immediately
                       enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
 
                       console.log('[SCRIPTED FLOW] =========================================');
-                      console.log('[SCRIPTED FLOW] callback completion hard hangup scheduled');
+                      console.log('[SCRIPTED FLOW] final goodbye send result: requested');
                       console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
                       console.log('[SCRIPTED FLOW] =========================================');
 
-                      // Schedule hard hangup if final goodbye doesn't complete within 3 seconds
+                      // Start SMS/finalization in parallel (don't await)
+                      console.log('[SCRIPTED FLOW] =========================================');
+                      console.log('[SCRIPTED FLOW] summary SMS finalization started async');
+                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                      console.log('[SCRIPTED FLOW] =========================================');
+
+                      finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '', ws)
+                        .then(() => {
+                          console.log('[SCRIPTED FLOW] =========================================');
+                          console.log('[SCRIPTED FLOW] summary SMS finalization finished async');
+                          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                          console.log('[SCRIPTED FLOW] =========================================');
+                        })
+                        .catch((error) => {
+                          console.log('[SCRIPTED FLOW] =========================================');
+                          console.log('[SCRIPTED FLOW] summary SMS finalization failed async');
+                          console.log('[SCRIPTED FLOW] error:', String(error));
+                          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                          console.log('[SCRIPTED FLOW] =========================================');
+                        });
+
+                      console.log('[SCRIPTED FLOW] =========================================');
+                      console.log('[SCRIPTED FLOW] hard hangup scheduled after goodbye delay');
+                      console.log('[SCRIPTED FLOW] delay: 12000ms');
+                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                      console.log('[SCRIPTED FLOW] =========================================');
+
+                      // Schedule hard hangup 12 seconds after final goodbye send request
                       setTimeout(() => {
                         console.log('[SCRIPTED FLOW] =========================================');
-                        console.log('[SCRIPTED FLOW] hard hangup executed');
+                        console.log('[SCRIPTED FLOW] hard hangup executed after goodbye delay');
                         console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
                         console.log('[SCRIPTED FLOW] =========================================');
                         executeOpenaiFinalHangup(ws, twilioHandler, closingState);
-                      }, 3000);
+                      }, 12000);
 
                       return; // Skip normal intake processing - NO MORE AI RESPONSES
                     }
