@@ -1042,6 +1042,38 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
             nextStage: 'ask_location'
           };
         }
+        // HARD STAGE GUARD: Before transitioning to ask_details, verify both customerName and serviceRequested are present
+        console.log('[AI STAGE GUARD] =========================================');
+        console.log('[AI STAGE GUARD] fromStage:', intake.stage);
+        console.log('[AI STAGE GUARD] toStage:', 'ask_details');
+        console.log('[AI STAGE GUARD] customerName:', intake.customerName);
+        console.log('[AI STAGE GUARD] serviceRequested:', intake.serviceRequested);
+        console.log('[AI STAGE GUARD] allowed:', !!(intake.customerName && intake.serviceRequested));
+        console.log('[AI STAGE GUARD] Timestamp:', new Date().toISOString());
+        console.log('[AI STAGE GUARD] =========================================');
+
+        if (!intake.customerName || !intake.serviceRequested) {
+          console.log('[AI STAGE GUARD BLOCKED] =========================================');
+          console.log('[AI STAGE GUARD BLOCKED] Transition to ask_details BLOCKED');
+          console.log('[AI STAGE GUARD BLOCKED] Missing required fields');
+          console.log('[AI STAGE GUARD BLOCKED] customerName:', !!intake.customerName);
+          console.log('[AI STAGE GUARD BLOCKED] serviceRequested:', !!intake.serviceRequested);
+          console.log('[AI STAGE GUARD BLOCKED] Timestamp:', new Date().toISOString());
+          console.log('[AI STAGE GUARD BLOCKED] =========================================');
+          // Stay in ask_name_reason and ask for missing field
+          if (!intake.customerName) {
+            return {
+              response: 'Hi, I\'m the assistant for the business. Can you please let me know your name?',
+              nextStage: 'ask_name_reason'
+            };
+          } else {
+            return {
+              response: 'Thanks. What\'s the reason for your call?',
+              nextStage: 'ask_name_reason'
+            };
+          }
+        }
+
         return {
           response: 'Got it. Can you share any important details the business should know?',
           nextStage: 'ask_details'
@@ -1055,26 +1087,12 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
           nextStage: 'ask_name_reason'
         };
       }
-      // Max-stage progression guard: if reason is captured but not name, move to next stage
+      // Max-stage progression guard: if reason is captured but not name, ask for name (NOT moving to details)
       if (!intake.customerName && intake.serviceRequested) {
-        console.log('[MAX-STAGE PROGRESSION] Service captured, moving to details stage');
-        // If reason is already detailed, skip ask_details
-        if (intake.serviceRequested.length > 10) {
-          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] =========================================');
-          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Reason is already detailed');
-          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Reason:', intake.serviceRequested);
-          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Skipping ask_details, moving to ask_location');
-          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Timestamp:', new Date().toISOString());
-          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] =========================================');
-          intake.issueDescription = intake.serviceRequested;
-          return {
-            response: 'Thanks. Where will the service take place?',
-            nextStage: 'ask_location'
-          };
-        }
+        console.log('[MAX-STAGE PROGRESSION] Service captured, asking for name');
         return {
-          response: 'Got it. Can you share any important details the business should know?',
-          nextStage: 'ask_details'
+          response: 'Thanks. What\'s your name?',
+          nextStage: 'ask_name_reason'
         };
       }
       // Ask for name and reason again if not captured
