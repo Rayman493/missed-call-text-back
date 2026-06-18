@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     console.log('[delete-account] Step 1: find businesses')
     const { data: businesses, error: businessesError } = await supabaseAdmin
       .from('businesses')
-      .select('id, stripe_customer_id, stripe_subscription_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, name, trial_ends_at, created_at, user_id, business_phone_number')
+      .select('id, stripe_customer_id, stripe_subscription_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, name, trial_ends_at, created_at, user_id, business_phone_number')
       .eq('user_id', user.id)
 
     if (businessesError) {
@@ -563,6 +563,16 @@ export async function POST(request: NextRequest) {
         const businessPhone = business.business_phone_number
         const replyFlowNumber = business.twilio_phone_number
 
+        // Log the full business configuration before attempting send
+        console.log('[ACCOUNT OFFBOARDING SMS CONFIG]', {
+          business_id: business.id,
+          twilio_phone_number: business.twilio_phone_number,
+          twilio_phone_number_sid: business.twilio_phone_number_sid,
+          messaging_service_sid: business.twilio_messaging_service_sid,
+          provisioning_status: business.provisioning_status,
+          business_phone: businessPhone
+        })
+
         // Safety checks
         if (businessPhone && replyFlowNumber) {
           console.log('[ACCOUNT OFFBOARDING SMS START]', {
@@ -582,8 +592,9 @@ T-Mobile: ##004#
 If forwarding does not stop immediately, restart your phone or contact your carrier.`
 
           try {
+            // Pass the full business object, not a partial one
             const messageSid = await sendSms(
-              { id: business.id, twilio_phone_number: replyFlowNumber } as any,
+              business,
               businessPhone,
               offboardingSmsMessage,
               {
@@ -591,18 +602,34 @@ If forwarding does not stop immediately, restart your phone or contact your carr
               }
             )
 
-            console.log('[ACCOUNT OFFBOARDING SMS SUCCESS]', {
-              business_id: business.id,
-              business_phone: businessPhone,
-              replyflow_number: replyFlowNumber,
-              success: true,
-              twilio_message_sid: messageSid,
-            })
+            // Only log success if Twilio returned a real SID
+            if (messageSid && messageSid.sid) {
+              console.log('[ACCOUNT OFFBOARDING SMS RESULT]', {
+                business_id: business.id,
+                business_phone: businessPhone,
+                replyflow_number: replyFlowNumber,
+                success: true,
+                twilio_message_sid: messageSid.sid,
+                message_id: messageSid.messageId
+              })
 
-            summary.offboardingSmsSent = true
-            summary.offboardingSmsMessageSid = messageSid
+              summary.offboardingSmsSent = true
+              summary.offboardingSmsMessageSid = messageSid.sid
+            } else {
+              console.error('[ACCOUNT OFFBOARDING SMS RESULT]', {
+                business_id: business.id,
+                business_phone: businessPhone,
+                replyflow_number: replyFlowNumber,
+                success: false,
+                twilio_message_sid: messageSid?.sid,
+                error: 'Twilio did not return a valid SID'
+              })
+
+              summary.offboardingSmsSent = false
+              summary.offboardingSmsError = 'Twilio did not return a valid SID'
+            }
           } catch (smsError: any) {
-            console.error('[ACCOUNT OFFBOARDING SMS FAILED]', {
+            console.error('[ACCOUNT OFFBOARDING SMS RESULT]', {
               business_id: business.id,
               business_phone: businessPhone,
               replyflow_number: replyFlowNumber,
