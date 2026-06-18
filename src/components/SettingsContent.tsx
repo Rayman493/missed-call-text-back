@@ -1838,7 +1838,7 @@ export default function SettingsContent() {
                           className="w-full px-3 sm:px-4 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
                         />
                         <p className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                          Use {{business_name}} as a placeholder for your business name.
+                          Use &lbrace;&lbrace;business_name&rbrace;&rbrace; as a placeholder for your business name.
                         </p>
                       </div>
                     </div>
