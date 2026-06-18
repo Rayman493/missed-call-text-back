@@ -98,6 +98,21 @@ const AI_VOICE = process.env.AI_VOICE || 'alloy'; // Configurable voice: alloy, 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// Diagnostic logging - DO NOT LOG SECRET VALUES
+console.log('[ENV DIAGNOSTIC] =========================================');
+console.log('[ENV DIAGNOSTIC] hasOpenAIKey:', !!OPENAI_API_KEY);
+console.log('[ENV DIAGNOSTIC] openAIKeyLength:', OPENAI_API_KEY?.length || 0);
+console.log('[ENV DIAGNOSTIC] hasSupabaseUrl:', !!SUPABASE_URL);
+console.log('[ENV DIAGNOSTIC] supabaseUrlLength:', SUPABASE_URL?.length || 0);
+console.log('[ENV DIAGNOSTIC] hasServiceRoleKey:', !!SUPABASE_SERVICE_ROLE_KEY);
+console.log('[ENV DIAGNOSTIC] serviceRoleKeyLength:', SUPABASE_SERVICE_ROLE_KEY?.length || 0);
+console.log('[ENV DIAGNOSTIC] nodeEnv:', process.env.NODE_ENV || 'undefined');
+console.log('[ENV DIAGNOSTIC] port:', PORT);
+console.log('[ENV DIAGNOSTIC] aiVoice:', AI_VOICE);
+console.log('[ENV DIAGNOSTIC] process.envKeys:', Object.keys(process.env).filter(k => k.includes('SUPABASE') || k.includes('OPENAI') || k.includes('TWILIO')));
+console.log('[ENV DIAGNOSTIC] Timestamp:', new Date().toISOString());
+console.log('[ENV DIAGNOSTIC] =========================================');
+
 // Log environment variables for debugging
 log(LogLevel.INFO, '[ENV CHECK] SUPABASE_URL:', !!SUPABASE_URL);
 log(LogLevel.INFO, '[ENV CHECK] NEXT_PUBLIC_SUPABASE_URL:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
