@@ -782,6 +782,11 @@ async function finalizeCompleteIntakeOnce(
 
   completeFinalizationStartedByCallSid.set(callSid, Date.now());
 
+  console.log('[SCRIPTED FLOW] =========================================');
+  console.log('[SCRIPTED FLOW] intake complete');
+  console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+  console.log('[SCRIPTED FLOW] =========================================');
+
   console.log('[COMPLETE PATH] Finalization started');
   console.log('[COMPLETE PATH] Stage set to complete');
   console.log('[COMPLETE PATH] Summary SMS request');
@@ -816,6 +821,12 @@ async function finalizeCompleteIntakeOnce(
     console.log('[AI SUMMARY SMS RESPONSE] status:', smsResult.status);
     console.log('[AI SUMMARY SMS RESPONSE] Timestamp:', new Date().toISOString());
     console.log('[AI SUMMARY SMS RESPONSE] =========================================');
+
+    console.log('[SCRIPTED FLOW] =========================================');
+    console.log('[SCRIPTED FLOW] summary SMS sent');
+    console.log('[SCRIPTED FLOW] messageSid:', smsResult.sid);
+    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+    console.log('[SCRIPTED FLOW] =========================================');
 
     console.log('[COMPLETE PATH] Summary SMS sent');
     console.log('[COMPLETE PATH] Finalization complete');
@@ -949,6 +960,7 @@ function createIntakeData(businessName: string, callSid: string, businessId: str
 // Track expected prompts for verification
 let expectedPrompt: string | null = null;
 let currentResponseId: string | null = null;
+let authorizedResponseCreateSource: string | null = null;
 
 /**
  * Approved prompts for each stage - ONLY these prompts are allowed to be spoken
@@ -957,10 +969,10 @@ let currentResponseId: string | null = null;
 const APPROVED_PROMPTS: Record<string, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
   ask_details: "Got it. Can you share any important details the business should know?",
-  ask_location: "Thanks. Where will the service take place?",
-  ask_completion_time: "Thanks. When would you like this service completed?",
-  ask_callback_time: "What's the best time for the business to call you back?",
-  final_goodbye: "Perfect. I have everything I need. The team will follow up with you soon."
+  ask_location: "Thanks. What address or location is this for?",
+  ask_completion_time: "Got it. When would you like this work completed?",
+  ask_callback_time: "Thanks. What is the best time for the business to call you back?",
+  final_goodbye: "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day."
 };
 
 /**
@@ -992,9 +1004,18 @@ function sendApprovedPrompt(stage: string, openAiWs: any): boolean {
   console.log('[VOICE OUTBOUND] Timestamp:', new Date().toISOString());
   console.log('[VOICE OUTBOUND] =========================================');
 
+  // Log [SCRIPTED FLOW] prompt sent
+  console.log('[SCRIPTED FLOW] =========================================');
+  console.log('[SCRIPTED FLOW] prompt sent');
+  console.log('[SCRIPTED FLOW] stage:', stage);
+  console.log('[SCRIPTED FLOW] text:', approvedText);
+  console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+  console.log('[SCRIPTED FLOW] =========================================');
+
   // Track expected prompt for verification
   expectedPrompt = approvedText;
   currentResponseId = null;
+  authorizedResponseCreateSource = 'sendApprovedPrompt';
 
   // Use strict instruction
   const strictInstruction = `SAY EXACTLY THIS TEXT AND NOTHING ELSE: "${approvedText}"
@@ -1236,6 +1257,15 @@ function sendStagePrompt(
   const sent = sendApprovedPrompt(stage, openAiWs);
   responseSent = sent;
   clearTimeout(watchdogTimer);
+
+  // Add [SCRIPTED FLOW] log for final goodbye
+  if (stage === 'complete' || stage === 'final_goodbye') {
+    console.log('[SCRIPTED FLOW] =========================================');
+    console.log('[SCRIPTED FLOW] goodbye sent');
+    console.log('[SCRIPTED FLOW] stage:', stage);
+    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+    console.log('[SCRIPTED FLOW] =========================================');
+  }
 }
 
 /**
@@ -1246,186 +1276,107 @@ function sendStagePrompt(
 const STAGE_PROMPTS: Record<IntakeStage, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
   ask_details: "Got it. Can you share any important details the business should know?",
-  ask_location: "Thanks. Where will the service take place?",
-  ask_completion_time: "Thanks. When would you like this service completed?",
-  ask_callback_time: "What's the best time for the business to call you back?",
-  complete: "Perfect. I have everything I need. The team will follow up with you soon."
+  ask_location: "Thanks. What address or location is this for?",
+  ask_completion_time: "Got it. When would you like this work completed?",
+  ask_callback_time: "Thanks. What is the best time for the business to call you back?",
+  complete: "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day."
 };
 
 /**
- * Deterministic stage progression logic
- * The app, not the AI model, decides the next stage based on current state
+ * Simple scripted stage progression - deterministic, no GPT decisions
+ * The app follows a fixed sequence: ask_name_reason → ask_details → ask_location → ask_completion_time → ask_callback_time → complete
  */
-function getNextStage(
-  intake: IntakeData,
-  currentStage: IntakeStage,
-  latestTranscript: string | undefined,
-  stagePromptAttempts: Map<IntakeStage, number>
-): IntakeStage {
-  console.log('[APP DRIVEN INTAKE DECISION] =========================================');
-  console.log('[APP DRIVEN INTAKE DECISION] currentStage:', currentStage);
-  console.log('[APP DRIVEN INTAKE DECISION] latestTranscript:', latestTranscript || 'none');
-  console.log('[APP DRIVEN INTAKE DECISION] fieldsBefore:', JSON.stringify({
-    customerName: intake.customerName,
-    serviceRequested: intake.serviceRequested,
-    issueDescription: intake.issueDescription,
-    serviceAddress: intake.serviceAddress,
-    desiredCompletionTime: intake.desiredCompletionTime,
-    callbackTime: intake.callbackTime
-  }, null, 2));
+function getNextStage(currentStage: IntakeStage): IntakeStage {
+  console.log('[SCRIPTED FLOW] =========================================');
+  console.log('[SCRIPTED FLOW] stage advanced');
+  console.log('[SCRIPTED FLOW] fromStage:', currentStage);
 
-  const attemptCount = stagePromptAttempts.get(currentStage) || 0;
+  const stageSequence: Record<IntakeStage, IntakeStage> = {
+    ask_name_reason: 'ask_details',
+    ask_details: 'ask_location',
+    ask_location: 'ask_completion_time',
+    ask_completion_time: 'ask_callback_time',
+    ask_callback_time: 'complete',
+    complete: 'complete'
+  };
 
-  switch (currentStage) {
-    case 'ask_name_reason':
-      // If customerName missing, ask name + reason again
-      if (!intake.customerName) {
-        console.log('[STAGE ADVANCE BLOCKED] =========================================');
-        console.log('[STAGE ADVANCE BLOCKED] fromStage:', currentStage);
-        console.log('[STAGE ADVANCE BLOCKED] attemptedToStage:', 'ask_details');
-        console.log('[STAGE ADVANCE BLOCKED] missingFields:', ['customerName']);
-        console.log('[STAGE ADVANCE BLOCKED] reason: customerName missing, stay in ask_name_reason');
-        console.log('[STAGE ADVANCE BLOCKED] Timestamp:', new Date().toISOString());
-        console.log('[STAGE ADVANCE BLOCKED] =========================================');
-        console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_name_reason');
-        console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
-        console.log('[APP DRIVEN INTAKE DECISION] =========================================');
-        return 'ask_name_reason';
-      }
-      // If serviceRequested missing, ask specifically for reason
-      if (!intake.serviceRequested) {
-        console.log('[STAGE ADVANCE BLOCKED] =========================================');
-        console.log('[STAGE ADVANCE BLOCKED] fromStage:', currentStage);
-        console.log('[STAGE ADVANCE BLOCKED] attemptedToStage:', 'ask_details');
-        console.log('[STAGE ADVANCE BLOCKED] missingFields:', ['serviceRequested']);
-        console.log('[STAGE ADVANCE BLOCKED] reason: serviceRequested missing, stay in ask_name_reason');
-        console.log('[STAGE ADVANCE BLOCKED] Timestamp:', new Date().toISOString());
-        console.log('[STAGE ADVANCE BLOCKED] =========================================');
-        console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_name_reason');
-        console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
-        console.log('[APP DRIVEN INTAKE DECISION] =========================================');
-        return 'ask_name_reason';
-      }
-      // Only move to ask_details when both customerName and serviceRequested exist
-      console.log('[APP DRIVEN INTAKE DECISION] reason: both customerName and serviceRequested present, move to ask_details');
-      console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_details');
-      console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
-      console.log('[APP DRIVEN INTAKE DECISION] =========================================');
-      return 'ask_details';
+  const nextStage = stageSequence[currentStage] || currentStage;
 
-    case 'ask_details':
-      // Check if transcript was actually received
-      const transcriptWasReceived = latestTranscript && latestTranscript.trim().length > 0;
-      
-      // Hard fallback: if ask_details has been asked twice, force advance to ask_location
-      if (attemptCount >= 2) {
-        console.log('[APP DRIVEN INTAKE DECISION] reason: max attempts (2) reached, force advance to ask_location');
-        console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_location');
-        console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
-        console.log('[APP DRIVEN INTAKE DECISION] =========================================');
-        // Use serviceRequested as issueDescription if available
-        if (intake.serviceRequested && !intake.issueDescription) {
-          intake.issueDescription = intake.serviceRequested;
-        }
-        return 'ask_location';
-      }
-      
-      // If no transcript was received after first attempt, advance anyway
-      if (!transcriptWasReceived && attemptCount >= 1) {
-        console.log('[APP DRIVEN INTAKE DECISION] reason: no transcript received after first attempt, force advance to ask_location');
-        console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_location');
-        console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
-        console.log('[APP DRIVEN INTAKE DECISION] =========================================');
-        // Use serviceRequested as issueDescription if available
-        if (intake.serviceRequested && !intake.issueDescription) {
-          intake.issueDescription = intake.serviceRequested;
-        }
-        return 'ask_location';
-      }
-      
-      // After one meaningful response, always move to ask_location
-      if (intake.issueDescription && intake.issueDescription.length > 0) {
-        console.log('[APP DRIVEN INTAKE DECISION] reason: issueDescription captured, move to ask_location');
-        console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_location');
-        console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
-        console.log('[APP DRIVEN INTAKE DECISION] =========================================');
-        return 'ask_location';
-      }
-      // If no meaningful response yet, stay in ask_details
-      console.log('[APP DRIVEN INTAKE DECISION] reason: no meaningful issueDescription yet, stay in ask_details');
-      console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_details');
-      console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
-      console.log('[APP DRIVEN INTAKE DECISION] =========================================');
-      return 'ask_details';
+  console.log('[SCRIPTED FLOW] toStage:', nextStage);
+  console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+  console.log('[SCRIPTED FLOW] =========================================');
 
-    case 'ask_location':
-      // Capture serviceAddress, then move to ask_completion_time
-      console.log('[APP DRIVEN INTAKE DECISION] reason: location stage, move to ask_completion_time');
-      console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_completion_time');
-      console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
-      console.log('[APP DRIVEN INTAKE DECISION] =========================================');
-      return 'ask_completion_time';
-
-    case 'ask_completion_time':
-      // Capture desiredCompletionTime, then move to ask_callback_time
-      console.log('[APP DRIVEN INTAKE DECISION] reason: completion time stage, move to ask_callback_time');
-      console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_callback_time');
-      console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
-      console.log('[APP DRIVEN INTAKE DECISION] =========================================');
-      return 'ask_callback_time';
-
-    case 'ask_callback_time':
-      // Capture callbackTime, then move to complete
-      console.log('[APP DRIVEN INTAKE DECISION] reason: callback time stage, move to complete');
-      console.log('[APP DRIVEN INTAKE DECISION] nextStage: complete');
-      console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
-      console.log('[APP DRIVEN INTAKE DECISION] =========================================');
-      return 'complete';
-
-    case 'complete':
-      console.log('[APP DRIVEN INTAKE DECISION] reason: already complete, stay in complete');
-      console.log('[APP DRIVEN INTAKE DECISION] nextStage: complete');
-      console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
-      console.log('[APP DRIVEN INTAKE DECISION] =========================================');
-      return 'complete';
-
-    default:
-      console.log('[APP DRIVEN INTAKE DECISION] reason: unknown stage, default to ask_name_reason');
-      console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_name_reason');
-      console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
-      console.log('[APP DRIVEN INTAKE DECISION] =========================================');
-      return 'ask_name_reason';
-  }
+  return nextStage;
 }
 
 /**
- * App-driven intake response logic
- * The app determines the next stage and provides predefined prompts
- * The model only extracts fields from transcripts
+ * Simple scripted intake response logic - direct transcript save, no GPT extraction
+ * The app saves caller transcript directly to the field based on current stage
+ * Then advances to the next stage in the fixed sequence
  */
 function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptAttempts?: Map<IntakeStage, number>): { response: string; nextStage: IntakeStage } {
-  console.log('[INTAKE STAGE TRANSITION] =========================================');
-  console.log('[INTAKE STAGE TRANSITION] from:', intake.stage);
-  console.log('[INTAKE STAGE TRANSITION] reason: processing transcript');
-  console.log('[INTAKE STAGE TRANSITION] currentIntakeData:', JSON.stringify({
-    customerName: intake.customerName,
-    serviceRequested: intake.serviceRequested,
-    issueDescription: intake.issueDescription,
-    serviceAddress: intake.serviceAddress,
-    desiredCompletionTime: intake.desiredCompletionTime,
-    callbackTime: intake.callbackTime,
-    stage: intake.stage
-  }, null, 2));
-  console.log('[INTAKE STAGE TRANSITION] timestamp:', new Date().toISOString());
-  console.log('[INTAKE STAGE TRANSITION] =========================================');
+  console.log('[SCRIPTED FLOW] =========================================');
+  console.log('[SCRIPTED FLOW] caller transcript received');
+  console.log('[SCRIPTED FLOW] currentStage:', intake.stage);
+  console.log('[SCRIPTED FLOW] transcript:', transcript || 'none');
+  console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+  console.log('[SCRIPTED FLOW] =========================================');
 
-  // Extract fields from transcript (model may extract fields)
-  if (transcript) {
-    extractMultipleAnswers(intake, transcript);
+  // Save transcript directly to the corresponding field based on current stage
+  if (transcript && transcript.trim().length > 0) {
+    switch (intake.stage) {
+      case 'ask_name_reason':
+        // For ask_name_reason, we need to extract name and reason from the transcript
+        // This is the only stage where we use GPT extraction since it's a combined question
+        extractMultipleAnswers(intake, transcript);
+        console.log('[SCRIPTED FLOW] =========================================');
+        console.log('[SCRIPTED FLOW] field saved (ask_name_reason - extracted via GPT)');
+        console.log('[SCRIPTED FLOW] customerName:', intake.customerName);
+        console.log('[SCRIPTED FLOW] serviceRequested:', intake.serviceRequested);
+        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+        console.log('[SCRIPTED FLOW] =========================================');
+        break;
+      case 'ask_details':
+        intake.issueDescription = transcript.trim();
+        console.log('[SCRIPTED FLOW] =========================================');
+        console.log('[SCRIPTED FLOW] field saved');
+        console.log('[SCRIPTED FLOW] field: issueDescription');
+        console.log('[SCRIPTED FLOW] value:', transcript.trim());
+        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+        console.log('[SCRIPTED FLOW] =========================================');
+        break;
+      case 'ask_location':
+        intake.serviceAddress = transcript.trim();
+        console.log('[SCRIPTED FLOW] =========================================');
+        console.log('[SCRIPTED FLOW] field saved');
+        console.log('[SCRIPTED FLOW] field: serviceAddress');
+        console.log('[SCRIPTED FLOW] value:', transcript.trim());
+        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+        console.log('[SCRIPTED FLOW] =========================================');
+        break;
+      case 'ask_completion_time':
+        intake.desiredCompletionTime = transcript.trim();
+        console.log('[SCRIPTED FLOW] =========================================');
+        console.log('[SCRIPTED FLOW] field saved');
+        console.log('[SCRIPTED FLOW] field: desiredCompletionTime');
+        console.log('[SCRIPTED FLOW] value:', transcript.trim());
+        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+        console.log('[SCRIPTED FLOW] =========================================');
+        break;
+      case 'ask_callback_time':
+        intake.callbackTime = transcript.trim();
+        console.log('[SCRIPTED FLOW] =========================================');
+        console.log('[SCRIPTED FLOW] field saved');
+        console.log('[SCRIPTED FLOW] field: callbackTime');
+        console.log('[SCRIPTED FLOW] value:', transcript.trim());
+        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+        console.log('[SCRIPTED FLOW] =========================================');
+        break;
+    }
   }
 
-  // App determines next stage deterministically
-  const nextStage = getNextStage(intake, intake.stage, transcript, stagePromptAttempts || new Map());
+  // App determines next stage deterministically (fixed sequence)
+  const nextStage = getNextStage(intake.stage);
 
   // Get predefined prompt for the next stage
   const response = STAGE_PROMPTS[nextStage] || STAGE_PROMPTS.ask_name_reason;
@@ -1433,7 +1384,6 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
   console.log('[PREDEFINED PROMPT SENT] =========================================');
   console.log('[PREDEFINED PROMPT SENT] stage:', nextStage);
   console.log('[PREDEFINED PROMPT SENT] questionText:', response);
-  console.log('[PREDEFINED PROMPT SENT] attemptCount:', stagePromptAttempts?.get(nextStage) || 0);
   console.log('[PREDEFINED PROMPT SENT] Timestamp:', new Date().toISOString());
   console.log('[PREDEFINED PROMPT SENT] =========================================');
 
@@ -7188,6 +7138,14 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               if (message.type === 'response.created') {
                 console.log('[OPENAI RECV] response.created');
                 const actualResponseId = message.response_id || 'unknown';
+
+                console.log('[RESPONSE CREATE SOURCE] =========================================');
+                console.log('[RESPONSE CREATE SOURCE] source:', authorizedResponseCreateSource || 'UNAUTHORIZED');
+                console.log('[RESPONSE CREATE SOURCE] responseId:', actualResponseId);
+                console.log('[RESPONSE CREATE SOURCE] expectedPrompt:', expectedPrompt || 'none');
+                console.log('[RESPONSE CREATE SOURCE] Timestamp:', new Date().toISOString());
+                console.log('[RESPONSE CREATE SOURCE] =========================================');
+
                 console.log('[OPENAI ACTUAL RESPONSE ID] =========================================');
                 console.log('[OPENAI ACTUAL RESPONSE ID] Actual OpenAI response ID:', actualResponseId);
                 console.log('[OPENAI ACTUAL RESPONSE ID] Authorized final response ID:', (twilioHandler as any).authorizedFinalResponseId);
@@ -7196,11 +7154,12 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[OPENAI ACTUAL RESPONSE ID] =========================================');
 
                 // Scope guard: Check if this response was created by sendApprovedPrompt
-                // All approved responses should have expectedPrompt set
+                // All approved responses should have authorizedResponseCreateSource set to 'sendApprovedPrompt'
                 const isFinalClose = (twilioHandler as any).finalClosingStarted;
-                if (!expectedPrompt && !isFinalClose) {
+                if (authorizedResponseCreateSource !== 'sendApprovedPrompt' && !isFinalClose) {
                   console.log('[VOICE SCOPE VIOLATION BLOCKED] =========================================');
-                  console.log('[VOICE SCOPE VIOLATION BLOCKED] response.created detected without expectedPrompt');
+                  console.log('[VOICE SCOPE VIOLATION BLOCKED] response.created detected without authorized source');
+                  console.log('[VOICE SCOPE VIOLATION BLOCKED] authorizedResponseCreateSource:', authorizedResponseCreateSource);
                   console.log('[VOICE SCOPE VIOLATION BLOCKED] This indicates AI generated a response instead of using approved prompts');
                   console.log('[VOICE SCOPE VIOLATION BLOCKED] Response ID:', actualResponseId);
                   console.log('[VOICE SCOPE VIOLATION BLOCKED] Stage:', intakeData?.stage || 'unknown');
@@ -7218,6 +7177,9 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   }
                   return; // Do not process this response
                 }
+
+                // Clear the authorized source flag after verification
+                authorizedResponseCreateSource = null;
 
                 // If this is the final close response, store the actual OpenAI response ID
                 if ((twilioHandler as any).finalClosingStarted) {
