@@ -809,9 +809,81 @@ async function finalizeCompleteIntakeOnce(
     console.log('[AI SUMMARY SMS REQUEST] Timestamp:', new Date().toISOString());
     console.log('[AI SUMMARY SMS REQUEST] =========================================');
 
+    // Fetch business-specific phone number
+    let fromNumber: string | null = null;
+    let source = 'unknown';
+    let fallbackUsed = false;
+
+    try {
+      console.log('[AI SUMMARY SMS SENDER] =========================================');
+      console.log('[AI SUMMARY SMS SENDER] businessId:', businessId);
+      console.log('[AI SUMMARY SMS SENDER] Fetching business-specific phone number');
+      console.log('[AI SUMMARY SMS SENDER] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS SENDER] =========================================');
+
+      // Fetch business phone number from database
+      const { data: business, error: businessError } = await supabase
+        .from('businesses')
+        .select('phone_number')
+        .eq('id', businessId)
+        .single();
+
+      if (businessError) {
+        console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
+        console.log('[AI SUMMARY SMS SENDER ERROR] Failed to fetch business phone number');
+        console.log('[AI SUMMARY SMS SENDER ERROR] Error:', businessError.message);
+        console.log('[AI SUMMARY SMS SENDER ERROR] Timestamp:', new Date().toISOString());
+        console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
+      } else if (business && business.phone_number) {
+        fromNumber = business.phone_number;
+        source = 'database';
+        console.log('[AI SUMMARY SMS SENDER] =========================================');
+        console.log('[AI SUMMARY SMS SENDER] selectedFromNumber:', fromNumber);
+        console.log('[AI SUMMARY SMS SENDER] source:', source);
+        console.log('[AI SUMMARY SMS SENDER] fallbackUsed:', fallbackUsed);
+        console.log('[AI SUMMARY SMS SENDER] Timestamp:', new Date().toISOString());
+        console.log('[AI SUMMARY SMS SENDER] =========================================');
+      } else {
+        console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
+        console.log('[AI SUMMARY SMS SENDER ERROR] No phone_number found in business record');
+        console.log('[AI SUMMARY SMS SENDER ERROR] Timestamp:', new Date().toISOString());
+        console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
+      }
+    } catch (dbError) {
+      console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
+      console.log('[AI SUMMARY SMS SENDER ERROR] Database query failed');
+      console.log('[AI SUMMARY SMS SENDER ERROR] Error:', String(dbError));
+      console.log('[AI SUMMARY SMS SENDER ERROR] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
+    }
+
+    // Fallback to global TWILIO_PHONE_NUMBER if business number not found
+    if (!fromNumber) {
+      fromNumber = process.env.TWILIO_PHONE_NUMBER || null;
+      source = 'fallback_global';
+      fallbackUsed = true;
+
+      console.log('[AI SUMMARY SMS SENDER] =========================================');
+      console.log('[AI SUMMARY SMS SENDER] selectedFromNumber:', fromNumber);
+      console.log('[AI SUMMARY SMS SENDER] source:', source);
+      console.log('[AI SUMMARY SMS SENDER] fallbackUsed:', fallbackUsed);
+      console.log('[AI SUMMARY SMS SENDER] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS SENDER] =========================================');
+    }
+
+    // Fail if no number is available
+    if (!fromNumber) {
+      console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
+      console.log('[AI SUMMARY SMS SENDER ERROR] No phone number available (neither business-specific nor global fallback)');
+      console.log('[AI SUMMARY SMS SENDER ERROR] Cannot send SMS');
+      console.log('[AI SUMMARY SMS SENDER ERROR] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
+      return;
+    }
+
     const twilioClient = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     const smsResult = await twilioClient.messages.create({
-      from: process.env.TWILIO_PHONE_NUMBER,
+      from: fromNumber,
       to: callerPhone,
       body: completeSummary
     });
