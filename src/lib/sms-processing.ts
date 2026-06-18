@@ -1000,8 +1000,9 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           leadUpdatePayload.name = nameCorrection.newValue
           console.log('[AI CORRECTION UPDATING LEAD NAME]', {
             leadId: lead.id,
-            oldName: lead.name,
-            newName: nameCorrection.newValue
+            field: 'name',
+            oldValue: lead.name,
+            newValue: nameCorrection.newValue
           })
         }
 

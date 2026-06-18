@@ -117,12 +117,12 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 
 /**
  * Get lead display name with graceful fallback
- * Priority: lead.contact_name → lead.raw_metadata?.callerName → lead.raw_metadata?.caller_name → lead.raw_metadata?.extracted_info?.callerName → lead.raw_metadata?.extracted_info?.name → lead.raw_metadata?.extracted_info?.caller_name → ai_call_records extracted info → lead.raw_metadata?.ai_extracted_info?.name → lead.raw_metadata?.name → formatted phone number → "Unknown Caller"
+ * Priority: lead.name → lead.raw_metadata?.callerName → lead.raw_metadata?.caller_name → lead.raw_metadata?.extracted_info?.callerName → lead.raw_metadata?.extracted_info?.name → lead.raw_metadata?.extracted_info?.caller_name → ai_call_records extracted info → lead.raw_metadata?.ai_extracted_info?.name → lead.raw_metadata?.name → formatted phone number → "Unknown Caller"
  */
 export function getLeadDisplayName(lead: any): string {
-  // Try direct contact_name first (highest priority)
-  if (lead.contact_name && lead.contact_name.trim()) {
-    return lead.contact_name.trim()
+  // Try direct name first (highest priority) - matches database schema
+  if (lead.name && lead.name.trim()) {
+    return lead.name.trim()
   }
 
   // Try raw_metadata.callerName (camelCase)
