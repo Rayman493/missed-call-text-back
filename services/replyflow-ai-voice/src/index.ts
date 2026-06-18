@@ -1098,6 +1098,28 @@ let currentResponseId: string | null = null;
 let authorizedResponseCreateSource: string | null = null;
 
 /**
+ * Filler phrases that should not be saved as customerName
+ */
+const FILLER_PHRASES = [
+  'all right',
+  'okay',
+  'ok',
+  'yeah',
+  'yes',
+  'thanks',
+  'thank you',
+  'sure'
+];
+
+/**
+ * Check if text is a filler phrase
+ */
+function isFillerPhrase(text: string): boolean {
+  const lowerText = text.trim().toLowerCase();
+  return FILLER_PHRASES.some(phrase => lowerText === phrase || lowerText.startsWith(phrase + ' '));
+}
+
+/**
  * Approved prompts for each stage - ONLY these prompts are allowed to be spoken
  * Every assistant speech must go through sendApprovedPrompt(stage)
  */
@@ -1484,19 +1506,50 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
         const isNameOnly = wordCount >= 1 && wordCount <= 3 && !containsServiceWord;
 
         if (isNameOnly) {
-          console.log('[SCRIPTED FLOW] =========================================');
-          console.log('[SCRIPTED FLOW] name-only heuristic applied');
-          console.log('[SCRIPTED FLOW] transcript:', transcript);
-          console.log('[SCRIPTED FLOW] customerName:', strippedTranscript);
-          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-          console.log('[SCRIPTED FLOW] =========================================');
+          // Check if customerName already exists (overwrite guard)
+          if (intake.customerName) {
+            console.log('[SCRIPTED FLOW] =========================================');
+            console.log('[SCRIPTED FLOW] customerName overwrite blocked');
+            console.log('[SCRIPTED FLOW] existingName:', intake.customerName);
+            console.log('[SCRIPTED FLOW] attemptedName:', strippedTranscript);
+            console.log('[SCRIPTED FLOW] stage:', intake.stage);
+            console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+            console.log('[SCRIPTED FLOW] =========================================');
+          } else {
+            console.log('[SCRIPTED FLOW] =========================================');
+            console.log('[SCRIPTED FLOW] name-only heuristic applied');
+            console.log('[SCRIPTED FLOW] transcript:', transcript);
+            console.log('[SCRIPTED FLOW] customerName:', strippedTranscript);
+            console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+            console.log('[SCRIPTED FLOW] =========================================');
 
-          intake.customerName = strippedTranscript;
-          intake.serviceRequested = undefined;
+            intake.customerName = strippedTranscript;
+            console.log('[SCRIPTED FLOW] =========================================');
+            console.log('[SCRIPTED FLOW] customerName locked from heuristic');
+            console.log('[SCRIPTED FLOW] customerName:', intake.customerName);
+            console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+            console.log('[SCRIPTED FLOW] =========================================');
+
+            intake.serviceRequested = undefined;
+          }
         } else {
           // For ask_name_reason, we need to extract name and reason from the transcript
           // This is the only stage where we use GPT extraction since it's a combined question
+          const existingName = intake.customerName;
           extractMultipleAnswers(intake, transcript);
+
+          // Check if customerName was overwritten
+          if (existingName && intake.customerName !== existingName) {
+            console.log('[SCRIPTED FLOW] =========================================');
+            console.log('[SCRIPTED FLOW] customerName overwrite blocked');
+            console.log('[SCRIPTED FLOW] existingName:', existingName);
+            console.log('[SCRIPTED FLOW] attemptedName:', intake.customerName);
+            console.log('[SCRIPTED FLOW] stage:', intake.stage);
+            console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+            console.log('[SCRIPTED FLOW] =========================================');
+            intake.customerName = existingName; // Restore original
+          }
+
           console.log('[SCRIPTED FLOW] =========================================');
           console.log('[SCRIPTED FLOW] field saved (ask_name_reason - extracted via GPT)');
           console.log('[SCRIPTED FLOW] customerName:', intake.customerName);
@@ -1506,14 +1559,23 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
         }
         break;
       case 'ask_name_recovery':
-        // Save transcript as customerName
-        intake.customerName = transcript.trim();
-        console.log('[SCRIPTED FLOW] =========================================');
-        console.log('[SCRIPTED FLOW] field saved');
-        console.log('[SCRIPTED FLOW] field: customerName');
-        console.log('[SCRIPTED FLOW] value:', transcript.trim());
-        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-        console.log('[SCRIPTED FLOW] =========================================');
+        // Save transcript as customerName, but block filler phrases
+        const trimmedTranscript = transcript.trim();
+        if (!isFillerPhrase(trimmedTranscript)) {
+          intake.customerName = trimmedTranscript;
+          console.log('[SCRIPTED FLOW] =========================================');
+          console.log('[SCRIPTED FLOW] field saved');
+          console.log('[SCRIPTED FLOW] field: customerName');
+          console.log('[SCRIPTED FLOW] value:', trimmedTranscript);
+          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+          console.log('[SCRIPTED FLOW] =========================================');
+        } else {
+          console.log('[SCRIPTED FLOW] =========================================');
+          console.log('[SCRIPTED FLOW] customerName save blocked - filler phrase');
+          console.log('[SCRIPTED FLOW] transcript:', trimmedTranscript);
+          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+          console.log('[SCRIPTED FLOW] =========================================');
+        }
         break;
       case 'ask_reason_recovery':
         // Save transcript as serviceRequested
@@ -1690,7 +1752,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       if (!intake.customerName) {
         const oldName = intake.customerName;
         const name = extractName(transcript);
-        if (name && name.length > 1) {
+        if (name && name.length > 1 && !isFillerPhrase(name)) {
           intake.customerName = name;
           console.log('[CUSTOMER NAME EXTRACTION] =========================================');
           console.log('[CUSTOMER NAME EXTRACTION] stage:', intake.stage);
@@ -1710,12 +1772,19 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
           console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[LIVE EXTRACTION MAPPED] customerName:', intake.customerName);
+        } else if (name && isFillerPhrase(name)) {
+          console.log('[CUSTOMER NAME SAVE BLOCKED] =========================================');
+          console.log('[CUSTOMER NAME SAVE BLOCKED] reason: filler phrase');
+          console.log('[CUSTOMER NAME SAVE BLOCKED] extractedName:', name);
+          console.log('[CUSTOMER NAME SAVE BLOCKED] transcript:', transcript);
+          console.log('[CUSTOMER NAME SAVE BLOCKED] Timestamp:', new Date().toISOString());
+          console.log('[CUSTOMER NAME SAVE BLOCKED] =========================================');
         }
       } else {
-        // Preserve existing customerName - do not overwrite with undefined
+        // Preserve existing customerName - do not overwrite
         console.log('[CUSTOMER NAME PRESERVED] =========================================');
         console.log('[CUSTOMER NAME PRESERVED] previousCustomerName:', intake.customerName);
-        console.log('[CUSTOMER NAME PRESERVED] reason: prevent overwrite with undefined');
+        console.log('[CUSTOMER NAME PRESERVED] reason: prevent overwrite');
         console.log('[CUSTOMER NAME PRESERVED] Timestamp:', new Date().toISOString());
         console.log('[CUSTOMER NAME PRESERVED] =========================================');
       }
