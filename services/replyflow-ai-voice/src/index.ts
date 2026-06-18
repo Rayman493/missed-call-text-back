@@ -1459,7 +1459,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
       case 'ask_callback_time':
         intake.callbackTime = transcript.trim();
         console.log('[SCRIPTED FLOW] =========================================');
-        console.log('[SCRIPTED FLOW] field saved');
+        console.log('[SCRIPTED FLOW] callback time saved');
         console.log('[SCRIPTED FLOW] field: callbackTime');
         console.log('[SCRIPTED FLOW] value:', transcript.trim());
         console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
@@ -6027,7 +6027,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
             openAiMessageListenerCount++;
             console.log('[OPENAI_MESSAGE_LISTENER_COUNT] Attaching listener, count:', openAiMessageListenerCount);
             console.log('[OPENAI_MESSAGE_LISTENER_COUNT] Source: ws.on(message) at line 3412');
-            openAiWs.on('message', (data) => {
+            openAiWs.on('message', async (data) => {
               console.log('[STREAM CLONED] MESSAGE received');
               console.log('[OPENAI AUDIT] message listener attached');
               console.log('[OPENAI RAW] message');
@@ -6201,23 +6201,32 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   itemId: message.item_id,
                   isEmpty: !userTranscript || userTranscript.trim() === ''
                 });
-                
-                if (userTranscript && userTranscript.trim() !== '') {
+                                if (userTranscript && userTranscript.trim() !== '') {
                   console.log('[USER TRANSCRIPT FOUND]', userTranscript);
                   console.log('[USER TRANSCRIPT APPEND]', { role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
                   console.log('[AI USER TRANSCRIPT FINAL]', userTranscript);
                   console.log('[AI TRANSCRIPT CAPTURED]', { role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
                   transcript.push({ role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
-                  
+
                   // Add user transcript router for confirmation interception
                   const currentStage = intakeData?.stage || 'unknown';
-                  console.log('[AI USER TRANSCRIPT ROUTER]', { 
-                    currentStage, 
-                    intakeComplete: intakeComplete, 
-                    transcript: userTranscript 
+                  console.log('[AI USER TRANSCRIPT ROUTER]', {
+                    currentStage,
+                    intakeComplete: intakeComplete,
+                    transcript: userTranscript
                   });
-                  
-                                    
+
+                  // Ignore transcripts after complete
+                  if (intakeData?.stage === 'complete' || intakeComplete) {
+                    console.log('[SCRIPTED FLOW] =========================================');
+                    console.log('[SCRIPTED FLOW] transcript ignored after complete');
+                    console.log('[SCRIPTED FLOW] stage:', currentStage);
+                    console.log('[SCRIPTED FLOW] intakeComplete:', intakeComplete);
+                    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                    console.log('[SCRIPTED FLOW] =========================================');
+                    return; // Skip processing user audio after complete
+                  }
+
                   // Check for goodbye phrases after final message
                   if (closingState.terminalClosingResponseStarted || closingState.finalClosingStarted) {
                     console.log('[CALLER_AUDIO_IGNORED_DURING_TERMINAL_CLOSE] =========================================');
@@ -6332,6 +6341,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
                     console.log('[APP CONTROLLED CLOSING STARTED] Setting intake stage to complete');
                     console.log('[APP CONTROLLED CLOSING STARTED] Setting intakeComplete flag to true');
+                    console.log('[APP CONTROLLED CLOSING STARTED] Calling finalizeCompleteIntakeOnce');
                     console.log('[APP CONTROLLED CLOSING STARTED] Calling enterTerminalClose');
                     console.log('[APP CONTROLLED CLOSING STARTED] Timestamp:', new Date().toISOString());
                     console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
@@ -6339,12 +6349,50 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     intakeData!.stage = 'complete';
                     intakeComplete = true;
 
+                    console.log('[SCRIPTED FLOW] =========================================');
+                    console.log('[SCRIPTED FLOW] complete finalization started');
+                    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                    console.log('[SCRIPTED FLOW] =========================================');
+
+                    // Call finalizeCompleteIntakeOnce to send SMS
+                    await finalizeCompleteIntakeOnce(
+                      intakeData!,
+                      callSid || '',
+                      callerPhone || '',
+                      businessId || ''
+                    );
+
+                    console.log('[SCRIPTED FLOW] =========================================');
+                    console.log('[SCRIPTED FLOW] final goodbye send requested');
+                    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                    console.log('[SCRIPTED FLOW] =========================================');
+
                     console.log('[TRACE COMPLETE 6] =========================================');
                     console.log('[TRACE COMPLETE 6] Stage set to complete, about to call enterTerminalClose');
                     console.log('[TRACE COMPLETE 6] Timestamp:', new Date().toISOString());
                     console.log('[TRACE COMPLETE 6] =========================================');
 
                     enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
+
+                    console.log('[SCRIPTED FLOW] =========================================');
+                    console.log('[SCRIPTED FLOW] final goodbye send result: requested');
+                    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                    console.log('[SCRIPTED FLOW] =========================================');
+
+                    // Schedule hard hangup if final goodbye doesn't complete within 3 seconds
+                    console.log('[SCRIPTED FLOW] =========================================');
+                    console.log('[SCRIPTED FLOW] hard hangup scheduled');
+                    console.log('[SCRIPTED FLOW] timeout: 3000ms');
+                    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                    console.log('[SCRIPTED FLOW] =========================================');
+
+                    setTimeout(() => {
+                      console.log('[SCRIPTED FLOW] =========================================');
+                      console.log('[SCRIPTED FLOW] hard hangup executed');
+                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                      console.log('[SCRIPTED FLOW] =========================================');
+                      executeOpenaiFinalHangup(ws, twilioHandler, closingState);
+                    }, 3000);
 
                     console.log('[TRACE COMPLETE 7] =========================================');
                     console.log('[TRACE COMPLETE 7] enterTerminalClose called, about to return');
