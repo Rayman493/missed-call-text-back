@@ -13,6 +13,7 @@ import { useOperationalMetrics } from '@/hooks/useOperationalMetrics'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
 import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { isAdminUserById } from '@/lib/admin'
+import { CalendarOff } from 'lucide-react'
 import { 
   formatPhoneNumber, 
   formatRelativeTime, 
@@ -67,6 +68,7 @@ import DashboardMetrics from '@/components/DashboardMetrics'
 import OperationalStatusCard from '@/components/OperationalStatusCard'
 import RecentActivityCard from '@/components/RecentActivityCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
+import ReplyFlowPerformanceCard from '@/components/ReplyFlowPerformanceCard'
 import { HelpContext } from '@/components/HelpAssistant'
 import BetaFeedbackModal from '@/components/BetaFeedbackModal'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
@@ -986,6 +988,10 @@ export default function DashboardContent() {
                 {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
                 {hasActiveSubscription(business) ? (
                   <>
+                    {/* ReplyFlow Performance Card */}
+                    <SectionErrorBoundary sectionName="ReplyFlowPerformanceCard">
+                      <ReplyFlowPerformanceCard />
+                    </SectionErrorBoundary>
 
                     {/* Dashboard Metrics - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="DashboardMetrics">

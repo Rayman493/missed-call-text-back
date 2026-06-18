@@ -1,0 +1,443 @@
+'use client'
+
+import React, { useEffect, useState } from 'react'
+import { useBusiness } from '@/contexts/BusinessContext'
+import { createBrowserClient } from '@/lib/supabase/browser'
+import AppHeader from '@/components/AppHeader'
+import Navigation from '@/components/Navigation'
+import MobileMenu from '@/components/MobileMenu'
+import UserDropdown from '@/components/UserDropdown'
+import Footer from '@/components/Footer'
+import { 
+  Phone, 
+  MessageSquare, 
+  Send, 
+  Users, 
+  CheckCircle, 
+  Clock, 
+  TrendingUp,
+  BarChart3,
+  Calendar
+} from 'lucide-react'
+import AppLoadingScreen from '@/components/AppLoadingScreen'
+import AuthGuard from '@/components/AuthGuard'
+import BusinessGuard from '@/components/BusinessGuard'
+
+interface AnalyticsMetrics {
+  missedCallsCaptured: number
+  leadsCreated: number
+  customerReplies: number
+  activeLeads: number
+  completedLeads: number
+  aiIntakesCompleted: number
+  aiIntakesIncomplete: number
+  voicemailsCaptured: number
+  aiCompletionRate: number
+  followUpsSent: number
+  followUpsCanceled: number
+  followUpResponseRate: number
+  totalConversations: number
+  customerReplyRate: number
+  averageMessagesPerConversation: number
+  estimatedLeadsSaved: number
+}
+
+interface TrendData {
+  date: string
+  value: number
+}
+
+export default function AnalyticsContent() {
+  const { business } = useBusiness()
+  const [metrics, setMetrics] = useState<AnalyticsMetrics | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [leadTrend, setLeadTrend] = useState<TrendData[]>([])
+  const [replyTrend, setReplyTrend] = useState<TrendData[]>([])
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      if (!business) return
+
+      try {
+        const supabase = createBrowserClient()
+        
+        // Get date range for analytics (last 30 days)
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+        // Fetch leads in the last 30 days
+        const { data: leads } = await supabase
+          .from('leads')
+          .select('id, status, created_at, business_id')
+          .eq('business_id', business.id)
+          .gte('created_at', thirtyDaysAgo)
+
+        // Fetch messages for reply rate calculation
+        const { data: messages } = await supabase
+          .from('messages')
+          .select('id, direction, created_at, conversation_id, lead_id')
+          .eq('business_id', business.id)
+          .gte('created_at', thirtyDaysAgo)
+
+        // Fetch AI call records
+        const { data: aiCalls } = await supabase
+          .from('ai_call_records')
+          .select('id, outcome, created_at, lead_id')
+          .eq('business_id', business.id)
+          .gte('created_at', thirtyDaysAgo)
+
+        // Fetch follow-ups
+        const { data: followUps } = await supabase
+          .from('follow_ups')
+          .select('id, status, created_at, lead_id')
+          .eq('business_id', business.id)
+          .gte('created_at', thirtyDaysAgo)
+
+        // Calculate metrics
+        const leadCount = leads?.length || 0
+        const activeLeads = leads?.filter((l: any) => l.status === 'active' || l.status === 'new').length || 0
+        const completedLeads = leads?.filter((l: any) => l.status === 'completed' || l.status === 'won').length || 0
+
+        const inboundMessages = messages?.filter((m: any) => m.direction === 'inbound').length || 0
+        const outboundMessages = messages?.filter((m: any) => m.direction === 'outbound').length || 0
+        const totalMessages = messages?.length || 0
+
+        const aiIntakesCompleted = aiCalls?.filter((c: any) => c.outcome === 'completed_intake').length || 0
+        const aiIntakesIncomplete = aiCalls?.filter((c: any) => c.outcome === 'partial_intake' || c.outcome === 'early_hangup').length || 0
+        const totalAiCalls = aiCalls?.length || 0
+        const aiCompletionRate = totalAiCalls > 0 ? (aiIntakesCompleted / totalAiCalls) * 100 : 0
+
+        const followUpsSent = followUps?.filter((f: any) => f.status === 'sent').length || 0
+        const followUpsCanceled = followUps?.filter((f: any) => f.status === 'canceled').length || 0
+        
+        // Calculate follow-up response rate (leads that replied after follow-up)
+        // This is a simplified calculation - in production you'd track actual follow-up conversations
+        const followUpResponseRate = followUpsSent > 0 ? Math.min((inboundMessages / followUpsSent) * 100, 100) : 0
+
+        const uniqueConversations = new Set(messages?.map((m: any) => m.conversation_id)).size
+        const customerReplyRate = totalMessages > 0 ? (inboundMessages / totalMessages) * 100 : 0
+        const averageMessagesPerConversation = uniqueConversations > 0 ? totalMessages / uniqueConversations : 0
+
+        const estimatedLeadsSaved = inboundMessages + aiIntakesCompleted
+
+        // Calculate daily trends for the last 7 days
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        const dailyLeads: Record<string, number> = {}
+        const dailyReplies: Record<string, number> = {}
+
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date()
+          date.setDate(date.getDate() - i)
+          const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          dailyLeads[dateStr] = 0
+          dailyReplies[dateStr] = 0
+        }
+
+        leads?.forEach((lead: any) => {
+          const date = new Date(lead.created_at)
+          if (date >= sevenDaysAgo) {
+            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            dailyLeads[dateStr] = (dailyLeads[dateStr] || 0) + 1
+          }
+        })
+
+        messages?.forEach((message: any) => {
+          if (message.direction === 'inbound') {
+            const date = new Date(message.created_at)
+            if (date >= sevenDaysAgo) {
+              const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+              dailyReplies[dateStr] = (dailyReplies[dateStr] || 0) + 1
+            }
+          }
+        })
+
+        const leadTrendData = Object.entries(dailyLeads).map(([date, value]) => ({ date, value }))
+        const replyTrendData = Object.entries(dailyReplies).map(([date, value]) => ({ date, value }))
+
+        setMetrics({
+          missedCallsCaptured: leadCount,
+          leadsCreated: leadCount,
+          customerReplies: inboundMessages,
+          activeLeads,
+          completedLeads,
+          aiIntakesCompleted,
+          aiIntakesIncomplete,
+          voicemailsCaptured: aiCalls?.filter((c: any) => c.outcome === 'no_speech').length || 0,
+          aiCompletionRate,
+          followUpsSent,
+          followUpsCanceled,
+          followUpResponseRate,
+          totalConversations: uniqueConversations,
+          customerReplyRate,
+          averageMessagesPerConversation,
+          estimatedLeadsSaved
+        })
+
+        setLeadTrend(leadTrendData)
+        setReplyTrend(replyTrendData)
+      } catch (error) {
+        console.error('[Analytics] Error fetching analytics:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAnalytics()
+  }, [business])
+
+  if (loading) {
+    return <AppLoadingScreen />
+  }
+
+  const hasData = metrics && (
+    metrics.missedCallsCaptured > 0 || 
+    metrics.customerReplies > 0 || 
+    metrics.aiIntakesCompleted > 0
+  )
+
+  return (
+    <AuthGuard>
+      <BusinessGuard>
+        <div className="min-h-screen bg-[#f5f7fb] dark:bg-background flex flex-col">
+          <AppHeader showNavigation={true} />
+          
+          <div className="flex-1 pt-2 sm:pt-3 lg:pt-4 px-3 sm:px-4 lg:px-6 pb-8 relative z-10">
+            <div className="max-w-[1400px] mx-auto">
+              {/* Header */}
+              <div className="mb-6">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-foreground">
+                  Analytics
+                </h1>
+                <p className="text-sm text-slate-600 dark:text-muted-foreground mt-1">
+                  Track your ReplyFlow performance and lead recovery metrics
+                </p>
+              </div>
+
+              {!hasData ? (
+                /* Empty State */
+                <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-8 sm:p-12 text-center">
+                  <BarChart3 className="w-16 h-16 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
+                    No analytics data yet
+                  </h3>
+                  <p className="text-sm text-slate-600 dark:text-muted-foreground max-w-md mx-auto">
+                    As ReplyFlow captures missed calls and conversations, performance insights will appear here.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Business Impact - Top Highlight */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/60 dark:border-blue-800/50 rounded-xl p-5 sm:p-6 mb-4 shadow-sm">
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                        <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-1">
+                          Business Impact
+                        </h3>
+                        <p className="text-sm text-slate-600 dark:text-muted-foreground">
+                          ReplyFlow helped recover approximately <span className="font-bold text-blue-600 dark:text-blue-400">{metrics.estimatedLeadsSaved}</span> missed opportunities.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Lead Recovery Overview */}
+                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-5 sm:p-6 mb-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-4 flex items-center gap-2">
+                      <Phone className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                      Lead Recovery Overview
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                      <MetricCard
+                        label="Missed Calls Captured"
+                        value={metrics.missedCallsCaptured}
+                        icon={Phone}
+                      />
+                      <MetricCard
+                        label="Leads Created"
+                        value={metrics.leadsCreated}
+                        icon={Users}
+                      />
+                      <MetricCard
+                        label="Customer Replies"
+                        value={metrics.customerReplies}
+                        icon={MessageSquare}
+                      />
+                      <MetricCard
+                        label="Active Leads"
+                        value={metrics.activeLeads}
+                        icon={Clock}
+                      />
+                      <MetricCard
+                        label="Completed Leads"
+                        value={metrics.completedLeads}
+                        icon={CheckCircle}
+                      />
+                    </div>
+                  </div>
+
+                  {/* AI Performance */}
+                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-5 sm:p-6 mb-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-4 flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                      AI Performance
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <MetricCard
+                        label="AI Intakes Completed"
+                        value={metrics.aiIntakesCompleted}
+                        icon={CheckCircle}
+                      />
+                      <MetricCard
+                        label="AI Intakes Incomplete"
+                        value={metrics.aiIntakesIncomplete}
+                        icon={Clock}
+                      />
+                      <MetricCard
+                        label="Voicemails Captured"
+                        value={metrics.voicemailsCaptured}
+                        icon={MessageSquare}
+                      />
+                      <PercentageCard
+                        label="AI Completion Rate"
+                        value={metrics.aiCompletionRate}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Follow-Up Performance */}
+                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-5 sm:p-6 mb-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-4 flex items-center gap-2">
+                      <Send className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                      Follow-Up Performance
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      <MetricCard
+                        label="Follow-Ups Sent"
+                        value={metrics.followUpsSent}
+                        icon={Send}
+                      />
+                      <MetricCard
+                        label="Follow-Ups Canceled"
+                        value={metrics.followUpsCanceled}
+                        icon={Clock}
+                      />
+                      <PercentageCard
+                        label="Follow-Up Response Rate"
+                        value={metrics.followUpResponseRate}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Customer Engagement */}
+                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-5 sm:p-6 mb-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-4 flex items-center gap-2">
+                      <MessageSquare className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                      Customer Engagement
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      <MetricCard
+                        label="Total Conversations"
+                        value={metrics.totalConversations}
+                        icon={MessageSquare}
+                      />
+                      <PercentageCard
+                        label="Customer Reply Rate"
+                        value={metrics.customerReplyRate}
+                      />
+                      <MetricCard
+                        label="Avg Messages/Conversation"
+                        value={Math.round(metrics.averageMessagesPerConversation * 10) / 10}
+                        icon={MessageSquare}
+                        isDecimal
+                      />
+                    </div>
+                  </div>
+
+                  {/* Charts */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Lead Activity Trend */}
+                    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-5 sm:p-6">
+                      <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-4 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                        Lead Activity Trend (7 Days)
+                      </h3>
+                      <SimpleBarChart data={leadTrend} color="blue" />
+                    </div>
+
+                    {/* Customer Reply Trend */}
+                    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-5 sm:p-6">
+                      <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-4 flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                        Customer Reply Trend (7 Days)
+                      </h3>
+                      <SimpleBarChart data={replyTrend} color="green" />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <Footer />
+        </div>
+      </BusinessGuard>
+    </AuthGuard>
+  )
+}
+
+function MetricCard({ label, value, icon: Icon }: { label: string; value: number; icon: any; isDecimal?: boolean }) {
+  return (
+    <div className="bg-slate-50 dark:bg-slate-800/40 rounded-lg p-3 sm:p-4 border border-slate-200/60 dark:border-slate-700/40">
+      <div className="flex items-center gap-2 mb-2">
+        <Icon className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+        <span className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">{label}</span>
+      </div>
+      <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-foreground">
+        {value.toLocaleString()}
+      </p>
+    </div>
+  )
+}
+
+function PercentageCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="bg-slate-50 dark:bg-slate-800/40 rounded-lg p-3 sm:p-4 border border-slate-200/60 dark:border-slate-700/40">
+      <div className="flex items-center gap-2 mb-2">
+        <TrendingUp className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+        <span className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">{label}</span>
+      </div>
+      <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-foreground">
+        {value.toFixed(1)}%
+      </p>
+    </div>
+  )
+}
+
+function SimpleBarChart({ data, color }: { data: TrendData[]; color: 'blue' | 'green' }) {
+  const maxValue = Math.max(...data.map(d => d.value), 1)
+  
+  const colorClass = color === 'blue' 
+    ? 'bg-blue-500 dark:bg-blue-400' 
+    : 'bg-green-500 dark:bg-green-400'
+
+  return (
+    <div className="flex items-end gap-2 h-32 sm:h-40">
+      {data.map((item: TrendData, index: number) => {
+        const height = (item.value / maxValue) * 100
+        return (
+          <div key={index} className="flex-1 flex flex-col items-center gap-1">
+            <div 
+              className={`w-full rounded-t-sm ${colorClass} transition-all duration-300`}
+              style={{ height: `${Math.max(height, 5)}%` }}
+            />
+            <span className="text-[9px] sm:text-[10px] text-slate-600 dark:text-muted-foreground text-center">
+              {item.date}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
