@@ -852,12 +852,14 @@ function sendControlledAssistantText(text: string, reason: string, openAiWs: any
 }
 
 function sendStagePrompt(
-  stage: string, 
+  stage: string,
   openAiWs: any,
   promptedStages: Set<IntakeStage>,
   lastPromptAt: number,
   assistantSpeaking: boolean,
-  activeResponseId: string | null
+  activeResponseId: string | null,
+  twilioHandler: any,
+  lastPromptStage: IntakeStage | null
 ): void {
   console.log('[ACTIVE INTAKE STAGE] =========================================');
   console.log('[ACTIVE INTAKE STAGE] stage:', stage);
@@ -924,6 +926,10 @@ function sendStagePrompt(
 
   // Mark this stage as prompted
   promptedStages.add(stage as IntakeStage);
+
+  // Sync lastPromptStage and lastPromptAt to twilioHandler for audio blocking logs
+  (twilioHandler as any).lastPromptStage = stage as IntakeStage;
+  (twilioHandler as any).lastPromptAt = Date.now();
 
   // Start watchdog timer to detect if response is not sent within 500ms
   let responseSent = false;
@@ -3659,6 +3665,7 @@ wss.on('connection', (ws, req) => {
     let lastPromptStage: IntakeStage | null = null;
     let lastPromptAt: number = 0;
     let activeResponseId: string | null = null;
+    let assistantSpeakingTimeout: NodeJS.Timeout | null = null; // Timeout protection for assistantSpeaking
     let finalAudioFallbackTimer: NodeJS.Timeout | null = null; // Fallback timer for mark sending
     let finalAudioFallbackStarted = false; // Track if fallback timer has been started
     let directHangupFallbackTimer: NodeJS.Timeout | null = null; // Direct hangup fallback timer
@@ -3694,6 +3701,9 @@ wss.on('connection', (ws, req) => {
     // Pass shared closing state to twilioHandler for audio append guards
     (twilioHandler as any).closingState = closingState;
     (twilioHandler as any).assistantSpeaking = assistantSpeaking;
+    (twilioHandler as any).lastPromptStage = lastPromptStage;
+    (twilioHandler as any).lastPromptAt = lastPromptAt;
+    (twilioHandler as any).activeResponseId = activeResponseId;
 
     // Set up mark received callback to track when Twilio acknowledges final goodbye audio playback
     twilioHandler.setOnMarkReceived((markName: string) => {
@@ -6015,6 +6025,19 @@ Do NOT:
                   console.log('[CURRENT STAGE SET] Timestamp:', new Date().toISOString());
                   console.log('[CURRENT STAGE SET] =========================================');
                   
+                  // Clear activeResponseId when stage changes to allow new response
+                  if (activeResponseId) {
+                    console.log('[STAGE CHANGE CLEARING ACTIVE RESPONSE] =========================================');
+                    console.log('[STAGE CHANGE CLEARING ACTIVE RESPONSE] Clearing activeResponseId due to stage change');
+                    console.log('[STAGE CHANGE CLEARING ACTIVE RESPONSE] Old stage:', intakeData!.stage);
+                    console.log('[STAGE CHANGE CLEARING ACTIVE RESPONSE] New stage:', intakeResponse.nextStage);
+                    console.log('[STAGE CHANGE CLEARING ACTIVE RESPONSE] Previous activeResponseId:', activeResponseId);
+                    console.log('[STAGE CHANGE CLEARING ACTIVE RESPONSE] Timestamp:', new Date().toISOString());
+                    console.log('[STAGE CHANGE CLEARING ACTIVE RESPONSE] =========================================');
+                    activeResponseId = null;
+                    (twilioHandler as any).activeResponseId = activeResponseId;
+                  }
+                  
                   intakeData!.stage = intakeResponse.nextStage;
                   
                   if (intakeData!.stage === 'complete') {
@@ -6022,7 +6045,7 @@ Do NOT:
                     intakeComplete = true;
                   } else {
                     // Send the stage prompt explicitly
-                    sendStagePrompt(intakeData!.stage, openAiWs, promptedStages, lastPromptAt, assistantSpeaking, activeResponseId);
+                    sendStagePrompt(intakeData!.stage, openAiWs, promptedStages, lastPromptAt, assistantSpeaking, activeResponseId, twilioHandler, lastPromptStage);
                   }
                 }
               }
@@ -6037,7 +6060,38 @@ Do NOT:
               if (message.type === 'response.created') {
                 responseCreatedReceived = true;
                 const responseId = message.response?.id || 'unknown';
-                console.log('[OPENAI RECV] response.created with response_id:', responseId);
+                console.log('[AI RESPONSE CREATE] =========================================');
+                console.log('[AI RESPONSE CREATE] Response ID:', responseId);
+                console.log('[AI RESPONSE CREATE] Stage:', intakeData?.stage || 'unknown');
+                console.log('[AI RESPONSE CREATE] Previous activeResponseId:', activeResponseId);
+                console.log('[AI RESPONSE CREATE] Timestamp:', new Date().toISOString());
+                console.log('[AI RESPONSE CREATE] =========================================');
+                
+                // Guard: Only one active assistant response per stage
+                if (activeResponseId && activeResponseId !== responseId) {
+                  console.log('[DUPLICATE RESPONSE BLOCKED] =========================================');
+                  console.log('[DUPLICATE RESPONSE BLOCKED] Multiple responses detected for same stage');
+                  console.log('[DUPLICATE RESPONSE BLOCKED] Stage:', intakeData?.stage || 'unknown');
+                  console.log('[DUPLICATE RESPONSE BLOCKED] Active response ID:', activeResponseId);
+                  console.log('[DUPLICATE RESPONSE BLOCKED] New response ID:', responseId);
+                  console.log('[DUPLICATE RESPONSE BLOCKED] Canceling new response');
+                  console.log('[DUPLICATE RESPONSE BLOCKED] Timestamp:', new Date().toISOString());
+                  console.log('[DUPLICATE RESPONSE BLOCKED] =========================================');
+                  
+                  // Cancel the duplicate response
+                  if (openAiWs) {
+                    openAiWs.send(JSON.stringify({
+                      type: 'response.cancel',
+                      response_id: responseId
+                    }));
+                  }
+                  return; // Do not process this response
+                }
+                
+                // Set activeResponseId to track the current response
+                activeResponseId = responseId;
+                (twilioHandler as any).activeResponseId = activeResponseId;
+                console.log('[AI RESPONSE CREATE] Set activeResponseId to:', responseId);
                 
                 // Check if this is the final closing response
                 const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
@@ -6098,15 +6152,22 @@ Do NOT:
                 const previousAssistantSpeaking = assistantSpeaking;
                 if (assistantSpeaking) {
                   assistantSpeaking = false;
-                  console.log('[ASSISTANT SPEAKING RESET] =========================================');
-                  console.log('[ASSISTANT SPEAKING RESET] source: response.output_item.done');
-                  console.log('[ASSISTANT SPEAKING RESET] responseId:', message.response_id || 'unknown');
-                  console.log('[ASSISTANT SPEAKING RESET] itemId:', message.item_id || 'unknown');
-                  console.log('[ASSISTANT SPEAKING RESET] previousAssistantSpeaking:', previousAssistantSpeaking);
-                  console.log('[ASSISTANT SPEAKING RESET] newAssistantSpeaking:', assistantSpeaking);
-                  console.log('[ASSISTANT SPEAKING RESET] Timestamp:', new Date().toISOString());
-                  console.log('[ASSISTANT SPEAKING RESET] =========================================');
+                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
+                  console.log('[ASSISTANT SPEAKING STATE] State: FALSE');
+                  console.log('[ASSISTANT SPEAKING STATE] Source: response.output_item.done');
+                  console.log('[ASSISTANT SPEAKING STATE] Response ID:', message.response_id || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Item ID:', message.item_id || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Stage:', intakeData?.stage || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Previous state:', previousAssistantSpeaking);
+                  console.log('[ASSISTANT SPEAKING STATE] Timestamp:', new Date().toISOString());
+                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
                   (twilioHandler as any).assistantSpeaking = assistantSpeaking;
+                  
+                  // Clear timeout protection
+                  if (assistantSpeakingTimeout) {
+                    clearTimeout(assistantSpeakingTimeout);
+                    assistantSpeakingTimeout = null;
+                  }
                 }
               }
               if (message.type === 'response.output_audio.delta') {
@@ -6222,8 +6283,30 @@ Do NOT:
                 // Set assistant speaking to true when audio starts
                 if (!assistantSpeaking) {
                   assistantSpeaking = true;
-                  console.log('[AI ASSISTANT SPEAKING TRUE]');
+                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
+                  console.log('[ASSISTANT SPEAKING STATE] State: TRUE');
+                  console.log('[ASSISTANT SPEAKING STATE] Source: response.output_audio.delta');
+                  console.log('[ASSISTANT SPEAKING STATE] Response ID:', message.response_id || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Stage:', intakeData?.stage || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Timestamp:', new Date().toISOString());
+                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
                   (twilioHandler as any).assistantSpeaking = assistantSpeaking;
+                  
+                  // Start timeout protection (30 seconds)
+                  if (assistantSpeakingTimeout) {
+                    clearTimeout(assistantSpeakingTimeout);
+                  }
+                  assistantSpeakingTimeout = setTimeout(() => {
+                    if (assistantSpeaking) {
+                      console.log('[ASSISTANT SPEAKING TIMEOUT] =========================================');
+                      console.log('[ASSISTANT SPEAKING TIMEOUT] assistantSpeaking stuck for 30 seconds');
+                      console.log('[ASSISTANT SPEAKING TIMEOUT] Force resetting to false');
+                      console.log('[ASSISTANT SPEAKING TIMEOUT] Timestamp:', new Date().toISOString());
+                      console.log('[ASSISTANT SPEAKING TIMEOUT] =========================================');
+                      assistantSpeaking = false;
+                      (twilioHandler as any).assistantSpeaking = assistantSpeaking;
+                    }
+                  }, 30000); // 30 second timeout
                 }
 
                 // REMOVED: callState = 'closing' transition from audio delta handler
@@ -6303,15 +6386,22 @@ Do NOT:
                 const previousAssistantSpeaking = assistantSpeaking;
                 if (assistantSpeaking) {
                   assistantSpeaking = false;
-                  console.log('[ASSISTANT SPEAKING RESET] =========================================');
-                  console.log('[ASSISTANT SPEAKING RESET] source: response.audio.done');
-                  console.log('[ASSISTANT SPEAKING RESET] responseId:', message.response_id || 'unknown');
-                  console.log('[ASSISTANT SPEAKING RESET] itemId:', message.item_id || 'unknown');
-                  console.log('[ASSISTANT SPEAKING RESET] previousAssistantSpeaking:', previousAssistantSpeaking);
-                  console.log('[ASSISTANT SPEAKING RESET] newAssistantSpeaking:', assistantSpeaking);
-                  console.log('[ASSISTANT SPEAKING RESET] Timestamp:', new Date().toISOString());
-                  console.log('[ASSISTANT SPEAKING RESET] =========================================');
+                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
+                  console.log('[ASSISTANT SPEAKING STATE] State: FALSE');
+                  console.log('[ASSISTANT SPEAKING STATE] Source: response.audio.done');
+                  console.log('[ASSISTANT SPEAKING STATE] Response ID:', message.response_id || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Item ID:', message.item_id || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Stage:', intakeData?.stage || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Previous state:', previousAssistantSpeaking);
+                  console.log('[ASSISTANT SPEAKING STATE] Timestamp:', new Date().toISOString());
+                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
                   (twilioHandler as any).assistantSpeaking = assistantSpeaking;
+                  
+                  // Clear timeout protection
+                  if (assistantSpeakingTimeout) {
+                    clearTimeout(assistantSpeakingTimeout);
+                    assistantSpeakingTimeout = null;
+                  }
                 }
                 
                 console.log('[AUTHORIZED_FINAL_RESPONSE_AUDIO_DONE] =========================================');
@@ -6359,11 +6449,16 @@ Do NOT:
                 }
               }
               if (message.type === 'response.done') {
-                console.log('[OPENAI RECV] response.done');
+                const currentResponseId = message.response?.id || 'unknown';
+                console.log('[AI RESPONSE COMPLETE] =========================================');
+                console.log('[AI RESPONSE COMPLETE] Response ID:', currentResponseId);
+                console.log('[AI RESPONSE COMPLETE] Stage:', intakeData?.stage || 'unknown');
+                console.log('[AI RESPONSE COMPLETE] Active response ID before clear:', activeResponseId);
+                console.log('[AI RESPONSE COMPLETE] Timestamp:', new Date().toISOString());
+                console.log('[AI RESPONSE COMPLETE] =========================================');
 
                 // Check if this is the final closing response
                 const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
-                const currentResponseId = message.response?.id || 'unknown';
                 const isFinalResponse = currentResponseId === authorizedFinalResponseId;
                 
                 if (isFinalResponse) {
@@ -6380,11 +6475,30 @@ Do NOT:
                 console.log('[TERMINAL_RESPONSE_DONE_RECEIVED] Terminal mode active:', closingState.intakeTerminalComplete);
                 console.log('[TERMINAL_RESPONSE_DONE_RECEIVED] =========================================');
 
+                // Clear activeResponseId when response is done
+                if (activeResponseId === currentResponseId) {
+                  console.log('[AI RESPONSE COMPLETE] Clearing activeResponseId:', activeResponseId);
+                  activeResponseId = null;
+                  (twilioHandler as any).activeResponseId = activeResponseId;
+                }
+
                 // Set assistant speaking to false when response is done
                 if (assistantSpeaking) {
                   assistantSpeaking = false;
-                  console.log('[AI ASSISTANT SPEAKING FALSE]');
+                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
+                  console.log('[ASSISTANT SPEAKING STATE] State: FALSE');
+                  console.log('[ASSISTANT SPEAKING STATE] Source: response.done');
+                  console.log('[ASSISTANT SPEAKING STATE] Response ID:', currentResponseId);
+                  console.log('[ASSISTANT SPEAKING STATE] Stage:', intakeData?.stage || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Timestamp:', new Date().toISOString());
+                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
                   (twilioHandler as any).assistantSpeaking = assistantSpeaking;
+                  
+                  // Clear timeout protection
+                  if (assistantSpeakingTimeout) {
+                    clearTimeout(assistantSpeakingTimeout);
+                    assistantSpeakingTimeout = null;
+                  }
                 }
 
                 console.log('[FINAL GOODBYE RESPONSE DONE] Final goodbye response completed');
@@ -8078,6 +8192,13 @@ Details: ${extractedFields.importantDetails || 'None'}`;
               console.log('[OPENAI AUDIT] close listener attached');
               console.log('[OPENAI RAW] close');
               log(LogLevel.INFO, '[STREAM OPENAI] close event fired');
+              
+              // Cleanup: Clear assistantSpeaking timeout to prevent memory leaks
+              if (assistantSpeakingTimeout) {
+                clearTimeout(assistantSpeakingTimeout);
+                assistantSpeakingTimeout = null;
+                console.log('[TIMEOUT CLEANUP] assistantSpeakingTimeout cleared on WebSocket close');
+              }
               
               // Log call metrics before ingestion
               logCallMetrics(aiSessionTracker);
