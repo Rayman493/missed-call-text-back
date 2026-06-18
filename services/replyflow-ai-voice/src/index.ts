@@ -30,21 +30,23 @@ console.log('[AI CONFIRMATION TEMPLATE VERSION] confirmation-v3-your-name-is');
 console.log('[AI VOICE STARTUP] Service initializing');
 
 // Deployment fingerprint logging
-console.log('[BUILD INFO] =========================================');
+console.log('[AI VOICE BUILD INFO] =========================================');
+let commitSha = 'unknown';
+let buildBranch = 'unknown';
 try {
   const { execSync } = require('child_process');
-  const commit = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
-  const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
-  console.log('[BUILD INFO] commit:', commit);
-  console.log('[BUILD INFO] branch:', branch);
+  commitSha = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+  buildBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
 } catch (error) {
-  console.log('[BUILD INFO] commit: unavailable');
-  console.log('[BUILD INFO] branch: unavailable');
+  commitSha = 'unavailable';
+  buildBranch = 'unavailable';
 }
-console.log('[BUILD INFO] buildTime:', new Date().toISOString());
-console.log('[BUILD INFO] nodeEnv:', process.env.NODE_ENV || 'development');
-console.log('[BUILD INFO] serviceVersion: closingState_v2 (guard fix)');
-console.log('[BUILD INFO] =========================================');
+console.log('[AI VOICE BUILD INFO] commitSha:', commitSha);
+console.log('[AI VOICE BUILD INFO] buildTime:', new Date().toISOString());
+console.log('[AI VOICE BUILD INFO] deployVersion:', 'app-driven-intake-v3');
+console.log('[AI VOICE BUILD INFO] appDrivenIntakeEnabled:', true);
+console.log('[AI VOICE BUILD INFO] nodeEnv:', process.env.NODE_ENV || 'development');
+console.log('[AI VOICE BUILD INFO] =========================================');
 console.log('[AI VOICE STARTUP] Timestamp:', new Date().toISOString());
 
 // Normalize phone number to E.164 US format
@@ -5196,6 +5198,16 @@ Return only JSON, no other text.`;
           callSid = callContext.callSid;
           callerPhone = callContext.callerPhone;
           forwardedFrom = callContext.forwardedFrom;
+
+          // Log active code check to verify latest deployment
+          console.log('[AI VOICE ACTIVE CODE CHECK] =========================================');
+          console.log('[AI VOICE ACTIVE CODE CHECK] commitSha:', commitSha);
+          console.log('[AI VOICE ACTIVE CODE CHECK] hasCallSessionState:', typeof callSessionState !== 'undefined');
+          console.log('[AI VOICE ACTIVE CODE CHECK] hasVoicePromptVerification:', typeof expectedPrompt !== 'undefined');
+          console.log('[AI VOICE ACTIVE CODE CHECK] hasAppDrivenIntake:', typeof sendControlledAssistantText !== 'undefined');
+          console.log('[AI VOICE ACTIVE CODE CHECK] callSid:', callSid);
+          console.log('[AI VOICE ACTIVE CODE CHECK] Timestamp:', new Date().toISOString());
+          console.log('[AI VOICE ACTIVE CODE CHECK] =========================================');
           
           console.log('[CALL CONTEXT USED FOR BUSINESS LOOKUP]', { businessId: callContext.businessId });
 
