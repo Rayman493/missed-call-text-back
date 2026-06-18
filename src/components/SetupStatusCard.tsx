@@ -41,6 +41,12 @@ export default function SetupStatusCard({
   const { user } = useAuth()
   const setupState = deriveSetupState(business, missedCallCount)
   const hasSubscription = hasActiveSubscription(business)
+  
+  // Check if actual test call has been completed
+  const hasCompletedTestCall = Boolean(
+    business?.first_test_call_completed_at ||
+    missedCallCount > 0
+  )
 
   // Check if success state has been dismissed (localStorage)
   React.useEffect(() => {
@@ -416,8 +422,8 @@ export default function SetupStatusCard({
                 </div>
               )}
               <div className={`flex items-center gap-3 ${cardState === 'needs-forwarding' ? 'opacity-50' : ''}`}>
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${cardState === 'needs-verification' ? 'bg-green-500' : 'bg-blue-400'}`}>
-                  {cardState === 'needs-verification' ? (
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${hasCompletedTestCall ? 'bg-green-500' : 'bg-blue-400'}`}>
+                  {hasCompletedTestCall ? (
                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
