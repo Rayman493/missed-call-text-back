@@ -118,14 +118,19 @@ export async function sendSms(
     method: smsValidation.method
   });
 
+  const maskPhone = (phone: string | null | undefined) => {
+    if (!phone) return 'undefined'
+    return phone.replace(/\d(?=\d{4})/g, '*')
+  }
+
   console.log('[SMS SEND] Starting sendSms:', {
     business_id: business.id,
     business_name: business.name,
-    to,
+    to: maskPhone(to),
     message_length: message.length,
     lead_id: options?.lead_id,
     conversation_id: options?.conversation_id,
-    twilio_phone_number: business.twilio_phone_number,
+    twilio_phone_number: maskPhone(business.twilio_phone_number),
     messaging_service_sid: business.twilio_messaging_service_sid,
     provisioning_status: business.provisioning_status
   });
@@ -148,8 +153,8 @@ export async function sendSms(
   }
 
   console.log('[SMS Sender] business_id:', business.id);
-  console.log('[SMS Sender] business twilio_phone_number:', business.twilio_phone_number);
-  console.log('[SMS Sender] business twilio_phone_number_sid:', business.twilio_phone_number_sid);
+  console.log('[SMS Sender] business twilio_phone_number:', maskPhone(business.twilio_phone_number));
+  console.log('[SMS Sender] business twilio_phone_number_sid:', business.twilio_phone_number_sid ? `${business.twilio_phone_number_sid.substring(0, 8)}...` : 'undefined');
   console.log('[SMS Sender] business messaging_service_sid:', business.twilio_messaging_service_sid);
   console.log('[SMS Sender] provisioning_status:', business.provisioning_status);
 
@@ -161,11 +166,11 @@ export async function sendSms(
 
   console.log('[sms] outbound message queued:', {
     business_id: business.id,
-    business_phone: business.twilio_phone_number,
-    business_phone_sid: business.twilio_phone_number_sid,
+    business_phone: maskPhone(business.twilio_phone_number),
+    business_phone_sid: business.twilio_phone_number_sid ? `${business.twilio_phone_number_sid.substring(0, 8)}...` : 'undefined',
     messaging_service_sid: business.twilio_messaging_service_sid,
     provisioning_status: business.provisioning_status,
-    to_phone: to,
+    to_phone: maskPhone(to),
     message_body: message.substring(0, 50) + '...',
     lead_id: options?.lead_id,
     conversation_id: options?.conversation_id
@@ -211,7 +216,7 @@ export async function sendSms(
 
   // Handle simulation mode
   if (smsValidation.method === 'simulated') {
-    console.log('[SMS] 🧪 Simulated SMS sent:', { to, body: message.substring(0, 50) + '...' });
+    console.log('[SMS] 🧪 Simulated SMS sent:', { to: maskPhone(to), body: message.substring(0, 50) + '...' });
     console.log('[FOLLOWUP TWILIO SEND RESULT] Simulated mode - returning simulated SID');
     
     // Insert simulated message record into database
@@ -239,7 +244,7 @@ export async function sendSms(
         lead_id: options?.lead_id,
         message_id: insertedMessage.id,
         message_body: message.substring(0, 50),
-        to,
+        to: maskPhone(to),
         message_type: 'simulated'
       });
     }
