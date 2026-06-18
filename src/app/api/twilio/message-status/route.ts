@@ -53,7 +53,62 @@ export async function POST(req: NextRequest) {
       error_message: ErrorMessage
     })
     
-    // Find message by twilio_message_sid with correlation data
+    // First, check if this is a system SMS (offboarding, admin notifications)
+    const { data: systemSms, error: systemSmsError } = await supabase
+      .from('system_sms')
+      .select('*')
+      .eq('twilio_message_sid', MessageSid)
+      .single()
+    
+    if (systemSms && !systemSmsError) {
+      // This is a system SMS - update its status
+      console.log('[TWILIO SYSTEM SMS STATUS]', {
+        sid: MessageSid,
+        status: MessageStatus,
+        delivered: MessageStatus === 'delivered',
+        business_id: systemSms.business_id
+      })
+      
+      // Prepare update data based on status
+      const updateData: any = {
+        status: MessageStatus.toLowerCase(),
+        status_updated_at: new Date().toISOString()
+      }
+      
+      // Set timestamps based on status
+      if (MessageStatus === 'sent') {
+        updateData.sent_at = new Date().toISOString()
+      } else if (MessageStatus === 'delivered') {
+        updateData.delivered_at = new Date().toISOString()
+      } else if (MessageStatus === 'failed' || MessageStatus === 'undelivered') {
+        updateData.error_code = ErrorCode
+        updateData.error_message = ErrorMessage
+      }
+      
+      // Update system SMS status
+      const { error: updateError } = await supabase
+        .from('system_sms')
+        .update(updateData)
+        .eq('id', systemSms.id)
+      
+      if (updateError) {
+        console.error('[twilio] system SMS status update failed:', {
+          system_sms_id: systemSms.id,
+          message_sid: MessageSid,
+          error: updateError
+        })
+      } else {
+        console.log('[twilio] system SMS status updated successfully:', {
+          system_sms_id: systemSms.id,
+          message_sid: MessageSid,
+          status: MessageStatus.toLowerCase()
+        })
+      }
+      
+      return new Response('OK', { status: 200 })
+    }
+    
+    // If not a system SMS, check the messages table for lead/conversation messages
     const { data: message, error: messageError } = await supabase
       .from('messages')
       .select('*')
@@ -61,7 +116,7 @@ export async function POST(req: NextRequest) {
       .single()
     
     if (messageError || !message) {
-      console.error('[twilio] message not found for sid:', MessageSid)
+      console.warn('[twilio] message not found for sid (could be system SMS or deleted):', MessageSid)
       return new Response('OK', { status: 200 })
     }
     
