@@ -957,6 +957,33 @@ async function finalizeCompleteIntakeOnce(
     console.log('[AI SUMMARY SMS RESPONSE] Timestamp:', new Date().toISOString());
     console.log('[AI SUMMARY SMS RESPONSE] =========================================');
 
+    console.log('[AI SUMMARY SMS DB INSERT BUILD MARKER] 2026-06-18 =========================================');
+    console.log('[AI SUMMARY SMS DB INSERT BUILD MARKER] Build deployed with DB insert logic');
+    console.log('[AI SUMMARY SMS DB INSERT BUILD MARKER] Timestamp:', new Date().toISOString());
+    console.log('[AI SUMMARY SMS DB INSERT BUILD MARKER] =========================================');
+
+    console.log('[AI SUMMARY SMS POST RESPONSE TRACE] =========================================');
+    console.log('[AI SUMMARY SMS POST RESPONSE TRACE] About to call persistAiSummarySmsMessage');
+    console.log('[AI SUMMARY SMS POST RESPONSE TRACE] businessId:', businessId);
+    console.log('[AI SUMMARY SMS POST RESPONSE TRACE] callSid:', callSid);
+    console.log('[AI SUMMARY SMS POST RESPONSE TRACE] fromNumber:', fromNumber);
+    console.log('[AI SUMMARY SMS POST RESPONSE TRACE] callerPhone:', callerPhone);
+    console.log('[AI SUMMARY SMS POST RESPONSE TRACE] Timestamp:', new Date().toISOString());
+    console.log('[AI SUMMARY SMS POST RESPONSE TRACE] =========================================');
+
+    await persistAiSummarySmsMessage({
+      ws,
+      businessId,
+      leadId: (ws as any).leadId,
+      conversationId: (ws as any).conversationId,
+      fromNumber,
+      callerPhone,
+      messageSid: smsResult.sid,
+      smsBody: completeSummary,
+      intakeData,
+      status: smsResult.status
+    });
+
     console.log('[SCRIPTED FLOW] =========================================');
     console.log('[SCRIPTED FLOW] summary SMS sent');
     console.log('[SCRIPTED FLOW] messageSid:', smsResult.sid);
@@ -972,6 +999,104 @@ async function finalizeCompleteIntakeOnce(
     console.log('[AI SUMMARY SMS FAILED] error:', String(smsError));
     console.log('[AI SUMMARY SMS FAILED] Timestamp:', new Date().toISOString());
     console.log('[AI SUMMARY SMS FAILED] =========================================');
+  }
+}
+
+// Persist AI summary SMS message to database
+async function persistAiSummarySmsMessage(params: {
+  ws: any
+  businessId: string
+  leadId?: string
+  conversationId?: string
+  fromNumber: string
+  callerPhone: string
+  messageSid: string
+  smsBody: string
+  intakeData: any
+  status: string
+}): Promise<void> {
+  console.log('[AI SUMMARY SMS DB INSERT START] =========================================');
+  console.log('[AI SUMMARY SMS DB INSERT START] Timestamp:', new Date().toISOString());
+  console.log('[AI SUMMARY SMS DB INSERT START] =========================================');
+
+  try {
+    const { ws, businessId, leadId, conversationId, fromNumber, callerPhone, messageSid, smsBody, intakeData, status } = params;
+
+    console.log('[AI SUMMARY SMS DB INSERT START] =========================================');
+    console.log('[AI SUMMARY SMS DB INSERT START] leadId:', leadId);
+    console.log('[AI SUMMARY SMS DB INSERT START] conversationId:', conversationId);
+    console.log('[AI SUMMARY SMS DB INSERT START] businessId:', businessId);
+    console.log('[AI SUMMARY SMS DB INSERT START] fromNumber:', fromNumber);
+    console.log('[AI SUMMARY SMS DB INSERT START] callerPhone:', callerPhone);
+    console.log('[AI SUMMARY SMS DB INSERT START] messageSid:', messageSid);
+    console.log('[AI SUMMARY SMS DB INSERT START] Timestamp:', new Date().toISOString());
+    console.log('[AI SUMMARY SMS DB INSERT START] =========================================');
+
+    if (leadId && conversationId && businessId) {
+      console.log('[AI SUMMARY SMS DB INSERT START] =========================================');
+      console.log('[AI SUMMARY SMS DB INSERT START] All required IDs present, proceeding with insert');
+      console.log('[AI SUMMARY SMS DB INSERT START] Insert payload:', {
+        conversation_id: conversationId,
+        lead_id: leadId,
+        business_id: businessId,
+        content: smsBody,
+        sender: 'ai',
+        message_type: 'summary',
+        structured_data: intakeData,
+        twilio_message_sid: messageSid,
+        status: status
+      });
+      console.log('[AI SUMMARY SMS DB INSERT START] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS DB INSERT START] =========================================');
+
+      const { data: messageData, error: messageError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          lead_id: leadId,
+          business_id: businessId,
+          content: smsBody,
+          sender: 'ai',
+          message_type: 'summary',
+          structured_data: intakeData,
+          twilio_message_sid: messageSid,
+          status: status
+        })
+        .select()
+        .single();
+
+      if (messageError) {
+        console.log('[AI SUMMARY SMS DB INSERT FAILED] =========================================');
+        console.log('[AI SUMMARY SMS DB INSERT FAILED] code:', messageError.code);
+        console.log('[AI SUMMARY SMS DB INSERT FAILED] message:', messageError.message);
+        console.log('[AI SUMMARY SMS DB INSERT FAILED] details:', messageError.details);
+        console.log('[AI SUMMARY SMS DB INSERT FAILED] hint:', messageError.hint);
+        console.log('[AI SUMMARY SMS DB INSERT FAILED] Timestamp:', new Date().toISOString());
+        console.log('[AI SUMMARY SMS DB INSERT FAILED] =========================================');
+      } else {
+        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] =========================================');
+        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] leadId:', leadId);
+        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] conversationId:', conversationId);
+        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] messageId:', messageData.id);
+        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] twilioMessageSid:', messageSid);
+        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] status:', status);
+        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] Timestamp:', new Date().toISOString());
+        console.log('[AI SUMMARY SMS DB INSERT SUCCESS] =========================================');
+      }
+    } else {
+      console.log('[AI SUMMARY SMS DB INSERT SKIPPED] =========================================');
+      console.log('[AI SUMMARY SMS DB INSERT SKIPPED] reason: missing required IDs');
+      console.log('[AI SUMMARY SMS DB INSERT SKIPPED] leadId:', leadId);
+      console.log('[AI SUMMARY SMS DB INSERT SKIPPED] conversationId:', conversationId);
+      console.log('[AI SUMMARY SMS DB INSERT SKIPPED] businessId:', businessId);
+      console.log('[AI SUMMARY SMS DB INSERT SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS DB INSERT SKIPPED] =========================================');
+    }
+  } catch (dbError) {
+    console.log('[AI SUMMARY SMS DB INSERT FAILED] =========================================');
+    console.log('[AI SUMMARY SMS DB INSERT FAILED] error:', String(dbError));
+    console.log('[AI SUMMARY SMS DB INSERT FAILED] Timestamp:', new Date().toISOString());
+    console.log('[AI SUMMARY SMS DB INSERT FAILED] =========================================');
   }
 }
 
@@ -4931,7 +5056,7 @@ Return only JSON, no other text.`;
         
         // Determine outcome based on whether all required fields are present
         const intakeComplete = isAIIntakeComplete(extractedFields);
-        const outcome = intakeComplete ? 'completed' : 'incomplete';
+        const outcome = intakeComplete ? 'completed_intake' : 'incomplete';
         
         const mainInsertPayload = {
             business_id: sessionBusinessId,
