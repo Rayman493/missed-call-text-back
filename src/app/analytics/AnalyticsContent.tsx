@@ -65,40 +65,124 @@ export default function AnalyticsContent() {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
         // Fetch leads in the last 30 days
-        const { data: leads } = await supabase
+        console.log('[ANALYTICS QUERY START]', {
+          businessId: business.id,
+          query: 'leads',
+          filter: { business_id: business.id, created_at: thirtyDaysAgo }
+        })
+
+        const { data: leads, error: leadsError } = await supabase
           .from('leads')
           .select('id, status, created_at, business_id')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
+        if (leadsError) {
+          console.error('[ANALYTICS QUERY FAILED]', {
+            businessId: business.id,
+            query: 'leads',
+            error: leadsError.message,
+            details: leadsError
+          })
+        } else {
+          console.log('[ANALYTICS QUERY SUCCESS]', {
+            businessId: business.id,
+            query: 'leads',
+            recordCount: leads?.length || 0
+          })
+        }
+
         // Fetch messages for reply rate calculation
-        const { data: messages } = await supabase
+        console.log('[ANALYTICS QUERY START]', {
+          businessId: business.id,
+          query: 'messages',
+          filter: { business_id: business.id, created_at: thirtyDaysAgo }
+        })
+
+        const { data: messages, error: messagesError } = await supabase
           .from('messages')
-          .select('id, direction, created_at, conversation_id, lead_id')
+          .select('id, sender, created_at, conversation_id, lead_id')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
+        if (messagesError) {
+          console.error('[ANALYTICS QUERY FAILED]', {
+            businessId: business.id,
+            query: 'messages',
+            error: messagesError.message,
+            details: messagesError
+          })
+        } else {
+          console.log('[ANALYTICS QUERY SUCCESS]', {
+            businessId: business.id,
+            query: 'messages',
+            recordCount: messages?.length || 0
+          })
+        }
+
         // Fetch AI call records
-        const { data: aiCalls } = await supabase
+        console.log('[ANALYTICS QUERY START]', {
+          businessId: business.id,
+          query: 'ai_call_records',
+          filter: { business_id: business.id, created_at: thirtyDaysAgo }
+        })
+
+        const { data: aiCalls, error: aiCallsError } = await supabase
           .from('ai_call_records')
           .select('id, outcome, created_at, lead_id')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
+        if (aiCallsError) {
+          console.error('[ANALYTICS QUERY FAILED]', {
+            businessId: business.id,
+            query: 'ai_call_records',
+            error: aiCallsError.message,
+            details: aiCallsError
+          })
+        } else {
+          console.log('[ANALYTICS QUERY SUCCESS]', {
+            businessId: business.id,
+            query: 'ai_call_records',
+            recordCount: aiCalls?.length || 0
+          })
+        }
+
         // Fetch follow-ups
-        const { data: followUps } = await supabase
+        console.log('[ANALYTICS QUERY START]', {
+          businessId: business.id,
+          query: 'follow_ups',
+          filter: { business_id: business.id, created_at: thirtyDaysAgo }
+        })
+
+        const { data: followUps, error: followUpsError } = await supabase
           .from('follow_ups')
           .select('id, status, created_at, lead_id')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
+
+        if (followUpsError) {
+          console.error('[ANALYTICS QUERY FAILED]', {
+            businessId: business.id,
+            query: 'follow_ups',
+            error: followUpsError.message,
+            details: followUpsError
+          })
+        } else {
+          console.log('[ANALYTICS QUERY SUCCESS]', {
+            businessId: business.id,
+            query: 'follow_ups',
+            recordCount: followUps?.length || 0
+          })
+        }
 
         // Calculate metrics
         const leadCount = leads?.length || 0
         const activeLeads = leads?.filter((l: any) => l.status === 'active' || l.status === 'new').length || 0
         const completedLeads = leads?.filter((l: any) => l.status === 'completed' || l.status === 'won').length || 0
 
-        const inboundMessages = messages?.filter((m: any) => m.direction === 'inbound').length || 0
-        const outboundMessages = messages?.filter((m: any) => m.direction === 'outbound').length || 0
+        const inboundMessages = messages?.filter((m: any) => m.sender === 'caller').length || 0
+        const outboundMessages = messages?.filter((m: any) => m.sender === 'ai' || m.sender === 'user').length || 0
         const totalMessages = messages?.length || 0
 
         const aiIntakesCompleted = aiCalls?.filter((c: any) => c.outcome === 'completed_intake').length || 0
@@ -141,7 +225,7 @@ export default function AnalyticsContent() {
         })
 
         messages?.forEach((message: any) => {
-          if (message.direction === 'inbound') {
+          if (message.sender === 'caller') {
             const date = new Date(message.created_at)
             if (date >= sevenDaysAgo) {
               const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
