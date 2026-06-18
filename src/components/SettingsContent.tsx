@@ -38,6 +38,7 @@ import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { HelpContext } from '@/components/HelpAssistant'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
+import { BUSINESS_SERVICE_TYPES } from '@/lib/business-service-types'
 
 export default function SettingsContent() {
   const router = useRouter()
@@ -1147,39 +1148,9 @@ export default function SettingsContent() {
                       className="w-full px-4 py-3 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                     >
                       <option value="">Select your business type</option>
-                      <option value="HVAC">HVAC</option>
-                      <option value="Plumbing">Plumbing</option>
-                      <option value="Electrical">Electrical</option>
-                      <option value="Roofing">Roofing</option>
-                      <option value="Landscaping / Lawn Care">Landscaping / Lawn Care</option>
-                      <option value="Cleaning">Cleaning</option>
-                      <option value="Pressure Washing">Pressure Washing</option>
-                      <option value="Pest Control">Pest Control</option>
-                      <option value="Handyman">Handyman</option>
-                      <option value="General Contractor">General Contractor</option>
-                      <option value="Painting">Painting</option>
-                      <option value="Flooring">Flooring</option>
-                      <option value="Appliance Repair">Appliance Repair</option>
-                      <option value="Auto Repair">Auto Repair</option>
-                      <option value="Locksmith">Locksmith</option>
-                      <option value="Garage Door Repair">Garage Door Repair</option>
-                      <option value="Pool Service">Pool Service</option>
-                      <option value="Junk Removal">Junk Removal</option>
-                      <option value="Moving Company">Moving Company</option>
-                      <option value="Tree Service">Tree Service</option>
-                      <option value="Snow Removal">Snow Removal</option>
-                      <option value="Dog Grooming">Dog Grooming</option>
-                      <option value="Pet Services">Pet Services</option>
-                      <option value="Beauty Salon / Barber">Beauty Salon / Barber</option>
-                      <option value="Spa / Massage">Spa / Massage</option>
-                      <option value="Dentist">Dentist</option>
-                      <option value="Medical Office">Medical Office</option>
-                      <option value="Chiropractor">Chiropractor</option>
-                      <option value="Attorney">Attorney</option>
-                      <option value="Real Estate Agent">Real Estate Agent</option>
-                      <option value="Insurance Agent">Insurance Agent</option>
-                      <option value="Tutor / Lessons">Tutor / Lessons</option>
-                      <option value="Other">Other</option>
+                      {BUSINESS_SERVICE_TYPES.map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
                     </select>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       This helps our AI assistant ask more relevant questions during calls.

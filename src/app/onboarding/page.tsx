@@ -14,6 +14,7 @@ import Footer from '@/components/Footer'
 import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
+import { BUSINESS_SERVICE_TYPES } from '@/lib/business-service-types'
 
 const supabase = createBrowserClient()
 
@@ -435,27 +436,9 @@ export default function OnboardingPage() {
                 className="w-full px-3 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white text-sm"
               >
                 <option value="">Select your service type</option>
-                <option value="Plumbing">Plumbing</option>
-                <option value="HVAC">HVAC</option>
-                <option value="Electrical">Electrical</option>
-                <option value="Roofing">Roofing</option>
-                <option value="Landscaping / Lawn Care">Landscaping / Lawn Care</option>
-                <option value="Cleaning Service">Cleaning Service</option>
-                <option value="Pest Control">Pest Control</option>
-                <option value="Handyman">Handyman</option>
-                <option value="Auto Repair">Auto Repair</option>
-                <option value="Towing">Towing</option>
-                <option value="Dog Grooming">Dog Grooming</option>
-                <option value="Moving Company">Moving Company</option>
-                <option value="Appliance Repair">Appliance Repair</option>
-                <option value="Painting">Painting</option>
-                <option value="Pressure Washing">Pressure Washing</option>
-                <option value="Tree Service">Tree Service</option>
-                <option value="Locksmith">Locksmith</option>
-                <option value="Pool Service">Pool Service</option>
-                <option value="Junk Removal">Junk Removal</option>
-                <option value="Lessons / Instruction">Lessons / Instruction</option>
-                <option value="Other">Other</option>
+                {BUSINESS_SERVICE_TYPES.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
               </select>
               <p className="mt-2 text-xs text-gray-400">
                 This helps our AI provide better service for your industry
