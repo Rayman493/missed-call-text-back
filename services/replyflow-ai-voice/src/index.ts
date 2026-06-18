@@ -87,12 +87,67 @@ const MIN_FINAL_SENTENCE_PLAYBACK_MS = 12000; // 12 seconds minimum playback tim
 const FINAL_AUDIO_INACTIVITY_THRESHOLD_MS = 2500; // 2.5 seconds of no audio deltas before fallback
 
 // Per-call finalization guards to prevent race conditions between finalizeIncompleteIntake() and ingestCallData()
-const finalizationInProgressByCallSid = new Set<string>();
-const incompleteFinalizedCallSids = new Set<string>();
+// Using timestamp-based Maps for TTL cleanup (2-hour expiration)
+const finalizationInProgressByCallSid = new Map<string, number>();
+const incompleteFinalizedCallSids = new Map<string, number>();
 
 // Complete intake finalization idempotent locks
-const completeFinalizationStartedByCallSid = new Set<string>();
-const completeFinalizationFinishedByCallSid = new Set<string>();
+// Using timestamp-based Maps for TTL cleanup (2-hour expiration)
+const completeFinalizationStartedByCallSid = new Map<string, number>();
+const completeFinalizationFinishedByCallSid = new Map<string, number>();
+
+// TTL cleanup interval (2 hours in milliseconds)
+const CALL_SID_TTL_MS = 2 * 60 * 60 * 1000;
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Run cleanup every 5 minutes
+
+// Cleanup function to remove expired callSid entries
+function cleanupExpiredCallSids(): void {
+  const now = Date.now();
+  let cleanedCount = 0;
+
+  // Cleanup finalizationInProgressByCallSid
+  for (const [callSid, timestamp] of finalizationInProgressByCallSid.entries()) {
+    if (now - timestamp > CALL_SID_TTL_MS) {
+      finalizationInProgressByCallSid.delete(callSid);
+      cleanedCount++;
+    }
+  }
+
+  // Cleanup incompleteFinalizedCallSids
+  for (const [callSid, timestamp] of incompleteFinalizedCallSids.entries()) {
+    if (now - timestamp > CALL_SID_TTL_MS) {
+      incompleteFinalizedCallSids.delete(callSid);
+      cleanedCount++;
+    }
+  }
+
+  // Cleanup completeFinalizationStartedByCallSid
+  for (const [callSid, timestamp] of completeFinalizationStartedByCallSid.entries()) {
+    if (now - timestamp > CALL_SID_TTL_MS) {
+      completeFinalizationStartedByCallSid.delete(callSid);
+      cleanedCount++;
+    }
+  }
+
+  // Cleanup completeFinalizationFinishedByCallSid
+  for (const [callSid, timestamp] of completeFinalizationFinishedByCallSid.entries()) {
+    if (now - timestamp > CALL_SID_TTL_MS) {
+      completeFinalizationFinishedByCallSid.delete(callSid);
+      cleanedCount++;
+    }
+  }
+
+  if (cleanedCount > 0) {
+    console.log('[CALL SID CLEANUP] =========================================');
+    console.log('[CALL SID CLEANUP] Cleaned up', cleanedCount, 'expired callSid entries');
+    console.log('[CALL SID CLEANUP] Timestamp:', new Date().toISOString());
+    console.log('[CALL SID CLEANUP] =========================================');
+  }
+}
+
+// Start periodic cleanup
+setInterval(cleanupExpiredCallSids, CLEANUP_INTERVAL_MS);
+console.log('[CALL SID CLEANUP] Started periodic cleanup interval (every 5 minutes, 2-hour TTL)');
 
 // Final closing voice and text configuration
 const FINAL_CLOSE_TWILIO_VOICE = "Polly.Joanna-Neural"; // Natural neural voice (emergency fallback)
@@ -725,7 +780,7 @@ async function finalizeCompleteIntakeOnce(
     return;
   }
 
-  completeFinalizationStartedByCallSid.add(callSid);
+  completeFinalizationStartedByCallSid.set(callSid, Date.now());
 
   console.log('[COMPLETE PATH] Finalization started');
   console.log('[COMPLETE PATH] Stage set to complete');
@@ -765,7 +820,7 @@ async function finalizeCompleteIntakeOnce(
     console.log('[COMPLETE PATH] Summary SMS sent');
     console.log('[COMPLETE PATH] Finalization complete');
 
-    completeFinalizationFinishedByCallSid.add(callSid);
+    completeFinalizationFinishedByCallSid.set(callSid, Date.now());
   } catch (smsError) {
     console.log('[AI SUMMARY SMS FAILED] =========================================');
     console.log('[AI SUMMARY SMS FAILED] error:', String(smsError));
@@ -2112,8 +2167,8 @@ async function finalizeIncompleteIntake(
     return;
   }
   
-  finalizationInProgressByCallSid.add(callSid);
-  incompleteFinalizedCallSids.add(callSid);
+  finalizationInProgressByCallSid.set(callSid, Date.now());
+  incompleteFinalizedCallSids.set(callSid, Date.now());
   
   console.log('[FINALIZATION LOCK ACQUIRED] =========================================');
   console.log('[FINALIZATION LOCK ACQUIRED] callSid:', callSid);
@@ -8951,10 +9006,26 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
       
       // Only close OpenAI WebSocket if we're not in the middle of final closing
       // If finalClosingStarted is true, let the mark-based hangup handle cleanup
+      // BUT add forced cleanup after 30 seconds to prevent connection leaks
       if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
         if (finalClosingStarted && !finalGoodbyeMarkReceived) {
           console.log('[TWILIO WEBSOCKET CLOSE] OpenAI WebSocket left open during final closing');
           console.log('[TWILIO WEBSOCKET CLOSE] Waiting for final-goodbye-complete mark before cleanup');
+          console.log('[TWILIO WEBSOCKET CLOSE] Setting forced cleanup timeout (30 seconds)');
+
+          // Forced cleanup after 30 seconds regardless of mark receipt
+          setTimeout(() => {
+            if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
+              console.log('[OPENAI WEBSOCKET FORCED CLEANUP] =========================================');
+              console.log('[OPENAI WEBSOCKET FORCED CLEANUP] Forced cleanup timeout reached');
+              console.log('[OPENAI WEBSOCKET FORCED CLEANUP] Closing OpenAI WebSocket regardless of mark state');
+              console.log('[OPENAI WEBSOCKET FORCED CLEANUP] callSid:', callSid);
+              console.log('[OPENAI WEBSOCKET FORCED CLEANUP] finalGoodbyeMarkReceived:', finalGoodbyeMarkReceived);
+              console.log('[OPENAI WEBSOCKET FORCED CLEANUP] Timestamp:', new Date().toISOString());
+              console.log('[OPENAI WEBSOCKET FORCED CLEANUP] =========================================');
+              openAiWs.close(1000, 'Forced cleanup timeout');
+            }
+          }, 30000); // 30 seconds
         } else {
           console.log('[OPENAI WEBSOCKET CLEANUP] Closing OpenAI WebSocket due to Twilio call end');
           console.log('[OPENAI WEBSOCKET CLEANUP] callSid:', callSid);

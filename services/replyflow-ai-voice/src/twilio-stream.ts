@@ -36,13 +36,23 @@ export class TwilioStreamHandler {
     try {
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
-      
+
+      console.log('[TWILIO CLIENT INIT] =========================================');
+      console.log('[TWILIO CLIENT INIT] Checking environment variables');
+      console.log('[TWILIO CLIENT INIT] TWILIO_ACCOUNT_SID present:', !!accountSid);
+      console.log('[TWILIO CLIENT INIT] TWILIO_ACCOUNT_SID length:', accountSid?.length || 0);
+      console.log('[TWILIO CLIENT INIT] TWILIO_AUTH_TOKEN present:', !!authToken);
+      console.log('[TWILIO CLIENT INIT] TWILIO_AUTH_TOKEN length:', authToken?.length || 0);
+      console.log('[TWILIO CLIENT INIT] Timestamp:', new Date().toISOString());
+      console.log('[TWILIO CLIENT INIT] =========================================');
+
       if (accountSid && authToken) {
         this.twilioClient = Twilio(accountSid, authToken);
         console.log('[TWILIO CLIENT] Initialized successfully for hangup functionality');
       } else {
         console.log('[TWILIO CLIENT] Missing credentials, hangup via REST API unavailable');
         console.log('[TWILIO CLIENT] Required: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN');
+        console.log('[TWILIO CLIENT] Check Fly secrets: fly secrets list -a replyflow-ai-voice');
       }
     } catch (error) {
       console.log('[TWILIO CLIENT] Failed to initialize:', error);
