@@ -6116,7 +6116,24 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 }
                 
                 // Process intake stage advancement after FINAL transcript
+                console.log('[TRACE COMPLETE 1] =========================================');
+                console.log('[TRACE COMPLETE 1] Checking intake processing conditions');
+                console.log('[TRACE COMPLETE 1] intakeData:', !!intakeData);
+                console.log('[TRACE COMPLETE 1] intakeData.stage:', intakeData?.stage);
+                console.log('[TRACE COMPLETE 1] stage !== complete:', intakeData?.stage !== 'complete');
+                console.log('[TRACE COMPLETE 1] openAiWs:', !!openAiWs);
+                console.log('[TRACE COMPLETE 1] sessionReady:', sessionReady);
+                console.log('[TRACE COMPLETE 1] intakeComplete:', intakeComplete);
+                console.log('[TRACE COMPLETE 1] !intakeComplete:', !intakeComplete);
+                console.log('[TRACE COMPLETE 1] Timestamp:', new Date().toISOString());
+                console.log('[TRACE COMPLETE 1] =========================================');
+
                 if (intakeData && intakeData.stage !== 'complete' && openAiWs && sessionReady && !intakeComplete) {
+                  console.log('[TRACE COMPLETE 2] =========================================');
+                  console.log('[TRACE COMPLETE 2] All conditions passed, entering intake processing');
+                  console.log('[TRACE COMPLETE 2] Timestamp:', new Date().toISOString());
+                  console.log('[TRACE COMPLETE 2] =========================================');
+
                   console.log('[AUTO MODEL RESPONSE DISABLED] =========================================');
                   console.log('[AUTO MODEL RESPONSE DISABLED] Automatic model responses disabled');
                   console.log('[AUTO MODEL RESPONSE DISABLED] App controls all assistant responses');
@@ -6167,24 +6184,58 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[INTAKE COMPLETION CHECK] Session ready:', sessionReady);
                   
                   // Check if all required fields are collected - HARD APP-LEVEL ENFORCEMENT
+                  console.log('[TRACE COMPLETE 3] =========================================');
+                  console.log('[TRACE COMPLETE 3] About to call areAllRequiredFieldsCollected');
+                  console.log('[TRACE COMPLETE 3] Timestamp:', new Date().toISOString());
+                  console.log('[TRACE COMPLETE 3] =========================================');
+
                   if (areAllRequiredFieldsCollected(intakeData!)) {
+                    console.log('[TRACE COMPLETE 4] =========================================');
+                    console.log('[TRACE COMPLETE 4] areAllRequiredFieldsCollected returned true');
+                    console.log('[TRACE COMPLETE 4] Entering closing logic');
+                    console.log('[TRACE COMPLETE 4] Timestamp:', new Date().toISOString());
+                    console.log('[TRACE COMPLETE 4] =========================================');
+
                     console.log('[ALL REQUIRED FIELDS COLLECTED] =========================================');
                     console.log('[ALL REQUIRED FIELDS COLLECTED] All 6 required fields collected');
                     console.log('[ALL REQUIRED FIELDS COLLECTED] Triggering app-controlled closing');
                     console.log('[ALL REQUIRED FIELDS COLLECTED] Timestamp:', new Date().toISOString());
                     console.log('[ALL REQUIRED FIELDS COLLECTED] =========================================');
-                    
+
+                    console.log('[TRACE COMPLETE 5] =========================================');
+                    console.log('[TRACE COMPLETE 5] About to set stage to complete');
+                    console.log('[TRACE COMPLETE 5] Timestamp:', new Date().toISOString());
+                    console.log('[TRACE COMPLETE 5] =========================================');
+
                     console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
                     console.log('[APP CONTROLLED CLOSING STARTED] Setting intake stage to complete');
                     console.log('[APP CONTROLLED CLOSING STARTED] Setting intakeComplete flag to true');
                     console.log('[APP CONTROLLED CLOSING STARTED] Calling enterTerminalClose');
                     console.log('[APP CONTROLLED CLOSING STARTED] Timestamp:', new Date().toISOString());
                     console.log('[APP CONTROLLED CLOSING STARTED] =========================================');
-                    
+
                     intakeData!.stage = 'complete';
                     intakeComplete = true;
+
+                    console.log('[TRACE COMPLETE 6] =========================================');
+                    console.log('[TRACE COMPLETE 6] Stage set to complete, about to call enterTerminalClose');
+                    console.log('[TRACE COMPLETE 6] Timestamp:', new Date().toISOString());
+                    console.log('[TRACE COMPLETE 6] =========================================');
+
                     enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
+
+                    console.log('[TRACE COMPLETE 7] =========================================');
+                    console.log('[TRACE COMPLETE 7] enterTerminalClose called, about to return');
+                    console.log('[TRACE COMPLETE 7] Timestamp:', new Date().toISOString());
+                    console.log('[TRACE COMPLETE 7] =========================================');
+
                     return; // Skip normal intake processing - NO MORE AI RESPONSES
+                  } else {
+                    console.log('[TRACE COMPLETE 3.5] =========================================');
+                    console.log('[TRACE COMPLETE 3.5] areAllRequiredFieldsCollected returned false');
+                    console.log('[TRACE COMPLETE 3.5] Not all fields collected yet');
+                    console.log('[TRACE COMPLETE 3.5] Timestamp:', new Date().toISOString());
+                    console.log('[TRACE COMPLETE 3.5] =========================================');
                   }
 
                   // Check if intake is good enough for beta completion (tolerant check)
