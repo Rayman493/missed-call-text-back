@@ -4512,6 +4512,8 @@ Return only JSON, no other text.`;
         console.log('[COMPLETE FINALIZATION STEP 6 SUCCESS] Timestamp:', new Date().toISOString());
         console.log('[COMPLETE FINALIZATION STEP 6 SUCCESS] =========================================');
 
+        console.log('[COMPLETE PATH] AI call record inserted');
+
         console.log('[ACTIVE PATH AFTER SAVE RESULT REACHED]', {
           businessId: sessionBusinessId,
           leadId: lead.id,
@@ -6104,9 +6106,66 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] callbackTime:', !!intakeData!.callbackTime);
                       console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] Timestamp:', new Date().toISOString());
                       console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] =========================================');
+
+                      console.log('[COMPLETE PATH] Required fields collected');
+                      console.log('[COMPLETE PATH] Stage set to complete');
+                      console.log('[COMPLETE PATH] Entering terminal close');
                       
                       intakeData!.stage = 'complete';
                       intakeComplete = true;
+                      
+                      console.log('[COMPLETE PATH] Starting finalization');
+                      
+                      // Send summary SMS immediately when intake is complete
+                      (async () => {
+                        try {
+                          console.log('[AI COMPLETE FINALIZATION START] =========================================');
+                          console.log('[AI COMPLETE FINALIZATION START] Starting complete intake SMS sending');
+                          console.log('[AI COMPLETE FINALIZATION START] Timestamp:', new Date().toISOString());
+                          console.log('[AI COMPLETE FINALIZATION START] =========================================');
+
+                          // Build complete summary SMS from intakeData
+                          const completeSummary = 
+                            `AI intake complete:\n` +
+                            `Name: ${intakeData!.customerName || 'Not provided'}\n` +
+                            `Service: ${intakeData!.serviceRequested || 'Not provided'}\n` +
+                            `Details: ${intakeData!.issueDescription || 'Not provided'}\n` +
+                            `Location: ${intakeData!.serviceAddress || 'Not provided'}\n` +
+                            `Completion time: ${intakeData!.desiredCompletionTime || 'Not provided'}\n` +
+                            `Callback time: ${intakeData!.callbackTime || 'Not provided'}`;
+
+                          console.log('[AI SUMMARY SMS REQUEST] =========================================');
+                          console.log('[AI SUMMARY SMS REQUEST] to:', callerPhone);
+                          console.log('[AI SUMMARY SMS REQUEST] businessId:', businessId);
+                          console.log('[AI SUMMARY SMS REQUEST] smsBody:', completeSummary.substring(0, 100) + '...');
+                          console.log('[AI SUMMARY SMS REQUEST] Timestamp:', new Date().toISOString());
+                          console.log('[AI SUMMARY SMS REQUEST] =========================================');
+
+                          console.log('[COMPLETE PATH] Sending summary SMS');
+
+                          const twilioClient = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+                          const smsResult = await twilioClient.messages.create({
+                            from: process.env.TWILIO_PHONE_NUMBER,
+                            to: callerPhone,
+                            body: completeSummary
+                          });
+
+                          console.log('[AI SUMMARY SMS RESPONSE] =========================================');
+                          console.log('[AI SUMMARY SMS RESPONSE] messageSid:', smsResult.sid);
+                          console.log('[AI SUMMARY SMS RESPONSE] status:', smsResult.status);
+                          console.log('[AI SUMMARY SMS RESPONSE] Timestamp:', new Date().toISOString());
+                          console.log('[AI SUMMARY SMS RESPONSE] =========================================');
+
+                          console.log('[COMPLETE PATH] Summary SMS sent');
+                          console.log('[COMPLETE PATH] Finalization complete');
+                        } catch (smsError) {
+                          console.log('[AI SUMMARY SMS FAILED] =========================================');
+                          console.log('[AI SUMMARY SMS FAILED] error:', String(smsError));
+                          console.log('[AI SUMMARY SMS FAILED] Timestamp:', new Date().toISOString());
+                          console.log('[AI SUMMARY SMS FAILED] =========================================');
+                        }
+                      })();
+
                       enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
                       return; // Skip normal intake processing - NO MORE AI RESPONSES
                     }
@@ -6204,9 +6263,66 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] callbackTime:', !!intakeData!.callbackTime);
                       console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] Timestamp:', new Date().toISOString());
                       console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] =========================================');
-                      
+
+                      console.log('[COMPLETE PATH] Required fields collected');
+                      console.log('[COMPLETE PATH] Stage set to complete');
+                      console.log('[COMPLETE PATH] Entering terminal close');
+
                       intakeData!.stage = 'complete';
                       intakeComplete = true;
+
+                      console.log('[COMPLETE PATH] Starting finalization');
+
+                      // Send summary SMS immediately when intake is complete
+                      (async () => {
+                        try {
+                          console.log('[AI COMPLETE FINALIZATION START] =========================================');
+                          console.log('[AI COMPLETE FINALIZATION START] Starting complete intake SMS sending');
+                          console.log('[AI COMPLETE FINALIZATION START] Timestamp:', new Date().toISOString());
+                          console.log('[AI COMPLETE FINALIZATION START] =========================================');
+
+                          // Build complete summary SMS from intakeData
+                          const completeSummary =
+                            `AI intake complete:\n` +
+                            `Name: ${intakeData!.customerName || 'Not provided'}\n` +
+                            `Service: ${intakeData!.serviceRequested || 'Not provided'}\n` +
+                            `Details: ${intakeData!.issueDescription || 'Not provided'}\n` +
+                            `Location: ${intakeData!.serviceAddress || 'Not provided'}\n` +
+                            `Completion time: ${intakeData!.desiredCompletionTime || 'Not provided'}\n` +
+                            `Callback time: ${intakeData!.callbackTime || 'Not provided'}`;
+
+                          console.log('[AI SUMMARY SMS REQUEST] =========================================');
+                          console.log('[AI SUMMARY SMS REQUEST] to:', callerPhone);
+                          console.log('[AI SUMMARY SMS REQUEST] businessId:', businessId);
+                          console.log('[AI SUMMARY SMS REQUEST] smsBody:', completeSummary.substring(0, 100) + '...');
+                          console.log('[AI SUMMARY SMS REQUEST] Timestamp:', new Date().toISOString());
+                          console.log('[AI SUMMARY SMS REQUEST] =========================================');
+
+                          console.log('[COMPLETE PATH] Sending summary SMS');
+
+                          const twilioClient = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+                          const smsResult = await twilioClient.messages.create({
+                            from: process.env.TWILIO_PHONE_NUMBER,
+                            to: callerPhone,
+                            body: completeSummary
+                          });
+
+                          console.log('[AI SUMMARY SMS RESPONSE] =========================================');
+                          console.log('[AI SUMMARY SMS RESPONSE] messageSid:', smsResult.sid);
+                          console.log('[AI SUMMARY SMS RESPONSE] status:', smsResult.status);
+                          console.log('[AI SUMMARY SMS RESPONSE] Timestamp:', new Date().toISOString());
+                          console.log('[AI SUMMARY SMS RESPONSE] =========================================');
+
+                          console.log('[COMPLETE PATH] Summary SMS sent');
+                          console.log('[COMPLETE PATH] Finalization complete');
+                        } catch (smsError) {
+                          console.log('[AI SUMMARY SMS FAILED] =========================================');
+                          console.log('[AI SUMMARY SMS FAILED] error:', String(smsError));
+                          console.log('[AI SUMMARY SMS FAILED] Timestamp:', new Date().toISOString());
+                          console.log('[AI SUMMARY SMS FAILED] =========================================');
+                        }
+                      })();
+
                       enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
                       return; // Skip normal intake processing - NO MORE AI RESPONSES
                     }
