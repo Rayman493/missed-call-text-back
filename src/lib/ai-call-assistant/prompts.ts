@@ -26,18 +26,18 @@ export type BusinessCategory =
  */
 export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   greeting: string
-  reasonQuestion: string
+  nameReasonQuestion: string
   detailsQuestion: string
-  urgencyQuestion: string
+  desiredCompletionQuestion: string
   locationQuestion: string | null
   callbackTimeQuestion: string | null
   confirmationFormat: (data: any) => string
 }> = {
   home_services: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
-    reasonQuestion: "Could you tell me a little about what you need help with?",
+    nameReasonQuestion: "Could you tell me your name and what you need help with?",
     detailsQuestion: "Can you share any important details about the project?",
-    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
+    desiredCompletionQuestion: "When would you like to have this work done?",
     locationQuestion: "Where is the service location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
@@ -55,9 +55,9 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   
   plumbing_hvac: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
-    reasonQuestion: "Could you tell me a little about what you need help with?",
-    detailsQuestion: "Can you share any important details about the project?",
-    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
+    nameReasonQuestion: "Could you tell me your name and what you need help with?",
+    detailsQuestion: "Can you share any important details about the plumbing or HVAC issue?",
+    desiredCompletionQuestion: "When would you like to have this work done?",
     locationQuestion: "Where is the service location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
@@ -75,9 +75,9 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   
   cleaning: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
-    reasonQuestion: "Could you tell me a little about what you need help with?",
-    detailsQuestion: "Can you share any important details about the project?",
-    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
+    nameReasonQuestion: "Could you tell me your name and what you need help with?",
+    detailsQuestion: "Can you share any important details about the cleaning service?",
+    desiredCompletionQuestion: "When would you like to have this cleaning done?",
     locationQuestion: "Where is the service location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
@@ -95,9 +95,9 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   
   landscaping: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
-    reasonQuestion: "Could you tell me a little about what you need help with?",
-    detailsQuestion: "Can you share any important details about the project?",
-    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
+    nameReasonQuestion: "Could you tell me your name and what you need help with?",
+    detailsQuestion: "Can you share any important details about the landscaping project?",
+    desiredCompletionQuestion: "When would you like to have this work done?",
     locationQuestion: "Where is the service location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
@@ -115,10 +115,10 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   
   real_estate: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
-    reasonQuestion: "Could you tell me a little about what you need help with?",
-    detailsQuestion: "Can you share any important details about the project?",
-    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
-    locationQuestion: "Where is the service location?",
+    nameReasonQuestion: "Could you tell me your name and what you need help with?",
+    detailsQuestion: "Can you share any important details about your real estate needs?",
+    desiredCompletionQuestion: "When are you looking to move or complete this transaction?",
+    locationQuestion: "Where is the property location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
@@ -135,9 +135,9 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   
   travel_agent: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
-    reasonQuestion: "Could you tell me a little about what you need help with?",
-    detailsQuestion: "Can you share any important details about the project?",
-    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
+    nameReasonQuestion: "Could you tell me your name and what you need help with?",
+    detailsQuestion: "Can you share any important details about your travel plans?",
+    desiredCompletionQuestion: "When are you looking to travel?",
     locationQuestion: null,
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
@@ -155,9 +155,9 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   
   salon_appointment: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
-    reasonQuestion: "Could you tell me a little about what you need help with?",
-    detailsQuestion: "Can you share any important details about the project?",
-    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
+    nameReasonQuestion: "Could you tell me your name and what you need help with?",
+    detailsQuestion: "Can you share any important details about the appointment?",
+    desiredCompletionQuestion: "When would you like to schedule your appointment?",
     locationQuestion: "Where is the service location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
@@ -175,9 +175,9 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   
   pet_grooming: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
-    reasonQuestion: "Could you tell me a little about what you need help with?",
-    detailsQuestion: "Can you share any important details about the project?",
-    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
+    nameReasonQuestion: "Could you tell me your name and what you need help with?",
+    detailsQuestion: "Can you share any important details about your pet's grooming needs?",
+    desiredCompletionQuestion: "When would you like to schedule the grooming appointment?",
     locationQuestion: "Where is the service location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
@@ -195,9 +195,9 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   
   lessons_tutoring: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
-    reasonQuestion: "Could you tell me a little about what you need help with?",
-    detailsQuestion: "Can you share any important details about the project?",
-    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
+    nameReasonQuestion: "Could you tell me your name and what you need help with?",
+    detailsQuestion: "Can you share any important details about the lessons you need?",
+    desiredCompletionQuestion: "When would you like to start the lessons?",
     locationQuestion: "Where is the service location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
@@ -215,9 +215,9 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   
   medical_dental: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
-    reasonQuestion: "Could you tell me a little about what you need help with?",
-    detailsQuestion: "Can you share any important details about the project?",
-    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
+    nameReasonQuestion: "Could you tell me your name and what you need help with?",
+    detailsQuestion: "Can you share any important details about the appointment?",
+    desiredCompletionQuestion: "When would you like to schedule the appointment?",
     locationQuestion: "Where is the service location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
@@ -235,9 +235,9 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   
   legal_consulting: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
-    reasonQuestion: "Could you tell me a little about what you need help with?",
-    detailsQuestion: "Can you share any important details about the project?",
-    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
+    nameReasonQuestion: "Could you tell me your name and what you need help with?",
+    detailsQuestion: "Can you share any important details about your legal needs?",
+    desiredCompletionQuestion: "When would you like to schedule a consultation?",
     locationQuestion: "Where is the service location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
@@ -255,9 +255,9 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   
   general_service: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
-    reasonQuestion: "Could you tell me a little about what you need help with?",
-    detailsQuestion: "Can you share any important details about the project?",
-    urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
+    nameReasonQuestion: "Could you tell me your name and what you need help with?",
+    detailsQuestion: "Can you share any important details about the service?",
+    desiredCompletionQuestion: "When would you like to have this work done?",
     locationQuestion: null,
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
@@ -576,12 +576,10 @@ NATURAL CONVERSATION:
 
 Your role is to:
 1. Greet the caller professionally in English
-2. Start by asking what they need help with (reason for calling)
-3. Ask for their name naturally if not already provided
-4. Collect information adaptively based on what the caller volunteers:
-   - Reason for calling (ask naturally: "${config.reasonQuestion}")
+2. Start by asking: "${config.nameReasonQuestion}"
+3. Collect information adaptively based on what the caller volunteers:
    - Important details (ask naturally: "${config.detailsQuestion}" - ALWAYS ask this even if caller provides brief reason)
-   - Urgency level (ask naturally: "${config.urgencyQuestion}" - only if not already clear)
+   - Desired completion time (ask naturally: "${config.desiredCompletionQuestion}")
    ${config.locationQuestion ? `- Location/address (ask naturally: "${config.locationQuestion}" - only if not already provided)` : ''}
    ${config.callbackTimeQuestion ? `- Best callback time (ask naturally: "${config.callbackTimeQuestion}" - only if relevant)` : ''}
 5. Once sufficient information is gathered, transition to confirmation using the exact phrase: "Thanks! Here's what I have:"
@@ -634,26 +632,37 @@ IMPORTANT HANGUP INSTRUCTION: After speaking the closing message, wait for the a
 }
 
 /**
+ * Log AI selected question for debugging
+ */
+export function logSelectedQuestion(businessType: string, stage: string, questionText: string) {
+  console.log('[AI SELECTED QUESTION]', {
+    businessType,
+    stage,
+    questionText
+  })
+}
+
+/**
  * Intake questions in order - now adaptive (reason before name)
  */
 export function getIntakeQuestions(category: BusinessCategory = 'general_service') {
   const config = CATEGORY_INTAKE_CONFIG[category]
-  
+
   const questions = [
     {
-      field: 'reason',
-      question: config.reasonQuestion,
-      prompt: "Ask for the reason for the call first"
-    },
-    {
-      field: 'name',
-      question: "Can I get your name?",
-      prompt: "Ask for the caller's name if not already provided"
+      field: 'name_reason',
+      question: config.nameReasonQuestion,
+      prompt: "Ask for name and reason for calling"
     },
     {
       field: 'important_details',
       question: config.detailsQuestion,
       prompt: "Ask for important project details - ALWAYS ask this even if caller provides brief reason"
+    },
+    {
+      field: 'desired_completion',
+      question: config.desiredCompletionQuestion,
+      prompt: "Ask when they want the work done"
     }
   ]
   
@@ -674,14 +683,7 @@ export function getIntakeQuestions(category: BusinessCategory = 'general_service
       prompt: "Ask for the best callback time"
     })
   }
-  
-  // Add urgency question
-  questions.push({
-    field: 'urgency',
-    question: config.urgencyQuestion,
-    prompt: "Ask for urgency level"
-  })
-  
+
   return questions
 }
 
