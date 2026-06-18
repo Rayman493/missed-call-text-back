@@ -243,6 +243,37 @@ export default function SettingsContent() {
     return { ...defaults, ...business.automation_settings }
   }
 
+  // Helper to convert ISO timestamp to datetime-local format (yyyy-MM-ddThh:mm)
+  const toDateTimeLocal = (isoString: string | null | undefined): string => {
+    if (!isoString) return ''
+    
+    const storedValue = isoString
+    let displayedValue: string
+    
+    try {
+      const date = new Date(isoString)
+      if (isNaN(date.getTime())) {
+        console.warn('[OUT OF OFFICE DATETIME FORMAT] Invalid date string:', storedValue)
+        return ''
+      }
+      
+      // Format: yyyy-MM-ddThh:mm
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      
+      displayedValue = `${year}-${month}-${day}T${hours}:${minutes}`
+      
+      console.log('[OUT OF OFFICE DATETIME FORMAT]', { storedValue, displayedValue })
+      return displayedValue
+    } catch (error) {
+      console.error('[OUT OF OFFICE DATETIME FORMAT] Conversion error:', { storedValue, error })
+      return ''
+    }
+  }
+
   // Helper to update automation settings
   const updateAutomationSetting = (key: string, value: any) => {
     const currentSettings = getAutomationSettings()
@@ -1562,7 +1593,7 @@ export default function SettingsContent() {
                             </label>
                             <input
                               type="datetime-local"
-                              value={formBusiness.out_of_office_start || ''}
+                              value={toDateTimeLocal(formBusiness.out_of_office_start)}
                               onChange={(e) => updateBusiness({ out_of_office_start: e.target.value || null })}
                               className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                             />
@@ -1575,7 +1606,7 @@ export default function SettingsContent() {
                             </label>
                             <input
                               type="datetime-local"
-                              value={formBusiness.out_of_office_end || ''}
+                              value={toDateTimeLocal(formBusiness.out_of_office_end)}
                               onChange={(e) => updateBusiness({ out_of_office_end: e.target.value || null })}
                               className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                             />
