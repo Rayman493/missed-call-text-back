@@ -24,6 +24,17 @@ import { createClient } from '@supabase/supabase-js';
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
 
+// Timeout helper for Supabase queries
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`TIMEOUT: ${label}`));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]) as Promise<T>;
+}
+
 // Version log - guaranteed to appear on startup
 console.log('[AUDIO TRACE BUILD VERSION] caller-audio-debug-v1');
 console.log('[AI CONFIRMATION TEMPLATE VERSION] confirmation-v3-your-name-is');
@@ -783,105 +794,52 @@ async function finalizeCompleteIntakeOnce(
 
   completeFinalizationStartedByCallSid.set(callSid, Date.now());
 
-  console.log('[SCRIPTED FLOW] =========================================');
-  console.log('[SCRIPTED FLOW] intake complete');
-  console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-  console.log('[SCRIPTED FLOW] =========================================');
+  console.log('[FINALIZE COMPLETE INTAKE ENTERED] =========================================');
+  console.log('[FINALIZE COMPLETE INTAKE ENTERED] Function entered');
+  console.log('[FINALIZE COMPLETE INTAKE ENTERED] callSid:', callSid);
+  console.log('[FINALIZE COMPLETE INTAKE ENTERED] businessId:', businessId);
+  console.log('[FINALIZE COMPLETE INTAKE ENTERED] callerPhone:', callerPhone);
+  console.log('[FINALIZE COMPLETE INTAKE ENTERED] Timestamp:', new Date().toISOString());
+  console.log('[FINALIZE COMPLETE INTAKE ENTERED] =========================================');
 
-  console.log('[COMPLETE PATH] Finalization started');
-  console.log('[COMPLETE PATH] Stage set to complete');
-  console.log('[COMPLETE PATH] Summary SMS request');
+  console.log('[FINALIZE COMPLETE STEP 1] =========================================');
+  console.log('[FINALIZE COMPLETE STEP 1] Starting: Resolve lead/conversation from session');
+  console.log('[FINALIZE COMPLETE STEP 1] Timestamp:', new Date().toISOString());
+  console.log('[FINALIZE COMPLETE STEP 1] =========================================');
 
   try {
-    // Create lead and conversation BEFORE sending SMS
-    console.log('[AI SUMMARY SMS LEAD CONVERSATION CREATE START] =========================================');
-    console.log('[AI SUMMARY SMS LEAD CONVERSATION CREATE START] Creating lead and conversation before SMS');
-    console.log('[AI SUMMARY SMS LEAD CONVERSATION CREATE START] businessId:', businessId);
-    console.log('[AI SUMMARY SMS LEAD CONVERSATION CREATE START] callerPhone:', callerPhone);
-    console.log('[AI SUMMARY SMS LEAD CONVERSATION CREATE START] Timestamp:', new Date().toISOString());
-    console.log('[AI SUMMARY SMS LEAD CONVERSATION CREATE START] =========================================');
-
-    const { data: lead, error: leadError } = await supabase
-      .from('leads')
-      .upsert({
-        business_id: businessId,
-        caller_phone: callerPhone,
-        status: 'new',
-      }, {
-        onConflict: 'business_id,caller_phone',
-      })
-      .select()
-      .single();
-
-    if (leadError) {
-      console.log('[AI SUMMARY SMS LEAD CREATE FAILED] =========================================');
-      console.log('[AI SUMMARY SMS LEAD CREATE FAILED] error:', leadError.message);
-      console.log('[AI SUMMARY SMS LEAD CREATE FAILED] Timestamp:', new Date().toISOString());
-      console.log('[AI SUMMARY SMS LEAD CREATE FAILED] =========================================');
-      throw leadError;
-    }
-
-    console.log('[AI SUMMARY SMS LEAD CREATE SUCCESS] =========================================');
-    console.log('[AI SUMMARY SMS LEAD CREATE SUCCESS] leadId:', lead.id);
-    console.log('[AI SUMMARY SMS LEAD CREATE SUCCESS] Timestamp:', new Date().toISOString());
-    console.log('[AI SUMMARY SMS LEAD CREATE SUCCESS] =========================================');
-
-    // Store leadId in ws session state
-    (ws as any).leadId = lead.id;
-
-    // Create or update conversation
-    const { data: existingConversation, error: conversationLookupError } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('lead_id', lead.id)
-      .maybeSingle();
-
-    let conversation;
-    let conversationError;
-
-    if (existingConversation) {
-      conversation = existingConversation;
-      console.log('[AI SUMMARY SMS CONVERSATION FOUND] =========================================');
-      console.log('[AI SUMMARY SMS CONVERSATION FOUND] conversationId:', conversation.id);
-      console.log('[AI SUMMARY SMS CONVERSATION FOUND] Timestamp:', new Date().toISOString());
-      console.log('[AI SUMMARY SMS CONVERSATION FOUND] =========================================');
-    } else {
-      const result = await supabase
-        .from('conversations')
-        .insert({
-          business_id: businessId,
-          lead_id: lead.id,
-          status: 'open',
-          last_activity_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-      conversation = result.data;
-      conversationError = result.error;
-    }
-
-    if (conversationError) {
-      console.log('[AI SUMMARY SMS CONVERSATION CREATE FAILED] =========================================');
-      console.log('[AI SUMMARY SMS CONVERSATION CREATE FAILED] error:', conversationError.message);
-      console.log('[AI SUMMARY SMS CONVERSATION CREATE FAILED] Timestamp:', new Date().toISOString());
-      console.log('[AI SUMMARY SMS CONVERSATION CREATE FAILED] =========================================');
-      throw conversationError;
-    }
-
-    console.log('[AI SUMMARY SMS CONVERSATION CREATE SUCCESS] =========================================');
-    console.log('[AI SUMMARY SMS CONVERSATION CREATE SUCCESS] conversationId:', conversation.id);
-    console.log('[AI SUMMARY SMS CONVERSATION CREATE SUCCESS] Timestamp:', new Date().toISOString());
-    console.log('[AI SUMMARY SMS CONVERSATION CREATE SUCCESS] =========================================');
-
-    // Store conversationId in ws session state
-    (ws as any).conversationId = conversation.id;
+    // Resolve leadId and conversationId from session customParameters
+    const leadId = (ws as any).leadId || null;
+    const conversationId = (ws as any).conversationId || null;
 
     console.log('[AI SUMMARY SMS IDS RESOLVED] =========================================');
-    console.log('[AI SUMMARY SMS IDS RESOLVED] leadId:', lead.id);
-    console.log('[AI SUMMARY SMS IDS RESOLVED] conversationId:', conversation.id);
-    console.log('[AI SUMMARY SMS IDS RESOLVED] source: finalizeCompleteIntakeOnce');
+    console.log('[AI SUMMARY SMS IDS RESOLVED] source: session_custom_parameter');
+    console.log('[AI SUMMARY SMS IDS RESOLVED] leadId:', leadId);
+    console.log('[AI SUMMARY SMS IDS RESOLVED] conversationId:', conversationId);
     console.log('[AI SUMMARY SMS IDS RESOLVED] Timestamp:', new Date().toISOString());
     console.log('[AI SUMMARY SMS IDS RESOLVED] =========================================');
+
+    if (!leadId || !conversationId) {
+      console.log('[AI SUMMARY SMS IDS MISSING FROM SESSION] =========================================');
+      console.log('[AI SUMMARY SMS IDS MISSING FROM SESSION] leadId:', leadId);
+      console.log('[AI SUMMARY SMS IDS MISSING FROM SESSION] conversationId:', conversationId);
+      console.log('[AI SUMMARY SMS IDS MISSING FROM SESSION] SMS will still be sent to customer');
+      console.log('[AI SUMMARY SMS IDS MISSING FROM SESSION] DB persistence will be skipped');
+      console.log('[AI SUMMARY SMS IDS MISSING FROM SESSION] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS IDS MISSING FROM SESSION] =========================================');
+    }
+
+    console.log('[FINALIZE COMPLETE STEP 2] =========================================');
+    console.log('[FINALIZE COMPLETE STEP 2] Completed: Resolve lead/conversation from session');
+    console.log('[FINALIZE COMPLETE STEP 2] leadId:', leadId);
+    console.log('[FINALIZE COMPLETE STEP 2] conversationId:', conversationId);
+    console.log('[FINALIZE COMPLETE STEP 2] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZE COMPLETE STEP 2] =========================================');
+
+    console.log('[FINALIZE COMPLETE STEP 3] =========================================');
+    console.log('[FINALIZE COMPLETE STEP 3] Starting: Build SMS content');
+    console.log('[FINALIZE COMPLETE STEP 3] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZE COMPLETE STEP 3] =========================================');
 
     // Fetch business name and out-of-office settings
     let businessName = 'the business';
@@ -957,6 +915,11 @@ async function finalizeCompleteIntakeOnce(
     console.log('[AI SUMMARY SMS REQUEST] smsBody:', completeSummary.substring(0, 100) + '...');
     console.log('[AI SUMMARY SMS REQUEST] Timestamp:', new Date().toISOString());
     console.log('[AI SUMMARY SMS REQUEST] =========================================');
+
+    console.log('[FINALIZE COMPLETE STEP 4] =========================================');
+    console.log('[FINALIZE COMPLETE STEP 4] Completed: Build SMS content');
+    console.log('[FINALIZE COMPLETE STEP 4] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZE COMPLETE STEP 4] =========================================');
 
     // Fetch business-specific phone number from session customParameters
     let fromNumber: string | null = null;
@@ -1034,6 +997,13 @@ async function finalizeCompleteIntakeOnce(
       return;
     }
 
+    console.log('[FINALIZE COMPLETE STEP 5] =========================================');
+    console.log('[FINALIZE COMPLETE STEP 5] Starting: Send Twilio SMS');
+    console.log('[FINALIZE COMPLETE STEP 5] fromNumber:', fromNumber);
+    console.log('[FINALIZE COMPLETE STEP 5] to:', callerPhone);
+    console.log('[FINALIZE COMPLETE STEP 5] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZE COMPLETE STEP 5] =========================================');
+
     const twilioClient = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     const smsResult = await twilioClient.messages.create({
       from: fromNumber,
@@ -1046,6 +1016,12 @@ async function finalizeCompleteIntakeOnce(
     console.log('[AI SUMMARY SMS RESPONSE] status:', smsResult.status);
     console.log('[AI SUMMARY SMS RESPONSE] Timestamp:', new Date().toISOString());
     console.log('[AI SUMMARY SMS RESPONSE] =========================================');
+
+    console.log('[FINALIZE COMPLETE STEP 5] =========================================');
+    console.log('[FINALIZE COMPLETE STEP 5] Completed: Send Twilio SMS');
+    console.log('[FINALIZE COMPLETE STEP 5] messageSid:', smsResult.sid);
+    console.log('[FINALIZE COMPLETE STEP 5] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZE COMPLETE STEP 5] =========================================');
 
     console.log('[AI SUMMARY SMS DB INSERT BUILD MARKER] 2026-06-18 =========================================');
     console.log('[AI SUMMARY SMS DB INSERT BUILD MARKER] Build deployed with DB insert logic');
@@ -1061,18 +1037,38 @@ async function finalizeCompleteIntakeOnce(
     console.log('[AI SUMMARY SMS POST RESPONSE TRACE] Timestamp:', new Date().toISOString());
     console.log('[AI SUMMARY SMS POST RESPONSE TRACE] =========================================');
 
-    await persistAiSummarySmsMessage({
-      ws,
-      businessId,
-      leadId: (ws as any).leadId,
-      conversationId: (ws as any).conversationId,
-      fromNumber,
-      callerPhone,
-      messageSid: smsResult.sid,
-      smsBody: completeSummary,
-      intakeData,
-      status: smsResult.status
-    });
+    // Only persist to DB if lead and conversation IDs are available from session
+    if (leadId && conversationId) {
+      console.log('[FINALIZE COMPLETE STEP 6] =========================================');
+      console.log('[FINALIZE COMPLETE STEP 6] Starting: Persist message to database');
+      console.log('[FINALIZE COMPLETE STEP 6] Timestamp:', new Date().toISOString());
+      console.log('[FINALIZE COMPLETE STEP 6] =========================================');
+
+      await persistAiSummarySmsMessage({
+        ws,
+        businessId,
+        leadId: leadId,
+        conversationId: conversationId,
+        fromNumber,
+        callerPhone,
+        messageSid: smsResult.sid,
+        smsBody: completeSummary,
+        intakeData,
+        status: smsResult.status
+      });
+
+      console.log('[FINALIZE COMPLETE STEP 6] =========================================');
+      console.log('[FINALIZE COMPLETE STEP 6] Completed: Persist message to database');
+      console.log('[FINALIZE COMPLETE STEP 6] Timestamp:', new Date().toISOString());
+      console.log('[FINALIZE COMPLETE STEP 6] =========================================');
+    } else {
+      console.log('[FINALIZE COMPLETE STEP 6 SKIP] =========================================');
+      console.log('[FINALIZE COMPLETE STEP 6 SKIP] Skipping DB persistence (leadId or conversationId missing from session)');
+      console.log('[FINALIZE COMPLETE STEP 6 SKIP] SMS was still sent to customer');
+      console.log('[FINALIZE COMPLETE STEP 6 SKIP] reason: leadId=', leadId, 'conversationId=', conversationId);
+      console.log('[FINALIZE COMPLETE STEP 6 SKIP] Timestamp:', new Date().toISOString());
+      console.log('[FINALIZE COMPLETE STEP 6 SKIP] =========================================');
+    }
 
     console.log('[SCRIPTED FLOW] =========================================');
     console.log('[SCRIPTED FLOW] summary SMS sent');
@@ -1085,10 +1081,12 @@ async function finalizeCompleteIntakeOnce(
 
     completeFinalizationFinishedByCallSid.set(callSid, Date.now());
   } catch (smsError) {
-    console.log('[AI SUMMARY SMS FAILED] =========================================');
-    console.log('[AI SUMMARY SMS FAILED] error:', String(smsError));
-    console.log('[AI SUMMARY SMS FAILED] Timestamp:', new Date().toISOString());
-    console.log('[AI SUMMARY SMS FAILED] =========================================');
+    console.log('[FINALIZE COMPLETE INTAKE ERROR] =========================================');
+    console.log('[FINALIZE COMPLETE INTAKE ERROR] Error during finalization');
+    console.log('[FINALIZE COMPLETE INTAKE ERROR] error:', String(smsError));
+    console.log('[FINALIZE COMPLETE INTAKE ERROR] stack:', smsError instanceof Error ? smsError.stack : 'no stack');
+    console.log('[FINALIZE COMPLETE INTAKE ERROR] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZE COMPLETE INTAKE ERROR] =========================================');
   }
 }
 
@@ -6141,6 +6139,17 @@ Return only JSON, no other text.`;
           (ws as any).forwardedFrom = callContext.forwardedFrom;
           (ws as any).businessTwilioPhoneNumber = params.businessTwilioPhoneNumber || null;
 
+          // Store leadId and conversationId from customParameters
+          (ws as any).leadId = params.leadId || null;
+          (ws as any).conversationId = params.conversationId || null;
+
+          console.log('[CALL CONTEXT LEAD IDS] =========================================');
+          console.log('[CALL CONTEXT LEAD IDS] leadId:', (ws as any).leadId);
+          console.log('[CALL CONTEXT LEAD IDS] conversationId:', (ws as any).conversationId);
+          console.log('[CALL CONTEXT LEAD IDS] source: session_custom_parameter');
+          console.log('[CALL CONTEXT LEAD IDS] Timestamp:', new Date().toISOString());
+          console.log('[CALL CONTEXT LEAD IDS] =========================================');
+
           console.log('[CALL CONTEXT BUSINESS TWILIO PHONE]', {
             businessTwilioPhoneNumber: (ws as any).businessTwilioPhoneNumber,
             source: 'customParameters',
@@ -7225,70 +7234,93 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     
                     // Check if all required fields are collected after callback time
                     if (areAllRequiredFieldsCollected(intakeData!)) {
-                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] =========================================');
-                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] All 6 required fields collected');
-                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] customerName:', !!intakeData!.customerName);
-                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] serviceRequested:', !!intakeData!.serviceRequested);
-                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] issueDescription:', !!intakeData!.issueDescription);
-                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] serviceAddress:', !!intakeData!.serviceAddress);
-                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] desiredCompletionTime:', !!intakeData!.desiredCompletionTime);
-                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] callbackTime:', !!intakeData!.callbackTime);
-                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] Timestamp:', new Date().toISOString());
-                      console.log('[ALL REQUIRED FIELDS COLLECTED AFTER CALLBACK TIME] =========================================');
+                      console.log('[CALLBACK COMPLETION ENTRY] =========================================');
+                      console.log('[CALLBACK COMPLETION ENTRY] All 6 required fields collected after callback time');
+                      console.log('[CALLBACK COMPLETION ENTRY] customerName:', !!intakeData!.customerName);
+                      console.log('[CALLBACK COMPLETION ENTRY] serviceRequested:', !!intakeData!.serviceRequested);
+                      console.log('[CALLBACK COMPLETION ENTRY] issueDescription:', !!intakeData!.issueDescription);
+                      console.log('[CALLBACK COMPLETION ENTRY] serviceAddress:', !!intakeData!.serviceAddress);
+                      console.log('[CALLBACK COMPLETION ENTRY] desiredCompletionTime:', !!intakeData!.desiredCompletionTime);
+                      console.log('[CALLBACK COMPLETION ENTRY] callbackTime:', !!intakeData!.callbackTime);
+                      console.log('[CALLBACK COMPLETION ENTRY] Timestamp:', new Date().toISOString());
+                      console.log('[CALLBACK COMPLETION ENTRY] =========================================');
 
-                      console.log('[COMPLETE PATH] Required fields collected');
-                      console.log('[COMPLETE PATH] Stage set to complete');
-                      console.log('[COMPLETE PATH] Entering terminal close');
-
+                      // Set stage complete immediately
                       intakeData!.stage = 'complete';
                       intakeComplete = true;
 
-                      console.log('[SCRIPTED FLOW] =========================================');
-                      console.log('[SCRIPTED FLOW] final goodbye send requested immediately');
-                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                      console.log('[SCRIPTED FLOW] =========================================');
+                      console.log('[CALLBACK COMPLETION BEFORE GOODBYE] =========================================');
+                      console.log('[CALLBACK COMPLETION BEFORE GOODBYE] Starting SMS finalization async with 8s timeout');
+                      console.log('[CALLBACK COMPLETION BEFORE GOODBYE] Timestamp:', new Date().toISOString());
+                      console.log('[CALLBACK COMPLETION BEFORE GOODBYE] =========================================');
 
-                      // Send final goodbye immediately
-                      enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
+                      // Start SMS/finalization async immediately with 8-second timeout
+                      const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => {
+                          reject(new Error('FINALIZE COMPLETE INTAKE TIMEOUT'));
+                        }, 8000);
+                      });
 
-                      console.log('[SCRIPTED FLOW] =========================================');
-                      console.log('[SCRIPTED FLOW] final goodbye send result: requested');
-                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                      console.log('[SCRIPTED FLOW] =========================================');
-
-                      // Start SMS/finalization in parallel (don't await)
-                      console.log('[SCRIPTED FLOW] =========================================');
-                      console.log('[SCRIPTED FLOW] summary SMS finalization started async');
-                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                      console.log('[SCRIPTED FLOW] =========================================');
-
-                      finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '', ws)
+                      Promise.race([
+                        finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '', ws),
+                        timeoutPromise
+                      ])
                         .then(() => {
-                          console.log('[SCRIPTED FLOW] =========================================');
-                          console.log('[SCRIPTED FLOW] summary SMS finalization finished async');
-                          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                          console.log('[SCRIPTED FLOW] =========================================');
+                          console.log('[CALLBACK COMPLETION SMS FINALIZATION SUCCESS] =========================================');
+                          console.log('[CALLBACK COMPLETION SMS FINALIZATION SUCCESS] SMS finalization finished async');
+                          console.log('[CALLBACK COMPLETION SMS FINALIZATION SUCCESS] Timestamp:', new Date().toISOString());
+                          console.log('[CALLBACK COMPLETION SMS FINALIZATION SUCCESS] =========================================');
                         })
                         .catch((error) => {
-                          console.log('[SCRIPTED FLOW] =========================================');
-                          console.log('[SCRIPTED FLOW] summary SMS finalization failed async');
-                          console.log('[SCRIPTED FLOW] error:', String(error));
-                          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                          console.log('[SCRIPTED FLOW] =========================================');
+                          if (error.message === 'FINALIZE COMPLETE INTAKE TIMEOUT') {
+                            console.log('[FINALIZE COMPLETE INTAKE TIMEOUT] =========================================');
+                            console.log('[FINALIZE COMPLETE INTAKE TIMEOUT] finalizeCompleteIntakeOnce did not finish within 8 seconds');
+                            console.log('[FINALIZE COMPLETE INTAKE TIMEOUT] Timestamp:', new Date().toISOString());
+                            console.log('[FINALIZE COMPLETE INTAKE TIMEOUT] =========================================');
+                          } else {
+                            console.log('[CALLBACK COMPLETION ERROR] =========================================');
+                            console.log('[CALLBACK COMPLETION ERROR] SMS finalization failed async');
+                            console.log('[CALLBACK COMPLETION ERROR] error:', String(error));
+                            console.log('[CALLBACK COMPLETION ERROR] stack:', error instanceof Error ? error.stack : 'no stack');
+                            console.log('[CALLBACK COMPLETION ERROR] Timestamp:', new Date().toISOString());
+                            console.log('[CALLBACK COMPLETION ERROR] =========================================');
+                          }
                         });
 
-                      console.log('[SCRIPTED FLOW] =========================================');
-                      console.log('[SCRIPTED FLOW] hard hangup scheduled after goodbye delay');
-                      console.log('[SCRIPTED FLOW] delay: 12000ms');
-                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                      console.log('[SCRIPTED FLOW] =========================================');
+                      console.log('[CALLBACK COMPLETION SMS FINALIZATION STARTED ASYNC] =========================================');
+                      console.log('[CALLBACK COMPLETION SMS FINALIZATION STARTED ASYNC] SMS finalization started async');
+                      console.log('[CALLBACK COMPLETION SMS FINALIZATION STARTED ASYNC] Timestamp:', new Date().toISOString());
+                      console.log('[CALLBACK COMPLETION SMS FINALIZATION STARTED ASYNC] =========================================');
+
+                      console.log('[CALLBACK COMPLETION FINAL GOODBYE FIRED NONBLOCKING] =========================================');
+                      console.log('[CALLBACK COMPLETION FINAL GOODBYE FIRED NONBLOCKING] Firing enterTerminalClose non-blocking');
+                      console.log('[CALLBACK COMPLETION FINAL GOODBYE FIRED NONBLOCKING] Timestamp:', new Date().toISOString());
+                      console.log('[CALLBACK COMPLETION FINAL GOODBYE FIRED NONBLOCKING] =========================================');
+
+                      // Fire final goodbye non-blocking (do not await)
+                      try {
+                        enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
+                      } catch (error) {
+                        console.log('[CALLBACK COMPLETION GOODBYE ERROR] =========================================');
+                        console.log('[CALLBACK COMPLETION GOODBYE ERROR] Error during enterTerminalClose');
+                        console.log('[CALLBACK COMPLETION GOODBYE ERROR] error:', String(error));
+                        console.log('[CALLBACK COMPLETION GOODBYE ERROR] stack:', error instanceof Error ? error.stack : 'no stack');
+                        console.log('[CALLBACK COMPLETION GOODBYE ERROR] Timestamp:', new Date().toISOString());
+                        console.log('[CALLBACK COMPLETION GOODBYE ERROR] =========================================');
+                      }
+
+                      console.log('[CALLBACK COMPLETION BEFORE HANGUP TIMER] =========================================');
+                      console.log('[CALLBACK COMPLETION BEFORE HANGUP TIMER] Scheduling hard hangup after goodbye delay');
+                      console.log('[CALLBACK COMPLETION BEFORE HANGUP TIMER] delay: 12000ms');
+                      console.log('[CALLBACK COMPLETION BEFORE HANGUP TIMER] Timestamp:', new Date().toISOString());
+                      console.log('[CALLBACK COMPLETION BEFORE HANGUP TIMER] =========================================');
 
                       // Schedule hard hangup 12 seconds after final goodbye send request
                       setTimeout(() => {
-                        console.log('[SCRIPTED FLOW] =========================================');
-                        console.log('[SCRIPTED FLOW] hard hangup executed after goodbye delay');
-                        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                        console.log('[SCRIPTED FLOW] =========================================');
+                        console.log('[CALLBACK COMPLETION HANGUP EXECUTED] =========================================');
+                        console.log('[CALLBACK COMPLETION HANGUP EXECUTED] Hard hangup executed after goodbye delay');
+                        console.log('[CALLBACK COMPLETION HANGUP EXECUTED] Timestamp:', new Date().toISOString());
+                        console.log('[CALLBACK COMPLETION HANGUP EXECUTED] =========================================');
                         executeOpenaiFinalHangup(ws, twilioHandler, closingState);
                       }, 12000);
 
