@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import getStripe from '@/lib/stripe'
 import { twilioClient } from '@/lib/twilio'
 import { sendOffboardingEmail, sendAccountDeletionConfirmationEmail } from '@/lib/email'
+import { sendSms } from '@/lib/twilio'
 
 const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
 
@@ -554,7 +555,82 @@ export async function POST(request: NextRequest) {
         console.log('[delete-account] Step 16 completed: deleted stripe_webhook_events:', stripeWebhookEventsCount)
       }
 
-      // Step 17: Reserve Twilio numbers for 30-day grace period
+      // Step 17: Send SMS offboarding notification before releasing Twilio number
+      console.log('[delete-account] Step 17: send SMS offboarding notification before number release')
+
+      if (!dryRun && businesses && businesses.length > 0) {
+        const business = businesses[0] // Use first business for SMS
+        const businessPhone = business.business_phone_number
+        const replyFlowNumber = business.twilio_phone_number
+
+        // Safety checks
+        if (businessPhone && replyFlowNumber) {
+          console.log('[ACCOUNT OFFBOARDING SMS START]', {
+            business_id: business.id,
+            business_phone: businessPhone,
+            replyflow_number: replyFlowNumber,
+          })
+
+          const offboardingSmsMessage = `ReplyFlow has been disconnected for your account.
+
+Important: Disable call forwarding so missed calls return to your normal voicemail.
+
+Verizon: *73
+AT&T: ##004#
+T-Mobile: ##004#
+
+If forwarding does not stop immediately, restart your phone or contact your carrier.`
+
+          try {
+            const messageSid = await sendSms(
+              { id: business.id, twilio_phone_number: replyFlowNumber } as any,
+              businessPhone,
+              offboardingSmsMessage,
+              {
+                lead_id: undefined, // Not a lead, it's an offboarding message
+              }
+            )
+
+            console.log('[ACCOUNT OFFBOARDING SMS SUCCESS]', {
+              business_id: business.id,
+              business_phone: businessPhone,
+              replyflow_number: replyFlowNumber,
+              success: true,
+              twilio_message_sid: messageSid,
+            })
+
+            summary.offboardingSmsSent = true
+            summary.offboardingSmsMessageSid = messageSid
+          } catch (smsError: any) {
+            console.error('[ACCOUNT OFFBOARDING SMS FAILED]', {
+              business_id: business.id,
+              business_phone: businessPhone,
+              replyflow_number: replyFlowNumber,
+              success: false,
+              error: smsError?.message || String(smsError),
+            })
+
+            summary.offboardingSmsSent = false
+            summary.offboardingSmsError = smsError?.message || String(smsError)
+
+            // SMS failure should NOT block account deletion - continue with flow
+            console.log('[delete-account] SMS offboarding failed, continuing with deletion (best-effort)')
+          }
+        } else {
+          console.warn('[ACCOUNT OFFBOARDING SMS SKIPPED]', {
+            business_id: business.id,
+            reason: !businessPhone ? 'no_business_phone' : 'no_replyflow_number',
+          })
+          summary.offboardingSmsSkipped = true
+          summary.offboardingSmsSkippedReason = !businessPhone ? 'no_business_phone' : 'no_replyflow_number'
+        }
+      } else if (dryRun && businesses && businesses.length > 0) {
+        console.log('[delete-account] DRY RUN: Would send SMS offboarding notification')
+        summary.offboardingSmsSkipped = true
+        summary.offboardingSmsSkippedReason = 'dry_run'
+      }
+
+      // Step 18: Reserve Twilio numbers for 30-day grace period
       console.log('[delete-account] Step 17: reserve twilio_numbers for 30-day grace period')
 
       const thirtyDaysFromNow = new Date()
