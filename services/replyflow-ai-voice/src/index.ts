@@ -859,7 +859,8 @@ function sendStagePrompt(
   assistantSpeaking: boolean,
   activeResponseId: string | null,
   twilioHandler: any,
-  lastPromptStage: IntakeStage | null
+  lastPromptStage: IntakeStage | null,
+  stagePromptAttempts: Map<IntakeStage, number>
 ): void {
   console.log('[ACTIVE INTAKE STAGE] =========================================');
   console.log('[ACTIVE INTAKE STAGE] stage:', stage);
@@ -896,7 +897,8 @@ function sendStagePrompt(
   // Per-stage prompt guard to prevent duplicate prompts
   const alreadyPrompted = promptedStages.has(stage as IntakeStage);
   const timeSinceLastPrompt = Date.now() - lastPromptAt;
-  
+  const attempts = stagePromptAttempts.get(stage as IntakeStage) || 0;
+
   console.log('[STAGE PROMPT REQUESTED] =========================================');
   console.log('[STAGE PROMPT REQUESTED] stage:', stage);
   console.log('[STAGE PROMPT REQUESTED] prompt:', prompt);
@@ -904,6 +906,7 @@ function sendStagePrompt(
   console.log('[STAGE PROMPT REQUESTED] assistantSpeaking:', assistantSpeaking);
   console.log('[STAGE PROMPT REQUESTED] activeResponseId:', activeResponseId);
   console.log('[STAGE PROMPT REQUESTED] timeSinceLastPrompt:', timeSinceLastPrompt);
+  console.log('[STAGE PROMPT REQUESTED] attempts:', attempts);
   console.log('[STAGE PROMPT REQUESTED] Timestamp:', new Date().toISOString());
   console.log('[STAGE PROMPT REQUESTED] =========================================');
 
@@ -918,6 +921,17 @@ function sendStagePrompt(
     return;
   }
 
+  // Prevent asking the same stage prompt more than twice
+  if (attempts >= 2) {
+    console.log('[STAGE PROMPT SKIPPED TOO MANY ATTEMPTS] =========================================');
+    console.log('[STAGE PROMPT SKIPPED TOO MANY ATTEMPTS] stage:', stage);
+    console.log('[STAGE PROMPT SKIPPED TOO MANY ATTEMPTS] attempts:', attempts);
+    console.log('[STAGE PROMPT SKIPPED TOO MANY ATTEMPTS] reason: maximum 2 attempts per stage');
+    console.log('[STAGE PROMPT SKIPPED TOO MANY ATTEMPTS] Timestamp:', new Date().toISOString());
+    console.log('[STAGE PROMPT SKIPPED TOO MANY ATTEMPTS] =========================================');
+    return;
+  }
+
   console.log('[STAGE PROMPT SELECTED] =========================================');
   console.log('[STAGE PROMPT SELECTED] Stage:', stage);
   console.log('[STAGE PROMPT SELECTED] Prompt:', prompt);
@@ -926,6 +940,7 @@ function sendStagePrompt(
 
   // Mark this stage as prompted
   promptedStages.add(stage as IntakeStage);
+  stagePromptAttempts.set(stage as IntakeStage, attempts + 1);
 
   // Sync lastPromptStage and lastPromptAt to twilioHandler for audio blocking logs
   (twilioHandler as any).lastPromptStage = stage as IntakeStage;
@@ -1026,12 +1041,12 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
           nextStage: 'ask_details'
         };
       }
-      // Max-stage progression guard: if name is captured but not reason, move to next stage
+      // Max-stage progression guard: if name is captured but not reason, ask for reason
       if (intake.customerName && !intake.serviceRequested) {
-        console.log('[MAX-STAGE PROGRESSION] Name captured, moving to details stage');
+        console.log('[MAX-STAGE PROGRESSION] Name captured, asking for reason');
         return {
-          response: 'Got it. Can you share any important details the business should know?',
-          nextStage: 'ask_details'
+          response: 'Thanks. What\'s the reason for your call?',
+          nextStage: 'ask_name_reason'
         };
       }
       // Max-stage progression guard: if reason is captured but not name, move to next stage
@@ -3662,6 +3677,7 @@ wss.on('connection', (ws, req) => {
     
     // Per-stage prompt guard to prevent duplicate prompts
     const promptedStages = new Set<IntakeStage>();
+    const stagePromptAttempts = new Map<IntakeStage, number>(); // Track prompt attempts per stage
     let lastPromptStage: IntakeStage | null = null;
     let lastPromptAt: number = 0;
     let activeResponseId: string | null = null;
@@ -6120,7 +6136,7 @@ Do NOT:
                     intakeComplete = true;
                   } else {
                     // Send the stage prompt explicitly
-                    sendStagePrompt(intakeData!.stage, openAiWs, promptedStages, lastPromptAt, assistantSpeaking, activeResponseId, twilioHandler, lastPromptStage);
+                    sendStagePrompt(intakeData!.stage, openAiWs, promptedStages, lastPromptAt, assistantSpeaking, activeResponseId, twilioHandler, lastPromptStage, stagePromptAttempts);
                   }
                 }
               }
@@ -6167,6 +6183,9 @@ Do NOT:
                 activeResponseId = responseId;
                 (twilioHandler as any).activeResponseId = activeResponseId;
                 console.log('[AI RESPONSE CREATE] Set activeResponseId to:', responseId);
+                console.log('[AI RESPONSE CREATE] Synced activeResponseId to twilioHandler:', (twilioHandler as any).activeResponseId);
+                console.log('[AI RESPONSE CREATE] lastPromptStage on twilioHandler:', (twilioHandler as any).lastPromptStage);
+                console.log('[AI RESPONSE CREATE] Stage:', intakeData?.stage || 'unknown');
                 
                 // Check if this is the final closing response
                 const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
