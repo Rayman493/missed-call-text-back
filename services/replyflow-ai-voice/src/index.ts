@@ -1475,15 +1475,35 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
   if (transcript && transcript.trim().length > 0) {
     switch (intake.stage) {
       case 'ask_name_reason':
-        // For ask_name_reason, we need to extract name and reason from the transcript
-        // This is the only stage where we use GPT extraction since it's a combined question
-        extractMultipleAnswers(intake, transcript);
-        console.log('[SCRIPTED FLOW] =========================================');
-        console.log('[SCRIPTED FLOW] field saved (ask_name_reason - extracted via GPT)');
-        console.log('[SCRIPTED FLOW] customerName:', intake.customerName);
-        console.log('[SCRIPTED FLOW] serviceRequested:', intake.serviceRequested);
-        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-        console.log('[SCRIPTED FLOW] =========================================');
+        // Apply name-only heuristic before GPT extraction
+        const strippedTranscript = transcript.trim().replace(/[.,!?;:]$/, '');
+        const wordCount = strippedTranscript.split(/\s+/).length;
+        const serviceActionWords = ['need', 'want', 'cut', 'install', 'repair', 'fix', 'service', 'appointment', 'quote', 'estimate', 'help', 'calling about', 'call about'];
+        const containsServiceWord = serviceActionWords.some(word => strippedTranscript.toLowerCase().includes(word));
+
+        const isNameOnly = wordCount >= 1 && wordCount <= 3 && !containsServiceWord;
+
+        if (isNameOnly) {
+          console.log('[SCRIPTED FLOW] =========================================');
+          console.log('[SCRIPTED FLOW] name-only heuristic applied');
+          console.log('[SCRIPTED FLOW] transcript:', transcript);
+          console.log('[SCRIPTED FLOW] customerName:', strippedTranscript);
+          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+          console.log('[SCRIPTED FLOW] =========================================');
+
+          intake.customerName = strippedTranscript;
+          intake.serviceRequested = undefined;
+        } else {
+          // For ask_name_reason, we need to extract name and reason from the transcript
+          // This is the only stage where we use GPT extraction since it's a combined question
+          extractMultipleAnswers(intake, transcript);
+          console.log('[SCRIPTED FLOW] =========================================');
+          console.log('[SCRIPTED FLOW] field saved (ask_name_reason - extracted via GPT)');
+          console.log('[SCRIPTED FLOW] customerName:', intake.customerName);
+          console.log('[SCRIPTED FLOW] serviceRequested:', intake.serviceRequested);
+          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+          console.log('[SCRIPTED FLOW] =========================================');
+        }
         break;
       case 'ask_name_recovery':
         // Save transcript as customerName
