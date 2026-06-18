@@ -295,6 +295,17 @@ export async function POST(request: Request) {
           smsOptions.conversation_id = conversation.id;
         }
 
+        console.log('[FOLLOWUP FINAL SMS BODY] =========================================');
+        console.log('[FOLLOWUP FINAL SMS BODY] followUpId:', job.id);
+        console.log('[FOLLOWUP FINAL SMS BODY] businessId:', business.id);
+        console.log('[FOLLOWUP FINAL SMS BODY] stepNumber:', job.step);
+        console.log('[FOLLOWUP FINAL SMS BODY] outOfOfficeActive:', outOfOfficeActive);
+        console.log('[FOLLOWUP FINAL SMS BODY] noticeApplied:', outOfOfficeActive);
+        console.log('[FOLLOWUP FINAL SMS BODY] finalBody:', messageBody);
+        console.log('[FOLLOWUP FINAL SMS BODY] finalBodyLength:', messageBody.length);
+        console.log('[FOLLOWUP FINAL SMS BODY] Timestamp:', new Date().toISOString());
+        console.log('[FOLLOWUP FINAL SMS BODY] =========================================');
+
         const messageSid = await sendSms(business, lead.caller_phone, messageBody, smsOptions);
 
         if (messageSid) {
