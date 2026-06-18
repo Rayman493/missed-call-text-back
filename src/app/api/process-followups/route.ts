@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendSms } from "@/lib/twilio";
+import { getOutOfOfficeNotice } from "@/lib/out-of-office";
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -184,21 +185,62 @@ export async function POST(request: Request) {
 
         console.log(`[FOLLOWUP BUSINESS LOADED] Business ${business.id} loaded for job ${job.id}`);
 
+        // Fetch business OOO settings
+        const { data: businessWithOOO, error: businessOOOError } = await supabase
+          .from('businesses')
+          .select('name, out_of_office_enabled, out_of_office_start, out_of_office_end')
+          .eq('id', business.id)
+          .single();
+
+        if (businessOOOError || !businessWithOOO) {
+          console.error(`[FOLLOWUP BUSINESS OOO FETCH ERROR] Error fetching OOO settings for business ${business.id}:`, businessOOOError);
+        }
+
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] =========================================');
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] followUpId:', job.id);
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] businessId:', business.id);
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] stepNumber:', job.step);
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] outOfOfficeEnabled:', businessWithOOO?.out_of_office_enabled || false);
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] outOfOfficeStart:', businessWithOOO?.out_of_office_start || null);
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] outOfOfficeEnd:', businessWithOOO?.out_of_office_end || null);
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] Timestamp:', new Date().toISOString());
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] =========================================');
+
+        const outOfOfficeNotice = businessWithOOO ? getOutOfOfficeNotice(businessWithOOO) : null;
+        const noticeApplied = outOfOfficeNotice !== null;
+
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] =========================================');
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] noticeApplied:', noticeApplied);
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] originalLength:', job.message_body.length);
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] Timestamp:', new Date().toISOString());
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] =========================================');
+
+        // Build final message body with OOO notice appended
+        let finalMessageBody = job.message_body;
+        if (noticeApplied && outOfOfficeNotice) {
+          finalMessageBody += '\n\n' + outOfOfficeNotice;
+        }
+
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] =========================================');
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] finalLength:', finalMessageBody.length);
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] Timestamp:', new Date().toISOString());
+        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] =========================================');
+
         // Validate business has messaging service SID
         if (!business.twilio_messaging_service_sid) {
           throw new Error(`Missing twilio_messaging_service_sid for business ${business.id}`);
         }
 
         console.log(`[FOLLOWUP MESSAGE CREATED] Message body prepared for job ${job.id}`, {
-          message_length: job.message_body.length,
-          message_preview: job.message_body.substring(0, 50)
+          message_length: finalMessageBody.length,
+          message_preview: finalMessageBody.substring(0, 50)
         });
 
         console.log(`[FOLLOWUP TWILIO SEND START] Starting Twilio send for job ${job.id}`, {
           business_id: business.id,
           business_phone: business.twilio_phone_number,
           to_phone: lead.caller_phone,
-          message_length: job.message_body.length,
+          message_length: finalMessageBody.length,
           lead_id: job.lead_id,
           conversation_id: conversation?.id
         });
@@ -217,13 +259,20 @@ export async function POST(request: Request) {
         console.log(`[FOLLOWUP TWILIO SEND START] Calling sendSms with options:`, {
           business_id: business.id,
           to: lead.caller_phone,
-          message_length: job.message_body.length,
+          message_length: finalMessageBody.length,
           lead_id: smsOptions.lead_id,
           conversation_id: smsOptions.conversation_id,
           source: smsOptions.source
         });
 
-        const sendResult = await sendSms(business, lead.caller_phone, job.message_body, smsOptions);
+        console.log('[FOLLOWUP FINAL SMS BODY ACTIVE PATH] =========================================');
+        console.log('[FOLLOWUP FINAL SMS BODY ACTIVE PATH] followUpId:', job.id);
+        console.log('[FOLLOWUP FINAL SMS BODY ACTIVE PATH] finalBody:', finalMessageBody);
+        console.log('[FOLLOWUP FINAL SMS BODY ACTIVE PATH] finalBodyLength:', finalMessageBody.length);
+        console.log('[FOLLOWUP FINAL SMS BODY ACTIVE PATH] Timestamp:', new Date().toISOString());
+        console.log('[FOLLOWUP FINAL SMS BODY ACTIVE PATH] =========================================');
+
+        const sendResult = await sendSms(business, lead.caller_phone, finalMessageBody, smsOptions);
 
         console.log(`[FOLLOWUP RAW SENDSMS RESULT]`, {
           sendResult,
