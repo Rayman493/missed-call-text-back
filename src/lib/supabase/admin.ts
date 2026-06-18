@@ -778,6 +778,11 @@ export const db = {
 
     if (error) {
       console.error('[createBusiness] Insert error:', error)
+      console.error('[createBusiness] Error code:', error.code)
+      console.error('[createBusiness] Error message:', error.message)
+      console.error('[createBusiness] Error details:', error.details)
+      console.error('[createBusiness] Error hint:', error.hint)
+      console.error('[createBusiness] Insert payload keys:', Object.keys(finalBusiness))
       throw new Error(`Insert failed: ${error.message} (code: ${error.code})`)
     }
 
@@ -1925,11 +1930,13 @@ export const db = {
         // Update business_type if provided
         if (businessData.business_type && businessData.business_type.trim()) {
           updates.business_type = businessData.business_type.trim()
+          console.log('[getOrCreateBusiness] Updating business_type:', updates.business_type)
         }
 
         // Update business_type_other if provided
         if (businessData.business_type_other !== undefined && businessData.business_type_other !== null) {
           updates.business_type_other = businessData.business_type_other.trim() || null
+          console.log('[getOrCreateBusiness] Updating business_type_other:', updates.business_type_other)
         }
         
         // Update onboarding_status if provided - with server-side validation
@@ -2013,13 +2020,12 @@ export const db = {
     }
 
     // Create new business with provided data (no defaults since validation above ensures data exists)
-    const newBusinessData: Omit<Business, 'id' | 'created_at' | 'updated_at'> = {
+    // Start with required fields
+    const newBusinessData: any = {
       user_id: userId,
       name: businessData.name,
       twilio_phone_number: businessData?.twilio_phone_number || null, // Will be set during provisioning
       business_phone_number: businessData.business_phone_number,
-      business_type: businessData?.business_type || null,
-      business_type_other: businessData?.business_type_other || null,
       auto_reply_message: businessData?.auto_reply_message || null, // No default - use context-specific templates in SMS routes
       subscription_status: null, // Don't set subscription status during business creation - Stripe webhook should be the source of truth
       stripe_customer_id: businessData?.stripe_customer_id || null,
@@ -2047,6 +2053,18 @@ export const db = {
       ai_assistant_enabled: true, // Enable AI assistant by default for all new businesses (beta users)
     }
     
+    // Conditionally include business_type and business_type_other if provided
+    // This prevents insert failures if columns don't exist in production yet
+    if (businessData?.business_type && businessData.business_type.trim()) {
+      newBusinessData.business_type = businessData.business_type.trim()
+      console.log('[getOrCreateBusiness] Including business_type:', newBusinessData.business_type)
+    }
+    
+    if (businessData?.business_type_other !== undefined && businessData.business_type_other !== null) {
+      newBusinessData.business_type_other = businessData.business_type_other.trim() || null
+      console.log('[getOrCreateBusiness] Including business_type_other:', newBusinessData.business_type_other)
+    }
+    
     // Log critical subscription state for verification
     console.log('[getOrCreateBusiness] IMPORTANT: Creating business with subscription_status:', newBusinessData.subscription_status)
     console.log('[getOrCreateBusiness] This ensures trial is NOT activated before Stripe webhook confirms payment')
@@ -2064,6 +2082,10 @@ export const db = {
     
     let createdBusiness: Business | null = null
     try {
+      console.log('[getOrCreateBusiness] Attempting to create business with payload keys:', Object.keys(newBusinessData))
+      console.log('[getOrCreateBusiness] business_type:', newBusinessData.business_type)
+      console.log('[getOrCreateBusiness] business_type_other:', newBusinessData.business_type_other)
+      
       createdBusiness = await this.createBusiness(newBusinessData)
       
       if (createdBusiness) {
