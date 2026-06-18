@@ -27,32 +27,31 @@ export type BusinessCategory =
 export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   greeting: string
   reasonQuestion: string
+  detailsQuestion: string
   followUpQuestions: string[]
   urgencyQuestion: string
   locationQuestion: string | null
   callbackTimeQuestion: string | null
-  callbackNumberQuestion: string
   confirmationFormat: (data: any) => string
 }> = {
   home_services: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
     reasonQuestion: "Could you tell me a little about what you need help with?",
+    detailsQuestion: "Can you share any important details about the project?",
     followUpQuestions: [
-      "Got it. Can you tell me a little more about that?",
       "Understood. Where is the service location?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "Where is the service location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
-    callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
       if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.important_details) parts.push(`• Details: ${data.important_details}`)
       if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
       if (data.address) parts.push(`• Location: ${data.address}`)
-      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
-      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      if (data.callback_time) parts.push(`• Best time to call back: ${data.callback_time}`)
       parts.push('Does everything look correct?')
       return parts.join('\n')
     }
@@ -61,22 +60,21 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   plumbing_hvac: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
     reasonQuestion: "Could you tell me a little about what you need help with?",
+    detailsQuestion: "Can you share any important details about the project?",
     followUpQuestions: [
-      "Got it. Can you tell me a little more about that?",
       "Understood. Where is the service location?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "Where is the service location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
-    callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
       if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.important_details) parts.push(`• Details: ${data.important_details}`)
       if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
       if (data.address) parts.push(`• Location: ${data.address}`)
-      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
-      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      if (data.callback_time) parts.push(`• Best time to call back: ${data.callback_time}`)
       parts.push('Does everything look correct?')
       return parts.join('\n')
     }
@@ -85,22 +83,21 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   cleaning: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
     reasonQuestion: "Could you tell me a little about what you need help with?",
+    detailsQuestion: "Can you share any important details about the project?",
     followUpQuestions: [
-      "Got it. What type of cleaning do you need, and where is it?",
-      "Understood. Can you tell me a little more about that?"
+      "Understood. Where is the service location?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "What type of cleaning do you need, and where is it?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
-    callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
       if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.important_details) parts.push(`• Details: ${data.important_details}`)
       if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
       if (data.address) parts.push(`• Location: ${data.address}`)
-      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
-      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      if (data.callback_time) parts.push(`• Best time to call back: ${data.callback_time}`)
       parts.push('Does everything look correct?')
       return parts.join('\n')
     }
@@ -109,22 +106,21 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   landscaping: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
     reasonQuestion: "Could you tell me a little about what you need help with?",
+    detailsQuestion: "Can you share any important details about the project?",
     followUpQuestions: [
-      "Got it. Can you tell me a little more about that?",
       "Understood. Where is the service location?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "Where is the service location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
-    callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
       if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.important_details) parts.push(`• Details: ${data.important_details}`)
       if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
       if (data.address) parts.push(`• Location: ${data.address}`)
-      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
-      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      if (data.callback_time) parts.push(`• Best time to call back: ${data.callback_time}`)
       parts.push('Does everything look correct?')
       return parts.join('\n')
     }
@@ -133,22 +129,21 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   real_estate: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
     reasonQuestion: "Could you tell me a little about what you need help with?",
+    detailsQuestion: "Can you share any important details about the project?",
     followUpQuestions: [
-      "Got it. Can you tell me a little more about that?",
       "Understood. Where is the property location?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "Where is the property location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
-    callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
       if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.important_details) parts.push(`• Details: ${data.important_details}`)
       if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
       if (data.address) parts.push(`• Location: ${data.address}`)
-      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
-      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      if (data.callback_time) parts.push(`• Best time to call back: ${data.callback_time}`)
       parts.push('Does everything look correct?')
       return parts.join('\n')
     }
@@ -157,22 +152,21 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   travel_agent: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
     reasonQuestion: "Could you tell me a little about what you need help with?",
+    detailsQuestion: "Can you share any important details about the project?",
     followUpQuestions: [
-      "Got it. Can you tell me a little more about that?",
       "Understood. When are you looking to travel?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: null,
     callbackTimeQuestion: "What's the best time for someone to call you back?",
-    callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
       if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.important_details) parts.push(`• Details: ${data.important_details}`)
       if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
       if (data.address) parts.push(`• Location: ${data.address}`)
-      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
-      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      if (data.callback_time) parts.push(`• Best time to call back: ${data.callback_time}`)
       parts.push('Does everything look correct?')
       return parts.join('\n')
     }
@@ -181,22 +175,21 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   salon_appointment: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
     reasonQuestion: "Could you tell me a little about what you need help with?",
+    detailsQuestion: "Can you share any important details about the project?",
     followUpQuestions: [
-      "Got it. Can you tell me a little more about that?",
       "Understood. When would you like to come in?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "Where would you like this to take place — your location, their location, or a general area?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
-    callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
       if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.important_details) parts.push(`• Details: ${data.important_details}`)
       if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
       if (data.address) parts.push(`• Location: ${data.address}`)
-      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
-      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      if (data.callback_time) parts.push(`• Best time to call back: ${data.callback_time}`)
       parts.push('Does everything look correct?')
       return parts.join('\n')
     }
@@ -205,22 +198,21 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   pet_grooming: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
     reasonQuestion: "Could you tell me a little about what you need help with?",
+    detailsQuestion: "Can you share any important details about the project?",
     followUpQuestions: [
-      "Got it. What kind of pet is it, and what service do they need?",
-      "Understood. Can you tell me a little more about that?"
+      "Understood. Where would you like this to take place — your location, their location, or a general area?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "Where would you like this to take place — your location, their location, or a general area?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
-    callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
       if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.important_details) parts.push(`• Details: ${data.important_details}`)
       if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
       if (data.address) parts.push(`• Location: ${data.address}`)
-      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
-      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      if (data.callback_time) parts.push(`• Best time to call back: ${data.callback_time}`)
       parts.push('Does everything look correct?')
       return parts.join('\n')
     }
@@ -229,22 +221,21 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   lessons_tutoring: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
     reasonQuestion: "Could you tell me a little about what you need help with?",
+    detailsQuestion: "Can you share any important details about the project?",
     followUpQuestions: [
-      "Got it. Who are the lessons for, and what level are they at?",
-      "Understood. Can you tell me a little more about that?"
+      "Understood. Where would you like this to take place — your location, their location, or a general area?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "Where would you like this to take place — your location, their location, or a general area?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
-    callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
       if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.important_details) parts.push(`• Details: ${data.important_details}`)
       if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
       if (data.address) parts.push(`• Location: ${data.address}`)
-      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
-      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      if (data.callback_time) parts.push(`• Best time to call back: ${data.callback_time}`)
       parts.push('Does everything look correct?')
       return parts.join('\n')
     }
@@ -253,22 +244,21 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   medical_dental: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
     reasonQuestion: "Could you tell me a little about what you need help with?",
+    detailsQuestion: "Can you share any important details about the project?",
     followUpQuestions: [
-      "Got it. What kind of appointment or issue are you calling about?",
-      "Understood. Can you tell me a little more about that?"
+      "Understood. Where would you like this to take place — your location, their location, or a general area?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "Where would you like this to take place — your location, their location, or a general area?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
-    callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
       if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.important_details) parts.push(`• Details: ${data.important_details}`)
       if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
       if (data.address) parts.push(`• Location: ${data.address}`)
-      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
-      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      if (data.callback_time) parts.push(`• Best time to call back: ${data.callback_time}`)
       parts.push('Does everything look correct?')
       return parts.join('\n')
     }
@@ -277,22 +267,21 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   legal_consulting: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
     reasonQuestion: "Could you tell me a little about what you need help with?",
+    detailsQuestion: "Can you share any important details about the project?",
     followUpQuestions: [
-      "Got it. What would you like to discuss?",
-      "Understood. Can you tell me a little more about that?"
+      "Understood. Where would you like this to take place — your location, their location, or a general area?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: "Where would you like this to take place — your location, their location, or a general area?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
-    callbackNumberQuestion: "What's the best callback number?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
       if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.important_details) parts.push(`• Details: ${data.important_details}`)
       if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
       if (data.address) parts.push(`• Location: ${data.address}`)
-      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
-      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      if (data.callback_time) parts.push(`• Best time to call back: ${data.callback_time}`)
       parts.push('Does everything look correct?')
       return parts.join('\n')
     }
@@ -301,22 +290,21 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   general_service: {
     greeting: "Hi, thanks for calling. I can get your request over to the team. How can I help you today?",
     reasonQuestion: "Could you tell me a little about what you need help with?",
+    detailsQuestion: "Can you share any important details about the project?",
     followUpQuestions: [
-      "Got it. Can you tell me a little more about that?",
       "Understood. Is there anything else I should know?"
     ],
     urgencyQuestion: "Is this something that needs attention soon, or is it more of a routine matter?",
     locationQuestion: null,
-    callbackTimeQuestion: null,
-    callbackNumberQuestion: "What's the best callback number?",
+    callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
       if (data.reason_for_call) parts.push(`• Reason: ${data.reason_for_call}`)
+      if (data.important_details) parts.push(`• Details: ${data.important_details}`)
       if (data.urgency) parts.push(`• Urgency: ${data.urgency}`)
       if (data.address) parts.push(`• Location: ${data.address}`)
-      if (data.callback_time) parts.push(`• Callback time: ${data.callback_time}`)
-      if (data.callback_number) parts.push(`• Callback number: ${data.callback_number}`)
+      if (data.callback_time) parts.push(`• Best time to call back: ${data.callback_time}`)
       parts.push('Does everything look correct?')
       return parts.join('\n')
     }
@@ -527,7 +515,7 @@ OPTIONAL INFORMATION (Collect only when useful or missing):
 - Address/location
 - Urgency
 - Preferred callback time
-- Callback number (especially if caller ID may already provide it)
+- Important project details (always ask for this even if caller provides a brief reason)
 
 INFORMATION TRACKING (SMART SLOT FILLING):
 - Extract information opportunistically from EVERY caller response
@@ -544,8 +532,6 @@ EXTRACTION EXAMPLES:
 - "This is urgent, I have a leak." → populate Urgency = Urgent, Reason = Have a leak
 - "I'm at 123 Main Street." → populate Address = 123 Main Street
 - "You can call me back tomorrow afternoon." → populate Callback time = Tomorrow afternoon
-- "My best number is 412-555-1234." → populate Callback number = 412-555-1234
-- "Call me at my cell 555-7890." → populate Callback number = 555-7890
 - "Anytime after 2pm works." → populate Callback time = Anytime after 2pm
 - "At your location" → populate Address = At business location
 - "I'll come to you" → populate Address = Caller prefers business location
@@ -557,14 +543,16 @@ EXTRACTION EXAMPLES:
 - "Can I come there?" → populate Address = Caller prefers business location
 - "At your location" → populate Address = At business location
 - "I'll come to you" → populate Address = Caller prefers business location
+- "I need to install 4 outlets in my basement." → populate Details = Install 4 outlets in basement
+- "It's a two-story house with 3 bathrooms." → populate Details = Two-story house with 3 bathrooms
 
 AVOID REDUNDANT QUESTIONS:
 - NEVER ask for Name if Name is already known
 - NEVER ask for Reason if Reason is already known
+- NEVER ask for Details if Details are already known
 - NEVER ask for Urgency if Urgency is already known
 - NEVER ask for Address if Address is already known
 - NEVER ask for Callback time if Callback time is already known
-- NEVER ask for Callback number if Callback number is already known
 - Only ask for information that is still genuinely missing
 - Before asking any question, verify that the corresponding field has not already been collected
 
@@ -630,13 +618,13 @@ Your role is to:
 3. Ask for their name naturally if not already provided
 4. Collect information adaptively based on what the caller volunteers:
    - Reason for calling (ask naturally: "${config.reasonQuestion}")
+   - Important details (ask naturally: "${config.detailsQuestion}" - ALWAYS ask this even if caller provides brief reason)
    - Urgency level (ask naturally: "${config.urgencyQuestion}" - only if not already clear)
-   - Callback number (ask naturally: "${config.callbackNumberQuestion}" - only if not clear from caller ID)
    ${config.locationQuestion ? `- Location/address (ask naturally: "${config.locationQuestion}" - only if not already provided)` : ''}
    ${config.callbackTimeQuestion ? `- Best callback time (ask naturally: "${config.callbackTimeQuestion}" - only if relevant)` : ''}
 5. Ask relevant follow-up questions naturally based on the caller's responses and business type
 6. Once sufficient information is gathered, transition to confirmation using the exact phrase: "Thanks! Here's what I have:"
-7. Read back the summary using the exact format: "Name: [name]. Reason: [reason/details]. Urgency: [urgency]. Location: [address]. Best callback time: [callback time]. Callback number: [callback number]." (only include fields that were actually provided)
+7. Read back the summary using the exact format: "Name: [name]. Reason: [reason/details]. Details: [important details]. Urgency: [urgency]. Location: [address]. Best callback time: [callback time]." (only include fields that were actually provided)
 8. Ask for final confirmation using the exact phrase: "Is everything correct?"
 9. If caller confirms (yes, correct, that's right, etc.):
    - Thank the caller
@@ -762,6 +750,11 @@ export function getIntakeQuestions(category: BusinessCategory = 'general_service
       field: 'name',
       question: "Can I get your name?",
       prompt: "Ask for the caller's name if not already provided"
+    },
+    {
+      field: 'important_details',
+      question: config.detailsQuestion,
+      prompt: "Ask for important project details - ALWAYS ask this even if caller provides brief reason"
     }
   ]
   
@@ -790,13 +783,6 @@ export function getIntakeQuestions(category: BusinessCategory = 'general_service
     prompt: "Ask for urgency level"
   })
   
-  // Add callback number
-  questions.push({
-    field: 'callback_number',
-    question: config.callbackNumberQuestion,
-    prompt: "Ask for callback number"
-  })
-  
   return questions
 }
 
@@ -817,14 +803,14 @@ export const EXTRACTION_FUNCTION = {
         type: 'string',
         description: "Brief description of why the customer is calling"
       },
+      important_details: {
+        type: 'string',
+        description: "Important details about the project or request (e.g., scope of work, specific requirements, number of items, etc.)"
+      },
       urgency: {
         type: 'string',
         enum: ['high', 'medium', 'low'],
         description: "Urgency level of the call"
-      },
-      callback_number: {
-        type: 'string',
-        description: "Phone number for callback"
       },
       address: {
         type: 'string',
@@ -843,7 +829,7 @@ export const EXTRACTION_FUNCTION = {
         description: "Preferred appointment time (for salons)"
       }
     },
-    required: ['caller_name', 'reason_for_call', 'urgency', 'callback_number']
+    required: ['caller_name', 'reason_for_call']
   }
 }
 
@@ -874,11 +860,13 @@ export function getGuardrailClosing(): string {
  * Generate confirmation question with summary - now category-aware and excludes placeholders
  */
 export function getConfirmationQuestion(data: any, category: BusinessCategory = 'general_service'): string {
-  console.log('[AI FINAL CONFIRMATION ASKED]', {
+  console.log('[AI CONFIRMATION SUMMARY]', {
     caller_name: data.caller_name,
     reason_for_call: data.reason_for_call,
+    important_details: data.important_details,
     urgency: data.urgency,
-    callback_number: data.callback_number,
+    address: data.address,
+    callback_time: data.callback_time,
     category
   })
   
@@ -892,6 +880,26 @@ export function getConfirmationQuestion(data: any, category: BusinessCategory = 
  */
 export function logConfirmationAccepted(): void {
   console.log('[AI FINAL CONFIRMATION ACCEPTED]')
+}
+
+/**
+ * Log AI intake stage transition
+ */
+export function logIntakeStage(currentStage: string, nextStage: string): void {
+  console.log('[AI INTAKE STAGE]', {
+    currentStage,
+    nextStage
+  })
+}
+
+/**
+ * Log AI details collection
+ */
+export function logDetailsCollection(reasonForCalling: string | null, importantDetails: string | null): void {
+  console.log('[AI DETAILS COLLECTION]', {
+    reasonForCalling,
+    importantDetails
+  })
 }
 
 /**
