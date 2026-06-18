@@ -792,15 +792,73 @@ async function finalizeCompleteIntakeOnce(
   console.log('[COMPLETE PATH] Summary SMS request');
 
   try {
-    // Build complete summary SMS from intakeData
-    const completeSummary =
-      `AI intake complete:\n` +
-      `Name: ${intakeData.customerName || 'Not provided'}\n` +
-      `Service: ${intakeData.serviceRequested || 'Not provided'}\n` +
-      `Details: ${intakeData.issueDescription || 'Not provided'}\n` +
-      `Location: ${intakeData.serviceAddress || 'Not provided'}\n` +
-      `Completion time: ${intakeData.desiredCompletionTime || 'Not provided'}\n` +
-      `Callback time: ${intakeData.callbackTime || 'Not provided'}`;
+    // Fetch business name and out-of-office settings
+    let businessName = 'the business';
+    let outOfOfficeEnabled = false;
+    let outOfOfficeEnd = null;
+
+    try {
+      const { data: business, error: businessError } = await supabase
+        .from('businesses')
+        .select('name, out_of_office_enabled, out_of_office_end')
+        .eq('id', businessId)
+        .single();
+
+      if (business && !businessError) {
+        businessName = business.name || 'the business';
+        outOfOfficeEnabled = business.out_of_office_enabled || false;
+        outOfOfficeEnd = business.out_of_office_end || null;
+      }
+    } catch (dbError) {
+      console.log('[AI SUMMARY SMS BUSINESS FETCH ERROR]', String(dbError));
+    }
+
+    // Build complete summary SMS from intakeData (matching confirmation SMS format)
+    const summaryParts: string[] = [];
+
+    if (intakeData.customerName) {
+      summaryParts.push(`- Name: ${intakeData.customerName}`);
+    }
+
+    if (intakeData.serviceRequested) {
+      summaryParts.push(`- Reason: ${intakeData.serviceRequested}`);
+    }
+
+    if (intakeData.issueDescription) {
+      summaryParts.push(`- Details: ${intakeData.issueDescription}`);
+    }
+
+    if (intakeData.desiredCompletionTime) {
+      summaryParts.push(`- Desired Completion Time: ${intakeData.desiredCompletionTime}`);
+    }
+
+    if (intakeData.serviceAddress) {
+      summaryParts.push(`- Location: ${intakeData.serviceAddress}`);
+    }
+
+    if (intakeData.callbackTime) {
+      summaryParts.push(`- Best Callback Time: ${intakeData.callbackTime}`);
+    }
+
+    let completeSummary = `Thanks for calling ${businessName}.\n\n`;
+    completeSummary += `Here's a summary of your request:\n${summaryParts.join('\n')}\n\n`;
+    completeSummary += `We'll be in touch soon.\n\nReply to this message if you'd like to add or correct anything.`;
+
+    // Check if business is currently Out of Office and append notice
+    let outOfOfficeNotice = '';
+    if (outOfOfficeEnabled && outOfOfficeEnd) {
+      const returnDate = new Date(outOfOfficeEnd);
+      const formattedDate = returnDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      outOfOfficeNotice = `\n\nNote: We are currently out of the office until ${formattedDate}. We will respond as soon as we return.`;
+      completeSummary += outOfOfficeNotice;
+    }
+
+    console.log('[AI SUMMARY SMS FORMAT] =========================================');
+    console.log('[AI SUMMARY SMS FORMAT] includesOutOfOffice:', !!outOfOfficeNotice);
+    console.log('[AI SUMMARY SMS FORMAT] formatSource: ai_confirmation_sms_template');
+    console.log('[AI SUMMARY SMS FORMAT] businessName:', businessName);
+    console.log('[AI SUMMARY SMS FORMAT] Timestamp:', new Date().toISOString());
+    console.log('[AI SUMMARY SMS FORMAT] =========================================');
 
     console.log('[AI SUMMARY SMS REQUEST] =========================================');
     console.log('[AI SUMMARY SMS REQUEST] to:', callerPhone);
@@ -813,39 +871,61 @@ async function finalizeCompleteIntakeOnce(
     let fromNumber: string | null = null;
     let source = 'unknown';
     let fallbackUsed = false;
+    let sourceTable = 'businesses';
+    let sourceField = 'twilio_phone_number';
+
+    console.log('[AI SUMMARY SMS SENDER] =========================================');
+    console.log('[AI SUMMARY SMS SENDER] businessId:', businessId);
+    console.log('[AI SUMMARY SMS SENDER] sourceTable:', sourceTable);
+    console.log('[AI SUMMARY SMS SENDER] sourceField:', sourceField);
+    console.log('[AI SUMMARY SMS SENDER] hasSupabase:', !!supabase);
+    console.log('[AI SUMMARY SMS SENDER] hasSupabaseUrl:', !!process.env.SUPABASE_URL);
+    console.log('[AI SUMMARY SMS SENDER] supabaseUrlLength:', process.env.SUPABASE_URL?.length || 0);
+    console.log('[AI SUMMARY SMS SENDER] Fetching business-specific phone number');
+    console.log('[AI SUMMARY SMS SENDER] Timestamp:', new Date().toISOString());
+    console.log('[AI SUMMARY SMS SENDER] =========================================');
 
     try {
-      console.log('[AI SUMMARY SMS SENDER] =========================================');
-      console.log('[AI SUMMARY SMS SENDER] businessId:', businessId);
-      console.log('[AI SUMMARY SMS SENDER] Fetching business-specific phone number');
-      console.log('[AI SUMMARY SMS SENDER] Timestamp:', new Date().toISOString());
-      console.log('[AI SUMMARY SMS SENDER] =========================================');
-
       // Fetch business phone number from database
       const { data: business, error: businessError } = await supabase
         .from('businesses')
-        .select('phone_number')
+        .select('twilio_phone_number')
         .eq('id', businessId)
         .single();
+
+      console.log('[AI SUMMARY SMS SENDER] =========================================');
+      console.log('[AI SUMMARY SMS SENDER] Supabase query result');
+      console.log('[AI SUMMARY SMS SENDER] businessError:', businessError);
+      console.log('[AI SUMMARY SMS SENDER] business:', business);
+      console.log('[AI SUMMARY SMS SENDER] hasTwilioPhoneNumber:', !!business?.twilio_phone_number);
+      console.log('[AI SUMMARY SMS SENDER] twilioPhoneNumber:', business?.twilio_phone_number || 'null');
+      console.log('[AI SUMMARY SMS SENDER] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS SENDER] =========================================');
 
       if (businessError) {
         console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
         console.log('[AI SUMMARY SMS SENDER ERROR] Failed to fetch business phone number');
-        console.log('[AI SUMMARY SMS SENDER ERROR] Error:', businessError.message);
+        console.log('[AI SUMMARY SMS SENDER ERROR] Error code:', businessError.code);
+        console.log('[AI SUMMARY SMS SENDER ERROR] Error message:', businessError.message);
+        console.log('[AI SUMMARY SMS SENDER ERROR] Error details:', businessError.details);
+        console.log('[AI SUMMARY SMS SENDER ERROR] Error hint:', businessError.hint);
         console.log('[AI SUMMARY SMS SENDER ERROR] Timestamp:', new Date().toISOString());
         console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
-      } else if (business && business.phone_number) {
-        fromNumber = business.phone_number;
+      } else if (business && business.twilio_phone_number) {
+        fromNumber = business.twilio_phone_number;
         source = 'database';
         console.log('[AI SUMMARY SMS SENDER] =========================================');
         console.log('[AI SUMMARY SMS SENDER] selectedFromNumber:', fromNumber);
         console.log('[AI SUMMARY SMS SENDER] source:', source);
+        console.log('[AI SUMMARY SMS SENDER] sourceTable:', sourceTable);
+        console.log('[AI SUMMARY SMS SENDER] sourceField:', sourceField);
         console.log('[AI SUMMARY SMS SENDER] fallbackUsed:', fallbackUsed);
         console.log('[AI SUMMARY SMS SENDER] Timestamp:', new Date().toISOString());
         console.log('[AI SUMMARY SMS SENDER] =========================================');
       } else {
         console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
-        console.log('[AI SUMMARY SMS SENDER ERROR] No phone_number found in business record');
+        console.log('[AI SUMMARY SMS SENDER ERROR] No twilio_phone_number found in business record');
+        console.log('[AI SUMMARY SMS SENDER ERROR] businessId:', businessId);
         console.log('[AI SUMMARY SMS SENDER ERROR] Timestamp:', new Date().toISOString());
         console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
       }
@@ -869,6 +949,14 @@ async function finalizeCompleteIntakeOnce(
       console.log('[AI SUMMARY SMS SENDER] fallbackUsed:', fallbackUsed);
       console.log('[AI SUMMARY SMS SENDER] Timestamp:', new Date().toISOString());
       console.log('[AI SUMMARY SMS SENDER] =========================================');
+
+      if (fallbackUsed) {
+        console.log('[AI SUMMARY SMS FALLBACK USED] =========================================');
+        console.log('[AI SUMMARY SMS FALLBACK USED] Fallback to global TWILIO_PHONE_NUMBER');
+        console.log('[AI SUMMARY SMS FALLBACK USED] fromNumber:', fromNumber);
+        console.log('[AI SUMMARY SMS FALLBACK USED] Timestamp:', new Date().toISOString());
+        console.log('[AI SUMMARY SMS FALLBACK USED] =========================================');
+      }
     }
 
     // Fail if no number is available
