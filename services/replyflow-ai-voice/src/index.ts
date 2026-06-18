@@ -865,15 +865,9 @@ function sendStagePrompt(
   console.log('[ACTIVE INTAKE STAGE] =========================================');
   console.log('[ACTIVE INTAKE STAGE] stage:', stage);
 
-  const stagePrompts: { [key: string]: string } = {
-    'ask_name_reason': 'Hi, I\'m the assistant for the business. Can you please let me know your name and your reason for calling?',
-    'ask_details': 'Got it. Can you share any important details the business should know?',
-    'ask_location': 'Thanks. Where will the service take place?',
-    'ask_completion_time': 'Got it. When would you like this work completed?',
-    'ask_callback_time': 'What\'s the best time for the business to call you back?'
-  };
+  // Use predefined prompts from STAGE_PROMPTS constant
+  const prompt = STAGE_PROMPTS[stage as IntakeStage];
 
-  const prompt = stagePrompts[stage];
   console.log('[ACTIVE INTAKE STAGE] prompt:', prompt);
   console.log('[ACTIVE INTAKE STAGE] =========================================');
 
@@ -909,6 +903,17 @@ function sendStagePrompt(
   console.log('[STAGE PROMPT REQUESTED] attempts:', attempts);
   console.log('[STAGE PROMPT REQUESTED] Timestamp:', new Date().toISOString());
   console.log('[STAGE PROMPT REQUESTED] =========================================');
+
+  // Block prompt if there's an active response (cannot prompt while response is being generated)
+  if (activeResponseId) {
+    console.log('[STAGE PROMPT SKIPPED ACTIVE RESPONSE] =========================================');
+    console.log('[STAGE PROMPT SKIPPED ACTIVE RESPONSE] stage:', stage);
+    console.log('[STAGE PROMPT SKIPPED ACTIVE RESPONSE] reason: activeResponseId exists, cannot prompt while response is being generated');
+    console.log('[STAGE PROMPT SKIPPED ACTIVE RESPONSE] activeResponseId:', activeResponseId);
+    console.log('[STAGE PROMPT SKIPPED ACTIVE RESPONSE] Timestamp:', new Date().toISOString());
+    console.log('[STAGE PROMPT SKIPPED ACTIVE RESPONSE] =========================================');
+    return;
+  }
 
   // Skip duplicate prompt if already sent for this stage and no user transcript received
   if (alreadyPrompted && timeSinceLastPrompt < 5000) {
@@ -970,6 +975,153 @@ function sendStagePrompt(
   clearTimeout(watchdogTimer);
 }
 
+/**
+ * Predefined prompts for each intake stage
+ * The model may only speak these exact questions provided by the app
+ */
+const STAGE_PROMPTS: Record<IntakeStage, string> = {
+  ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
+  ask_details: "Got it. Can you share any important details the business should know?",
+  ask_location: "Thanks. Where will the service take place?",
+  ask_completion_time: "Thanks. When would you like this service completed?",
+  ask_callback_time: "What's the best time for the business to call you back?",
+  complete: "Thanks for the information. Have a great day!"
+};
+
+/**
+ * Deterministic stage progression logic
+ * The app, not the AI model, decides the next stage based on current state
+ */
+function getNextStage(
+  intake: IntakeData,
+  currentStage: IntakeStage,
+  latestTranscript: string | undefined,
+  stagePromptAttempts: Map<IntakeStage, number>
+): IntakeStage {
+  console.log('[APP DRIVEN INTAKE DECISION] =========================================');
+  console.log('[APP DRIVEN INTAKE DECISION] currentStage:', currentStage);
+  console.log('[APP DRIVEN INTAKE DECISION] latestTranscript:', latestTranscript || 'none');
+  console.log('[APP DRIVEN INTAKE DECISION] fieldsBefore:', JSON.stringify({
+    customerName: intake.customerName,
+    serviceRequested: intake.serviceRequested,
+    issueDescription: intake.issueDescription,
+    serviceAddress: intake.serviceAddress,
+    desiredCompletionTime: intake.desiredCompletionTime,
+    callbackTime: intake.callbackTime
+  }, null, 2));
+
+  const attemptCount = stagePromptAttempts.get(currentStage) || 0;
+
+  switch (currentStage) {
+    case 'ask_name_reason':
+      // If customerName missing, ask name + reason again
+      if (!intake.customerName) {
+        console.log('[STAGE ADVANCE BLOCKED] =========================================');
+        console.log('[STAGE ADVANCE BLOCKED] fromStage:', currentStage);
+        console.log('[STAGE ADVANCE BLOCKED] attemptedToStage:', 'ask_details');
+        console.log('[STAGE ADVANCE BLOCKED] missingFields:', ['customerName']);
+        console.log('[STAGE ADVANCE BLOCKED] reason: customerName missing, stay in ask_name_reason');
+        console.log('[STAGE ADVANCE BLOCKED] Timestamp:', new Date().toISOString());
+        console.log('[STAGE ADVANCE BLOCKED] =========================================');
+        console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_name_reason');
+        console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
+        console.log('[APP DRIVEN INTAKE DECISION] =========================================');
+        return 'ask_name_reason';
+      }
+      // If serviceRequested missing, ask specifically for reason
+      if (!intake.serviceRequested) {
+        console.log('[STAGE ADVANCE BLOCKED] =========================================');
+        console.log('[STAGE ADVANCE BLOCKED] fromStage:', currentStage);
+        console.log('[STAGE ADVANCE BLOCKED] attemptedToStage:', 'ask_details');
+        console.log('[STAGE ADVANCE BLOCKED] missingFields:', ['serviceRequested']);
+        console.log('[STAGE ADVANCE BLOCKED] reason: serviceRequested missing, stay in ask_name_reason');
+        console.log('[STAGE ADVANCE BLOCKED] Timestamp:', new Date().toISOString());
+        console.log('[STAGE ADVANCE BLOCKED] =========================================');
+        console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_name_reason');
+        console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
+        console.log('[APP DRIVEN INTAKE DECISION] =========================================');
+        return 'ask_name_reason';
+      }
+      // Only move to ask_details when both customerName and serviceRequested exist
+      console.log('[APP DRIVEN INTAKE DECISION] reason: both customerName and serviceRequested present, move to ask_details');
+      console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_details');
+      console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
+      console.log('[APP DRIVEN INTAKE DECISION] =========================================');
+      return 'ask_details';
+
+    case 'ask_details':
+      // Hard fallback: if ask_details has been asked twice, force advance to ask_location
+      if (attemptCount >= 2) {
+        console.log('[APP DRIVEN INTAKE DECISION] reason: max attempts (2) reached, force advance to ask_location');
+        console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_location');
+        console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
+        console.log('[APP DRIVEN INTAKE DECISION] =========================================');
+        // Use serviceRequested as issueDescription if available
+        if (intake.serviceRequested && !intake.issueDescription) {
+          intake.issueDescription = intake.serviceRequested;
+        }
+        return 'ask_location';
+      }
+      // After one meaningful response, always move to ask_location
+      if (intake.issueDescription && intake.issueDescription.length > 0) {
+        console.log('[APP DRIVEN INTAKE DECISION] reason: issueDescription captured, move to ask_location');
+        console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_location');
+        console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
+        console.log('[APP DRIVEN INTAKE DECISION] =========================================');
+        return 'ask_location';
+      }
+      // If no meaningful response yet, stay in ask_details
+      console.log('[APP DRIVEN INTAKE DECISION] reason: no meaningful issueDescription yet, stay in ask_details');
+      console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_details');
+      console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
+      console.log('[APP DRIVEN INTAKE DECISION] =========================================');
+      return 'ask_details';
+
+    case 'ask_location':
+      // Capture serviceAddress, then move to ask_completion_time
+      console.log('[APP DRIVEN INTAKE DECISION] reason: location stage, move to ask_completion_time');
+      console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_completion_time');
+      console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
+      console.log('[APP DRIVEN INTAKE DECISION] =========================================');
+      return 'ask_completion_time';
+
+    case 'ask_completion_time':
+      // Capture desiredCompletionTime, then move to ask_callback_time
+      console.log('[APP DRIVEN INTAKE DECISION] reason: completion time stage, move to ask_callback_time');
+      console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_callback_time');
+      console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
+      console.log('[APP DRIVEN INTAKE DECISION] =========================================');
+      return 'ask_callback_time';
+
+    case 'ask_callback_time':
+      // Capture callbackTime, then move to complete
+      console.log('[APP DRIVEN INTAKE DECISION] reason: callback time stage, move to complete');
+      console.log('[APP DRIVEN INTAKE DECISION] nextStage: complete');
+      console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
+      console.log('[APP DRIVEN INTAKE DECISION] =========================================');
+      return 'complete';
+
+    case 'complete':
+      console.log('[APP DRIVEN INTAKE DECISION] reason: already complete, stay in complete');
+      console.log('[APP DRIVEN INTAKE DECISION] nextStage: complete');
+      console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
+      console.log('[APP DRIVEN INTAKE DECISION] =========================================');
+      return 'complete';
+
+    default:
+      console.log('[APP DRIVEN INTAKE DECISION] reason: unknown stage, default to ask_name_reason');
+      console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_name_reason');
+      console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
+      console.log('[APP DRIVEN INTAKE DECISION] =========================================');
+      return 'ask_name_reason';
+  }
+}
+
+/**
+ * App-driven intake response logic
+ * The app determines the next stage and provides predefined prompts
+ * The model only extracts fields from transcripts
+ */
 function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptAttempts?: Map<IntakeStage, number>): { response: string; nextStage: IntakeStage } {
   console.log('[INTAKE STAGE TRANSITION] =========================================');
   console.log('[INTAKE STAGE TRANSITION] from:', intake.stage);
@@ -985,238 +1137,29 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
   }, null, 2));
   console.log('[INTAKE STAGE TRANSITION] timestamp:', new Date().toISOString());
   console.log('[INTAKE STAGE TRANSITION] =========================================');
-  
-  console.log('[AI INTAKE STAGE] current stage:', intake.stage);
 
-  // Extract multiple answers from single response
+  // Extract fields from transcript (model may extract fields)
   if (transcript) {
     extractMultipleAnswers(intake, transcript);
   }
 
-  // Determine next question based on missing fields
-  const missingFields = getMissingRequiredFields(intake);
-  console.log('[AI INTAKE] Missing fields:', missingFields);
+  // App determines next stage deterministically
+  const nextStage = getNextStage(intake, intake.stage, transcript, stagePromptAttempts || new Map());
 
-  // Detect courtesy phrases during required intake stages and redirect to re-ask missing field
-  // Only applies before terminal mode starts (check if we're still collecting required fields)
-  if (transcript && missingFields.length > 0 && intake.stage !== 'complete') {
-    const lowerTranscript = transcript.toLowerCase().trim();
-    const courtesyPhrases = ['thank you', 'thanks', 'you too', 'bye', 'that\'s all', 'goodbye', 'alright'];
-    const isCourtesyPhrase = courtesyPhrases.some(phrase => lowerTranscript === phrase || lowerTranscript.startsWith(phrase + ' ') || lowerTranscript.endsWith(phrase));
+  // Get predefined prompt for the next stage
+  const response = STAGE_PROMPTS[nextStage] || STAGE_PROMPTS.ask_name_reason;
 
-    if (isCourtesyPhrase) {
-      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] =========================================');
-      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] Courtesy phrase detected during required intake');
-      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] Transcript:', transcript);
-      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] Current stage:', intake.stage);
-      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] Missing fields:', missingFields);
-      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] Redirecting to re-ask missing field');
-      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] Timestamp:', new Date().toISOString());
-      console.log('[COURTESY_REPLY_DURING_INTAKE_REDIRECTED] =========================================');
+  console.log('[PREDEFINED PROMPT SENT] =========================================');
+  console.log('[PREDEFINED PROMPT SENT] stage:', nextStage);
+  console.log('[PREDEFINED PROMPT SENT] questionText:', response);
+  console.log('[PREDEFINED PROMPT SENT] attemptCount:', stagePromptAttempts?.get(nextStage) || 0);
+  console.log('[PREDEFINED PROMPT SENT] Timestamp:', new Date().toISOString());
+  console.log('[PREDEFINED PROMPT SENT] =========================================');
 
-      // Briefly acknowledge and re-ask the current missing field
-      const missingFieldResponse = getResponseForMissingField(missingFields[0], intake);
-      const courtesyAck = 'You\'re welcome. ';
-      return {
-        response: courtesyAck + missingFieldResponse.response,
-        nextStage: missingFieldResponse.nextStage
-      };
-    }
-  }
-
-  switch (intake.stage) {
-    case 'ask_name_reason':
-      // Check if name and reason were captured
-      if (intake.customerName && intake.serviceRequested) {
-        // If reason is already detailed (more than 10 characters), skip ask_details and go to location
-        if (intake.serviceRequested.length > 10) {
-          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] =========================================');
-          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Reason is already detailed');
-          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Reason:', intake.serviceRequested);
-          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Skipping ask_details, moving to ask_location');
-          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] Timestamp:', new Date().toISOString());
-          console.log('[SKIP DETAILS - REASON ALREADY DETAILED] =========================================');
-          intake.issueDescription = intake.serviceRequested;
-          return {
-            response: 'Thanks. Where will the service take place?',
-            nextStage: 'ask_location'
-          };
-        }
-        // HARD STAGE GUARD: Before transitioning to ask_details, verify both customerName and serviceRequested are present
-        console.log('[AI STAGE GUARD] =========================================');
-        console.log('[AI STAGE GUARD] fromStage:', intake.stage);
-        console.log('[AI STAGE GUARD] toStage:', 'ask_details');
-        console.log('[AI STAGE GUARD] customerName:', intake.customerName);
-        console.log('[AI STAGE GUARD] serviceRequested:', intake.serviceRequested);
-        console.log('[AI STAGE GUARD] allowed:', !!(intake.customerName && intake.serviceRequested));
-        console.log('[AI STAGE GUARD] Timestamp:', new Date().toISOString());
-        console.log('[AI STAGE GUARD] =========================================');
-
-        if (!intake.customerName || !intake.serviceRequested) {
-          console.log('[AI STAGE GUARD BLOCKED] =========================================');
-          console.log('[AI STAGE GUARD BLOCKED] Transition to ask_details BLOCKED');
-          console.log('[AI STAGE GUARD BLOCKED] Missing required fields');
-          console.log('[AI STAGE GUARD BLOCKED] customerName:', !!intake.customerName);
-          console.log('[AI STAGE GUARD BLOCKED] serviceRequested:', !!intake.serviceRequested);
-          console.log('[AI STAGE GUARD BLOCKED] Timestamp:', new Date().toISOString());
-          console.log('[AI STAGE GUARD BLOCKED] =========================================');
-          // Stay in ask_name_reason and ask for missing field
-          if (!intake.customerName) {
-            return {
-              response: 'Hi, I\'m the assistant for the business. Can you please let me know your name?',
-              nextStage: 'ask_name_reason'
-            };
-          } else {
-            return {
-              response: 'Thanks. What\'s the reason for your call?',
-              nextStage: 'ask_name_reason'
-            };
-          }
-        }
-
-        return {
-          response: 'Got it. Can you share any important details the business should know?',
-          nextStage: 'ask_details'
-        };
-      }
-      // Max-stage progression guard: if name is captured but not reason, ask for reason
-      if (intake.customerName && !intake.serviceRequested) {
-        console.log('[MAX-STAGE PROGRESSION] Name captured, asking for reason');
-        return {
-          response: 'Thanks. What\'s the reason for your call?',
-          nextStage: 'ask_name_reason'
-        };
-      }
-      // Max-stage progression guard: if reason is captured but not name, ask for name (NOT moving to details)
-      if (!intake.customerName && intake.serviceRequested) {
-        console.log('[MAX-STAGE PROGRESSION] Service captured, asking for name');
-        return {
-          response: 'Thanks. What\'s your name?',
-          nextStage: 'ask_name_reason'
-        };
-      }
-      // Ask for name and reason again if not captured
-      return {
-        response: 'Hi, I\'m the assistant for the business. Can you please let me know your name and your reason for calling?',
-        nextStage: 'ask_name_reason'
-      };
-
-    case 'ask_details':
-      // Check if issue description was captured - any useful details should move to location
-      if (intake.issueDescription && intake.issueDescription.length > 0) {
-        console.log('[DETAILS CAPTURED MOVING TO LOCATION] =========================================');
-        console.log('[DETAILS CAPTURED MOVING TO LOCATION] Issue description captured');
-        console.log('[DETAILS CAPTURED MOVING TO LOCATION] Description:', intake.issueDescription);
-        console.log('[DETAILS CAPTURED MOVING TO LOCATION] Moving to ask_location');
-        console.log('[DETAILS CAPTURED MOVING TO LOCATION] Timestamp:', new Date().toISOString());
-        console.log('[DETAILS CAPTURED MOVING TO LOCATION] =========================================');
-        return {
-          response: 'Thanks. Where will the service take place?',
-          nextStage: 'ask_location'
-        };
-      }
-      // Max-stage progression guard: if we have serviceRequested but no issueDescription, use serviceRequested as description
-      if (intake.serviceRequested && !intake.issueDescription) {
-        console.log('[MAX-STAGE PROGRESSION] Using serviceRequested as issueDescription');
-        intake.issueDescription = intake.serviceRequested;
-        return {
-          response: 'Thanks. Where will the service take place?',
-          nextStage: 'ask_location'
-        };
-      }
-      // Hard fallback: if ask_details has been asked twice, force advance to ask_location
-      const askDetailsAttempts = stagePromptAttempts?.get('ask_details') || 0;
-      if (askDetailsAttempts >= 2) {
-        console.log('[AI DETAILS LOOP PREVENTED] =========================================');
-        console.log('[AI DETAILS LOOP PREVENTED] stage: ask_details');
-        console.log('[AI DETAILS LOOP PREVENTED] attemptCount:', askDetailsAttempts);
-        console.log('[AI DETAILS LOOP PREVENTED] forcedNextStage: ask_location');
-        console.log('[AI DETAILS LOOP PREVENTED] reason: maximum 2 attempts reached, forcing progression');
-        console.log('[AI DETAILS LOOP PREVENTED] Timestamp:', new Date().toISOString());
-        console.log('[AI DETAILS LOOP PREVENTED] =========================================');
-        // Use serviceRequested as issueDescription if available
-        if (intake.serviceRequested && !intake.issueDescription) {
-          intake.issueDescription = intake.serviceRequested;
-        }
-        return {
-          response: 'Thanks. Where will the service take place?',
-          nextStage: 'ask_location'
-        };
-      }
-      // Ask for details again if not captured
-      return {
-        response: 'Got it. Can you share any important details the business should know?',
-        nextStage: 'ask_details'
-      };
-
-    case 'ask_location':
-      // Check if location was captured
-      if (intake.serviceAddress) {
-        return {
-          response: 'Got it. When would you like this work completed?',
-          nextStage: 'ask_completion_time'
-        };
-      }
-      // Ask for location
-      return {
-        response: 'Thanks. Where will the service take place?',
-        nextStage: 'ask_location'
-      };
-
-    case 'ask_completion_time':
-      // Check if desired completion time was captured
-      if (intake.desiredCompletionTime) {
-        // Move to callback time stage
-        return {
-          response: 'Got it. What\'s the best time for the business to call you back?',
-          nextStage: 'ask_callback_time'
-        };
-      }
-      // Ask for completion time again if not captured
-      return {
-        response: 'Got it. When would you like this work completed?',
-        nextStage: 'ask_completion_time'
-      };
-
-    case 'ask_callback_time':
-      // Check if callback time was captured
-      if (intake.callbackTime) {
-        // All required fields collected, close the intake
-        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] =========================================');
-        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] All 6 required fields collected');
-        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] customerName:', !!intake.customerName);
-        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] serviceRequested:', !!intake.serviceRequested);
-        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] issueDescription:', !!intake.issueDescription);
-        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] serviceAddress:', !!intake.serviceAddress);
-        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] desiredCompletionTime:', !!intake.desiredCompletionTime);
-        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] callbackTime:', !!intake.callbackTime);
-        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] Timestamp:', new Date().toISOString());
-        console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] =========================================');
-        return {
-          response: '',
-          nextStage: 'complete'
-        };
-      }
-      // Ask for callback time again if not captured
-      return {
-        response: 'What\'s the best time for the business to call you back?',
-        nextStage: 'ask_callback_time'
-      };
-
-    case 'complete':
-      // Intake is complete - should not reach here
-      console.log('[INTAKE COMPLETE] All fields collected, ready to close');
-      return {
-        response: '',
-        nextStage: 'complete'
-      };
-
-    default:
-      return {
-        response: 'Sorry, could you repeat that?',
-        nextStage: intake.stage
-      };
-  }
+  return {
+    response,
+    nextStage
+  };
 }
 
 // Helper function to extract multiple answers from single response (STAGE-AWARE)
