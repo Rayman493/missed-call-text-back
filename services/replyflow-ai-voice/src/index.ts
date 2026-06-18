@@ -3712,6 +3712,7 @@ wss.on('connection', (ws, req) => {
     (twilioHandler as any).lastPromptStage = lastPromptStage;
     (twilioHandler as any).lastPromptAt = lastPromptAt;
     (twilioHandler as any).activeResponseId = activeResponseId;
+    (twilioHandler as any).intakeData = null; // Will be synced when intakeData is initialized
 
     // Set up mark received callback to track when Twilio acknowledges final goodbye audio playback
     twilioHandler.setOnMarkReceived((markName: string) => {
@@ -6237,7 +6238,7 @@ Do NOT:
                   console.log('[ASSISTANT SPEAKING STATE] Source: response.output_item.done');
                   console.log('[ASSISTANT SPEAKING STATE] Response ID:', message.response_id || 'unknown');
                   console.log('[ASSISTANT SPEAKING STATE] Item ID:', message.item_id || 'unknown');
-                  console.log('[ASSISTANT SPEAKING STATE] Stage:', intakeData?.stage || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Stage:', (twilioHandler as any).intakeData?.stage || 'unknown');
                   console.log('[ASSISTANT SPEAKING STATE] Previous state:', previousAssistantSpeaking);
                   console.log('[ASSISTANT SPEAKING STATE] Timestamp:', new Date().toISOString());
                   console.log('[ASSISTANT SPEAKING STATE] =========================================');
@@ -6367,7 +6368,7 @@ Do NOT:
                   console.log('[ASSISTANT SPEAKING STATE] State: TRUE');
                   console.log('[ASSISTANT SPEAKING STATE] Source: response.output_audio.delta');
                   console.log('[ASSISTANT SPEAKING STATE] Response ID:', message.response_id || 'unknown');
-                  console.log('[ASSISTANT SPEAKING STATE] Stage:', intakeData?.stage || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Stage:', (twilioHandler as any).intakeData?.stage || 'unknown');
                   console.log('[ASSISTANT SPEAKING STATE] Timestamp:', new Date().toISOString());
                   console.log('[ASSISTANT SPEAKING STATE] =========================================');
                   (twilioHandler as any).assistantSpeaking = assistantSpeaking;
