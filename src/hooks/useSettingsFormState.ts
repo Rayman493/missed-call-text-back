@@ -64,6 +64,10 @@ export function useSettingsFormState({
       'phone_carrier',
       'onboarding_step',
       'onboarding_status',
+      'out_of_office_enabled',
+      'out_of_office_start',
+      'out_of_office_end',
+      'out_of_office_message',
       'automation_settings'
     ]
 
