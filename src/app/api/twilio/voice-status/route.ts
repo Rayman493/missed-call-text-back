@@ -8,6 +8,7 @@ import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { createFollowUpJobs } from '@/lib/follow-ups'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { determineSmsTemplate, hasAiSummaryBeenSent, hasRecentAutomatedSms } from '@/lib/sms-decision'
+import { getOutOfOfficeNotice } from '@/lib/out-of-office'
 
 // CALL TRACE logging function
 function logCallTrace(data: {
@@ -625,7 +626,25 @@ export async function POST(req: NextRequest) {
       // Substitute {{business_name}} token
       const personalizedMessage = autoReplyMessage ? autoReplyMessage.replace('{{business_name}}', business.name || 'My Business') : null
 
-      console.log(`[Twilio Voice Status Webhook] Auto-reply message: ${personalizedMessage?.substring(0, 100)}...`)
+      // Check if business is currently Out of Office and append notice using helper
+      const outOfOfficeNotice = getOutOfOfficeNotice(business);
+      const outOfOfficeActive = outOfOfficeNotice !== null;
+      let finalMessage = personalizedMessage;
+
+      console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
+      console.log('[OUT OF OFFICE NOTICE APPLIED] businessId:', business.id);
+      console.log('[OUT OF OFFICE NOTICE APPLIED] smsType:', 'instant_response');
+      console.log('[OUT OF OFFICE NOTICE APPLIED] outOfOfficeActive:', outOfOfficeActive);
+      console.log('[OUT OF OFFICE NOTICE APPLIED] returnDate:', business.out_of_office_end || null);
+      console.log('[OUT OF OFFICE NOTICE APPLIED] Timestamp:', new Date().toISOString());
+      console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
+
+      if (outOfOfficeActive && finalMessage) {
+        finalMessage += outOfOfficeNotice;
+        console.log('[OUT OF OFFICE NOTICE APPLIED] Notice appended successfully');
+      }
+
+      console.log(`[Twilio Voice Status Webhook] Auto-reply message: ${finalMessage?.substring(0, 100)}...`)
       console.log(`[Twilio Voice Status Webhook] Business phone: ${business.twilio_phone_number}`)
 
       // Log explicit SMS decision before sending
@@ -643,14 +662,14 @@ export async function POST(req: NextRequest) {
         messageBody: personalizedMessage?.substring(0, 100)
       })
 
-      if (!personalizedMessage) {
+      if (!finalMessage) {
         console.log('[SMS SEND SKIPPED]', {
-          reason: 'personalizedMessage is null',
+          reason: 'finalMessage is null',
           messageTemplate
         })
       } else {
         try {
-          messageSid = await sendSms(business, From, personalizedMessage, {
+          messageSid = await sendSms(business, From, finalMessage, {
             lead_id: lead.id,
             conversation_id: conversation?.id,
           })
