@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     // Get the user's business using the same pattern as working routes
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id')
+      .select('id, business_hours_timezone')
       .eq('user_id', session.user.id)
       .single()
 
@@ -136,7 +136,16 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[Calendar Create] event create start')
-    
+
+    // Get business timezone, default to America/New_York if not set
+    const businessTimezone = business.business_hours_timezone || 'America/New_York'
+
+    console.log('[CALENDAR EVENT CREATE]', {
+      selectedLocalTime: { date, startTime, endTime, allDay },
+      businessTimezone,
+      browserTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    })
+
     let start: any = {}
     let end: any = {}
 
@@ -145,30 +154,42 @@ export async function POST(request: NextRequest) {
       // Google Calendar uses exclusive end dates for all-day events
       // If user wants June 19-20, we set end.date = "2026-06-21"
       start = { date }
-      
+
       // Calculate exclusive end date for Google Calendar
       const endDateTime = new Date(finalEndDate)
       endDateTime.setDate(endDateTime.getDate() + 1)
       end = { date: endDateTime.toISOString().split('T')[0] }
     } else {
-      // Timed event: use dateTime format without timezone
-      // Google Calendar will use the user's calendar default timezone
+      // Timed event: use dateTime format with timezone
+      // Google Calendar API requires timezone to be specified to avoid conversion
       if (!startTime || !endTime) {
         return NextResponse.json({ error: 'Start and end time are required for timed events' }, { status: 400 })
       }
 
-      // Combine date and time
+      // Combine date and time, treating them as local time in the business timezone
       const startDateTime = new Date(`${date}T${startTime}`)
       const endDateTime = new Date(`${finalEndDate}T${endTime}`)
 
-      // Send datetime in ISO format without timezone parameter
-      // Google Calendar will use the user's calendar default timezone
+      console.log('[CALENDAR EVENT CREATE] values stored', {
+        startDateTime: startDateTime.toISOString(),
+        endDateTime: endDateTime.toISOString()
+      })
+
+      // Send datetime in ISO format WITH timezone parameter
+      // This tells Google Calendar to interpret the datetime in the specified timezone
       start = {
-        dateTime: startDateTime.toISOString()
+        dateTime: startDateTime.toISOString(),
+        timeZone: businessTimezone
       }
       end = {
-        dateTime: endDateTime.toISOString()
+        dateTime: endDateTime.toISOString(),
+        timeZone: businessTimezone
       }
+
+      console.log('[CALENDAR EVENT CREATE] value sent to Google', {
+        start,
+        end
+      })
     }
 
     const eventBody = {
@@ -209,6 +230,11 @@ export async function POST(request: NextRequest) {
     }
 
     const createdEvent = await response.json()
+    console.log('[CALENDAR EVENT CREATE] Google response', {
+      eventId: createdEvent.id,
+      start: createdEvent.start,
+      end: createdEvent.end
+    })
     console.log('[Calendar Create] event create success:', createdEvent.id)
 
     return NextResponse.json({
