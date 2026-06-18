@@ -1085,6 +1085,9 @@ function getNextStage(
       return 'ask_details';
 
     case 'ask_details':
+      // Check if transcript was actually received
+      const transcriptWasReceived = latestTranscript && latestTranscript.trim().length > 0;
+      
       // Hard fallback: if ask_details has been asked twice, force advance to ask_location
       if (attemptCount >= 2) {
         console.log('[APP DRIVEN INTAKE DECISION] reason: max attempts (2) reached, force advance to ask_location');
@@ -1097,6 +1100,20 @@ function getNextStage(
         }
         return 'ask_location';
       }
+      
+      // If no transcript was received after first attempt, advance anyway
+      if (!transcriptWasReceived && attemptCount >= 1) {
+        console.log('[APP DRIVEN INTAKE DECISION] reason: no transcript received after first attempt, force advance to ask_location');
+        console.log('[APP DRIVEN INTAKE DECISION] nextStage: ask_location');
+        console.log('[APP DRIVEN INTAKE DECISION] Timestamp:', new Date().toISOString());
+        console.log('[APP DRIVEN INTAKE DECISION] =========================================');
+        // Use serviceRequested as issueDescription if available
+        if (intake.serviceRequested && !intake.issueDescription) {
+          intake.issueDescription = intake.serviceRequested;
+        }
+        return 'ask_location';
+      }
+      
       // After one meaningful response, always move to ask_location
       if (intake.issueDescription && intake.issueDescription.length > 0) {
         console.log('[APP DRIVEN INTAKE DECISION] reason: issueDescription captured, move to ask_location');
@@ -1200,6 +1217,20 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
 // Helper function to extract multiple answers from single response (STAGE-AWARE)
 function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
   const lowerTranscript = transcript.toLowerCase().trim();
+  
+  console.log('[FIELD EXTRACTION INPUT] =========================================');
+  console.log('[FIELD EXTRACTION INPUT] currentStage:', intake.stage);
+  console.log('[FIELD EXTRACTION INPUT] transcript:', transcript);
+  console.log('[FIELD EXTRACTION INPUT] intakeBefore:', JSON.stringify({
+    customerName: intake.customerName,
+    serviceRequested: intake.serviceRequested,
+    issueDescription: intake.issueDescription,
+    serviceAddress: intake.serviceAddress,
+    desiredCompletionTime: intake.desiredCompletionTime,
+    callbackTime: intake.callbackTime
+  }, null, 2));
+  console.log('[FIELD EXTRACTION INPUT] Timestamp:', new Date().toISOString());
+  console.log('[FIELD EXTRACTION INPUT] =========================================');
   
   console.log('[LIVE EXTRACTION RAW] =========================================');
   console.log('[LIVE EXTRACTION RAW] Transcript:', transcript);
@@ -1712,6 +1743,26 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
   console.log('[LIVE EXTRACTION COMPLETE] callbackTime:', intake.callbackTime);
   console.log('[LIVE EXTRACTION COMPLETE] Timestamp:', new Date().toISOString());
   console.log('[LIVE EXTRACTION COMPLETE] =========================================');
+  
+  console.log('[FIELD EXTRACTION RESULT] =========================================');
+  console.log('[FIELD EXTRACTION RESULT] extractedFields:', JSON.stringify({
+    customerName: intake.customerName,
+    serviceRequested: intake.serviceRequested,
+    issueDescription: intake.issueDescription,
+    serviceAddress: intake.serviceAddress,
+    desiredCompletionTime: intake.desiredCompletionTime,
+    callbackTime: intake.callbackTime
+  }, null, 2));
+  console.log('[FIELD EXTRACTION RESULT] intakeAfter:', JSON.stringify({
+    customerName: intake.customerName,
+    serviceRequested: intake.serviceRequested,
+    issueDescription: intake.issueDescription,
+    serviceAddress: intake.serviceAddress,
+    desiredCompletionTime: intake.desiredCompletionTime,
+    callbackTime: intake.callbackTime
+  }, null, 2));
+  console.log('[FIELD EXTRACTION RESULT] Timestamp:', new Date().toISOString());
+  console.log('[FIELD EXTRACTION RESULT] =========================================');
 }
 
 // Helper function to validate callback time answer
@@ -3545,6 +3596,21 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
     const businessId = callContext?.businessId || (ws as any).businessId;
     const sessionId = callContext?.sessionId || (ws as any).sessionId;
     const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
+    
+    // Final call transcript audit
+    const transcript = (ws as any).transcript || [];
+    const intakeData = (ws as any).intakeData || (twilioHandler as any).intakeData;
+    const finalStage = intakeData?.stage || 'unknown';
+    
+    console.log('[CALL TRANSCRIPT AUDIT] =========================================');
+    console.log('[CALL TRANSCRIPT AUDIT] allCallerTranscripts:', JSON.stringify(transcript.filter((t: any) => t.role === 'user'), null, 2));
+    console.log('[CALL TRANSCRIPT AUDIT] transcriptCount:', transcript.filter((t: any) => t.role === 'user').length);
+    console.log('[CALL TRANSCRIPT AUDIT] finalIntakeData:', JSON.stringify(intakeData, null, 2));
+    console.log('[CALL TRANSCRIPT AUDIT] finalStage:', finalStage);
+    console.log('[CALL TRANSCRIPT AUDIT] callSid:', callSid);
+    console.log('[CALL TRANSCRIPT AUDIT] sessionId:', sessionId);
+    console.log('[CALL TRANSCRIPT AUDIT] Timestamp:', new Date().toISOString());
+    console.log('[CALL TRANSCRIPT AUDIT] =========================================');
     
     console.log('[CALL CONTEXT USED FOR HANGUP]', { callSid, businessId, sessionId, callContext });
     
@@ -5727,13 +5793,17 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 
                 if (message.item?.type === 'user') {
                   const userTranscript = message.item.content?.[0]?.transcript || '';
-                  console.log('[USER TRANSCRIPT FOUND]', {
-                    eventType: 'conversation.item.created',
-                    itemType: message.item.type,
-                    hasContent: !!message.item.content,
-                    content: message.item.content || null,
-                    transcript: userTranscript
-                  });
+                  console.log('[CALLER TRANSCRIPT RECEIVED] =========================================');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] eventType:', 'conversation.item.created');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] transcript:', userTranscript);
+                  console.log('[CALLER TRANSCRIPT RECEIVED] transcriptLength:', userTranscript.length);
+                  console.log('[CALLER TRANSCRIPT RECEIVED] currentStage:', intakeData?.stage || 'unknown');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] assistantSpeaking:', assistantSpeaking);
+                  console.log('[CALLER TRANSCRIPT RECEIVED] activeResponseId:', activeResponseId || 'null');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] callSid:', callSid || 'unknown');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] sessionId:', sessionId || 'unknown');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] Timestamp:', new Date().toISOString());
+                  console.log('[CALLER TRANSCRIPT RECEIVED] =========================================');
                   
                   // Add user transcript router for confirmation interception
                   const currentStage = intakeData?.stage || 'unknown';
@@ -5749,13 +5819,17 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[USER ITEM] done:', message.item?.type || 'unknown');
                 if (message.item?.type === 'user') {
                   const userTranscript = message.item.content?.[0]?.transcript || '';
-                  console.log('[USER TRANSCRIPT FOUND]', {
-                    eventType: 'conversation.item.done',
-                    itemType: message.item.type,
-                    hasContent: !!message.item.content,
-                    content: message.item.content || null,
-                    transcript: userTranscript
-                  });
+                  console.log('[CALLER TRANSCRIPT RECEIVED] =========================================');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] eventType:', 'conversation.item.done');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] transcript:', userTranscript);
+                  console.log('[CALLER TRANSCRIPT RECEIVED] transcriptLength:', userTranscript.length);
+                  console.log('[CALLER TRANSCRIPT RECEIVED] currentStage:', intakeData?.stage || 'unknown');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] assistantSpeaking:', assistantSpeaking);
+                  console.log('[CALLER TRANSCRIPT RECEIVED] activeResponseId:', activeResponseId || 'null');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] callSid:', callSid || 'unknown');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] sessionId:', sessionId || 'unknown');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] Timestamp:', new Date().toISOString());
+                  console.log('[CALLER TRANSCRIPT RECEIVED] =========================================');
                   
                   // Add user transcript router for confirmation interception
                   const currentStage = intakeData?.stage || 'unknown';
@@ -5771,13 +5845,17 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[USER ITEM] completed:', message.item?.type || 'unknown');
                 if (message.item?.type === 'user') {
                   const userTranscript = message.item.content?.[0]?.transcript || '';
-                  console.log('[USER TRANSCRIPT FOUND]', {
-                    eventType: 'conversation.item.completed',
-                    itemType: message.item.type,
-                    hasContent: !!message.item.content,
-                    content: message.item.content || null,
-                    transcript: userTranscript
-                  });
+                  console.log('[CALLER TRANSCRIPT RECEIVED] =========================================');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] eventType:', 'conversation.item.completed');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] transcript:', userTranscript);
+                  console.log('[CALLER TRANSCRIPT RECEIVED] transcriptLength:', userTranscript.length);
+                  console.log('[CALLER TRANSCRIPT RECEIVED] currentStage:', intakeData?.stage || 'unknown');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] assistantSpeaking:', assistantSpeaking);
+                  console.log('[CALLER TRANSCRIPT RECEIVED] activeResponseId:', activeResponseId || 'null');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] callSid:', callSid || 'unknown');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] sessionId:', sessionId || 'unknown');
+                  console.log('[CALLER TRANSCRIPT RECEIVED] Timestamp:', new Date().toISOString());
+                  console.log('[CALLER TRANSCRIPT RECEIVED] =========================================');
                   
                   // Add user transcript router for confirmation interception
                   const currentStage = intakeData?.stage || 'unknown';
@@ -5793,6 +5871,17 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               // Listen for FINAL transcript events
               if (message.type === 'conversation.item.input_audio_transcription.completed') {
                 const userTranscript = message.transcript || '';
+                console.log('[CALLER TRANSCRIPT RECEIVED] =========================================');
+                console.log('[CALLER TRANSCRIPT RECEIVED] eventType:', 'conversation.item.input_audio_transcription.completed');
+                console.log('[CALLER TRANSCRIPT RECEIVED] transcript:', userTranscript);
+                console.log('[CALLER TRANSCRIPT RECEIVED] transcriptLength:', userTranscript.length);
+                console.log('[CALLER TRANSCRIPT RECEIVED] currentStage:', intakeData?.stage || 'unknown');
+                console.log('[CALLER TRANSCRIPT RECEIVED] assistantSpeaking:', assistantSpeaking);
+                console.log('[CALLER TRANSCRIPT RECEIVED] activeResponseId:', activeResponseId || 'null');
+                console.log('[CALLER TRANSCRIPT RECEIVED] callSid:', callSid || 'unknown');
+                console.log('[CALLER TRANSCRIPT RECEIVED] sessionId:', sessionId || 'unknown');
+                console.log('[CALLER TRANSCRIPT RECEIVED] Timestamp:', new Date().toISOString());
+                console.log('[CALLER TRANSCRIPT RECEIVED] =========================================');
                 console.log('[OPENAI USER TRANSCRIPT RECEIVED]', userTranscript);
                 console.log('[USER TRANSCRIPTION COMPLETED]', {
                   transcript: userTranscript,
@@ -6007,15 +6096,14 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     
                     intakeData!.stage = 'ask_callback_time';
                     
-                    // Send next prompt immediately
-                    const callbackTimePrompt = "What's the best time for the business to call you back?";
+                    // Send next prompt using centralized sendStagePrompt
                     console.log('[NEXT PROMPT SENT] =========================================');
                     console.log('[NEXT PROMPT SENT] stage: ask_callback_time');
-                    console.log('[NEXT PROMPT SENT] prompt:', callbackTimePrompt);
+                    console.log('[NEXT PROMPT SENT] Using sendStagePrompt for centralized prompt management');
                     console.log('[NEXT PROMPT SENT] Timestamp:', new Date().toISOString());
                     console.log('[NEXT PROMPT SENT] =========================================');
                     
-                    sendControlledAssistantText(callbackTimePrompt, 'ASK_CALLBACK_TIME', openAiWs);
+                    sendStagePrompt(intakeData!.stage, openAiWs, promptedStages, lastPromptAt, assistantSpeaking, activeResponseId, twilioHandler, lastPromptStage, stagePromptAttempts);
                     
                     return; // Skip normal intake processing
                   }

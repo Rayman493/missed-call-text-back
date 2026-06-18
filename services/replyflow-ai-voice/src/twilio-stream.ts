@@ -187,23 +187,44 @@ export class TwilioStreamHandler {
               }
 
               if (assistantSpeaking) {
-                console.log('[INBOUND CALLER AUDIO SKIPPED - ASSISTANT SPEAKING]', { assistantSpeaking });
-                
-                // Add enhanced logging for user audio blocked while speaking
-                const lastPromptStage = (this as any).lastPromptStage || 'unknown';
-                const lastPromptAt = (this as any).lastPromptAt || 0;
                 const activeResponseId = (this as any).activeResponseId || 'unknown';
-                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] =========================================');
-                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] stage:', lastPromptStage);
-                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] assistantSpeaking:', assistantSpeaking);
-                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] activeResponseId:', activeResponseId);
-                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] lastPromptStage:', lastPromptStage);
-                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] lastPromptAt:', lastPromptAt);
-                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] timeSinceLastPrompt:', Date.now() - lastPromptAt);
-                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] Timestamp:', new Date().toISOString());
-                console.log('[USER AUDIO BLOCKED WHILE SPEAKING] =========================================');
+                const lastPromptAt = (this as any).lastPromptAt || 0;
+                const timeSinceLastPrompt = Date.now() - lastPromptAt;
                 
-                return;
+                // Fix caller audio blocking: if assistantSpeaking is true but activeResponseId is unknown/null after initialization
+                // or if it's been too long since last prompt (>10 seconds), reset assistantSpeaking to false
+                if (activeResponseId === 'unknown' || activeResponseId === null || activeResponseId === undefined || timeSinceLastPrompt > 10000) {
+                  console.log('[AUDIO BLOCKING STATE INVALID] =========================================');
+                  console.log('[AUDIO BLOCKING STATE INVALID] assistantSpeaking is true but activeResponseId is unknown/null or timeout');
+                  console.log('[AUDIO BLOCKING STATE INVALID] assistantSpeaking:', assistantSpeaking);
+                  console.log('[AUDIO BLOCKING STATE INVALID] activeResponseId:', activeResponseId);
+                  console.log('[AUDIO BLOCKING STATE INVALID] timeSinceLastPrompt:', timeSinceLastPrompt);
+                  console.log('[AUDIO BLOCKING STATE INVALID] Resetting assistantSpeaking to false');
+                  console.log('[AUDIO BLOCKING STATE INVALID] Timestamp:', new Date().toISOString());
+                  console.log('[AUDIO BLOCKING STATE INVALID] =========================================');
+                  
+                  // Reset assistantSpeaking to allow caller audio
+                  (this as any).assistantSpeaking = false;
+                  
+                  // Do NOT return - allow caller audio to proceed
+                } else {
+                  // Valid blocking state - assistant is actually speaking
+                  console.log('[INBOUND CALLER AUDIO SKIPPED - ASSISTANT SPEAKING]', { assistantSpeaking });
+                  
+                  // Add enhanced logging for user audio blocked while speaking
+                  const lastPromptStage = (this as any).lastPromptStage || 'unknown';
+                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] =========================================');
+                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] stage:', lastPromptStage);
+                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] assistantSpeaking:', assistantSpeaking);
+                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] activeResponseId:', activeResponseId);
+                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] lastPromptStage:', lastPromptStage);
+                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] lastPromptAt:', lastPromptAt);
+                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] timeSinceLastPrompt:', timeSinceLastPrompt);
+                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] Timestamp:', new Date().toISOString());
+                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] =========================================');
+                  
+                  return;
+                }
               }
 
               if (openAiWs) {
