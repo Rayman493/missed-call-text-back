@@ -793,6 +793,96 @@ async function finalizeCompleteIntakeOnce(
   console.log('[COMPLETE PATH] Summary SMS request');
 
   try {
+    // Create lead and conversation BEFORE sending SMS
+    console.log('[AI SUMMARY SMS LEAD CONVERSATION CREATE START] =========================================');
+    console.log('[AI SUMMARY SMS LEAD CONVERSATION CREATE START] Creating lead and conversation before SMS');
+    console.log('[AI SUMMARY SMS LEAD CONVERSATION CREATE START] businessId:', businessId);
+    console.log('[AI SUMMARY SMS LEAD CONVERSATION CREATE START] callerPhone:', callerPhone);
+    console.log('[AI SUMMARY SMS LEAD CONVERSATION CREATE START] Timestamp:', new Date().toISOString());
+    console.log('[AI SUMMARY SMS LEAD CONVERSATION CREATE START] =========================================');
+
+    const { data: lead, error: leadError } = await supabase
+      .from('leads')
+      .upsert({
+        business_id: businessId,
+        caller_phone: callerPhone,
+        status: 'new',
+      }, {
+        onConflict: 'business_id,caller_phone',
+      })
+      .select()
+      .single();
+
+    if (leadError) {
+      console.log('[AI SUMMARY SMS LEAD CREATE FAILED] =========================================');
+      console.log('[AI SUMMARY SMS LEAD CREATE FAILED] error:', leadError.message);
+      console.log('[AI SUMMARY SMS LEAD CREATE FAILED] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS LEAD CREATE FAILED] =========================================');
+      throw leadError;
+    }
+
+    console.log('[AI SUMMARY SMS LEAD CREATE SUCCESS] =========================================');
+    console.log('[AI SUMMARY SMS LEAD CREATE SUCCESS] leadId:', lead.id);
+    console.log('[AI SUMMARY SMS LEAD CREATE SUCCESS] Timestamp:', new Date().toISOString());
+    console.log('[AI SUMMARY SMS LEAD CREATE SUCCESS] =========================================');
+
+    // Store leadId in ws session state
+    (ws as any).leadId = lead.id;
+
+    // Create or update conversation
+    const { data: existingConversation, error: conversationLookupError } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('lead_id', lead.id)
+      .maybeSingle();
+
+    let conversation;
+    let conversationError;
+
+    if (existingConversation) {
+      conversation = existingConversation;
+      console.log('[AI SUMMARY SMS CONVERSATION FOUND] =========================================');
+      console.log('[AI SUMMARY SMS CONVERSATION FOUND] conversationId:', conversation.id);
+      console.log('[AI SUMMARY SMS CONVERSATION FOUND] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS CONVERSATION FOUND] =========================================');
+    } else {
+      const result = await supabase
+        .from('conversations')
+        .insert({
+          business_id: businessId,
+          lead_id: lead.id,
+          status: 'open',
+          last_activity_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      conversation = result.data;
+      conversationError = result.error;
+    }
+
+    if (conversationError) {
+      console.log('[AI SUMMARY SMS CONVERSATION CREATE FAILED] =========================================');
+      console.log('[AI SUMMARY SMS CONVERSATION CREATE FAILED] error:', conversationError.message);
+      console.log('[AI SUMMARY SMS CONVERSATION CREATE FAILED] Timestamp:', new Date().toISOString());
+      console.log('[AI SUMMARY SMS CONVERSATION CREATE FAILED] =========================================');
+      throw conversationError;
+    }
+
+    console.log('[AI SUMMARY SMS CONVERSATION CREATE SUCCESS] =========================================');
+    console.log('[AI SUMMARY SMS CONVERSATION CREATE SUCCESS] conversationId:', conversation.id);
+    console.log('[AI SUMMARY SMS CONVERSATION CREATE SUCCESS] Timestamp:', new Date().toISOString());
+    console.log('[AI SUMMARY SMS CONVERSATION CREATE SUCCESS] =========================================');
+
+    // Store conversationId in ws session state
+    (ws as any).conversationId = conversation.id;
+
+    console.log('[AI SUMMARY SMS IDS RESOLVED] =========================================');
+    console.log('[AI SUMMARY SMS IDS RESOLVED] leadId:', lead.id);
+    console.log('[AI SUMMARY SMS IDS RESOLVED] conversationId:', conversation.id);
+    console.log('[AI SUMMARY SMS IDS RESOLVED] source: finalizeCompleteIntakeOnce');
+    console.log('[AI SUMMARY SMS IDS RESOLVED] Timestamp:', new Date().toISOString());
+    console.log('[AI SUMMARY SMS IDS RESOLVED] =========================================');
+
     // Fetch business name and out-of-office settings
     let businessName = 'the business';
     let outOfOfficeEnabled = false;
@@ -1038,13 +1128,13 @@ async function persistAiSummarySmsMessage(params: {
       console.log('[AI SUMMARY SMS DB INSERT START] Insert payload:', {
         conversation_id: conversationId,
         lead_id: leadId,
-        business_id: businessId,
-        content: smsBody,
-        sender: 'ai',
-        message_type: 'summary',
-        structured_data: intakeData,
+        body: smsBody,
+        direction: 'outbound',
+        from_phone: fromNumber,
+        to_phone: callerPhone,
         twilio_message_sid: messageSid,
-        status: status
+        status: status,
+        message_type: 'summary'
       });
       console.log('[AI SUMMARY SMS DB INSERT START] Timestamp:', new Date().toISOString());
       console.log('[AI SUMMARY SMS DB INSERT START] =========================================');
@@ -1054,13 +1144,14 @@ async function persistAiSummarySmsMessage(params: {
         .insert({
           conversation_id: conversationId,
           lead_id: leadId,
-          business_id: businessId,
-          content: smsBody,
-          sender: 'ai',
-          message_type: 'summary',
-          structured_data: intakeData,
+          body: smsBody,
+          direction: 'outbound',
+          from_phone: fromNumber,
+          to_phone: callerPhone,
           twilio_message_sid: messageSid,
-          status: status
+          status: status,
+          message_type: 'summary',
+          created_at: new Date().toISOString()
         })
         .select()
         .single();
