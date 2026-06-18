@@ -970,7 +970,7 @@ function sendStagePrompt(
   clearTimeout(watchdogTimer);
 }
 
-function getIntakeResponse(intake: IntakeData, transcript?: string): { response: string; nextStage: IntakeStage } {
+function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptAttempts?: Map<IntakeStage, number>): { response: string; nextStage: IntakeStage } {
   console.log('[INTAKE STAGE TRANSITION] =========================================');
   console.log('[INTAKE STAGE TRANSITION] from:', intake.stage);
   console.log('[INTAKE STAGE TRANSITION] reason: processing transcript');
@@ -1101,6 +1101,25 @@ function getIntakeResponse(intake: IntakeData, transcript?: string): { response:
       if (intake.serviceRequested && !intake.issueDescription) {
         console.log('[MAX-STAGE PROGRESSION] Using serviceRequested as issueDescription');
         intake.issueDescription = intake.serviceRequested;
+        return {
+          response: 'Thanks. Where will the service take place?',
+          nextStage: 'ask_location'
+        };
+      }
+      // Hard fallback: if ask_details has been asked twice, force advance to ask_location
+      const askDetailsAttempts = stagePromptAttempts?.get('ask_details') || 0;
+      if (askDetailsAttempts >= 2) {
+        console.log('[AI DETAILS LOOP PREVENTED] =========================================');
+        console.log('[AI DETAILS LOOP PREVENTED] stage: ask_details');
+        console.log('[AI DETAILS LOOP PREVENTED] attemptCount:', askDetailsAttempts);
+        console.log('[AI DETAILS LOOP PREVENTED] forcedNextStage: ask_location');
+        console.log('[AI DETAILS LOOP PREVENTED] reason: maximum 2 attempts reached, forcing progression');
+        console.log('[AI DETAILS LOOP PREVENTED] Timestamp:', new Date().toISOString());
+        console.log('[AI DETAILS LOOP PREVENTED] =========================================');
+        // Use serviceRequested as issueDescription if available
+        if (intake.serviceRequested && !intake.issueDescription) {
+          intake.issueDescription = intake.serviceRequested;
+        }
         return {
           response: 'Thanks. Where will the service take place?',
           nextStage: 'ask_location'
@@ -1324,23 +1343,29 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
     case 'ask_details':
       // Allowed: issueDescription
       // Forbidden: customerName, serviceRequested, serviceAddress, desiredCompletionTime, callbackTime
-      
-      // Extract issue description (REMOVED: dangerous entire transcript fallback)
+
+      console.log('[AI DETAILS STAGE ANSWER RECEIVED] =========================================');
+      console.log('[AI DETAILS STAGE ANSWER RECEIVED] transcript:', transcript);
+      console.log('[AI DETAILS STAGE ANSWER RECEIVED] currentStage:', intake.stage);
+      console.log('[AI DETAILS STAGE ANSWER RECEIVED] extractedDetails:', intake.issueDescription);
+      console.log('[AI DETAILS STAGE ANSWER RECEIVED] Timestamp:', new Date().toISOString());
+      console.log('[AI DETAILS STAGE ANSWER RECEIVED] =========================================');
+
+      // Extract issue description - use entire transcript if meaningful
       if (!intake.issueDescription) {
         const oldDescription = intake.issueDescription;
-        // Only set issueDescription if it contains specific detail patterns
-        // Do NOT copy entire transcript blindly
-        const detailPatterns = ['leaking', 'broken', 'not working', 'damaged', 'needs repair', 'problem', 'issue', 'concern'];
-        const hasDetailPattern = detailPatterns.some(pattern => lowerTranscript.includes(pattern));
-        
-        if (hasDetailPattern && transcript.trim().length > 10) {
+        // Use entire transcript if it's meaningful (not empty, not just "yes"/"no"/"okay"/"thanks")
+        const meaningfulResponses = ['yes', 'no', 'okay', 'ok', 'thanks', 'thank you', 'that\'s it', 'nothing else', 'no details', 'none', ''];
+        const isMeaningful = !meaningfulResponses.some(response => lowerTranscript === response || lowerTranscript === response + ' ');
+
+        if (isMeaningful && transcript.trim().length > 3) {
           intake.issueDescription = transcript.trim();
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[FIELD ASSIGNMENT] field: issueDescription');
           console.log('[FIELD ASSIGNMENT] oldValue:', oldDescription);
           console.log('[FIELD ASSIGNMENT] newValue:', intake.issueDescription);
           console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (detail pattern match)');
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (meaningful transcript)');
           console.log('[FIELD ASSIGNMENT] transcript:', transcript);
           console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
           console.log('[FIELD ASSIGNMENT] =========================================');
@@ -6069,7 +6094,7 @@ Do NOT:
                   }
                   
                   // Get next intake response
-                  const intakeResponse = getIntakeResponse(intakeData!, userTranscript);
+                  const intakeResponse = getIntakeResponse(intakeData!, userTranscript, stagePromptAttempts);
 
                   // Field extraction is now handled by extractMultipleAnswers in getIntakeResponse
                   // No need for manual field updates here
