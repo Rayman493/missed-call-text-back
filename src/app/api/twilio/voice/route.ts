@@ -1055,6 +1055,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       <Parameter name="to" value="${To}" />
       <Parameter name="called" value="${Called}" />
       <Parameter name="forwardedFrom" value="${ForwardedFrom}" />
+      <Parameter name="businessTwilioPhoneNumber" value="${business.twilio_phone_number}" />
     </Stream>
   </Connect>
 </Response>`

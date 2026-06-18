@@ -767,7 +767,8 @@ async function finalizeCompleteIntakeOnce(
   intakeData: IntakeData,
   callSid: string,
   callerPhone: string,
-  businessId: string
+  businessId: string,
+  ws: any
 ): Promise<void> {
   // Idempotent lock: prevent duplicate finalization
   if (completeFinalizationStartedByCallSid.has(callSid)) {
@@ -867,72 +868,46 @@ async function finalizeCompleteIntakeOnce(
     console.log('[AI SUMMARY SMS REQUEST] Timestamp:', new Date().toISOString());
     console.log('[AI SUMMARY SMS REQUEST] =========================================');
 
-    // Fetch business-specific phone number
+    // Fetch business-specific phone number from session customParameters
     let fromNumber: string | null = null;
     let source = 'unknown';
     let fallbackUsed = false;
-    let sourceTable = 'businesses';
-    let sourceField = 'twilio_phone_number';
+    let sourceTable = 'session_custom_parameter';
+    let sourceField = 'businessTwilioPhoneNumber';
 
     console.log('[AI SUMMARY SMS SENDER] =========================================');
     console.log('[AI SUMMARY SMS SENDER] businessId:', businessId);
     console.log('[AI SUMMARY SMS SENDER] sourceTable:', sourceTable);
     console.log('[AI SUMMARY SMS SENDER] sourceField:', sourceField);
-    console.log('[AI SUMMARY SMS SENDER] hasSupabase:', !!supabase);
-    console.log('[AI SUMMARY SMS SENDER] hasSupabaseUrl:', !!process.env.SUPABASE_URL);
-    console.log('[AI SUMMARY SMS SENDER] supabaseUrlLength:', process.env.SUPABASE_URL?.length || 0);
-    console.log('[AI SUMMARY SMS SENDER] Fetching business-specific phone number');
+    console.log('[AI SUMMARY SMS SENDER] Using session businessTwilioPhoneNumber');
     console.log('[AI SUMMARY SMS SENDER] Timestamp:', new Date().toISOString());
     console.log('[AI SUMMARY SMS SENDER] =========================================');
 
-    try {
-      // Fetch business phone number from database
-      const { data: business, error: businessError } = await supabase
-        .from('businesses')
-        .select('twilio_phone_number')
-        .eq('id', businessId)
-        .single();
+    // Use sessionBusinessTwilioNumber from ws object
+    const sessionBusinessTwilioPhoneNumber = (ws as any).businessTwilioPhoneNumber;
 
+    console.log('[AI SUMMARY SMS SENDER] =========================================');
+    console.log('[AI SUMMARY SMS SENDER] Session parameter result');
+    console.log('[AI SUMMARY SMS SENDER] sessionBusinessTwilioPhoneNumber:', sessionBusinessTwilioPhoneNumber);
+    console.log('[AI SUMMARY SMS SENDER] hasSessionNumber:', !!sessionBusinessTwilioPhoneNumber);
+    console.log('[AI SUMMARY SMS SENDER] Timestamp:', new Date().toISOString());
+    console.log('[AI SUMMARY SMS SENDER] =========================================');
+
+    if (sessionBusinessTwilioPhoneNumber) {
+      fromNumber = sessionBusinessTwilioPhoneNumber;
+      source = 'session_custom_parameter';
       console.log('[AI SUMMARY SMS SENDER] =========================================');
-      console.log('[AI SUMMARY SMS SENDER] Supabase query result');
-      console.log('[AI SUMMARY SMS SENDER] businessError:', businessError);
-      console.log('[AI SUMMARY SMS SENDER] business:', business);
-      console.log('[AI SUMMARY SMS SENDER] hasTwilioPhoneNumber:', !!business?.twilio_phone_number);
-      console.log('[AI SUMMARY SMS SENDER] twilioPhoneNumber:', business?.twilio_phone_number || 'null');
+      console.log('[AI SUMMARY SMS SENDER] selectedFromNumber:', fromNumber);
+      console.log('[AI SUMMARY SMS SENDER] source:', source);
+      console.log('[AI SUMMARY SMS SENDER] sourceTable:', sourceTable);
+      console.log('[AI SUMMARY SMS SENDER] sourceField:', sourceField);
+      console.log('[AI SUMMARY SMS SENDER] fallbackUsed:', fallbackUsed);
       console.log('[AI SUMMARY SMS SENDER] Timestamp:', new Date().toISOString());
       console.log('[AI SUMMARY SMS SENDER] =========================================');
-
-      if (businessError) {
-        console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
-        console.log('[AI SUMMARY SMS SENDER ERROR] Failed to fetch business phone number');
-        console.log('[AI SUMMARY SMS SENDER ERROR] Error code:', businessError.code);
-        console.log('[AI SUMMARY SMS SENDER ERROR] Error message:', businessError.message);
-        console.log('[AI SUMMARY SMS SENDER ERROR] Error details:', businessError.details);
-        console.log('[AI SUMMARY SMS SENDER ERROR] Error hint:', businessError.hint);
-        console.log('[AI SUMMARY SMS SENDER ERROR] Timestamp:', new Date().toISOString());
-        console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
-      } else if (business && business.twilio_phone_number) {
-        fromNumber = business.twilio_phone_number;
-        source = 'database';
-        console.log('[AI SUMMARY SMS SENDER] =========================================');
-        console.log('[AI SUMMARY SMS SENDER] selectedFromNumber:', fromNumber);
-        console.log('[AI SUMMARY SMS SENDER] source:', source);
-        console.log('[AI SUMMARY SMS SENDER] sourceTable:', sourceTable);
-        console.log('[AI SUMMARY SMS SENDER] sourceField:', sourceField);
-        console.log('[AI SUMMARY SMS SENDER] fallbackUsed:', fallbackUsed);
-        console.log('[AI SUMMARY SMS SENDER] Timestamp:', new Date().toISOString());
-        console.log('[AI SUMMARY SMS SENDER] =========================================');
-      } else {
-        console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
-        console.log('[AI SUMMARY SMS SENDER ERROR] No twilio_phone_number found in business record');
-        console.log('[AI SUMMARY SMS SENDER ERROR] businessId:', businessId);
-        console.log('[AI SUMMARY SMS SENDER ERROR] Timestamp:', new Date().toISOString());
-        console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
-      }
-    } catch (dbError) {
+    } else {
       console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
-      console.log('[AI SUMMARY SMS SENDER ERROR] Database query failed');
-      console.log('[AI SUMMARY SMS SENDER ERROR] Error:', String(dbError));
+      console.log('[AI SUMMARY SMS SENDER ERROR] No businessTwilioPhoneNumber in session');
+      console.log('[AI SUMMARY SMS SENDER ERROR] businessId:', businessId);
       console.log('[AI SUMMARY SMS SENDER ERROR] Timestamp:', new Date().toISOString());
       console.log('[AI SUMMARY SMS SENDER ERROR] =========================================');
     }
@@ -5690,9 +5665,9 @@ Return only JSON, no other text.`;
             forwardedFrom: params.forwardedFrom || req.headers['x-forwarded-from'] || '',
             callType: params.callType
           };
-          
+
           console.log('[CALL CONTEXT NORMALIZED]', callContext);
-          
+
           // Hard fail if required parameters are missing
           if (!callContext.businessId) {
             console.error('[CALL CONTEXT REQUIRED FAILED] businessId is missing');
@@ -5706,9 +5681,9 @@ Return only JSON, no other text.`;
             ws.close();
             return;
           }
-          
+
           console.log('[CALL CONTEXT REQUIRED OK] businessId and callSid present');
-          
+
           // Store callContext on ws for use throughout the call
           (ws as any).callContext = callContext;
           (ws as any).businessId = callContext.businessId;
@@ -5716,6 +5691,13 @@ Return only JSON, no other text.`;
           (ws as any).sessionId = callContext.sessionId;
           (ws as any).callerPhone = callContext.callerPhone;
           (ws as any).forwardedFrom = callContext.forwardedFrom;
+          (ws as any).businessTwilioPhoneNumber = params.businessTwilioPhoneNumber || null;
+
+          console.log('[CALL CONTEXT BUSINESS TWILIO PHONE]', {
+            businessTwilioPhoneNumber: (ws as any).businessTwilioPhoneNumber,
+            source: 'customParameters',
+            timestamp: new Date().toISOString()
+          });
           
           // Update local variables for backward compatibility
           sessionId = callContext.sessionId;
@@ -6510,7 +6492,8 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       intakeData!,
                       callSid || '',
                       callerPhone || '',
-                      businessId || ''
+                      businessId || '',
+                      ws
                     );
 
                     console.log('[SCRIPTED FLOW] =========================================');
@@ -6651,7 +6634,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       intakeComplete = true;
 
                       // Call idempotent finalization function
-                      finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '');
+                      finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '', ws);
 
                       enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
                       return; // Skip normal intake processing - NO MORE AI RESPONSES
@@ -6764,7 +6747,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       console.log('[SCRIPTED FLOW] =========================================');
 
                       // Call idempotent finalization function
-                      await finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '');
+                      await finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '', ws);
 
                       console.log('[SCRIPTED FLOW] =========================================');
                       console.log('[SCRIPTED FLOW] callback completion SMS sent');
