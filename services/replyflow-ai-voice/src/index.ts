@@ -1963,7 +1963,150 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
     case 'ask_name_reason':
       // Allowed: customerName, serviceRequested
       // Forbidden: issueDescription, serviceAddress, desiredCompletionTime, callbackTime
-      
+
+      // Deterministic parsing before GPT for ask_name_reason
+      console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
+      console.log('[SCRIPTED FLOW] deterministic name/reason parse Timestamp:', new Date().toISOString());
+      console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
+
+      let parsedName: string | null = null;
+      let parsedReason: string | null = null;
+      let usedFallbackGpt = false;
+
+      // Detect name patterns
+      const namePatterns = [
+        /my name is (\w+)/i,
+        /this is (\w+)/i,
+        /i'm (\w+)/i,
+        /i am (\w+)/i,
+        /i'm\s+(\w+)/i,
+        /i am\s+(\w+)/i
+      ];
+
+      for (const pattern of namePatterns) {
+        const match = transcript.match(pattern);
+        if (match && match[1]) {
+          parsedName = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+          console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
+          console.log('[SCRIPTED FLOW] parsedName:', parsedName);
+          console.log('[SCRIPTED FLOW] pattern:', pattern.toString());
+          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+          console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
+          break;
+        }
+      }
+
+      // Detect reason patterns
+      const reasonPatterns = [
+        /i want to (.+)/i,
+        /i would like to (.+)/i,
+        /i'd like to (.+)/i,
+        /i need (.+)/i,
+        /calling about (.+)/i,
+        /i'm calling about (.+)/i,
+        /i am calling about (.+)/i
+      ];
+
+      for (const pattern of reasonPatterns) {
+        const match = transcript.match(pattern);
+        if (match && match[1]) {
+          parsedReason = match[1].trim();
+          // Capitalize first letter
+          parsedReason = parsedReason.charAt(0).toUpperCase() + parsedReason.slice(1);
+          console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
+          console.log('[SCRIPTED FLOW] parsedReason:', parsedReason);
+          console.log('[SCRIPTED FLOW] pattern:', pattern.toString());
+          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+          console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
+          break;
+        }
+      }
+
+      console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
+      console.log('[SCRIPTED FLOW] parsedName:', parsedName);
+      console.log('[SCRIPTED FLOW] parsedReason:', parsedReason);
+      console.log('[SCRIPTED FLOW] usedFallbackGpt:', usedFallbackGpt);
+      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+      console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
+
+      // If both parsed, set both fields and advance to ask_details
+      if (parsedName && parsedReason) {
+        if (!intake.customerName) {
+          intake.customerName = parsedName;
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[FIELD ASSIGNMENT] field: customerName');
+          console.log('[FIELD ASSIGNMENT] oldValue:', intake.customerName);
+          console.log('[FIELD ASSIGNMENT] newValue:', parsedName);
+          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+          console.log('[FIELD ASSIGNMENT] sourceFunction: deterministic name/reason parse');
+          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+          console.log('[FIELD ASSIGNMENT] =========================================');
+        }
+        if (!intake.serviceRequested) {
+          intake.serviceRequested = parsedReason;
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[FIELD ASSIGNMENT] field: serviceRequested');
+          console.log('[FIELD ASSIGNMENT] oldValue:', intake.serviceRequested);
+          console.log('[FIELD ASSIGNMENT] newValue:', parsedReason);
+          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+          console.log('[FIELD ASSIGNMENT] sourceFunction: deterministic name/reason parse');
+          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+          console.log('[FIELD ASSIGNMENT] =========================================');
+        }
+        // Advance to ask_details since both fields are present
+        intake.stage = 'ask_details';
+        console.log('[SCRIPTED FLOW] =========================================');
+        console.log('[SCRIPTED FLOW] both fields parsed deterministically, advancing to ask_details');
+        console.log('[SCRIPTED FLOW] newStage:', intake.stage);
+        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+        console.log('[SCRIPTED FLOW] =========================================');
+        return;
+      }
+
+      // If only name parsed, set name and let flow continue to ask_reason_recovery
+      if (parsedName && !parsedReason) {
+        if (!intake.customerName) {
+          intake.customerName = parsedName;
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[FIELD ASSIGNMENT] field: customerName');
+          console.log('[FIELD ASSIGNMENT] oldValue:', intake.customerName);
+          console.log('[FIELD ASSIGNMENT] newValue:', parsedName);
+          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+          console.log('[FIELD ASSIGNMENT] sourceFunction: deterministic name/reason parse');
+          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+          console.log('[FIELD ASSIGNMENT] =========================================');
+        }
+        // Continue to existing extraction logic for reason
+      }
+
+      // If only reason parsed, set reason and let flow continue to ask_name_recovery
+      if (!parsedName && parsedReason) {
+        if (!intake.serviceRequested) {
+          intake.serviceRequested = parsedReason;
+          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[FIELD ASSIGNMENT] field: serviceRequested');
+          console.log('[FIELD ASSIGNMENT] oldValue:', intake.serviceRequested);
+          console.log('[FIELD ASSIGNMENT] newValue:', parsedReason);
+          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
+          console.log('[FIELD ASSIGNMENT] sourceFunction: deterministic name/reason parse');
+          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
+          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
+          console.log('[FIELD ASSIGNMENT] =========================================');
+        }
+        // Continue to existing extraction logic for name
+      }
+
+      // If neither parsed, use existing GPT/extraction logic as fallback
+      usedFallbackGpt = true;
+      console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
+      console.log('[SCRIPTED FLOW] usedFallbackGpt:', usedFallbackGpt);
+      console.log('[SCRIPTED FLOW] reason: no deterministic match found, using existing extraction logic');
+      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+      console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
+
       // Extract name if not already captured
       if (!intake.customerName) {
         const oldName = intake.customerName;
