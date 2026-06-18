@@ -829,12 +829,12 @@ async function finalizeCompleteIntakeOnce(
       summaryParts.push(`- Details: ${intakeData.issueDescription}`);
     }
 
-    if (intakeData.desiredCompletionTime) {
-      summaryParts.push(`- Desired Completion Time: ${intakeData.desiredCompletionTime}`);
-    }
-
     if (intakeData.serviceAddress) {
       summaryParts.push(`- Location: ${intakeData.serviceAddress}`);
+    }
+
+    if (intakeData.desiredCompletionTime) {
+      summaryParts.push(`- Desired Completion Time: ${intakeData.desiredCompletionTime}`);
     }
 
     if (intakeData.callbackTime) {
@@ -5314,11 +5314,11 @@ Return only JSON, no other text.`;
           let partialSummary = intakeData ?
             `Partial AI intake information:\n` +
             `Name: ${intakeData.customerName || 'Not provided'}\n` +
-            `Service: ${intakeData.serviceRequested || 'Not provided'}\n` +
+            `Reason: ${intakeData.serviceRequested || 'Not provided'}\n` +
             `Details: ${intakeData.issueDescription || 'Not provided'}\n` +
             `Location: ${intakeData.serviceAddress || 'Not provided'}\n` +
-            `Completion time: ${intakeData.desiredCompletionTime || 'Not provided'}\n` +
-            `Callback time: ${intakeData.callbackTime || 'Not provided'}` :
+            `Desired Completion Time: ${intakeData.desiredCompletionTime || 'Not provided'}\n` +
+            `Best Callback Time: ${intakeData.callbackTime || 'Not provided'}` :
             'AI call transcript available but extraction failed';
 
           const { error: messageError } = await supabase
