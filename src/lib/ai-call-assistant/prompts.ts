@@ -29,8 +29,8 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
   nameReasonQuestion: string
   detailsQuestion: string
   desiredCompletionQuestion: string
-  locationQuestion: string | null
-  callbackTimeQuestion: string | null
+  locationQuestion: string
+  callbackTimeQuestion: string
   confirmationFormat: (data: any) => string
 }> = {
   home_services: {
@@ -138,7 +138,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     nameReasonQuestion: "Could you tell me your name and what you need help with?",
     detailsQuestion: "Can you share any important details about your travel plans?",
     desiredCompletionQuestion: "When are you looking to travel?",
-    locationQuestion: null,
+    locationQuestion: "Where are you located?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
@@ -258,7 +258,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     nameReasonQuestion: "Could you tell me your name and what you need help with?",
     detailsQuestion: "Can you share any important details about the service?",
     desiredCompletionQuestion: "When would you like to have this work done?",
-    locationQuestion: null,
+    locationQuestion: "Where is the service location?",
     callbackTimeQuestion: "What's the best time for someone to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
@@ -463,6 +463,17 @@ LANGUAGE REQUIREMENTS:
 BUSINESS CONTEXT:
 ${businessTypeContext}
 
+CRITICAL INTAKE FLOW ORDER:
+The intake flow order is fixed and must never change based on business type. Business type only changes wording of the predefined question. Do not reorder, skip, insert, or replace stages.
+
+Fixed intake sequence for ALL business types:
+1. Name + reason for calling
+2. Details about the job/project/issue
+3. Location / service address
+4. When the customer wants the work completed
+5. Best time for the business to call back
+6. Final goodbye
+
 IMPORTANT: The business type is context ONLY. Do NOT ask extra industry-specific questions. Only ask the predefined intake questions in order. Business type should only slightly tailor the wording of the existing predefined questions, not add new questions or change the flow.
 
 ADAPTIVE INFORMATION GATHERING:
@@ -643,7 +654,40 @@ export function logSelectedQuestion(businessType: string, stage: string, questio
 }
 
 /**
- * Intake questions in order - now adaptive (reason before name)
+ * Log AI stage transition for debugging
+ */
+export function logStageTransition(currentStage: string, nextStage: string, businessType: string) {
+  console.log('[AI STAGE TRANSITION]', {
+    currentStage,
+    nextStage,
+    businessType
+  })
+}
+
+/**
+ * Log AI field status for debugging
+ */
+export function logFieldStatus(fields: {
+  customerName?: string | null
+  serviceRequested?: string | null
+  importantDetails?: string | null
+  serviceAddress?: string | null
+  desiredCompletionTime?: string | null
+  preferredCallbackTime?: string | null
+}) {
+  console.log('[AI FIELD STATUS]', {
+    customerName: fields.customerName || null,
+    serviceRequested: fields.serviceRequested || null,
+    importantDetails: fields.importantDetails || null,
+    serviceAddress: fields.serviceAddress || null,
+    desiredCompletionTime: fields.desiredCompletionTime || null,
+    preferredCallbackTime: fields.preferredCallbackTime || null
+  })
+}
+
+/**
+ * Intake questions in order - fixed sequence for all business types
+ * Business type only affects wording, not order
  */
 export function getIntakeQuestions(category: BusinessCategory = 'general_service') {
   const config = CATEGORY_INTAKE_CONFIG[category]
@@ -660,29 +704,21 @@ export function getIntakeQuestions(category: BusinessCategory = 'general_service
       prompt: "Ask for important project details - ALWAYS ask this even if caller provides brief reason"
     },
     {
+      field: 'service_address',
+      question: config.locationQuestion,
+      prompt: "Ask for the service address or location"
+    },
+    {
       field: 'desired_completion',
       question: config.desiredCompletionQuestion,
       prompt: "Ask when they want the work done"
-    }
-  ]
-  
-  // Add location question if applicable
-  if (config.locationQuestion) {
-    questions.push({
-      field: 'address',
-      question: config.locationQuestion,
-      prompt: "Ask for the service address or location"
-    })
-  }
-  
-  // Add callback time question if applicable
-  if (config.callbackTimeQuestion) {
-    questions.push({
-      field: 'callback_time',
+    },
+    {
+      field: 'preferred_callback_time',
       question: config.callbackTimeQuestion,
       prompt: "Ask for the best callback time"
-    })
-  }
+    }
+  ]
 
   return questions
 }
