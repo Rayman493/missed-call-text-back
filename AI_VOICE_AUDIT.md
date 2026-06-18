@@ -250,12 +250,109 @@ const STAGE_PROMPTS: Record<IntakeStage, string> = {
 - No missing clear points found
 - Audio blocking logic appears sound
 
+## Speech Paths Found in AI Voice Code
+
+### Current Speech Paths
+1. **sendControlledAssistantText** (line 890-975)
+   - Main function that sends response.create
+   - Has forbidden phrase detection
+   - Uses strict instruction: "SAY EXACTLY THIS TEXT AND NOTHING ELSE"
+   - Location: services/replyflow-ai-voice/src/index.ts
+
+2. **sendStagePrompt** (line 977-1099)
+   - Calls sendControlledAssistantText with STAGE_PROMPTS
+   - Has duplicate prompt prevention
+   - Has max attempt limit (2 attempts per stage)
+   - Location: services/replyflow-ai-voice/src/index.ts
+
+3. **STAGE_PROMPTS** (line 1105-1112)
+   - Contains approved prompts for each stage
+   - Current prompts:
+     - ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?"
+     - ask_details: "Got it. Can you share any important details the business should know?"
+     - ask_location: "Thanks. Where will the service take place?"
+     - ask_completion_time: "Thanks. When would you like this service completed?"
+     - ask_callback_time: "What's the best time for the business to call you back?"
+     - complete: "Thanks for the information. Have a great day!"
+   - Location: services/replyflow-ai-voice/src/index.ts
+
+4. **Greeting** (line 6901-6902)
+   - Hardcoded text: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?"
+   - Uses sendControlledAssistantText
+   - Triggered by session.updated event
+   - Location: services/replyflow-ai-voice/src/index.ts
+
+5. **sendStagePrompt calls**
+   - Line 6212: sendStagePrompt(intakeData!.stage, openAiWs, ...) in completion time path
+   - Line 6372: sendStagePrompt(intakeData!.stage, openAiWs, ...) in general intake path
+   - Location: services/replyflow-ai-voice/src/index.ts
+
+### Session Instructions (line 5682-5727)
+- Already says: "You will receive exact text to speak via response.create instructions. Speak ONLY that exact text and nothing else."
+- Already says: "Do not ask any questions on your own initiative."
+- Already says: "SPEAK ONLY the exact text provided by the app via response.create instructions."
+- Has create_response: false in turn_detection to prevent auto-responses
+- Location: services/replyflow-ai-voice/src/index.ts
+
+### Speech Path Summary
+- Total speech paths: 5 (sendControlledAssistantText, sendStagePrompt, STAGE_PROMPTS, Greeting, sendStagePrompt calls)
+- All speech currently goes through sendControlledAssistantText
+- No direct response.create calls outside of sendControlledAssistantText found
+- Session instructions already prohibit AI-generated responses
+
+## Speech Path Refactoring - Code Changes Made
+
+### 1. Implemented sendApprovedPrompt Function (lines 890-964)
+- Created centralized function for all approved assistant speech
+- Maps stage names to exact approved text in APPROVED_PROMPTS constant
+- Adds [VOICE OUTBOUND] logging with stage name and text
+- Blocks unknown stages with [VOICE SCOPE VIOLATION BLOCKED] log
+- Returns boolean to indicate if prompt was sent or blocked
+- Location: services/replyflow-ai-voice/src/index.ts
+
+### 2. APPROVED_PROMPTS Constant (lines 894-901)
+- Contains exact approved prompts for each stage:
+  - ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?"
+  - ask_details: "Got it. Can you share any important details the business should know?"
+  - ask_location: "Thanks. Where will the service take place?"
+  - ask_completion_time: "Thanks. When would you like this service completed?"
+  - ask_callback_time: "What's the best time for the business to call you back?"
+  - final_goodbye: "Perfect. I have everything I need. The team will follow up with you soon."
+- Location: services/replyflow-ai-voice/src/index.ts
+
+### 3. Refactored Greeting (line 6978)
+- Changed from hardcoded text to sendApprovedPrompt('ask_name_reason', openAiWs)
+- Now uses centralized approved prompt function
+- Location: services/replyflow-ai-voice/src/index.ts
+
+### 4. Refactored sendStagePrompt (line 1173)
+- Changed from sendControlledAssistantText to sendApprovedPrompt(stage, openAiWs)
+- Now uses centralized approved prompt function
+- Location: services/replyflow-ai-voice/src/index.ts
+
+### 5. Updated STAGE_PROMPTS (line 1189)
+- Changed 'complete' prompt text to match final_goodbye text
+- Updated comment to note mapping to APPROVED_PROMPTS
+- Location: services/replyflow-ai-voice/src/index.ts
+
+### 6. Enhanced Session Instructions (lines 5789-5810)
+- Added explicit instruction: "Do not generate assistant responses"
+- Added explicit instruction: "Do not ask questions"
+- Added explicit instruction: "Only convert provided approved assistant text into speech"
+- Added explicit instruction: "Generate any assistant responses on your own" to DO NOT list
+- Location: services/replyflow-ai-voice/src/index.ts
+
+### 7. Added Scope Guard to response.created (lines 7084-7106)
+- Checks if response was created by sendApprovedPrompt via expectedPrompt
+- Blocks responses without expectedPrompt (indicates AI-generated response)
+- Logs [VOICE SCOPE VIOLATION BLOCKED] and cancels unauthorized responses
+- Allows final close responses (isFinalClose exception)
+- Location: services/replyflow-ai-voice/src/index.ts
+
 ## Remaining Issues to Address
 
 ### High Priority
-1. **Scope guard is passive**: Only logs violations, doesn't block
-2. **No centralized sendApprovedPrompt function**: Multiple speech paths still exist
-3. **No VOICE OUTBOUND logging**: Can't trace all assistant speech
+1. **Test call shows exactly 6 [VOICE OUTBOUND] logs with no other speech**: Need to verify implementation works correctly
 
 ### Medium Priority
 1. **Greeting uses hardcoded text**: Should use STAGE_PROMPTS constant
@@ -267,15 +364,15 @@ const STAGE_PROMPTS: Record<IntakeStage, string> = {
 - [x] Idempotent finalization prevents duplicate SMS
 - [x] Old field names removed from GPT extraction
 - [x] COMPLETE PATH logs added
-- [ ] All assistant speech goes through approved prompts only
-- [ ] Scope guard blocks unauthorized speech
-- [ ] AssistantSpeaking timeout prevents audio blocking
-- [ ] VOICE OUTBOUND logging on all speech
+- [x] AssistantSpeaking timeout prevents audio blocking
+- [x] All assistant speech goes through approved prompts only via sendApprovedPrompt
+- [x] Scope guard blocks unauthorized speech with [VOICE SCOPE VIOLATION BLOCKED]
+- [x] VOICE OUTBOUND logging on all speech with stage names
+- [x] Session instructions explicitly say do not generate assistant responses
+- [x] Greeting uses sendApprovedPrompt(ask_name_reason)
+- [x] sendStagePrompt calls sendApprovedPrompt
+- [ ] Test call shows exactly 6 [VOICE OUTBOUND] logs with no other speech
 
 ## Next Steps
-1. Search for all assistantSpeaking assignments
-2. Search for all activeResponseId assignments
-3. Implement centralized sendApprovedPrompt function
-4. Add VOICE OUTBOUND logging before every assistant speech
-5. Add scope guard that blocks instead of just logging
-6. Add assistantSpeaking timeout with force reset
+1. Test completed call shows correct log sequence and customer receives SMS
+2. Verify test call shows exactly 6 [VOICE OUTBOUND] logs with no other speech

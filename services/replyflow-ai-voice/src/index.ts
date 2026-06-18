@@ -887,6 +887,82 @@ function createIntakeData(businessName: string, callSid: string, businessId: str
 let expectedPrompt: string | null = null;
 let currentResponseId: string | null = null;
 
+/**
+ * Approved prompts for each stage - ONLY these prompts are allowed to be spoken
+ * Every assistant speech must go through sendApprovedPrompt(stage)
+ */
+const APPROVED_PROMPTS: Record<string, string> = {
+  ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
+  ask_details: "Got it. Can you share any important details the business should know?",
+  ask_location: "Thanks. Where will the service take place?",
+  ask_completion_time: "Thanks. When would you like this service completed?",
+  ask_callback_time: "What's the best time for the business to call you back?",
+  final_goodbye: "Perfect. I have everything I need. The team will follow up with you soon."
+};
+
+/**
+ * Centralized function for all approved assistant speech
+ * This is the ONLY function that should create assistant responses
+ * @param stage - The approved stage name (must be in APPROVED_PROMPTS)
+ * @param openAiWs - OpenAI WebSocket connection
+ * @returns true if prompt was sent, false if blocked
+ */
+function sendApprovedPrompt(stage: string, openAiWs: any): boolean {
+  // Block unknown stages
+  if (!APPROVED_PROMPTS[stage]) {
+    console.log('[VOICE SCOPE VIOLATION BLOCKED] =========================================');
+    console.log('[VOICE SCOPE VIOLATION BLOCKED] Unknown stage requested:', stage);
+    console.log('[VOICE SCOPE VIOLATION BLOCKED] Approved stages:', Object.keys(APPROVED_PROMPTS).join(', '));
+    console.log('[VOICE SCOPE VIOLATION BLOCKED] Blocking this speech');
+    console.log('[VOICE SCOPE VIOLATION BLOCKED] Timestamp:', new Date().toISOString());
+    console.log('[VOICE SCOPE VIOLATION BLOCKED] =========================================');
+    return false;
+  }
+
+  const approvedText = APPROVED_PROMPTS[stage];
+
+  // Log [VOICE OUTBOUND] with stage name
+  console.log('[VOICE OUTBOUND] =========================================');
+  console.log('[VOICE OUTBOUND] Stage:', stage);
+  console.log('[VOICE OUTBOUND] Text:', approvedText);
+  console.log('[VOICE OUTBOUND] Source: sendApprovedPrompt');
+  console.log('[VOICE OUTBOUND] Timestamp:', new Date().toISOString());
+  console.log('[VOICE OUTBOUND] =========================================');
+
+  // Track expected prompt for verification
+  expectedPrompt = approvedText;
+  currentResponseId = null;
+
+  // Use strict instruction
+  const strictInstruction = `SAY EXACTLY THIS TEXT AND NOTHING ELSE: "${approvedText}"
+
+Do NOT paraphrase.
+Do NOT expand.
+Do NOT modify.
+Do NOT add any words.
+Do NOT add conversational elements.
+Do NOT add greetings or acknowledgments.
+Speak ONLY the exact text in quotes above.`;
+
+  const message = {
+    type: 'response.create',
+    response: {
+      instructions: strictInstruction,
+    },
+  };
+
+  if (openAiWs) {
+    openAiWs.send(JSON.stringify(message));
+    console.log('[APPROVED RESPONSE CREATE SENT] =========================================');
+    console.log('[APPROVED RESPONSE CREATE SENT] Response.create sent for stage:', stage);
+    console.log('[APPROVED RESPONSE CREATE SENT] Timestamp:', new Date().toISOString());
+    console.log('[APPROVED RESPONSE CREATE SENT] =========================================');
+    return true;
+  }
+
+  return false;
+}
+
 function sendControlledAssistantText(text: string, reason: string, openAiWs: any): void {
   // Track expected prompt for verification
   expectedPrompt = text;
@@ -1093,14 +1169,16 @@ function sendStagePrompt(
     }
   }, 500);
 
-  sendControlledAssistantText(prompt, `STAGE_PROMPT_${stage.toUpperCase()}`, openAiWs);
-  responseSent = true;
+  // Use centralized sendApprovedPrompt for all stage prompts
+  const sent = sendApprovedPrompt(stage, openAiWs);
+  responseSent = sent;
   clearTimeout(watchdogTimer);
 }
 
 /**
  * Predefined prompts for each intake stage
  * The model may only speak these exact questions provided by the app
+ * Note: These prompts are now mapped to APPROVED_PROMPTS in sendApprovedPrompt
  */
 const STAGE_PROMPTS: Record<IntakeStage, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
@@ -1108,7 +1186,7 @@ const STAGE_PROMPTS: Record<IntakeStage, string> = {
   ask_location: "Thanks. Where will the service take place?",
   ask_completion_time: "Thanks. When would you like this service completed?",
   ask_callback_time: "What's the best time for the business to call you back?",
-  complete: "Thanks for the information. Have a great day!"
+  complete: "Perfect. I have everything I need. The team will follow up with you soon."
 };
 
 /**
@@ -5708,6 +5786,12 @@ Do not paraphrase, expand, or modify the provided text.
 Do not add greetings, acknowledgments, or conversational elements.
 Do not ask any questions on your own initiative.
 
+IMPORTANT: Do not generate assistant responses.
+Do not ask questions.
+Only convert provided approved assistant text into speech.
+The app will send you exact text to speak via response.create instructions.
+You must speak ONLY that exact text and nothing else.
+
 LANGUAGE RULE:
 Speak English only. Do not switch languages or imitate accents.
 
@@ -5723,6 +5807,7 @@ DO NOT:
 - Ask additional questions
 - Provide any conversational elements
 - Add filler words or phrases
+- Generate any assistant responses on your own
 
 SPEAK ONLY the exact text provided by the app via response.create instructions.`,
                   audio: {
@@ -6898,8 +6983,8 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[CODE OWNED FIRST PROMPT SENT] Timestamp:', new Date().toISOString());
                   console.log('[CODE OWNED FIRST PROMPT SENT] =========================================');
                   
-                  const greetingText = `Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?`;
-                  sendControlledAssistantText(greetingText, 'INITIAL_PROMPT', openAiWs);
+                  // Use centralized sendApprovedPrompt for greeting
+                  sendApprovedPrompt('ask_name_reason', openAiWs);
                   greetingSent = true;
                   updateAISessionState(aiSessionTracker, 'GREETING_SENT', 'Greeting response.create sent');
                   console.log('[GREETING SENT]');
@@ -6995,7 +7080,31 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[OPENAI ACTUAL RESPONSE ID] Final closing started:', (twilioHandler as any).finalClosingStarted);
                 console.log('[OPENAI ACTUAL RESPONSE ID] Timestamp:', new Date().toISOString());
                 console.log('[OPENAI ACTUAL RESPONSE ID] =========================================');
-                
+
+                // Scope guard: Check if this response was created by sendApprovedPrompt
+                // All approved responses should have expectedPrompt set
+                const isFinalClose = (twilioHandler as any).finalClosingStarted;
+                if (!expectedPrompt && !isFinalClose) {
+                  console.log('[VOICE SCOPE VIOLATION BLOCKED] =========================================');
+                  console.log('[VOICE SCOPE VIOLATION BLOCKED] response.created detected without expectedPrompt');
+                  console.log('[VOICE SCOPE VIOLATION BLOCKED] This indicates AI generated a response instead of using approved prompts');
+                  console.log('[VOICE SCOPE VIOLATION BLOCKED] Response ID:', actualResponseId);
+                  console.log('[VOICE SCOPE VIOLATION BLOCKED] Stage:', intakeData?.stage || 'unknown');
+                  console.log('[VOICE SCOPE VIOLATION BLOCKED] Canceling this response');
+                  console.log('[VOICE SCOPE VIOLATION BLOCKED] Timestamp:', new Date().toISOString());
+                  console.log('[VOICE SCOPE VIOLATION BLOCKED] =========================================');
+
+                  // Cancel the unauthorized response
+                  if (openAiWs) {
+                    openAiWs.send(JSON.stringify({
+                      type: 'response.cancel',
+                      response_id: actualResponseId
+                    }));
+                    console.log('[UNAUTHORIZED RESPONSE CANCELED] Response cancel command sent');
+                  }
+                  return; // Do not process this response
+                }
+
                 // If this is the final close response, store the actual OpenAI response ID
                 if ((twilioHandler as any).finalClosingStarted) {
                   (twilioHandler as any).finalClosingResponseId = actualResponseId;
