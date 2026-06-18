@@ -266,7 +266,7 @@ interface CallContext {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_name_reason' | 'ask_details' | 'ask_location' | 'ask_completion_time' | 'ask_callback_time' | 'complete';
+type IntakeStage = 'ask_name_reason' | 'ask_reason_recovery' | 'ask_details' | 'ask_location' | 'ask_completion_time' | 'ask_callback_time' | 'complete';
 
 /**
  * AI Intake Flow Documentation
@@ -1040,6 +1040,7 @@ let authorizedResponseCreateSource: string | null = null;
  */
 const APPROVED_PROMPTS: Record<string, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
+  ask_reason_recovery: "Thanks. What are you calling about today?",
   ask_details: "Got it. Can you share any important details the business should know?",
   ask_location: "Thanks. What address or location is this for?",
   ask_completion_time: "Got it. When would you like this work completed?",
@@ -1338,6 +1339,14 @@ function sendStagePrompt(
     console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
     console.log('[SCRIPTED FLOW] =========================================');
   }
+
+  // Add specific log for ask_callback_time prompt sent result
+  if (stage === 'ask_callback_time') {
+    console.log('[SCRIPTED FLOW] =========================================');
+    console.log('[SCRIPTED FLOW] ask_callback_time prompt sent result:', sent);
+    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+    console.log('[SCRIPTED FLOW] =========================================');
+  }
 }
 
 /**
@@ -1347,6 +1356,7 @@ function sendStagePrompt(
  */
 const STAGE_PROMPTS: Record<IntakeStage, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
+  ask_reason_recovery: "Thanks. What are you calling about today?",
   ask_details: "Got it. Can you share any important details the business should know?",
   ask_location: "Thanks. What address or location is this for?",
   ask_completion_time: "Got it. When would you like this work completed?",
@@ -1356,7 +1366,7 @@ const STAGE_PROMPTS: Record<IntakeStage, string> = {
 
 /**
  * Simple scripted stage progression - deterministic, no GPT decisions
- * The app follows a fixed sequence: ask_name_reason → ask_details → ask_location → ask_completion_time → ask_callback_time → complete
+ * The app follows a fixed sequence: ask_name_reason → ask_reason_recovery → ask_details → ask_location → ask_completion_time → ask_callback_time → complete
  */
 function getNextStage(currentStage: IntakeStage): IntakeStage {
   console.log('[SCRIPTED FLOW] =========================================');
@@ -1365,6 +1375,7 @@ function getNextStage(currentStage: IntakeStage): IntakeStage {
 
   const stageSequence: Record<IntakeStage, IntakeStage> = {
     ask_name_reason: 'ask_details',
+    ask_reason_recovery: 'ask_details',
     ask_details: 'ask_location',
     ask_location: 'ask_completion_time',
     ask_completion_time: 'ask_callback_time',
@@ -1408,6 +1419,16 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
         console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
         console.log('[SCRIPTED FLOW] =========================================');
         break;
+      case 'ask_reason_recovery':
+        // Save transcript as serviceRequested
+        intake.serviceRequested = transcript.trim();
+        console.log('[SCRIPTED FLOW] =========================================');
+        console.log('[SCRIPTED FLOW] field saved');
+        console.log('[SCRIPTED FLOW] field: serviceRequested');
+        console.log('[SCRIPTED FLOW] value:', transcript.trim());
+        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+        console.log('[SCRIPTED FLOW] =========================================');
+        break;
       case 'ask_details':
         intake.issueDescription = transcript.trim();
         console.log('[SCRIPTED FLOW] =========================================');
@@ -1429,7 +1450,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
       case 'ask_completion_time':
         intake.desiredCompletionTime = transcript.trim();
         console.log('[SCRIPTED FLOW] =========================================');
-        console.log('[SCRIPTED FLOW] field saved');
+        console.log('[SCRIPTED FLOW] after completion time save');
         console.log('[SCRIPTED FLOW] field: desiredCompletionTime');
         console.log('[SCRIPTED FLOW] value:', transcript.trim());
         console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
@@ -1447,6 +1468,21 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
     }
   }
 
+  // Special handling for ask_name_reason: check if serviceRequested is missing
+  if (intake.stage === 'ask_name_reason' && intake.customerName && !intake.serviceRequested) {
+    console.log('[SCRIPTED FLOW] =========================================');
+    console.log('[SCRIPTED FLOW] customerName present but serviceRequested missing');
+    console.log('[SCRIPTED FLOW] sending ask_reason_recovery instead of advancing');
+    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+    console.log('[SCRIPTED FLOW] =========================================');
+
+    const response = APPROVED_PROMPTS.ask_reason_recovery;
+    return {
+      response,
+      nextStage: 'ask_reason_recovery'
+    };
+  }
+
   // App determines next stage deterministically (fixed sequence)
   const nextStage = getNextStage(intake.stage);
 
@@ -1458,6 +1494,15 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
   console.log('[PREDEFINED PROMPT SENT] questionText:', response);
   console.log('[PREDEFINED PROMPT SENT] Timestamp:', new Date().toISOString());
   console.log('[PREDEFINED PROMPT SENT] =========================================');
+
+  // Add specific logs for ask_callback_time prompt
+  if (nextStage === 'ask_callback_time') {
+    console.log('[SCRIPTED FLOW] =========================================');
+    console.log('[SCRIPTED FLOW] advancing to ask_callback_time');
+    console.log('[SCRIPTED FLOW] sending ask_callback_time prompt');
+    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+    console.log('[SCRIPTED FLOW] =========================================');
+  }
 
   return {
     response,
