@@ -1921,6 +1921,16 @@ export const db = {
         if (businessData.auto_reply_message && businessData.auto_reply_message.trim()) {
           updates.auto_reply_message = businessData.auto_reply_message.trim()
         }
+
+        // Update business_type if provided
+        if (businessData.business_type && businessData.business_type.trim()) {
+          updates.business_type = businessData.business_type.trim()
+        }
+
+        // Update business_type_other if provided
+        if (businessData.business_type_other !== undefined && businessData.business_type_other !== null) {
+          updates.business_type_other = businessData.business_type_other.trim() || null
+        }
         
         // Update onboarding_status if provided - with server-side validation
         if (businessData.onboarding_status) {
@@ -2008,6 +2018,8 @@ export const db = {
       name: businessData.name,
       twilio_phone_number: businessData?.twilio_phone_number || null, // Will be set during provisioning
       business_phone_number: businessData.business_phone_number,
+      business_type: businessData?.business_type || null,
+      business_type_other: businessData?.business_type_other || null,
       auto_reply_message: businessData?.auto_reply_message || null, // No default - use context-specific templates in SMS routes
       subscription_status: null, // Don't set subscription status during business creation - Stripe webhook should be the source of truth
       stripe_customer_id: businessData?.stripe_customer_id || null,

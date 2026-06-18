@@ -5064,44 +5064,49 @@ Return only JSON, no other text.`;
           // Fetch business data if businessId is available
           let businessName: string | null = null;
           let businessType = '';
+          let businessTypeOther = '';
           let customGreeting = '';
-          
+
           console.log('[SUPABASE CLIENT CREATED]', supabase ? 'YES' : 'NO');
           console.log('[BUSINESS LOOKUP START]', { businessId, hasSupabase: !!supabase });
-          
+
           if (businessId && supabase) {
             try {
               console.log('[BUSINESS LOOKUP EXECUTING]', { businessId });
               const { data: business, error } = await supabase
                 .from('businesses')
-                .select('name')
+                .select('name, business_type, business_type_other')
                 .eq('id', businessId)
                 .single() as any;
-              
+
               console.log('[BUSINESS LOOKUP RESULT]', { business, error });
               if (business) {
-                console.log('[BUSINESS RECORD]', { 
-                  businessId: business.id, 
+                console.log('[BUSINESS RECORD]', {
+                  businessId: business.id,
                   businessName: business.name,
+                  businessType: business.business_type,
+                  businessTypeOther: business.business_type_other,
                   availableFields: Object.keys(business)
                 });
               }
-              
+
               if (error) {
                 console.log('[BUSINESS LOOKUP ERROR]', error);
                 console.log('[BUSINESS LOOKUP FAILED]', { hasSupabase: false, error: error.message });
               } else if (business) {
                 businessName = business.name;
-                businessType = ''; // Default empty since type column doesn't exist
+                businessType = business.business_type || '';
+                businessTypeOther = business.business_type_other || '';
                 customGreeting = ''; // Default empty since custom_greeting column doesn't exist
                 console.log('[BUSINESS NAME RESOLVED]', businessName);
                 console.log('[BUSINESS LOOKUP SUCCESS]', {
                   businessId,
                   businessName,
                   businessType,
+                  businessTypeOther,
                   hasCustomGreeting: !!customGreeting
                 });
-                console.log('[AI] business loaded', { businessName, businessType, hasCustomGreeting: !!customGreeting });
+                console.log('[AI] business loaded', { businessName, businessType, businessTypeOther, hasCustomGreeting: !!customGreeting });
               } else {
                 console.log('[BUSINESS LOOKUP FAILED]', { hasSupabase: true, error: 'No business found with ID' });
               }
@@ -5341,6 +5346,11 @@ Return only JSON, no other text.`;
                   instructions: `You are the AI receptionist for businesses.
 
 Your job is to politely answer missed calls for businesses and gather operationally important information.
+
+BUSINESS CONTEXT:
+Business Name: ${businessName || 'Unknown'}
+${businessType ? `Business Type: ${businessType}` : ''}
+${businessTypeOther ? `Custom Business Type: ${businessTypeOther}` : ''}
 
 LANGUAGE RULE:
 You must speak English only.
