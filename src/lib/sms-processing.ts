@@ -997,11 +997,11 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         }
 
         if (nameCorrection && nameCorrection.newValue) {
-          leadUpdatePayload.contact_name = nameCorrection.newValue
-          console.log('[AI CORRECTION UPDATING LEAD CONTACT_NAME]', {
+          leadUpdatePayload.name = nameCorrection.newValue
+          console.log('[AI CORRECTION UPDATING LEAD NAME]', {
             leadId: lead.id,
-            oldContactName: lead.contact_name,
-            newContactName: nameCorrection.newValue
+            oldName: lead.name,
+            newName: nameCorrection.newValue
           })
         }
 
@@ -1030,95 +1030,14 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           })
 
           // Send correction acknowledgement SMS for real Twilio messages, not dev simulations
+          // CORRECTION ACKNOWLEDGEMENT SMS DISABLED BY DESIGN
+          // Do not send correction confirmation SMS unless intentionally re-enabled
           if (source === 'twilio') {
-            console.log('[CORRECTION ACKNOWLEDGEMENT SMS START]', {
+            console.log('[CORRECTION ACKNOWLEDGEMENT SMS DISABLED]', {
               leadId: leadWithCorrection.id,
               totalCorrections: correctedFields.length,
               corrections: correctedFields,
-              aiConfirmationSmsSent: leadWithCorrection?.raw_metadata?.ai_confirmation_sms_sent
-            })
-
-            // Check if AI confirmation SMS has been sent
-            const aiConfirmationSmsSent = leadWithCorrection?.raw_metadata?.ai_confirmation_sms_sent
-
-            if (aiConfirmationSmsSent) {
-              // Build acknowledgement message for all corrections using field-specific function
-              const acknowledgementMessage = generateMultiFieldAcknowledgement(correctedFields)
-
-              console.log('[CORRECTION ACKNOWLEDGEMENT GENERATED]', {
-                leadId: leadWithCorrection.id,
-                totalCorrections: correctedFields.length,
-                corrections: correctedFields,
-                acknowledgementMessage
-              })
-
-              const messageSid = await sendSms(business, from, acknowledgementMessage, {
-                lead_id: leadWithCorrection.id,
-              })
-
-              if (messageSid) {
-                console.log('[CORRECTION ACK SEND AFTER INBOUND INSERT]', {
-                  leadId: leadWithCorrection.id,
-                  messageSid,
-                  totalCorrections: correctedFields.length,
-                  corrections: correctedFields,
-                  inboundMessageId: inboundMessage?.id,
-                  inboundCreatedAt: inboundMessage?.created_at
-                })
-                console.log('[CORRECTION ACKNOWLEDGEMENT SMS SUCCESS]', {
-                  leadId: leadWithCorrection.id,
-                  messageSid,
-                  totalCorrections: correctedFields.length,
-                  corrections: correctedFields
-                })
-              } else {
-                console.error('[CORRECTION ACKNOWLEDGEMENT SMS FAILED]', {
-                  leadId: leadWithCorrection.id,
-                  totalCorrections: correctedFields.length,
-                  corrections: correctedFields
-                })
-              }
-            } else {
-              // AI confirmation SMS not yet sent, store pending acknowledgement
-              console.log('[CORRECTION ACKNOWLEDGEMENT DEFERRED]', {
-                leadId: leadWithCorrection.id,
-                reason: 'ai_confirmation_sms_not_sent',
-                totalCorrections: correctedFields.length,
-                corrections: correctedFields
-              })
-
-              // Store pending acknowledgement in lead metadata
-              const pendingAcknowledgement = {
-                corrections: correctedFields,
-                deferred_at: new Date().toISOString()
-              }
-
-              const { error: pendingError } = await supabaseAdmin
-                .from('leads')
-                .update({
-                  raw_metadata: {
-                    ...(leadWithCorrection.raw_metadata || {}),
-                    pending_correction_acknowledgement: pendingAcknowledgement
-                  }
-                })
-                .eq('id', leadWithCorrection.id)
-
-              if (pendingError) {
-                console.error('[CORRECTION ACKNOWLEDGEMENT PENDING STORE ERROR]', {
-                  leadId: leadWithCorrection.id,
-                  error: pendingError
-                })
-              } else {
-                console.log('[CORRECTION ACKNOWLEDGEMENT PENDING STORED]', {
-                  leadId: leadWithCorrection.id,
-                  pendingAcknowledgement
-                })
-              }
-            }
-          } else {
-            console.log('[CORRECTION ACKNOWLEDGEMENT SMS SKIPPED]', {
-              reason: 'dev_simulation',
-              leadId: leadWithCorrection.id
+              reason: 'Correction acknowledgement SMS is disabled by design'
             })
           }
         } else {
