@@ -56,6 +56,9 @@ export default function SettingsContent() {
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [activeSection, setActiveSection] = useState('general')
 
+  // Default out of office message
+  const DEFAULT_OUT_OF_OFFICE_MESSAGE = "Thanks for contacting {{business_name}}. We are currently out of office and responses may be delayed. Please provide details about what you need and we will get back to you as soon as possible."
+
   // Use centralized onboarding state machine
   const onboardingState = getBusinessOnboardingState(business, {})
 
@@ -1489,7 +1492,9 @@ export default function SettingsContent() {
                             const end = formBusiness.out_of_office_end ? new Date(formBusiness.out_of_office_end) : null
                             const isEnabled = formBusiness.out_of_office_enabled
 
-                            if (!isEnabled) return null
+                            if (!isEnabled) {
+                              return <span className="text-[9px] sm:text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full font-medium">Off</span>
+                            }
 
                             if (start && now < start) {
                               return <span className="text-[9px] sm:text-[10px] px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full font-medium">Scheduled</span>
@@ -1498,15 +1503,22 @@ export default function SettingsContent() {
                             } else if (start && end && now >= start && now <= end) {
                               return <span className="text-[9px] sm:text-[10px] px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-medium">Active</span>
                             }
-                            return null
+                            return <span className="text-[9px] sm:text-[10px] px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full font-medium">On</span>
                           })()}
                         </div>
                         <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground mb-0.5 sm:mb-1">
-                          Temporarily mark yourself as unavailable for vacations, holidays, or closures.
+                          Send a temporary delayed-response message while you're away.
                         </p>
                       </div>
                       <button
-                        onClick={() => updateBusiness({ out_of_office_enabled: !formBusiness.out_of_office_enabled })}
+                        onClick={() => {
+                          const newEnabled = !formBusiness.out_of_office_enabled
+                          updateBusiness({ out_of_office_enabled: newEnabled })
+                          // If enabling and message is empty, set default message
+                          if (newEnabled && !formBusiness.out_of_office_message) {
+                            updateBusiness({ out_of_office_message: DEFAULT_OUT_OF_OFFICE_MESSAGE })
+                          }
+                        }}
                         disabled={isSaving}
                         className={`relative inline-flex h-5 w-10 sm:h-6 sm:w-11 items-center rounded-full transition-all duration-300 flex-shrink-0 ${
                           formBusiness.out_of_office_enabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-600 hover:bg-slate-500'
@@ -1552,6 +1564,13 @@ export default function SettingsContent() {
                           </div>
                         </div>
 
+                        {/* Validation error for date range */}
+                        {formBusiness.out_of_office_start && formBusiness.out_of_office_end && new Date(formBusiness.out_of_office_end) <= new Date(formBusiness.out_of_office_start) && (
+                          <p className="text-[10px] sm:text-xs text-red-600 dark:text-red-400 mt-1">
+                            End date/time must be after start date/time
+                          </p>
+                        )}
+
                         {/* Custom Message */}
                         <div>
                           <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-0.5">
@@ -1561,12 +1580,24 @@ export default function SettingsContent() {
                             value={formBusiness.out_of_office_message || ''}
                             onChange={(e) => updateBusiness({ out_of_office_message: e.target.value })}
                             rows={3}
-                            placeholder="Thanks for contacting {{business_name}}. We are currently out of office and responses may be delayed. Please provide details about what you need and we will get back to you as soon as possible."
+                            placeholder=""
                             className="w-full px-3 sm:px-4 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
                           />
                           <p className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                            Use {'{'}{'{'}business_name{'}'}{'}'} as a placeholder for your business name.
+                            Use {'{'}{'{'}business_name{'}'}{'}'} to automatically insert your business name.
                           </p>
+                        </div>
+
+                        {/* Customer Preview */}
+                        <div>
+                          <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-0.5">
+                            Customer preview
+                          </label>
+                          <div className="p-2 sm:p-3 bg-slate-100 dark:bg-slate-800/60 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
+                            <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                              {(formBusiness.out_of_office_message || DEFAULT_OUT_OF_OFFICE_MESSAGE).replace('{{business_name}}', formBusiness.name || 'your business')}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
