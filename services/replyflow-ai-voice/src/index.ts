@@ -99,26 +99,20 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Diagnostic logging - DO NOT LOG SECRET VALUES
-console.log('[ENV DIAGNOSTIC] =========================================');
-console.log('[ENV DIAGNOSTIC] hasOpenAIKey:', !!OPENAI_API_KEY);
-console.log('[ENV DIAGNOSTIC] openAIKeyLength:', OPENAI_API_KEY?.length || 0);
-console.log('[ENV DIAGNOSTIC] hasSupabaseUrl:', !!SUPABASE_URL);
-console.log('[ENV DIAGNOSTIC] supabaseUrlLength:', SUPABASE_URL?.length || 0);
-console.log('[ENV DIAGNOSTIC] hasServiceRoleKey:', !!SUPABASE_SERVICE_ROLE_KEY);
-console.log('[ENV DIAGNOSTIC] serviceRoleKeyLength:', SUPABASE_SERVICE_ROLE_KEY?.length || 0);
-console.log('[ENV DIAGNOSTIC] nodeEnv:', process.env.NODE_ENV || 'undefined');
-console.log('[ENV DIAGNOSTIC] port:', PORT);
-console.log('[ENV DIAGNOSTIC] aiVoice:', AI_VOICE);
-console.log('[ENV DIAGNOSTIC] process.envKeys:', Object.keys(process.env).filter(k => k.includes('SUPABASE') || k.includes('OPENAI') || k.includes('TWILIO')));
-console.log('[ENV DIAGNOSTIC] Timestamp:', new Date().toISOString());
-console.log('[ENV DIAGNOSTIC] =========================================');
+console.log('[ENV DIAGNOSTIC]', {
+  hasSupabaseUrl: !!process.env.SUPABASE_URL,
+  supabaseUrlLength: process.env.SUPABASE_URL?.length || 0,
+  hasServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+  serviceRoleKeyLength: process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0,
+  hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+  openAIKeyLength: process.env.OPENAI_API_KEY?.length || 0,
+  pid: process.pid,
+  timestamp: new Date().toISOString()
+});
 
-// Log environment variables for debugging
-log(LogLevel.INFO, '[ENV CHECK] SUPABASE_URL:', !!SUPABASE_URL);
-log(LogLevel.INFO, '[ENV CHECK] NEXT_PUBLIC_SUPABASE_URL:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
-log(LogLevel.INFO, '[ENV CHECK] SUPABASE_SERVICE_ROLE_KEY:', !!SUPABASE_SERVICE_ROLE_KEY);
-log(LogLevel.INFO, '[ENV CHECK] SUPABASE_ANON_KEY:', !!process.env.SUPABASE_ANON_KEY);
-log(LogLevel.INFO, '[ENV CHECK] OPENAI_API_KEY:', !!OPENAI_API_KEY);
+console.log('[PROCESS ENV KEYS]', Object.keys(process.env).filter(k =>
+  k.includes('SUPABASE') || k.includes('OPENAI')
+));
 
 // Set up global WebSocket for Node 20 compatibility
 (global as any).WebSocket = WebSocket;
@@ -128,6 +122,14 @@ let supabase = null;
 
 if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
   try {
+    console.log('[BEFORE CREATE CLIENT]', {
+      hasSupabaseUrl: !!SUPABASE_URL,
+      supabaseUrlLength: SUPABASE_URL?.length || 0,
+      hasServiceRoleKey: !!SUPABASE_SERVICE_ROLE_KEY,
+      serviceRoleKeyLength: SUPABASE_SERVICE_ROLE_KEY?.length || 0,
+      timestamp: new Date().toISOString()
+    });
+    
     log(LogLevel.INFO, '[SUPABASE INIT INPUTS]', {
       usingUrl: 'SUPABASE_URL',
       usingKey: 'SUPABASE_SERVICE_ROLE_KEY'
@@ -5410,6 +5412,14 @@ Return only JSON, no other text.`;
           }
 
           // Check for API key
+          console.log('[BEFORE OPENAI KEY CHECK]', {
+            hasOpenAIKey: !!OPENAI_API_KEY,
+            openAIKeyLength: OPENAI_API_KEY?.length || 0,
+            hasProcessEnvKey: !!process.env.OPENAI_API_KEY,
+            processEnvKeyLength: process.env.OPENAI_API_KEY?.length || 0,
+            timestamp: new Date().toISOString()
+          });
+          
           if (!OPENAI_API_KEY) {
             log(LogLevel.ERROR, '[AI POC] initialization skipped because: OPENAI_API_KEY not set');
             openaiInitAttempted = false;
