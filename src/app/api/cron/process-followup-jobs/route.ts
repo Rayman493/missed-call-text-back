@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { sendSms } from "@/lib/twilio";
 import { isIgnoredContact } from "@/lib/ignored-contacts";
 import { hasBillingAccess } from "@/lib/manual-access";
+import { getOutOfOfficeNotice } from "@/lib/out-of-office";
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -247,6 +248,24 @@ export async function POST(request: Request) {
           messagePreview: job.message_body.substring(0, 50) + '...'
         });
 
+        // Check if business is currently Out of Office and append notice
+        const outOfOfficeNotice = getOutOfOfficeNotice(business);
+        const outOfOfficeActive = outOfOfficeNotice !== null;
+        let messageBody = job.message_body;
+
+        console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
+        console.log('[OUT OF OFFICE NOTICE APPLIED] businessId:', business.id);
+        console.log('[OUT OF OFFICE NOTICE APPLIED] smsType:', `followup_${job.step}`);
+        console.log('[OUT OF OFFICE NOTICE APPLIED] outOfOfficeActive:', outOfOfficeActive);
+        console.log('[OUT OF OFFICE NOTICE APPLIED] returnDate:', business.out_of_office_end || null);
+        console.log('[OUT OF OFFICE NOTICE APPLIED] Timestamp:', new Date().toISOString());
+        console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
+
+        if (outOfOfficeActive) {
+          messageBody += outOfOfficeNotice;
+          console.log('[OUT OF OFFICE NOTICE APPLIED] Notice appended successfully');
+        }
+
         const smsOptions: any = {
           lead_id: job.lead_id,
         };
@@ -256,7 +275,7 @@ export async function POST(request: Request) {
           smsOptions.conversation_id = conversation.id;
         }
 
-        const messageSid = await sendSms(business, lead.caller_phone, job.message_body, smsOptions);
+        const messageSid = await sendSms(business, lead.caller_phone, messageBody, smsOptions);
 
         if (messageSid) {
           console.log('[AUTO RESPONSE TWILIO SENT]', {

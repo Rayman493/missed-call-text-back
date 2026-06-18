@@ -4816,10 +4816,7 @@ Return only JSON, no other text.`;
           console.log('[INCOMPLETE SMS BUILD] =========================================');
 
           // Fetch business OOO settings for incomplete SMS
-          let businessNameForOoo = 'the business';
-          let outOfOfficeEnabled = false;
-          let outOfOfficeStart = '';
-          let outOfOfficeEnd = '';
+          let businessForOoo: any = null;
 
           if (supabase && sessionBusinessId) {
             try {
@@ -4831,15 +4828,12 @@ Return only JSON, no other text.`;
                 .single();
 
               if (businessOoo) {
-                businessNameForOoo = businessOoo.name || 'the business';
-                outOfOfficeEnabled = businessOoo.out_of_office_enabled || false;
-                outOfOfficeStart = businessOoo.out_of_office_start || '';
-                outOfOfficeEnd = businessOoo.out_of_office_end || '';
+                businessForOoo = businessOoo;
                 console.log('[INCOMPLETE SMS BUSINESS OOO RESULT]', {
-                  businessName: businessNameForOoo,
-                  outOfOfficeEnabled,
-                  outOfOfficeStart,
-                  outOfOfficeEnd
+                  businessName: businessForOoo.name,
+                  outOfOfficeEnabled: businessForOoo.out_of_office_enabled,
+                  outOfOfficeStart: businessForOoo.out_of_office_start,
+                  outOfOfficeEnd: businessForOoo.out_of_office_end
                 });
               }
 
@@ -4851,43 +4845,43 @@ Return only JSON, no other text.`;
             }
           }
 
-          // Check if business is currently Out of Office and append notice
-          let outOfOfficeActive = false;
-          let appendedNotice = false;
-
-          if (outOfOfficeEnabled && outOfOfficeStart && outOfOfficeEnd) {
+          // Check if business is currently Out of Office and append notice using helper
+          const outOfOfficeNotice = businessForOoo ? (() => {
+            if (!businessForOoo.out_of_office_enabled || !businessForOoo.out_of_office_start || !businessForOoo.out_of_office_end) {
+              return null;
+            }
             const now = new Date();
-            const start = new Date(outOfOfficeStart);
-            const end = new Date(outOfOfficeEnd);
-            outOfOfficeActive = now >= start && now <= end;
-          }
+            const start = new Date(businessForOoo.out_of_office_start);
+            const end = new Date(businessForOoo.out_of_office_end);
+            if (now < start || now > end) return null;
 
-          console.log('[AI SUMMARY SMS OUT OF OFFICE] =========================================');
-          console.log('[AI SUMMARY SMS OUT OF OFFICE] businessId:', sessionBusinessId);
-          console.log('[AI SUMMARY SMS OUT OF OFFICE] outOfOfficeActive:', outOfOfficeActive);
-          console.log('[AI SUMMARY SMS OUT OF OFFICE] out_of_office_enabled:', outOfOfficeEnabled);
-          console.log('[AI SUMMARY SMS OUT OF OFFICE] out_of_office_start:', outOfOfficeStart);
-          console.log('[AI SUMMARY SMS OUT OF OFFICE] out_of_office_end:', outOfOfficeEnd);
-          console.log('[AI SUMMARY SMS OUT OF OFFICE] Timestamp:', new Date().toISOString());
-          console.log('[AI SUMMARY SMS OUT OF OFFICE] =========================================');
+            const businessName = businessForOoo.name || 'the business';
+            let notice = `\n\nOut of Office Notice:\n${businessName} is currently out of office, so responses may be delayed.`;
 
-          if (outOfOfficeActive) {
-            const outOfOfficeNotice = `\n\nOut of Office Notice:\n${businessNameForOoo} is currently out of office, so responses may be delayed.`;
-
-            if (outOfOfficeEnd) {
-              const endDate = new Date(outOfOfficeEnd);
+            if (businessForOoo.out_of_office_end) {
+              const endDate = new Date(businessForOoo.out_of_office_end);
               const formattedDate = endDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-              partialSummary += outOfOfficeNotice + ` Expected return: ${formattedDate}.`;
-
-              console.log('[AI SUMMARY SMS OUT OF OFFICE] Appended notice with return date:', formattedDate);
-            } else {
-              partialSummary += outOfOfficeNotice;
-
-              console.log('[AI SUMMARY SMS OUT OF OFFICE] Appended notice without return date');
+              notice += ` Expected return: ${formattedDate}.`;
             }
 
+            return notice;
+          })() : null;
+
+          const outOfOfficeActive = outOfOfficeNotice !== null;
+          let appendedNotice = false;
+
+          console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
+          console.log('[OUT OF OFFICE NOTICE APPLIED] businessId:', sessionBusinessId);
+          console.log('[OUT OF OFFICE NOTICE APPLIED] smsType:', 'ai_summary_incomplete');
+          console.log('[OUT OF OFFICE NOTICE APPLIED] outOfOfficeActive:', outOfOfficeActive);
+          console.log('[OUT OF OFFICE NOTICE APPLIED] returnDate:', businessForOoo?.out_of_office_end || null);
+          console.log('[OUT OF OFFICE NOTICE APPLIED] Timestamp:', new Date().toISOString());
+          console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
+
+          if (outOfOfficeActive) {
+            partialSummary += outOfOfficeNotice;
             appendedNotice = true;
-            console.log('[AI SUMMARY SMS OUT OF OFFICE] appendedNotice:', appendedNotice);
+            console.log('[OUT OF OFFICE NOTICE APPLIED] Notice appended successfully');
           }
 
           console.log('[INCOMPLETE SMS SEND START] =========================================');

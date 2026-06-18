@@ -4,6 +4,7 @@ import { sendSms } from '@/lib/twilio'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizePunctuation } from '@/lib/utils'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
+import { getOutOfOfficeNotice } from '@/lib/out-of-office'
 
 export const dynamic = 'force-dynamic'
 
@@ -475,42 +476,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if business is currently Out of Office and append notice
-    let outOfOfficeActive = false;
+    const outOfOfficeNotice = getOutOfOfficeNotice(business);
+    const outOfOfficeActive = outOfOfficeNotice !== null;
     let appendedNotice = false;
 
-    if (business.out_of_office_enabled && business.out_of_office_start && business.out_of_office_end) {
-      const now = new Date();
-      const start = new Date(business.out_of_office_start);
-      const end = new Date(business.out_of_office_end);
-      outOfOfficeActive = now >= start && now <= end;
-    }
-
-    console.log('[AI SUMMARY SMS OUT OF OFFICE] =========================================');
-    console.log('[AI SUMMARY SMS OUT OF OFFICE] businessId:', businessId);
-    console.log('[AI SUMMARY SMS OUT OF OFFICE] outOfOfficeActive:', outOfOfficeActive);
-    console.log('[AI SUMMARY SMS OUT OF OFFICE] out_of_office_enabled:', business.out_of_office_enabled);
-    console.log('[AI SUMMARY SMS OUT OF OFFICE] out_of_office_start:', business.out_of_office_start);
-    console.log('[AI SUMMARY SMS OUT OF OFFICE] out_of_office_end:', business.out_of_office_end);
-    console.log('[AI SUMMARY SMS OUT OF OFFICE] Timestamp:', new Date().toISOString());
-    console.log('[AI SUMMARY SMS OUT OF OFFICE] =========================================');
+    console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
+    console.log('[OUT OF OFFICE NOTICE APPLIED] businessId:', businessId);
+    console.log('[OUT OF OFFICE NOTICE APPLIED] smsType:', isComplete ? 'ai_summary_complete' : 'ai_summary_incomplete');
+    console.log('[OUT OF OFFICE NOTICE APPLIED] outOfOfficeActive:', outOfOfficeActive);
+    console.log('[OUT OF OFFICE NOTICE APPLIED] returnDate:', business.out_of_office_end || null);
+    console.log('[OUT OF OFFICE NOTICE APPLIED] Timestamp:', new Date().toISOString());
+    console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
 
     if (outOfOfficeActive) {
-      const outOfOfficeNotice = `\n\nOut of Office Notice:\n${businessName} is currently out of office, so responses may be delayed.`;
-
-      if (business.out_of_office_end) {
-        const endDate = new Date(business.out_of_office_end);
-        const formattedDate = endDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-        messageBody += outOfOfficeNotice + ` Expected return: ${formattedDate}.`;
-
-        console.log('[AI SUMMARY SMS OUT OF OFFICE] Appended notice with return date:', formattedDate);
-      } else {
-        messageBody += outOfOfficeNotice;
-
-        console.log('[AI SUMMARY SMS OUT OF OFFICE] Appended notice without return date');
-      }
-
+      messageBody += outOfOfficeNotice;
       appendedNotice = true;
-      console.log('[AI SUMMARY SMS OUT OF OFFICE] appendedNotice:', appendedNotice);
+      console.log('[OUT OF OFFICE NOTICE APPLIED] Notice appended successfully');
     }
 
     console.log('[AI SMS FINAL BODY]', {

@@ -55,7 +55,7 @@ export function getOutOfOfficeMessage(business: Business | null | undefined): st
 
 /**
  * Get Out of Office status information for display
- * 
+ *
  * @param business - The business object
  * @returns Status object with status type and relevant dates
  */
@@ -68,15 +68,15 @@ export function getOutOfOfficeStatus(business: Business | null | undefined): {
   if (!business || !business.out_of_office_enabled) {
     return { status: 'inactive' }
   }
-  
+
   const now = new Date()
   const start = business.out_of_office_start ? new Date(business.out_of_office_start) : null
   const end = business.out_of_office_end ? new Date(business.out_of_office_end) : null
-  
+
   if (!start || !end) {
     return { status: 'inactive' }
   }
-  
+
   if (now < start) {
     return {
       status: 'scheduled',
@@ -84,7 +84,7 @@ export function getOutOfOfficeStatus(business: Business | null | undefined): {
       endDate: end
     }
   }
-  
+
   if (now > end) {
     return {
       status: 'expired',
@@ -92,14 +92,50 @@ export function getOutOfOfficeStatus(business: Business | null | undefined): {
       endDate: end
     }
   }
-  
+
   // Currently active
   const daysRemaining = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-  
+
   return {
     status: 'active',
     startDate: start,
     endDate: end,
     daysRemaining
   }
+}
+
+/**
+ * Get the Out of Office notice for SMS messages
+ * Returns a formatted notice to append to customer-facing SMS messages
+ *
+ * @param business - The business object (can be partial)
+ * @returns The formatted out of office notice, or null if not active
+ */
+export function getOutOfOfficeNotice(business: Business | null | undefined | { name?: string; out_of_office_enabled?: boolean; out_of_office_start?: string; out_of_office_end?: string }): string | null {
+  if (!business) return null
+
+  // Check if Out of Office Mode is enabled
+  if (!business.out_of_office_enabled) return null
+
+  // Check if start and end dates are set
+  if (!business.out_of_office_start || !business.out_of_office_end) return null
+
+  const now = new Date()
+  const start = new Date(business.out_of_office_start)
+  const end = new Date(business.out_of_office_end)
+
+  // Check if current time is within the active range
+  if (now < start || now > end) return null
+
+  const businessName = business.name || 'the business'
+  let notice = `\n\nOut of Office Notice:\n${businessName} is currently out of office, so responses may be delayed.`
+
+  // Add expected return date if available
+  if (business.out_of_office_end) {
+    const endDate = new Date(business.out_of_office_end)
+    const formattedDate = endDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
+    notice += ` Expected return: ${formattedDate}.`
+  }
+
+  return notice
 }
