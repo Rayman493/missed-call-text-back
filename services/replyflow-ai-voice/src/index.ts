@@ -266,7 +266,7 @@ interface CallContext {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_name_reason' | 'ask_reason_recovery' | 'ask_details' | 'ask_location' | 'ask_completion_time' | 'ask_callback_time' | 'complete';
+type IntakeStage = 'ask_name_reason' | 'ask_name_recovery' | 'ask_reason_recovery' | 'ask_details' | 'ask_location' | 'ask_completion_time' | 'ask_callback_time' | 'complete';
 
 /**
  * AI Intake Flow Documentation
@@ -1128,6 +1128,7 @@ let authorizedResponseCreateSource: string | null = null;
  */
 const APPROVED_PROMPTS: Record<string, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
+  ask_name_recovery: "Thanks. Can I get your name?",
   ask_reason_recovery: "Thanks. What are you calling about today?",
   ask_details: "Got it. Can you share any important details the business should know?",
   ask_location: "Thanks. What address or location is this for?",
@@ -1444,6 +1445,7 @@ function sendStagePrompt(
  */
 const STAGE_PROMPTS: Record<IntakeStage, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
+  ask_name_recovery: "Thanks. Can I get your name?",
   ask_reason_recovery: "Thanks. What are you calling about today?",
   ask_details: "Got it. Can you share any important details the business should know?",
   ask_location: "Thanks. What address or location is this for?",
@@ -1463,6 +1465,7 @@ function getNextStage(currentStage: IntakeStage): IntakeStage {
 
   const stageSequence: Record<IntakeStage, IntakeStage> = {
     ask_name_reason: 'ask_details',
+    ask_name_recovery: 'ask_details',
     ask_reason_recovery: 'ask_details',
     ask_details: 'ask_location',
     ask_location: 'ask_completion_time',
@@ -1504,6 +1507,16 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
         console.log('[SCRIPTED FLOW] field saved (ask_name_reason - extracted via GPT)');
         console.log('[SCRIPTED FLOW] customerName:', intake.customerName);
         console.log('[SCRIPTED FLOW] serviceRequested:', intake.serviceRequested);
+        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+        console.log('[SCRIPTED FLOW] =========================================');
+        break;
+      case 'ask_name_recovery':
+        // Save transcript as customerName
+        intake.customerName = transcript.trim();
+        console.log('[SCRIPTED FLOW] =========================================');
+        console.log('[SCRIPTED FLOW] field saved');
+        console.log('[SCRIPTED FLOW] field: customerName');
+        console.log('[SCRIPTED FLOW] value:', transcript.trim());
         console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
         console.log('[SCRIPTED FLOW] =========================================');
         break;
@@ -1556,18 +1569,68 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
     }
   }
 
-  // Special handling for ask_name_reason: check if serviceRequested is missing
-  if (intake.stage === 'ask_name_reason' && intake.customerName && !intake.serviceRequested) {
+  // Special handling for ask_name_reason: validate both fields before advancing
+  if (intake.stage === 'ask_name_reason') {
+    const customerNamePresent = !!intake.customerName;
+    const serviceRequestedPresent = !!intake.serviceRequested;
+
     console.log('[SCRIPTED FLOW] =========================================');
-    console.log('[SCRIPTED FLOW] customerName present but serviceRequested missing');
-    console.log('[SCRIPTED FLOW] sending ask_reason_recovery instead of advancing');
+    console.log('[SCRIPTED FLOW] ask_name_reason validation');
+    console.log('[SCRIPTED FLOW] customerNamePresent:', customerNamePresent);
+    console.log('[SCRIPTED FLOW] serviceRequestedPresent:', serviceRequestedPresent);
     console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
     console.log('[SCRIPTED FLOW] =========================================');
 
-    const response = APPROVED_PROMPTS.ask_reason_recovery;
+    let nextStage: IntakeStage;
+    let promptToSend: string;
+
+    if (!customerNamePresent && !serviceRequestedPresent) {
+      // Both missing: stay on ask_name_reason and repeat the original prompt
+      nextStage = 'ask_name_reason';
+      promptToSend = APPROVED_PROMPTS.ask_name_reason;
+      console.log('[SCRIPTED FLOW] =========================================');
+      console.log('[SCRIPTED FLOW] both fields missing, repeating ask_name_reason');
+      console.log('[SCRIPTED FLOW] nextStage:', nextStage);
+      console.log('[SCRIPTED FLOW] promptToSend:', promptToSend);
+      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+      console.log('[SCRIPTED FLOW] =========================================');
+    } else if (customerNamePresent && !serviceRequestedPresent) {
+      // Name present, reason missing: ask for reason
+      nextStage = 'ask_reason_recovery';
+      promptToSend = APPROVED_PROMPTS.ask_reason_recovery;
+      console.log('[SCRIPTED FLOW] =========================================');
+      console.log('[SCRIPTED FLOW] customerName present but serviceRequested missing');
+      console.log('[SCRIPTED FLOW] sending ask_reason_recovery');
+      console.log('[SCRIPTED FLOW] nextStage:', nextStage);
+      console.log('[SCRIPTED FLOW] promptToSend:', promptToSend);
+      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+      console.log('[SCRIPTED FLOW] =========================================');
+    } else if (!customerNamePresent && serviceRequestedPresent) {
+      // Reason present, name missing: ask for name
+      nextStage = 'ask_name_recovery';
+      promptToSend = APPROVED_PROMPTS.ask_name_recovery;
+      console.log('[SCRIPTED FLOW] =========================================');
+      console.log('[SCRIPTED FLOW] serviceRequested present but customerName missing');
+      console.log('[SCRIPTED FLOW] sending ask_name_recovery');
+      console.log('[SCRIPTED FLOW] nextStage:', nextStage);
+      console.log('[SCRIPTED FLOW] promptToSend:', promptToSend);
+      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+      console.log('[SCRIPTED FLOW] =========================================');
+    } else {
+      // Both present: advance to ask_details
+      nextStage = 'ask_details';
+      promptToSend = APPROVED_PROMPTS.ask_details;
+      console.log('[SCRIPTED FLOW] =========================================');
+      console.log('[SCRIPTED FLOW] both fields present, advancing to ask_details');
+      console.log('[SCRIPTED FLOW] nextStage:', nextStage);
+      console.log('[SCRIPTED FLOW] promptToSend:', promptToSend);
+      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+      console.log('[SCRIPTED FLOW] =========================================');
+    }
+
     return {
-      response,
-      nextStage: 'ask_reason_recovery'
+      response: promptToSend,
+      nextStage
     };
   }
 
@@ -6695,10 +6758,40 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       intakeData!.stage = 'complete';
                       intakeComplete = true;
 
+                      console.log('[SCRIPTED FLOW] =========================================');
+                      console.log('[SCRIPTED FLOW] callback completion finalization started');
+                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                      console.log('[SCRIPTED FLOW] =========================================');
+
                       // Call idempotent finalization function
-                      finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '');
+                      await finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '');
+
+                      console.log('[SCRIPTED FLOW] =========================================');
+                      console.log('[SCRIPTED FLOW] callback completion SMS sent');
+                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                      console.log('[SCRIPTED FLOW] =========================================');
+
+                      console.log('[SCRIPTED FLOW] =========================================');
+                      console.log('[SCRIPTED FLOW] callback completion final goodbye sent');
+                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                      console.log('[SCRIPTED FLOW] =========================================');
 
                       enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
+
+                      console.log('[SCRIPTED FLOW] =========================================');
+                      console.log('[SCRIPTED FLOW] callback completion hard hangup scheduled');
+                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                      console.log('[SCRIPTED FLOW] =========================================');
+
+                      // Schedule hard hangup if final goodbye doesn't complete within 3 seconds
+                      setTimeout(() => {
+                        console.log('[SCRIPTED FLOW] =========================================');
+                        console.log('[SCRIPTED FLOW] hard hangup executed');
+                        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                        console.log('[SCRIPTED FLOW] =========================================');
+                        executeOpenaiFinalHangup(ws, twilioHandler, closingState);
+                      }, 3000);
+
                       return; // Skip normal intake processing - NO MORE AI RESPONSES
                     }
                   }
