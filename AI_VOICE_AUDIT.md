@@ -204,14 +204,58 @@ const STAGE_PROMPTS: Record<IntakeStage, string> = {
 - Removed urgency field
 - Location: services/replyflow-ai-voice/src/index.ts
 
+## AssistantSpeaking and ActiveResponseId Audit
+
+### assistantSpeaking Set Points
+1. **Set to TRUE** (line 6627-6630)
+   - Trigger: response.output_audio.delta
+   - Sets callSessionState.assistantSpeaking and individual assistantSpeaking variable
+   - Syncs to twilioHandler
+   - Starts 30-second timeout protection
+   - Location: services/replyflow-ai-voice/src/index.ts
+
+### assistantSpeaking Clear Points
+1. **Cleared on response.audio.done** (line 6730-6749)
+   - Resets assistantSpeaking to false
+   - Clears timeout protection
+   - Logs state change
+   - Location: services/replyflow-ai-voice/src/index.ts
+
+2. **Cleared on response.done** (line 6830-6847)
+   - Resets assistantSpeaking to false
+   - Clears timeout protection
+   - Logs state change
+   - Location: services/replyflow-ai-voice/src/index.ts
+
+3. **Cleared by timeout** (line 6644-6654)
+   - 30-second timeout resets assistantSpeaking if stuck
+   - Logs force reset
+   - Location: services/replyflow-ai-voice/src/index.ts
+
+### activeResponseId Set/Clear Points
+1. **Set** (line 7000-7008)
+   - Trigger: response.created during final closing
+   - Sets authorizedFinalResponseId
+   - Location: services/replyflow-ai-voice/src/index.ts
+
+2. **Cleared** (line 6823-6828)
+   - Trigger: response.done
+   - Clears activeResponseId when response completes
+   - Location: services/replyflow-ai-voice/src/index.ts
+
+### Audio Blocking Logic Findings
+- assistantSpeaking has proper timeout protection (30 seconds)
+- assistantSpeaking clears on both response.audio.done and response.done
+- activeResponseId clears on response.done
+- No missing clear points found
+- Audio blocking logic appears sound
+
 ## Remaining Issues to Address
 
 ### High Priority
-1. **AssistantSpeaking/ActiveResponseId not audited**: Need to find all set/clear points
-2. **No assistantSpeaking timeout**: Could block caller audio indefinitely
-3. **Scope guard is passive**: Only logs violations, doesn't block
-4. **No centralized sendApprovedPrompt function**: Multiple speech paths still exist
-5. **No VOICE OUTBOUND logging**: Can't trace all assistant speech
+1. **Scope guard is passive**: Only logs violations, doesn't block
+2. **No centralized sendApprovedPrompt function**: Multiple speech paths still exist
+3. **No VOICE OUTBOUND logging**: Can't trace all assistant speech
 
 ### Medium Priority
 1. **Greeting uses hardcoded text**: Should use STAGE_PROMPTS constant
