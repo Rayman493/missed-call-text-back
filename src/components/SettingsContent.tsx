@@ -166,6 +166,24 @@ export default function SettingsContent() {
         automation_settings: automationSettings
       }
 
+      // Log Out of Office save attempt
+      const hasOutOfOfficeFields = (
+        'out_of_office_enabled' in updatePayload ||
+        'out_of_office_start' in updatePayload ||
+        'out_of_office_end' in updatePayload ||
+        'out_of_office_message' in updatePayload
+      )
+
+      console.log('[OUT OF OFFICE SAVE]', {
+        businessId: businessData.id,
+        hasOutOfOfficeFields,
+        out_of_office_enabled: updatePayload.out_of_office_enabled,
+        out_of_office_start: updatePayload.out_of_office_start,
+        out_of_office_end: updatePayload.out_of_office_end,
+        out_of_office_message: updatePayload.out_of_office_message,
+        payloadKeys: Object.keys(updatePayload)
+      })
+
       const { error } = await supabase
         .from('businesses')
         .update(updatePayload)
