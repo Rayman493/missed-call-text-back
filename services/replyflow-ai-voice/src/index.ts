@@ -783,7 +783,22 @@ function createIntakeData(businessName: string, callSid: string, businessId: str
   };
 }
 
+// Track expected prompts for verification
+let expectedPrompt: string | null = null;
+let currentResponseId: string | null = null;
+
 function sendControlledAssistantText(text: string, reason: string, openAiWs: any): void {
+  // Track expected prompt for verification
+  expectedPrompt = text;
+  currentResponseId = null;
+
+  console.log('[VOICE PROMPT OUTBOUND] =========================================');
+  console.log('[VOICE PROMPT OUTBOUND] exactPrompt:', text);
+  console.log('[VOICE PROMPT OUTBOUND] source: app_defined');
+  console.log('[VOICE PROMPT OUTBOUND] reason:', reason);
+  console.log('[VOICE PROMPT OUTBOUND] Timestamp:', new Date().toISOString());
+  console.log('[VOICE PROMPT OUTBOUND] =========================================');
+
   console.log('[CONTROLLED ASSISTANT TEXT SENT] =========================================');
   console.log('[CONTROLLED ASSISTANT TEXT SENT] Reason:', reason);
   console.log('[CONTROLLED ASSISTANT TEXT SENT] Text:', text);
@@ -833,7 +848,15 @@ function sendControlledAssistantText(text: string, reason: string, openAiWs: any
     return; // Block the response
   }
 
-  const strictInstruction = `You are only collecting intake information. Do not answer questions, give advice, troubleshoot, diagnose, or provide guidance. Ask only the exact next intake question. Say exactly this sentence and nothing else: "${text}"`;
+  const strictInstruction = `SAY EXACTLY THIS TEXT AND NOTHING ELSE: "${text}"
+
+Do NOT paraphrase.
+Do NOT expand.
+Do NOT modify.
+Do NOT add any words.
+Do NOT add conversational elements.
+Do NOT add greetings or acknowledgments.
+Speak ONLY the exact text in quotes above.`;
   const message = {
     type: 'response.create',
     response: {
@@ -3653,8 +3676,34 @@ wss.on('connection', (ws, req) => {
     console.log('[CLOSING_STATE_INIT] Initial state:', JSON.stringify(closingState, null, 2));
     console.log('[CLOSING_STATE_INIT] Timestamp:', new Date().toISOString());
 
+    // Single shared call session state object - single source of truth for all call state
+    const callSessionState = {
+      callState: 'active' as CallState,
+      confirmationState: 'collecting_info' as ConfirmationState,
+      finalClosingStarted: false,
+      terminalClosingResponseStarted: false,
+      finalClosingAudioDone: false,
+      hangupScheduled: false,
+      hardStopStarted: false,
+      hardStopExecuted: false,
+      intakeTerminalComplete: false,
+      assistantSpeaking: false,
+      lastPromptStage: null as IntakeStage | null,
+      lastPromptAt: 0,
+      activeResponseId: null as string | null,
+      intakeData: null as IntakeData | null,
+      currentStage: 'ask_name_reason' as IntakeStage,
+      sessionId: '',
+      businessId: '',
+      callSid: ''
+    };
+
+    console.log('[CALL_SESSION_STATE_INIT] Shared call session state object created');
+    console.log('[CALL_SESSION_STATE_INIT] Initial state:', JSON.stringify(callSessionState, null, 2));
+    console.log('[CALL_SESSION_STATE_INIT] Timestamp:', new Date().toISOString());
+
     // Individual variables kept for backward compatibility during transition
-    // These will be deprecated once all code uses closingState directly
+    // These will be deprecated once all code uses callSessionState directly
     let callState: CallState = 'active';
     let finalClosingStarted = false;
     let terminalClosingResponseStarted = false;
@@ -3708,11 +3757,12 @@ wss.on('connection', (ws, req) => {
 
     // Pass shared closing state to twilioHandler for audio append guards
     (twilioHandler as any).closingState = closingState;
-    (twilioHandler as any).assistantSpeaking = assistantSpeaking;
-    (twilioHandler as any).lastPromptStage = lastPromptStage;
-    (twilioHandler as any).lastPromptAt = lastPromptAt;
-    (twilioHandler as any).activeResponseId = activeResponseId;
-    (twilioHandler as any).intakeData = null; // Will be synced when intakeData is initialized
+    (twilioHandler as any).callSessionState = callSessionState;
+
+    // Sync callSessionState with session identifiers
+    callSessionState.sessionId = urlSessionId || '';
+    callSessionState.businessId = urlBusinessId || '';
+    callSessionState.callSid = urlCallSid || '';
 
     // Set up mark received callback to track when Twilio acknowledges final goodbye audio playback
     twilioHandler.setOnMarkReceived((markName: string) => {
@@ -5443,103 +5493,52 @@ Return only JSON, no other text.`;
                 type: "session.update",
                 session: {
                   type: "realtime",
-                  instructions: `You are the AI receptionist for businesses.
+                  instructions: `You are an extraction-only AI assistant for missed call intake.
 
-Your job is to politely answer missed calls for businesses and gather operationally important information.
+EXTRACTION-ONLY MODE:
+Your ONLY function is to extract structured fields from user transcripts.
+You MUST NOT generate any conversational responses on your own.
+You MUST NOT ask questions, give advice, troubleshoot, diagnose, or provide guidance.
+You MUST NOT add conversational filler, acknowledgments, or follow-up questions.
+You MUST NOT say anything other than the exact text provided by the app.
 
-BUSINESS CONTEXT:
+BUSINESS CONTEXT (for extraction only):
 Business Name: ${businessName || 'Unknown'}
 ${businessType ? `Business Type: ${businessType}` : ''}
 ${businessTypeOther ? `Custom Business Type: ${businessTypeOther}` : ''}
-${(() => {
-  const now = new Date()
-  const start = outOfOfficeStart ? new Date(outOfOfficeStart) : null
-  const end = outOfOfficeEnd ? new Date(outOfOfficeEnd) : null
-  if (outOfOfficeEnabled && start && end && now >= start && now <= end) {
-    const daysRemaining = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    return `Out Of Office: Active (Returning ${end.toLocaleDateString()}${daysRemaining ? ` (${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining)` : ''})`
-  }
-  return ''
-})()}
+
+EXTRACTION FIELDS TO COLLECT:
+- Name
+- Reason for calling
+- Additional details
+- Location
+- When work should be completed
+- Best callback time
+
+CRITICAL: The app controls ALL spoken responses.
+You will receive exact text to speak via response.create instructions.
+Speak ONLY that exact text and nothing else.
+Do not paraphrase, expand, or modify the provided text.
+Do not add greetings, acknowledgments, or conversational elements.
+Do not ask any questions on your own initiative.
 
 LANGUAGE RULE:
-You must speak English only.
-Do not switch languages.
-Do not imitate accents, dialects, or non-English speech.
-If the caller speaks another language, politely respond in English and say:
+Speak English only. Do not switch languages or imitate accents.
+
+If the caller speaks another language, say exactly:
 "I'm sorry, I can only take this message in English."
 
-Note: The greeting will be handled separately via exact response.create instruction.
+DO NOT:
+- Generate your own questions
+- Clarify or follow up
+- Continue conversation naturally
+- Generate your own phrasing
+- Ask industry-specific questions
+- Ask additional questions
+- Provide any conversational elements
+- Add filler words or phrases
 
-INFORMATION GATHERING PRIORITY ORDER:
-1. Name + reason for calling (combined)
-2. Additional details about the issue or project
-3. Location or where this would take place
-4. When they would like the work completed
-5. Best time for the business to call back
-
-CALL COMPLETION POLICY:
-YOU MUST collect ALL required fields before finalizing. Do not end the call early:
-- Name (required)
-- Reason for calling (required)
-- Additional details about the issue or project (required)
-- Location or where this would take place (required)
-- When they would like the work completed (required)
-- Best time for the business to call back (required)
-
-YOU MUST collect all 6 required fields before finalizing. Do not end the call early.
-
-CALL ENDING SEQUENCE:
-Once you have collected ALL 6 required fields, the system will handle the call termination.
-DO NOT say "Thank you for calling" or any closing phrase on your own.
-Wait for the system to provide the final goodbye and end the call.
-Continue gathering information until the system takes over the closing sequence.
-
-CRITICAL: Do NOT summarize the collected information. Do NOT ask "Is that correct?". Do NOT say any closing phrases. Just continue gathering required information.
-
-AWKWARD LOOP PREVENTION:
-Do NOT ask:
-- "Anything else?"
-- "How else can I help?"
-- "Is there anything else I can help you with?"
-- "Do you have any other questions?"
-- Repeating the same question
-- Unnecessary details
-
-BEHAVIOR REQUIREMENTS:
-- Naturally guide conversation based on priority order
-- Ask one question at a time
-- Do not sound like a checklist or survey
-- Focus on gathering actionable business information
-- Keep responses concise and conversational
-- Avoid robotic phrasing
-- Do not finalize until every required field is collected or explicitly declined
-
-IMPORTANT GUIDELINES:
-- If the caller already provided information, do not ask for it again
-- Location/where this would take place is always required. Ask: "Where would this take place — for example at your address, at the business, or online?" Accept flexible responses like online, virtual, remote, Zoom, Google Meet, at your business/shop/office, at my house, city name, or specific street address
-- Best callback time is always required; "anytime" is valid
-- Additional details about the issue or project is always required
-
-STRICTLY FORBIDDEN:
-- NEVER ask for urgency or "Is this urgent or time-sensitive?"
-- NEVER ask for callback number or "Is this the best number to reach you at, or is there another number?"
-- NEVER ask for phone number or "What's your phone number?" or "And what's your phone number?"
-- NEVER ask for confirmation or "Is that correct?"
-- NEVER ask "Anything else?", "How else can I help?", or similar questions
-- NEVER generate your own closing or goodbye phrase
-- NEVER say "I have everything I need" or similar completion phrases
-- Once the app has collected all 6 required fields, stop normal conversation immediately
-
-Do NOT:
-- give long explanations
-- sound robotic
-- act like a generic assistant
-- discuss unrelated topics
-- modify the greeting
-- add generic assistant chatter
-- keep the call going awkwardly
-- ask unnecessary optional questions`,
+SPEAK ONLY the exact text provided by the app via response.create instructions.`,
                   audio: {
                     input: {
                       format: {
@@ -5833,6 +5832,29 @@ Do NOT:
                   console.log('[INTAKE FIELD CHECK] Timestamp:', new Date().toISOString());
                   console.log('[INTAKE FIELD CHECK] =========================================');
                   
+                  // Sync callSessionState when intakeData is initialized
+                  if (!callSessionState.intakeData && intakeData) {
+                    callSessionState.intakeData = intakeData;
+                    callSessionState.currentStage = intakeData.stage;
+                    console.log('[CALL SESSION STATE SYNC] =========================================');
+                    console.log('[CALL SESSION STATE SYNC] intakeData initialized and synced to callSessionState');
+                    console.log('[CALL SESSION STATE SYNC] currentStage:', callSessionState.currentStage);
+                    console.log('[CALL SESSION STATE SYNC] Timestamp:', new Date().toISOString());
+                    console.log('[CALL SESSION STATE SYNC] =========================================');
+                  }
+
+                  // Sync callSessionState when intakeData.stage is updated
+                  if (callSessionState.intakeData && intakeData && callSessionState.currentStage !== intakeData.stage) {
+                    callSessionState.intakeData = intakeData;
+                    callSessionState.currentStage = intakeData.stage;
+                    console.log('[CALL SESSION STATE SYNC] =========================================');
+                    console.log('[CALL SESSION STATE SYNC] stage updated and synced to callSessionState');
+                    console.log('[CALL SESSION STATE SYNC] oldStage:', callSessionState.currentStage);
+                    console.log('[CALL SESSION STATE SYNC] newStage:', intakeData.stage);
+                    console.log('[CALL SESSION STATE SYNC] Timestamp:', new Date().toISOString());
+                    console.log('[CALL SESSION STATE SYNC] =========================================');
+                  }
+
                   console.log('[AI USER TRANSCRIPT ROUTER]', { 
                     currentStage: intakeData.stage, 
                     intakeComplete: intakeComplete, 
@@ -6230,19 +6252,35 @@ Do NOT:
                 console.log('[FINAL_OUTPUT_ITEM_DONE] item_id:', message.item_id || 'unknown');
                 
                 // Reset assistantSpeaking when output item is complete
-                const previousAssistantSpeaking = assistantSpeaking;
-                if (assistantSpeaking) {
-                  assistantSpeaking = false;
+                const previousAssistantSpeaking = callSessionState.assistantSpeaking;
+                if (callSessionState.assistantSpeaking) {
+                  callSessionState.assistantSpeaking = false;
+                  assistantSpeaking = false; // Sync individual variable for backward compatibility
+                  (twilioHandler as any).assistantSpeaking = false;
+                  
+                  // Check for state desync
+                  if (!callSessionState.currentStage && callSessionState.sessionId) {
+                    console.log('[CALL STATE DESYNC] =========================================');
+                    console.log('[CALL STATE DESYNC] Unknown stage detected after initialization');
+                    console.log('[CALL STATE DESYNC] currentStage:', callSessionState.currentStage || 'unknown');
+                    console.log('[CALL STATE DESYNC] lastPromptStage:', callSessionState.lastPromptStage);
+                    console.log('[CALL STATE DESYNC] activeResponseId:', callSessionState.activeResponseId);
+                    console.log('[CALL STATE DESYNC] assistantSpeaking:', callSessionState.assistantSpeaking);
+                    console.log('[CALL STATE DESYNC] callSid:', callSessionState.callSid);
+                    console.log('[CALL STATE DESYNC] sessionId:', callSessionState.sessionId);
+                    console.log('[CALL STATE DESYNC] Timestamp:', new Date().toISOString());
+                    console.log('[CALL STATE DESYNC] =========================================');
+                  }
+                  
                   console.log('[ASSISTANT SPEAKING STATE] =========================================');
                   console.log('[ASSISTANT SPEAKING STATE] State: FALSE');
                   console.log('[ASSISTANT SPEAKING STATE] Source: response.output_item.done');
                   console.log('[ASSISTANT SPEAKING STATE] Response ID:', message.response_id || 'unknown');
                   console.log('[ASSISTANT SPEAKING STATE] Item ID:', message.item_id || 'unknown');
-                  console.log('[ASSISTANT SPEAKING STATE] Stage:', (twilioHandler as any).intakeData?.stage || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Stage:', callSessionState.currentStage || 'unknown');
                   console.log('[ASSISTANT SPEAKING STATE] Previous state:', previousAssistantSpeaking);
                   console.log('[ASSISTANT SPEAKING STATE] Timestamp:', new Date().toISOString());
                   console.log('[ASSISTANT SPEAKING STATE] =========================================');
-                  (twilioHandler as any).assistantSpeaking = assistantSpeaking;
                   
                   // Clear timeout protection
                   if (assistantSpeakingTimeout) {
@@ -6362,16 +6400,18 @@ Do NOT:
                 }
 
                 // Set assistant speaking to true when audio starts
-                if (!assistantSpeaking) {
-                  assistantSpeaking = true;
+                if (!callSessionState.assistantSpeaking) {
+                  callSessionState.assistantSpeaking = true;
+                  assistantSpeaking = true; // Sync individual variable for backward compatibility
+                  (twilioHandler as any).assistantSpeaking = true;
+                  
                   console.log('[ASSISTANT SPEAKING STATE] =========================================');
                   console.log('[ASSISTANT SPEAKING STATE] State: TRUE');
                   console.log('[ASSISTANT SPEAKING STATE] Source: response.output_audio.delta');
                   console.log('[ASSISTANT SPEAKING STATE] Response ID:', message.response_id || 'unknown');
-                  console.log('[ASSISTANT SPEAKING STATE] Stage:', (twilioHandler as any).intakeData?.stage || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Stage:', callSessionState.currentStage || 'unknown');
                   console.log('[ASSISTANT SPEAKING STATE] Timestamp:', new Date().toISOString());
                   console.log('[ASSISTANT SPEAKING STATE] =========================================');
-                  (twilioHandler as any).assistantSpeaking = assistantSpeaking;
                   
                   // Start timeout protection (30 seconds)
                   if (assistantSpeakingTimeout) {
@@ -6886,6 +6926,37 @@ Do NOT:
                             if (message.type === 'conversation.item.output_audio_transcription.completed') {
                 console.log('[OPENAI RECV] conversation.item.output_audio_transcription.completed');
                 console.log('[FINAL ASSISTANT TRANSCRIPT]:', message.transcript || 'null');
+                
+                // Verify transcript matches expected prompt
+                if (expectedPrompt && message.transcript) {
+                  const actualTranscript = message.transcript.trim();
+                  const normalizedExpected = expectedPrompt.trim().toLowerCase();
+                  const normalizedActual = actualTranscript.toLowerCase();
+                  
+                  // Check if actual transcript contains the expected prompt (allowing for minor variations)
+                  const matchesExpected = normalizedActual.includes(normalizedExpected) || 
+                                        normalizedExpected.includes(normalizedActual);
+                  
+                  console.log('[VOICE PROMPT VERIFICATION] =========================================');
+                  console.log('[VOICE PROMPT VERIFICATION] expectedPrompt:', expectedPrompt);
+                  console.log('[VOICE PROMPT VERIFICATION] actualTranscript:', actualTranscript);
+                  console.log('[VOICE PROMPT VERIFICATION] matchesExpected:', matchesExpected);
+                  console.log('[VOICE PROMPT VERIFICATION] Timestamp:', new Date().toISOString());
+                  console.log('[VOICE PROMPT VERIFICATION] =========================================');
+                  
+                  if (!matchesExpected) {
+                    console.log('[VOICE PROMPT SCOPE VIOLATION] =========================================');
+                    console.log('[VOICE PROMPT SCOPE VIOLATION] AI spoke outside allowed prompt scope');
+                    console.log('[VOICE PROMPT SCOPE VIOLATION] expectedPrompt:', expectedPrompt);
+                    console.log('[VOICE PROMPT SCOPE VIOLATION] actualTranscript:', actualTranscript);
+                    console.log('[VOICE PROMPT SCOPE VIOLATION] responseId:', currentResponseId || 'unknown');
+                    console.log('[VOICE PROMPT SCOPE VIOLATION] Timestamp:', new Date().toISOString());
+                    console.log('[VOICE PROMPT SCOPE VIOLATION] =========================================');
+                  }
+                  
+                  // Clear expected prompt after verification
+                  expectedPrompt = null;
+                }
                 
                 // Accumulate complete assistant transcript
                 if (message.transcript) {
