@@ -249,9 +249,29 @@ export async function POST(request: Request) {
         });
 
         // Check if business is currently Out of Office and append notice
+        console.log('[FOLLOWUP OOO CHECK] =========================================');
+        console.log('[FOLLOWUP OOO CHECK] followUpId:', job.id);
+        console.log('[FOLLOWUP OOO CHECK] businessId:', business.id);
+        console.log('[FOLLOWUP OOO CHECK] stepNumber:', job.step);
+        console.log('[FOLLOWUP OOO CHECK] out_of_office_enabled:', business.out_of_office_enabled);
+        console.log('[FOLLOWUP OOO CHECK] out_of_office_start:', business.out_of_office_start);
+        console.log('[FOLLOWUP OOO CHECK] out_of_office_end:', business.out_of_office_end);
+        console.log('[FOLLOWUP OOO CHECK] Timestamp:', new Date().toISOString());
+        console.log('[FOLLOWUP OOO CHECK] =========================================');
+
         const outOfOfficeNotice = getOutOfOfficeNotice(business);
         const outOfOfficeActive = outOfOfficeNotice !== null;
         let messageBody = job.message_body;
+
+        console.log('[FOLLOWUP OOO CHECK] =========================================');
+        console.log('[FOLLOWUP OOO CHECK] outOfOfficeActive:', outOfOfficeActive);
+        console.log('[FOLLOWUP OOO CHECK] noticeApplied:', outOfOfficeActive);
+        console.log('[FOLLOWUP OOO CHECK] finalMessagePreview:', messageBody.substring(0, 50) + '...');
+        if (outOfOfficeNotice) {
+          console.log('[FOLLOWUP OOO CHECK] noticePreview:', outOfOfficeNotice.substring(0, 50) + '...');
+        }
+        console.log('[FOLLOWUP OOO CHECK] Timestamp:', new Date().toISOString());
+        console.log('[FOLLOWUP OOO CHECK] =========================================');
 
         console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
         console.log('[OUT OF OFFICE NOTICE APPLIED] businessId:', business.id);
