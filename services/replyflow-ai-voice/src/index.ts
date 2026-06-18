@@ -47,6 +47,16 @@ console.log('[AI VOICE BUILD INFO] deployVersion:', 'app-driven-intake-v3');
 console.log('[AI VOICE BUILD INFO] appDrivenIntakeEnabled:', true);
 console.log('[AI VOICE BUILD INFO] nodeEnv:', process.env.NODE_ENV || 'development');
 console.log('[AI VOICE BUILD INFO] =========================================');
+
+// Unmistakable deployment proof marker
+console.log('[AI VOICE DEPLOYMENT PROOF] =========================================');
+console.log('[AI VOICE DEPLOYMENT PROOF] expectedCommit: 596cf8c6');
+console.log('[AI VOICE DEPLOYMENT PROOF] actualCommit:', commitSha);
+console.log('[AI VOICE DEPLOYMENT PROOF] sourceRepo: Rayman493/missed-call-text-back');
+console.log('[AI VOICE DEPLOYMENT PROOF] appDrivenIntakeEnabled: true');
+console.log('[AI VOICE DEPLOYMENT PROOF] deployedAt:', new Date().toISOString());
+console.log('[AI VOICE DEPLOYMENT PROOF] =========================================');
+
 console.log('[AI VOICE STARTUP] Timestamp:', new Date().toISOString());
 
 // Normalize phone number to E.164 US format
