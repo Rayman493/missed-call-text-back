@@ -10,6 +10,10 @@ import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { determineSmsTemplate, hasAiSummaryBeenSent, hasRecentAutomatedSms } from '@/lib/sms-decision'
 import { getOutOfOfficeNotice } from '@/lib/out-of-office'
 
+console.log('[VOICE STATUS MODULE LOADED] =========================================');
+console.log('[VOICE STATUS MODULE LOADED] timestamp:', new Date().toISOString());
+console.log('[VOICE STATUS MODULE LOADED] =========================================');
+
 // CALL TRACE logging function
 function logCallTrace(data: {
   route: string
@@ -31,24 +35,39 @@ function logCallTrace(data: {
 }
 
 export async function POST(req: NextRequest) {
-  console.log('[VOICE STATUS ENTRY] =========================================');
-  console.log('[VOICE STATUS ENTRY] method: POST');
-  console.log('[VOICE STATUS ENTRY] url:', req.url);
-  console.log('[VOICE STATUS ENTRY] timestamp:', new Date().toISOString());
-  console.log('[VOICE STATUS ENTRY] =========================================');
-  console.log('[ROUTE HIT - TWILIO VOICE-STATUS]')
-  console.log('[CALL INTAKE FLOW] Voice status callback received - cannot create leads (phantom protection)')
-  
+  console.log('[VOICE STATUS POST RECEIVED] =========================================');
+  console.log('[VOICE STATUS POST RECEIVED] method: POST');
+  console.log('[VOICE STATUS POST RECEIVED] url:', req.url);
+  console.log('[VOICE STATUS POST RECEIVED] timestamp:', new Date().toISOString());
+  console.log('[VOICE STATUS POST RECEIVED] =========================================');
+
   try {
     // Read raw body exactly once for validation
     const rawBody = await req.text();
     const contentType = req.headers.get('content-type') || '';
-    
+
+    console.log('[VOICE STATUS BODY PARSED] =========================================');
+    console.log('[VOICE STATUS BODY PARSED] bodyLength:', rawBody.length);
+    console.log('[VOICE STATUS BODY PARSED] contentType:', contentType);
+    console.log('[VOICE STATUS BODY PARSED] timestamp:', new Date().toISOString());
+    console.log('[VOICE STATUS BODY PARSED] =========================================');
+
     // Parse body into params using URLSearchParams
     const params = Object.fromEntries(new URLSearchParams(rawBody));
-    
+
+    console.log('[VOICE STATUS VALIDATION START] =========================================');
+    console.log('[VOICE STATUS VALIDATION START] CallSid:', params.CallSid);
+    console.log('[VOICE STATUS VALIDATION START] timestamp:', new Date().toISOString());
+    console.log('[VOICE STATUS VALIDATION START] =========================================');
+
     // Validate Twilio signature with params object
     const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
+
+    console.log('[VOICE STATUS VALIDATION PASSED] =========================================');
+    console.log('[VOICE STATUS VALIDATION PASSED] isValid:', isValid);
+    console.log('[VOICE STATUS VALIDATION PASSED] timestamp:', new Date().toISOString());
+    console.log('[VOICE STATUS VALIDATION PASSED] =========================================');
+
     if (!isValid) {
       return new Response('Unauthorized', { status: 401 });
     }
