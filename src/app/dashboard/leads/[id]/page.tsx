@@ -1962,11 +1962,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <span className="text-xs font-medium text-foreground">
                           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 ? (() => {
                             const latestAiRecord = leadData.aiCallRecords[0];
-                            const extractedInfo = latestAiRecord.extracted_info || {};
-                            const requiredFields = ['callerName', 'reasonForCalling', 'importantDetails', 'addressOrLocation', 'desiredCompletionTime', 'preferredCallbackTime'];
-                            const missingFields = requiredFields.filter(field => !extractedInfo[field] || extractedInfo[field].trim() === '');
-                            const isComplete = missingFields.length === 0;
-                            return isComplete ? 'Complete' : 'Incomplete';
+                            return latestAiRecord.outcome === 'completed' ? 'Complete' : 'Incomplete';
                           })() : 'Incomplete'}
                         </span>
                       </div>
