@@ -2112,11 +2112,10 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
           console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
           console.log('[FIELD ASSIGNMENT] =========================================');
         }
-        // Advance to ask_details since both fields are present
-        intake.stage = 'ask_details';
+        // Do NOT modify stage here - let getIntakeResponse handle stage transition
         console.log('[SCRIPTED FLOW] =========================================');
-        console.log('[SCRIPTED FLOW] both fields parsed deterministically, advancing to ask_details');
-        console.log('[SCRIPTED FLOW] newStage:', intake.stage);
+        console.log('[SCRIPTED FLOW] both fields parsed deterministically');
+        console.log('[SCRIPTED FLOW] Stage transition will be handled by getIntakeResponse');
         console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
         console.log('[SCRIPTED FLOW] =========================================');
         return;
@@ -5439,7 +5438,7 @@ Return only JSON, no other text.`;
         
         // Determine outcome based on whether all required fields are present
         const intakeComplete = isAIIntakeComplete(normalizedFields);
-        const outcome = intakeComplete ? 'complete' : 'incomplete';
+        const outcome = intakeComplete ? 'completed' : 'incomplete';
         
         const mainInsertPayload = {
             business_id: sessionBusinessId,
