@@ -7254,295 +7254,8 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     return; // Skip normal intake processing - NO MORE AI RESPONSES
                   }
 
-                  // Stage-specific field capture for completion time
-                  if (intakeData!.stage === 'ask_completion_time' && userTranscript && userTranscript.trim().length > 0) {
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] =========================================');
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Current stage: ask_completion_time');
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Capturing completion time from transcript');
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Transcript:', userTranscript);
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Timestamp:', new Date().toISOString());
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] =========================================');
-
-                    // Clear promptedStages when user provides new transcript to allow next prompt
-                    promptedStages.clear();
-                    console.log('[PROMPTED STAGES CLEARED] =========================================');
-                    console.log('[PROMPTED STAGES CLEARED] User provided new transcript, clearing prompted stages');
-                    console.log('[PROMPTED STAGES CLEARED] Timestamp:', new Date().toISOString());
-                    console.log('[PROMPTED STAGES CLEARED] =========================================');
-
-                    // Normalize simple answers
-                    let normalizedCompletionTime = userTranscript.trim();
-                    const lowerTranscript = normalizedCompletionTime.toLowerCase();
-                    
-                    if (lowerTranscript === 'as soon as possible' || lowerTranscript === 'asap') {
-                      normalizedCompletionTime = 'As soon as possible';
-                    } else if (lowerTranscript === 'today') {
-                      normalizedCompletionTime = 'Today';
-                    } else if (lowerTranscript === 'tomorrow') {
-                      normalizedCompletionTime = 'Tomorrow';
-                    } else if (lowerTranscript === 'this week') {
-                      normalizedCompletionTime = 'This week';
-                    } else if (lowerTranscript === 'next week') {
-                      normalizedCompletionTime = 'Next week';
-                    }
-
-                    console.log('[COMPLETION TIME CAPTURED] =========================================');
-                    console.log('[COMPLETION TIME CAPTURED] Completion time captured:', normalizedCompletionTime);
-                    console.log('[COMPLETION TIME CAPTURED] Original transcript:', userTranscript);
-                    console.log('[COMPLETION TIME CAPTURED] Timestamp:', new Date().toISOString());
-                    console.log('[COMPLETION TIME CAPTURED] =========================================');
-
-                    intakeData!.desiredCompletionTime = normalizedCompletionTime;
-                    
-                    // Check if all required fields are collected after completion time
-                    if (areAllRequiredFieldsCollected(intakeData!)) {
-                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] =========================================');
-                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] All 6 required fields collected');
-                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] customerName:', !!intakeData!.customerName);
-                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] serviceRequested:', !!intakeData!.serviceRequested);
-                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] issueDescription:', !!intakeData!.issueDescription);
-                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] serviceAddress:', !!intakeData!.serviceAddress);
-                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] desiredCompletionTime:', !!intakeData!.desiredCompletionTime);
-                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] callbackTime:', !!intakeData!.callbackTime);
-                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] Timestamp:', new Date().toISOString());
-                      console.log('[ALL REQUIRED FIELDS COLLECTED - CLOSING] =========================================');
-
-                      console.log('[COMPLETE PATH] Required fields collected');
-                      console.log('[COMPLETE PATH] Stage set to complete');
-                      console.log('[COMPLETE PATH] Entering terminal close');
-
-                      intakeData!.stage = 'complete';
-                      intakeComplete = true;
-
-                      console.log('[SCRIPTED FLOW] =========================================');
-                      console.log('[SCRIPTED FLOW] final goodbye send requested immediately');
-                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                      console.log('[SCRIPTED FLOW] =========================================');
-
-                      // Send final goodbye immediately
-                      enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
-
-                      console.log('[SCRIPTED FLOW] =========================================');
-                      console.log('[SCRIPTED FLOW] final goodbye send result: requested');
-                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                      console.log('[SCRIPTED FLOW] =========================================');
-
-                      // Start SMS/finalization in parallel (don't await)
-                      console.log('[SCRIPTED FLOW] =========================================');
-                      console.log('[SCRIPTED FLOW] summary SMS finalization started async');
-                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                      console.log('[SCRIPTED FLOW] =========================================');
-
-                      finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '', ws)
-                        .then(() => {
-                          console.log('[SCRIPTED FLOW] =========================================');
-                          console.log('[SCRIPTED FLOW] summary SMS finalization finished async');
-                          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                          console.log('[SCRIPTED FLOW] =========================================');
-                        })
-                        .catch((error) => {
-                          console.log('[SCRIPTED FLOW] =========================================');
-                          console.log('[SCRIPTED FLOW] summary SMS finalization failed async');
-                          console.log('[SCRIPTED FLOW] error:', String(error));
-                          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                          console.log('[SCRIPTED FLOW] =========================================');
-                        });
-
-                      console.log('[SCRIPTED FLOW] =========================================');
-                      console.log('[SCRIPTED FLOW] hard hangup scheduled after goodbye delay');
-                      console.log('[SCRIPTED FLOW] delay: 12000ms');
-                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                      console.log('[SCRIPTED FLOW] =========================================');
-
-                      // Schedule hard hangup 12 seconds after final goodbye send request
-                      setTimeout(() => {
-                        console.log('[SCRIPTED FLOW] =========================================');
-                        console.log('[SCRIPTED FLOW] hard hangup executed after goodbye delay');
-                        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-                        console.log('[SCRIPTED FLOW] =========================================');
-                        executeOpenaiFinalHangup(ws, twilioHandler, closingState);
-                      }, 12000);
-
-                      return; // Skip normal intake processing - NO MORE AI RESPONSES
-                    }
-                    
-                    // Not all fields collected yet - advance to ask_callback_time
-                    console.log('[STAGE TRANSITION] =========================================');
-                    console.log('[STAGE TRANSITION] from: ask_completion_time');
-                    console.log('[STAGE TRANSITION] to: ask_callback_time');
-                    console.log('[STAGE TRANSITION] reason: desiredCompletionTime collected');
-                    console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
-                    console.log('[STAGE TRANSITION] =========================================');
-                    
-                    intakeData!.stage = 'ask_callback_time';
-                    
-                    // Send next prompt using centralized sendStagePrompt
-                    console.log('[NEXT PROMPT SENT] =========================================');
-                    console.log('[NEXT PROMPT SENT] stage: ask_callback_time');
-                    console.log('[NEXT PROMPT SENT] Using sendStagePrompt for centralized prompt management');
-                    console.log('[NEXT PROMPT SENT] Timestamp:', new Date().toISOString());
-                    console.log('[NEXT PROMPT SENT] =========================================');
-                    
-                    sendStagePrompt(intakeData!.stage, openAiWs, promptedStages, lastPromptAt, assistantSpeaking, activeResponseId, twilioHandler, lastPromptStage, stagePromptAttempts);
-                    
-                    return; // Skip normal intake processing
-                  }
-
-                  // Stage-specific field capture for callback time
-                  if (intakeData!.stage === 'ask_callback_time' && userTranscript && userTranscript.trim().length > 0) {
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] =========================================');
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Current stage: ask_callback_time');
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Capturing callback time from transcript');
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Transcript:', userTranscript);
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] Timestamp:', new Date().toISOString());
-                    console.log('[STAGE SPECIFIC FIELD CAPTURE] =========================================');
-
-                    // Clear promptedStages when user provides new transcript to allow next prompt
-                    promptedStages.clear();
-                    console.log('[PROMPTED STAGES CLEARED] =========================================');
-                    console.log('[PROMPTED STAGES CLEARED] User provided new transcript, clearing prompted stages');
-                    console.log('[PROMPTED STAGES CLEARED] Timestamp:', new Date().toISOString());
-                    console.log('[PROMPTED STAGES CLEARED] =========================================');
-
-                    // Normalize simple answers
-                    let normalizedCallbackTime = userTranscript.trim();
-                    const lowerTranscript = normalizedCallbackTime.toLowerCase();
-                    
-                    if (lowerTranscript === 'anytime' || lowerTranscript === 'any time') {
-                      normalizedCallbackTime = 'Anytime';
-                    } else if (lowerTranscript === 'today') {
-                      normalizedCallbackTime = 'Today';
-                    } else if (lowerTranscript === 'tomorrow') {
-                      normalizedCallbackTime = 'Tomorrow';
-                    } else if (lowerTranscript === 'morning' || lowerTranscript.includes('morning')) {
-                      normalizedCallbackTime = 'Morning';
-                    } else if (lowerTranscript === 'afternoon' || lowerTranscript.includes('afternoon')) {
-                      normalizedCallbackTime = 'Afternoon';
-                    } else if (lowerTranscript === 'evening' || lowerTranscript.includes('evening')) {
-                      normalizedCallbackTime = 'Evening';
-                    }
-
-                    console.log('[CALLBACK TIME EXTRACTION] =========================================');
-                    console.log('[CALLBACK TIME EXTRACTION] stage:', intakeData!.stage);
-                    console.log('[CALLBACK TIME EXTRACTION] transcript:', userTranscript);
-                    console.log('[CALLBACK TIME EXTRACTION] extractedCallbackTime:', normalizedCallbackTime);
-                    console.log('[CALLBACK TIME EXTRACTION] previousCallbackTime:', intakeData!.callbackTime || 'undefined');
-                    console.log('[CALLBACK TIME EXTRACTION] updatedCallbackTime:', normalizedCallbackTime);
-                    console.log('[CALLBACK TIME EXTRACTION] Timestamp:', new Date().toISOString());
-                    console.log('[CALLBACK TIME EXTRACTION] =========================================');
-
-                    intakeData!.callbackTime = normalizedCallbackTime;
-                    
-                    // Fallback recovery: if customerName is missing, try to recover from transcript
-                    if (!intakeData!.customerName) {
-                      const recoveredName = extractName(userTranscript);
-                      if (recoveredName && recoveredName.length > 1) {
-                        console.log('[FINAL REQUIRED FIELD RECOVERY] =========================================');
-                        console.log('[FINAL REQUIRED FIELD RECOVERY] missingFields: [customerName]');
-                        console.log('[FINAL REQUIRED FIELD RECOVERY] recoveredCustomerName:', recoveredName);
-                        console.log('[FINAL REQUIRED FIELD RECOVERY] nextAction: Setting customerName and continuing with completion check');
-                        console.log('[FINAL REQUIRED FIELD RECOVERY] Timestamp:', new Date().toISOString());
-                        console.log('[FINAL REQUIRED FIELD RECOVERY] =========================================');
-                        intakeData!.customerName = recoveredName;
-                      }
-                    }
-                    
-                    // Check if all required fields are collected after callback time
-                    if (areAllRequiredFieldsCollected(intakeData!)) {
-                      console.log('[CALLBACK COMPLETION ENTRY] =========================================');
-                      console.log('[CALLBACK COMPLETION ENTRY] All 6 required fields collected after callback time');
-                      console.log('[CALLBACK COMPLETION ENTRY] customerName:', !!intakeData!.customerName);
-                      console.log('[CALLBACK COMPLETION ENTRY] serviceRequested:', !!intakeData!.serviceRequested);
-                      console.log('[CALLBACK COMPLETION ENTRY] issueDescription:', !!intakeData!.issueDescription);
-                      console.log('[CALLBACK COMPLETION ENTRY] serviceAddress:', !!intakeData!.serviceAddress);
-                      console.log('[CALLBACK COMPLETION ENTRY] desiredCompletionTime:', !!intakeData!.desiredCompletionTime);
-                      console.log('[CALLBACK COMPLETION ENTRY] callbackTime:', !!intakeData!.callbackTime);
-                      console.log('[CALLBACK COMPLETION ENTRY] Timestamp:', new Date().toISOString());
-                      console.log('[CALLBACK COMPLETION ENTRY] =========================================');
-
-                      // Set stage complete immediately
-                      intakeData!.stage = 'complete';
-                      intakeComplete = true;
-
-                      console.log('[CALLBACK COMPLETION BEFORE GOODBYE] =========================================');
-                      console.log('[CALLBACK COMPLETION BEFORE GOODBYE] Starting SMS finalization async with 8s timeout');
-                      console.log('[CALLBACK COMPLETION BEFORE GOODBYE] Timestamp:', new Date().toISOString());
-                      console.log('[CALLBACK COMPLETION BEFORE GOODBYE] =========================================');
-
-                      // Start SMS/finalization async immediately with 8-second timeout
-                      const timeoutPromise = new Promise((_, reject) => {
-                        setTimeout(() => {
-                          reject(new Error('FINALIZE COMPLETE INTAKE TIMEOUT'));
-                        }, 8000);
-                      });
-
-                      Promise.race([
-                        finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '', ws),
-                        timeoutPromise
-                      ])
-                        .then(() => {
-                          console.log('[CALLBACK COMPLETION SMS FINALIZATION SUCCESS] =========================================');
-                          console.log('[CALLBACK COMPLETION SMS FINALIZATION SUCCESS] SMS finalization finished async');
-                          console.log('[CALLBACK COMPLETION SMS FINALIZATION SUCCESS] Timestamp:', new Date().toISOString());
-                          console.log('[CALLBACK COMPLETION SMS FINALIZATION SUCCESS] =========================================');
-                        })
-                        .catch((error) => {
-                          if (error.message === 'FINALIZE COMPLETE INTAKE TIMEOUT') {
-                            console.log('[FINALIZE COMPLETE INTAKE TIMEOUT] =========================================');
-                            console.log('[FINALIZE COMPLETE INTAKE TIMEOUT] finalizeCompleteIntakeOnce did not finish within 8 seconds');
-                            console.log('[FINALIZE COMPLETE INTAKE TIMEOUT] Timestamp:', new Date().toISOString());
-                            console.log('[FINALIZE COMPLETE INTAKE TIMEOUT] =========================================');
-                          } else {
-                            console.log('[CALLBACK COMPLETION ERROR] =========================================');
-                            console.log('[CALLBACK COMPLETION ERROR] SMS finalization failed async');
-                            console.log('[CALLBACK COMPLETION ERROR] error:', String(error));
-                            console.log('[CALLBACK COMPLETION ERROR] stack:', error instanceof Error ? error.stack : 'no stack');
-                            console.log('[CALLBACK COMPLETION ERROR] Timestamp:', new Date().toISOString());
-                            console.log('[CALLBACK COMPLETION ERROR] =========================================');
-                          }
-                        });
-
-                      console.log('[CALLBACK COMPLETION SMS FINALIZATION STARTED ASYNC] =========================================');
-                      console.log('[CALLBACK COMPLETION SMS FINALIZATION STARTED ASYNC] SMS finalization started async');
-                      console.log('[CALLBACK COMPLETION SMS FINALIZATION STARTED ASYNC] Timestamp:', new Date().toISOString());
-                      console.log('[CALLBACK COMPLETION SMS FINALIZATION STARTED ASYNC] =========================================');
-
-                      console.log('[CALLBACK COMPLETION FINAL GOODBYE FIRED NONBLOCKING] =========================================');
-                      console.log('[CALLBACK COMPLETION FINAL GOODBYE FIRED NONBLOCKING] Firing enterTerminalClose non-blocking');
-                      console.log('[CALLBACK COMPLETION FINAL GOODBYE FIRED NONBLOCKING] Timestamp:', new Date().toISOString());
-                      console.log('[CALLBACK COMPLETION FINAL GOODBYE FIRED NONBLOCKING] =========================================');
-
-                      // Fire final goodbye non-blocking (do not await)
-                      try {
-                        enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
-                      } catch (error) {
-                        console.log('[CALLBACK COMPLETION GOODBYE ERROR] =========================================');
-                        console.log('[CALLBACK COMPLETION GOODBYE ERROR] Error during enterTerminalClose');
-                        console.log('[CALLBACK COMPLETION GOODBYE ERROR] error:', String(error));
-                        console.log('[CALLBACK COMPLETION GOODBYE ERROR] stack:', error instanceof Error ? error.stack : 'no stack');
-                        console.log('[CALLBACK COMPLETION GOODBYE ERROR] Timestamp:', new Date().toISOString());
-                        console.log('[CALLBACK COMPLETION GOODBYE ERROR] =========================================');
-                      }
-
-                      console.log('[CALLBACK COMPLETION BEFORE HANGUP TIMER] =========================================');
-                      console.log('[CALLBACK COMPLETION BEFORE HANGUP TIMER] Scheduling hard hangup after goodbye delay');
-                      console.log('[CALLBACK COMPLETION BEFORE HANGUP TIMER] delay: 12000ms');
-                      console.log('[CALLBACK COMPLETION BEFORE HANGUP TIMER] Timestamp:', new Date().toISOString());
-                      console.log('[CALLBACK COMPLETION BEFORE HANGUP TIMER] =========================================');
-
-                      // Schedule hard hangup 12 seconds after final goodbye send request
-                      setTimeout(() => {
-                        console.log('[CALLBACK COMPLETION HANGUP EXECUTED] =========================================');
-                        console.log('[CALLBACK COMPLETION HANGUP EXECUTED] Hard hangup executed after goodbye delay');
-                        console.log('[CALLBACK COMPLETION HANGUP EXECUTED] Timestamp:', new Date().toISOString());
-                        console.log('[CALLBACK COMPLETION HANGUP EXECUTED] =========================================');
-                        executeOpenaiFinalHangup(ws, twilioHandler, closingState);
-                      }, 12000);
-
-                      return; // Skip normal intake processing - NO MORE AI RESPONSES
-                    }
-                  }
                   
+                                    
                   // Get next intake response
                   const intakeResponse = getIntakeResponse(intakeData!, userTranscript, stagePromptAttempts);
 
@@ -7607,8 +7320,65 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   intakeData!.stage = intakeResponse.nextStage;
                   
                   if (intakeData!.stage === 'complete') {
+                    console.log('[INTAKE COMPLETE] =========================================');
                     console.log('[INTAKE COMPLETE] All required fields collected');
+                    console.log('[INTAKE COMPLETE] Stage set to complete');
+                    console.log('[INTAKE COMPLETE] Triggering terminal close');
+                    console.log('[INTAKE COMPLETE] Timestamp:', new Date().toISOString());
+                    console.log('[INTAKE COMPLETE] =========================================');
+                    
                     intakeComplete = true;
+                    
+                    console.log('[SCRIPTED FLOW] =========================================');
+                    console.log('[SCRIPTED FLOW] final goodbye send requested immediately');
+                    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                    console.log('[SCRIPTED FLOW] =========================================');
+
+                    // Send final goodbye immediately
+                    enterTerminalClose(closingState, ws, twilioHandler, openAiWs);
+
+                    console.log('[SCRIPTED FLOW] =========================================');
+                    console.log('[SCRIPTED FLOW] final goodbye send result: requested');
+                    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                    console.log('[SCRIPTED FLOW] =========================================');
+
+                    // Start SMS/finalization in parallel (don't await)
+                    console.log('[SCRIPTED FLOW] =========================================');
+                    console.log('[SCRIPTED FLOW] summary SMS finalization started async');
+                    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                    console.log('[SCRIPTED FLOW] =========================================');
+
+                    finalizeCompleteIntakeOnce(intakeData!, callSid || '', callerPhone || '', businessId || '', ws)
+                      .then(() => {
+                        console.log('[SCRIPTED FLOW] =========================================');
+                        console.log('[SCRIPTED FLOW] summary SMS finalization finished async');
+                        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                        console.log('[SCRIPTED FLOW] =========================================');
+                      })
+                      .catch((error) => {
+                        console.log('[SCRIPTED FLOW] =========================================');
+                        console.log('[SCRIPTED FLOW] summary SMS finalization failed async');
+                        console.log('[SCRIPTED FLOW] error:', String(error));
+                        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                        console.log('[SCRIPTED FLOW] =========================================');
+                      });
+
+                    console.log('[SCRIPTED FLOW] =========================================');
+                    console.log('[SCRIPTED FLOW] hard hangup scheduled after goodbye delay');
+                    console.log('[SCRIPTED FLOW] delay: 12000ms');
+                    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                    console.log('[SCRIPTED FLOW] =========================================');
+
+                    // Schedule hard hangup 12 seconds after final goodbye send request
+                    setTimeout(() => {
+                      console.log('[SCRIPTED FLOW] =========================================');
+                      console.log('[SCRIPTED FLOW] hard hangup executed after goodbye delay');
+                      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+                      console.log('[SCRIPTED FLOW] =========================================');
+                      executeOpenaiFinalHangup(ws, twilioHandler, closingState);
+                    }, 12000);
+
+                    return; // Skip normal intake processing - NO MORE AI RESPONSES
                   } else {
                     // Send the stage prompt explicitly
                     sendStagePrompt(intakeData!.stage, openAiWs, promptedStages, lastPromptAt, assistantSpeaking, activeResponseId, twilioHandler, lastPromptStage, stagePromptAttempts);
