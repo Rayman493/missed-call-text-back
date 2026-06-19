@@ -147,13 +147,50 @@ function cleanupExpiredCallSids(): void {
       cleanedCount++;
     }
   }
+}
 
-  if (cleanedCount > 0) {
-    console.log('[CALL SID CLEANUP] =========================================');
-    console.log('[CALL SID CLEANUP] Cleaned up', cleanedCount, 'expired callSid entries');
-    console.log('[CALL SID CLEANUP] Timestamp:', new Date().toISOString());
-    console.log('[CALL SID CLEANUP] =========================================');
+// Retry helper function for Supabase operations with exponential backoff
+async function retrySupabaseOperation<T>(
+  operation: () => Promise<T>,
+  operationName: string,
+  maxRetries: number = 3,
+  baseDelayMs: number = 1000
+): Promise<T> {
+  let lastError: any;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[SUPABASE RETRY] ${operationName} - Attempt ${attempt}/${maxRetries}`);
+      const result = await operation();
+      console.log(`[SUPABASE RETRY] ${operationName} - Success on attempt ${attempt}`);
+      return result;
+    } catch (error: any) {
+      lastError = error;
+      console.log(`[SUPABASE RETRY] ${operationName} - Attempt ${attempt} failed:`, error.message);
+      
+      // Check if error is retryable (network/DNS errors)
+      const isRetryable = 
+        error.message?.includes('ENOTFOUND') ||
+        error.message?.includes('ECONNREFUSED') ||
+        error.message?.includes('ETIMEDOUT') ||
+        error.message?.includes('fetch failed') ||
+        error.code === 'ENOTFOUND' ||
+        error.code === 'ECONNREFUSED' ||
+        error.code === 'ETIMEDOUT';
+      
+      if (!isRetryable || attempt === maxRetries) {
+        console.log(`[SUPABASE RETRY] ${operationName} - Not retryable or max retries reached`);
+        throw error;
+      }
+      
+      // Exponential backoff
+      const delay = baseDelayMs * Math.pow(2, attempt - 1);
+      console.log(`[SUPABASE RETRY] ${operationName} - Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
+  
+  throw lastError;
 }
 
 // Start periodic cleanup
@@ -2885,17 +2922,25 @@ async function finalizeIncompleteIntake(
   console.log('[AI INCOMPLETE STEP 2] Timestamp:', new Date().toISOString());
   console.log('[AI INCOMPLETE STEP 2] =========================================');
   
-  const { data: lead, error: leadError } = await supabase
-    .from('leads')
-    .upsert({
-      business_id: businessId,
-      caller_phone: callerPhone,
-      status: 'new',
-    }, {
-      onConflict: 'business_id,caller_phone',
-    })
-    .select()
-    .single();
+  const { data: lead, error: leadError } = await retrySupabaseOperation(
+  async () => {
+    const result = await supabase
+      .from('leads')
+      .upsert({
+        business_id: businessId,
+        caller_phone: callerPhone,
+        status: 'new',
+      }, {
+        onConflict: 'business_id,caller_phone',
+      })
+      .select()
+      .single();
+    return result;
+  },
+  'Create/Update Lead',
+  3,
+  1000
+);
   
   if (leadError) {
     console.error('[AI INCOMPLETE STEP 2 FAILED] =========================================');
@@ -2920,26 +2965,42 @@ async function finalizeIncompleteIntake(
   console.log('[AI INCOMPLETE STEP 3] =========================================');
   
   let conversation;
-  const { data: existingConversation } = await supabase
-    .from('conversations')
-    .select('*')
-    .eq('lead_id', lead.id)
-    .maybeSingle();
+  const { data: existingConversation } = await retrySupabaseOperation(
+    async () => {
+      const result = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('lead_id', lead.id)
+        .maybeSingle();
+      return result;
+    },
+    'Lookup Existing Conversation',
+    3,
+    1000
+  );
   
   if (existingConversation) {
     conversation = existingConversation;
     console.log('[AI INCOMPLETE STEP 3] Using existing conversation:', conversation.id);
   } else {
-    const result = await supabase
-      .from('conversations')
-      .insert({
-        business_id: businessId,
-        lead_id: lead.id,
-        status: 'open',
-        last_activity_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+    const result = await retrySupabaseOperation(
+      async () => {
+        const res = await supabase
+          .from('conversations')
+          .insert({
+            business_id: businessId,
+            lead_id: lead.id,
+            status: 'open',
+            last_activity_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+        return res;
+      },
+      'Create Conversation',
+      3,
+      1000
+    );
     conversation = result.data;
   }
   
@@ -2956,11 +3017,19 @@ async function finalizeIncompleteIntake(
   console.log('[AI INCOMPLETE STEP 4] =========================================');
   
   // Check for existing record by call_sid
-  const { data: existingRecord, error: checkError } = await supabase
-    .from('ai_call_records')
-    .select('id, outcome')
-    .eq('call_sid', callSid)
-    .maybeSingle();
+  const { data: existingRecord, error: checkError } = await retrySupabaseOperation(
+    async () => {
+      const result = await supabase
+        .from('ai_call_records')
+        .select('id, outcome')
+        .eq('call_sid', callSid)
+        .maybeSingle();
+      return result;
+    },
+    'Check Existing AI Call Record',
+    3,
+    1000
+  );
   
   if (checkError && checkError.code !== 'PGRST116') {
     console.error('[AI INCOMPLETE STEP 4 FAILED] =========================================');
@@ -2976,35 +3045,51 @@ async function finalizeIncompleteIntake(
   if (existingRecord) {
     console.log('[AI INCOMPLETE STEP 4] Existing record found, updating instead of inserting');
     // Update existing record
-    const { error: updateError } = await supabase
-      .from('ai_call_records')
-      .update({
-        outcome: 'incomplete',
-        extracted_info: extractedFields,
-        summary: extractedFields.summary,
-        extraction_failed: false,
-        lead_id: lead.id,
-        conversation_id: conversation.id,
-        transcript: transcript
-      })
-      .eq('id', existingRecord.id);
+    const { error: updateError } = await retrySupabaseOperation(
+      async () => {
+        const result = await supabase
+          .from('ai_call_records')
+          .update({
+            outcome: 'incomplete',
+            extracted_info: extractedFields,
+            summary: extractedFields.summary,
+            extraction_failed: false,
+            lead_id: lead.id,
+            conversation_id: conversation.id,
+            transcript: transcript
+          })
+          .eq('id', existingRecord.id);
+        return result;
+      },
+      'Update AI Call Record',
+      3,
+      1000
+    );
     recordError = updateError;
   } else {
     // Insert new record
-    const { error: insertError } = await supabase
-      .from('ai_call_records')
-      .insert({
-        business_id: businessId,
-        lead_id: lead.id,
-        conversation_id: conversation.id,
-        caller_phone: callerPhone,
-        call_sid: callSid,
-        transcript: transcript,
-        outcome: 'incomplete',
-        extracted_info: extractedFields,
-        summary: extractedFields.summary,
-        extraction_failed: false
-      });
+    const { error: insertError } = await retrySupabaseOperation(
+      async () => {
+        const result = await supabase
+          .from('ai_call_records')
+          .insert({
+            business_id: businessId,
+            lead_id: lead.id,
+            conversation_id: conversation.id,
+            caller_phone: callerPhone,
+            call_sid: callSid,
+            transcript: transcript,
+            outcome: 'incomplete',
+            extracted_info: extractedFields,
+            summary: extractedFields.summary,
+            extraction_failed: false
+          });
+        return result;
+      },
+      'Insert AI Call Record',
+      3,
+      1000
+    );
     recordError = insertError;
   }
   
@@ -3102,11 +3187,19 @@ async function finalizeIncompleteIntake(
     
     console.log('[AI INCOMPLETE STEP 6] Request body:', JSON.stringify(requestBody));
     
-    const response = await fetch(`${notificationApiUrl}/api/follow-ups/create-jobs`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(requestBody)
-    });
+    const response = await retrySupabaseOperation(
+      async () => {
+        const res = await fetch(`${notificationApiUrl}/api/follow-ups/create-jobs`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(requestBody)
+        });
+        return res;
+      },
+      'Create Follow-up Jobs',
+      3,
+      1000
+    );
     
     console.log('[AI INCOMPLETE STEP 6] Response status:', response.status);
     console.log('[AI INCOMPLETE STEP 6] Response statusText:', response.statusText);
