@@ -2736,29 +2736,61 @@ function isValidCallbackTimeAnswer(transcript: string): boolean {
   return hasValidPattern || hasTimeMention || !isOnlyInvalidWord;
 }
 
+// Helper function to normalize extracted field names to session intake field names
+function normalizeExtractedFields(extractedFields: any): any {
+  if (!extractedFields) return {};
+  
+  console.log('[NORMALIZE EXTRACTED FIELDS] =========================================');
+  console.log('[NORMALIZE EXTRACTED FIELDS] Original keys:', Object.keys(extractedFields));
+  console.log('[NORMALIZE EXTRACTED FIELDS] Timestamp:', new Date().toISOString());
+  console.log('[NORMALIZE EXTRACTED FIELDS] =========================================');
+  
+  const normalized = {
+    customerName: extractedFields.callerName || extractedFields.customerName,
+    serviceRequested: extractedFields.reasonForCalling || extractedFields.serviceRequested,
+    issueDescription: extractedFields.importantDetails || extractedFields.issueDescription,
+    serviceAddress: extractedFields.addressOrLocation || extractedFields.serviceAddress,
+    desiredCompletionTime: extractedFields.desiredCompletionTime,
+    callbackTime: extractedFields.preferredCallbackTime || extractedFields.callbackTime,
+    summary: extractedFields.summary
+  };
+  
+  console.log('[NORMALIZE EXTRACTED FIELDS] Normalized keys:', Object.keys(normalized));
+  console.log('[NORMALIZE EXTRACTED FIELDS] Normalized values:', JSON.stringify(normalized, null, 2));
+  console.log('[NORMALIZE EXTRACTED FIELDS] =========================================');
+  
+  return normalized;
+}
+
 // Helper function to check if all required AI intake fields are present
 function isAIIntakeComplete(extractedFields: any): boolean {
   if (!extractedFields) return false;
   
-  const requiredFields = [
-    'customerName',
-    'serviceRequested',
-    'issueDescription',
-    'serviceAddress',
-    'desiredCompletionTime',
-    'callbackTime'
-  ];
+  console.log('[AI INTAKE COMPLETENESS CHECK] =========================================');
+  console.log('[AI INTAKE COMPLETENESS CHECK] Input keys:', Object.keys(extractedFields));
+  console.log('[AI INTAKE COMPLETENESS CHECK] Input values:', JSON.stringify(extractedFields, null, 2));
   
-  const missingFields = requiredFields.filter(field => !extractedFields[field] || extractedFields[field].trim() === '');
+  // Check fields using the same logic as areAllRequiredFieldsCollected()
+  const hasName = !!extractedFields.customerName;
+  const hasJobDescription = !!(extractedFields.serviceRequested || extractedFields.issueDescription);
+  const hasLocation = !!extractedFields.serviceAddress;
+  const hasTiming = !!(extractedFields.desiredCompletionTime || extractedFields.callbackTime);
+  const hasCallbackTime = !!extractedFields.callbackTime;
   
-  console.log('[AI INTAKE COMPLETENESS CHECK]', {
-    requiredFields,
-    extractedFieldsKeys: Object.keys(extractedFields),
-    missingFields,
-    isComplete: missingFields.length === 0
+  const isComplete = hasName && hasJobDescription && hasLocation && hasTiming && hasCallbackTime;
+  
+  console.log('[AI INTAKE COMPLETENESS CHECK] Field checks:', {
+    hasName,
+    hasJobDescription,
+    hasLocation,
+    hasTiming,
+    hasCallbackTime,
+    isComplete
   });
+  console.log('[AI INTAKE COMPLETENESS CHECK] Timestamp:', new Date().toISOString());
+  console.log('[AI INTAKE COMPLETENESS CHECK] =========================================');
   
-  return missingFields.length === 0;
+  return isComplete;
 }
 
 // Helper function to check if any useful field was collected during incomplete intake
@@ -5402,8 +5434,11 @@ Return only JSON, no other text.`;
         
         console.log('[AI SAVE START] creating new AI call record...');
         
+        // Normalize extracted field names to session intake field names
+        const normalizedFields = normalizeExtractedFields(extractedFields);
+        
         // Determine outcome based on whether all required fields are present
-        const intakeComplete = isAIIntakeComplete(extractedFields);
+        const intakeComplete = isAIIntakeComplete(normalizedFields);
         const outcome = intakeComplete ? 'complete' : 'incomplete';
         
         const mainInsertPayload = {
