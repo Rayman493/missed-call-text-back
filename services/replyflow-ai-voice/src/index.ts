@@ -5897,30 +5897,95 @@ Return only JSON, no other text.`;
           console.log('[INCOMPLETE SMS SEND START] Timestamp:', new Date().toISOString());
           console.log('[INCOMPLETE SMS SEND START] =========================================');
 
-          try {
-            const twilioClient = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-            const { error: smsError } = await twilioClient.messages.create({
-              from: process.env.TWILIO_PHONE_NUMBER,
-              to: sessionCallerPhone,
-              body: partialSummary
-            });
+          // Resolve business-specific phone number from session (same logic as complete path)
+          let fromNumber: string | null = null;
+          const sessionBusinessTwilioPhoneNumber = (ws as any).businessTwilioPhoneNumber;
 
-            if (smsError) {
-              console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
-              console.log('[INCOMPLETE SMS SEND FAILED] error:', smsError.message);
-              console.log('[INCOMPLETE SMS SEND FAILED] Timestamp:', new Date().toISOString());
-              console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
-            } else {
+          console.log('[INCOMPLETE SMS SENDER] =========================================');
+          console.log('[INCOMPLETE SMS SENDER] sessionBusinessTwilioPhoneNumber:', sessionBusinessTwilioPhoneNumber);
+          console.log('[INCOMPLETE SMS SENDER] Timestamp:', new Date().toISOString());
+          console.log('[INCOMPLETE SMS SENDER] =========================================');
+
+          if (sessionBusinessTwilioPhoneNumber) {
+            fromNumber = sessionBusinessTwilioPhoneNumber;
+            console.log('[INCOMPLETE SMS SENDER] Using session business phone number:', fromNumber);
+          } else {
+            fromNumber = process.env.TWILIO_PHONE_NUMBER || null;
+            console.log('[INCOMPLETE SMS SENDER] Using fallback global phone number:', fromNumber);
+          }
+
+          if (!fromNumber) {
+            console.log('[INCOMPLETE SMS SENDER ERROR] No phone number available, skipping SMS');
+          } else {
+            try {
+              const twilioClient = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+              const smsResult = await twilioClient.messages.create({
+                from: fromNumber,
+                to: sessionCallerPhone,
+                body: partialSummary
+              });
+
               console.log('[INCOMPLETE SMS SEND SUCCESS] =========================================');
-              console.log('[INCOMPLETE SMS SEND SUCCESS] messageSid: success');
+              console.log('[INCOMPLETE SMS SEND SUCCESS] messageSid:', smsResult.sid);
+              console.log('[INCOMPLETE SMS SEND SUCCESS] fromNumber:', fromNumber);
               console.log('[INCOMPLETE SMS SEND SUCCESS] Timestamp:', new Date().toISOString());
               console.log('[INCOMPLETE SMS SEND SUCCESS] =========================================');
+
+              // Persist SMS to database using summary-message API
+              if (fallbackLead.id && fallbackConversationId) {
+                console.log('[INCOMPLETE SMS DB PERSIST START] =========================================');
+                console.log('[INCOMPLETE SMS DB PERSIST START] Persisting SMS to database');
+                console.log('[INCOMPLETE SMS DB PERSIST START] Timestamp:', new Date().toISOString());
+                console.log('[INCOMPLETE SMS DB PERSIST START] =========================================');
+
+                try {
+                  const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+                  const internalApiSecret = process.env.INTERNAL_API_SECRET;
+
+                  if (internalApiSecret) {
+                    const apiResponse = await fetch(`${appBaseUrl}/api/ai-voice/summary-message`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${internalApiSecret}`
+                      },
+                      body: JSON.stringify({
+                        businessId: sessionBusinessId,
+                        leadId: fallbackLead.id,
+                        conversationId: fallbackConversationId,
+                        smsBody: partialSummary,
+                        fromPhone: fromNumber,
+                        toPhone: sessionCallerPhone,
+                        twilioMessageSid: smsResult.sid,
+                        status: smsResult.status
+                      })
+                    });
+
+                    if (apiResponse.ok) {
+                      console.log('[INCOMPLETE SMS DB PERSIST SUCCESS] =========================================');
+                      console.log('[INCOMPLETE SMS DB PERSIST SUCCESS] SMS persisted to database');
+                      console.log('[INCOMPLETE SMS DB PERSIST SUCCESS] Timestamp:', new Date().toISOString());
+                      console.log('[INCOMPLETE SMS DB PERSIST SUCCESS] =========================================');
+                    } else {
+                      console.log('[INCOMPLETE SMS DB PERSIST FAILED] =========================================');
+                      console.log('[INCOMPLETE SMS DB PERSIST FAILED] status:', apiResponse.status);
+                      console.log('[INCOMPLETE SMS DB PERSIST FAILED] Timestamp:', new Date().toISOString());
+                      console.log('[INCOMPLETE SMS DB PERSIST FAILED] =========================================');
+                    }
+                  }
+                } catch (apiError) {
+                  console.log('[INCOMPLETE SMS DB PERSIST ERROR] =========================================');
+                  console.log('[INCOMPLETE SMS DB PERSIST ERROR] error:', String(apiError));
+                  console.log('[INCOMPLETE SMS DB PERSIST ERROR] Timestamp:', new Date().toISOString());
+                  console.log('[INCOMPLETE SMS DB PERSIST ERROR] =========================================');
+                }
+              }
+            } catch (smsError) {
+              console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
+              console.log('[INCOMPLETE SMS SEND FAILED] error:', String(smsError));
+              console.log('[INCOMPLETE SMS SEND FAILED] Timestamp:', new Date().toISOString());
+              console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
             }
-          } catch (smsError) {
-            console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
-            console.log('[INCOMPLETE SMS SEND FAILED] error:', String(smsError));
-            console.log('[INCOMPLETE SMS SEND FAILED] Timestamp:', new Date().toISOString());
-            console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
           }
 
           // Create follow-up jobs using the proper API
