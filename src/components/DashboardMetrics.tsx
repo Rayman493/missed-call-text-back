@@ -276,94 +276,48 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-3 sm:p-4">
-            <div className="animate-pulse">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-200 dark:bg-slate-700 rounded-lg mb-3 sm:mb-4"></div>
-              <div className="h-6 sm:h-8 bg-slate-200 dark:bg-slate-700 rounded mb-1.5 sm:mb-2"></div>
-              <div className="h-3 sm:h-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
-            </div>
+      <div className="grid grid-cols-1 gap-2 sm:gap-3">
+        <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
+          <div className="animate-pulse">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4"></div>
+            <div className="h-8 sm:h-10 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
+            <div className="h-4 sm:h-5 bg-slate-200 dark:bg-slate-700 rounded"></div>
           </div>
-        ))}
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-2.5 sm:space-y-3">
-      {/* Primary KPI Cards - Leads Generated and Recovery Rate */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-        {[
-          { type: 'leads', value: metrics.leadsGenerated },
-          { type: 'recovery', value: metrics.recoveryRate }
-        ].map((metric) => (
-          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-2.5 sm:p-3 min-h-[6rem] sm:min-h-[7rem] flex flex-col">
-            <div className="flex items-start justify-between mb-2">
-              <div className={`w-8 h-8 sm:w-9 sm:h-9 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border shadow-sm`}>
-                {getMetricIcon(metric.type)}
-              </div>
-              <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
-                {metrics.period}
-              </div>
-            </div>
-            <div className="space-y-1 flex-1">
-              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
-                {metric.type === 'recovery' ? `${metric.value}%` : metric.value.toLocaleString()}
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">
-                  {getMetricLabel(metric.type)}
-                </div>
-                {getMetricTooltip(metric.type) && (
-                  <span className="inline-flex items-center cursor-help" title={getMetricTooltip(metric.type) ?? undefined}>
-                    <HelpCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
-                  </span>
-                )}
-              </div>
-              {metric.value === 0 && metric.type !== 'recovery' && (
-                <div className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500">
-                  {getEmptyStateText(metric.type)}
-                </div>
-              )}
-            </div>
+    <div className="grid grid-cols-1 gap-2 sm:gap-3">
+      {/* Recovery Rate - Key business impact metric */}
+      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
+        <div className="flex items-start justify-between mb-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-lg flex items-center justify-center shadow-sm">
+            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-        ))}
-      </div>
-
-      {/* Secondary KPI Cards */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
-        {[
-          { type: 'missedCalls', value: metrics.missedCallsCaptured },
-          { type: 'messages', value: metrics.messagesSent },
-          { type: 'conversations', value: metrics.activeConversations }
-        ].map((metric) => (
-          <div key={metric.type} className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-2 sm:p-2.5 min-h-[5rem] sm:min-h-[6rem] flex flex-col">
-            <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-              <div className={`w-6 h-6 sm:w-7 sm:h-7 ${getMetricColor(metric.type)} rounded-lg flex items-center justify-center border`}>
-                {getMetricIcon(metric.type)}
-              </div>
-              <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                {metrics.period}
-              </div>
-            </div>
-            <div className="space-y-0.5 flex-1">
-              <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-foreground leading-tight">
-                {metric.value.toLocaleString()}
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                  {getMetricLabel(metric.type)}
-                </div>
-                {getMetricTooltip(metric.type) && (
-                  <span className="inline-flex items-center cursor-help" title={getMetricTooltip(metric.type) ?? undefined}>
-                    <HelpCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
-                  </span>
-                )}
-              </div>
-            </div>
+          <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+            {metrics.period}
           </div>
-        ))}
+        </div>
+        <div className="space-y-1.5 flex-1">
+          <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
+            {metrics.recoveryRate}%
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
+              Recovery Rate
+            </div>
+            <span className="inline-flex items-center cursor-help" title="Percentage of missed callers successfully engaged by ReplyFlow">
+              <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
+            </span>
+          </div>
+          {metrics.recoveryRate === 0 && (
+            <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
+              No recovered leads yet
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
