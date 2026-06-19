@@ -5404,7 +5404,7 @@ Return only JSON, no other text.`;
         
         // Determine outcome based on whether all required fields are present
         const intakeComplete = isAIIntakeComplete(extractedFields);
-        const outcome = intakeComplete ? 'completed_intake' : 'incomplete';
+        const outcome = intakeComplete ? 'complete' : 'incomplete';
         
         const mainInsertPayload = {
             business_id: sessionBusinessId,
@@ -5888,7 +5888,6 @@ Return only JSON, no other text.`;
             .insert({
               conversation_id: fallbackConversationId,
               lead_id: fallbackLead.id,
-              business_id: sessionBusinessId,
               content: partialSummary,
               message_type: 'summary',
               structured_data: intakeData || null,
