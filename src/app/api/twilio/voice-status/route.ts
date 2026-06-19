@@ -390,11 +390,22 @@ export async function POST(req: NextRequest) {
       console.log("[Twilio Voice Status Webhook] Lead id for processing:", lead.id)
     }
     
-    // Use canonical conversationId from helper - NO legacy conversation lookup/create
+    // Use conversation from AI call record if available, otherwise use canonical conversationId
     let conversation = null
     let conversationWasCreated = false
     
-    if (canonicalConversationId) {
+    // For AI calls, use the conversation_id from the AI call record
+    if (aiCallRecord && aiCallRecord.conversation_id) {
+      console.log('[VOICE STATUS USING AI CONVERSATION]', {
+        aiConversationId: aiCallRecord.conversation_id,
+        aiLeadId: aiCallRecord.lead_id,
+        callSid: CallSid,
+        businessId: business.id
+      })
+      
+      conversation = { id: aiCallRecord.conversation_id } as any
+      conversationWasCreated = false
+    } else if (canonicalConversationId) {
       console.log('[VOICE STATUS USING CANONICAL CONVERSATION]', {
         canonicalConversationId: canonicalConversationId,
         leadId: lead?.id,
@@ -405,10 +416,13 @@ export async function POST(req: NextRequest) {
       conversation = { id: canonicalConversationId } as any
       conversationWasCreated = false
     } else {
-      console.error('[VOICE STATUS NO CANONICAL CONVERSATION]', {
+      console.error('[VOICE STATUS NO CONVERSATION]', {
         callSid: CallSid,
         leadId: lead?.id,
-        businessId: business.id
+        businessId: business.id,
+        aiCallRecord: !!aiCallRecord,
+        aiCallRecordConversationId: aiCallRecord?.conversation_id,
+        canonicalConversationId: canonicalConversationId
       })
     }
     
@@ -781,13 +795,13 @@ export async function POST(req: NextRequest) {
 
             // Suppress follow-up creation for completed AI intake calls
             if (aiCallRecord && aiCallRecord.outcome === 'completed') {
-              console.log('[AI FOLLOWUPS SUPPRESSED]', {
-                reason: 'ai_intake_completed',
-                callSid: CallSid,
-                leadId: lead.id,
-                conversationId: conversation.id,
-                aiCallRecordId: aiCallRecord.id
-              })
+              console.log('[FOLLOWUP SKIP REASON] =========================================');
+              console.log('[FOLLOWUP SKIP REASON] businessId:', business.id);
+              console.log('[FOLLOWUP SKIP REASON] leadId:', lead.id);
+              console.log('[FOLLOWUP SKIP REASON] reason: ai_intake_completed');
+              console.log('[FOLLOWUP SKIP REASON] aiCallRecordId:', aiCallRecord.id);
+              console.log('[FOLLOWUP SKIP REASON] Timestamp:', new Date().toISOString());
+              console.log('[FOLLOWUP SKIP REASON] =========================================');
               jobsCreated = []
               hasPendingJob = false
 
@@ -826,6 +840,15 @@ export async function POST(req: NextRequest) {
                 console.error('[AI FOLLOWUPS CLEANUP] Exception during cleanup:', cleanupError)
               }
             } else {
+              console.log('[FOLLOWUP CREATE CHECK] =========================================');
+              console.log('[FOLLOWUP CREATE CHECK] route: voice-status');
+              console.log('[FOLLOWUP CREATE CHECK] businessId:', business.id);
+              console.log('[FOLLOWUP CREATE CHECK] leadId:', lead.id);
+              console.log('[FOLLOWUP CREATE CHECK] conversationId:', conversation.id);
+              console.log('[FOLLOWUP CREATE CHECK] aiCallRecord:', !!aiCallRecord);
+              console.log('[FOLLOWUP CREATE CHECK] aiOutcome:', aiCallRecord?.outcome);
+              console.log('[FOLLOWUP CREATE CHECK] Timestamp:', new Date().toISOString());
+              console.log('[FOLLOWUP CREATE CHECK] =========================================');
               // Use centralized createFollowUpJobs function to respect business settings
             try {
               const jobs = await createFollowUpJobs({

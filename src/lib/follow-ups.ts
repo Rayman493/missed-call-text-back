@@ -69,28 +69,22 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
     const followUpSettings = followUpsContainer.followUps
     const followUpsEnabled = followUpsContainer.enabled !== false // Default to enabled if not set
 
-    console.log('[GET FOLLOWUP SCHEDULE PARSED] =========================================');
-    console.log('[GET FOLLOWUP SCHEDULE PARSED] enabled:', followUpsEnabled);
-    console.log('[GET FOLLOWUP SCHEDULE PARSED] followUps:', JSON.stringify(followUpSettings, null, 2));
-    console.log('[GET FOLLOWUP SCHEDULE PARSED] scheduleLength:', followUpSettings?.length || 0);
-    console.log('[GET FOLLOWUP SCHEDULE PARSED] steps:', followUpSettings?.map((fu: any) => ({
-      step: fu.step,
-      enabled: fu.enabled,
-      delay: fu.delayDays || fu.delay,
-      unit: fu.delayUnit || fu.unit,
-      message: fu.message?.substring(0, 50)
-    })) || []);
-    console.log('[GET FOLLOWUP SCHEDULE PARSED] Timestamp:', new Date().toISOString());
-    console.log('[GET FOLLOWUP SCHEDULE PARSED] =========================================');
+    console.log('[FOLLOWUP SETTINGS LOADED] =========================================');
+    console.log('[FOLLOWUP SETTINGS LOADED] businessId:', businessId);
+    console.log('[FOLLOWUP SETTINGS LOADED] enabled:', followUpsEnabled);
+    console.log('[FOLLOWUP SETTINGS LOADED] followUpsCount:', followUpSettings?.length || 0);
+    console.log('[FOLLOWUP SETTINGS LOADED] Timestamp:', new Date().toISOString());
+    console.log('[FOLLOWUP SETTINGS LOADED] =========================================');
 
     // If no custom settings or disabled, use defaults
     if (!followUpSettings || !followUpSettings.length || !followUpsEnabled) {
-      console.log('[GET FOLLOWUP SCHEDULE EMPTY] =========================================');
-      console.log('[GET FOLLOWUP SCHEDULE EMPTY] reason:', !followUpSettings ? 'followUpSettings is null/undefined' : !followUpSettings.length ? 'followUpSettings array is empty' : 'followUpsEnabled is false');
-      console.log('[GET FOLLOWUP SCHEDULE EMPTY] followUpsEnabled:', followUpsEnabled);
-      console.log('[GET FOLLOWUP SCHEDULE EMPTY] followUpSettingsLength:', followUpSettings?.length || 0);
-      console.log('[GET FOLLOWUP SCHEDULE EMPTY] Timestamp:', new Date().toISOString());
-      console.log('[GET FOLLOWUP SCHEDULE EMPTY] =========================================');
+      console.log('[FOLLOWUP SKIP REASON] =========================================');
+      console.log('[FOLLOWUP SKIP REASON] businessId:', businessId);
+      console.log('[FOLLOWUP SKIP REASON] reason:', !followUpSettings ? 'followUpSettings is null/undefined' : !followUpSettings.length ? 'followUpSettings array is empty' : 'followUpsEnabled is false');
+      console.log('[FOLLOWUP SKIP REASON] followUpsEnabled:', followUpsEnabled);
+      console.log('[FOLLOWUP SKIP REASON] followUpSettingsLength:', followUpSettings?.length || 0);
+      console.log('[FOLLOWUP SKIP REASON] Timestamp:', new Date().toISOString());
+      console.log('[FOLLOWUP SKIP REASON] =========================================');
       return []
     }
 
@@ -181,16 +175,13 @@ export async function createFollowUpJobs(params: {
 }) {
   const { businessId, leadId, conversationId, businessName } = params
 
-  console.log('[FOLLOWUP CREATION ATTEMPT]', {
-    businessId,
-    leadId,
-    conversationId,
-    businessName,
-    caller: 'createFollowUpJobs function',
-    timestamp: new Date().toISOString()
-  })
-
-  console.log('[CREATE FOLLOWUPS ENTER]', { businessId, leadId, conversationId, businessName });
+  console.log('[FOLLOWUP CREATE CHECK] =========================================');
+  console.log('[FOLLOWUP CREATE CHECK] businessId:', businessId);
+  console.log('[FOLLOWUP CREATE CHECK] leadId:', leadId);
+  console.log('[FOLLOWUP CREATE CHECK] conversationId:', conversationId);
+  console.log('[FOLLOWUP CREATE CHECK] businessName:', businessName);
+  console.log('[FOLLOWUP CREATE CHECK] Timestamp:', new Date().toISOString());
+  console.log('[FOLLOWUP CREATE CHECK] =========================================');
   
   // Fetch business settings for timezone and business hours
   const business = await db.getBusiness(businessId)
@@ -297,18 +288,44 @@ export async function createFollowUpJobs(params: {
         step: followUp.step,
         created_at: now.toISOString()
       })
-      
+
       if (job) {
         jobs.push(job)
+        console.log('[FOLLOWUP JOBS INSERTED] =========================================');
+        console.log('[FOLLOWUP JOBS INSERTED] businessId:', businessId);
+        console.log('[FOLLOWUP JOBS INSERTED] leadId:', leadId);
+        console.log('[FOLLOWUP JOBS INSERTED] jobId:', job.id);
+        console.log('[FOLLOWUP JOBS INSERTED] step:', followUp.step);
+        console.log('[FOLLOWUP JOBS INSERTED] scheduledFor:', scheduledFor.toISOString());
+        console.log('[FOLLOWUP JOBS INSERTED] Timestamp:', new Date().toISOString());
+        console.log('[FOLLOWUP JOBS INSERTED] =========================================');
       } else {
-        console.error(`[FollowUps] Failed to create job for lead ${leadId}, step ${followUp.step}`)
+        console.error('[FOLLOWUP INSERT ERROR] =========================================');
+        console.error('[FOLLOWUP INSERT ERROR] businessId:', businessId);
+        console.error('[FOLLOWUP INSERT ERROR] leadId:', leadId);
+        console.error('[FOLLOWUP INSERT ERROR] step:', followUp.step);
+        console.error('[FOLLOWUP INSERT ERROR] reason: db.createFollowUpJob returned null');
+        console.error('[FOLLOWUP INSERT ERROR] Timestamp:', new Date().toISOString());
+        console.error('[FOLLOWUP INSERT ERROR] =========================================');
       }
     } catch (error) {
-      console.error(`[FollowUps] Error creating job for lead ${leadId}, step ${followUp.step}:`, error)
+      console.error('[FOLLOWUP INSERT ERROR] =========================================');
+      console.error('[FOLLOWUP INSERT ERROR] businessId:', businessId);
+      console.error('[FOLLOWUP INSERT ERROR] leadId:', leadId);
+      console.error('[FOLLOWUP INSERT ERROR] step:', followUp.step);
+      console.error('[FOLLOWUP INSERT ERROR] error:', String(error));
+      console.error('[FOLLOWUP INSERT ERROR] Timestamp:', new Date().toISOString());
+      console.error('[FOLLOWUP INSERT ERROR] =========================================');
     }
   }
-  
-  console.log(`[FollowUps] Created ${jobs.length} jobs for lead ${leadId}`)
+
+  console.log('[FOLLOWUP CREATION COMPLETE] =========================================');
+  console.log('[FOLLOWUP CREATION COMPLETE] businessId:', businessId);
+  console.log('[FOLLOWUP CREATION COMPLETE] leadId:', leadId);
+  console.log('[FOLLOWUP CREATION COMPLETE] jobsCreated:', jobs.length);
+  console.log('[FOLLOWUP CREATION COMPLETE] jobIds:', jobs.map(j => j.id));
+  console.log('[FOLLOWUP CREATION COMPLETE] Timestamp:', new Date().toISOString());
+  console.log('[FOLLOWUP CREATION COMPLETE] =========================================');
   return jobs
 }
 
