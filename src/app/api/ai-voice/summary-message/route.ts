@@ -62,20 +62,23 @@ export async function POST(req: NextRequest) {
     console.log('[AI SUMMARY MESSAGE API] Inserting message into messages table');
 
     // Insert into messages table with production columns
+    const insertPayload = {
+      lead_id: leadId,
+      conversation_id: conversationId,
+      body: smsBody,
+      direction: 'outbound' as const,
+      from_phone: fromPhone,
+      to_phone: toPhone,
+      twilio_message_sid: twilioMessageSid,
+      status: status || 'sent',
+      message_type: 'summary' as const
+    };
+
+    console.log('[AI SUMMARY MESSAGE API] insert payload columns:', Object.keys(insertPayload));
+
     const { data: message, error: insertError } = await supabase
       .from('messages')
-      .insert({
-        business_id: businessId,
-        lead_id: leadId,
-        conversation_id: conversationId,
-        body: smsBody,
-        direction: 'outbound',
-        from_phone: fromPhone,
-        to_phone: toPhone,
-        twilio_message_sid: twilioMessageSid,
-        status: status || 'sent',
-        message_type: 'summary'
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
