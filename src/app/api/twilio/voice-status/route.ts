@@ -31,6 +31,11 @@ function logCallTrace(data: {
 }
 
 export async function POST(req: NextRequest) {
+  console.log('[VOICE STATUS ENTRY] =========================================');
+  console.log('[VOICE STATUS ENTRY] method: POST');
+  console.log('[VOICE STATUS ENTRY] url:', req.url);
+  console.log('[VOICE STATUS ENTRY] timestamp:', new Date().toISOString());
+  console.log('[VOICE STATUS ENTRY] =========================================');
   console.log('[ROUTE HIT - TWILIO VOICE-STATUS]')
   console.log('[CALL INTAKE FLOW] Voice status callback received - cannot create leads (phantom protection)')
   
@@ -74,7 +79,15 @@ export async function POST(req: NextRequest) {
     const CallStatus = params.CallStatus
     const Duration = params.Duration
     const Direction = params.Direction
-    
+
+    console.log('[VOICE STATUS CALL STATUS] =========================================');
+    console.log('[VOICE STATUS CALL STATUS] CallSid:', CallSid);
+    console.log('[VOICE STATUS CALL STATUS] CallStatus:', CallStatus);
+    console.log('[VOICE STATUS CALL STATUS] Duration:', Duration);
+    console.log('[VOICE STATUS CALL STATUS] Direction:', Direction);
+    console.log('[VOICE STATUS CALL STATUS] Timestamp:', new Date().toISOString());
+    console.log('[VOICE STATUS CALL STATUS] =========================================');
+
     console.log('[VOICE STATUS START]', {
       callSid: CallSid,
       callStatus: CallStatus,
@@ -131,6 +144,16 @@ export async function POST(req: NextRequest) {
       callSid: CallSid
     })
 
+    console.log('[VOICE STATUS AI CALL FOUND] =========================================');
+    console.log('[VOICE STATUS AI CALL FOUND] CallSid:', CallSid);
+    console.log('[VOICE STATUS AI CALL FOUND] aiCallRecordFound:', !!aiCallRecord);
+    console.log('[VOICE STATUS AI CALL FOUND] aiCallRecordId:', aiCallRecord?.id);
+    console.log('[VOICE STATUS AI CALL FOUND] outcome:', aiCallRecord?.outcome);
+    console.log('[VOICE STATUS AI CALL FOUND] lead_id:', aiCallRecord?.lead_id);
+    console.log('[VOICE STATUS AI CALL FOUND] conversation_id:', aiCallRecord?.conversation_id);
+    console.log('[VOICE STATUS AI CALL FOUND] Timestamp:', new Date().toISOString());
+    console.log('[VOICE STATUS AI CALL FOUND] =========================================');
+
     if (!aiCallRecord) {
       console.log('[AI RECORD NOT FOUND AFTER RETRIES]', {
         callSid: CallSid,
@@ -156,6 +179,12 @@ export async function POST(req: NextRequest) {
     })
     
     if (!From || !To) {
+      console.log('[VOICE STATUS EARLY RETURN] =========================================');
+      console.log('[VOICE STATUS EARLY RETURN] reason: missing required fields');
+      console.log('[VOICE STATUS EARLY RETURN] From:', From);
+      console.log('[VOICE STATUS EARLY RETURN] To:', To);
+      console.log('[VOICE STATUS EARLY RETURN] Timestamp:', new Date().toISOString());
+      console.log('[VOICE STATUS EARLY RETURN] =========================================');
       console.error('[voice-status] Missing required fields:', { From, To })
       console.error('[voice-status] Early return: missing required fields')
       return new Response("OK", { status: 200 })
@@ -225,6 +254,11 @@ export async function POST(req: NextRequest) {
     }
     
     if (!business) {
+      console.log('[VOICE STATUS EARLY RETURN] =========================================');
+      console.log('[VOICE STATUS EARLY RETURN] reason: no business matched');
+      console.log('[VOICE STATUS EARLY RETURN] normalizedTo:', normalizedTo);
+      console.log('[VOICE STATUS EARLY RETURN] Timestamp:', new Date().toISOString());
+      console.log('[VOICE STATUS EARLY RETURN] =========================================');
       console.error('[Twilio Voice Status Webhook] No business match found for phone:', normalizedTo)
       console.error('[Twilio Voice Status Webhook] Early return: no business matched')
       return new Response("OK", { status: 200 })
@@ -366,7 +400,14 @@ export async function POST(req: NextRequest) {
         callStatus: CallStatus,
         reason: 'voice-status webhook cannot create leads - only the voice webhook can create leads for actual calls'
       })
-      
+
+      console.log('[VOICE STATUS EARLY RETURN] =========================================');
+      console.log('[VOICE STATUS EARLY RETURN] reason: phantom lead prevention');
+      console.log('[VOICE STATUS EARLY RETURN] callSid:', CallSid);
+      console.log('[VOICE STATUS EARLY RETURN] businessId:', business.id);
+      console.log('[VOICE STATUS EARLY RETURN] Timestamp:', new Date().toISOString());
+      console.log('[VOICE STATUS EARLY RETURN] =========================================');
+
       logCallTrace({
         route: 'voice-status',
         action: 'lead_creation_blocked',
@@ -377,7 +418,7 @@ export async function POST(req: NextRequest) {
         businessName: business.name,
         reason: 'voice-status webhook blocked from creating new lead - status callbacks cannot create leads'
       })
-      
+
       // Return early without creating lead - this prevents phantom leads
       return new Response("OK", { status: 200 })
     }
@@ -738,6 +779,15 @@ export async function POST(req: NextRequest) {
     // ========================================
     // NEW FOLLOW-UP JOB LOGIC (INDEPENDENT OF LEAD STATUS)
     // ========================================
+
+    console.log('[VOICE STATUS COMPLETED BRANCH] =========================================');
+    console.log('[VOICE STATUS COMPLETED BRANCH] Entering follow-up creation logic');
+    console.log('[VOICE STATUS COMPLETED BRANCH] leadId:', lead?.id);
+    console.log('[VOICE STATUS COMPLETED BRANCH] conversationId:', conversation?.id);
+    console.log('[VOICE STATUS COMPLETED BRANCH] aiCallRecord:', !!aiCallRecord);
+    console.log('[VOICE STATUS COMPLETED BRANCH] aiOutcome:', aiCallRecord?.outcome);
+    console.log('[VOICE STATUS COMPLETED BRANCH] Timestamp:', new Date().toISOString());
+    console.log('[VOICE STATUS COMPLETED BRANCH] =========================================');
 
     let hasPendingJob = false
     let jobsCreated: any[] = []
