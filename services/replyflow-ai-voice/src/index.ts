@@ -2741,12 +2741,12 @@ function isAIIntakeComplete(extractedFields: any): boolean {
   if (!extractedFields) return false;
   
   const requiredFields = [
-    'callerName',
-    'reasonForCalling',
-    'importantDetails',
-    'addressOrLocation',
+    'customerName',
+    'serviceRequested',
+    'issueDescription',
+    'serviceAddress',
     'desiredCompletionTime',
-    'preferredCallbackTime'
+    'callbackTime'
   ];
   
   const missingFields = requiredFields.filter(field => !extractedFields[field] || extractedFields[field].trim() === '');
