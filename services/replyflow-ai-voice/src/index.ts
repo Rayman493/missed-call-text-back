@@ -3142,6 +3142,7 @@ async function finalizeIncompleteIntake(
   
   // Release finalization lock
   finalizationInProgressByCallSid.delete(callSid);
+  incompleteFinalizedCallSids.delete(callSid);
   
   console.log('[FINALIZATION LOCK RELEASED] =========================================');
   console.log('[FINALIZATION LOCK RELEASED] callSid:', callSid);
