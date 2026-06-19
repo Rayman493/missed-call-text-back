@@ -1042,10 +1042,11 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
 
               // Return TwiML with Media Stream to Fly.io
               // Parameters are passed as <Parameter> elements, not query params
+              const statusCallbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || 'http://localhost:3000'}/api/twilio/voice-status`;
               const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <Stream url="${flyWsUrl}">
+    <Stream url="${flyWsUrl}" statusCallback="${statusCallbackUrl}">
       <Parameter name="sessionId" value="${session.id}" />
       <Parameter name="callSid" value="${CallSid}" />
       <Parameter name="businessId" value="${business.id}" />
