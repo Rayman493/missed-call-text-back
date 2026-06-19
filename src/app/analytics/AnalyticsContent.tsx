@@ -40,6 +40,7 @@ interface AnalyticsMetrics {
   customerReplyRate: number
   averageMessagesPerConversation: number
   estimatedLeadsSaved: number
+  recoveryRate: number
 }
 
 interface TrendData {
@@ -101,7 +102,7 @@ export default function AnalyticsContent() {
 
         const { data: messages, error: messagesError } = await supabase
           .from('messages')
-          .select('id, sender, created_at, conversation_id, lead_id')
+          .select('id, direction, created_at, conversation_id, lead_id')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
@@ -176,13 +177,41 @@ export default function AnalyticsContent() {
           })
         }
 
+        // Fetch conversations for accurate conversation count
+        console.log('[ANALYTICS QUERY START]', {
+          businessId: business.id,
+          query: 'conversations',
+          filter: { business_id: business.id, created_at: thirtyDaysAgo }
+        })
+
+        const { data: conversations, error: conversationsError } = await supabase
+          .from('conversations')
+          .select('id, status, created_at')
+          .eq('business_id', business.id)
+          .gte('created_at', thirtyDaysAgo)
+
+        if (conversationsError) {
+          console.error('[ANALYTICS QUERY FAILED]', {
+            businessId: business.id,
+            query: 'conversations',
+            error: conversationsError.message,
+            details: conversationsError
+          })
+        } else {
+          console.log('[ANALYTICS QUERY SUCCESS]', {
+            businessId: business.id,
+            query: 'conversations',
+            recordCount: conversations?.length || 0
+          })
+        }
+
         // Calculate metrics
         const leadCount = leads?.length || 0
         const activeLeads = leads?.filter((l: any) => l.status === 'active' || l.status === 'new').length || 0
         const completedLeads = leads?.filter((l: any) => l.status === 'completed' || l.status === 'won').length || 0
 
-        const inboundMessages = messages?.filter((m: any) => m.sender === 'caller').length || 0
-        const outboundMessages = messages?.filter((m: any) => m.sender === 'ai' || m.sender === 'user').length || 0
+        const inboundMessages = messages?.filter((m: any) => m.direction === 'inbound').length || 0
+        const outboundMessages = messages?.filter((m: any) => m.direction === 'outbound').length || 0
         const totalMessages = messages?.length || 0
 
         const aiIntakesCompleted = aiCalls?.filter((c: any) => c.outcome === 'completed_intake').length || 0
@@ -192,19 +221,28 @@ export default function AnalyticsContent() {
 
         const followUpsSent = followUps?.filter((f: any) => f.status === 'sent').length || 0
         const followUpsCanceled = followUps?.filter((f: any) => f.status === 'canceled').length || 0
-        
+
         // Calculate follow-up response rate (leads that replied after follow-up)
         // This is a simplified calculation - in production you'd track actual follow-up conversations
         const followUpResponseRate = followUpsSent > 0 ? Math.min((inboundMessages / followUpsSent) * 100, 100) : 0
 
-        const uniqueConversations = new Set(messages?.map((m: any) => m.conversation_id)).size
+        const totalConversations = conversations?.length || 0
         const customerReplyRate = totalMessages > 0 ? (inboundMessages / totalMessages) * 100 : 0
-        const averageMessagesPerConversation = uniqueConversations > 0 ? totalMessages / uniqueConversations : 0
+        const averageMessagesPerConversation = totalConversations > 0 ? totalMessages / totalConversations : 0
+
+        // Calculate Recovery Rate to match Dashboard: active conversations / missed calls captured
+        // Active conversations = leads with recent activity (last 7 days)
+        const sevenDaysAgoForRecovery = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        const activeConversationsCount = leads?.filter((l: any) => {
+          const leadDate = new Date(l.created_at)
+          return leadDate >= sevenDaysAgoForRecovery
+        }).length || 0
+        const recoveryRate = leadCount > 0 ? Math.min(100, Math.max(0, Math.round((activeConversationsCount / leadCount) * 100))) : 0
 
         const estimatedLeadsSaved = inboundMessages + aiIntakesCompleted
 
         // Calculate daily trends for the last 7 days
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        const sevenDaysAgoForTrends = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
         const dailyLeads: Record<string, number> = {}
         const dailyReplies: Record<string, number> = {}
 
@@ -218,16 +256,16 @@ export default function AnalyticsContent() {
 
         leads?.forEach((lead: any) => {
           const date = new Date(lead.created_at)
-          if (date >= sevenDaysAgo) {
+          if (date >= sevenDaysAgoForTrends) {
             const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
             dailyLeads[dateStr] = (dailyLeads[dateStr] || 0) + 1
           }
         })
 
         messages?.forEach((message: any) => {
-          if (message.sender === 'caller') {
+          if (message.direction === 'inbound') {
             const date = new Date(message.created_at)
-            if (date >= sevenDaysAgo) {
+            if (date >= sevenDaysAgoForTrends) {
               const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
               dailyReplies[dateStr] = (dailyReplies[dateStr] || 0) + 1
             }
@@ -250,10 +288,11 @@ export default function AnalyticsContent() {
           followUpsSent,
           followUpsCanceled,
           followUpResponseRate,
-          totalConversations: uniqueConversations,
+          totalConversations,
           customerReplyRate,
           averageMessagesPerConversation,
-          estimatedLeadsSaved
+          estimatedLeadsSaved,
+          recoveryRate
         })
 
         setLeadTrend(leadTrendData)
