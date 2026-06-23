@@ -20,6 +20,12 @@ import { log, LogLevel } from './logger';
 import { OpenAIRealtimeClient } from './openai-client';
 import { TwilioStreamHandler } from './twilio-stream';
 import { createClient } from '@supabase/supabase-js';
+import {
+  IntakeTemplate,
+  AI_INTAKE_TEMPLATES,
+  getIntakeStageText,
+  getIntakeTemplateForBusinessType,
+} from './intake-templates';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -1410,11 +1416,12 @@ const APPROVED_PROMPTS: Record<string, string> = {
 /**
  * Centralized function for all approved assistant speech
  * This is the ONLY function that should create assistant responses
- * @param stage - The approved stage name (must be in APPROVED_PROMPTS)
+ * @param stage - The approved stage name
  * @param openAiWs - OpenAI WebSocket connection
+ * @param ws - WebSocket connection (for template access)
  * @returns true if prompt was sent, false if blocked
  */
-function sendApprovedPrompt(stage: string, openAiWs: any): boolean {
+function sendApprovedPrompt(stage: string, openAiWs: any, ws?: any): boolean {
   // Block unknown stages
   if (!APPROVED_PROMPTS[stage]) {
     console.log('[VOICE SCOPE VIOLATION BLOCKED] =========================================');
@@ -1426,11 +1433,29 @@ function sendApprovedPrompt(stage: string, openAiWs: any): boolean {
     return false;
   }
 
-  const approvedText = APPROVED_PROMPTS[stage];
+  // Get intake template from websocket session
+  const intakeTemplate = ws?.intakeTemplate as IntakeTemplate || 'on_site';
+  
+  // Map internal stage to template stage
+  const stageMapping: Record<string, 'ask_name_reason' | 'ask_details' | 'ask_location_or_context' | 'ask_timing' | 'ask_callback_time' | 'complete'> = {
+    'ask_name_reason': 'ask_name_reason',
+    'ask_name_recovery': 'ask_name_reason',
+    'ask_reason_recovery': 'ask_name_reason',
+    'ask_details': 'ask_details',
+    'ask_location': 'ask_location_or_context',
+    'ask_completion_time': 'ask_timing',
+    'ask_callback_time': 'ask_callback_time',
+    'final_goodbye': 'complete',
+  };
+  
+  const templateStage = stageMapping[stage] || 'ask_name_reason';
+  const approvedText = getIntakeStageText(intakeTemplate, templateStage);
 
-  // Log [VOICE OUTBOUND] with stage name
+  // Log [VOICE OUTBOUND] with stage name and template info
   console.log('[VOICE OUTBOUND] =========================================');
   console.log('[VOICE OUTBOUND] Stage:', stage);
+  console.log('[VOICE OUTBOUND] Template Stage:', templateStage);
+  console.log('[VOICE OUTBOUND] Intake Template:', intakeTemplate);
   console.log('[VOICE OUTBOUND] Text:', approvedText);
   console.log('[VOICE OUTBOUND] Source: sendApprovedPrompt');
   console.log('[VOICE OUTBOUND] Timestamp:', new Date().toISOString());
@@ -1439,7 +1464,9 @@ function sendApprovedPrompt(stage: string, openAiWs: any): boolean {
   // Log [SCRIPTED FLOW] prompt sent
   console.log('[SCRIPTED FLOW] =========================================');
   console.log('[SCRIPTED FLOW] prompt sent');
-  console.log('[SCRIPTED FLOW] stage:', stage);
+  console.log('[SCRIPTED FLOW] internal_stage:', stage);
+  console.log('[SCRIPTED FLOW] template_stage:', templateStage);
+  console.log('[SCRIPTED FLOW] intake_template:', intakeTemplate);
   console.log('[SCRIPTED FLOW] text:', approvedText);
   console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
   console.log('[SCRIPTED FLOW] =========================================');
@@ -1575,7 +1602,8 @@ function sendStagePrompt(
   activeResponseId: string | null,
   twilioHandler: any,
   lastPromptStage: IntakeStage | null,
-  stagePromptAttempts: Map<IntakeStage, number>
+  stagePromptAttempts: Map<IntakeStage, number>,
+  ws?: any
 ): void {
   console.log('[ACTIVE INTAKE STAGE] =========================================');
   console.log('[ACTIVE INTAKE STAGE] stage:', stage);
@@ -1686,7 +1714,7 @@ function sendStagePrompt(
   }, 500);
 
   // Use centralized sendApprovedPrompt for all stage prompts
-  const sent = sendApprovedPrompt(stage, openAiWs);
+  const sent = sendApprovedPrompt(stage, openAiWs, ws);
   responseSent = sent;
   clearTimeout(watchdogTimer);
 
@@ -6469,6 +6497,16 @@ Return only JSON, no other text.`;
           intakeData = createIntakeData(businessName || 'we', callSid, businessId, sessionId);
           console.log('[AI INTAKE] initialized with business:', businessName);
 
+          // Determine intake template based on business type
+          const selectedIntakeTemplate = getIntakeTemplateForBusinessType(businessType);
+          (ws as any).intakeTemplate = selectedIntakeTemplate;
+          
+          console.log('[AI INTAKE TEMPLATE] =========================================');
+          console.log('[AI INTAKE TEMPLATE] business_type:', businessType);
+          console.log('[AI INTAKE TEMPLATE] selected_template:', selectedIntakeTemplate);
+          console.log('[AI INTAKE TEMPLATE] Timestamp:', new Date().toISOString());
+          console.log('[AI INTAKE TEMPLATE] =========================================');
+
           // Instructions are now handled via session.update - disable old system
           console.log('[AI] using session.update instructions - old system disabled');
           
@@ -7380,7 +7418,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     return; // Skip normal intake processing - NO MORE AI RESPONSES
                   } else {
                     // Send the stage prompt explicitly
-                    sendStagePrompt(intakeData!.stage, openAiWs, promptedStages, lastPromptAt, assistantSpeaking, activeResponseId, twilioHandler, lastPromptStage, stagePromptAttempts);
+                    sendStagePrompt(intakeData!.stage, openAiWs, promptedStages, lastPromptAt, assistantSpeaking, activeResponseId, twilioHandler, lastPromptStage, stagePromptAttempts, ws);
                   }
                 }
               }
@@ -7910,7 +7948,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[CODE OWNED FIRST PROMPT SENT] =========================================');
                   
                   // Use centralized sendApprovedPrompt for greeting
-                  sendApprovedPrompt('ask_name_reason', openAiWs);
+                  sendApprovedPrompt('ask_name_reason', openAiWs, ws);
                   greetingSent = true;
                   updateAISessionState(aiSessionTracker, 'GREETING_SENT', 'Greeting response.create sent');
                   console.log('[GREETING SENT]');
