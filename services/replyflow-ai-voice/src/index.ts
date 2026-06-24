@@ -1812,21 +1812,32 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
             console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
             console.log('[SCRIPTED FLOW] =========================================');
           } else {
-            console.log('[SCRIPTED FLOW] =========================================');
-            console.log('[SCRIPTED FLOW] name-only heuristic applied');
-            console.log('[SCRIPTED FLOW] transcript:', transcript);
-            console.log('[SCRIPTED FLOW] customerName:', strippedTranscript);
-            console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-            console.log('[SCRIPTED FLOW] =========================================');
+            // Validate customerName before saving
+            if (isValidCustomerName(strippedTranscript)) {
+              console.log('[SCRIPTED FLOW] =========================================');
+              console.log('[SCRIPTED FLOW] name-only heuristic applied');
+              console.log('[SCRIPTED FLOW] transcript:', transcript);
+              console.log('[SCRIPTED FLOW] customerName:', strippedTranscript);
+              console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+              console.log('[SCRIPTED FLOW] =========================================');
 
-            intake.customerName = strippedTranscript;
-            console.log('[SCRIPTED FLOW] =========================================');
-            console.log('[SCRIPTED FLOW] customerName locked from heuristic');
-            console.log('[SCRIPTED FLOW] customerName:', intake.customerName);
-            console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-            console.log('[SCRIPTED FLOW] =========================================');
+              intake.customerName = strippedTranscript;
+              console.log('[SCRIPTED FLOW] =========================================');
+              console.log('[SCRIPTED FLOW] customerName locked from heuristic');
+              console.log('[SCRIPTED FLOW] customerName:', intake.customerName);
+              console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+              console.log('[SCRIPTED FLOW] =========================================');
 
-            intake.serviceRequested = undefined;
+              intake.serviceRequested = undefined;
+            } else {
+              console.log('[SCRIPTED FLOW] =========================================');
+              console.log('[SCRIPTED FLOW] customerName validation failed');
+              console.log('[SCRIPTED FLOW] transcript:', transcript);
+              console.log('[SCRIPTED FLOW] attemptedName:', strippedTranscript);
+              console.log('[SCRIPTED FLOW] reason: Invalid customerName detected');
+              console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+              console.log('[SCRIPTED FLOW] =========================================');
+            }
           }
         } else {
           // For ask_name_reason, we need to extract name and reason from the transcript
@@ -2663,6 +2674,63 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
   console.log('[FIELD EXTRACTION RESULT] =========================================');
 }
 
+// Helper function to validate customer name
+function isValidCustomerName(name: string): boolean {
+  if (!name || typeof name !== 'string') {
+    return false;
+  }
+  
+  const trimmedName = name.trim().toLowerCase();
+  
+  // Reject if too short or too long
+  if (trimmedName.length < 2 || trimmedName.length > 50) {
+    return false;
+  }
+  
+  // Blocklist of common non-name values that should not be saved as customerName
+  const blockedValues = [
+    // Service types
+    'financial management', 'property management', 'south park', 'dog grooming', 'grass cutting',
+    'plumbing', 'hvac', 'electrical', 'landscaping', 'roofing', 'cleaning', 'pest control',
+    'painting', 'carpentry', 'masonry', 'excavation', 'concrete', 'windows', 'doors',
+    'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage',
+    'junk removal', 'lawn care', 'toilet', 'installation', 'maintenance', 'repair',
+    'service', 'consultation', 'appointment', 'quote', 'estimate', 'inspection',
+    
+    // Locations
+    'south park', 'north park', 'east park', 'west park', 'downtown', 'uptown',
+    
+    // Generic phrases
+    'customer', 'client', 'caller', 'someone', 'anyone', 'nobody', 'unknown',
+    'help', 'need', 'want', 'call', 'phone', 'message',
+    
+    // Business-related
+    'business', 'company', 'office', 'store', 'shop',
+    
+    // Time-related
+    'morning', 'afternoon', 'evening', 'today', 'tomorrow', 'week'
+  ];
+  
+  // Check if name is blocked
+  if (blockedValues.some(blocked => trimmedName === blocked || trimmedName.includes(blocked))) {
+    return false;
+  }
+  
+  // Check if it contains only common service words
+  const serviceWords = ['service', 'repair', 'maintenance', 'installation', 'cleaning', 'management', 'inspection'];
+  if (serviceWords.some(word => trimmedName.includes(word))) {
+    return false;
+  }
+  
+  // Check if it's a multi-word phrase that looks like a service description
+  const words = trimmedName.split(/\s+/);
+  if (words.length > 2) {
+    return false;
+  }
+  
+  return true;
+}
+
 // Helper function to validate callback time answer
 function isValidCallbackTimeAnswer(transcript: string): boolean {
   const lowerTranscript = transcript.toLowerCase().trim();
@@ -3369,7 +3437,15 @@ function extractName(transcript: string): string {
       console.log('[NAME EXTRACTION] finalName:', finalName);
       console.log('[NAME EXTRACTION] =========================================');
       
-      return finalName;
+      // Validate the extracted name before returning
+      if (isValidCustomerName(finalName)) {
+        return finalName;
+      } else {
+        console.log('[NAME EXTRACTION] =========================================');
+        console.log('[NAME EXTRACTION] Extracted name failed validation:', finalName);
+        console.log('[NAME EXTRACTION] Rejecting this name');
+        console.log('[NAME EXTRACTION] =========================================');
+      }
     }
   }
   
@@ -8603,6 +8679,16 @@ Return only JSON, no other text.`;
                 try {
                   extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
                   console.log('[AI INGEST EXTRACTION PARSED]', extractedFields);
+                  
+                  // Validate customerName to prevent non-name values from being saved
+                  if (extractedFields.customerName && !isValidCustomerName(extractedFields.customerName)) {
+                    console.log('[AI INGEST CUSTOMER NAME BLOCKED] =========================================');
+                    console.log('[AI INGEST CUSTOMER NAME BLOCKED] Invalid customerName detected:', extractedFields.customerName);
+                    console.log('[AI INGEST CUSTOMER NAME BLOCKED] Setting customerName to null');
+                    console.log('[AI INGEST CUSTOMER NAME BLOCKED] Timestamp:', new Date().toISOString());
+                    console.log('[AI INGEST CUSTOMER NAME BLOCKED] =========================================');
+                    extractedFields.customerName = null;
+                  }
                 } catch (parseError) {
                   console.log('[AI INGEST EXTRACTION PARSE FAILED]', parseError);
                   console.log('[AI INGEST EXTRACTION PARSE FAILED] using fallback transcript');
