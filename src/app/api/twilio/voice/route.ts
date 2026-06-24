@@ -460,15 +460,40 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     }
     
     // EARLIEST POSSIBLE POINT: Check if caller is in ignored contacts BEFORE ANY DB write
-    console.log('[IGNORED CONTACT CHECK EARLIEST]', {
-      businessId: business.id,
-      callerPhone: normalizedFrom,
-      timestamp: new Date().toISOString()
-    })
+    console.log('[IGNORED CONTACT CHECK] =========================================');
+    console.log('[IGNORED CONTACT CHECK] businessId:', business.id);
+    console.log('[IGNORED CONTACT CHECK] rawFrom:', From);
+    console.log('[IGNORED CONTACT CHECK] normalizedFrom:', normalizedFrom);
+    console.log('[IGNORED CONTACT CHECK] timestamp:', new Date().toISOString());
+    console.log('[IGNORED CONTACT CHECK] =========================================');
 
-    const isIgnored = await isIgnoredContact(business.id, normalizedFrom)
+    let isIgnored = false;
+    let ignoredCheckError = null;
+
+    try {
+      isIgnored = await isIgnoredContact(business.id, normalizedFrom);
+      console.log('[IGNORED CONTACT CHECK] =========================================');
+      console.log('[IGNORED CONTACT CHECK] ignoredContactResult:', isIgnored);
+      console.log('[IGNORED CONTACT CHECK] error:', ignoredCheckError);
+      console.log('[IGNORED CONTACT CHECK] timestamp:', new Date().toISOString());
+      console.log('[IGNORED CONTACT CHECK] =========================================');
+    } catch (error) {
+      ignoredCheckError = error instanceof Error ? error.message : String(error);
+      console.log('[IGNORED CONTACT CHECK] =========================================');
+      console.log('[IGNORED CONTACT CHECK] ignoredContactResult:', isIgnored);
+      console.log('[IGNORED CONTACT CHECK] error:', ignoredCheckError);
+      console.log('[IGNORED CONTACT CHECK] timestamp:', new Date().toISOString());
+      console.log('[IGNORED CONTACT CHECK] =========================================');
+    }
 
     if (isIgnored) {
+      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] =========================================');
+      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] businessId:', business.id);
+      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] normalizedFrom:', normalizedFrom);
+      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] action: return neutral voicemail / no AI route');
+      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] timestamp:', new Date().toISOString());
+      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] =========================================');
+
       console.log('[IGNORED CONTACT VOICEMAIL BYPASS]', {
         businessId: business.id,
         phoneNumber: normalizedFrom,

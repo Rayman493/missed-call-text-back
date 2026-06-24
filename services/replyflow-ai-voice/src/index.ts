@@ -100,6 +100,92 @@ function normalizePhoneNumberForStorage(phone: string): string {
   return phone;
 }
 
+// Normalize phone number to digits-only format for comparison
+function normalizePhoneNumberDigits(phone: string): string {
+  if (!phone) return '';
+  return phone.replace(/\D/g, '');
+}
+
+// Check if two phone numbers match (handles E.164 vs digit-only differences)
+function phoneNumbersMatch(phone1: string, phone2: string): boolean {
+  const normalized1 = normalizePhoneNumberDigits(phone1);
+  const normalized2 = normalizePhoneNumberDigits(phone2);
+
+  // Direct match
+  if (normalized1 === normalized2) {
+    return true;
+  }
+
+  // Check if one has country code and the other doesn't
+  // (e.g., +14122533598 vs 4122533598)
+  if (normalized1.length === 11 && normalized1.startsWith('1') && normalized2.length === 10) {
+    return normalized1.slice(1) === normalized2;
+  }
+
+  if (normalized2.length === 11 && normalized2.startsWith('1') && normalized1.length === 10) {
+    return normalized2.slice(1) === normalized1;
+  }
+
+  return false;
+}
+
+// Check if caller is in ignored contacts list for a business
+async function checkIgnoredContactForBusiness(businessId: string, callerPhone: string): Promise<boolean> {
+  if (!supabase) {
+    console.log('[IGNORED CONTACT CHECK - AI VOICE] No Supabase client, cannot check ignored contacts');
+    return false;
+  }
+
+  try {
+    console.log('[IGNORED CONTACT CHECK - AI VOICE] =========================================');
+    console.log('[IGNORED CONTACT CHECK - AI VOICE] businessId:', businessId);
+    console.log('[IGNORED CONTACT CHECK - AI VOICE] callerPhone:', callerPhone);
+    console.log('[IGNORED CONTACT CHECK - AI VOICE] timestamp:', new Date().toISOString());
+    console.log('[IGNORED CONTACT CHECK - AI VOICE] =========================================');
+
+    // Fetch all ignored contacts for this business
+    const { data: ignoredContacts, error } = await supabase
+      .from('ignored_contacts')
+      .select('id, phone_number')
+      .eq('business_id', businessId);
+
+    if (error) {
+      console.log('[IGNORED CONTACT CHECK - AI VOICE] Error fetching ignored contacts:', error.message);
+      return false;
+    }
+
+    console.log('[IGNORED CONTACT CHECK - AI VOICE] =========================================');
+    console.log('[IGNORED CONTACT CHECK - AI VOICE] ignoredContactsCount:', ignoredContacts?.length || 0);
+    console.log('[IGNORED CONTACT CHECK - AI VOICE] timestamp:', new Date().toISOString());
+    console.log('[IGNORED CONTACT CHECK - AI VOICE] =========================================');
+
+    if (!ignoredContacts || ignoredContacts.length === 0) {
+      console.log('[IGNORED CONTACT CHECK - AI VOICE] No ignored contacts found for business');
+      return false;
+    }
+
+    // Check if any ignored contact matches the incoming phone number
+    for (const contact of ignoredContacts) {
+      if (phoneNumbersMatch(callerPhone, contact.phone_number)) {
+        console.log('[IGNORED CONTACT MATCH - AI VOICE] =========================================');
+        console.log('[IGNORED CONTACT MATCH - AI VOICE] businessId:', businessId);
+        console.log('[IGNORED CONTACT MATCH - AI VOICE] incomingNumber:', callerPhone);
+        console.log('[IGNORED CONTACT MATCH - AI VOICE] matchedIgnoredContactId:', contact.id);
+        console.log('[IGNORED CONTACT MATCH - AI VOICE] storedNumber:', contact.phone_number);
+        console.log('[IGNORED CONTACT MATCH - AI VOICE] timestamp:', new Date().toISOString());
+        console.log('[IGNORED CONTACT MATCH - AI VOICE] =========================================');
+        return true;
+      }
+    }
+
+    console.log('[IGNORED CONTACT CHECK - AI VOICE] No match found');
+    return false;
+  } catch (error) {
+    console.log('[IGNORED CONTACT CHECK - AI VOICE] Unexpected error:', error instanceof Error ? error.message : String(error));
+    return false;
+  }
+}
+
 // Final closing timing constants
 const FINAL_CLOSING_FALLBACK_MS = 22000; // 22 seconds fallback timeout
 const MIN_FINAL_SENTENCE_PLAYBACK_MS = 12000; // 12 seconds minimum playback time
@@ -6775,6 +6861,24 @@ Return only JSON, no other text.`;
               businessId: businessId || 'missing',
               error: !businessId ? 'Missing businessId' : 'Missing supabase client'
             });
+          }
+
+          // REDUNDANT GUARD: Check if caller is in ignored contacts BEFORE ANY AI INITIALIZATION
+          // This provides defense-in-depth in case the web app check fails or is bypassed
+          if (businessId && callerPhone && supabase) {
+            const isIgnored = await checkIgnoredContactForBusiness(businessId, callerPhone);
+            if (isIgnored) {
+              console.log('[IGNORED CONTACT BLOCKED - AI VOICE] =========================================');
+              console.log('[IGNORED CONTACT BLOCKED - AI VOICE] businessId:', businessId);
+              console.log('[IGNORED CONTACT BLOCKED - AI VOICE] callerPhone:', callerPhone);
+              console.log('[IGNORED CONTACT BLOCKED - AI VOICE] action: close websocket / no AI / no lead / no SMS / no follow-ups');
+              console.log('[IGNORED CONTACT BLOCKED - AI VOICE] timestamp:', new Date().toISOString());
+              console.log('[IGNORED CONTACT BLOCKED - AI VOICE] =========================================');
+
+              // Close websocket cleanly - do not start OpenAI, do not create lead/conversation/SMS/follow-ups
+              ws.close(1008, 'Ignored contact');
+              return;
+            }
           }
 
           // Initialize intake state machine with business name
