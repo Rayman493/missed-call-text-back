@@ -11,6 +11,8 @@ import {
   AI_INTAKE_TEMPLATES,
   getIntakeStageText,
 } from '../lib/business-service-types'
+import * as fs from 'fs'
+import * as path from 'path'
 
 // Test result tracking
 let passed = 0
@@ -237,6 +239,67 @@ assertEqual(
   AI_INTAKE_TEMPLATES.lessons.complete,
   'getIntakeStageText returns correct text for lessons'
 )
+
+console.log()
+
+// Test 8: Drift protection - compare with AI voice service
+console.log('Testing drift protection - AI voice service sync:')
+console.log('-'.repeat(60))
+
+const aiVoiceServicePath = path.join(process.cwd(), '..', 'services', 'replyflow-ai-voice', 'src', 'intake-templates.ts')
+
+if (fs.existsSync(aiVoiceServicePath)) {
+  const aiVoiceServiceContent = fs.readFileSync(aiVoiceServicePath, 'utf-8')
+
+  // Extract AI_INTAKE_TEMPLATES from AI voice service
+  const aiVoiceTemplatesMatch = aiVoiceServiceContent.match(/export const AI_INTAKE_TEMPLATES: Record<[^>]+> = \{([\s\S]+?)\n\}/)
+  if (aiVoiceTemplatesMatch) {
+    const aiVoiceTemplatesStr = aiVoiceTemplatesMatch[0]
+    
+    // Compare each template's prompts
+    for (const template of INTAKE_TEMPLATES) {
+      const requiredStages = ['ask_name_reason', 'ask_details', 'ask_location_or_context', 'ask_timing', 'ask_callback_time', 'complete']
+      
+      for (const stage of requiredStages) {
+        const appPrompt = AI_INTAKE_TEMPLATES[template][stage as keyof typeof AI_INTAKE_TEMPLATES[typeof template]]
+        const promptKey = `${stage}: "${appPrompt}"`
+        
+        assert(
+          aiVoiceTemplatesStr.includes(promptKey),
+          `AI voice service template ${template} stage ${stage} matches shared app`
+        )
+      }
+    }
+    
+    console.log('  All prompts match between shared app and AI voice service')
+  } else {
+    console.log('⚠ Could not extract AI_INTAKE_TEMPLATES from AI voice service')
+  }
+
+  // Extract BUSINESS_TYPE_TO_INTAKE_TEMPLATE from AI voice service
+  const aiVoiceMappingMatch = aiVoiceServiceContent.match(/export const BUSINESS_TYPE_TO_INTAKE_TEMPLATE: Record<[^>]+> = \{([\s\S]+?)\n\}/)
+  if (aiVoiceMappingMatch) {
+    const aiVoiceMappingStr = aiVoiceMappingMatch[0]
+    
+    // Compare business type mappings
+    for (const businessType of BUSINESS_SERVICE_TYPES) {
+      const template = getIntakeTemplateForBusinessType(businessType)
+      const mappingLine = `'${businessType}': '${template}'`
+      
+      assert(
+        aiVoiceMappingStr.includes(mappingLine),
+        `AI voice service maps ${businessType} to ${template} (same as shared app)`
+      )
+    }
+    
+    console.log('  All business type mappings match between shared app and AI voice service')
+  } else {
+    console.log('⚠ Could not extract BUSINESS_TYPE_TO_INTAKE_TEMPLATE from AI voice service')
+  }
+} else {
+  console.log('⚠ AI voice service intake-templates.ts not found, skipping drift check')
+  console.log(`  Expected path: ${aiVoiceServicePath}`)
+}
 
 console.log()
 
