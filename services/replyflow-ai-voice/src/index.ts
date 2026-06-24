@@ -322,7 +322,7 @@ interface CallContext {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_name_reason' | 'ask_details' | 'ask_location' | 'ask_completion_time' | 'ask_callback_time' | 'complete';
+type IntakeStage = 'ask_name_reason' | 'ask_details' | 'ask_location_or_context' | 'ask_timing' | 'ask_callback_time' | 'complete';
 
 /**
  * AI Intake Flow Documentation
@@ -1408,8 +1408,8 @@ function isFillerPhrase(text: string): boolean {
 const APPROVED_PROMPTS: Record<string, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
   ask_details: "Got it. Can you share any important details the business should know?",
-  ask_location: "Thanks. What address or location is this for?",
-  ask_completion_time: "Got it. When would you like this work completed?",
+  ask_location_or_context: "Thanks. What address or location is this for?",
+  ask_timing: "Got it. When would you like this work completed?",
   ask_callback_time: "Thanks. What is the best time for the business to call you back?",
   final_goodbye: "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day."
 };
@@ -1441,8 +1441,8 @@ function sendApprovedPrompt(stage: string, openAiWs: any, ws?: any): boolean {
   const stageMapping: Record<string, 'ask_name_reason' | 'ask_details' | 'ask_location_or_context' | 'ask_timing' | 'ask_callback_time' | 'complete'> = {
     'ask_name_reason': 'ask_name_reason',
     'ask_details': 'ask_details',
-    'ask_location': 'ask_location_or_context',
-    'ask_completion_time': 'ask_timing',
+    'ask_location_or_context': 'ask_location_or_context',
+    'ask_timing': 'ask_timing',
     'ask_callback_time': 'ask_callback_time',
     'final_goodbye': 'complete',
   };
@@ -1743,15 +1743,15 @@ function sendStagePrompt(
 const STAGE_PROMPTS: Record<IntakeStage, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
   ask_details: "Got it. Can you share any important details the business should know?",
-  ask_location: "Thanks. What address or location is this for?",
-  ask_completion_time: "Got it. When would you like this work completed?",
+  ask_location_or_context: "Thanks. What address or location is this for?",
+  ask_timing: "Got it. When would you like this work completed?",
   ask_callback_time: "Thanks. What is the best time for the business to call you back?",
   complete: "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day."
 };
 
 /**
  * Simple scripted stage progression - deterministic, no GPT decisions
- * The app follows a fixed sequence: ask_name_reason → ask_details → ask_location → ask_completion_time → ask_callback_time → complete
+ * The app follows a fixed sequence: ask_name_reason → ask_details → ask_location_or_context → ask_timing → ask_callback_time → complete
  */
 function getNextStage(currentStage: IntakeStage): IntakeStage {
   console.log('[SCRIPTED FLOW] =========================================');
@@ -1760,9 +1760,9 @@ function getNextStage(currentStage: IntakeStage): IntakeStage {
 
   const stageSequence: Record<IntakeStage, IntakeStage> = {
     ask_name_reason: 'ask_details',
-    ask_details: 'ask_location',
-    ask_location: 'ask_completion_time',
-    ask_completion_time: 'ask_callback_time',
+    ask_details: 'ask_location_or_context',
+    ask_location_or_context: 'ask_timing',
+    ask_timing: 'ask_callback_time',
     ask_callback_time: 'complete',
     complete: 'complete'
   };
@@ -1863,7 +1863,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
         console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
         console.log('[SCRIPTED FLOW] =========================================');
         break;
-      case 'ask_location':
+      case 'ask_location_or_context':
         intake.serviceAddress = transcript.trim();
         console.log('[SCRIPTED FLOW] =========================================');
         console.log('[SCRIPTED FLOW] field saved');
@@ -1872,10 +1872,10 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
         console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
         console.log('[SCRIPTED FLOW] =========================================');
         break;
-      case 'ask_completion_time':
+      case 'ask_timing':
         intake.desiredCompletionTime = transcript.trim();
         console.log('[SCRIPTED FLOW] =========================================');
-        console.log('[SCRIPTED FLOW] after completion time save');
+        console.log('[SCRIPTED FLOW] after timing save');
         console.log('[SCRIPTED FLOW] field: desiredCompletionTime');
         console.log('[SCRIPTED FLOW] value:', transcript.trim());
         console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
@@ -2335,7 +2335,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[FIELD EXTRACTION SKIPPED] =========================================');
       break;
 
-    case 'ask_location':
+    case 'ask_location_or_context':
       // Allowed: serviceAddress
       // Forbidden: customerName, serviceRequested, issueDescription, desiredCompletionTime, callbackTime
       
@@ -2463,7 +2463,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[FIELD EXTRACTION SKIPPED] =========================================');
       break;
 
-    case 'ask_completion_time':
+    case 'ask_timing':
       // Allowed: desiredCompletionTime
       // Forbidden: customerName, serviceRequested, issueDescription, serviceAddress, callbackTime
       
@@ -3323,13 +3323,13 @@ function getResponseForMissingField(missingField: string, intake: IntakeData): {
     case 'serviceAddress':
       return {
         response: 'Where will the service take place?',
-        nextStage: 'ask_location'
+        nextStage: 'ask_location_or_context'
       };
     case 'desired completion time':
     case 'desiredCompletionTime':
       return {
         response: 'When would you like this work completed?',
-        nextStage: 'ask_completion_time'
+        nextStage: 'ask_timing'
       };
     default:
       return {
