@@ -240,7 +240,11 @@ export const BUSINESS_TYPE_TO_INTAKE_TEMPLATE: Record<string, IntakeTemplate> = 
   // Professional services (office-based or advisory)
   'Property Management': 'professional',
   'Real Estate': 'professional',
+  'Financial Services': 'professional',
+  'Insurance': 'professional',
+  'Consulting': 'professional',
   'Photography': 'professional',
+  'Other Professional Services': 'professional',
   'Towing': 'on_site',
   
   // Default to on_site for unknown types

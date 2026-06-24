@@ -7944,22 +7944,44 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   // Get the approved prompt for the current stage
                   const approvedPrompt = getIntakeStageTextSafe(intakeTemplate, currentStage as any);
                   
-                  // Check if the assistant text matches the approved prompt (allowing for minor variations)
-                  const textMatchesApproved = approvedPrompt && assistantText.includes(approvedPrompt.substring(0, 20));
+                  // Log approved prompt
+                  console.log('[APPROVED PROMPT] =========================================');
+                  console.log('[APPROVED PROMPT] stage:', currentStage);
+                  console.log('[APPROVED PROMPT] template:', intakeTemplate);
+                  console.log('[APPROVED PROMPT] prompt:', approvedPrompt);
+                  console.log('[APPROVED PROMPT] Timestamp:', new Date().toISOString());
+                  console.log('[APPROVED PROMPT] =========================================');
                   
-                  // Check for unapproved question patterns
+                  // Log assistant response generated
+                  console.log('[ASSISTANT RESPONSE GENERATED] =========================================');
+                  console.log('[ASSISTANT RESPONSE GENERATED] stage:', currentStage);
+                  console.log('[ASSISTANT RESPONSE GENERATED] text:', assistantText);
+                  console.log('[ASSISTANT RESPONSE GENERATED] Timestamp:', new Date().toISOString());
+                  console.log('[ASSISTANT RESPONSE GENERATED] =========================================');
+                  
+                  // Check if the assistant text substantially matches the approved prompt
+                  // Allow for minor variations but require substantial overlap
+                  const textMatchesApproved = approvedPrompt && (
+                    assistantText === approvedPrompt ||
+                    assistantText.includes(approvedPrompt.substring(0, 30)) ||
+                    approvedPrompt.includes(assistantText.substring(0, 30))
+                  );
+                  
+                  // Check for unapproved question patterns (comprehensive list)
                   const unapprovedQuestionPatterns = [
                     'budget',
+                    'price range',
                     'neighborhood',
+                    'location preferences',
+                    'preferred location',
                     'property type',
                     'type of house',
-                    'preferred location',
+                    'type of property',
                     'yard',
                     'rooms',
                     'bedrooms',
                     'bathrooms',
                     'square footage',
-                    'price range',
                     'what features',
                     'what kind of',
                     'what type of',
@@ -7973,23 +7995,34 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     'garage',
                     'pool',
                     'basement',
+                    'how many bedrooms',
+                    'how many bathrooms',
+                    'what is your budget',
+                    'what is your price range',
+                    'what neighborhood',
+                    'what area',
+                    'what location',
+                    'property features',
+                    'home features',
+                    'house features',
                   ];
                   
                   const containsUnapprovedQuestion = unapprovedQuestionPatterns.some(pattern => 
                     assistantText.toLowerCase().includes(pattern)
                   );
                   
-                  // Block unapproved questions
-                  if (!textMatchesApproved && containsUnapprovedQuestion) {
-                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] =========================================');
-                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] Unapproved question detected in assistant response');
-                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] Assistant text:', assistantText);
-                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] Current stage:', currentStage);
-                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] Intake template:', intakeTemplate);
-                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] Approved prompt:', approvedPrompt);
-                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] Response ID:', message.response_id || 'unknown');
-                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] Timestamp:', new Date().toISOString());
-                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] =========================================');
+                  // Block unapproved questions OR responses that don't match approved prompt
+                  if (!textMatchesApproved) {
+                    console.log('[UNAPPROVED RESPONSE BLOCKED] =========================================');
+                    console.log('[UNAPPROVED RESPONSE BLOCKED] Assistant response does not match approved prompt');
+                    console.log('[UNAPPROVED RESPONSE BLOCKED] stage:', currentStage);
+                    console.log('[UNAPPROVED RESPONSE BLOCKED] template:', intakeTemplate);
+                    console.log('[UNAPPROVED RESPONSE BLOCKED] approvedPrompt:', approvedPrompt);
+                    console.log('[UNAPPROVED RESPONSE BLOCKED] generatedText:', assistantText);
+                    console.log('[UNAPPROVED RESPONSE BLOCKED] containsUnapprovedQuestion:', containsUnapprovedQuestion);
+                    console.log('[UNAPPROVED RESPONSE BLOCKED] Response ID:', message.response_id || 'unknown');
+                    console.log('[UNAPPROVED RESPONSE BLOCKED] Timestamp:', new Date().toISOString());
+                    console.log('[UNAPPROVED RESPONSE BLOCKED] =========================================');
                     
                     // Cancel the response if it has an ID
                     if (message.response_id && openAiWs) {
@@ -7999,6 +8032,16 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       }));
                       console.log('[UNAPPROVED RESPONSE CANCELED] Response cancel command sent');
                     }
+                    
+                    // Replay the approved prompt immediately to self-correct
+                    console.log('[APPROVED PROMPT REPLAYED] =========================================');
+                    console.log('[APPROVED PROMPT REPLAYED] Replaying approved prompt after blocking unapproved response');
+                    console.log('[APPROVED PROMPT REPLAYED] stage:', currentStage);
+                    console.log('[APPROVED PROMPT REPLAYED] prompt:', approvedPrompt);
+                    console.log('[APPROVED PROMPT REPLAYED] Timestamp:', new Date().toISOString());
+                    console.log('[APPROVED PROMPT REPLAYED] =========================================');
+                    
+                    sendApprovedPrompt(currentStage, openAiWs, ws);
                     
                     // Do not add to transcript - skip this unapproved content
                     return;
