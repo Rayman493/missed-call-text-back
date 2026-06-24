@@ -322,7 +322,7 @@ interface CallContext {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_name_reason' | 'ask_name_recovery' | 'ask_reason_recovery' | 'ask_details' | 'ask_location' | 'ask_completion_time' | 'ask_callback_time' | 'complete';
+type IntakeStage = 'ask_name_reason' | 'ask_details' | 'ask_location' | 'ask_completion_time' | 'ask_callback_time' | 'complete';
 
 /**
  * AI Intake Flow Documentation
@@ -1403,11 +1403,10 @@ function isFillerPhrase(text: string): boolean {
 /**
  * Approved prompts for each stage - ONLY these prompts are allowed to be spoken
  * Every assistant speech must go through sendApprovedPrompt(stage)
+ * Note: This is now just a blocklist check - actual prompts come from the template system
  */
 const APPROVED_PROMPTS: Record<string, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
-  ask_name_recovery: "Thanks. Can I get your name?",
-  ask_reason_recovery: "Thanks. What are you calling about today?",
   ask_details: "Got it. Can you share any important details the business should know?",
   ask_location: "Thanks. What address or location is this for?",
   ask_completion_time: "Got it. When would you like this work completed?",
@@ -1441,8 +1440,6 @@ function sendApprovedPrompt(stage: string, openAiWs: any, ws?: any): boolean {
   // Map internal stage to template stage
   const stageMapping: Record<string, 'ask_name_reason' | 'ask_details' | 'ask_location_or_context' | 'ask_timing' | 'ask_callback_time' | 'complete'> = {
     'ask_name_reason': 'ask_name_reason',
-    'ask_name_recovery': 'ask_name_reason',
-    'ask_reason_recovery': 'ask_name_reason',
     'ask_details': 'ask_details',
     'ask_location': 'ask_location_or_context',
     'ask_completion_time': 'ask_timing',
@@ -1745,8 +1742,6 @@ function sendStagePrompt(
  */
 const STAGE_PROMPTS: Record<IntakeStage, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
-  ask_name_recovery: "Thanks. Can I get your name?",
-  ask_reason_recovery: "Thanks. What are you calling about today?",
   ask_details: "Got it. Can you share any important details the business should know?",
   ask_location: "Thanks. What address or location is this for?",
   ask_completion_time: "Got it. When would you like this work completed?",
@@ -1756,7 +1751,7 @@ const STAGE_PROMPTS: Record<IntakeStage, string> = {
 
 /**
  * Simple scripted stage progression - deterministic, no GPT decisions
- * The app follows a fixed sequence: ask_name_reason → ask_reason_recovery → ask_details → ask_location → ask_completion_time → ask_callback_time → complete
+ * The app follows a fixed sequence: ask_name_reason → ask_details → ask_location → ask_completion_time → ask_callback_time → complete
  */
 function getNextStage(currentStage: IntakeStage): IntakeStage {
   console.log('[SCRIPTED FLOW] =========================================');
@@ -1765,8 +1760,6 @@ function getNextStage(currentStage: IntakeStage): IntakeStage {
 
   const stageSequence: Record<IntakeStage, IntakeStage> = {
     ask_name_reason: 'ask_details',
-    ask_name_recovery: 'ask_details',
-    ask_reason_recovery: 'ask_details',
     ask_details: 'ask_location',
     ask_location: 'ask_completion_time',
     ask_completion_time: 'ask_callback_time',
@@ -1861,35 +1854,6 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
           console.log('[SCRIPTED FLOW] =========================================');
         }
         break;
-      case 'ask_name_recovery':
-        // Save transcript as customerName, but block filler phrases
-        const trimmedTranscript = transcript.trim();
-        if (!isFillerPhrase(trimmedTranscript)) {
-          intake.customerName = trimmedTranscript;
-          console.log('[SCRIPTED FLOW] =========================================');
-          console.log('[SCRIPTED FLOW] field saved');
-          console.log('[SCRIPTED FLOW] field: customerName');
-          console.log('[SCRIPTED FLOW] value:', trimmedTranscript);
-          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-          console.log('[SCRIPTED FLOW] =========================================');
-        } else {
-          console.log('[SCRIPTED FLOW] =========================================');
-          console.log('[SCRIPTED FLOW] customerName save blocked - filler phrase');
-          console.log('[SCRIPTED FLOW] transcript:', trimmedTranscript);
-          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-          console.log('[SCRIPTED FLOW] =========================================');
-        }
-        break;
-      case 'ask_reason_recovery':
-        // Save transcript as serviceRequested
-        intake.serviceRequested = transcript.trim();
-        console.log('[SCRIPTED FLOW] =========================================');
-        console.log('[SCRIPTED FLOW] field saved');
-        console.log('[SCRIPTED FLOW] field: serviceRequested');
-        console.log('[SCRIPTED FLOW] value:', transcript.trim());
-        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-        console.log('[SCRIPTED FLOW] =========================================');
-        break;
       case 'ask_details':
         intake.issueDescription = transcript.trim();
         console.log('[SCRIPTED FLOW] =========================================');
@@ -1954,34 +1918,12 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
       console.log('[SCRIPTED FLOW] promptToSend:', promptToSend);
       console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
       console.log('[SCRIPTED FLOW] =========================================');
-    } else if (customerNamePresent && !serviceRequestedPresent) {
-      // Name present, reason missing: ask for reason
-      nextStage = 'ask_reason_recovery';
-      promptToSend = APPROVED_PROMPTS.ask_reason_recovery;
-      console.log('[SCRIPTED FLOW] =========================================');
-      console.log('[SCRIPTED FLOW] customerName present but serviceRequested missing');
-      console.log('[SCRIPTED FLOW] sending ask_reason_recovery');
-      console.log('[SCRIPTED FLOW] nextStage:', nextStage);
-      console.log('[SCRIPTED FLOW] promptToSend:', promptToSend);
-      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-      console.log('[SCRIPTED FLOW] =========================================');
-    } else if (!customerNamePresent && serviceRequestedPresent) {
-      // Reason present, name missing: ask for name
-      nextStage = 'ask_name_recovery';
-      promptToSend = APPROVED_PROMPTS.ask_name_recovery;
-      console.log('[SCRIPTED FLOW] =========================================');
-      console.log('[SCRIPTED FLOW] serviceRequested present but customerName missing');
-      console.log('[SCRIPTED FLOW] sending ask_name_recovery');
-      console.log('[SCRIPTED FLOW] nextStage:', nextStage);
-      console.log('[SCRIPTED FLOW] promptToSend:', promptToSend);
-      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-      console.log('[SCRIPTED FLOW] =========================================');
     } else {
-      // Both present: advance to ask_details
+      // At least one field present: advance to ask_details
       nextStage = 'ask_details';
       promptToSend = APPROVED_PROMPTS.ask_details;
       console.log('[SCRIPTED FLOW] =========================================');
-      console.log('[SCRIPTED FLOW] both fields present, advancing to ask_details');
+      console.log('[SCRIPTED FLOW] advancing to ask_details');
       console.log('[SCRIPTED FLOW] nextStage:', nextStage);
       console.log('[SCRIPTED FLOW] promptToSend:', promptToSend);
       console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
