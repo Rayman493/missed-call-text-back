@@ -19,6 +19,9 @@ import { markForwardingVerified } from '@/lib/forwarding-verification';
 // Constants for repeat caller behavior
 const AUTO_REPLY_REPEAT_WINDOW_MINUTES = 30;
 
+// EXPERIMENTAL: Track ignored contact bypass attempts to detect forwarding loops
+const ignoredContactBypassAttempts = new Map<string, number>(); // callerPhone -> timestamp
+
 // CALL TRACE logging function
 function logCallTrace(data: {
   route: string
@@ -489,10 +492,26 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     }
 
     if (isIgnored) {
+      // EXPERIMENTAL: Check for possible forwarding loop
+      const now = Date.now();
+      const lastAttempt = ignoredContactBypassAttempts.get(normalizedFrom);
+      if (lastAttempt && (now - lastAttempt) < 60000) {
+        console.log('[POSSIBLE FORWARDING LOOP DETECTED] =========================================');
+        console.log('[POSSIBLE FORWARDING LOOP DETECTED] callSid:', CallSid);
+        console.log('[POSSIBLE FORWARDING LOOP DETECTED] parentCallSid:', params.ParentCallSid || 'not_present');
+        console.log('[POSSIBLE FORWARDING LOOP DETECTED] caller:', From);
+        console.log('[POSSIBLE FORWARDING LOOP DETECTED] businessPhone:', business.business_phone_number);
+        console.log('[POSSIBLE FORWARDING LOOP DETECTED] forwardedFrom:', ForwardedFrom || 'not_present');
+        console.log('[POSSIBLE FORWARDING LOOP DETECTED] timeSinceLastAttempt:', `${(now - lastAttempt) / 1000}s`);
+        console.log('[POSSIBLE FORWARDING LOOP DETECTED] timestamp:', new Date().toISOString());
+        console.log('[POSSIBLE FORWARDING LOOP DETECTED] =========================================');
+      }
+      ignoredContactBypassAttempts.set(normalizedFrom, now);
+
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] =========================================');
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] businessId:', business.id);
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] normalizedFrom:', normalizedFrom);
-      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] action: return neutral voicemail / no AI route');
+      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] action: EXPERIMENTAL - Dial back to business phone number');
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] timestamp:', new Date().toISOString());
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] =========================================');
 
@@ -506,24 +525,43 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         businessId: business.id
       })
 
-      // Return neutral voicemail greeting for ignored contacts
-      // This allows recording without triggering business automation
-      const twiml = generateIgnoredContactVoicemail()
-      console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-voicemail')
-      console.log('[AI POC FINAL TWIML]', twiml)
-      console.log('[VOICE PATH] IGNORED_CONTACT_VOICEMAIL')
+      // EXPERIMENTAL: Dial back to business's original phone number instead of voicemail
+      // This tests whether ignored contacts can completely bypass ReplyFlow
+      const businessPhone = business.business_phone_number;
+      
+      console.log('[IGNORED CONTACT BYPASS TEST] =========================================');
+      console.log('[IGNORED CONTACT BYPASS TEST] callSid:', CallSid);
+      console.log('[IGNORED CONTACT BYPASS TEST] businessPhone:', businessPhone);
+      console.log('[IGNORED CONTACT BYPASS TEST] callerPhone:', From);
+      console.log('[IGNORED CONTACT BYPASS TEST] ForwardedFrom:', ForwardedFrom || 'not_present');
+      console.log('[IGNORED CONTACT BYPASS TEST] CalledVia:', params.CalledVia || 'not_present');
+      console.log('[IGNORED CONTACT BYPASS TEST] ParentCallSid:', params.ParentCallSid || 'not_present');
+      console.log('[IGNORED CONTACT BYPASS TEST] Timestamp:', new Date().toISOString());
+      console.log('[IGNORED CONTACT BYPASS TEST] =========================================');
+
+      const twiml = `
+<Response>
+  <Dial timeout="20">${businessPhone}</Dial>
+</Response>
+`.trim();
+
+      console.log('[IGNORED CONTACT BYPASS TWIML]', twiml);
+      console.log('[VOICE PATH] IGNORED_CONTACT_BYPASS_EXPERIMENTAL');
       console.log('[VOICE ROUTE RETURN]', {
-        path: 'IGNORED_CONTACT_VOICEMAIL',
-        reason: 'Caller is in ignored contacts list - using neutral voicemail',
+        path: 'IGNORED_CONTACT_BYPASS_EXPERIMENTAL',
+        reason: 'EXPERIMENTAL - Dialing back to business phone number for ignored contact',
         callSid: CallSid || 'unknown',
-        phoneNumber: normalizedFrom
+        phoneNumber: normalizedFrom,
+        businessPhone: businessPhone
       });
+
       return new NextResponse(twiml, {
         status: 200,
         headers: {
           "Content-Type": "text/xml",
           "X-ReplyFlow-Voice-Version": "v2",
-          "X-ReplyFlow-Ignored-Contact": "true"
+          "X-ReplyFlow-Ignored-Contact": "true",
+          "X-ReplyFlow-Experimental": "bypass-to-business-phone"
         },
       })
     }
