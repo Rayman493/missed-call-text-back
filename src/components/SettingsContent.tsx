@@ -1263,17 +1263,6 @@ export default function SettingsContent() {
                       className="w-full px-3 sm:px-4 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-0.5">
-                      After Hours Message
-                    </label>
-                    <textarea
-                      value={formBusiness.after_hours_message || ''}
-                      onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
-                      rows={2}
-                      className="w-full px-3 sm:px-4 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
-                    />
-                  </div>
                 </div>
               </div>
 
@@ -1525,6 +1514,27 @@ export default function SettingsContent() {
                         <p className="text-xs text-slate-600 dark:text-muted-foreground">
                           Automated texts will only be sent during these hours, Monday through Friday.
                         </p>
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                            After Hours Message
+                          </label>
+                          <textarea
+                            value={formBusiness.after_hours_message || ''}
+                            onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
+                            rows={2}
+                            className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
+                          />
+                          {formBusiness.business_hours_enabled && !formBusiness.after_hours_message && (
+                            <div className="flex items-start gap-2 mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                              <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                              </svg>
+                              <div className="text-xs text-amber-800 dark:text-amber-200">
+                                <span className="font-semibold">No after-hours message configured.</span> The default after-hours response will be used.
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1632,6 +1642,16 @@ export default function SettingsContent() {
                             placeholder=""
                             className="w-full px-3 sm:px-4 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
                           />
+                          {!formBusiness.out_of_office_message && (
+                            <div className="flex items-start gap-2 mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                              <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                              </svg>
+                              <div className="text-xs text-amber-800 dark:text-amber-200">
+                                <span className="font-semibold">No out-of-office message configured.</span> The default out-of-office response will be used.
+                              </div>
+                            </div>
+                          )}
                           <p className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                             Use {'{'}{'{'}business_name{'}'}{'}'} to automatically insert your business name.
                           </p>
