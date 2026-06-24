@@ -157,6 +157,53 @@ function cleanupExpiredCallSids(): void {
   }
 }
 
+/**
+ * Check if current time is within business hours for a business
+ */
+function isWithinBusinessHours(business: any): boolean {
+  const businessHoursEnabled = business.business_hours_enabled || false
+  if (!businessHoursEnabled) {
+    return true // If business hours not enabled, treat as always within hours
+  }
+
+  const businessHoursStart = business.business_hours_start || '09:00'
+  const businessHoursEnd = business.business_hours_end || '17:00'
+  const businessTimezone = business.business_hours_timezone || 'America/New_York'
+
+  const now = new Date()
+  const nowInTimezone = new Date(now.toLocaleString('en-US', { timeZone: businessTimezone }))
+
+  const [startHour, startMin] = businessHoursStart.split(':').map(Number)
+  const [endHour, endMin] = businessHoursEnd.split(':').map(Number)
+
+  const currentHour = nowInTimezone.getHours()
+  const currentMin = nowInTimezone.getMinutes()
+  const currentTimeInMinutes = currentHour * 60 + currentMin
+  const startTimeInMinutes = startHour * 60 + startMin
+  const endTimeInMinutes = endHour * 60 + endMin
+
+  const dayIndex = nowInTimezone.getDay()
+  const isWeekday = dayIndex >= 1 && dayIndex <= 5
+
+  const withinBusinessHours = isWeekday && currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes
+
+  console.log('[AI VOICE AFTER HOURS CHECK] isWithinBusinessHours', {
+    businessId: business.id,
+    timezone: businessTimezone,
+    openTime: businessHoursStart,
+    closeTime: businessHoursEnd,
+    dayOfWeek: nowInTimezone.toLocaleDateString('en-US', { weekday: 'long' }),
+    businessHoursEnabled,
+    withinBusinessHours,
+    isWeekday,
+    currentTimeInMinutes,
+    startTimeInMinutes,
+    endTimeInMinutes
+  })
+
+  return withinBusinessHours
+}
+
 // Retry helper function for Supabase operations with exponential backoff
 async function retrySupabaseOperation<T>(
   operation: () => Promise<T>,
@@ -886,15 +933,21 @@ async function finalizeCompleteIntakeOnce(
     console.log('[FINALIZE COMPLETE STEP 3] Timestamp:', new Date().toISOString());
     console.log('[FINALIZE COMPLETE STEP 3] =========================================');
 
-    // Fetch business name and out-of-office settings
+    // Fetch business name, out-of-office settings, and business hours settings
     let businessName = 'the business';
     let outOfOfficeEnabled = false;
     let outOfOfficeEnd = null;
+    let outOfOfficeMessage = null;
+    let businessHoursEnabled = false;
+    let businessHoursStart = null;
+    let businessHoursEnd = null;
+    let businessHoursTimezone = null;
+    let afterHoursMessage = null;
 
     try {
       const { data: business, error: businessError } = await supabase
         .from('businesses')
-        .select('name, out_of_office_enabled, out_of_office_end')
+        .select('name, out_of_office_enabled, out_of_office_end, out_of_office_message, business_hours_enabled, business_hours_start, business_hours_end, business_hours_timezone, after_hours_message')
         .eq('id', businessId)
         .single();
 
@@ -902,6 +955,12 @@ async function finalizeCompleteIntakeOnce(
         businessName = business.name || 'the business';
         outOfOfficeEnabled = business.out_of_office_enabled || false;
         outOfOfficeEnd = business.out_of_office_end || null;
+        outOfOfficeMessage = business.out_of_office_message || null;
+        businessHoursEnabled = business.business_hours_enabled || false;
+        businessHoursStart = business.business_hours_start || null;
+        businessHoursEnd = business.business_hours_end || null;
+        businessHoursTimezone = business.business_hours_timezone || null;
+        afterHoursMessage = business.after_hours_message || null;
       }
     } catch (dbError) {
       console.log('[AI SUMMARY SMS BUSINESS FETCH ERROR]', String(dbError));
@@ -934,21 +993,68 @@ async function finalizeCompleteIntakeOnce(
       summaryParts.push(`- Best Callback Time: ${intakeData.callbackTime}`);
     }
 
+    // Determine prefix type: out_of_office, after_hours, or normal
+    let prefixType: 'out_of_office' | 'after_hours' | 'normal' = 'normal';
+    let prefixNotice = '';
+    let usingDefaultMessage = false;
+
+    // Priority: Out of Office > After Hours > Normal
+    const businessWithHours = {
+      id: businessId,
+      business_hours_enabled: businessHoursEnabled,
+      business_hours_start: businessHoursStart,
+      business_hours_end: businessHoursEnd,
+      business_hours_timezone: businessHoursTimezone
+    };
+
+    // Check if OOO is active
+    const oooActive = outOfOfficeEnabled && outOfOfficeEnd && new Date() < new Date(outOfOfficeEnd);
+
+    if (oooActive) {
+      prefixType = 'out_of_office';
+      // Use custom out of office message or default
+      if (outOfOfficeMessage && outOfOfficeMessage.trim()) {
+        prefixNotice = outOfOfficeMessage.replace(/\{\{business_name\}\}/gi, businessName);
+        usingDefaultMessage = false;
+      } else {
+        prefixNotice = `We are currently out of office and responses may be delayed.`;
+        usingDefaultMessage = true;
+      }
+    } else if (businessHoursEnabled && !isWithinBusinessHours(businessWithHours)) {
+      prefixType = 'after_hours';
+      // Use custom after-hours message or default
+      if (afterHoursMessage && afterHoursMessage.trim()) {
+        prefixNotice = afterHoursMessage.replace(/\{\{business_name\}\}/gi, businessName);
+        usingDefaultMessage = false;
+      } else {
+        prefixNotice = `We are currently closed and will get back to you during business hours.`;
+        usingDefaultMessage = true;
+      }
+    }
+
+    console.log('[AI SUMMARY PREFIX]', {
+      callSid,
+      businessId,
+      prefixType,
+      businessHoursEnabled,
+      isWithinBusinessHours: isWithinBusinessHours(businessWithHours),
+      oooActive,
+      usingDefaultMessage
+    });
+
+    // Build final SMS with optional prefix
     let completeSummary = `Thanks for calling ${businessName}.\n\n`;
+
+    if (prefixNotice) {
+      completeSummary += `${prefixNotice}\n\n`;
+    }
+
     completeSummary += `Here's a summary of your request:\n${summaryParts.join('\n')}\n\n`;
     completeSummary += `We'll be in touch soon.\n\nReply to this message if you'd like to add or correct anything.`;
 
-    // Check if business is currently Out of Office and append notice
-    let outOfOfficeNotice = '';
-    if (outOfOfficeEnabled && outOfOfficeEnd) {
-      const returnDate = new Date(outOfOfficeEnd);
-      const formattedDate = returnDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-      outOfOfficeNotice = `\n\nNote: We are currently out of the office until ${formattedDate}. We will respond as soon as we return.`;
-      completeSummary += outOfOfficeNotice;
-    }
-
     console.log('[AI SUMMARY SMS FORMAT] =========================================');
-    console.log('[AI SUMMARY SMS FORMAT] includesOutOfOffice:', !!outOfOfficeNotice);
+    console.log('[AI SUMMARY SMS FORMAT] prefixType:', prefixType);
+    console.log('[AI SUMMARY SMS FORMAT] includesPrefix:', !!prefixNotice);
     console.log('[AI SUMMARY SMS FORMAT] formatSource: ai_confirmation_sms_template');
     console.log('[AI SUMMARY SMS FORMAT] businessName:', businessName);
     console.log('[AI SUMMARY SMS FORMAT] Timestamp:', new Date().toISOString());
