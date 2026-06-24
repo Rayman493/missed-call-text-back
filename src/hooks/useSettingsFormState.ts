@@ -50,6 +50,8 @@ export function useSettingsFormState({
   const checkForChanges = useCallback((current: Business, original: Business): boolean => {
     const fieldsToCheck: (keyof Business)[] = [
       'name',
+      'business_type',
+      'business_type_other',
       'business_phone_number',
       'twilio_phone_number',
       'auto_reply_message',
