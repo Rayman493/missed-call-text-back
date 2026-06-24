@@ -7713,8 +7713,21 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       executeOpenaiFinalHangup(ws, twilioHandler, closingState);
                     }, 12000);
 
-                    return; // Skip normal intake processing - NO MORE AI RESPONSES
+                    return; // Skip normal intake processing - NO MORE AI RESPONSES after terminal close
                   } else {
+                    // Guard: Block stage prompts during terminal close to prevent unapproved AI responses
+                    if (closingState.terminalClosingResponseStarted || closingState.intakeTerminalComplete) {
+                      console.log('[SEND STAGE PROMPT BLOCKED - TERMINAL CLOSE] =========================================');
+                      console.log('[SEND STAGE PROMPT BLOCKED - TERMINAL CLOSE] Stage prompt blocked');
+                      console.log('[SEND STAGE PROMPT BLOCKED - TERMINAL CLOSE] stage:', intakeData!.stage);
+                      console.log('[SEND STAGE PROMPT BLOCKED - TERMINAL CLOSE] terminalClosingResponseStarted:', closingState.terminalClosingResponseStarted);
+                      console.log('[SEND STAGE PROMPT BLOCKED - TERMINAL CLOSE] intakeTerminalComplete:', closingState.intakeTerminalComplete);
+                      console.log('[SEND STAGE PROMPT BLOCKED - TERMINAL CLOSE] callSid:', callSid);
+                      console.log('[SEND STAGE PROMPT BLOCKED - TERMINAL CLOSE] Timestamp:', new Date().toISOString());
+                      console.log('[SEND STAGE PROMPT BLOCKED - TERMINAL CLOSE] =========================================');
+                      return;
+                    }
+
                     // Send the stage prompt explicitly
                     sendStagePrompt(intakeData!.stage, openAiWs, promptedStages, lastPromptAt, assistantSpeaking, activeResponseId, twilioHandler, lastPromptStage, stagePromptAttempts, ws);
                   }
