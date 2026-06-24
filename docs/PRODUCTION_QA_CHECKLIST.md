@@ -118,6 +118,34 @@ Use this checklist before inviting beta customers to ensure all critical flows w
 - [ ] Correction updates lead information
 - [ ] Business owner sees correction in dashboard
 
+## 3.5. AI Intake Templates
+
+### Template-Specific Questions
+- [ ] **On-site service** asks for address/location
+- [ ] **Appointment service** asks whether business location or mobile service
+- [ ] **Lessons/coaching** asks in-person, online, or either
+- [ ] **Professional service** asks consultation type
+
+### Common Template Behaviors
+- [ ] All templates ask for best callback time
+- [ ] All templates play the same final closing sentence
+- [ ] No template asks for phone number
+- [ ] No template asks for urgency
+- [ ] No template asks for confirmation
+- [ ] No template asks "anything else?"
+
+### Data Persistence
+- [ ] Complete calls still create leads
+- [ ] Complete calls still send summary SMS
+- [ ] Incomplete calls still send partial summary/follow-ups
+
+### UI Display
+- [ ] AI Intake Summary labels match the selected template
+- [ ] On-site shows "Service Requested", "Service Address / Location", "Desired Completion Time"
+- [ ] Appointment shows "Service Interested In", "Appointment / Mobile Service", "Preferred Appointment Time"
+- [ ] Lessons shows "Lesson / Coaching Interest", "Preferred Format", "General Availability"
+- [ ] Professional shows "Help Requested", "Consultation Type", "Preferred Meeting Time"
+
 ## 4. Dashboard
 
 ### Lead Management
