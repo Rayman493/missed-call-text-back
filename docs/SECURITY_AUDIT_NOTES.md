@@ -95,7 +95,81 @@
 
 ## 3. API Authorization
 
-### Status: NOT YET CHECKED
+### Status: AUDITED AND FIXED
+
+### Routes Checked (43 total routes)
+
+**Public Webhooks (Signature Validated):**
+- ✓ `/api/stripe/webhook` - Stripe signature validation
+- ✓ `/api/twilio/incoming-sms` - Twilio signature validation
+- ✓ `/api/twilio/status` - Twilio signature validation
+- ✓ `/api/twilio/status-callback` - Twilio signature validation
+- ✓ `/api/twilio/message-status` - Twilio signature validation
+- ✓ `/api/twilio/recording-status` - Twilio signature validation
+- ✓ `/api/twilio/voice-status` - Twilio signature validation
+- ✓ `/api/twilio/transcription` - Twilio signature validation
+- ✓ `/api/twilio/voicemail` - Twilio signature validation
+
+**Admin/Internal Routes (INTERNAL_API_SECRET or Admin Check):**
+- ✓ `/api/admin/*` (26 routes) - Admin check via `isAdmin()` function
+- ✓ `/api/business/trigger-provisioning` - PROVISIONING_ADMIN_SECRET or user auth
+- ✓ `/api/ai-confirmation-sms` - INTERNAL_API_SECRET
+- ✓ `/api/follow-ups/create-jobs` - INTERNAL_API_SECRET or user auth with business ownership check
+- ✓ `/api/process-followups` - CRON_SECRET
+- ✓ `/api/cron/send-followups` - CRON_SECRET
+- ✓ `/api/cron/process-followup-jobs` - CRON_SECRET
+- ✓ `/api/cron/process-expired-reservations` - CRON_SECRET
+- ✓ `/api/cron/reclaim-twilio-numbers` - CRON_SECRET
+
+**Authenticated User Routes (with Business Ownership Check):**
+- ✓ `/api/send-sms` - Bearer token auth + business ownership check
+- ✓ `/api/leads/[id]` - Bearer token auth + business ownership check
+- ✓ `/api/leads/[id]/follow-ups/[jobId]` - Session auth + business ownership check
+- ✓ `/api/leads/[id]/status` - Bearer token auth + business ownership check
+- ✓ `/api/notifications/[id]` - Session auth + business ownership check
+- ✓ `/api/notifications/clear` - Session auth + business ownership check
+- ✓ `/api/notifications/create` - Session auth
+- ✓ `/api/ignored-contacts` - Bearer token auth + business ownership check
+- ✓ `/api/ignored-contacts/[id]` - Bearer token auth + business ownership check
+- ✓ `/api/ignored-contacts/import/preview` - Bearer token auth + business ownership check
+- ✓ `/api/ignored-contacts/import/execute` - Bearer token auth + business ownership check
+- ✓ `/api/message-media` - Session auth + business ownership check via message
+- ✓ `/api/settings/follow-ups` - Session auth + server-side business lookup
+- ✓ `/api/trial/check-eligibility` - Session auth
+- ✓ `/api/google/calendar/*` - Session auth + business ownership check
+- ✓ `/api/billing/checkout-status` - No auth (Stripe callback - session_id validated)
+- ✓ `/api/stripe/create-checkout-session` - Session auth + server-side business lookup
+- ✓ `/api/stripe/create-portal-session` - Session auth + business ownership check
+- ✓ `/api/beta-feedback` - Session auth
+- ✓ `/api/account/delete` - Session auth
+- ✓ `/api/business/get-or-create` - Session auth
+- ✓ `/api/business/provision-number` - Session auth + business ownership check
+- ✓ `/api/business/retry-provisioning` - Session auth + business ownership check
+- ✓ `/api/business/update-phone` - Session auth + business ownership check
+- ✓ `/api/business/update-phone-number` - Session auth + business ownership check
+- ✓ `/api/business/forwarding-verify` - Session auth + business ownership check
+- ✓ `/api/lead-details` - Session auth + RLS protection
+- ✓ `/api/twilio/media` - Bearer token auth + business ownership check
+- ✓ `/api/twilio/message` - INTERNAL_API_SECRET
+- ✓ `/api/twilio/ai-assistant/*` - INTERNAL_API_SECRET
+- ✓ `/api/twilio/voice` - INTERNAL_API_SECRET
+- ✓ `/api/ai-voice/summary-message` - INTERNAL_API_SECRET
+- ✓ `/api/demo/send-text` - Session auth + business ownership check
+- ✓ `/api/dev/reset-demo-data` - Session auth
+- ✓ `/api/dev/simulate-inbound-sms` - Session auth
+- ✓ `/api/onboarding/*` - Session auth
+- ✓ `/api/send-offboarding-email` - INTERNAL_API_SECRET
+- ✓ `/api/voicemail/[recordingSid]` - Session auth + business ownership check
+- ✓ `/api/test/*` - Session auth (development only)
+
+### Critical Issues Found and Fixed
+
+1. **Smart Filtering API Missing Authentication** - CRITICAL SECURITY BUG
+   - File: `src/app/api/smart-filtering/route.ts`
+   - Issue: GET, POST, and DELETE endpoints had NO authentication and accepted businessId directly from query parameters or request body
+   - Impact: Anyone could read/modify allowed numbers, blocked numbers, personal contacts, and decision logs for ANY business
+   - Fix: Added session authentication and server-side business lookup to all methods
+   - Business ID is now derived from authenticated user's business, not client-provided
 
 ## 4. Secrets and Logging
 
@@ -193,6 +267,12 @@
    - Impact: Service role bypasses RLS, but client-side couldn't insert media
    - Fix: Migration `20260619000000_fix_rls_policies.sql` adds INSERT/UPDATE policies with ownership checks
 
+5. **Smart Filtering API Missing Authentication** - FIXED
+   - File: `src/app/api/smart-filtering/route.ts`
+   - Issue: GET, POST, and DELETE endpoints had NO authentication and accepted businessId directly from query parameters or request body
+   - Impact: Anyone could read/modify allowed numbers, blocked numbers, personal contacts, and decision logs for ANY business
+   - Fix: Added session authentication and server-side business lookup to all methods
+
 ## Issues Fixed
 
 1. **Twilio Incoming SMS Development Bypass** - FIXED
@@ -214,15 +294,14 @@
    - Added INSERT/UPDATE policies with ownership checks
    - Migration: `20260619000000_fix_rls_policies.sql`
 
+5. **Smart Filtering API Missing Authentication** - FIXED
+   - Added session authentication to GET, POST, and DELETE methods
+   - Changed to use server-side business lookup instead of client-provided businessId
+   - Business ID is now derived from authenticated user's business
+
 ## Issues Intentionally Deferred
 
-1. **API Authorization** - Deferred for dedicated audit
-   - Requires comprehensive review of all app/api routes
-   - Requires verification that routes requiring logged-in users verify auth
-   - Requires verification that routes requiring business ownership verify business_id
-   - Requires verification that admin routes require admin authorization or INTERNAL_API_SECRET
-
-2. **AI Voice Service Security** - Deferred for dedicated review
+1. **AI Voice Service Security** - Deferred for dedicated review
    - AI voice service is a separate service with its own security model
    - Requires deeper analysis of WebSocket authentication and call session security
    - No obvious high-confidence issues found in initial review
@@ -253,3 +332,25 @@ After applying migration `20260619000000_fix_rls_policies.sql`, the following sh
    - Verify users can only insert media for their own business messages
 
 **Important:** This migration fixes CRITICAL security bugs that broke authorization. The old policies using `owner_id` would fail for all users, and the overly permissive `WITH CHECK (true)` policies allowed cross-business data access.
+
+## Manual Testing Notes for Smart Filtering API Fix
+
+After fixing the smart-filtering API authentication, the following should be tested:
+
+1. **Authentication Required:**
+   - Verify that unauthenticated requests to `/api/smart-filtering` return 401 Unauthorized
+   - Verify that requests with valid session can access the API
+
+2. **Business Ownership Verification:**
+   - Verify that users can only read their own business's allowed numbers
+   - Verify that users can only read their own business's blocked numbers
+   - Verify that users can only read their own business's personal contacts
+   - Verify that users can only read their own business's decision logs
+   - Verify that users can only add numbers to their own business's lists
+   - Verify that users can only remove numbers from their own business's lists
+
+3. **Cross-Business Access Prevention:**
+   - Verify that User A cannot access User B's smart filtering data
+   - Verify that the businessId parameter is now ignored (derived from authenticated user)
+
+**Important:** This fix closes a CRITICAL security vulnerability where any unauthenticated user could read/modify any business's smart filtering configuration by simply providing a businessId in the request.
