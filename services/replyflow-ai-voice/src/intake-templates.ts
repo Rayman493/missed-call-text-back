@@ -80,6 +80,125 @@ export function getIntakeStageText(template: IntakeTemplate, stage: IntakeStage)
 }
 
 /**
+ * Legacy fallback prompts - original hardcoded questions
+ * Used as final fallback if template system fails
+ */
+const LEGACY_FALLBACK_PROMPTS: Record<IntakeStage, string> = {
+  ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
+  ask_details: "Got it. Can you share any important details the business should know?",
+  ask_location_or_context: "Thanks. What address or location is this for?",
+  ask_timing: "Got it. When would you like this work completed?",
+  ask_callback_time: "Thanks. What is the best time for the business to call you back?",
+  complete: "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day."
+}
+
+/**
+ * Safe helper to get intake template for business type with fallback
+ * @param businessType - The business service type
+ * @param overrideTemplate - Optional override to force a specific template
+ * @returns The intake template to use (always returns a valid template)
+ */
+export function getIntakeTemplateForBusinessTypeSafe(
+  businessType: string,
+  overrideTemplate?: IntakeTemplate
+): IntakeTemplate {
+  try {
+    // If override is provided, validate and use it
+    if (overrideTemplate && INTAKE_TEMPLATES.includes(overrideTemplate)) {
+      return overrideTemplate
+    }
+    
+    // Map business type to template, defaulting to on_site for unknown types
+    const template = BUSINESS_TYPE_TO_INTAKE_TEMPLATE[businessType]
+    if (template && INTAKE_TEMPLATES.includes(template)) {
+      return template
+    }
+    
+    // Fallback to on_site
+    console.log('[AI INTAKE TEMPLATE FALLBACK] =========================================');
+    console.log('[AI INTAKE TEMPLATE FALLBACK] business_type:', businessType);
+    console.log('[AI INTAKE TEMPLATE FALLBACK] reason: Unknown or invalid business type');
+    console.log('[AI INTAKE TEMPLATE FALLBACK] fallback_template: on_site');
+    console.log('[AI INTAKE TEMPLATE FALLBACK] Timestamp:', new Date().toISOString());
+    console.log('[AI INTAKE TEMPLATE FALLBACK] =========================================');
+    return 'on_site'
+  } catch (error) {
+    console.log('[AI INTAKE TEMPLATE FALLBACK] =========================================');
+    console.log('[AI INTAKE TEMPLATE FALLBACK] business_type:', businessType);
+    console.log('[AI INTAKE TEMPLATE FALLBACK] reason: Exception during template selection');
+    console.log('[AI INTAKE TEMPLATE FALLBACK] error:', error instanceof Error ? error.message : String(error));
+    console.log('[AI INTAKE TEMPLATE FALLBACK] fallback_template: on_site');
+    console.log('[AI INTAKE TEMPLATE FALLBACK] Timestamp:', new Date().toISOString());
+    console.log('[AI INTAKE TEMPLATE FALLBACK] =========================================');
+    return 'on_site'
+  }
+}
+
+/**
+ * Safe helper to get scripted text for a specific stage and template with fallback chain
+ * Fallback chain: selected template -> on_site template -> legacy hardcoded prompts
+ * @param template - The intake template
+ * @param stage - The intake stage
+ * @returns The scripted text for that stage (always returns a valid string)
+ */
+export function getIntakeStageTextSafe(template: string, stage: IntakeStage): string {
+  try {
+    // Try selected template first
+    if (template && INTAKE_TEMPLATES.includes(template as IntakeTemplate)) {
+      const text = AI_INTAKE_TEMPLATES[template as IntakeTemplate]?.[stage]
+      if (text && text.trim()) {
+        return text
+      }
+    }
+    
+    // Fallback to on_site template
+    const onSiteText = AI_INTAKE_TEMPLATES.on_site[stage]
+    if (onSiteText && onSiteText.trim()) {
+      console.log('[AI INTAKE STAGE FALLBACK] =========================================');
+      console.log('[AI INTAKE STAGE FALLBACK] template:', template);
+      console.log('[AI INTAKE STAGE FALLBACK] stage:', stage);
+      console.log('[AI INTAKE STAGE FALLBACK] reason: Template missing or empty, using on_site');
+      console.log('[AI INTAKE STAGE FALLBACK] fallback_template: on_site');
+      console.log('[AI INTAKE STAGE FALLBACK] Timestamp:', new Date().toISOString());
+      console.log('[AI INTAKE STAGE FALLBACK] =========================================');
+      return onSiteText
+    }
+    
+    // Final fallback to legacy hardcoded prompts
+    const legacyText = LEGACY_FALLBACK_PROMPTS[stage]
+    if (legacyText && legacyText.trim()) {
+      console.log('[AI INTAKE STAGE FALLBACK] =========================================');
+      console.log('[AI INTAKE STAGE FALLBACK] template:', template);
+      console.log('[AI INTAKE STAGE FALLBACK] stage:', stage);
+      console.log('[AI INTAKE STAGE FALLBACK] reason: on_site template also missing, using legacy fallback');
+      console.log('[AI INTAKE STAGE FALLBACK] fallback_source: legacy hardcoded');
+      console.log('[AI INTAKE STAGE FALLBACK] Timestamp:', new Date().toISOString());
+      console.log('[AI INTAKE STAGE FALLBACK] =========================================');
+      return legacyText
+    }
+    
+    // Last resort fallback
+    console.log('[AI INTAKE STAGE FALLBACK] =========================================');
+    console.log('[AI INTAKE STAGE FALLBACK] template:', template);
+    console.log('[AI INTAKE STAGE FALLBACK] stage:', stage);
+    console.log('[AI INTAKE STAGE FALLBACK] reason: All fallbacks failed, using generic fallback');
+    console.log('[AI INTAKE STAGE FALLBACK] Timestamp:', new Date().toISOString());
+    console.log('[AI INTAKE STAGE FALLBACK] =========================================');
+    return "Can you please provide more information?"
+  } catch (error) {
+    console.log('[AI INTAKE STAGE FALLBACK] =========================================');
+    console.log('[AI INTAKE STAGE FALLBACK] template:', template);
+    console.log('[AI INTAKE STAGE FALLBACK] stage:', stage);
+    console.log('[AI INTAKE STAGE FALLBACK] reason: Exception during prompt retrieval');
+    console.log('[AI INTAKE STAGE FALLBACK] error:', error instanceof Error ? error.message : String(error));
+    console.log('[AI INTAKE STAGE FALLBACK] fallback_source: legacy hardcoded');
+    console.log('[AI INTAKE STAGE FALLBACK] Timestamp:', new Date().toISOString());
+    console.log('[AI INTAKE STAGE FALLBACK] =========================================');
+    return LEGACY_FALLBACK_PROMPTS[stage] || "Can you please provide more information?"
+  }
+}
+
+/**
  * Business Type to Intake Template Mapping
  * Maps each business service type to the appropriate AI intake template
  */

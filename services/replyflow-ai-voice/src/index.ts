@@ -25,6 +25,8 @@ import {
   AI_INTAKE_TEMPLATES,
   getIntakeStageText,
   getIntakeTemplateForBusinessType,
+  getIntakeTemplateForBusinessTypeSafe,
+  getIntakeStageTextSafe,
 } from './intake-templates';
 
 // @ts-nocheck
@@ -1449,7 +1451,7 @@ function sendApprovedPrompt(stage: string, openAiWs: any, ws?: any): boolean {
   };
   
   const templateStage = stageMapping[stage] || 'ask_name_reason';
-  const approvedText = getIntakeStageText(intakeTemplate, templateStage);
+  const approvedText = getIntakeStageTextSafe(intakeTemplate, templateStage);
 
   // Log [VOICE OUTBOUND] with stage name and template info
   console.log('[VOICE OUTBOUND] =========================================');
@@ -6497,8 +6499,8 @@ Return only JSON, no other text.`;
           intakeData = createIntakeData(businessName || 'we', callSid, businessId, sessionId);
           console.log('[AI INTAKE] initialized with business:', businessName);
 
-          // Determine intake template based on business type
-          const selectedIntakeTemplate = getIntakeTemplateForBusinessType(businessType);
+          // Determine intake template based on business type (with safe fallback)
+          const selectedIntakeTemplate = getIntakeTemplateForBusinessTypeSafe(businessType);
           (ws as any).intakeTemplate = selectedIntakeTemplate;
           
           console.log('[AI INTAKE TEMPLATE] =========================================');
