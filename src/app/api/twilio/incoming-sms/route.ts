@@ -40,6 +40,8 @@ export async function POST(req: NextRequest) {
     }
     
     // Signature validation
+    // SECURITY: Signature validation is ALWAYS required, even in development
+    // This prevents attacks if NODE_ENV is accidentally set to 'development' in production
     if (isDevEnvironment) {
       console.log('[SIGNATURE VALIDATION START]', {
         url: req.url,
@@ -48,34 +50,27 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Bypass signature validation ONLY in development environment
-    // NEVER allow bypass via client-accessible environment variables
+    const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
 
-    if (!isDevEnvironment) {
-      const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
-
-      if (!isValid) {
-        console.error('[INBOUND SMS SIGNATURE VALID] FAILED', {
-          url: req.url,
-          contentType,
-          bodyLength: rawBody.length
-        })
-        const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+    if (!isValid) {
+      console.error('[INBOUND SMS SIGNATURE VALID] FAILED', {
+        url: req.url,
+        contentType,
+        bodyLength: rawBody.length
+      })
+      const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>Unauthorized: Invalid signature</Message>
 </Response>`
-        return new Response(errorTwiml, {
-          status: 401,
-          headers: {
-            'Content-Type': 'text/xml',
-          },
-        })
-      }
-
-      console.log('[INBOUND SMS SIGNATURE VALID] SUCCESS')
-    } else {
-      console.log('[INBOUND SMS SIGNATURE VALID] BYPASSED - Local development environment detected (NODE_ENV === development)')
+      return new Response(errorTwiml, {
+        status: 401,
+        headers: {
+          'Content-Type': 'text/xml',
+        },
+      })
     }
+
+    console.log('[INBOUND SMS SIGNATURE VALID] SUCCESS')
     
     // Parse body using formData for proper form data handling
     const formData = new FormData()
