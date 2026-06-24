@@ -148,21 +148,23 @@ function generateIgnoredContactVoicemail(): string {
   // Note: Transcription is now fetched via REST API in recording-status callback
   // instead of using Twilio's transcribeCallback (account-level restrictions prevent callbacks)
   
-  // Voicemail TwiML with recording capability
+  // Voicemail TwiML with recording capability - MUST be wrapped in <Response> tags
   const voicemailTwiml = `
-    <Pause length="1"/>
-    <Say voice="alice">${voicemailMessage}</Say>
-    <Record
-      maxLength="60"
-      playBeep="true"
-      trim="trim-silence"
-      action="/api/twilio/voicemail"
-      method="POST"
-      recordingStatusCallback="/api/twilio/recording-status"
-      recordingStatusCallbackMethod="POST"
-    />
-    <Hangup/>
-  `.trim();
+<Response>
+  <Pause length="1"/>
+  <Say voice="alice">${voicemailMessage}</Say>
+  <Record
+    maxLength="60"
+    playBeep="true"
+    trim="trim-silence"
+    action="/api/twilio/voicemail"
+    method="POST"
+    recordingStatusCallback="/api/twilio/recording-status"
+    recordingStatusCallbackMethod="POST"
+  />
+  <Hangup/>
+</Response>
+`.trim();
   
   return voicemailTwiml;
 }
