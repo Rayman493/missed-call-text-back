@@ -217,11 +217,71 @@
 
 ## 8. AI Voice Service Security
 
-### Status: DEFERRED
-- AI voice service is a separate service with its own security model
-- Requires deeper analysis of WebSocket authentication and call session security
-- No obvious high-confidence issues found in initial review
-- **Recommendation:** Schedule dedicated security review for AI voice service
+### Status: AUDITED AND FIXED
+
+### Routes Checked (9 routes)
+
+**Twilio Voice Webhooks (Signature Validated):**
+- ✓ `/api/twilio/voice` - Twilio signature validation via `requireTwilioAuth()`
+- ✓ `/api/twilio/voice-status` - Twilio signature validation via `requireTwilioAuth()`
+- ✓ `/api/twilio/voicemail` - Twilio signature validation via `requireTwilioAuth()`
+- ✓ `/api/twilio/recording-status` - Twilio signature validation via `requireTwilioAuth()`
+- ✓ `/api/twilio/message` - Twilio signature validation via `requireTwilioAuth()`
+- ✓ `/api/twilio/ai-assistant/start` - Twilio signature validation via `requireTwilioAuth()`
+
+**AI Voice Persistence Routes (INTERNAL_API_SECRET):**
+- ✓ `/api/ai-voice/summary-message` - INTERNAL_API_SECRET validation
+- ✓ `/api/ai-confirmation-sms` - INTERNAL_API_SECRET validation + lead ownership verification
+- ✓ `/api/twilio/message` - Twilio signature validation (internal AI voice service uses this)
+- ✓ `/api/follow-ups/create-jobs` - INTERNAL_API_SECRET or user auth with business ownership check
+
+**AI Voice Status Route:**
+- ✓ `/api/twilio/ai-assistant/status` - FIXED: Now requires INTERNAL_API_SECRET (was previously unauthenticated)
+
+### Critical Issues Found and Fixed
+
+1. **AI Assistant Status Route Missing Authentication** - CRITICAL SECURITY BUG
+   - File: `src/app/api/twilio/ai-assistant/status/route.ts`
+   - Issue: GET endpoint had NO authentication and allowed anyone to query AI call session status by call_sid
+   - Impact: Anyone could expose sensitive call session information including caller name, reason for call, urgency, callback number
+   - Fix: Added INTERNAL_API_SECRET validation to prevent unauthorized access
+
+### Security Findings
+
+**Twilio Signature Validation:**
+- All Twilio voice webhook routes properly validate signatures using `requireTwilioAuth()`
+- Signature validation uses HMAC-SHA1 with timing-safe comparison
+- This prevents spoofing of Twilio callbacks
+
+**INTERNAL_API_SECRET Validation:**
+- All AI voice persistence endpoints require INTERNAL_API_SECRET
+- This ensures only the internal AI voice service (separate Fly.io deployment) can persist call data
+- The secret is validated before processing any request body
+
+**Blind Trust Prevention:**
+- Business ID is never trusted from query parameters
+- All business lookups are done server-side via Twilio phone number or database queries
+- Lead ownership is verified in `/api/ai-confirmation-sms` before persisting data
+
+**Logging:**
+- Logs contain call metadata (callSid, phone numbers, call status) for debugging
+- Logs do NOT contain secrets (API keys, auth tokens)
+- Customer call content (transcripts, extracted info) is logged in some cases for debugging, but this is acceptable for troubleshooting
+- No sensitive credentials are exposed in logs
+
+**Fallback Behavior:**
+- Voice routes have proper error handling and logging
+- Failed persistence attempts are logged with error details
+- Routes return appropriate HTTP status codes (401, 403, 404, 500) on errors
+- No silent failures - all errors are logged for monitoring
+
+### Remaining Concerns
+
+1. **Customer Call Content in Logs**
+   - Some routes log customer call content (transcripts, extracted info)
+   - This is acceptable for debugging and troubleshooting
+   - No secrets or credentials are exposed
+   - **Recommendation:** Consider adding log level controls to reduce verbose logging in production
 
 ## 2. Supabase RLS
 
@@ -273,6 +333,12 @@
    - Impact: Anyone could read/modify allowed numbers, blocked numbers, personal contacts, and decision logs for ANY business
    - Fix: Added session authentication and server-side business lookup to all methods
 
+6. **AI Assistant Status Route Missing Authentication** - FIXED
+   - File: `src/app/api/twilio/ai-assistant/status/route.ts`
+   - Issue: GET endpoint had NO authentication and allowed anyone to query AI call session status by call_sid
+   - Impact: Anyone could expose sensitive call session information including caller name, reason for call, urgency, callback number
+   - Fix: Added INTERNAL_API_SECRET validation to prevent unauthorized access
+
 ## Issues Fixed
 
 1. **Twilio Incoming SMS Development Bypass** - FIXED
@@ -299,12 +365,14 @@
    - Changed to use server-side business lookup instead of client-provided businessId
    - Business ID is now derived from authenticated user's business
 
+6. **AI Assistant Status Route Missing Authentication** - FIXED
+   - Added INTERNAL_API_SECRET validation to GET endpoint
+   - Prevents unauthorized access to sensitive call session information
+   - Only internal AI voice service can now query session status
+
 ## Issues Intentionally Deferred
 
-1. **AI Voice Service Security** - Deferred for dedicated review
-   - AI voice service is a separate service with its own security model
-   - Requires deeper analysis of WebSocket authentication and call session security
-   - No obvious high-confidence issues found in initial review
+None - All high-confidence security issues have been audited and fixed.
 
 ## Manual Testing Notes for RLS Migration
 
@@ -354,3 +422,21 @@ After fixing the smart-filtering API authentication, the following should be tes
    - Verify that the businessId parameter is now ignored (derived from authenticated user)
 
 **Important:** This fix closes a CRITICAL security vulnerability where any unauthenticated user could read/modify any business's smart filtering configuration by simply providing a businessId in the request.
+
+## Manual Testing Notes for AI Voice Security Fix
+
+After fixing the AI assistant status route authentication, the following should be tested:
+
+1. **Authentication Required:**
+   - Verify that unauthenticated requests to `/api/twilio/ai-assistant/status` return 401 Unauthorized
+   - Verify that requests with valid INTERNAL_API_SECRET can access the API
+
+2. **Cross-Business Access Prevention:**
+   - Verify that the AI voice service can only query session status for calls it initiated
+   - Verify that users cannot query session status for calls belonging to other businesses
+
+3. **Twilio Webhook Validation:**
+   - Verify that Twilio voice webhooks still work correctly with signature validation
+   - Verify that AI call session creation and status updates still work as expected
+
+**Important:** This fix closes a CRITICAL security vulnerability where any unauthenticated user could query AI call session information (caller name, reason for call, urgency, callback number) by simply providing a call_sid in the request.

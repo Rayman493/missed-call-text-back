@@ -5,9 +5,32 @@ import { getAISessionByCallSid } from '@/lib/ai-call-assistant/session'
  * AI Call Assistant Status Route (Phase 0 - QA Only)
  * 
  * Returns the status of an AI call session for debugging/monitoring
+ * 
+ * SECURITY: Requires INTERNAL_API_SECRET for server-to-server authentication
+ * to prevent unauthorized access to sensitive call session information.
  */
 export async function GET(request: NextRequest) {
   try {
+    // Verify INTERNAL_API_SECRET for server-to-server authentication
+    const authHeader = request.headers.get('authorization')
+    const internalApiSecret = process.env.INTERNAL_API_SECRET
+
+    if (!internalApiSecret) {
+      console.error('[AI CALL ASSISTANT STATUS] INTERNAL_API_SECRET not configured')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[AI CALL ASSISTANT STATUS] Missing or invalid authorization header')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    if (token !== internalApiSecret) {
+      console.error('[AI CALL ASSISTANT STATUS] Invalid INTERNAL_API_SECRET')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const searchParams = request.nextUrl.searchParams
     const callSid = searchParams.get('call_sid')
 
@@ -20,7 +43,7 @@ export async function GET(request: NextRequest) {
     const session = await getAISessionByCallSid(callSid)
 
     if (!session) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Session not found',
         call_sid: callSid
       }, { status: 404 })
