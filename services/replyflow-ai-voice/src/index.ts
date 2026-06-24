@@ -3278,10 +3278,20 @@ async function finalizeIncompleteIntake(
     const responseBody = await response.text();
     console.log('[AI INCOMPLETE STEP 6] Response body:', responseBody);
     
+    // Parse response body as JSON for better error diagnostics
+    let parsedResponseBody;
+    try {
+      parsedResponseBody = JSON.parse(responseBody);
+      console.log('[AI INCOMPLETE STEP 6] Parsed response body:', JSON.stringify(parsedResponseBody, null, 2));
+    } catch (parseError) {
+      console.log('[AI INCOMPLETE STEP 6] Response body is not JSON, using raw text');
+      parsedResponseBody = responseBody;
+    }
+    
     if (!response.ok) {
       console.error('[AI INCOMPLETE STEP 6 FAILED] =========================================');
       console.error('[AI INCOMPLETE STEP 6 FAILED] Non-OK status code:', response.status);
-      console.error('[AI INCOMPLETE STEP 6 FAILED] response body:', responseBody);
+      console.error('[AI INCOMPLETE STEP 6 FAILED] response body:', parsedResponseBody);
       console.error('[AI INCOMPLETE STEP 6 FAILED] Timestamp:', new Date().toISOString());
       console.error('[AI INCOMPLETE STEP 6 FAILED] =========================================');
     } else {
@@ -6391,6 +6401,42 @@ Return only JSON, no other text.`;
           }
 
           console.log('[CALL CONTEXT REQUIRED OK] businessId and callSid present');
+
+          // Check for duplicate webhook delivery - early return if ai_call_record already exists
+          console.log('[DUPLICATE WEBHOOK CHECK] =========================================');
+          console.log('[DUPLICATE WEBHOOK CHECK] Checking for existing ai_call_record');
+          console.log('[DUPLICATE WEBHOOK CHECK] callSid:', callSid);
+          console.log('[DUPLICATE WEBHOOK CHECK] Timestamp:', new Date().toISOString());
+          console.log('[DUPLICATE WEBHOOK CHECK] =========================================');
+          
+          if (supabase) {
+            const { data: existingRecord, error: recordCheckError } = await supabase
+              .from('ai_call_records')
+              .select('id, outcome')
+              .eq('call_sid', callSid)
+              .maybeSingle();
+            
+            if (existingRecord) {
+              console.log('[DUPLICATE WEBHOOK DETECTED] =========================================');
+              console.log('[DUPLICATE WEBHOOK DETECTED] ai_call_record already exists for this call');
+              console.log('[DUPLICATE WEBHOOK DETECTED] existingRecordId:', existingRecord.id);
+              console.log('[DUPLICATE WEBHOOK DETECTED] outcome:', existingRecord.outcome);
+              console.log('[DUPLICATE WEBHOOK DETECTED] callSid:', callSid);
+              console.log('[DUPLICATE WEBHOOK DETECTED] Timestamp:', new Date().toISOString());
+              console.log('[DUPLICATE WEBHOOK DETECTED] Skipping processing to prevent duplicate lead creation');
+              console.log('[DUPLICATE WEBHOOK DETECTED] =========================================');
+              
+              // Close WebSocket to prevent duplicate processing
+              ws.close(1008, 'Duplicate webhook - call already processed');
+              return;
+            }
+            
+            if (recordCheckError && recordCheckError.code !== 'PGRST116') {
+              console.log('[DUPLICATE WEBHOOK CHECK ERROR]', recordCheckError);
+            }
+          }
+          
+          console.log('[DUPLICATE WEBHOOK CHECK PASSED] No existing record found, proceeding with call processing');
 
           // Store callContext on ws for use throughout the call
           (ws as any).callContext = callContext;
@@ -10188,48 +10234,85 @@ async function sendAIConfirmationSMS(
       return;
     }
 
-    const response = await fetch(confirmationUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${internalApiSecret}`,
-      },
-      body: JSON.stringify({
-        businessId,
-        leadId,
-        conversationId,
-        callSid,
-        callerPhone,
-        businessName,
-        extractedInfo
-      })
-    });
+    // Retry logic for SMS delivery (3 retries with exponential backoff)
+    let lastError: any = null;
+    let response: Response | null = null;
+    
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log('[AI CONFIRMATION SMS RETRY]', { attempt, maxAttempts: 3 });
+        
+        response = await fetch(confirmationUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${internalApiSecret}`,
+          },
+          body: JSON.stringify({
+            businessId,
+            leadId,
+            conversationId,
+            callSid,
+            callerPhone,
+            businessName,
+            extractedInfo
+          })
+        });
 
-    console.log('[AI CONFIRMATION SMS HTTP DEBUG]', {
-      url: confirmationUrl,
-      method: 'POST',
-      status: response.status,
-      statusText: response.statusText
-    });
+        console.log('[AI CONFIRMATION SMS HTTP DEBUG]', {
+          url: confirmationUrl,
+          method: 'POST',
+          status: response.status,
+          statusText: response.statusText,
+          attempt
+        });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] =========================================');
-      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] AI confirmation SMS failed - API call failed');
-      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Status:', response.status);
-      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Error:', errorText);
-      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Timestamp:', new Date().toISOString());
-      console.log('[COMPLETE FINALIZATION STEP 9 FAILED] =========================================');
-      
-      console.error('[AI CONFIRMATION SMS ERROR] API call failed:', {
-        status: response.status,
-        error: errorText
-      });
-      return;
+        if (response.ok) {
+          const result = await response.json();
+          console.log('[AI CONFIRMATION SMS SUCCESS]', result);
+          return;
+        } else {
+          lastError = {
+            status: response.status,
+            statusText: response.statusText,
+            attempt
+          };
+          console.log('[AI CONFIRMATION SMS RETRY FAILED]', {
+            attempt,
+            status: response.status,
+            statusText: response.statusText
+          });
+          
+          if (attempt < 3) {
+            const backoffMs = Math.pow(2, attempt) * 1000; // Exponential backoff: 1s, 2s, 4s
+            console.log('[AI CONFIRMATION SMS RETRY BACKOFF]', { backoffMs, nextAttempt: attempt + 1 });
+            await new Promise(resolve => setTimeout(resolve, backoffMs));
+          }
+        }
+      } catch (error) {
+        lastError = error;
+        console.log('[AI CONFIRMATION SMS RETRY EXCEPTION]', {
+          attempt,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        
+        if (attempt < 3) {
+          const backoffMs = Math.pow(2, attempt) * 1000;
+          console.log('[AI CONFIRMATION SMS RETRY BACKOFF]', { backoffMs, nextAttempt: attempt + 1 });
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+        }
+      }
     }
 
-    const result = await response.json();
-    console.log('[AI CONFIRMATION SMS SUCCESS]', result);
+    // All retries failed
+    console.log('[COMPLETE FINALIZATION STEP 9 FAILED] =========================================');
+    console.log('[COMPLETE FINALIZATION STEP 9 FAILED] AI confirmation SMS failed - all retries exhausted');
+    console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Last error:', lastError);
+    console.log('[COMPLETE FINALIZATION STEP 9 FAILED] Timestamp:', new Date().toISOString());
+    console.log('[COMPLETE FINALIZATION STEP 9 FAILED] =========================================');
+    
+    console.error('[AI CONFIRMATION SMS ERROR] All retries failed:', lastError);
+    return;
 
   } catch (error) {
     console.log('[COMPLETE FINALIZATION STEP 9 FAILED] =========================================');
