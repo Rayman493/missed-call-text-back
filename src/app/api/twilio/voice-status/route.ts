@@ -612,6 +612,15 @@ async function processVoiceStatusCallback(params: any, method: string) {
       })
     }
 
+    // Log after-hours message selection details
+    console.log('[AFTER HOURS CHECK]', {
+      businessHoursOnly: businessHoursEnabled,
+      isWithinBusinessHours: withinBusinessHours,
+      selectedMessageType: businessHoursEnabled && !withinBusinessHours ? 'after_hours' : 'normal',
+      afterHoursMessagePresent: !!(afterHoursMessage && afterHoursMessage.trim()),
+      usingDefaultAfterHoursMessage: businessHoursEnabled && !withinBusinessHours && !(afterHoursMessage && afterHoursMessage.trim())
+    })
+
     // Select message based on business hours and out of office status
     let autoReplyMessage
     let messageTemplate = smsDecision.template
@@ -635,16 +644,32 @@ async function processVoiceStatusCallback(params: any, method: string) {
         messageBody: autoReplyMessage?.substring(0, 100),
         templateSource
       })
-    } else if (businessHoursEnabled && !withinBusinessHours && afterHoursMessage) {
-      autoReplyMessage = afterHoursMessage
+    } else if (businessHoursEnabled && !withinBusinessHours) {
+      // Use custom after-hours message or default
+      if (afterHoursMessage && afterHoursMessage.trim()) {
+        autoReplyMessage = afterHoursMessage
+        templateSource = 'after_hours'
+        console.log('[AFTER HOURS MESSAGE SELECTED]', {
+          template: messageTemplate,
+          businessId: business.id,
+          messageBody: autoReplyMessage?.substring(0, 100),
+          templateSource,
+          usingDefault: false
+        })
+      } else {
+        // Default after-hours message when custom message is blank
+        autoReplyMessage = `Thanks for calling {{business_name}}. We are currently closed and will get back to you during business hours. Reply STOP to opt out.`
+        templateSource = 'after_hours'
+        console.log('[AFTER HOURS MESSAGE SELECTED]', {
+          template: messageTemplate,
+          businessId: business.id,
+          messageBody: autoReplyMessage?.substring(0, 100),
+          templateSource,
+          usingDefault: true,
+          reason: 'after_hours_message is blank'
+        })
+      }
       messageTemplate = 'after_hours'
-      templateSource = 'after_hours'
-      console.log('[AFTER HOURS MESSAGE SELECTED]', {
-        template: messageTemplate,
-        businessId: business.id,
-        messageBody: autoReplyMessage?.substring(0, 100),
-        templateSource
-      })
     } else {
       if (business.auto_reply_message && business.auto_reply_message.trim()) {
         // Check if the custom message is actually the old stale default

@@ -267,52 +267,90 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Conversation does not belong to specified lead/business' }, { status: 403 })
     }
 
-    // Idempotency check - check if confirmation SMS already sent for this conversation
-    // Use metadata-free logic: check for system message starting with "Hi, this is" within last 5 minutes
-    console.log('[AI CONFIRMATION SMS DUPLICATE CHECK]', {
-      conversationId,
-      body_pattern: 'Hi, this is'
+    // Idempotency check - check if confirmation SMS already sent for this callSid
+    // Use callSid-based check to prevent duplicate SMS per call
+    console.log('[SUMMARY SMS IDEMPOTENCY CHECK]', {
+      callSid,
+      leadId,
+      conversationId
     })
 
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-    const { data: existingMessage, error: checkError } = await supabaseAdmin
-      .from('messages')
-      .select('id, created_at')
-      .eq('conversation_id', conversationId)
-      .ilike('body', 'Hi, this is%')
-      .gte('created_at', fiveMinutesAgo)
-      .limit(1)
-      .maybeSingle()
+    // Check for existing AI confirmation SMS for this callSid in lead metadata
+    const { data: leadWithMetadata, error: metadataError } = await supabaseAdmin
+      .from('leads')
+      .select('raw_metadata')
+      .eq('id', leadId)
+      .single()
 
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('[AI CONFIRMATION SMS DUPLICATE CHECK ERROR]', {
-        operation: 'duplicate check select',
-        selected_columns: ['id', 'created_at'],
-        filters: {
-          conversation_id: conversationId,
-          body_pattern: 'Hi, this is%',
-          created_at: `>= ${fiveMinutesAgo}`
-        },
-        code: checkError.code,
-        message: checkError.message,
-        details: checkError.details,
-        hint: checkError.hint
-      })
-      // Make duplicate-check failure non-fatal - continue with send
-      console.log('[AI CONFIRMATION SMS DUPLICATE CHECK] Continuing despite duplicate check error')
-    } else if (checkError) {
-      console.log('[AI CONFIRMATION SMS DUPLICATE CHECK] No results (PGRST116)')
-    } else {
-      console.log('[AI CONFIRMATION SMS DUPLICATE CHECK] Query successful')
+    let existingSummarySms = false
+    let idempotencyReason = ''
+
+    if (!metadataError && leadWithMetadata?.raw_metadata) {
+      const metadata = leadWithMetadata.raw_metadata
+      // Check if AI confirmation SMS was already sent for this callSid
+      if (metadata.ai_confirmation_sms_sent && metadata.ai_confirmation_sms_call_sid === callSid) {
+        existingSummarySms = true
+        idempotencyReason = 'ai_confirmation_sms_already_sent_for_this_call_sid'
+        console.log('[SUMMARY SMS IDEMPOTENCY CHECK]', {
+          callSid,
+          existingSummarySms,
+          shouldSend: false,
+          reason: idempotencyReason
+        })
+      }
     }
 
-    if (existingMessage) {
-      console.log('[AI CONFIRMATION SMS SKIPPED DUPLICATE] Confirmation SMS already sent for this conversation', {
-        messageId: existingMessage.id,
+    // Secondary check: look for messages table entry with message_type='text' and body pattern in last 10 minutes
+    if (!existingSummarySms) {
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+      const { data: existingMessage, error: checkError } = await supabaseAdmin
+        .from('messages')
+        .select('id, created_at')
+        .eq('conversation_id', conversationId)
+        .ilike('body', 'Here\'s a summary of your request%')
+        .gte('created_at', tenMinutesAgo)
+        .limit(1)
+        .maybeSingle()
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('[SUMMARY SMS IDEMPOTENCY CHECK ERROR]', {
+          operation: 'duplicate check select',
+          selected_columns: ['id', 'created_at'],
+          filters: {
+            conversation_id: conversationId,
+            body_pattern: 'Here\'s a summary of your request%',
+            created_at: `>= ${tenMinutesAgo}`
+          },
+          code: checkError.code,
+          message: checkError.message
+        })
+      } else if (existingMessage) {
+        existingSummarySms = true
+        idempotencyReason = 'summary_message_already_in_messages_table'
+        console.log('[SUMMARY SMS IDEMPOTENCY CHECK]', {
+          callSid,
+          existingSummarySms,
+          shouldSend: false,
+          reason: idempotencyReason,
+          messageId: existingMessage.id
+        })
+      } else {
+        console.log('[SUMMARY SMS IDEMPOTENCY CHECK]', {
+          callSid,
+          existingSummarySms,
+          shouldSend: true,
+          reason: 'no_existing_summary_found'
+        })
+      }
+    }
+
+    if (existingSummarySms) {
+      console.log('[AI CONFIRMATION SMS SKIPPED DUPLICATE]', {
+        callSid,
         conversationId,
-        created_at: existingMessage.created_at
+        reason: idempotencyReason
       })
-      return NextResponse.json({ success: true, skipped: true, reason: 'duplicate' })
+      return NextResponse.json({ success: true, skipped: true, reason: idempotencyReason })
     }
 
     // Check ignored contacts (no raw_metadata check as it doesn't exist in schema)
@@ -566,7 +604,8 @@ export async function POST(request: NextRequest) {
               ...(lead?.raw_metadata || {}),
               ai_confirmation_sms_sent: true,
               ai_confirmation_sms_sent_at: new Date().toISOString(),
-              ai_confirmation_sms_message_sid: twilioMessageSid
+              ai_confirmation_sms_message_sid: twilioMessageSid,
+              ai_confirmation_sms_call_sid: callSid
             }
           })
           .eq('id', leadId)
