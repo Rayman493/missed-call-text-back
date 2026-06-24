@@ -140,33 +140,20 @@ function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): strin
   return voicemailTwiml;
 }
 
-// Helper to generate neutral voicemail greeting for ignored contacts
-function generateIgnoredContactVoicemail(): string {
-  // Neutral, simple greeting without business name or AI references
-  const voicemailMessage = "Sorry we missed your call. Please leave a message after the tone.";
+// Helper to generate short informational message for ignored contacts
+function generateIgnoredContactResponse(): string {
+  // Short message followed by immediate hangup
+  // No voicemail recording since ReplyFlow skips persistence for ignored contacts
+  const message = "Sorry, we missed your call.";
   
-  // Note: Transcription is now fetched via REST API in recording-status callback
-  // instead of using Twilio's transcribeCallback (account-level restrictions prevent callbacks)
-  
-  // Voicemail TwiML with recording capability - MUST be wrapped in <Response> tags
-  const voicemailTwiml = `
+  const responseTwiml = `
 <Response>
-  <Pause length="1"/>
-  <Say voice="alice">${voicemailMessage}</Say>
-  <Record
-    maxLength="60"
-    playBeep="true"
-    trim="trim-silence"
-    action="/api/twilio/voicemail"
-    method="POST"
-    recordingStatusCallback="/api/twilio/recording-status"
-    recordingStatusCallbackMethod="POST"
-  />
+  <Say voice="Polly.Joanna">${message}</Say>
   <Hangup/>
 </Response>
 `.trim();
   
-  return voicemailTwiml;
+  return responseTwiml;
 }
 
 // Helper to generate complete TwiML response with fallback structure
@@ -492,11 +479,11 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] =========================================');
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] businessId:', business.id);
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] normalizedFrom:', normalizedFrom);
-      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] action: return neutral voicemail / no AI route');
+      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] action: return short message and hangup / no AI / no persistence');
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] timestamp:', new Date().toISOString());
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] =========================================');
 
-      console.log('[IGNORED CONTACT VOICEMAIL BYPASS]', {
+      console.log('[IGNORED CONTACT MESSAGE]', {
         businessId: business.id,
         phoneNumber: normalizedFrom,
         timestamp: new Date().toISOString()
@@ -506,15 +493,15 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         businessId: business.id
       })
 
-      // Return neutral voicemail greeting for ignored contacts
-      // This allows recording without triggering business automation
-      const twiml = generateIgnoredContactVoicemail()
-      console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-voicemail')
+      // Return short informational message followed by immediate hangup
+      // No voicemail recording, no persistence, no AI, no lead, no conversation, no SMS, no follow-ups
+      const twiml = generateIgnoredContactResponse()
+      console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-message')
       console.log('[AI POC FINAL TWIML]', twiml)
-      console.log('[VOICE PATH] IGNORED_CONTACT_VOICEMAIL')
+      console.log('[VOICE PATH] IGNORED_CONTACT_MESSAGE')
       console.log('[VOICE ROUTE RETURN]', {
-        path: 'IGNORED_CONTACT_VOICEMAIL',
-        reason: 'Caller is in ignored contacts list - using neutral voicemail',
+        path: 'IGNORED_CONTACT_MESSAGE',
+        reason: 'Caller is in ignored contacts list - using short message and hangup',
         callSid: CallSid || 'unknown',
         phoneNumber: normalizedFrom
       });
