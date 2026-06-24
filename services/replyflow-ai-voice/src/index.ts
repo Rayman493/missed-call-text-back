@@ -6807,6 +6807,13 @@ DO NOT:
 - Add filler words or phrases
 - Generate any assistant responses on your own
 - Ask for time-of-day clarification (e.g., "Morning, afternoon, or evening?")
+- Ask about budget, price range, or cost
+- Ask about neighborhoods, locations, or areas
+- Ask about property types, house types, or styles
+- Ask about property features (rooms, bedrooms, bathrooms, yard, garage, pool, basement)
+- Ask about square footage or property size
+- Ask about amenities or specific features
+- Ask any service-specific follow-up questions not in the approved prompt
 
 SPEAK ONLY the exact text provided by the app via response.create instructions.`,
                   audio: {
@@ -7930,6 +7937,73 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               if (message.type === 'response.content') {
                 console.log('[TRANSCRIPT] response.content', { content: message.content });
                 if (message.content) {
+                  const assistantText = message.content;
+                  const currentStage = intakeData?.stage || 'ask_name_reason';
+                  const intakeTemplate = (ws as any).intakeTemplate || 'on_site';
+                  
+                  // Get the approved prompt for the current stage
+                  const approvedPrompt = getIntakeStageTextSafe(intakeTemplate, currentStage as any);
+                  
+                  // Check if the assistant text matches the approved prompt (allowing for minor variations)
+                  const textMatchesApproved = approvedPrompt && assistantText.includes(approvedPrompt.substring(0, 20));
+                  
+                  // Check for unapproved question patterns
+                  const unapprovedQuestionPatterns = [
+                    'budget',
+                    'neighborhood',
+                    'property type',
+                    'type of house',
+                    'preferred location',
+                    'yard',
+                    'rooms',
+                    'bedrooms',
+                    'bathrooms',
+                    'square footage',
+                    'price range',
+                    'what features',
+                    'what kind of',
+                    'what type of',
+                    'looking for in a',
+                    'specific features',
+                    'amenities',
+                    'style of home',
+                    'size of home',
+                    'number of bedrooms',
+                    'number of bathrooms',
+                    'garage',
+                    'pool',
+                    'basement',
+                  ];
+                  
+                  const containsUnapprovedQuestion = unapprovedQuestionPatterns.some(pattern => 
+                    assistantText.toLowerCase().includes(pattern)
+                  );
+                  
+                  // Block unapproved questions
+                  if (!textMatchesApproved && containsUnapprovedQuestion) {
+                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] =========================================');
+                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] Unapproved question detected in assistant response');
+                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] Assistant text:', assistantText);
+                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] Current stage:', currentStage);
+                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] Intake template:', intakeTemplate);
+                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] Approved prompt:', approvedPrompt);
+                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] Response ID:', message.response_id || 'unknown');
+                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] Timestamp:', new Date().toISOString());
+                    console.log('[UNAPPROVED ASSISTANT QUESTION BLOCKED] =========================================');
+                    
+                    // Cancel the response if it has an ID
+                    if (message.response_id && openAiWs) {
+                      openAiWs.send(JSON.stringify({
+                        type: 'response.cancel',
+                        response_id: message.response_id
+                      }));
+                      console.log('[UNAPPROVED RESPONSE CANCELED] Response cancel command sent');
+                    }
+                    
+                    // Do not add to transcript - skip this unapproved content
+                    return;
+                  }
+                  
                   console.log('[AI TRANSCRIPT CAPTURED]', { role: 'assistant', text: message.content, timestamp: new Date().toISOString() });
                   transcript.push({ role: 'assistant', text: message.content, timestamp: new Date().toISOString() });
                 }
