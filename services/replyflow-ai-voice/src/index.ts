@@ -6708,6 +6708,12 @@ Only convert provided approved assistant text into speech.
 The app will send you exact text to speak via response.create instructions.
 You must speak ONLY that exact text and nothing else.
 
+CALLBACK TIME RULE:
+When the caller provides a callback time, accept it immediately.
+Do NOT ask for clarification like "Morning, afternoon, or evening?"
+Accept any reasonable callback time answer including: tomorrow, tomorrow morning, tomorrow afternoon, next week, anytime after work, this evening, Friday morning, as soon as possible, etc.
+After receiving the callback time answer, do not ask any follow-up questions.
+
 LANGUAGE RULE:
 Speak English only. Do not switch languages or imitate accents.
 
@@ -6724,6 +6730,7 @@ DO NOT:
 - Provide any conversational elements
 - Add filler words or phrases
 - Generate any assistant responses on your own
+- Ask for time-of-day clarification (e.g., "Morning, afternoon, or evening?")
 
 SPEAK ONLY the exact text provided by the app via response.create instructions.`,
                   audio: {
