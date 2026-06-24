@@ -143,8 +143,9 @@ function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): strin
 // Helper to generate short informational message for ignored contacts
 function generateIgnoredContactResponse(): string {
   // Short message followed by immediate hangup
+  // Sounds natural for intentional call termination
   // No voicemail recording since ReplyFlow skips persistence for ignored contacts
-  const message = "Sorry, we missed your call.";
+  const message = "Sorry, we're unable to take your call right now. Please try calling again later.";
   
   const responseTwiml = `
 <Response>
@@ -494,6 +495,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       })
 
       // Return short informational message followed by immediate hangup
+      // Sounds natural for intentional call termination
       // No voicemail recording, no persistence, no AI, no lead, no conversation, no SMS, no follow-ups
       const twiml = generateIgnoredContactResponse()
       console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-message')
