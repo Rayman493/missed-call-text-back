@@ -6,6 +6,39 @@ import { normalizePunctuation } from '@/lib/utils'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { getOutOfOfficeNotice } from '@/lib/out-of-office'
 
+/**
+ * Check if current time is within business hours for a business
+ */
+function isWithinBusinessHours(business: any): boolean {
+  const businessHoursEnabled = business.business_hours_enabled || false
+  if (!businessHoursEnabled) {
+    return true // If business hours not enabled, treat as always within hours
+  }
+
+  const businessHoursStart = business.business_hours_start || '09:00'
+  const businessHoursEnd = business.business_hours_end || '17:00'
+  const businessTimezone = business.business_hours_timezone || 'America/New_York'
+
+  const now = new Date()
+  const nowInTimezone = new Date(now.toLocaleString('en-US', { timeZone: businessTimezone }))
+
+  const [startHour, startMin] = businessHoursStart.split(':').map(Number)
+  const [endHour, endMin] = businessHoursEnd.split(':').map(Number)
+
+  const currentHour = nowInTimezone.getHours()
+  const currentMin = nowInTimezone.getMinutes()
+  const currentTimeInMinutes = currentHour * 60 + currentMin
+  const startTimeInMinutes = startHour * 60 + startMin
+  const endTimeInMinutes = endHour * 60 + endMin
+
+  const dayIndex = nowInTimezone.getDay()
+  const isWeekday = dayIndex >= 1 && dayIndex <= 5
+
+  const withinBusinessHours = isWeekday && currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes
+
+  return withinBusinessHours
+}
+
 export const dynamic = 'force-dynamic'
 
 /**
@@ -368,7 +401,7 @@ export async function POST(request: NextRequest) {
     console.log('[AI CONFIRMATION SMS BUSINESS LOOKUP]', { businessId })
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
-      .select('id, name, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, out_of_office_enabled, out_of_office_start, out_of_office_end')
+      .select('id, name, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, out_of_office_enabled, out_of_office_start, out_of_office_end, out_of_office_message, business_hours_enabled, business_hours_start, business_hours_end, business_hours_timezone, after_hours_message')
       .eq('id', businessId)
       .single()
 
@@ -494,42 +527,76 @@ export async function POST(request: NextRequest) {
     });
     const isComplete = missingFields.length === 0;
 
+    // Determine if we need to prepend an out-of-office or after-hours notice
+    let prefixNotice = ''
+    let messageType: 'normal' | 'after_hours' | 'out_of_office' = 'normal'
+    let usingDefaultMessage = false
+
+    // Priority: Out of Office > After Hours > Normal
+    const outOfOfficeNotice = getOutOfOfficeNotice(business);
+    const outOfOfficeActive = outOfOfficeNotice !== null;
+
+    if (outOfOfficeActive) {
+      messageType = 'out_of_office'
+      // Use custom out of office message or default
+      if (business.out_of_office_message && business.out_of_office_message.trim()) {
+        prefixNotice = business.out_of_office_message.replace(/\{\{business_name\}\}/gi, businessName)
+        usingDefaultMessage = false
+      } else {
+        prefixNotice = `Thanks for contacting ${businessName}. We are currently out of office and responses may be delayed.`
+        usingDefaultMessage = true
+      }
+    } else if (!isWithinBusinessHours(business)) {
+      messageType = 'after_hours'
+      // Use custom after-hours message or default
+      const afterHoursMessage = business.after_hours_message || ''
+      if (afterHoursMessage && afterHoursMessage.trim()) {
+        prefixNotice = afterHoursMessage.replace(/\{\{business_name\}\}/gi, businessName)
+        usingDefaultMessage = false
+      } else {
+        prefixNotice = `Thanks for calling ${businessName}. We are currently closed and will get back to you during business hours.`
+        usingDefaultMessage = true
+      }
+    }
+
+    console.log('[AI SUMMARY PREFIX]', {
+      messageType,
+      usingDefaultMessage,
+      businessId,
+      outOfOfficeActive,
+      withinBusinessHours: isWithinBusinessHours(business),
+      businessHoursEnabled: business.business_hours_enabled
+    })
+
     // Build comprehensive confirmation message
     let messageBody: string;
 
     if (isComplete) {
       // Complete intake message
-      messageBody = `Thanks for calling ${businessName}.\n\n`;
-      messageBody += `Here's a summary of your request:\n${summaryParts.join('\n')}\n\n`;
-      messageBody += `We'll be in touch soon.\n\nReply to this message if you'd like to add or correct anything.`;
+      if (prefixNotice) {
+        messageBody = `${prefixNotice}\n\n`
+        messageBody += `Here's a summary of your request:\n${summaryParts.join('\n')}\n\n`
+        messageBody += `We'll be in touch soon.\n\nReply to this message if you'd like to add or correct anything.`
+      } else {
+        messageBody = `Thanks for calling ${businessName}.\n\n`
+        messageBody += `Here's a summary of your request:\n${summaryParts.join('\n')}\n\n`
+        messageBody += `We'll be in touch soon.\n\nReply to this message if you'd like to add or correct anything.`
+      }
     } else {
       // Incomplete intake message
-      messageBody = `Thanks for calling ${businessName}. We received part of your request.\n\n`;
-
-      if (summaryParts.length > 0) {
-        messageBody += `Here's what we have:\n${summaryParts.join('\n')}\n\n`;
+      if (prefixNotice) {
+        messageBody = `${prefixNotice}\n\n`
+        if (summaryParts.length > 0) {
+          messageBody += `Here's what we have:\n${summaryParts.join('\n')}\n\n`
+        }
+        messageBody += `Reply here with any missing details and we'll pass them along.`
+      } else {
+        messageBody = `Thanks for calling ${businessName}. We received part of your request.\n\n`
+        if (summaryParts.length > 0) {
+          messageBody += `Here's what we have:\n${summaryParts.join('\n')}\n\n`
+        }
+        messageBody += `Reply here with any missing details and we'll pass them along.`
       }
-
-      messageBody += `Reply here with any missing details and we'll pass them along.`;
-    }
-
-    // Check if business is currently Out of Office and append notice
-    const outOfOfficeNotice = getOutOfOfficeNotice(business);
-    const outOfOfficeActive = outOfOfficeNotice !== null;
-    let appendedNotice = false;
-
-    console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
-    console.log('[OUT OF OFFICE NOTICE APPLIED] businessId:', businessId);
-    console.log('[OUT OF OFFICE NOTICE APPLIED] smsType:', isComplete ? 'ai_summary_complete' : 'ai_summary_incomplete');
-    console.log('[OUT OF OFFICE NOTICE APPLIED] outOfOfficeActive:', outOfOfficeActive);
-    console.log('[OUT OF OFFICE NOTICE APPLIED] returnDate:', business.out_of_office_end || null);
-    console.log('[OUT OF OFFICE NOTICE APPLIED] Timestamp:', new Date().toISOString());
-    console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
-
-    if (outOfOfficeActive) {
-      messageBody += outOfOfficeNotice;
-      appendedNotice = true;
-      console.log('[OUT OF OFFICE NOTICE APPLIED] Notice appended successfully');
     }
 
     console.log('[AI SMS FINAL BODY]', {

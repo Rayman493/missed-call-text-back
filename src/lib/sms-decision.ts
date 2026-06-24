@@ -181,22 +181,36 @@ export async function determineSmsTemplate(params: {
   }
 
   // Check for After Hours Mode (priority: 3, after out-of-office, before AI outcome)
-  // This ensures after-hours SMS is sent even when AI completes intake
-  if (business && !isWithinBusinessHours(business)) {
-    console.log('[AUTO SMS DECISION] After Hours Mode is active - using after hours message', {
-      leadId,
-      callSid,
-      businessId,
-      businessName: business.name,
-      businessHoursEnabled: business.business_hours_enabled
-    })
-    return {
-      template: 'after_hours',
-      shouldSend: true,
-      reason: 'after_hours_active',
-      aiCompleted: false,
-      voicemailCompleted: false,
-      aiCallRecordId: aiCallRecord?.id
+  // For NON-AI completed intake only. For AI completed intake, the notice will be prepended to AI Summary SMS.
+  const isAfterHours = business && !isWithinBusinessHours(business)
+  if (business && isAfterHours) {
+    // Check if AI completed intake - if so, let the AI summary SMS handle the notice
+    const outcome = aiCallRecord?.outcome as AiCallOutcome
+    if (outcome === 'completed_intake') {
+      console.log('[AUTO SMS DECISION] After Hours Mode active but AI completed intake - AI summary will include notice', {
+        leadId,
+        callSid,
+        businessId,
+        businessName: business.name,
+        businessHoursEnabled: business.business_hours_enabled
+      })
+      // Continue to AI outcome logic, which will return template: 'none'
+    } else {
+      console.log('[AUTO SMS DECISION] After Hours Mode is active - using after hours message', {
+        leadId,
+        callSid,
+        businessId,
+        businessName: business.name,
+        businessHoursEnabled: business.business_hours_enabled
+      })
+      return {
+        template: 'after_hours',
+        shouldSend: true,
+        reason: 'after_hours_active',
+        aiCompleted: false,
+        voicemailCompleted: false,
+        aiCallRecordId: aiCallRecord?.id
+      }
     }
   }
 
