@@ -302,13 +302,14 @@ export async function POST(request: NextRequest) {
 
     // Idempotency check - check if confirmation SMS already sent for this callSid
     // Use callSid-based check to prevent duplicate SMS per call
-    console.log('[SUMMARY SMS IDEMPOTENCY CHECK]', {
+    console.log('[AI SUMMARY SEND BOUNDARY]', {
       callSid,
+      conversationId,
       leadId,
-      conversationId
+      timestamp: new Date().toISOString()
     })
 
-    // Check for existing AI confirmation SMS for this callSid in lead metadata
+    // Check for existing AI summary SMS for this callSid in lead metadata
     const { data: leadWithMetadata, error: metadataError } = await supabaseAdmin
       .from('leads')
       .select('raw_metadata')
@@ -320,20 +321,32 @@ export async function POST(request: NextRequest) {
 
     if (!metadataError && leadWithMetadata?.raw_metadata) {
       const metadata = leadWithMetadata.raw_metadata
-      // Check if AI confirmation SMS was already sent for this callSid
-      if (metadata.ai_confirmation_sms_sent && metadata.ai_confirmation_sms_call_sid === callSid) {
+      // Check normalized ai_summary_sms_call_sid first
+      if (metadata.ai_summary_sms_call_sid === callSid) {
         existingSummarySms = true
-        idempotencyReason = 'ai_confirmation_sms_already_sent_for_this_call_sid'
-        console.log('[SUMMARY SMS IDEMPOTENCY CHECK]', {
-          callSid,
-          existingSummarySms,
+        idempotencyReason = 'ai_summary_sms_already_sent_for_this_call_sid'
+        console.log('[AI SUMMARY SEND BOUNDARY]', {
+          existingSummaryForCallSid: true,
+          existingSummaryForConversation: false,
           shouldSend: false,
           reason: idempotencyReason
         })
       }
+      // Fallback to legacy ai_confirmation_sms_call_sid for backward compatibility
+      else if (metadata.ai_confirmation_sms_call_sid === callSid) {
+        existingSummarySms = true
+        idempotencyReason = 'ai_summary_sms_already_sent_for_this_call_sid_legacy'
+        console.log('[AI SUMMARY SEND BOUNDARY]', {
+          existingSummaryForCallSid: true,
+          existingSummaryForConversation: false,
+          shouldSend: false,
+          reason: idempotencyReason,
+          note: 'Using legacy ai_confirmation_sms_call_sid key'
+        })
+      }
     }
 
-    // Secondary check: look for messages table entry with message_type='text' and body pattern in last 10 minutes
+    // Fallback: if callSid check failed or callSid missing, check conversationId
     if (!existingSummarySms) {
       const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
       const { data: existingMessage, error: checkError } = await supabaseAdmin
@@ -346,31 +359,26 @@ export async function POST(request: NextRequest) {
         .maybeSingle()
 
       if (checkError && checkError.code !== 'PGRST116') {
-        console.error('[SUMMARY SMS IDEMPOTENCY CHECK ERROR]', {
+        console.error('[AI SUMMARY SEND BOUNDARY ERROR]', {
           operation: 'duplicate check select',
-          selected_columns: ['id', 'created_at'],
-          filters: {
-            conversation_id: conversationId,
-            body_pattern: 'Here\'s a summary of your request%',
-            created_at: `>= ${tenMinutesAgo}`
-          },
           code: checkError.code,
           message: checkError.message
         })
       } else if (existingMessage) {
         existingSummarySms = true
         idempotencyReason = 'summary_message_already_in_messages_table'
-        console.log('[SUMMARY SMS IDEMPOTENCY CHECK]', {
-          callSid,
-          existingSummarySms,
+        console.log('[AI SUMMARY SEND BOUNDARY]', {
+          existingSummaryForCallSid: false,
+          existingSummaryForConversation: true,
           shouldSend: false,
           reason: idempotencyReason,
-          messageId: existingMessage.id
+          messageId: existingMessage.id,
+          note: 'Fallback to conversationId check used'
         })
       } else {
-        console.log('[SUMMARY SMS IDEMPOTENCY CHECK]', {
-          callSid,
-          existingSummarySms,
+        console.log('[AI SUMMARY SEND BOUNDARY]', {
+          existingSummaryForCallSid: false,
+          existingSummaryForConversation: false,
           shouldSend: true,
           reason: 'no_existing_summary_found'
         })
@@ -378,9 +386,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingSummarySms) {
-      console.log('[AI CONFIRMATION SMS SKIPPED DUPLICATE]', {
+      console.log('[AI SUMMARY SMS SKIPPED DUPLICATE]', {
         callSid,
+        leadId,
         conversationId,
+        existingMessageId: idempotencyReason.includes('messages_table') ? 'see logs' : 'n/a',
         reason: idempotencyReason
       })
       return NextResponse.json({ success: true, skipped: true, reason: idempotencyReason })
@@ -643,17 +653,11 @@ export async function POST(request: NextRequest) {
 
       const twilioMessageSid = sendResult.sid
 
-      console.log('[AI COPOST CALL SMS SENT]', {
-          twilioMessageSid,
-          messageId: sendResult.messageId,
-          leadId,
-          conversationId,
-          callerPhone
-        })
-        console.log('[AI NFIRMATION SMS TWILIO SEND RESULT]', {
-        success: !!twilioMessageSid,
-        twilioMessageSid,
-        messageId: sendResult.messageId
+      console.log('[AI SUMMARY SMS SENT]', {
+        callSid,
+        messageSid: twilioMessageSid,
+        leadId,
+        conversationId
       })
 
       if (twilioMessageSid) {
@@ -663,16 +667,16 @@ export async function POST(request: NextRequest) {
           leadId
         })
 
-        // Update lead metadata with AI confirmation SMS sent flag
+        // Update lead metadata with AI summary SMS sent flag (normalized key)
         const { error: metadataUpdateError } = await supabaseAdmin
           .from('leads')
           .update({
             raw_metadata: {
               ...(lead?.raw_metadata || {}),
-              ai_confirmation_sms_sent: true,
-              ai_confirmation_sms_sent_at: new Date().toISOString(),
-              ai_confirmation_sms_message_sid: twilioMessageSid,
-              ai_confirmation_sms_call_sid: callSid
+              ai_summary_sms_sent: true,
+              ai_summary_sms_sent_at: new Date().toISOString(),
+              ai_summary_sms_message_sid: twilioMessageSid,
+              ai_summary_sms_call_sid: callSid
             }
           })
           .eq('id', leadId)
