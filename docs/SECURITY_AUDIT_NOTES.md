@@ -36,7 +36,62 @@
 
 ## 2. Supabase RLS
 
-### Status: NOT YET CHECKED
+### Status: AUDITED AND FIXED
+
+### Tables Checked
+- ✓ businesses
+- ✓ leads
+- ✓ conversations
+- ✓ messages
+- ✓ notifications
+- ✓ ai_call_records
+- ✓ ai_call_sessions
+- ✓ voicemail_recordings
+- ✓ message_media
+- ✓ calendar_integrations
+- ✓ beta_feedback
+- ✓ twilio_numbers (referenced but no RLS policy found - likely service-only)
+- ✓ follow_up_jobs (referenced in code but no RLS policy found - likely service-only)
+- ✓ ignored_contacts (not found in migrations - likely not used)
+- ✓ google_calendar_tokens (not found - calendar_integrations is used instead)
+
+### Critical Issues Found and Fixed
+
+1. **Column Name Inconsistency** - CRITICAL SECURITY BUG
+   - Issue: RLS policies referenced `owner_id = auth.uid()` but the businesses table uses `user_id`
+   - Affected tables: leads, conversations, messages, ai_call_records, ai_call_sessions, voicemail_recordings
+   - Impact: These policies were BROKEN - they would fail authorization checks for all users
+   - Fix: Migration `20260619000000_fix_rls_policies.sql` updates all policies to use `user_id = auth.uid()`
+
+2. **Overly Permissive INSERT/UPDATE Policies** - CRITICAL SECURITY BUG
+   - Issue: Many tables used `WITH CHECK (true)` for INSERT/UPDATE, allowing any authenticated user to insert/update records regardless of business ownership
+   - Affected tables:
+     - leads (INSERT/UPDATE)
+     - conversations (INSERT/UPDATE)
+     - messages (INSERT/UPDATE)
+     - notifications (INSERT)
+     - ai_call_records (INSERT/UPDATE/DELETE)
+     - ai_call_sessions (INSERT/UPDATE/DELETE)
+     - voicemail_recordings (INSERT/UPDATE)
+   - Impact: Any authenticated user could insert/update/delete records for ANY business
+   - Fix: Migration `20260619000000_fix_rls_policies.sql` updates all policies to require business ownership
+
+3. **Missing INSERT/UPDATE Policies on message_media**
+   - Issue: message_media table only had SELECT policy, no INSERT/UPDATE policies
+   - Impact: Service role bypasses RLS, but client-side couldn't insert media
+   - Fix: Migration `20260619000000_fix_rls_policies.sql` adds INSERT/UPDATE policies with ownership checks
+
+### Properly Secured Tables
+- ✓ calendar_integrations - has proper ownership checks using user_id
+- ✓ beta_feedback - has proper user_id checks
+- ✓ message_media - now has proper ownership checks (after fix)
+
+### Tables Without RLS (Service-Only)
+- twilio_numbers - no RLS policies found (likely service-only table)
+- follow_up_jobs - no RLS policies found (likely service-only table)
+
+### Migration Applied
+- `20260619000000_fix_rls_policies.sql` - Fixes all critical RLS issues
 
 ## 3. API Authorization
 
@@ -120,6 +175,24 @@
    - Fix: Removed development bypass - signature validation is ALWAYS required
    - This prevents attacks if NODE_ENV is accidentally set to 'development' in production
 
+2. **Supabase RLS Column Name Inconsistency** - FIXED
+   - File: Multiple migrations (leads, conversations, messages, ai_call_records, ai_call_sessions, voicemail_recordings)
+   - Issue: RLS policies referenced `owner_id = auth.uid()` but the businesses table uses `user_id`
+   - Impact: These policies were BROKEN - they would fail authorization checks for all users
+   - Fix: Migration `20260619000000_fix_rls_policies.sql` updates all policies to use `user_id = auth.uid()`
+
+3. **Supabase RLS Overly Permissive INSERT/UPDATE Policies** - FIXED
+   - File: Multiple migrations (leads, conversations, messages, notifications, ai_call_records, ai_call_sessions, voicemail_recordings)
+   - Issue: Many tables used `WITH CHECK (true)` for INSERT/UPDATE, allowing any authenticated user to insert/update records regardless of business ownership
+   - Impact: Any authenticated user could insert/update/delete records for ANY business
+   - Fix: Migration `20260619000000_fix_rls_policies.sql` updates all policies to require business ownership
+
+4. **Missing INSERT/UPDATE Policies on message_media** - FIXED
+   - File: `20260527010000_add_message_media_support.sql`
+   - Issue: message_media table only had SELECT policy, no INSERT/UPDATE policies
+   - Impact: Service role bypasses RLS, but client-side couldn't insert media
+   - Fix: Migration `20260619000000_fix_rls_policies.sql` adds INSERT/UPDATE policies with ownership checks
+
 ## Issues Fixed
 
 1. **Twilio Incoming SMS Development Bypass** - FIXED
@@ -127,20 +200,56 @@
    - Signature validation is now enforced in all environments
    - Added security comment explaining the rationale
 
+2. **Supabase RLS Column Name Inconsistency** - FIXED
+   - Updated all RLS policies to use `user_id = auth.uid()` instead of `owner_id = auth.uid()`
+   - Affected tables: leads, conversations, messages, ai_call_records, ai_call_sessions, voicemail_recordings
+   - Migration: `20260619000000_fix_rls_policies.sql`
+
+3. **Supabase RLS Overly Permissive INSERT/UPDATE Policies** - FIXED
+   - Updated all INSERT/UPDATE/DELETE policies to require business ownership
+   - Affected tables: leads, conversations, messages, notifications, ai_call_records, ai_call_sessions, voicemail_recordings
+   - Migration: `20260619000000_fix_rls_policies.sql`
+
+4. **Missing INSERT/UPDATE Policies on message_media** - FIXED
+   - Added INSERT/UPDATE policies with ownership checks
+   - Migration: `20260619000000_fix_rls_policies.sql`
+
 ## Issues Intentionally Deferred
 
-1. **Supabase RLS** - Deferred for dedicated audit
-   - Requires comprehensive review of RLS policies for all customer-facing tables
-   - Requires verification that users can only access their own business data
-   - Requires verification that service role is only used server-side
-
-2. **API Authorization** - Deferred for dedicated audit
+1. **API Authorization** - Deferred for dedicated audit
    - Requires comprehensive review of all app/api routes
    - Requires verification that routes requiring logged-in users verify auth
    - Requires verification that routes requiring business ownership verify business_id
    - Requires verification that admin routes require admin authorization or INTERNAL_API_SECRET
 
-3. **AI Voice Service Security** - Deferred for dedicated review
+2. **AI Voice Service Security** - Deferred for dedicated review
    - AI voice service is a separate service with its own security model
    - Requires deeper analysis of WebSocket authentication and call session security
    - No obvious high-confidence issues found in initial review
+
+## Manual Testing Notes for RLS Migration
+
+After applying migration `20260619000000_fix_rls_policies.sql`, the following should be tested:
+
+1. **Leads, Conversations, Messages:**
+   - Verify users can only view their own business data
+   - Verify users can only insert records for their own business
+   - Verify users can only update records for their own business
+
+2. **Notifications:**
+   - Verify users can only create notifications for their own business
+   - Verify users can only view their own notifications
+
+3. **AI Call Records/Sessions:**
+   - Verify users can only view AI records for their own business
+   - Verify users can only insert/update/delete AI records for their own business
+
+4. **Voicemail Recordings:**
+   - Verify users can only view voicemail recordings for their own business
+   - Verify users can only insert/update/delete voicemail recordings for their own business
+
+5. **Message Media:**
+   - Verify users can only view media for their own business messages
+   - Verify users can only insert media for their own business messages
+
+**Important:** This migration fixes CRITICAL security bugs that broke authorization. The old policies using `owner_id` would fail for all users, and the overly permissive `WITH CHECK (true)` policies allowed cross-business data access.
