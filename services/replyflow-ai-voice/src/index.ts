@@ -1043,7 +1043,13 @@ async function finalizeCompleteIntakeOnce(
     });
 
     // Build final SMS with optional prefix
-    let completeSummary = `Thanks for calling ${businessName}.\n\n`;
+    let completeSummary = '';
+
+    // Only add automatic greeting if using default messages
+    // Custom messages include their own greeting
+    if (usingDefaultMessage) {
+      completeSummary = `Thanks for calling ${businessName}.\n\n`;
+    }
 
     if (prefixNotice) {
       completeSummary += `${prefixNotice}\n\n`;
