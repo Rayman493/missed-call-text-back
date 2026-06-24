@@ -35,6 +35,12 @@ interface AICallRecord {
   had_user_speech?: boolean | null
 }
 
+interface Business {
+  id: string
+  business_type?: string
+  intake_template?: string
+}
+
 interface AICallSummaryCardProps {
   leadId: string
   businessId: string
@@ -42,14 +48,71 @@ interface AICallSummaryCardProps {
   callerPhone: string
 }
 
+// Template label config for display only
+const TEMPLATE_LABELS: Record<string, {
+  callerName: string
+  reasonForCalling: string
+  importantDetails: string
+  addressOrLocation: string
+  desiredCompletionTime: string
+  preferredCallbackTime: string
+}> = {
+  on_site: {
+    callerName: 'Name',
+    reasonForCalling: 'Service Requested',
+    importantDetails: 'Important Details',
+    addressOrLocation: 'Service Address / Location',
+    desiredCompletionTime: 'Desired Completion Time',
+    preferredCallbackTime: 'Best Callback Time'
+  },
+  appointment: {
+    callerName: 'Name',
+    reasonForCalling: 'Service Interested In',
+    importantDetails: 'Important Details',
+    addressOrLocation: 'Appointment / Mobile Service',
+    desiredCompletionTime: 'Preferred Appointment Time',
+    preferredCallbackTime: 'Best Callback Time'
+  },
+  lessons: {
+    callerName: 'Name',
+    reasonForCalling: 'Lesson / Coaching Interest',
+    importantDetails: 'Details',
+    addressOrLocation: 'Preferred Format',
+    desiredCompletionTime: 'General Availability',
+    preferredCallbackTime: 'Best Callback Time'
+  },
+  professional: {
+    callerName: 'Name',
+    reasonForCalling: 'Help Requested',
+    importantDetails: 'Situation Details',
+    addressOrLocation: 'Consultation Type',
+    desiredCompletionTime: 'Preferred Meeting Time',
+    preferredCallbackTime: 'Best Callback Time'
+  }
+}
+
+// Helper to get intake template for business type
+const getIntakeTemplateForBusinessType = (businessType?: string): string => {
+  const businessTypeToTemplate: Record<string, string> = {
+    'on_site_service': 'on_site',
+    'appointment_based': 'appointment',
+    'lessons_coaching': 'lessons',
+    'professional_services': 'professional'
+  }
+  
+  return businessTypeToTemplate[businessType || ''] || 'on_site'
+}
+
 export default function AICallSummaryCard({ leadId, businessId, conversationId, callerPhone }: AICallSummaryCardProps) {
   const [aiCallRecord, setAiCallRecord] = useState<AICallRecord | null>(null)
+  const [business, setBusiness] = useState<Business | null>(null)
   const [loading, setLoading] = useState(true)
   const [transcriptExpanded, setTranscriptExpanded] = useState(false)
   const supabase = createBrowserClient()
 
   useEffect(() => {
     fetchAICallRecord()
+    fetchBusiness()
   }, [leadId, businessId, conversationId, callerPhone])
 
   const fetchAICallRecord = async () => {
@@ -103,6 +166,22 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
       console.error('Error fetching AI call record:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchBusiness = async () => {
+    try {
+      const { data: businessData } = await supabase
+        .from('businesses')
+        .select('id, business_type, intake_template')
+        .eq('id', businessId)
+        .maybeSingle()
+
+      if (businessData) {
+        setBusiness(businessData)
+      }
+    } catch (error) {
+      console.error('Error fetching business:', error)
     }
   }
 
@@ -176,6 +255,10 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
   const extractedInfo = normalizeExtractedInfo(aiCallRecord.extracted_info || {})
 
+  // Determine intake template (use business.intake_template if available, otherwise derive from business_type)
+  const template = business?.intake_template || getIntakeTemplateForBusinessType(business?.business_type)
+  const labels = TEMPLATE_LABELS[template] || TEMPLATE_LABELS.on_site
+
   // Check if outcome is early_hangup or no_speech
   const isNoIntakeOutcome = aiCallRecord.outcome === 'early_hangup' || aiCallRecord.outcome === 'no_speech'
 
@@ -231,7 +314,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
               <div className="flex items-center justify-between py-2.5 border-b border-border/50">
                 <div className="flex items-center gap-2.5">
                   <User className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">Name</span>
+                  <span className="text-xs text-muted-foreground font-medium">{labels.callerName}</span>
                 </div>
                 <span className="text-sm font-medium text-foreground">
                   {extractedInfo.callerName}
@@ -244,7 +327,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
               <div className="py-2.5 border-b border-border/50">
                 <div className="flex items-center gap-2.5 mb-1.5">
                   <Briefcase className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">Reason</span>
+                  <span className="text-xs text-muted-foreground font-medium">{labels.reasonForCalling}</span>
                 </div>
                 <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground leading-relaxed">
                   {extractedInfo.reasonForCalling}
@@ -257,7 +340,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
               <div className="flex items-center justify-between py-2.5 border-b border-border/50">
                 <div className="flex items-center gap-2.5">
                   <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">Desired Completion Time</span>
+                  <span className="text-xs text-muted-foreground font-medium">{labels.desiredCompletionTime}</span>
                 </div>
                 <span className="text-sm text-foreground">
                   {extractedInfo.desiredCompletionTime}
@@ -270,7 +353,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
               <div className="py-2.5 border-b border-border/50">
                 <div className="flex items-center gap-2.5 mb-1.5">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">Location</span>
+                  <span className="text-xs text-muted-foreground font-medium">{labels.addressOrLocation}</span>
                 </div>
                 <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground leading-relaxed">
                   {extractedInfo.addressOrLocation}
@@ -283,7 +366,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
               <div className="flex items-center justify-between py-2.5 border-b border-border/50">
                 <div className="flex items-center gap-2.5">
                   <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">Callback Time</span>
+                  <span className="text-xs text-muted-foreground font-medium">{labels.preferredCallbackTime}</span>
                 </div>
                 <span className="text-sm text-foreground">
                   {extractedInfo.preferredCallbackTime}
@@ -296,7 +379,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
               <div className="py-2.5 border-b border-border/50">
                 <div className="flex items-center gap-2.5 mb-1.5">
                   <FileText className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">Project Details</span>
+                  <span className="text-xs text-muted-foreground font-medium">{labels.importantDetails}</span>
                 </div>
                 <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground leading-relaxed">
                   {extractedInfo.importantDetails}
