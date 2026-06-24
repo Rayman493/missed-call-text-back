@@ -1161,6 +1161,75 @@ async function finalizeCompleteIntakeOnce(
     console.log('[FINALIZE COMPLETE STEP 5] Timestamp:', new Date().toISOString());
     console.log('[FINALIZE COMPLETE STEP 5] =========================================');
 
+    // Idempotency guard: check if summary SMS already sent for this callSid
+    console.log('[AI SUMMARY SEND BOUNDARY]', {
+      callSid,
+      leadId,
+      conversationId,
+      timestamp: new Date().toISOString()
+    });
+
+    let existingSummarySms = false;
+    let idempotencyReason = '';
+    let leadWithMetadata: any = null;
+
+    if (leadId) {
+      try {
+        const { data: leadData, error: metadataError } = await supabase
+          .from('leads')
+          .select('raw_metadata')
+          .eq('id', leadId)
+          .single();
+
+        if (!metadataError && leadData?.raw_metadata) {
+          leadWithMetadata = leadData;
+          const metadata = leadData.raw_metadata;
+          // Check normalized ai_summary_sms_call_sid first
+          if (metadata.ai_summary_sms_call_sid === callSid) {
+            existingSummarySms = true;
+            idempotencyReason = 'ai_summary_sms_already_sent_for_this_call_sid';
+            console.log('[AI SUMMARY SEND BOUNDARY]', {
+              existingSummaryForCallSid: true,
+              shouldSend: false,
+              reason: idempotencyReason
+            });
+          }
+          // Fallback to legacy ai_confirmation_sms_call_sid for backward compatibility
+          else if (metadata.ai_confirmation_sms_call_sid === callSid) {
+            existingSummarySms = true;
+            idempotencyReason = 'ai_summary_sms_already_sent_for_this_call_sid_legacy';
+            console.log('[AI SUMMARY SEND BOUNDARY]', {
+              existingSummaryForCallSid: true,
+              shouldSend: false,
+              reason: idempotencyReason,
+              note: 'Using legacy ai_confirmation_sms_call_sid key'
+            });
+          }
+        }
+      } catch (dbError) {
+        console.error('[AI SUMMARY SEND BOUNDARY ERROR]', {
+          operation: 'metadata fetch',
+          error: String(dbError)
+        });
+      }
+    }
+
+    if (existingSummarySms) {
+      console.log('[AI SUMMARY SMS SKIPPED DUPLICATE]', {
+        callSid,
+        leadId,
+        conversationId,
+        reason: idempotencyReason
+      });
+      return;
+    }
+
+    console.log('[AI SUMMARY SEND BOUNDARY]', {
+      existingSummaryForCallSid: false,
+      shouldSend: true,
+      reason: 'no_existing_summary_found'
+    });
+
     const twilioClient = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     const smsResult = await twilioClient.messages.create({
       from: fromNumber,
@@ -1168,11 +1237,48 @@ async function finalizeCompleteIntakeOnce(
       body: completeSummary
     });
 
+    console.log('[AI SUMMARY SMS SENT]', {
+      callSid,
+      messageSid: smsResult.sid,
+      leadId,
+      conversationId
+    });
+
     console.log('[AI SUMMARY SMS RESPONSE] =========================================');
     console.log('[AI SUMMARY SMS RESPONSE] messageSid:', smsResult.sid);
     console.log('[AI SUMMARY SMS RESPONSE] status:', smsResult.status);
     console.log('[AI SUMMARY SMS RESPONSE] Timestamp:', new Date().toISOString());
     console.log('[AI SUMMARY SMS RESPONSE] =========================================');
+
+    // Store sent callSid in lead metadata as ai_summary_sms_call_sid
+    if (leadId) {
+      try {
+        const { error: metadataUpdateError } = await supabase
+          .from('leads')
+          .update({
+            raw_metadata: {
+              ...(leadWithMetadata?.raw_metadata || {}),
+              ai_summary_sms_sent: true,
+              ai_summary_sms_sent_at: new Date().toISOString(),
+              ai_summary_sms_message_sid: smsResult.sid,
+              ai_summary_sms_call_sid: callSid
+            }
+          })
+          .eq('id', leadId);
+
+        if (metadataUpdateError) {
+          console.error('[AI SUMMARY SMS METADATA UPDATE ERROR]', {
+            leadId,
+            error: metadataUpdateError
+          });
+        }
+      } catch (dbError) {
+        console.error('[AI SUMMARY SMS METADATA UPDATE ERROR]', {
+          leadId,
+          error: String(dbError)
+        });
+      }
+    }
 
     console.log('[FINALIZE COMPLETE STEP 5] =========================================');
     console.log('[FINALIZE COMPLETE STEP 5] Completed: Send Twilio SMS');
