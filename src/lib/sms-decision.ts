@@ -2,6 +2,53 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { isBusinessOutOfOffice } from '@/lib/out-of-office'
 
 /**
+ * Check if current time is within business hours for a business
+ */
+function isWithinBusinessHours(business: any): boolean {
+  const businessHoursEnabled = business.business_hours_enabled || false
+  if (!businessHoursEnabled) {
+    return true // If business hours not enabled, treat as always within hours
+  }
+
+  const businessHoursStart = business.business_hours_start || '09:00'
+  const businessHoursEnd = business.business_hours_end || '17:00'
+  const businessTimezone = business.business_hours_timezone || 'America/New_York'
+
+  const now = new Date()
+  const nowInTimezone = new Date(now.toLocaleString('en-US', { timeZone: businessTimezone }))
+
+  const [startHour, startMin] = businessHoursStart.split(':').map(Number)
+  const [endHour, endMin] = businessHoursEnd.split(':').map(Number)
+
+  const currentHour = nowInTimezone.getHours()
+  const currentMin = nowInTimezone.getMinutes()
+  const currentTimeInMinutes = currentHour * 60 + currentMin
+  const startTimeInMinutes = startHour * 60 + startMin
+  const endTimeInMinutes = endHour * 60 + endMin
+
+  const dayIndex = nowInTimezone.getDay()
+  const isWeekday = dayIndex >= 1 && dayIndex <= 5
+
+  const withinBusinessHours = isWeekday && currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes
+
+  console.log('[AFTER HOURS CHECK] isWithinBusinessHours', {
+    businessId: business.id,
+    timezone: businessTimezone,
+    openTime: businessHoursStart,
+    closeTime: businessHoursEnd,
+    dayOfWeek: nowInTimezone.toLocaleDateString('en-US', { weekday: 'long' }),
+    businessHoursEnabled,
+    withinBusinessHours,
+    isWeekday,
+    currentTimeInMinutes,
+    startTimeInMinutes,
+    endTimeInMinutes
+  })
+
+  return withinBusinessHours
+}
+
+/**
  * SMS Decision Types
  */
 export type SmsTemplate = 'ai_summary' | 'partial_intake' | 'missed_call' | 'after_hours' | 'out_of_office' | 'none'
@@ -104,9 +151,17 @@ export async function determineSmsTemplate(params: {
   // Check for Out of Office Mode (priority: 2, after ignored/blocked rules)
   const { data: business } = await supabaseAdmin
     .from('businesses')
-    .select('id, name, out_of_office_enabled, out_of_office_start, out_of_office_end, out_of_office_message')
+    .select('id, name, out_of_office_enabled, out_of_office_start, out_of_office_end, out_of_office_message, business_hours_enabled, business_hours_start, business_hours_end, business_hours_timezone')
     .eq('id', businessId)
     .single()
+
+  console.log('[AFTER HOURS DECISION] Business data for after-hours check', {
+    businessId,
+    businessHoursEnabled: business?.business_hours_enabled,
+    businessHoursStart: business?.business_hours_start,
+    businessHoursEnd: business?.business_hours_end,
+    businessTimezone: business?.business_hours_timezone
+  })
 
   if (business && isBusinessOutOfOffice(business as any)) {
     console.log('[AUTO SMS DECISION] Out of Office Mode is active - using out of office message', {
@@ -125,6 +180,26 @@ export async function determineSmsTemplate(params: {
     }
   }
 
+  // Check for After Hours Mode (priority: 3, after out-of-office, before AI outcome)
+  // This ensures after-hours SMS is sent even when AI completes intake
+  if (business && !isWithinBusinessHours(business)) {
+    console.log('[AUTO SMS DECISION] After Hours Mode is active - using after hours message', {
+      leadId,
+      callSid,
+      businessId,
+      businessName: business.name,
+      businessHoursEnabled: business.business_hours_enabled
+    })
+    return {
+      template: 'after_hours',
+      shouldSend: true,
+      reason: 'after_hours_active',
+      aiCompleted: false,
+      voicemailCompleted: false,
+      aiCallRecordId: aiCallRecord?.id
+    }
+  }
+
   // Decision logic based on AI call outcome
   const outcome = aiCallRecord?.outcome as AiCallOutcome
   const hasExtractedInfo = aiCallRecord?.extracted_info && Object.keys(aiCallRecord.extracted_info).length > 0
@@ -136,6 +211,15 @@ export async function determineSmsTemplate(params: {
 
   if (outcome === 'completed_intake') {
     // AI completed full intake - AI summary SMS should be sent by external service
+    console.log('[AFTER HOURS DECISION] AI completed intake - suppressing generic SMS', {
+      callSid,
+      leadId,
+      aiCallRecordId: aiCallRecord?.id,
+      outcome,
+      reason: 'ai_intake_completed',
+      businessHoursEnabled: business?.business_hours_enabled,
+      note: 'THIS IS THE ROOT CAUSE: AI completion suppresses ALL SMS including after-hours'
+    })
     console.log('[AUTO SMS DECISION] AI completed intake - suppress generic SMS', {
       callSid,
       leadId,

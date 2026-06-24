@@ -556,6 +556,12 @@ async function processVoiceStatusCallback(params: any, method: string) {
   // Send auto-reply SMS based on centralized decision
   if (smsDecision && smsDecision.shouldSend && lead) {
     console.log(`[Twilio Voice Status Webhook] Sending SMS based on centralized decision`)
+    console.log('[AFTER HOURS DECISION] SMS Decision returned:', {
+      template: smsDecision.template,
+      shouldSend: smsDecision.shouldSend,
+      reason: smsDecision.reason,
+      aiCompleted: smsDecision.aiCompleted
+    })
 
     // Business hours check
     const businessHoursEnabled = business.business_hours_enabled || false
@@ -630,7 +636,15 @@ async function processVoiceStatusCallback(params: any, method: string) {
     const staleDefaultTemplate = 'Sorry we missed your call—how can we help?'
 
     // Priority: Out of Office Mode > After Hours > Normal
+    console.log('[AFTER HOURS DECISION] Message template selection starting', {
+      messageTemplate,
+      businessHoursEnabled,
+      withinBusinessHours,
+      out_of_office_enabled: business.out_of_office_enabled
+    })
+
     if (messageTemplate === 'out_of_office') {
+      console.log('[AFTER HOURS DECISION] Branch: out_of_office template selected')
       // Use custom out of office message or default
       if (business.out_of_office_message && business.out_of_office_message.trim()) {
         autoReplyMessage = business.out_of_office_message.replace(/\{\{business_name\}\}/gi, business.name)
@@ -645,6 +659,11 @@ async function processVoiceStatusCallback(params: any, method: string) {
         templateSource
       })
     } else if (businessHoursEnabled && !withinBusinessHours) {
+      console.log('[AFTER HOURS DECISION] Branch: after_hours condition met', {
+        businessHoursEnabled,
+        withinBusinessHours,
+        reason: 'Business hours enabled and currently outside hours'
+      })
       // Use custom after-hours message or default
       if (afterHoursMessage && afterHoursMessage.trim()) {
         autoReplyMessage = afterHoursMessage
@@ -671,6 +690,11 @@ async function processVoiceStatusCallback(params: any, method: string) {
       }
       messageTemplate = 'after_hours'
     } else {
+      console.log('[AFTER HOURS DECISION] Branch: normal missed call (after-hours condition NOT met)', {
+        businessHoursEnabled,
+        withinBusinessHours,
+        reason: !businessHoursEnabled ? 'Business hours not enabled' : 'Within business hours'
+      })
       if (business.auto_reply_message && business.auto_reply_message.trim()) {
         // Check if the custom message is actually the old stale default
         if (business.auto_reply_message.includes(staleDefaultTemplate)) {
