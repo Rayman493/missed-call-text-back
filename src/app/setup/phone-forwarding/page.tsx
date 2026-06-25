@@ -6,7 +6,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber } from '@/lib/utils'
 import { isReadyForForwardingSetup, hasActiveAccess, deriveSetupState } from '@/lib/subscription-utils'
-import { X, CheckCircle2, Copy, Phone, ArrowLeft, ChevronDown } from 'lucide-react'
+import { X, CheckCircle2, Copy, Phone, ArrowLeft, ChevronDown, Info } from 'lucide-react'
 import Link from 'next/link'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
@@ -349,6 +349,19 @@ export default function PhoneForwardingPage() {
                 <p className="text-sm text-muted-foreground">
                   This is the number your missed calls are forwarded to. Customers continue calling your normal business number.
                 </p>
+              </div>
+
+              {/* Personal phone notice */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-8">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">Using your personal phone as your business number?</p>
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      That's completely supported. Just keep in mind that if your business and personal phone number are the same, personal missed calls may also trigger ReplyFlow. You can easily prevent this by adding friends, family, or other personal contacts to your Ignored Contacts list after setup.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Carrier Selection */}
