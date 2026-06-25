@@ -182,13 +182,10 @@ export default function SettingsContent() {
         .single()
 
       if (error) {
-        console.error('[Settings] Save error details:', {
+        console.error('[Settings] Save error:', {
           businessId: businessData.id,
           errorCode: error.code,
-          errorMessage: error.message,
-          errorDetails: error.details,
-          errorHint: error.hint,
-          updatePayload
+          errorMessage: error.message
         })
         throw new Error(`Failed to save settings: ${error.message} (code: ${error.code})`)
       }
@@ -496,7 +493,6 @@ export default function SettingsContent() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          console.log('[Settings] Unauthorized calendar status response, user may need to re-authenticate')
           setCalendarConnected(false)
           return
         }
@@ -504,14 +500,13 @@ export default function SettingsContent() {
       }
 
       const data = await response.json()
-      console.log('[GOOGLE CALENDAR SYNC] Status data:', { connected: data.connected, provider: data.provider, calendarEmail: data.calendarEmail })
       setCalendarConnected(data.connected || false)
       setCalendarEmail(data.calendarEmail || null)
       if (data.connectedAt) {
         setLastSyncTime(new Date(data.connectedAt))
       }
     } catch (error) {
-      console.error('[GOOGLE CALENDAR SYNC ERROR] Error fetching calendar status:', error)
+      console.error('[Settings] Error fetching calendar status:', error)
       setCalendarConnected(false)
     } finally {
       setIsLoadingCalendar(false)
@@ -706,13 +701,11 @@ export default function SettingsContent() {
 
     setIsDeleting(true)
     try {
-      console.log('[Delete Account] Starting account deletion process')
+      // Starting account deletion process
       
       // Clear local storage and session storage BEFORE deletion to prevent stale state
       if (typeof window !== 'undefined') {
-        console.log('[Delete Account] Clearing local storage')
         localStorage.clear()
-        console.log('[Delete Account] Clearing session storage')
         sessionStorage.clear()
       }
 
@@ -724,7 +717,7 @@ export default function SettingsContent() {
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok || !result?.ok) {
-        console.error('[Delete Account] Server error:', result)
+        console.error('[Settings] Delete account server error:', result)
         const friendly =
           result?.step === 'stripe_cancel'
             ? (result?.error || 'We could not cancel your subscription. Your account was not deleted. Please try again or contact support.')
@@ -735,26 +728,24 @@ export default function SettingsContent() {
         return
       }
 
-      console.log('[Delete Account] Account deleted successfully, redirecting to homepage')
+      // Account deleted successfully, redirecting to homepage
       
       // Explicitly sign out from Supabase to clear auth state
       try {
         const { error: signOutError } = await supabase.auth.signOut()
         if (signOutError) {
-          console.error('[Delete Account] SignOut error:', signOutError)
+          console.error('[Settings] SignOut error:', signOutError)
           // Continue anyway - account is deleted
-        } else {
-          console.log('[Delete Account] Successfully signed out from Supabase')
         }
       } catch (signOutError) {
-        console.error('[Delete Account] SignOut exception:', signOutError)
+        console.error('[Settings] SignOut exception:', signOutError)
         // Continue anyway - account is deleted
       }
       
       // Force redirect to homepage
       window.location.href = '/'
     } catch (error) {
-      console.error('[Delete Account] Network error:', error)
+      console.error('[Settings] Delete account network error:', error)
       showToast('Failed to delete account. Please try again.', 'error')
     } finally {
       setIsDeleting(false)
@@ -857,18 +848,6 @@ export default function SettingsContent() {
       } else {
         computedActiveSection = 'account'
       }
-      
-      // Debug logging (remove after confirming)
-      console.log('ScrollSpy Debug:', {
-        scrollY,
-        generalTop,
-        automationTop,
-        contactsTop,
-        accountTop,
-        offset,
-        computedActiveSection,
-        currentActive: activeSection
-      })
       
       // Only update if the section actually changed
       if (computedActiveSection !== activeSection) {
