@@ -1108,7 +1108,7 @@ export default function SettingsContent() {
                               Phone number change on cooldown
                             </p>
                             <p className="text-xs text-amber-700 dark:text-amber-300">
-                              You can update your phone number again on{' '}
+                              Phone number changes are limited to help protect your account from fraud and accidental reassignment. You can update your phone number again on{' '}
                               <span className="font-medium">
                                 {new Date(phoneCooldown.nextAvailableDate).toLocaleDateString('en-US', {
                                   month: 'long',
@@ -1116,24 +1116,40 @@ export default function SettingsContent() {
                                   year: 'numeric'
                                 })}
                               </span>
-                              . Need to switch sooner? <a href="mailto:support@replyflowhq.com" className="underline">Contact support</a>.
+                              . If you need to switch sooner, contact support.
                             </p>
                           </div>
                         </div>
                       )}
                       
                       {!phoneCooldown?.inCooldown && (
-                        <p className="text-xs text-slate-600 dark:text-slate-400">
-                          {business?.forwarding_verified ? (
-                            <>
-                              Your forwarding settings are verified. No action needed unless you change carriers or forwarding settings.
-                            </>
-                          ) : (
-                            <>
-                              Changing your business phone number requires updating your call forwarding settings. After saving, ReplyFlow will guide you through re-verifying forwarding so missed calls continue to be captured.
-                            </>
-                          )}
-                        </p>
+                        <div className="space-y-3">
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            {business?.forwarding_verified ? (
+                              <>
+                                Your forwarding settings are verified. No action needed unless you change carriers or forwarding settings.
+                              </>
+                            ) : (
+                              <>
+                                Changing your business phone number requires updating your call forwarding settings. After saving, ReplyFlow will guide you through re-verifying forwarding so missed calls continue to be captured.
+                              </>
+                            )}
+                          </p>
+                          {/* Personal/Business Number Guidance */}
+                          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                            <div className="flex items-start gap-2">
+                              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                              </svg>
+                              <div>
+                                <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Using your personal phone as your business number?</p>
+                                <p className="text-[10px] text-blue-700 dark:text-blue-300">
+                                  No problem. Many small business owners use the same phone for both personal and business calls. If you miss a personal call, ReplyFlow may respond just like it would for a customer. You can easily prevent this by adding friends, family, or other personal contacts to your Ignored Contacts list.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       )}
                       
                       {business?.business_phone_changed_at && (
@@ -1164,7 +1180,7 @@ export default function SettingsContent() {
                       ))}
                     </select>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      This helps our AI assistant ask more relevant questions during calls.
+                      This helps AI Voice ask the right questions and capture better information for your business.
                     </p>
                   </div>
                   {formBusiness.business_type === 'Other' && (
@@ -1375,7 +1391,7 @@ export default function SettingsContent() {
                           )}
                         </div>
                         <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground mb-0.5 sm:mb-1">
-                          Send after-hours message when outside business hours.
+                          During business hours ReplyFlow sends your standard instant response. Outside business hours it sends your After Hours message.
                         </p>
                       </div>
                       <button
@@ -1647,6 +1663,9 @@ export default function SettingsContent() {
                         <div className="text-xs text-slate-600 dark:text-muted-foreground">
                           📅 Schedule up to 3 follow-ups with custom timing and messages.
                         </div>
+                        <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Follow-ups are automatic text messages sent when a customer doesn't respond to your initial message.
+                        </div>
                       </div>
                       <Link
                         href="/dashboard/settings/follow-ups"
@@ -1737,7 +1756,7 @@ export default function SettingsContent() {
                         )}
                       </div>
                       <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
-                        Schedule follow-ups and appointments in Google Calendar.
+                        Connect Google Calendar so you can manage appointments alongside your leads and schedule customer visits without leaving ReplyFlow.
                       </p>
                       {calendarConnected && calendarEmail && (
                         <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -1805,6 +1824,20 @@ export default function SettingsContent() {
                     Import
                   </button>
                 </div>
+                </div>
+                {/* Personal/Business Number Guidance */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-2 sm:mb-3">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <div>
+                      <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Using your personal phone as your business number?</p>
+                      <p className="text-[10px] text-blue-700 dark:text-blue-300">
+                        No problem. Many small business owners use the same phone for both personal and business calls. If you miss a personal call, ReplyFlow may respond just like it would for a customer. You can easily prevent this by adding friends, family, or other personal contacts to your Ignored Contacts list.
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-2 sm:space-y-2.5">
                   {isLoadingIgnored ? (
@@ -2165,7 +2198,7 @@ export default function SettingsContent() {
                   Add Ignored Contact
                 </h2>
                 <p className="text-sm text-slate-600 dark:text-muted-foreground mb-4">
-                  ReplyFlow will ignore missed calls from this number and will not send automated texts or create leads.
+                  ReplyFlow will ignore missed calls from this number and will not send automated texts or create leads. You can remove contacts from this list at any time.
                 </p>
                 <div className="space-y-3">
                   <div>

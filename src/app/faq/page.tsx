@@ -198,6 +198,28 @@ export default function FAQPage() {
             </div>
           </div>
 
+          {/* Can I use my personal phone as my business number? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                Can I use my personal phone as my business number?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  <strong>Yes, absolutely.</strong> Many small business owners use the same phone for both personal and business calls. ReplyFlow works seamlessly in either scenario.
+                </p>
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Using your personal phone as your business number?</strong> No problem. If you miss a personal call, ReplyFlow may respond just like it would for a customer. You can easily prevent this by adding friends, family, or other personal contacts to your Ignored Contacts list in Settings.
+                  </p>
+                </div>
+                <p className="text-muted-foreground mt-4">
+                  ReplyFlow provides an Ignored Contacts feature specifically for this use case, so personal contacts won't trigger automated responses.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Can I respond to customer replies? */}
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="p-8">
