@@ -8,18 +8,17 @@ import Navigation from '@/components/Navigation'
 import MobileMenu from '@/components/MobileMenu'
 import UserDropdown from '@/components/UserDropdown'
 import Footer from '@/components/Footer'
-import { 
-  Phone, 
-  MessageSquare, 
-  Send, 
-  Users, 
-  CheckCircle, 
-  Clock, 
+import {
+  Phone,
+  MessageSquare,
+  Send,
+  Users,
+  CheckCircle,
+  Clock,
   TrendingUp,
   BarChart3,
   Calendar
 } from 'lucide-react'
-import AppLoadingScreen from '@/components/AppLoadingScreen'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 
@@ -61,17 +60,11 @@ export default function AnalyticsContent() {
 
       try {
         const supabase = createBrowserClient()
-        
+
         // Get date range for analytics (last 30 days)
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
         // Fetch leads in the last 30 days
-        console.log('[ANALYTICS QUERY START]', {
-          businessId: business.id,
-          query: 'leads',
-          filter: { business_id: business.id, created_at: thirtyDaysAgo }
-        })
-
         const { data: leads, error: leadsError } = await supabase
           .from('leads')
           .select('id, status, created_at, business_id')
@@ -79,27 +72,10 @@ export default function AnalyticsContent() {
           .gte('created_at', thirtyDaysAgo)
 
         if (leadsError) {
-          console.error('[ANALYTICS QUERY FAILED]', {
-            businessId: business.id,
-            query: 'leads',
-            error: leadsError.message,
-            details: leadsError
-          })
-        } else {
-          console.log('[ANALYTICS QUERY SUCCESS]', {
-            businessId: business.id,
-            query: 'leads',
-            recordCount: leads?.length || 0
-          })
+          console.error('[Analytics] Failed to fetch leads:', leadsError.message)
         }
 
         // Fetch messages for reply rate calculation
-        console.log('[ANALYTICS QUERY START]', {
-          businessId: business.id,
-          query: 'messages',
-          filter: { business_id: business.id, created_at: thirtyDaysAgo }
-        })
-
         const { data: messages, error: messagesError } = await supabase
           .from('messages')
           .select('id, direction, created_at, conversation_id, lead_id')
@@ -107,27 +83,10 @@ export default function AnalyticsContent() {
           .gte('created_at', thirtyDaysAgo)
 
         if (messagesError) {
-          console.error('[ANALYTICS QUERY FAILED]', {
-            businessId: business.id,
-            query: 'messages',
-            error: messagesError.message,
-            details: messagesError
-          })
-        } else {
-          console.log('[ANALYTICS QUERY SUCCESS]', {
-            businessId: business.id,
-            query: 'messages',
-            recordCount: messages?.length || 0
-          })
+          console.error('[Analytics] Failed to fetch messages:', messagesError.message)
         }
 
         // Fetch AI call records
-        console.log('[ANALYTICS QUERY START]', {
-          businessId: business.id,
-          query: 'ai_call_records',
-          filter: { business_id: business.id, created_at: thirtyDaysAgo }
-        })
-
         const { data: aiCalls, error: aiCallsError } = await supabase
           .from('ai_call_records')
           .select('id, outcome, created_at, lead_id')
@@ -135,27 +94,10 @@ export default function AnalyticsContent() {
           .gte('created_at', thirtyDaysAgo)
 
         if (aiCallsError) {
-          console.error('[ANALYTICS QUERY FAILED]', {
-            businessId: business.id,
-            query: 'ai_call_records',
-            error: aiCallsError.message,
-            details: aiCallsError
-          })
-        } else {
-          console.log('[ANALYTICS QUERY SUCCESS]', {
-            businessId: business.id,
-            query: 'ai_call_records',
-            recordCount: aiCalls?.length || 0
-          })
+          console.error('[Analytics] Failed to fetch AI call records:', aiCallsError.message)
         }
 
         // Fetch follow-ups
-        console.log('[ANALYTICS QUERY START]', {
-          businessId: business.id,
-          query: 'follow_ups',
-          filter: { business_id: business.id, created_at: thirtyDaysAgo }
-        })
-
         const { data: followUps, error: followUpsError } = await supabase
           .from('follow_ups')
           .select('id, status, created_at, lead_id')
@@ -163,27 +105,10 @@ export default function AnalyticsContent() {
           .gte('created_at', thirtyDaysAgo)
 
         if (followUpsError) {
-          console.error('[ANALYTICS QUERY FAILED]', {
-            businessId: business.id,
-            query: 'follow_ups',
-            error: followUpsError.message,
-            details: followUpsError
-          })
-        } else {
-          console.log('[ANALYTICS QUERY SUCCESS]', {
-            businessId: business.id,
-            query: 'follow_ups',
-            recordCount: followUps?.length || 0
-          })
+          console.error('[Analytics] Failed to fetch follow-ups:', followUpsError.message)
         }
 
         // Fetch conversations for accurate conversation count
-        console.log('[ANALYTICS QUERY START]', {
-          businessId: business.id,
-          query: 'conversations',
-          filter: { business_id: business.id, created_at: thirtyDaysAgo }
-        })
-
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select('id, status, created_at')
@@ -191,18 +116,7 @@ export default function AnalyticsContent() {
           .gte('created_at', thirtyDaysAgo)
 
         if (conversationsError) {
-          console.error('[ANALYTICS QUERY FAILED]', {
-            businessId: business.id,
-            query: 'conversations',
-            error: conversationsError.message,
-            details: conversationsError
-          })
-        } else {
-          console.log('[ANALYTICS QUERY SUCCESS]', {
-            businessId: business.id,
-            query: 'conversations',
-            recordCount: conversations?.length || 0
-          })
+          console.error('[Analytics] Failed to fetch conversations:', conversationsError.message)
         }
 
         // Calculate metrics
@@ -307,13 +221,9 @@ export default function AnalyticsContent() {
     fetchAnalytics()
   }, [business])
 
-  if (loading) {
-    return <AppLoadingScreen />
-  }
-
   const hasData = metrics && (
-    metrics.missedCallsCaptured > 0 || 
-    metrics.customerReplies > 0 || 
+    metrics.missedCallsCaptured > 0 ||
+    metrics.customerReplies > 0 ||
     metrics.aiIntakesCompleted > 0
   )
 
@@ -335,7 +245,29 @@ export default function AnalyticsContent() {
                 </p>
               </div>
 
-              {!hasData ? (
+              {/* Loading Skeleton */}
+              {loading && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6">
+                        <div className="animate-pulse">
+                          <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mb-2"></div>
+                          <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6">
+                    <div className="animate-pulse">
+                      <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mb-4"></div>
+                      <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!loading && !hasData ? (
                 /* Empty State */
                 <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-8 sm:p-12 text-center">
                   <BarChart3 className="w-16 h-16 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
@@ -346,7 +278,7 @@ export default function AnalyticsContent() {
                     As ReplyFlow captures missed calls and conversations, performance insights will appear here.
                   </p>
                 </div>
-              ) : (
+              ) : metrics && (
                 <>
                   {/* Business Impact - Top Highlight */}
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/60 dark:border-blue-800/50 rounded-xl p-5 sm:p-6 mb-4 shadow-sm">
