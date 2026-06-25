@@ -874,10 +874,10 @@ export default function SettingsContent() {
           // Use shared scroll helper
           const offset = getScrollOffset()
           const targetTop = element.getBoundingClientRect().top + window.scrollY - offset
-          
+
           window.scrollTo({
             top: targetTop,
-            behavior: 'smooth'
+            behavior: 'auto'
           })
           // Let the scroll handler update the active section
         }
@@ -925,10 +925,10 @@ export default function SettingsContent() {
     if (element) {
       const offset = getScrollOffset()
       const targetTop = element.getBoundingClientRect().top + window.scrollY - offset
-      
+
       window.scrollTo({
         top: targetTop,
-        behavior: 'smooth'
+        behavior: 'auto'
       })
     }
   }
