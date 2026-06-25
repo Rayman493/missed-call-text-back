@@ -356,9 +356,23 @@ export default function PhoneForwardingPage() {
                 <div className="flex items-start gap-3">
                   <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">Using your personal phone as your business number?</p>
-                    <p className="text-sm text-blue-700 dark:text-blue-300">
-                      That's completely supported. Just keep in mind that if your business and personal phone number are the same, personal missed calls may also trigger ReplyFlow. You can easily prevent this by adding friends, family, or other personal contacts to your Ignored Contacts list after setup.
+                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">Using your personal phone as your business number?</p>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                      Many small business owners use one phone for both business and personal calls, and ReplyFlow fully supports this.
+                    </p>
+                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">You have complete control over how specific callers are handled:</p>
+                    <div className="space-y-2 mt-2">
+                      <div className="flex items-start gap-2">
+                        <span className="text-blue-600 dark:text-blue-400 font-semibold">•</span>
+                        <p className="text-sm text-blue-700 dark:text-blue-300"><strong>Leave a number off your Ignored Contacts list:</strong> ReplyFlow will treat the missed call like any potential customer (AI Voice, lead creation, automated texts, and follow-ups work normally).</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-blue-600 dark:text-blue-400 font-semibold">•</span>
+                        <p className="text-sm text-blue-700 dark:text-blue-300"><strong>Add a number to Ignored Contacts:</strong> ReplyFlow stays out of the conversation (no AI Voice, no automated texts, no lead, no follow-ups—just a simple voicemail).</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-3">
+                      This makes it easy to keep business calls inside ReplyFlow while allowing personal contacts to bypass automation.
                     </p>
                   </div>
                 </div>

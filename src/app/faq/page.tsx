@@ -206,22 +206,40 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  Yes. Many small business owners use the same phone for both business and personal calls.
+                  Yes. Many small business owners use the same phone for both business and personal calls, and ReplyFlow fully supports this.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  If there are friends, family members, or other personal contacts you don't want ReplyFlow to handle, simply add them to your Ignored Contacts list.
+                  You have complete control over how specific callers are handled:
                 </p>
-                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl">
-                  <p className="text-sm text-blue-800 dark:text-blue-200">
-                    <strong>Using your personal phone as your business number?</strong> That's completely supported. Many small business owners use one phone for both business and personal calls. If there are friends, family members, or other personal contacts you don't want ReplyFlow to handle, simply add them to your Ignored Contacts list.
-                  </p>
-                  <p className="text-sm text-blue-800 dark:text-blue-200 mt-2">
-                    Ignored contacts bypass ReplyFlow's AI Voice and messaging features. Instead, they hear a simple voicemail message letting them know you're unavailable. No lead is created, no automated text is sent, and no follow-up messages are scheduled.
-                  </p>
-                  <p className="text-sm text-blue-800 dark:text-blue-200 mt-2">
-                    If someone calls from a new or unfamiliar number, ReplyFlow will treat that missed call as a potential customer inquiry.
-                  </p>
+                <div className="mt-4 space-y-4">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-4">
+                    <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">Leave a number off your Ignored Contacts list</h3>
+                    <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+                      ReplyFlow will treat the missed call like any potential customer:
+                    </p>
+                    <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc pl-5">
+                      <li>AI Voice (or ReplyFlow voicemail when applicable) can collect information</li>
+                      <li>A lead is created</li>
+                      <li>Automated text messages and follow-ups work normally</li>
+                    </ul>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-2xl p-4">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">Add a number to Ignored Contacts</h3>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
+                      ReplyFlow stays out of the conversation:
+                    </p>
+                    <ul className="text-sm text-slate-700 dark:text-slate-300 space-y-1 list-disc pl-5">
+                      <li>No AI Voice</li>
+                      <li>No automated text messages</li>
+                      <li>No lead is created</li>
+                      <li>No follow-ups are scheduled</li>
+                      <li>The caller simply hears a brief unavailable voicemail message</li>
+                    </ul>
+                  </div>
                 </div>
+                <p className="text-muted-foreground mt-4">
+                  This flexibility makes it easy to keep business calls inside ReplyFlow while allowing personal contacts to bypass automation. You can add or remove numbers from your Ignored Contacts list at any time in Settings.
+                </p>
               </div>
             </div>
           </div>
