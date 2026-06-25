@@ -82,7 +82,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           {/* Logo */}
           <Link 
             href={isLoggedIn && !isPublicPage ? '/dashboard' : '/'} 
-            className="flex items-center gap-1 sm:gap-2.5 hover:opacity-90 transition"
+            className="flex items-center gap-0.5 sm:gap-1.5 hover:opacity-90 transition"
           >
             <BrandIcon size={48} className="sm:hidden" />
             <BrandIcon size={48} className="hidden sm:block" />

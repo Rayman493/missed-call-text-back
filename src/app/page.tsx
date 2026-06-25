@@ -53,7 +53,7 @@ function HomepageFooter() {
           
           {/* Company Info */}
           <div className="col-span-1 sm:col-span-2 md:col-span-2">
-            <div className="flex items-center gap-3 mb-3 sm:mb-4 md:mb-6">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4 md:mb-6">
               <BrandIcon size={40} />
               <span className="text-xl sm:text-2xl font-bold text-foreground">ReplyFlowHQ</span>
             </div>
