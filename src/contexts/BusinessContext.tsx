@@ -14,6 +14,7 @@ interface BusinessContextType {
   error: string | null
   fetchComplete: boolean
   businessMissingConfirmed: boolean // True only if PGRST116 confirmed no business
+  businessVerified: boolean // True if business was previously verified (cached)
   refreshBusiness: () => Promise<void>
   setBusiness: (business: Business | null) => void
 }
@@ -32,9 +33,25 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
   const supabase = useMemo(() => createBrowserClient(), [])
 
+  // Initialize businessVerified from sessionStorage immediately to prevent loading flash
+  const [businessVerified, setBusinessVerified] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('replyflow_business_verified') === 'true'
+    }
+    return false
+  })
+
   const fetchBusiness = useCallback(async () => {
     if (!supabase) return
     log('[BusinessContext] Fetching business...')
+    
+    // Skip loading if business is already verified and we have cached data
+    if (businessVerified && business) {
+      log('[BusinessContext] Skipping fetch - business already verified')
+      setFetchComplete(true)
+      return
+    }
+    
     setLoading(true)
     setFetchComplete(false)
     setError(null)
@@ -90,6 +107,10 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         log('[BusinessContext] Business found:', businessData?.id)
         setBusiness(businessData)
         setBusinessMissingConfirmed(false)
+        setBusinessVerified(true)
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('replyflow_business_verified', 'true')
+        }
         setLoading(false)
         setFetchComplete(true)
       }
@@ -98,7 +119,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       setFetchComplete(true)
     }
-  }, [supabase])
+  }, [supabase, businessVerified, business])
 
   // Listen to auth state changes - only once
   useEffect(() => {
@@ -109,9 +130,13 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_OUT') {
           setBusiness(null)
           setBusinessMissingConfirmed(false)
+          setBusinessVerified(false)
           userIdRef.current = null
           setLoading(false)
           setFetchComplete(false) // Reset fetch complete on logout
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('replyflow_business_verified')
+          }
         } else if (event === 'SIGNED_IN') {
           // Only refetch if user actually changed (avoids redundant refetch on initial mount)
           const newUserId = session?.user?.id
@@ -152,10 +177,11 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       error,
       fetchComplete,
       businessMissingConfirmed,
+      businessVerified,
       refreshBusiness: fetchBusiness,
       setBusiness,
     }
-  }, [business, loading, error, fetchComplete, businessMissingConfirmed, fetchBusiness])
+  }, [business, loading, error, fetchComplete, businessMissingConfirmed, businessVerified, fetchBusiness])
 
   // Show setup error if env vars are missing
   if (!supabase) {
