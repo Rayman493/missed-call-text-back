@@ -127,29 +127,11 @@ function generateSummaryFromExtractedInfo(extractedInfo: any): string {
 export async function processInboundSms(params: ProcessInboundSmsParams) {
   const { messageSid, from, to, body, source, media } = params
   const now = new Date().toISOString()
-  
-  console.log('[INBOUND SMS WEBHOOK HIT]')
-  console.log('[INBOUND SMS REQUEST]', { messageSid, from, to, body, source, mediaCount: media?.length || 0 })
-  console.log('[INBOUND SMS RAW PAYLOAD]', {
-    messageSid,
-    from,
-    to,
-    body: body.substring(0, 100) + (body.length > 100 ? '...' : ''),
-    source,
-    mediaCount: media?.length || 0
-  })
-  
+
   // Normalize customer phone number
   const normalizedCustomerPhone = normalizePhoneNumberForStorage(from)
   const normalizedToPhone = normalizePhoneNumberForStorage(to)
-  
-  console.log('[INBOUND SMS FROM/TO NORMALIZED]', {
-    fromOriginal: from,
-    fromNormalized: normalizedCustomerPhone,
-    toOriginal: to,
-    toNormalized: normalizedToPhone
-  })
-  
+
   // Check for opt-out keywords (case-insensitive)
   const optOutKeywords = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT']
   const originalBody = body.trim().toUpperCase()
@@ -161,13 +143,6 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 
   // Handle opt-out and opt-in keywords before normal message processing
   if (isOptOut || isOptIn) {
-    console.log('[OPT-OUT/IN DETECTED]', {
-      isOptOut,
-      isOptIn,
-      originalBody,
-      from: normalizedCustomerPhone,
-      to: normalizedToPhone
-    })
 
     // Try to find existing lead across all businesses with this phone number
     const leadResult = await db.findLeadByPhoneAcrossBusinesses(normalizedCustomerPhone, normalizedToPhone)
