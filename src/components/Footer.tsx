@@ -14,7 +14,7 @@ export default function Footer() {
           {/* Company Info */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-2 sm:mb-3">
-              <BrandIcon size={32} />
+              <BrandIcon size={40} />
               <span className="text-lg font-bold text-slate-900 dark:text-foreground">ReplyFlowHQ</span>
             </div>
             <p className="text-slate-800 dark:text-muted-foreground mb-2 sm:mb-3 max-w-md leading-relaxed text-xs sm:text-sm font-medium">
