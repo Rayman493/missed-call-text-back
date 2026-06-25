@@ -11,7 +11,6 @@ export default function BrandIcon({ size = 32, className = '' }: BrandIconProps)
       width={size}
       height={size}
       className={className}
-      style={{ objectFit: 'contain' }}
     />
   )
 }
