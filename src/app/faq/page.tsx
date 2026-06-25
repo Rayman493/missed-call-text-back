@@ -7,8 +7,8 @@ import HelpAssistant, { HelpContext } from '@/components/HelpAssistant'
 import LegalNavigation from '@/components/LegalNavigation'
 
 export const metadata: Metadata = {
-  title: 'ReplyFlowHQ FAQ | Missed Call Response Automation',
-  description: 'Learn how ReplyFlowHQ provides automated missed-call text responses and lead management. Setup, pricing, and compliance questions answered.',
+  title: 'ReplyFlowHQ FAQ | AI Voice and Missed Call Recovery',
+  description: 'Learn how ReplyFlowHQ provides AI Voice, automated missed-call text responses, and lead management. Setup, pricing, and compliance questions answered.',
 }
 
 export default function FAQPage() {
@@ -66,7 +66,7 @@ export default function FAQPage() {
               Frequently Asked Questions
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Everything you need to know about ReplyFlowHQ's automated missed-call text responses and lead management
+              Everything you need to know about ReplyFlowHQ's AI Voice, automated missed-call text responses, and lead management
             </p>
           </div>
         </div>
@@ -84,12 +84,12 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  ReplyFlowHQ provides <strong>automated missed-call text responses</strong> for businesses. 
-                  When a customer calls your business and the call is missed, ReplyFlow automatically sends a 
-                  text message to acknowledge the call and help capture the lead.
+                  ReplyFlowHQ provides <strong>AI Voice</strong> and <strong>automated missed-call text responses</strong> for businesses.
+                  When a customer calls your business and the call is missed, AI Voice answers the call, collects caller information,
+                  and sends a text message summary. This ensures you never miss lead information.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  This is <strong>not</strong> bulk marketing or cold outreach. Messages are only sent after 
+                  This is <strong>not</strong> bulk marketing or cold outreach. Messages are only sent after
                   an inbound customer initiates contact by calling your business number.
                 </p>
               </div>
@@ -130,13 +130,23 @@ export default function FAQPage() {
                     </div>
                     <div>
                       <p className="text-muted-foreground">
-                        <strong>Automated response sent</strong> - ReplyFlow sends a personalized text message within seconds
+                        <strong>AI Voice answers</strong> - AI Voice answers the call, collects caller information, and ends with a summary
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
                       <span className="text-blue-600 dark:text-blue-400 font-semibold">4</span>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">
+                        <strong>Text summary sent</strong> - You and the customer receive a text message with the collected information
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                      <span className="text-blue-600 dark:text-blue-400 font-semibold">5</span>
                     </div>
                     <div>
                       <p className="text-muted-foreground">

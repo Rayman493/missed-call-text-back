@@ -41,7 +41,7 @@ export default function DemoPage() {
               See How ReplyFlow Recovers Missed Leads
             </h1>
             <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              AI voicemail intake and automated SMS follow-up help ensure missed calls become opportunities.
+              AI Voice answers your missed calls, collects customer information, and sends instant text responses.
             </p>
             <div className="pt-4">
               <Link
@@ -67,7 +67,7 @@ export default function DemoPage() {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
               }`}
             >
-              AI Voicemail Intake
+              AI Voice
             </button>
             <button
               onClick={() => setActiveTab('sms')}
@@ -124,12 +124,30 @@ export default function DemoPage() {
                     <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-white text-sm font-bold">3</span>
                     </div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground">AI Voicemail Intake</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground">AI Voice Answers</h3>
                   </div>
                   <div className="pl-11">
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-                      <p className="text-blue-900 dark:text-blue-100 text-sm italic">
-                        "Hi, you've reached Arctic Air HVAC. Sorry we missed your call. Please leave your name, phone number, and what you need help with."
+                      <p className="text-blue-900 dark:text-blue-100 text-sm">
+                        <span className="font-semibold">AI Voice:</span> "Hi, thanks for calling Arctic Air HVAC. I'm the automated assistant. How can I help you today?"
+                      </p>
+                      <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">
+                        <span className="font-semibold">Caller:</span> "Hi, my AC isn't cooling and I need someone to come take a look."
+                      </p>
+                      <p className="text-blue-900 dark:text-blue-100 text-sm mt-2">
+                        <span className="font-semibold">AI Voice:</span> "I'd be happy to help with that. What's your name and phone number so we can follow up?"
+                      </p>
+                      <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">
+                        <span className="font-semibold">Caller:</span> "This is John Smith, you can reach me at (412) 555-0123."
+                      </p>
+                      <p className="text-blue-900 dark:text-blue-100 text-sm mt-2">
+                        <span className="font-semibold">AI Voice:</span> "Thanks John. I've noted that your AC isn't cooling. Someone from Arctic Air HVAC will follow up with you shortly. Is there anything else I can help with?"
+                      </p>
+                      <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">
+                        <span className="font-semibold">Caller:</span> "No, that's all. Thanks."
+                      </p>
+                      <p className="text-blue-900 dark:text-blue-100 text-sm mt-2">
+                        <span className="font-semibold">AI Voice:</span> "Great, thanks for calling, John. Have a good day!"
                       </p>
                     </div>
                   </div>
@@ -153,7 +171,7 @@ export default function DemoPage() {
                       <span className="text-slate-900 dark:text-foreground font-medium">(412) 555-0123</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-500 dark:text-slate-500">Issue:</span>
+                      <span className="text-slate-500 dark:text-slate-500">Reason for calling:</span>
                       <span className="text-slate-900 dark:text-foreground font-medium">AC not cooling</span>
                     </div>
                   </div>
