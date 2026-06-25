@@ -159,6 +159,84 @@ export default function FAQPage() {
             </div>
           </div>
 
+          {/* Do I keep my existing business number? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                Do I keep my existing business number?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  <strong>Yes, completely.</strong> Your business keeps its existing public phone number. 
+                  ReplyFlow works seamlessly in the background:
+                </p>
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                    </svg>
+                    <span className="text-muted-foreground">Customers continue calling your published business number</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-muted-foreground">Missed calls forward to ReplyFlow infrastructure</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                      <path d="M18 8a6 6 0 01-7.743 5.743L10 16l-1.257-2.257A6 6 0 0118 8z" />
+                    </svg>
+                    <span className="text-muted-foreground">ReplyFlow handles the automated text response</span>
+                  </div>
+                </div>
+                <p className="text-muted-foreground mt-4">
+                  No changes to your business cards, website, or marketing materials are needed.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Can I respond to customer replies? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                Can I respond to customer replies?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  <strong>Yes, absolutely.</strong> ReplyFlowHQ provides a complete conversation management system:
+                </p>
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                      <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
+                    </svg>
+                    <span className="text-muted-foreground">Real-time conversation inbox in your dashboard</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                    </svg>
+                    <span className="text-muted-foreground">Instant notifications for new customer messages</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                      <path fillRule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000 2H6a2 2 0 00-2 2v6a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2a1 1 0 100-2h2a4 4 0 014 4v6a4 4 0 01-4 4H6a4 4 0 01-4-4V7a4 4 0 014-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-muted-foreground">Message history and conversation tracking</span>
+                  </div>
+                </div>
+                <p className="text-muted-foreground mt-4">
+                  Continue conversations naturally through the ReplyFlowHQ dashboard interface. Certain supported customer corrections may automatically update lead details.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Are these marketing texts? */}
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="p-8">
@@ -219,45 +297,6 @@ export default function FAQPage() {
                 </div>
                 <p className="text-muted-foreground mt-4">
                   All opt-out requests are processed immediately and customers are removed from your messaging list.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Do I keep my existing business number? */}
-          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
-            <div className="p-8">
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                Do I keep my existing business number?
-              </h2>
-              <div className="prose prose-invert max-w-none">
-                <p className="text-muted-foreground leading-relaxed">
-                  <strong>Yes, completely.</strong> Your business keeps its existing public phone number. 
-                  ReplyFlow works seamlessly in the background:
-                </p>
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
-                    </svg>
-                    <span className="text-muted-foreground">Customers continue calling your published business number</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-muted-foreground">Missed calls forward to ReplyFlow infrastructure</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                      <path d="M18 8a6 6 0 01-7.743 5.743L10 16l-1.257-2.257A6 6 0 0118 8z" />
-                    </svg>
-                    <span className="text-muted-foreground">ReplyFlow handles the automated text response</span>
-                  </div>
-                </div>
-                <p className="text-muted-foreground mt-4">
-                  No changes to your business cards, website, or marketing materials are needed.
                 </p>
               </div>
             </div>
@@ -404,40 +443,18 @@ export default function FAQPage() {
             </div>
           </div>
 
-          {/* Can I respond to customer replies? */}
+          {/* How does AI Voice work? */}
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="p-8">
               <h2 className="text-2xl font-semibold text-foreground mb-4">
-                Can I respond to customer replies?
+                How does AI Voice work?
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  <strong>Yes, absolutely.</strong> ReplyFlowHQ provides a complete conversation management system:
+                  When a call goes unanswered and forwards to ReplyFlow, AI Voice answers the call live and converses with the caller to collect information.
                 </p>
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
-                      <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
-                    </svg>
-                    <span className="text-muted-foreground">Real-time conversation inbox in your dashboard</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-                    </svg>
-                    <span className="text-muted-foreground">Instant notifications for new customer messages</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                      <path fillRule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000 2H6a2 2 0 00-2 2v6a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2a1 1 0 100-2h2a4 4 0 014 4v6a4 4 0 01-4 4H6a4 4 0 01-4-4V7a4 4 0 014-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-muted-foreground">Message history and conversation tracking</span>
-                  </div>
-                </div>
-                <p className="text-muted-foreground mt-4">
-                  Continue conversations naturally through the ReplyFlowHQ dashboard interface. Certain supported customer corrections may automatically update lead details.
+                <p className="text-muted-foreground leading-relaxed mt-4">
+                  AI Voice can collect the caller's name, reason for calling, urgency level, and preferred callback time through natural conversation. This information is then stored in your ReplyFlow dashboard for easy follow-up.
                 </p>
               </div>
             </div>
@@ -503,108 +520,7 @@ export default function FAQPage() {
             </div>
           </div>
 
-          {/* Does ReplyFlow replace my phone number? */}
-          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
-            <div className="p-8">
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                Does ReplyFlow replace my phone number?
-              </h2>
-              <div className="prose prose-invert max-w-none">
-                <p className="text-muted-foreground leading-relaxed">
-                  <strong>No.</strong> Keep your existing business number and forward unanswered calls to ReplyFlow.
-                </p>
-                <p className="text-muted-foreground leading-relaxed mt-4">
-                  ReplyFlow works alongside your current phone system. When calls go unanswered, they can be forwarded to ReplyFlow for AI voicemail intake or automated SMS responses, while you keep using the business number you already advertise everywhere.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* How does the AI Receptionist work? */}
-          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
-            <div className="p-8">
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                How does AI voicemail intake work?
-              </h2>
-              <div className="prose prose-invert max-w-none">
-                <p className="text-muted-foreground leading-relaxed">
-                  When a call goes unanswered and forwards to ReplyFlow, AI voicemail intake captures caller information through voicemail.
-                </p>
-                <p className="text-muted-foreground leading-relaxed mt-4">
-                  AI voicemail intake can collect the caller's name, reason for calling, urgency level, and preferred callback time. This information is then stored in your ReplyFlow dashboard for easy follow-up.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Can I use ReplyFlow without AI? */}
-          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
-            <div className="p-8">
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                Can I use ReplyFlow without AI?
-              </h2>
-              <div className="prose prose-invert max-w-none">
-                <p className="text-muted-foreground leading-relaxed">
-                  <strong>Yes.</strong> Businesses can use SMS-only workflows without enabling AI voicemail intake.
-                </p>
-                <p className="text-muted-foreground leading-relaxed mt-4">
-                  ReplyFlow offers flexible options - you can use automated missed-call text responses, or enable AI voicemail intake for caller information capture after missed calls. Choose what works best for your business.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* What information does the AI collect? */}
-          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
-            <div className="p-8">
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                What information does the AI collect?
-              </h2>
-              <div className="prose prose-invert max-w-none">
-                <p className="text-muted-foreground leading-relaxed">
-                  Depending on the conversation, the AI may collect the caller's name, reason for calling, urgency, callback information, and relevant business details.
-                </p>
-                <p className="text-muted-foreground leading-relaxed mt-4">
-                  The AI is designed to capture operationally important information that helps you understand the customer's needs and prioritize follow-up appropriately.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Are AI conversations saved? */}
-          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
-            <div className="p-8">
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                Are AI conversations saved?
-              </h2>
-              <div className="prose prose-invert max-w-none">
-                <p className="text-muted-foreground leading-relaxed">
-                  Conversation details, transcripts, and call summaries may be stored within ReplyFlow for business use.
-                </p>
-                <p className="text-muted-foreground leading-relaxed mt-4">
-                  This allows you to review conversations, track customer interactions, and maintain a complete record of customer communications for your business operations.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Can ReplyFlow answer calls after business hours? */}
-          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
-            <div className="p-8">
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                Can ReplyFlow answer calls after business hours?
-              </h2>
-              <div className="prose prose-invert max-w-none">
-                <p className="text-muted-foreground leading-relaxed">
-                  <strong>Yes.</strong> Businesses can configure after-hours handling and AI-assisted voicemail intake.
-                </p>
-                <p className="text-muted-foreground leading-relaxed mt-4">
-                  ReplyFlow works 24/7 to help you capture more leads, whether during business hours, after hours, or on weekends. When calls are missed and forwarded, AI can capture caller information through voicemail intake anytime.
-                </p>
-              </div>
-            </div>
-          </div>
-
+          
           {/* How do I contact support? */}
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="p-8">
@@ -690,7 +606,7 @@ export default function FAQPage() {
                     </div>
                     <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
                       <p className="font-medium text-foreground mb-1">What should I hear during the test?</p>
-                      <p className="text-sm text-muted-foreground">You should hear the ReplyFlow greeting. If you hear your normal voicemail, forwarding may not be enabled correctly.</p>
+                      <p className="text-sm text-muted-foreground">You should hear AI Voice answer. If you hear your normal voicemail, forwarding may not be enabled correctly.</p>
                     </div>
                   </div>
                 </div>

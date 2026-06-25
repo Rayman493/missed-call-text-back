@@ -14,26 +14,6 @@ export default function PricingPage() {
     <PageBackground>
       <SSRSafeNavbar forceDark={true} />
       
-      {/* Back to Home Navigation */}
-      <div className="bg-white dark:bg-slate-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 group"
-          >
-            <svg 
-              className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Home
-          </Link>
-        </div>
-      </div>
-      
       {/* Hero Section */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
@@ -53,7 +33,7 @@ export default function PricingPage() {
               Simple pricing for missed-call recovery
             </h1>
             <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              Start with a 14-day free trial. Then $59/month. Cancel anytime.
+              Everything you need to recover missed calls with AI Voice for one simple monthly price.
             </p>
           </div>
         </div>
@@ -86,7 +66,14 @@ export default function PricingPage() {
                       <svg className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
-                      <span className="text-slate-700 dark:text-slate-300">Missed-call text-back automation</span>
+                      <span className="text-slate-700 dark:text-slate-300">AI Voice answers missed calls live</span>
+                    </div>
+                    
+                    <div className="flex items-start">
+                      <svg className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-slate-700 dark:text-slate-300">Instant text-back to missed callers</span>
                     </div>
                     
                     <div className="flex items-start">
@@ -100,44 +87,42 @@ export default function PricingPage() {
                       <svg className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
-                      <span className="text-slate-700 dark:text-slate-300">Dedicated ReplyFlow number for forwarding</span>
+                      <span className="text-slate-700 dark:text-slate-300">Lead dashboard with all customer details</span>
                     </div>
                     
                     <div className="flex items-start">
                       <svg className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
-                      <span className="text-slate-700 dark:text-slate-300">Lead capture dashboard</span>
+                      <span className="text-slate-700 dark:text-slate-300">Conversation inbox for follow-ups</span>
                     </div>
                     
                     <div className="flex items-start">
                       <svg className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
-                      <span className="text-slate-700 dark:text-slate-300">Conversation inbox</span>
+                      <span className="text-slate-700 dark:text-slate-300">Automated follow-ups save you time</span>
                     </div>
                     
                     <div className="flex items-start">
                       <svg className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
-                      <span className="text-slate-700 dark:text-slate-300">Automated follow-ups</span>
+                      <span className="text-slate-700 dark:text-slate-300">Setup in minutes</span>
                     </div>
                     
                     <div className="flex items-start">
                       <svg className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
-                      <span className="text-slate-700 dark:text-slate-300">No app download required</span>
-                    </div>
-                    
-                    <div className="flex items-start">
-                      <svg className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-slate-700 dark:text-slate-300">Built for local service businesses</span>
+                      <span className="text-slate-700 dark:text-slate-300">No app required</span>
                     </div>
                   </div>
+                  
+                  {/* Reassurance */}
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    ReplyFlow works seamlessly alongside your existing business phone number.
+                  </p>
                 </div>
                 
                 {/* Action Buttons */}
@@ -148,9 +133,29 @@ export default function PricingPage() {
                   >
                     Start Your 14-Day Free Trial
                   </Link>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-2">
-                    Cancel anytime during your 14-day free trial.
-                  </p>
+                  
+                  {/* Trust/Reassurance Row */}
+                  <div className="flex flex-wrap justify-center gap-3 pt-2">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Cancel anytime
+                    </span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      No contracts
+                    </span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Keep your number
+                    </span>
+                  </div>
+                  
                   <Link
                     href="/"
                     className="w-full flex items-center justify-center px-6 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200"

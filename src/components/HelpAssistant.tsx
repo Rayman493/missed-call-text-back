@@ -36,7 +36,7 @@ export default function HelpAssistant({ className = '', defaultCategory, context
     
     if (searchResult === null) {
       // Check if it's account-specific
-      const accountKeywords = ['why did my sms fail', 'sms failed', 'delivery failed', 'why didn\'t my lead appear', 'why was i charged', 'why did my ai call fail']
+      const accountKeywords = ['why did my sms fail', 'sms failed', 'delivery failed', 'why didn\'t my lead appear', 'why was i charged', 'why did my ai call fail', 'ai not working', 'ai voice not working', 'ai didn\'t answer', 'voicemail not working', 'ai not picking up']
       const isAccountIssue = accountKeywords.some(keyword => query.toLowerCase().includes(keyword))
       
       if (isAccountIssue) {

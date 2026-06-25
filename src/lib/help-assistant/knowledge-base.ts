@@ -94,7 +94,7 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     id: 'pricing',
     keywords: ['pricing', 'cost', 'price', 'how much', 'subscription'],
     question: 'How much does ReplyFlow cost?',
-    answer: 'ReplyFlow is $49/month with a 14-day free trial. No contracts required. You can cancel anytime during the trial with no charge. Billing is managed through the Stripe portal accessible from Dashboard → Settings → Subscription.',
+    answer: 'ReplyFlow is $59/month with a 14-day free trial. No contracts required. You can cancel anytime during the trial with no charge. Billing is managed through the Stripe portal accessible from Dashboard → Settings → Subscription.',
     category: 'Billing',
     source: 'Pricing Page'
   },
@@ -115,26 +115,42 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     source: 'Beta FAQ'
   },
   {
-    id: 'ai-voicemail',
-    keywords: ['ai', 'voicemail', 'ai voicemail', 'ai intake', 'voicemail intake'],
-    question: 'How does AI voicemail intake work?',
-    answer: 'When a call goes unanswered and forwards to ReplyFlow, AI captures caller information from the voicemail. AI voicemail intake can collect the caller\'s name, reason for calling, urgency level, and preferred callback time. This is separate from SMS automation - SMS handles missed-call acknowledgments while AI voicemail captures information from voice messages.',
+    id: 'ai-voice',
+    keywords: ['ai voice', 'ai answering', 'ai intake', 'ai call assistant', 'live ai', 'ai picks up'],
+    question: 'How does AI Voice work?',
+    answer: 'AI Voice is a production feature that answers calls when you don\'t. When a call forwards to ReplyFlow, AI answers the call, asks scripted questions to collect caller information (name, reason, details, location, timing), and ends with a summary. The caller hears a professional AI assistant that adapts questions based on your business type. After the call, you receive a summary SMS with all captured information. This is not voicemail - it\'s a live AI conversation.',
     category: 'Features',
-    source: 'FAQ'
+    source: 'Product Guide'
+  },
+  {
+    id: 'ai-voice-business-types',
+    keywords: ['business types', 'ai questions', 'ai templates', 'lawn care', 'dog grooming', 'tutoring'],
+    question: 'What business types does AI Voice support?',
+    answer: 'AI Voice supports multiple business types with tailored intake questions, including: lawn care/landscaping, dog grooming/pet services, lessons/tutoring, home services, plumbing/HVAC, cleaning, real estate, medical/dental, legal consulting, and more. The AI adapts its questions based on your business type to ask relevant questions. You can set your business type in Settings.',
+    category: 'Features',
+    source: 'Product Guide'
+  },
+  {
+    id: 'ai-voicemail',
+    keywords: ['ai', 'voicemail', 'ai voicemail', 'voicemail intake'],
+    question: 'What if AI Voice isn\'t available?',
+    answer: 'If AI Voice is unavailable (due to configuration or service issues), calls fall back to voicemail. AI can still capture caller information from voicemail transcriptions. AI Voice is the preferred path when available, but voicemail with AI transcription provides a reliable fallback.',
+    category: 'Features',
+    source: 'Product Guide'
   },
   {
     id: 'ai-without-voicemail',
     keywords: ['ai without voicemail', 'sms only', 'no ai', 'toggle ai off'],
     question: 'Can I use ReplyFlow without AI?',
-    answer: 'AI voicemail intake is a core feature that helps capture caller information after missed calls. If you prefer not to use AI intake, contact support to discuss options. ReplyFlow always sends automated SMS acknowledgments for missed calls regardless of AI settings.',
+    answer: 'AI Voice is a core feature that helps capture caller information. If you prefer not to use AI, contact support to discuss options. ReplyFlow always sends automated SMS acknowledgments for missed calls regardless of AI settings.',
     category: 'Features',
     source: 'FAQ'
   },
   {
     id: 'customer-corrections',
-    keywords: ['correction', 'address correction', 'customer reply address', 'update information'],
-    question: 'Can customers correct their address?',
-    answer: 'Yes, ReplyFlow can detect and process address corrections from customer replies. When a customer provides a corrected address in their message, ReplyFlow extracts and updates the lead metadata with the new address information. This correction feature is supported for address/location fields only. Other lead fields may require manual updates.',
+    keywords: ['correction', 'address correction', 'customer reply address', 'update information', 'customer update', 'change info'],
+    question: 'Can customers correct their information?',
+    answer: 'Yes, ReplyFlow can detect and process corrections from customer replies. When a customer replies to the summary SMS with corrected information (name, address, details, timing), ReplyFlow extracts the correction and updates the lead and AI summary. Corrections are logged in the lead metadata. Follow-up jobs are automatically cancelled when a customer replies.',
     category: 'Features',
     source: 'Feature Documentation'
   },
@@ -283,6 +299,22 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     source: 'FAQ'
   },
   {
+    id: 'out-of-office-ai',
+    keywords: ['out of office', 'ooo', 'after hours', 'closed', 'ai after hours', 'ai ooo'],
+    question: 'How does AI Voice work with Out of Office?',
+    answer: 'AI Voice is available 24/7 regardless of your business hours or Out of Office settings. When calls forward to ReplyFlow, AI will answer and collect information even if you\'re marked as Out of Office. The summary SMS will include an Out of Office notice if configured. This ensures you never miss lead information, even when unavailable.',
+    category: 'Features',
+    source: 'Product Guide'
+  },
+  {
+    id: 'ignored-contacts-ai',
+    keywords: ['ignored contacts', 'block contacts', 'ai ignored', 'skip ai for ignored'],
+    question: 'How does AI Voice handle ignored contacts?',
+    answer: 'When a call from an ignored contact forwards to ReplyFlow, AI is skipped. The caller receives a short informational message and the call ends immediately. No lead is created, no SMS is sent, and no AI intake occurs. This prevents unwanted callers from using AI resources. You can manage ignored contacts in Settings.',
+    category: 'Features',
+    source: 'Product Guide'
+  },
+  {
     id: 'update-forwarding',
     keywords: ['update forwarding', 'change forwarding', 'forwarding settings'],
     question: 'How do I update call forwarding?',
@@ -406,7 +438,7 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     id: 'replyflow-limitations',
     keywords: ['limitations', 'what replyflow can\'t do', 'what replyflow does', 'replyflow capabilities', 'cannot do', 'not control'],
     question: 'What can and can\'t ReplyFlow do?',
-    answer: 'ReplyFlow helps recover missed calls and collect caller details through AI voicemail intake. It sends automated text responses and can manage follow-up sequences. ReplyFlow does NOT control your carrier forwarding settings directly, cannot guarantee SMS delivery if carriers block messages, does not answer live calls, and cannot prevent all missed calls. You control forwarding through your carrier.',
+    answer: 'ReplyFlow answers calls when you don\'t answer using AI Voice, collects caller information, sends automated SMS responses, and manages follow-up sequences. ReplyFlow does NOT control your carrier forwarding settings directly, cannot guarantee SMS delivery if carriers block messages, cannot prevent all missed calls, and is not an emergency service. You control forwarding through your carrier. AI Voice may fall back to voicemail if unavailable.',
     category: 'Features',
     source: 'Product Guide'
   },
@@ -414,15 +446,15 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     id: 'live-calls',
     keywords: ['live calls', 'answer live calls', 'does it answer calls', 'real-time calls', 'answer phone'],
     question: 'Does ReplyFlow answer live calls?',
-    answer: 'No. ReplyFlow only handles calls that forward to it when you don\'t answer. It does not answer live calls or replace your existing phone service. When a call forwards to ReplyFlow (because you didn\'t answer), it can send an automated text response and capture AI intake from voicemail.',
+    answer: 'Yes, AI Voice answers calls when you don\'t answer. When a call forwards to ReplyFlow, AI Voice answers the call and conducts a live conversation to collect caller information. This is not voicemail - it\'s a real-time AI conversation. If AI Voice is unavailable, calls fall back to voicemail with AI transcription.',
     category: 'Features',
-    source: 'FAQ'
+    source: 'Product Guide'
   },
   {
     id: 'billing-trial-details',
     keywords: ['billing details', 'trial details', 'how billing works', 'when charged', 'trial end', 'subscription details'],
     question: 'How does billing and trial work?',
-    answer: 'ReplyFlow offers a 14-day free trial with no charge. After the trial ends, you\'ll be charged $49/month if you choose to continue. You can cancel anytime before the trial ends with no charge. Billing is handled through Stripe. View your subscription status in Dashboard → Settings → Subscription.',
+    answer: 'ReplyFlow offers a 14-day free trial with no charge. After the trial ends, you\'ll be charged $59/month if you choose to continue. You can cancel anytime before the trial ends with no charge. Billing is handled through Stripe. View your subscription status in Dashboard → Settings → Subscription.',
     category: 'Billing',
     source: 'Billing Guide'
   },
@@ -441,6 +473,14 @@ export const KNOWLEDGE_BASE: HelpArticle[] = [
     answer: 'If you can\'t access the billing portal: 1) Go to Dashboard → Settings → Subscription, 2) Click "Manage Subscription" to access Stripe, 3) Ensure you\'re logged into the correct Stripe account, 4) Try clearing your browser cache and cookies, 5) If the Stripe portal shows an error, it may be a temporary Stripe issue - try again later. For persistent billing portal issues, contact support at support@replyflowhq.com.',
     category: 'Troubleshooting',
     source: 'Support Guide'
+  },
+  {
+    id: 'guarantees-limits',
+    keywords: ['guarantee', 'delivery guarantee', 'sms guarantee', 'legal guarantee', 'compliance guarantee', 'emergency'],
+    question: 'What are ReplyFlow\'s guarantees and limitations?',
+    answer: 'ReplyFlow does NOT guarantee SMS delivery (carriers may block messages), does NOT provide legal or compliance guarantees (consult legal counsel for compliance), does NOT replace emergency services (do not use for emergencies), and does NOT guarantee AI Voice availability (may fall back to voicemail). ReplyFlow provides best-effort service for missed-call recovery and lead capture. For specific guarantees, contact support.',
+    category: 'Support',
+    source: 'Legal Guide'
   }
 ]
 
@@ -458,7 +498,10 @@ const ACCOUNT_SPECIFIC_KEYWORDS = [
   'billing error',
   'why did my ai call fail',
   'ai not working',
+  'ai voice not working',
+  'ai didn\'t answer',
   'voicemail not working',
+  'ai not picking up',
   'my specific',
   'my account',
   'why didn\'t it work for me',
@@ -648,7 +691,9 @@ export function getSuggestedQuestions(category?: string, context?: HelpContext):
     'test-call-second-phone',
     'sms-timing',
     'pricing',
-    'trial-billing'
+    'trial-billing',
+    'ai-voice',
+    'ai-voice-business-types'
   ]
 
   return articles

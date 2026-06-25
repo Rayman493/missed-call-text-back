@@ -59,7 +59,7 @@ function HomepageFooter() {
               <span className="text-xl sm:text-2xl font-bold text-foreground">ReplyFlowHQ</span>
             </div>
             <p className="text-muted-foreground mb-3 sm:mb-4 md:mb-6 max-w-md text-sm sm:text-base leading-relaxed">
-              Missed call recovery, AI voicemail intake, lead capture, calendar integration, 
+              Missed call recovery, AI Voice, lead capture, calendar integration, 
               and follow-up automation for businesses that can't afford to miss opportunities.
             </p>
             <div className="flex items-center gap-4">
@@ -192,7 +192,7 @@ export default async function Home() {
                 Never Miss a Lead Again
               </h1>
               <p className="text-sm sm:text-base md:text-xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed mt-1 sm:mt-1.5">
-                Turn missed calls into conversations.
+                AI Voice answers your missed calls, collects customer information, and sends instant text responses.
               </p>
 
               <div className="mt-2 sm:mt-2.5 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
@@ -286,7 +286,7 @@ export default async function Home() {
                   </svg>
                 </div>
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Customer Calls</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-400">Incoming call from potential customer</p>
+                <p className="text-xs text-slate-700 dark:text-slate-400">A customer calls your business</p>
               </div>
               
               {/* Arrow */}
@@ -303,8 +303,8 @@ export default async function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Call Goes Unanswered</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-400">You can't answer the phone</p>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">You Miss the Call</h3>
+                <p className="text-xs text-slate-700 dark:text-slate-400">You're busy, unavailable, or after hours</p>
               </div>
               
               {/* Arrow */}
@@ -321,8 +321,8 @@ export default async function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">ReplyFlow Captures Information</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-400">AI collects caller details automatically</p>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">AI Voice Answers</h3>
+                <p className="text-xs text-slate-700 dark:text-slate-400">AI answers live and collects customer information</p>
               </div>
               
               {/* Arrow */}
@@ -339,8 +339,8 @@ export default async function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Customer Receives Response</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-400">Instant text message sent to caller</p>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Customer Gets Instant Text</h3>
+                <p className="text-xs text-slate-700 dark:text-slate-400">A confirmation text is automatically sent</p>
               </div>
               
               {/* Arrow */}
@@ -357,8 +357,8 @@ export default async function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Lead Appears In Dashboard</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-400">All information saved and ready for follow-up</p>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Lead Ready in Dashboard</h3>
+                <p className="text-xs text-slate-700 dark:text-slate-400">Everything is organized and ready for follow-up</p>
               </div>
             </div>
             
@@ -373,7 +373,7 @@ export default async function Home() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Customer Calls</h3>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-400">Incoming call from potential customer</p>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-400">A customer calls your business</p>
                 </div>
               </div>
               
@@ -392,8 +392,8 @@ export default async function Home() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Call Goes Unanswered</h3>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-400">You can't answer the phone</p>
+                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">You Miss the Call</h3>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-400">You're busy, unavailable, or after hours</p>
                 </div>
               </div>
               
@@ -412,8 +412,8 @@ export default async function Home() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">ReplyFlow Captures Information</h3>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-400">AI collects caller details automatically</p>
+                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">AI Voice Answers</h3>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-400">AI answers live and collects customer information</p>
                 </div>
               </div>
               
@@ -432,8 +432,8 @@ export default async function Home() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Customer Receives Response</h3>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-400">Instant text message sent to caller</p>
+                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Customer Gets Instant Text</h3>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-400">A confirmation text is automatically sent</p>
                 </div>
               </div>
               
@@ -452,8 +452,8 @@ export default async function Home() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Lead Appears In Dashboard</h3>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-400">All information saved and ready for follow-up</p>
+                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Lead Ready in Dashboard</h3>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-400">Everything is organized and ready for follow-up</p>
                 </div>
               </div>
             </div>
@@ -467,20 +467,20 @@ export default async function Home() {
           <div className="max-w-4xl mx-auto px-6 lg:px-8">
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3 sm:p-4 text-center">
               <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-1.5">
-                Two Ways ReplyFlow Captures Leads
+                AI Voice Answers Missed Calls
               </h3>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-slate-700 dark:text-slate-400">
                 <div className="flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span>Instant text-back when a customer calls and nobody answers</span>
+                  <span>AI Voice answers and collects caller information live</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span>AI voicemail intake when a caller leaves details</span>
+                  <span>Instant text summary sent to you and the customer</span>
                 </div>
               </div>
             </div>
@@ -577,8 +577,8 @@ export default async function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 sm:mb-1.5 text-xs sm:text-sm">Lead Management</h3>
-                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed">Track every lead with status updates and priority levels</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-sm sm:text-base">Lead Management</h3>
+                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed">Never lose track of a customer with status updates and priority levels</p>
                 </div>
 
                 <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 rounded-xl p-3 sm:p-4 border border-emerald-200 dark:border-emerald-800 shadow-sm hover:shadow-md transition-shadow">
@@ -587,8 +587,8 @@ export default async function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                     </svg>
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 sm:mb-1.5 text-xs sm:text-sm">Conversation Inbox</h3>
-                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed">All customer messages in one unified inbox</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-sm sm:text-base">Conversation Inbox</h3>
+                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed">Keep every customer conversation organized in one place</p>
                 </div>
 
                 <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-3 sm:p-4 border border-purple-200 dark:border-purple-800 shadow-sm hover:shadow-md transition-shadow">
@@ -597,8 +597,8 @@ export default async function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 sm:mb-1.5 text-xs sm:text-sm">Google Calendar Sync</h3>
-                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed">See appointments, holidays, and events without leaving ReplyFlow</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-sm sm:text-base">Google Calendar Sync</h3>
+                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed">Manage appointments alongside your leads without switching tools</p>
                 </div>
                 
                 <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-3 sm:p-4 border border-orange-200 dark:border-orange-800 shadow-sm hover:shadow-md transition-shadow">
@@ -607,8 +607,8 @@ export default async function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 sm:mb-1.5 text-xs sm:text-sm">AI Intake History</h3>
-                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed">Review AI intake summaries and caller information</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-sm sm:text-base">AI Intake History</h3>
+                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed">Review AI-captured caller information and call summaries</p>
                 </div>
               </div>
             </div>
@@ -646,7 +646,7 @@ export default async function Home() {
                 </p>
               </div>
 
-              {/* AI Voicemail Intake */}
+              {/* AI Voice */}
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 md:p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
                 <div className="flex flex-col items-center text-center mb-2 sm:mb-3">
                   <div className="w-11 h-11 sm:w-12 sm:h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
@@ -654,10 +654,10 @@ export default async function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                     </svg>
                   </div>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">AI Voicemail Intake</h3>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">AI Voice</h3>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 mb-2 sm:mb-3 text-center">
-                  If caller leaves voicemail, collect caller information automatically and receive an AI-generated summary.
+                  AI answers calls live, collects caller information, and sends a text summary.
                 </p>
               </div>
 
@@ -771,7 +771,7 @@ export default async function Home() {
                 </div>
               </div>
 
-              {/* AI-powered call intake */}
+              {/* AI Voice */}
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-300">
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -780,8 +780,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-sm sm:text-base">AI-powered voicemail intake</h3>
-                    <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-400">AI can collect caller information from voicemails when you're unavailable.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-sm sm:text-base">AI Voice answers missed calls</h3>
+                    <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-400">AI answers live and collects caller information automatically.</p>
                   </div>
                 </div>
               </div>
@@ -864,7 +864,7 @@ export default async function Home() {
                 </div>
               </div>
 
-              {/* AI-powered call intake */}
+              {/* AI Voice */}
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 md:p-5 shadow-sm">
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -873,8 +873,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-xs sm:text-sm">AI-powered voicemail intake</h3>
-                    <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400">AI can collect caller information from voicemails when you're unavailable.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-xs sm:text-sm">AI Voice answers missed calls</h3>
+                    <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400">AI answers live and collects caller information automatically.</p>
                   </div>
                 </div>
               </div>

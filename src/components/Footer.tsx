@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import BrandIcon from '@/components/BrandIcon'
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
@@ -13,9 +14,7 @@ export default function Footer() {
           {/* Company Info */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-2 sm:mb-3">
-              <div className="w-6 h-6 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
-                <span className="text-white font-bold text-xs">RF</span>
-              </div>
+              <BrandIcon size={24} />
               <span className="text-lg font-bold text-slate-900 dark:text-foreground">ReplyFlowHQ</span>
             </div>
             <p className="text-slate-800 dark:text-muted-foreground mb-2 sm:mb-3 max-w-md leading-relaxed text-xs sm:text-sm font-medium">
