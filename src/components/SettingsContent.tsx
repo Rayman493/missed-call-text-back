@@ -1127,7 +1127,7 @@ export default function SettingsContent() {
                           <p className="text-xs text-slate-600 dark:text-slate-400">
                             {business?.forwarding_verified ? (
                               <>
-                                Your forwarding settings are verified. No action needed unless you change carriers or forwarding settings.
+                                Phone forwarding is verified and working correctly. No action is needed unless you change your carrier or forwarding settings.
                               </>
                             ) : (
                               <>
@@ -1142,27 +1142,13 @@ export default function SettingsContent() {
                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                               </svg>
                               <div>
-                                <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-2">Using your personal phone as your business number?</p>
-                                <p className="text-[10px] text-blue-700 dark:text-blue-300 mb-2">
-                                  Many small business owners use one phone for both business and personal calls, and ReplyFlow fully supports this.
+                                <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Using your personal phone as your business number?</p>
+                                <p className="text-[10px] text-blue-700 dark:text-blue-300">
+                                  ReplyFlow fully supports using one phone for both business and personal calls. You can control which callers ReplyFlow handles by using Ignored Contacts.
                                 </p>
-                                <p className="text-[10px] font-semibold text-blue-900 dark:text-blue-100 mb-1">You have complete control over how specific callers are handled:</p>
-                                <div className="space-y-1 mt-1">
-                                  <div className="flex items-start gap-1">
-                                    <span className="text-blue-600 dark:text-blue-400 font-semibold text-[10px]">•</span>
-                                    <p className="text-[10px] text-blue-700 dark:text-blue-300"><strong>Leave off Ignored Contacts:</strong> ReplyFlow treats it like a customer (AI Voice, lead creation, automated texts, follow-ups).</p>
-                                  </div>
-                                  <div className="flex items-start gap-1">
-                                    <span className="text-blue-600 dark:text-blue-400 font-semibold text-[10px]">•</span>
-                                    <p className="text-[10px] text-blue-700 dark:text-blue-300"><strong>Add to Ignored Contacts:</strong> ReplyFlow stays out (no AI Voice, no automated texts, no lead, no follow-ups—just a simple voicemail).</p>
-                                  </div>
-                                </div>
-                                <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-700">
-                                  <p className="text-[10px] font-semibold text-blue-900 dark:text-blue-100 mb-1">Why does this work this way?</p>
-                                  <p className="text-[10px] text-blue-700 dark:text-blue-300">
-                                    ReplyFlow identifies callers by their incoming phone number. It can't automatically know whether a missed call is from a customer, a friend, or a family member. Ignored Contacts gives you complete control over which phone numbers ReplyFlow should handle and which ones it should leave alone.
-                                  </p>
-                                </div>
+                                <p className="text-[10px] text-blue-700 dark:text-blue-300 mt-1">
+                                  See the Ignored Contacts section below for more information.
+                                </p>
                               </div>
                             </div>
                           </div>
@@ -1912,7 +1898,7 @@ export default function SettingsContent() {
                       </div>
                       <h3 className="text-[9px] sm:text-[10px] font-medium text-slate-900 dark:text-foreground mb-0.5">No ignored contacts yet</h3>
                       <p className="text-[9px] text-slate-600 dark:text-muted-foreground max-w-[200px] mx-auto">
-                        Employee and vendor numbers will appear here when added.
+                        Add employees, family members, vendors, or other personal contacts that ReplyFlow should ignore.
                       </p>
                     </div>
                   ) : (
