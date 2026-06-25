@@ -516,7 +516,9 @@ export default function PrivacyPage() {
                       <div>
                         <p className="font-semibold text-blue-900 dark:text-blue-100">Privacy & Security</p>
                         <a 
-                          href="mailto:privacy@replyflowhq.com" 
+                          href="https://mail.google.com/mail/?view=cm&fs=1&to=privacy@replyflowhq.com" 
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                         >
                           privacy@replyflowhq.com
@@ -535,7 +537,9 @@ export default function PrivacyPage() {
                       <div>
                         <p className="font-semibold text-blue-900 dark:text-blue-100">General Support</p>
                         <a 
-                          href="mailto:support@replyflowhq.com" 
+                          href="https://mail.google.com/mail/?view=cm&fs=1&to=support@replyflowhq.com" 
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                         >
                           support@replyflowhq.com

@@ -23,7 +23,9 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-3">
               <a
-                href="mailto:support@replyflowhq.com"
+                href="https://mail.google.com/mail/?view=cm&fs=1&to=support@replyflowhq.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-xs sm:text-sm font-medium transition-colors"
               >
                 support@replyflowhq.com

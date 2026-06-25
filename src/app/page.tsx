@@ -64,7 +64,9 @@ function HomepageFooter() {
             </p>
             <div className="flex items-center gap-4">
               <a
-                href="mailto:support@replyflowhq.com"
+                href="https://mail.google.com/mail/?view=cm&fs=1&to=support@replyflowhq.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm sm:text-base font-medium"
               >
                 support@replyflowhq.com

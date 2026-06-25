@@ -162,7 +162,7 @@ export default function HelpAssistant({ className = '', defaultCategory, context
                 )}
                 <p className="text-amber-800 dark:text-amber-200 text-sm">
                   For direct assistance, contact support at{' '}
-                  <a href="mailto:support@replyflowhq.com" className="font-semibold underline">
+                  <a href="https://mail.google.com/mail/?view=cm&fs=1&to=support@replyflowhq.com" target="_blank" rel="noopener noreferrer" className="font-semibold underline">
                     support@replyflowhq.com
                   </a>.
                 </p>
@@ -193,7 +193,7 @@ export default function HelpAssistant({ className = '', defaultCategory, context
                 )}
                 <p className="text-slate-600 dark:text-slate-400 text-sm">
                   Still need help? Contact support at{' '}
-                  <a href="mailto:support@replyflowhq.com" className="text-blue-600 dark:text-blue-400 underline">
+                  <a href="https://mail.google.com/mail/?view=cm&fs=1&to=support@replyflowhq.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline">
                     support@replyflowhq.com
                   </a>.
                 </p>

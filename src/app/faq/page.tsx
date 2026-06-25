@@ -542,7 +542,9 @@ export default function FAQPage() {
                     <div>
                       <p className="font-semibold text-blue-900 dark:text-blue-100">Email Support</p>
                       <a 
-                        href="mailto:support@replyflowhq.com" 
+                        href="https://mail.google.com/mail/?view=cm&fs=1&to=support@replyflowhq.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                       >
                         support@replyflowhq.com
@@ -710,7 +712,9 @@ export default function FAQPage() {
             Our support team is ready to help you get the most out of ReplyFlowHQ.
           </p>
           <a
-            href="mailto:support@replyflowhq.com"
+            href="https://mail.google.com/mail/?view=cm&fs=1&to=support@replyflowhq.com"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center h-12 px-6 py-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl transition-colors shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all"
           >
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
