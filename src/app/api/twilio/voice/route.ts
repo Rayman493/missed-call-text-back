@@ -825,8 +825,19 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     }
     
     if (guardResult.passed) {
-      console.log('[AI CALL ASSISTANT] All guards passed', {
-        businessId: business.id,
+      // Config safety validation: If AI is enabled, production requires POC routing
+      if (!usePOC) {
+        console.error('[AI VOICE CONFIG ERROR] AI Voice enabled but production POC routing is disabled. Falling back to voicemail.', {
+          businessId: business.id,
+          callSid: CallSid,
+          reason: 'AI_CALL_ASSISTANT_ENABLED=true but AI_ASSISTANT_USE_POC is not set to true',
+          fix: 'Set AI_ASSISTANT_USE_POC=true in environment variables to enable production AI Voice routing'
+        });
+        console.log('[VOICE PATH] VOICEMAIL (CONFIG SAFETY)');
+        // Fall through to voicemail flow
+      } else {
+        console.log('[AI CALL ASSISTANT] All guards passed', {
+          businessId: business.id,
         callSid: CallSid,
         reason: guardResult.reason,
         callType,
@@ -1125,6 +1136,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         const aiStartUrl = new URL('/api/twilio/ai-assistant/start', request.url);
         aiRoutingSucceeded = true;
         return NextResponse.redirect(aiStartUrl);
+      }
       }
     } else {
       console.log('[AI CALL ASSISTANT] Guards failed - continuing with existing voicemail flow', {

@@ -1,5 +1,5 @@
 /**
- * AI Call Assistant Session Manager (Phase 0 - QA Only)
+ * AI Call Assistant Session Manager
  * 
  * Manages AI call session lifecycle and database operations
  */

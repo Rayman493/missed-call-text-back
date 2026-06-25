@@ -1,5 +1,5 @@
 /**
- * AI Call Assistant Configuration (Phase 0 - QA Only)
+ * AI Call Assistant Configuration
  * 
  * SAFETY: All features are disabled by default.
  * Production customers are NOT affected.
@@ -124,6 +124,9 @@ export function checkAllGuards(businessId: string, business?: { ai_assistant_ena
   // Check 5: AI Voice WebSocket URL
   const aiVoiceWsUrl = process.env.AI_VOICE_FLY_WS_URL
   if (!aiVoiceWsUrl) {
+    console.error('[AI VOICE CONFIG ERROR] AI_VOICE_FLY_WS_URL is not configured. AI Voice cannot function without Fly.io WebSocket URL.', {
+      fix: 'Set AI_VOICE_FLY_WS_URL environment variable to the Fly.io WebSocket endpoint (e.g., wss://replyflow-ai-voice.fly.dev/stream)'
+    })
     return { passed: false, reason: 'ai_voice_ws_url_not_configured' }
   }
 

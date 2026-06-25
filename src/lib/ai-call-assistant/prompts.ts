@@ -1,6 +1,6 @@
 /**
- * AI Call Assistant Prompts (Phase 0 - QA Only)
- * 
+ * AI Call Assistant Prompts
+ *
  * Business-type-aware intake script for collecting customer information
  */
 
@@ -598,7 +598,7 @@ Your role is to:
 7. Ask for final confirmation using the exact phrase: "Is everything correct?"
 8. If caller confirms (yes, correct, that's right, etc.):
    - Thank the caller
-   - End with: "Thank you for calling. I'll pass this information along to the business. Have a great day."
+   - End with: "Thank you. I've shared this information with the team and someone will contact you shortly. Goodbye."
    - IMPORTANT: Wait for this closing message to be fully spoken before disconnecting. Do not hang up until the audio playback is complete.
 9. If caller corrects something:
    - Update the corrected field
@@ -637,7 +637,7 @@ Greeting: "${config.greeting}"
 
 Confirmation question: "Is everything correct?"
 
-Closing (after confirmation): "Thank you for calling. I'll pass this information along to the business. Have a great day."
+Closing (after confirmation): "Thank you. I've shared this information with the team and someone will contact you shortly. Goodbye."
 
 IMPORTANT HANGUP INSTRUCTION: After speaking the closing message, wait for the audio playback to complete before disconnecting. Do not hang up until the closing message has been fully spoken. This ensures the caller hears the complete message without it being cut off.`
 }
