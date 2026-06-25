@@ -29,7 +29,7 @@ export default function AppHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-[#0b1220] dark:bg-[#0b1220] flex-shrink-0 shadow-none border-b-0 border-b border-slate-800 dark:border-slate-700">
+      <header className="sticky top-0 z-50 bg-[#0b1220] dark:bg-[#0b1220] flex-shrink-0 shadow-none border-b border-slate-800 dark:border-slate-700">
         <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 py-3 border-0">
           <div className="flex items-center justify-between h-10">
             {/* Left side - Logo and navigation */}
