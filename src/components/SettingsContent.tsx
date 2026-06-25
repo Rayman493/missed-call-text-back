@@ -174,16 +174,6 @@ export default function SettingsContent() {
         'out_of_office_message' in updatePayload
       )
 
-      console.log('[OUT OF OFFICE SAVE]', {
-        businessId: businessData.id,
-        hasOutOfOfficeFields,
-        out_of_office_enabled: updatePayload.out_of_office_enabled,
-        out_of_office_start: updatePayload.out_of_office_start,
-        out_of_office_end: updatePayload.out_of_office_end,
-        out_of_office_message: updatePayload.out_of_office_message,
-        payloadKeys: Object.keys(updatePayload)
-      })
-
       const { error } = await supabase
         .from('businesses')
         .update(updatePayload)
@@ -246,30 +236,23 @@ export default function SettingsContent() {
   // Helper to convert ISO timestamp to datetime-local format (yyyy-MM-ddThh:mm)
   const toDateTimeLocal = (isoString: string | null | undefined): string => {
     if (!isoString) return ''
-    
-    const storedValue = isoString
-    let displayedValue: string
-    
+
     try {
       const date = new Date(isoString)
       if (isNaN(date.getTime())) {
-        console.warn('[OUT OF OFFICE DATETIME FORMAT] Invalid date string:', storedValue)
         return ''
       }
-      
+
       // Format: yyyy-MM-ddThh:mm
       const year = date.getFullYear()
       const month = String(date.getMonth() + 1).padStart(2, '0')
       const day = String(date.getDate()).padStart(2, '0')
       const hours = String(date.getHours()).padStart(2, '0')
       const minutes = String(date.getMinutes()).padStart(2, '0')
-      
-      displayedValue = `${year}-${month}-${day}T${hours}:${minutes}`
-      
-      console.log('[OUT OF OFFICE DATETIME FORMAT]', { storedValue, displayedValue })
-      return displayedValue
+
+      return `${year}-${month}-${day}T${hours}:${minutes}`
     } catch (error) {
-      console.error('[OUT OF OFFICE DATETIME FORMAT] Conversion error:', { storedValue, error })
+      console.error('[Settings] Error converting datetime:', error)
       return ''
     }
   }
@@ -318,7 +301,6 @@ export default function SettingsContent() {
     try {
       // Check if user is authenticated before making request
       if (!user) {
-        console.log('[Settings] User not authenticated, skipping ignored contacts fetch')
         return
       }
 
@@ -326,7 +308,6 @@ export default function SettingsContent() {
       const token = session?.access_token
 
       if (!token) {
-        console.log('[Settings] No session token, skipping ignored contacts fetch')
         return
       }
 
@@ -338,7 +319,6 @@ export default function SettingsContent() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          console.log('[Settings] Unauthorized response, user may need to re-authenticate')
           return
         }
         throw new Error('Failed to fetch ignored contacts')
