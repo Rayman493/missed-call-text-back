@@ -4,6 +4,7 @@ import Link from 'next/link'
 import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
+import BrandIcon from '@/components/BrandIcon'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -52,9 +53,7 @@ function HomepageFooter() {
           {/* Company Info */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">RF</span>
-              </div>
+              <BrandIcon size={40} />
               <span className="text-2xl font-bold text-foreground">ReplyFlowHQ</span>
             </div>
             <p className="text-muted-foreground mb-8 max-w-md text-base leading-relaxed">
