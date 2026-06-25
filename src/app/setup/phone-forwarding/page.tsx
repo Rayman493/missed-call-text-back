@@ -374,6 +374,12 @@ export default function PhoneForwardingPage() {
                     <p className="text-sm text-blue-700 dark:text-blue-300 mt-3">
                       This makes it easy to keep business calls inside ReplyFlow while allowing personal contacts to bypass automation.
                     </p>
+                    <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
+                      <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Why does this work this way?</p>
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        ReplyFlow identifies callers by their incoming phone number. It can't automatically know whether a missed call is from a customer, a friend, or a family member. Ignored Contacts gives you complete control over which phone numbers ReplyFlow should handle and which ones it should leave alone.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

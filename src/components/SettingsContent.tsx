@@ -1157,6 +1157,12 @@ export default function SettingsContent() {
                                     <p className="text-[10px] text-blue-700 dark:text-blue-300"><strong>Add to Ignored Contacts:</strong> ReplyFlow stays out (no AI Voice, no automated texts, no lead, no follow-ups—just a simple voicemail).</p>
                                   </div>
                                 </div>
+                                <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-700">
+                                  <p className="text-[10px] font-semibold text-blue-900 dark:text-blue-100 mb-1">Why does this work this way?</p>
+                                  <p className="text-[10px] text-blue-700 dark:text-blue-300">
+                                    ReplyFlow identifies callers by their incoming phone number. It can't automatically know whether a missed call is from a customer, a friend, or a family member. Ignored Contacts gives you complete control over which phone numbers ReplyFlow should handle and which ones it should leave alone.
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1883,6 +1889,12 @@ export default function SettingsContent() {
                       <p className="text-[10px] text-slate-700 dark:text-slate-300 mt-1">
                         You can remove contacts from this list at any time.
                       </p>
+                      <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-600">
+                        <p className="text-[10px] font-semibold text-slate-900 dark:text-slate-100 mb-1">Why does this work this way?</p>
+                        <p className="text-[10px] text-slate-700 dark:text-slate-300">
+                          ReplyFlow identifies callers by their incoming phone number. It can't automatically know whether a missed call is from a customer, a friend, or a family member. Ignored Contacts gives you complete control over which phone numbers ReplyFlow should handle and which ones it should leave alone.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>

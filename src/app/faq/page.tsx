@@ -240,6 +240,12 @@ export default function FAQPage() {
                 <p className="text-muted-foreground mt-4">
                   This flexibility makes it easy to keep business calls inside ReplyFlow while allowing personal contacts to bypass automation. You can add or remove numbers from your Ignored Contacts list at any time in Settings.
                 </p>
+                <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-2xl">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">Why does this work this way?</h3>
+                  <p className="text-sm text-slate-700 dark:text-slate-300">
+                    ReplyFlow identifies callers by their incoming phone number. It can't automatically know whether a missed call is from a customer, a friend, or a family member. Ignored Contacts gives you complete control over which phone numbers ReplyFlow should handle and which ones it should leave alone.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
