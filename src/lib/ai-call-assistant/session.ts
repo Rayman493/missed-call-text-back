@@ -77,8 +77,6 @@ export async function createAISession(params: CreateSessionParams): Promise<AICa
       started_at: new Date().toISOString(),
     }
 
-    console.log('[AI SESSION INSERT PAYLOAD]', insertPayload)
-
     const { data, error } = await supabaseAdmin
       .from('ai_call_sessions')
       .insert(insertPayload)
@@ -88,9 +86,6 @@ export async function createAISession(params: CreateSessionParams): Promise<AICa
     if (error) {
       // Check for duplicate call_sid
       if (error.code === '23505') {
-        console.log('[AI CALL ASSISTANT] Duplicate call_sid detected, fetching existing session', {
-          call_sid: params.call_sid
-        })
         return getAISessionByCallSid(params.call_sid)
       }
       
@@ -101,12 +96,6 @@ export async function createAISession(params: CreateSessionParams): Promise<AICa
       })
       return null
     }
-
-    console.log('[AI SESSION CREATE] success', {
-      sessionId: data.id,
-      callSid: data.call_sid,
-      businessId: data.business_id
-    })
 
     return data
   } catch (error) {
@@ -143,11 +132,6 @@ export async function getAISessionByCallSid(callSid: string): Promise<AICallSess
  */
 export async function updateAISession(sessionId: string, params: UpdateSessionParams): Promise<AICallSession | null> {
   try {
-    console.log('[AI CALL ASSISTANT] Updating session', {
-      session_id: sessionId,
-      updates: Object.keys(params)
-    })
-
     const { data, error } = await supabaseAdmin
       .from('ai_call_sessions')
       .update({
@@ -162,11 +146,6 @@ export async function updateAISession(sessionId: string, params: UpdateSessionPa
       console.error('[AI CALL ASSISTANT] Failed to update session:', error)
       return null
     }
-
-    console.log('[AI CALL ASSISTANT] Session updated', {
-      session_id: sessionId,
-      status: data.status
-    })
 
     return data
   } catch (error) {
@@ -205,8 +184,6 @@ export async function completeAISession(
     transcript: transcript ? JSON.parse(transcript) : null,
     confirmationCompleted: true
   })
-
-  console.log('[OUTCOME CLASSIFICATION RESULT]', classification)
 
   return updateAISession(sessionId, {
     status: 'completed',
@@ -290,12 +267,6 @@ export async function timeoutAISession(
     callback_number?: string
   }
 ): Promise<AICallSession | null> {
-  console.log('[AI GUARDRAIL] Session timed out', {
-    session_id: sessionId,
-    reason,
-    extractedData
-  })
-
   const duration = await calculateSessionDuration(sessionId)
 
   // Save whatever data was collected as partial intake
@@ -339,12 +310,6 @@ export async function completePartialAISession(
   },
   reason: 'duration' | 'turn_limit' | 'field_limit'
 ): Promise<AICallSession | null> {
-  console.log('[AI GUARDRAIL] Completing partial intake', {
-    session_id: sessionId,
-    reason,
-    extractedData
-  })
-
   const duration = await calculateSessionDuration(sessionId)
 
   const classification = classifyOutcome({
@@ -357,8 +322,6 @@ export async function completePartialAISession(
     transcript: null,
     confirmationCompleted: false
   })
-
-  console.log('[OUTCOME CLASSIFICATION RESULT]', classification)
 
   return updateAISession(sessionId, {
     status: 'completed',

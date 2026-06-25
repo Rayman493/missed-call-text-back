@@ -646,22 +646,14 @@ IMPORTANT HANGUP INSTRUCTION: After speaking the closing message, wait for the a
  * Log AI selected question for debugging
  */
 export function logSelectedQuestion(businessType: string, stage: string, questionText: string) {
-  console.log('[AI SELECTED QUESTION]', {
-    businessType,
-    stage,
-    questionText
-  })
+  // No-op - removed console noise
 }
 
 /**
  * Log AI stage transition for debugging
  */
 export function logStageTransition(currentStage: string, nextStage: string, businessType: string) {
-  console.log('[AI STAGE TRANSITION]', {
-    currentStage,
-    nextStage,
-    businessType
-  })
+  // No-op - removed console noise
 }
 
 /**
@@ -675,14 +667,7 @@ export function logFieldStatus(fields: {
   desiredCompletionTime?: string | null
   preferredCallbackTime?: string | null
 }) {
-  console.log('[AI FIELD STATUS]', {
-    customerName: fields.customerName || null,
-    serviceRequested: fields.serviceRequested || null,
-    importantDetails: fields.importantDetails || null,
-    serviceAddress: fields.serviceAddress || null,
-    desiredCompletionTime: fields.desiredCompletionTime || null,
-    preferredCallbackTime: fields.preferredCallbackTime || null
-  })
+  // No-op - removed console noise
 }
 
 /**
@@ -774,7 +759,6 @@ export const EXTRACTION_FUNCTION = {
  * Generate greeting message - now category-aware
  */
 export function getGreeting(businessName: string, category: BusinessCategory = 'general_service'): string {
-  console.log('[AI SESSION LANGUAGE LOCK] english')
   const config = CATEGORY_INTAKE_CONFIG[category]
   return config.greeting.replace('${businessName}', businessName)
 }
@@ -797,16 +781,6 @@ export function getGuardrailClosing(): string {
  * Generate confirmation question with summary - now category-aware and excludes placeholders
  */
 export function getConfirmationQuestion(data: any, category: BusinessCategory = 'general_service'): string {
-  console.log('[AI CONFIRMATION SUMMARY]', {
-    caller_name: data.caller_name,
-    reason_for_call: data.reason_for_call,
-    important_details: data.important_details,
-    urgency: data.urgency,
-    address: data.address,
-    callback_time: data.callback_time,
-    category
-  })
-  
   const config = CATEGORY_INTAKE_CONFIG[category]
   // confirmationFormat already includes the intro and confirmation question
   return config.confirmationFormat(data)
@@ -816,47 +790,35 @@ export function getConfirmationQuestion(data: any, category: BusinessCategory = 
  * Log confirmation acceptance
  */
 export function logConfirmationAccepted(): void {
-  console.log('[AI FINAL CONFIRMATION ACCEPTED]')
+  // No-op - removed console noise
 }
 
 /**
  * Log AI intake stage transition
  */
 export function logIntakeStage(currentStage: string, nextStage: string): void {
-  console.log('[AI INTAKE STAGE]', {
-    currentStage,
-    nextStage
-  })
+  // No-op - removed console noise
 }
 
 /**
  * Log AI details collection
  */
 export function logDetailsCollection(reasonForCalling: string | null, importantDetails: string | null): void {
-  console.log('[AI DETAILS COLLECTION]', {
-    reasonForCalling,
-    importantDetails
-  })
+  // No-op - removed console noise
 }
 
 /**
  * Log correction received
  */
 export function logCorrectionReceived(field: string, newValue: string): void {
-  console.log('[AI FINAL CONFIRMATION CORRECTION_RECEIVED]', {
-    field,
-    newValue
-  })
+  // No-op - removed console noise
 }
 
 /**
  * Log summary regenerated after correction
  */
 export function logSummaryRegenerated(data: any, category: BusinessCategory = 'general_service'): void {
-  console.log('[AI SUMMARY REGENERATED_AFTER_CORRECTION]', {
-    ...data,
-    category
-  })
+  // No-op - removed console noise
 }
 
 /**

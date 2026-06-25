@@ -104,8 +104,6 @@ function hasMeaningfulUserSpeech(transcript: Array<{ role: string; text: string 
  * Classify the AI call outcome based on objective signals
  */
 export function classifyOutcome(input: OutcomeClassificationInput): OutcomeClassificationResult {
-  console.log('[OUTCOME CLASSIFICATION START]', input)
-
   const {
     extractedInfo,
     transcript,
@@ -117,7 +115,6 @@ export function classifyOutcome(input: OutcomeClassificationInput): OutcomeClass
 
   // Check for AI connection failure
   if (sessionError) {
-    console.log('[OUTCOME CLASSIFICATION] AI connection failed', { sessionError })
     return {
       outcome: 'ai_connection_failed',
       reason: `AI service failed: ${sessionError}`,
@@ -129,17 +126,9 @@ export function classifyOutcome(input: OutcomeClassificationInput): OutcomeClass
   // Count meaningful fields
   const meaningfulFields = countMeaningfulFields(extractedInfo)
   const userSpoke = hadUserSpeech !== undefined ? hadUserSpeech : hasMeaningfulUserSpeech(transcript)
-  
-  console.log('[OUTCOME CLASSIFICATION] Analysis', {
-    meaningfulFields,
-    userSpoke,
-    confirmationCompleted,
-    extractedInfo
-  })
 
   // No speech detected - no meaningful information captured
   if (!userSpoke) {
-    console.log('[OUTCOME CLASSIFICATION] No speech detected')
     return {
       outcome: 'no_speech',
       reason: 'No meaningful speech detected during the call',
@@ -150,7 +139,6 @@ export function classifyOutcome(input: OutcomeClassificationInput): OutcomeClass
 
   // Early hangup - user spoke but no meaningful information captured
   if (userSpoke && meaningfulFields === 0) {
-    console.log('[OUTCOME CLASSIFICATION] Early hangup detected (no fields)')
     return {
       outcome: 'early_hangup',
       reason: 'Caller disconnected before providing meaningful information',
@@ -172,7 +160,6 @@ export function classifyOutcome(input: OutcomeClassificationInput): OutcomeClass
   // 2. Required fields were captured
   // 3. Sufficient meaningful information was captured
   if (confirmationCompleted && hasRequiredFields && meaningfulFields >= 3) {
-    console.log('[OUTCOME CLASSIFICATION] Completed intake (confirmation completed)')
     return {
       outcome: 'completed_intake',
       reason: 'AI intake completed successfully with confirmation',
@@ -184,7 +171,6 @@ export function classifyOutcome(input: OutcomeClassificationInput): OutcomeClass
   // Partial intake - some fields captured but conversation did not complete naturally
   // This includes cases where caller disconnected before AI reached its end state
   if (meaningfulFields > 0) {
-    console.log('[OUTCOME CLASSIFICATION] Partial intake (conversation did not complete)')
     return {
       outcome: 'partial_intake',
       reason: `Partial intake captured: ${meaningfulFields} meaningful field(s). Conversation did not complete naturally.`,
@@ -194,7 +180,6 @@ export function classifyOutcome(input: OutcomeClassificationInput): OutcomeClass
   }
 
   // Fallback to early hangup if we reach here with no fields
-  console.log('[OUTCOME CLASSIFICATION] Fallback to early hangup')
   return {
     outcome: 'early_hangup',
     reason: 'Caller disconnected before providing meaningful information',
