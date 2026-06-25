@@ -6,7 +6,7 @@ interface BrandIconProps {
 export default function BrandIcon({ size = 32, className = '' }: BrandIconProps) {
   return (
     <img
-      src="/replyflow-r-logo.png"
+      src="/replyflow-logo.svg"
       alt="ReplyFlow"
       width={size}
       height={size}
