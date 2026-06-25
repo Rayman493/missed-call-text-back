@@ -15,26 +15,6 @@ export default function CompliancePage() {
     <PageBackground>
       <SSRSafeNavbar forceDark={true} />
       
-      {/* Back to Home Navigation */}
-      <div className="bg-white dark:bg-slate-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 group"
-          >
-            <svg 
-              className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Home
-          </Link>
-        </div>
-      </div>
-      
       {/* Hero Section */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -86,7 +66,7 @@ export default function CompliancePage() {
                   href="#missed-call-workflow"
                   className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
-                  Missed-Call Workflow
+                  Missed-Call Response Workflow
                 </a>
                 <a
                   href="#consent-disclosures"
@@ -116,7 +96,7 @@ export default function CompliancePage() {
                   href="#ai-voicemail"
                   className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
-                  AI Voicemail Compliance
+                  AI Voice Compliance
                 </a>
                 <a
                   href="#call-recording"
@@ -134,7 +114,7 @@ export default function CompliancePage() {
                   href="#business-responsibilities"
                   className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
-                  Business Responsibilities
+                  ReplyFlowHQ LLC Responsibilities
                 </a>
                 <a
                   href="#contact-support"
@@ -192,7 +172,7 @@ export default function CompliancePage() {
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
-                  Missed-Call Response Workflow
+                  Missed-Call Workflow
                 </h2>
                 <div className="prose prose-invert max-w-none">
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
@@ -438,7 +418,7 @@ export default function CompliancePage() {
           </section>
 
           {/* How Customers Opt In */}
-          <section>
+          <section id="how-customers-opt-in">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -594,16 +574,16 @@ export default function CompliancePage() {
             </div>
           </section>
 
-          {/* AI Voicemail Intake Compliance */}
+          {/* AI Voice Compliance */}
           <section id="ai-voicemail">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
-                  AI Voicemail Intake Compliance
+                  AI Voice Compliance
                 </h2>
                 <div className="prose prose-invert max-w-none">
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                    ReplyFlowHQ LLC provides AI-assisted call handling capabilities that complement our SMS compliance framework.
+                    ReplyFlowHQ LLC provides <strong>AI Voice</strong> to answer missed calls and assist businesses with customer communications. AI Voice complements our SMS compliance framework by capturing lead information and generating call summaries.
                   </p>
                   <div className="mt-6 space-y-4">
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
@@ -744,7 +724,7 @@ export default function CompliancePage() {
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
-                  ReplyFlowHQ LLC Responsibilities
+                  Business Responsibilities
                 </h2>
                 <div className="prose prose-invert max-w-none">
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -798,30 +778,43 @@ export default function CompliancePage() {
 
           {/* Contact Support */}
           <section id="contact-support">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white">
-              <h2 className="text-2xl font-semibold mb-4">
-                Compliance Questions?
-              </h2>
-              <p className="text-blue-100 mb-6">
-                ReplyFlowHQ LLC compliance team is available to help understand regulatory requirements and best practices.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <a
-                  href="mailto:support@replyflowhq.com"
-                  className="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-medium rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                  </svg>
-                  Email ReplyFlowHQ LLC Compliance
-                </a>
-                <a
-                  href="/faq"
-                  className="inline-flex items-center px-6 py-3 bg-blue-700 text-white font-medium rounded-lg hover:bg-blue-800 transition-colors"
-                >
-                  View FAQ
-                </a>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="p-8">
+                <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
+                  Contact Support
+                </h2>
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                    For compliance questions, please contact us:
+                  </p>
+                  <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-shrink-0">
+                        <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                          <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-blue-900 dark:text-blue-100">Compliance Support</p>
+                        <a 
+                          href="mailto:support@replyflowhq.com" 
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                        >
+                          support@replyflowhq.com
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-6">
+                    <a
+                      href="/faq"
+                      className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      View FAQ
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
