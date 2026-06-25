@@ -871,17 +871,9 @@ export default function SettingsContent() {
       if (sections.includes(hash)) {
         const element = document.getElementById(hash)
         if (element) {
-          // Scroll to the top of the Settings content area instead of the specific section
-          // This ensures the "Settings" title is always fully visible
-          const settingsHeader = document.querySelector('.sticky.top-\\[52px\\]') as HTMLElement | null
-          const header = document.querySelector('header') as HTMLElement | null
-
-          const headerHeight = header ? header.offsetHeight : 0
-          const settingsHeaderHeight = settingsHeader ? settingsHeader.offsetHeight : 0
-          const offset = headerHeight + settingsHeaderHeight + 10
-
+          // Scroll to the top of the page to ensure the "Settings" heading is always visible
           window.scrollTo({
-            top: offset,
+            top: 0,
             behavior: 'auto'
           })
           // Let the scroll handler update the active section
@@ -926,22 +918,11 @@ export default function SettingsContent() {
 
   // Shared scroll-to-section helper
   const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId)
-    if (element) {
-      // Scroll to the top of the Settings content area instead of the specific section
-      // This ensures the "Settings" title is always fully visible
-      const settingsHeader = document.querySelector('.sticky.top-\\[52px\\]') as HTMLElement | null
-      const header = document.querySelector('header') as HTMLElement | null
-      
-      const headerHeight = header ? header.offsetHeight : 0
-      const settingsHeaderHeight = settingsHeader ? settingsHeader.offsetHeight : 0
-      const offset = headerHeight + settingsHeaderHeight + 10
-      
-      window.scrollTo({
-        top: offset,
-        behavior: 'auto'
-      })
-    }
+    // Scroll to the top of the page to ensure the "Settings" heading is always visible
+    window.scrollTo({
+      top: 0,
+      behavior: 'auto'
+    })
   }
 
   // Smooth scroll handler
