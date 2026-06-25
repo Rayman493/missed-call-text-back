@@ -974,8 +974,8 @@ export default function SettingsContent() {
             <div className="flex-1 pt-4 px-3 sm:px-4 lg:px-6 pb-20">
               <div className="max-w-[1400px] mx-auto">
 
-            {/* Settings Header Block - Sticky */}
-            <div className="sticky top-[64px] z-40 bg-background/95 dark:bg-background/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 shadow-sm pb-4 sm:pb-5 md:pb-6 mb-4 sm:mb-6 md:mb-8">
+            {/* Settings Header Block */}
+            <div className="mb-4 sm:mb-5 md:mb-6">
               {/* Page Header */}
               <div className="mb-4 sm:mb-5 md:mb-6">
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">
@@ -986,8 +986,8 @@ export default function SettingsContent() {
                 </p>
               </div>
 
-              {/* Settings Navigation Tabs */}
-              <div className="py-1.5 sm:py-2">
+              {/* Settings Navigation Tabs - Sticky */}
+              <div className="sticky top-[64px] z-40 bg-background/95 dark:bg-background/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 shadow-sm py-1.5 sm:py-2 -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6">
                 <nav className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto">
                   <button
                     onClick={() => handleSectionClick('general')}
