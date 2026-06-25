@@ -15,26 +15,6 @@ export default function TermsPage() {
     <PageBackground>
       <SSRSafeNavbar forceDark={true} />
       
-      {/* Back to Home Navigation */}
-      <div className="bg-card">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 group"
-          >
-            <svg 
-              className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Home
-          </Link>
-        </div>
-      </div>
-      
       {/* Hero Section */}
       <div className="bg-card border-b border-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -107,7 +87,7 @@ export default function TermsPage() {
                   href="#ai-communications"
                   className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
-                  AI Communications
+                  AI-Assisted Communications
                 </a>
                 <a
                   href="#payment-terms"
@@ -356,7 +336,7 @@ export default function TermsPage() {
                 </h2>
                 <div className="prose prose-gray dark:prose-invert max-w-none">
                   <p className="text-muted-foreground leading-relaxed">
-                    ReplyFlowHQ LLC provides AI-assisted communication tools including AI voicemail intake, transcription, summarization, and automated responses to assist with customer communications.
+                    ReplyFlowHQ LLC provides <strong>AI Voice</strong> to answer missed calls and assist businesses with customer communications. AI Voice can transcribe calls, generate summaries, and collect lead information to help businesses respond quickly to customer inquiries.
                   </p>
                   <div className="mt-6">
                     <h3 className="text-lg font-medium text-foreground mb-3">Business Acknowledgments</h3>
@@ -390,8 +370,8 @@ export default function TermsPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                  <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
                       <strong>Important:</strong> ReplyFlowHQ LLC's AI features are designed to assist with customer communications but do not replace professional judgment or legal compliance requirements. Businesses should review and verify AI-generated content before sending to customers.
                     </p>
                   </div>
@@ -410,15 +390,21 @@ export default function TermsPage() {
                 <div className="prose prose-gray dark:prose-invert max-w-none">
                   <div className="space-y-4">
                     <div>
-                      <h3 className="text-lg font-medium text-foreground mb-2">Subscription Fees</h3>
+                      <h3 className="text-lg font-medium text-foreground mb-2">Free Trial</h3>
                       <p className="text-muted-foreground">
-                        ReplyFlowHQ services are provided on a subscription basis with monthly recurring fees.
+                        ReplyFlowHQ offers a 14-day free trial with no credit card required. No charges are applied during the trial period.
                       </p>
                     </div>
                     <div>
-                      <h3 className="text-lg font-medium text-foreground mb-2">Billing Cycle</h3>
+                      <h3 className="text-lg font-medium text-foreground mb-2">Subscription Fees</h3>
                       <p className="text-muted-foreground">
-                        Fees are billed in advance on a monthly basis. No refunds for partial months.
+                        After the trial, ReplyFlowHQ services are billed at $59/month with no contracts or long-term commitments.
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium text-foreground mb-2">Cancellation</h3>
+                      <p className="text-muted-foreground">
+                        You may cancel your subscription at any time through your dashboard settings. No cancellation fees apply.
                       </p>
                     </div>
                     <div>
@@ -427,12 +413,11 @@ export default function TermsPage() {
                         We accept major credit cards and other payment methods as specified during signup.
                       </p>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-medium text-foreground mb-2">Late Payments</h3>
-                      <p className="text-muted-foreground">
-                        Late payments may result in service suspension. Reconnection fees may apply.
-                      </p>
-                    </div>
+                  </div>
+                  <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>Important:</strong> No refunds for partial months. You will not be charged again after cancellation, but you retain access until the end of your current billing period.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -440,7 +425,7 @@ export default function TermsPage() {
           </section>
 
           {/* Termination */}
-          <section>
+          <section id="service-termination">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -528,8 +513,8 @@ export default function TermsPage() {
                   <p className="text-muted-foreground leading-relaxed mt-4">
                     Service interruptions may occur due to maintenance, telecommunications providers, infrastructure providers, third-party vendors, or circumstances outside our control.
                   </p>
-                  <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                  <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
                       <strong>Important:</strong> While we work to minimize downtime, we do not guarantee 100% uptime. Critical services may be temporarily unavailable during scheduled maintenance or unexpected outages.
                     </p>
                   </div>
