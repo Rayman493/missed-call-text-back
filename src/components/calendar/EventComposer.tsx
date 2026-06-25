@@ -58,6 +58,11 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
   }, [isOpen, prefill])
 
   const handleSave = async () => {
+    // Prevent double submission
+    if (isSaving) {
+      return
+    }
+
     // Validate end date is not before start date
     if (new Date(endDate) < new Date(startDate)) {
       setDateError('End date cannot be before start date')
@@ -106,11 +111,18 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
     }
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Prevent form submission on Enter key
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+    }
+  }
+
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 dark:bg-slate-900 rounded-xl border border-slate-700/60 shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200">
+      <div className="bg-slate-900 dark:bg-slate-900 rounded-xl border border-slate-700/60 shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200" onKeyDown={handleKeyDown}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/60">
           <div className="flex items-center gap-3">

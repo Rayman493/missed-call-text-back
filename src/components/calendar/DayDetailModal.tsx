@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { X, Calendar, Clock, Plus } from 'lucide-react'
 
 interface DayDetailModalProps {
@@ -17,6 +18,8 @@ interface DayDetailModalProps {
 }
 
 export default function DayDetailModal({ isOpen, onClose, date, events, onAddEvent }: DayDetailModalProps) {
+  const [isAdding, setIsAdding] = useState(false)
+
   if (!isOpen) return null
 
   const formatDate = (date: Date) => {
@@ -34,6 +37,14 @@ export default function DayDetailModal({ isOpen, onClose, date, events, onAddEve
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer')
     }
+  }
+
+  const handleAddEventClick = () => {
+    if (isAdding || !onAddEvent) return
+    setIsAdding(true)
+    onAddEvent(date)
+    onClose()
+    setIsAdding(false)
   }
 
   return (
@@ -96,14 +107,12 @@ export default function DayDetailModal({ isOpen, onClose, date, events, onAddEve
         {onAddEvent && (
           <div className="px-5 py-4 border-t border-slate-700/60">
             <button
-              onClick={() => {
-                onAddEvent(date)
-                onClose()
-              }}
-              className="w-full px-4 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
+              onClick={handleAddEventClick}
+              disabled={isAdding}
+              className="w-full px-4 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
             >
               <Plus className="w-4 h-4" />
-              Add event
+              <span>{isAdding ? 'Adding...' : 'Add event'}</span>
             </button>
           </div>
         )}
