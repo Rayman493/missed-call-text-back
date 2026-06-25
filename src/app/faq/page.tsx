@@ -206,16 +206,22 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  <strong>Yes, absolutely.</strong> Many small business owners use the same phone for both personal and business calls. ReplyFlow works seamlessly in either scenario.
+                  Yes. Many small business owners use the same phone for both business and personal calls.
+                </p>
+                <p className="text-muted-foreground leading-relaxed mt-4">
+                  If there are friends, family members, or other personal contacts you don't want ReplyFlow to handle, simply add them to your Ignored Contacts list.
                 </p>
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl">
                   <p className="text-sm text-blue-800 dark:text-blue-200">
-                    <strong>Using your personal phone as your business number?</strong> No problem. If you miss a personal call, ReplyFlow may respond just like it would for a customer. You can easily prevent this by adding friends, family, or other personal contacts to your Ignored Contacts list in Settings.
+                    <strong>Using your personal phone as your business number?</strong> That's completely supported. Many small business owners use one phone for both business and personal calls. If there are friends, family members, or other personal contacts you don't want ReplyFlow to handle, simply add them to your Ignored Contacts list.
+                  </p>
+                  <p className="text-sm text-blue-800 dark:text-blue-200 mt-2">
+                    Ignored contacts bypass ReplyFlow's AI Voice and messaging features. Instead, they hear a simple voicemail message letting them know you're unavailable. No lead is created, no automated text is sent, and no follow-up messages are scheduled.
+                  </p>
+                  <p className="text-sm text-blue-800 dark:text-blue-200 mt-2">
+                    If someone calls from a new or unfamiliar number, ReplyFlow will treat that missed call as a potential customer inquiry.
                   </p>
                 </div>
-                <p className="text-muted-foreground mt-4">
-                  ReplyFlow provides an Ignored Contacts feature specifically for this use case, so personal contacts won't trigger automated responses.
-                </p>
               </div>
             </div>
           </div>
