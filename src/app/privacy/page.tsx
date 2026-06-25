@@ -15,26 +15,6 @@ export default function PrivacyPage() {
     <PageBackground>
       <SSRSafeNavbar forceDark={true} />
       
-      {/* Back to Home Navigation */}
-      <div className="bg-white dark:bg-slate-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 group"
-          >
-            <svg 
-              className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Home
-          </Link>
-        </div>
-      </div>
-      
       {/* Hero Section */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -289,7 +269,7 @@ export default function PrivacyPage() {
                 </h2>
                 <div className="prose prose-gray dark:prose-invert max-w-none">
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                    ReplyFlowHQ LLC may process inbound telephone calls, voicemail recordings, call transcripts, call summaries, and AI-assisted conversations for the purpose of lead capture, customer communication, service improvement, and platform functionality.
+                    ReplyFlowHQ LLC uses <strong>AI Voice</strong> to answer missed calls and collect customer information. This helps businesses capture leads and provide timely responses.
                   </p>
                   <div className="mt-6">
                     <p className="text-gray-600 dark:text-gray-400 font-medium mb-3">
@@ -297,17 +277,17 @@ export default function PrivacyPage() {
                     </p>
                     <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
                       <li>• Caller phone numbers</li>
-                      <li>• SMS conversations</li>
-                      <li>• Voicemail recordings</li>
+                      <li>• SMS conversations and message history</li>
+                      <li>• AI Voice call recordings</li>
                       <li>• AI-generated call summaries</li>
                       <li>• Call transcripts</li>
-                      <li>• Lead information</li>
-                      <li>• Communication history</li>
+                      <li>• Lead information and details</li>
+                      <li>• Customer communication history</li>
                     </ul>
                   </div>
-                  <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                      <strong>Third-Party Processing:</strong> Voice and AI processing may utilize third-party service providers including telephony and artificial intelligence providers.
+                  <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <strong>Third-Party Processing:</strong> Voice and AI processing may utilize third-party service providers including telephony and artificial intelligence providers to deliver these services.
                     </p>
                   </div>
                 </div>
@@ -401,14 +381,14 @@ export default function PrivacyPage() {
                     <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
                       <li>• SMS messages and conversation history</li>
                       <li>• Lead information and contact details</li>
-                      <li>• Conversations and customer interactions</li>
-                      <li>• Voicemail recordings</li>
+                      <li>• Customer conversations and interactions</li>
+                      <li>• AI Voice call recordings</li>
                       <li>• Call transcripts</li>
                       <li>• AI-generated summaries and extracted information</li>
                     </ul>
                   </div>
-                  <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
                       <strong>Account Closure:</strong> Upon account closure, data will be retained according to our privacy policy and applicable legal requirements. You may request data deletion by contacting privacy@replyflowhq.com.
                     </p>
                   </div>
@@ -462,8 +442,8 @@ export default function PrivacyPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
                       <strong>Data Protection:</strong> All third-party providers are evaluated for security and compliance. We only share the minimum data necessary for service delivery.
                     </p>
                   </div>
@@ -484,25 +464,25 @@ export default function PrivacyPage() {
                     You have the following rights regarding your personal information:
                   </p>
                   <div className="mt-6 space-y-4">
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                       <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Access & Portability</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         Request access to or export of your personal information
                       </p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                       <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Correction & Deletion</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         Request correction or deletion of inaccurate or unnecessary information
                       </p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                       <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Opt-Out & Communication Preferences</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         Control communication preferences and opt out of marketing communications
                       </p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                       <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Data Subject Rights</h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         Exercise rights under applicable privacy laws and regulations
@@ -544,16 +524,24 @@ export default function PrivacyPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="mt-4">
-                    <p className="text-gray-600 dark:text-gray-400">
-                      For general support and inquiries:
-                    </p>
-                    <a 
-                      href="mailto:support@replyflowhq.com" 
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-                    >
-                      support@replyflowhq.com
-                    </a>
+                  <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-shrink-0">
+                        <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                          <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-blue-900 dark:text-blue-100">General Support</p>
+                        <a 
+                          href="mailto:support@replyflowhq.com" 
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                        >
+                          support@replyflowhq.com
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
