@@ -166,7 +166,7 @@ export default function PublicHome() {
               Turn Missed Calls Into Paying Customers
             </h1>
             <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-3xl leading-relaxed mt-5 sm:mt-6">
-              Automatically text back missed callers, capture leads, and recover lost revenue—using your existing business number. Fast setup.
+              Built for service businesses with a dedicated business phone number. Automatically text back missed callers, capture leads, and recover lost revenue. Fast setup.
             </p>
 
             {/* Benefit Bullets - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
@@ -457,7 +457,7 @@ export default function PublicHome() {
                     </svg>
                   </div>
                   <span className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">
-                    Built for local businesses
+                    Built for service businesses
                   </span>
                 </div>
               </div>
@@ -923,12 +923,12 @@ export default function PublicHome() {
             >
               <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 border border-blue-100 dark:border-blue-800 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">TCPA Compliant</h3>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Designed for Dedicated Business Numbers</h3>
               <p className="text-base text-slate-600 dark:text-muted-foreground">
-                Follows SMS best practices and compliance guidelines
+                Built for service businesses with a dedicated business phone number for the most seamless experience
               </p>
             </motion.div>
             
@@ -985,6 +985,9 @@ export default function PublicHome() {
             </h2>
             <p className="text-xl md:text-2xl text-slate-600 dark:text-muted-foreground mb-12 leading-relaxed">
               Built for contractors and home services that never want to miss another lead.
+            </p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
+              Recommended for service businesses with a dedicated business phone number.
             </p>
             <Link
               href="/signup"
