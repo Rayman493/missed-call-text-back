@@ -366,18 +366,9 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                 <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">
                   No leads captured yet
                 </p>
-                <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mb-2 sm:mb-3">
-                  Run a test call to verify your setup
+                <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
+                  Complete your setup and your first customer lead will appear here automatically.
                 </p>
-                <Link
-                  href="/dashboard/test-setup"
-                  className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
-                >
-                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  Run Test Call
-                </Link>
               </div>
             )}
           </div>
