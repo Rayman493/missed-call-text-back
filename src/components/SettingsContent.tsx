@@ -991,10 +991,10 @@ export default function SettingsContent() {
 
               {/* Settings Navigation Tabs */}
               <div className="py-1.5 sm:py-2">
-                <nav className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto">
+                <nav className="flex items-center gap-1 sm:gap-2">
                   <button
                     onClick={() => handleSectionClick('general')}
-                    className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap ${
+                    className={`px-2 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
                       activeSection === 'general'
                         ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
@@ -1004,7 +1004,7 @@ export default function SettingsContent() {
                 </button>
                 <button
                   onClick={() => handleSectionClick('automation')}
-                  className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap ${
+                  className={`px-2 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
                     activeSection === 'automation'
                       ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
@@ -1014,7 +1014,7 @@ export default function SettingsContent() {
                 </button>
                 <button
                   onClick={() => handleSectionClick('integrations')}
-                  className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap ${
+                  className={`px-2 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
                     activeSection === 'integrations'
                       ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
@@ -1024,7 +1024,7 @@ export default function SettingsContent() {
                 </button>
                 <button
                   onClick={() => handleSectionClick('contacts')}
-                  className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap ${
+                  className={`px-2 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
                     activeSection === 'contacts'
                       ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
@@ -1034,7 +1034,7 @@ export default function SettingsContent() {
                 </button>
                 <button
                   onClick={() => handleSectionClick('account')}
-                  className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl transition-all duration-200 whitespace-nowrap ${
+                  className={`px-2 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
                     activeSection === 'account'
                       ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
