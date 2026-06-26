@@ -403,7 +403,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Callback</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Callback Time</span>
                   </div>
                   <p className="text-xs text-foreground leading-snug line-clamp-2">
                     {sentenceCase(extractedInfo.preferredCallbackTime)}
@@ -506,7 +506,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Callback</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Callback Time</span>
                   </div>
                   <p className="text-xs text-foreground leading-snug line-clamp-2">
                     {sentenceCase(extractedInfo.preferredCallbackTime)}

@@ -522,7 +522,7 @@ export default function LeadsPage() {
                         Customer Leads
                       </h2>
                       <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
-                        No active leads
+                        No Active Leads
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

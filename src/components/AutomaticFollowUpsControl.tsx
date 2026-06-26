@@ -187,7 +187,7 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, leadDa
       case 'cancelled':
         return (
           <span className="px-2 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-xs rounded-full font-medium border border-red-100 dark:border-red-800/30">
-            Canceled
+            Cancelled
           </span>
         )
       default:

@@ -107,7 +107,7 @@ function getLeadStatusDisplay(lead: any): { text: string; color: string } {
   const status = lead.lead_status || lead.status || 'new'
   
   if (needsResponse(lead)) {
-    return { text: 'Needs response', color: 'amber' }
+    return { text: 'Needs Response', color: 'amber' }
   }
   
   switch (status) {
