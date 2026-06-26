@@ -1015,13 +1015,6 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Needs Attention Card - De-emphasize when forwarding is not verified */}
-                    <SectionErrorBoundary sectionName="NeedsAttentionCard">
-                      <div className={`mb-3 transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
-                        <NeedsAttentionCard business={business} />
-                      </div>
-                    </SectionErrorBoundary>
-
                     {/* Recent Activity Card - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="RecentActivityCard">
                       <div className={`mb-3 transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
