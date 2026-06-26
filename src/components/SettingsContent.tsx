@@ -975,7 +975,7 @@ export default function SettingsContent() {
               <div className="max-w-[1400px] mx-auto">
 
             {/* Settings Header Block - Sticky */}
-            <div className="sticky top-[64px] z-40 bg-background/95 dark:bg-background/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 shadow-sm pt-4 pb-4 sm:pb-5 md:pb-6 mb-4 sm:mb-6 md:mb-8">
+            <div className="sticky top-[64px] z-40 bg-background/95 dark:bg-background/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 shadow-sm pt-4 pb-4 sm:pb-5 md:pb-6">
               {/* Page Header */}
               <div className="mb-4 sm:mb-5 md:mb-6">
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">
@@ -1042,6 +1042,8 @@ export default function SettingsContent() {
               </nav>
               </div>
             </div>
+            {/* Spacer to maintain consistent spacing */}
+            <div className="mb-4 sm:mb-6 md:mb-8"></div>
 
             {/* Settings Sections */}
             <div className="space-y-6 sm:space-y-8 pb-40">
