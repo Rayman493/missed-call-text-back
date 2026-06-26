@@ -450,9 +450,16 @@ export default function SetupStatusCard({
                 onClick={() => setExpandedStep(expandedStep === 2 ? null : 2)}
                 className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors"
               >
-                <span className="text-white text-sm font-medium flex-1 text-left">
-                  {cardState === 'needs-verification' ? '✓ Step 2 — Set up call forwarding' : '2. Set up call forwarding'}
-                </span>
+                <div className="flex items-center gap-2 flex-1">
+                  <span className={`text-sm font-medium flex-1 text-left ${cardState === 'needs-forwarding' ? 'font-semibold text-white' : 'text-white'}`}>
+                    {cardState === 'needs-verification' ? '✓ Step 2 — Set up call forwarding' : '2. Set up call forwarding'}
+                  </span>
+                  {cardState === 'needs-forwarding' && (
+                    <span className="inline-flex items-center px-2 py-0.5 bg-blue-400/20 text-blue-200 text-[10px] font-semibold rounded-full border border-blue-400/30">
+                      Current
+                    </span>
+                  )}
+                </div>
                 <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${expandedStep === 2 ? 'rotate-180' : ''}`} />
               </button>
               {expandedStep === 2 && (
@@ -485,9 +492,16 @@ export default function SetupStatusCard({
                 onClick={() => setExpandedStep(expandedStep === 3 ? null : 3)}
                 className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors"
               >
-                <span className="text-white text-sm font-medium flex-1 text-left">
-                  {hasCompletedTestCall ? '✓ Step 3 — Make a test call' : '3. Make a test call'}
-                </span>
+                <div className="flex items-center gap-2 flex-1">
+                  <span className={`text-sm font-medium flex-1 text-left ${cardState === 'needs-verification' && !hasCompletedTestCall ? 'font-semibold text-white' : 'text-white'}`}>
+                    {hasCompletedTestCall ? '✓ Step 3 — Make a test call' : '3. Make a test call'}
+                  </span>
+                  {cardState === 'needs-verification' && !hasCompletedTestCall && (
+                    <span className="inline-flex items-center px-2 py-0.5 bg-blue-400/20 text-blue-200 text-[10px] font-semibold rounded-full border border-blue-400/30">
+                      Current
+                    </span>
+                  )}
+                </div>
                 <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${expandedStep === 3 ? 'rotate-180' : ''}`} />
               </button>
               {expandedStep === 3 && (
