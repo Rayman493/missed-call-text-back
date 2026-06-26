@@ -1,8 +1,26 @@
 /**
  * AI Intake Field Mapping Utility
- * 
+ *
  * Provides canonical field names and backward compatibility for reading extracted_info
  */
+
+/**
+ * Apply sentence capitalization to a string
+ * Only capitalizes the first character if it's lowercase
+ * Preserves the rest of the text exactly as-is (acronyms, proper nouns, etc.)
+ */
+function applySentenceCapitalization(text: string): string {
+  if (!text || typeof text !== 'string') return text
+  if (text.length === 0) return text
+
+  // If first character is lowercase, capitalize it
+  const firstChar = text[0]
+  if (firstChar === firstChar.toLowerCase() && firstChar !== firstChar.toUpperCase()) {
+    return firstChar.toUpperCase() + text.slice(1)
+  }
+
+  return text
+}
 
 /**
  * Canonical field names for AI extracted_info
@@ -58,6 +76,7 @@ const FIELD_ALIASES: Record<string, keyof typeof CANONICAL_FIELDS> = {
 /**
  * Read extracted_info with backward compatibility for old field names
  * Returns an object with only canonical field names
+ * Applies sentence capitalization to specific fields for consistent display
  */
 export function normalizeExtractedInfo(extractedInfo: any): {
   callerName?: string
@@ -78,7 +97,19 @@ export function normalizeExtractedInfo(extractedInfo: any): {
 
     // Only include if it's a canonical field
     if (Object.values(CANONICAL_FIELDS).includes(canonicalKey as any)) {
-      normalized[canonicalKey] = value
+      let normalizedValue = value
+
+      // Apply sentence capitalization to specific fields
+      // Do NOT apply to importantDetails (free-form notes should preserve customer's wording)
+      if (typeof value === 'string' &&
+          (canonicalKey === 'reasonForCalling' ||
+          canonicalKey === 'addressOrLocation' ||
+          canonicalKey === 'desiredCompletionTime' ||
+          canonicalKey === 'preferredCallbackTime')) {
+        normalizedValue = applySentenceCapitalization(value)
+      }
+
+      normalized[canonicalKey] = normalizedValue
     }
   }
 
