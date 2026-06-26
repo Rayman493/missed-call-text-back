@@ -619,27 +619,37 @@ export default async function Home() {
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="space-y-3 flex-1">
-                      <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-[10px] text-slate-900 dark:text-foreground truncate">+1 (555) 123-4567</div>
-                          <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">Plumbing • 5m</div>
-                        </div>
-                        <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[9px] px-1.5 py-0.5 rounded font-medium ml-1.5 flex-shrink-0">New</div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2 px-1">
+                        <div className="text-[8px] text-slate-500 dark:text-slate-500 font-medium w-20 flex-shrink-0">Lead</div>
+                        <div className="text-[8px] text-slate-500 dark:text-slate-500 font-medium w-16 flex-shrink-0">Status</div>
+                        <div className="text-[8px] text-slate-500 dark:text-slate-500 font-medium">Activity</div>
                       </div>
-                      <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-[10px] text-slate-900 dark:text-foreground truncate">+1 (555) 987-6543</div>
-                          <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">HVAC • 12m</div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-[10px] text-slate-900 dark:text-foreground truncate">+1 (555) 123-4567</div>
+                            <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">Plumbing</div>
+                          </div>
+                          <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[9px] px-1.5 py-0.5 rounded font-medium ml-1.5 flex-shrink-0">New</div>
+                          <div className="text-[9px] text-slate-500 dark:text-slate-500 ml-2 flex-shrink-0 w-10 text-right">5m</div>
                         </div>
-                        <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[9px] px-1.5 py-0.5 rounded font-medium ml-1.5 flex-shrink-0">Active</div>
-                      </div>
-                      <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-[10px] text-slate-900 dark:text-foreground truncate">+1 (555) 456-7890</div>
-                          <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">Electrical • 1h</div>
+                        <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-[10px] text-slate-900 dark:text-foreground truncate">+1 (555) 987-6543</div>
+                            <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">HVAC</div>
+                          </div>
+                          <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[9px] px-1.5 py-0.5 rounded font-medium ml-1.5 flex-shrink-0">Active</div>
+                          <div className="text-[9px] text-slate-500 dark:text-slate-500 ml-2 flex-shrink-0 w-10 text-right">12m</div>
                         </div>
-                        <div className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[9px] px-1.5 py-0.5 rounded font-medium ml-1.5 flex-shrink-0">Contacted</div>
+                        <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-[10px] text-slate-900 dark:text-foreground truncate">+1 (555) 456-7890</div>
+                            <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">Electrical</div>
+                          </div>
+                          <div className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[9px] px-1.5 py-0.5 rounded font-medium ml-1.5 flex-shrink-0">Contacted</div>
+                          <div className="text-[9px] text-slate-500 dark:text-slate-500 ml-2 flex-shrink-0 w-10 text-right">1h</div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -662,37 +672,55 @@ export default async function Home() {
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="space-y-3 flex-1">
-                      <div className="flex gap-2">
-                        <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-white text-[9px] font-medium">JS</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="bg-blue-600 text-white text-[10px] rounded-2xl rounded-tl-sm px-2 py-1.5 inline-block max-w-[85%]">
-                            Thanks for calling!
+                    <div className="flex-1 flex flex-col justify-center">
+                      <div className="space-y-4">
+                        <div className="flex gap-2">
+                          <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-[9px] font-medium">JS</span>
                           </div>
-                          <div className="flex items-center gap-0.5 mt-0.5">
-                            <div className="text-[9px] text-slate-500 dark:text-slate-500">2m</div>
-                            <svg className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <div className="flex-1 min-w-0 text-right">
-                          <div className="bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-foreground text-[10px] rounded-2xl rounded-tr-sm px-2 py-1.5 inline-block text-left">
-                            Great, looking forward to it!
-                          </div>
-                          <div className="flex items-center gap-0.5 mt-0.5 justify-end">
-                            <div className="text-[9px] text-slate-500 dark:text-slate-500">1m</div>
-                            <svg className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
+                          <div className="flex-1 min-w-0">
+                            <div className="bg-blue-600 text-white text-[10px] rounded-2xl rounded-tl-sm px-2 py-1.5 inline-block max-w-[85%]">
+                              Thanks for calling!
+                            </div>
+                            <div className="flex items-center gap-0.5 mt-0.5">
+                              <div className="text-[9px] text-slate-500 dark:text-slate-500">2m</div>
+                              <svg className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            </div>
                           </div>
                         </div>
-                        <div className="w-7 h-7 bg-slate-600 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-white text-[9px] font-medium">C</span>
+                        <div className="flex gap-2">
+                          <div className="flex-1 min-w-0 text-right">
+                            <div className="bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-foreground text-[10px] rounded-2xl rounded-tr-sm px-2 py-1.5 inline-block text-left">
+                              Great, looking forward to it!
+                            </div>
+                            <div className="flex items-center gap-0.5 mt-0.5 justify-end">
+                              <div className="text-[9px] text-slate-500 dark:text-slate-500">1m</div>
+                              <svg className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          </div>
+                          <div className="w-7 h-7 bg-slate-600 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-[9px] font-medium">C</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-[9px] font-medium">JS</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="bg-blue-600 text-white text-[10px] rounded-2xl rounded-tl-sm px-2 py-1.5 inline-block max-w-[70%]">
+                              We'll be there at 2pm
+                            </div>
+                            <div className="flex items-center gap-0.5 mt-0.5">
+                              <div className="text-[9px] text-slate-500 dark:text-slate-500">Now</div>
+                              <svg className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -716,38 +744,41 @@ export default async function Home() {
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
-                        <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-md flex items-center justify-center flex-shrink-0">
-                          <div className="text-center">
-                            <div className="text-[9px] font-bold text-blue-600 dark:text-blue-400">15</div>
+                    <div className="flex-1">
+                      <div className="text-[8px] text-slate-500 dark:text-slate-500 font-medium mb-2 px-1">Today, June 15</div>
+                      <div className="space-y-2.5">
+                        <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
+                          <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-md flex items-center justify-center flex-shrink-0">
+                            <div className="text-center">
+                              <div className="text-[9px] font-bold text-blue-600 dark:text-blue-400">15</div>
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-medium text-slate-900 dark:text-foreground truncate">John Smith</div>
+                            <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">HVAC • 2:00 PM</div>
                           </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[10px] font-medium text-slate-900 dark:text-foreground truncate">John Smith</div>
-                          <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">HVAC • 2:00 PM</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
-                        <div className="w-9 h-9 bg-purple-100 dark:bg-purple-900/30 rounded-md flex items-center justify-center flex-shrink-0">
-                          <div className="text-center">
-                            <div className="text-[9px] font-bold text-purple-600 dark:text-purple-400">16</div>
+                        <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
+                          <div className="w-9 h-9 bg-purple-100 dark:bg-purple-900/30 rounded-md flex items-center justify-center flex-shrink-0">
+                            <div className="text-center">
+                              <div className="text-[9px] font-bold text-purple-600 dark:text-purple-400">16</div>
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-medium text-slate-900 dark:text-foreground truncate">Sarah Johnson</div>
+                            <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">Plumbing • 4:30 PM</div>
                           </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[10px] font-medium text-slate-900 dark:text-foreground truncate">Sarah Johnson</div>
-                          <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">Plumbing • 4:30 PM</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
-                        <div className="w-9 h-9 bg-orange-100 dark:bg-orange-900/30 rounded-md flex items-center justify-center flex-shrink-0">
-                          <div className="text-center">
-                            <div className="text-[9px] font-bold text-orange-600 dark:text-orange-400">17</div>
+                        <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
+                          <div className="w-9 h-9 bg-orange-100 dark:bg-orange-900/30 rounded-md flex items-center justify-center flex-shrink-0">
+                            <div className="text-center">
+                              <div className="text-[9px] font-bold text-orange-600 dark:text-orange-400">17</div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[10px] font-medium text-slate-900 dark:text-foreground truncate">Mike Davis</div>
-                          <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">Electrical • 5:00 PM</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-medium text-slate-900 dark:text-foreground truncate">Mike Davis</div>
+                            <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">Electrical • 5:00 PM</div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -772,21 +803,25 @@ export default async function Home() {
                     
                     {/* Product Preview */}
                     <div className="flex-1">
-                      <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-3 space-y-2.5 h-full">
+                      <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-3 space-y-3 h-full">
                         <div className="flex items-start gap-1.5">
-                          <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-12 flex-shrink-0">Service</div>
+                          <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-14 flex-shrink-0">Service</div>
                           <div className="text-[10px] text-slate-900 dark:text-foreground">HVAC Repair</div>
                         </div>
                         <div className="flex items-start gap-1.5">
-                          <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-12 flex-shrink-0">Address</div>
+                          <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-14 flex-shrink-0">Address</div>
                           <div className="text-[10px] text-slate-900 dark:text-foreground">123 Main St, Apt 4B</div>
                         </div>
                         <div className="flex items-start gap-1.5">
-                          <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-12 flex-shrink-0">Callback</div>
+                          <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-14 flex-shrink-0">Callback</div>
                           <div className="text-[10px] text-slate-900 dark:text-foreground">After 2 PM today</div>
                         </div>
                         <div className="flex items-start gap-1.5">
-                          <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-12 flex-shrink-0">Notes</div>
+                          <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-14 flex-shrink-0">Priority</div>
+                          <div className="text-[10px] text-slate-900 dark:text-foreground">Urgent - AC not cooling</div>
+                        </div>
+                        <div className="flex items-start gap-1.5">
+                          <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-14 flex-shrink-0">Notes</div>
                           <div className="text-[10px] text-slate-900 dark:text-foreground">Customer mentioned urgent AC issue</div>
                         </div>
                       </div>
