@@ -494,99 +494,105 @@ export default async function Home() {
 
       {/* Dashboard Showcase Section */}
       <HomepageErrorBoundary>
-        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-10 sm:py-14 md:py-18 border-t border-slate-200 dark:border-border">
+        <section className="bg-white dark:bg-background py-16 sm:py-20 md:py-24 border-t border-slate-100 dark:border-border">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <div className="text-center mb-6 sm:mb-8 md:mb-10">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">
+            <div className="text-center mb-10 sm:mb-12 md:mb-16">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-3 sm:mb-4 tracking-tight">
                 Everything In One Dashboard
               </h2>
-              <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
                 Manage leads, conversations, follow-ups, and call activity from one place.
               </p>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
               {/* Dashboard Mockup - Hero */}
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 ring-4 ring-slate-100 dark:ring-slate-900/50 ring-offset-2 ring-offset-white dark:ring-offset-slate-900">
-                <div className="bg-slate-900 dark:bg-slate-900 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-slate-700">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full"></div>
-                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-yellow-500 rounded-full"></div>
-                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-slate-400 text-xs sm:text-sm ml-3 sm:ml-4">ReplyFlow Dashboard</span>
+              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 ring-1 ring-slate-900/5 dark:ring-white/10">
+                <div className="bg-slate-950 dark:bg-slate-950 px-4 py-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5">
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    </div>
+                    <span className="text-slate-400 text-sm ml-3">dashboard.replyflowhq.com</span>
                   </div>
                 </div>
                 
-                <div className="p-4 sm:p-5 md:p-6 space-y-3 sm:space-y-4">
+                <div className="p-5 sm:p-6 space-y-4 bg-slate-50 dark:bg-slate-950">
                   {/* Setup Complete Card */}
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <h4 className="font-semibold text-sm text-green-800 dark:text-green-200">Setup Complete</h4>
+                      <h4 className="font-semibold text-sm text-slate-900 dark:text-foreground">Setup Complete</h4>
                     </div>
-                    <p className="text-xs text-green-700 dark:text-green-300">ReplyFlow successfully captured your first missed call. You're all set.</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400">ReplyFlow successfully captured your first missed call. You're all set.</p>
                   </div>
 
                   {/* ReplyFlow Performance Card - Horizontal Row */}
-                  <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-3">
+                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 shadow-sm">
                     <h4 className="font-semibold text-sm text-slate-900 dark:text-foreground mb-3">ReplyFlow Performance</h4>
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-4 gap-3">
                       <div className="text-center">
-                        <div className="text-lg font-bold text-blue-600 dark:text-blue-400">12</div>
-                        <div className="text-[10px] text-slate-600 dark:text-slate-400">Missed Calls</div>
+                        <div className="text-xl font-bold text-blue-600 dark:text-blue-400">12</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Missed Calls</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">8</div>
-                        <div className="text-[10px] text-slate-600 dark:text-slate-400">Replies</div>
+                        <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">8</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Replies</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-bold text-purple-600 dark:text-purple-400">5</div>
-                        <div className="text-[10px] text-slate-600 dark:text-slate-400">Follow-Ups</div>
+                        <div className="text-xl font-bold text-purple-600 dark:text-purple-400">5</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Follow-Ups</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-bold text-orange-600 dark:text-orange-400">10</div>
-                        <div className="text-[10px] text-slate-600 dark:text-slate-400">Active Leads</div>
+                        <div className="text-xl font-bold text-orange-600 dark:text-orange-400">10</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Active Leads</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Recovery Rate Card */}
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                    <h4 className="font-semibold text-sm text-slate-900 dark:text-foreground mb-1.5">Recovery Rate</h4>
-                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">100%</div>
-                    <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-1">All missed calls recovered</p>
+                  <div className="bg-gradient-to-br from-blue-600 to-indigo-600 dark:from-blue-600 dark:to-indigo-600 rounded-lg p-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-sm text-white mb-1">Recovery Rate</h4>
+                        <p className="text-[10px] text-blue-100">All missed calls recovered</p>
+                      </div>
+                      <div className="text-4xl font-bold text-white">100%</div>
+                    </div>
                   </div>
 
                   {/* Recent Lead */}
-                  <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-3">
-                    <h4 className="font-semibold text-sm text-slate-900 dark:text-foreground mb-2.5">Recent Leads</h4>
-                    <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-600 rounded">
+                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 shadow-sm">
+                    <h4 className="font-semibold text-sm text-slate-900 dark:text-foreground mb-3">Recent Leads</h4>
+                    <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                       <div>
-                        <div className="font-semibold text-xs text-slate-800 dark:text-slate-200">+1 (555) 234-5678</div>
-                        <div className="text-[10px] text-slate-600 dark:text-slate-400">HVAC repair • 2 min ago</div>
+                        <div className="font-semibold text-sm text-slate-900 dark:text-foreground">+1 (555) 234-5678</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">HVAC repair • 2 min ago</div>
                       </div>
-                      <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-[10px] px-2 py-0.5 rounded">New</div>
+                      <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs px-2 py-1 rounded-md font-medium">New</div>
                     </div>
                   </div>
 
                   {/* Activity Timeline */}
-                  <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-3">
-                    <h4 className="font-semibold text-sm text-slate-900 dark:text-foreground mb-2.5">Activity Timeline</h4>
-                    <div className="space-y-2">
-                      <div className="flex items-start gap-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-1 flex-shrink-0"></div>
+                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 shadow-sm">
+                    <h4 className="font-semibold text-sm text-slate-900 dark:text-foreground mb-3">Activity Timeline</h4>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
                         <div>
-                          <div className="text-[10px] text-slate-700 dark:text-slate-300">Text sent to customer</div>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-500">2 min ago</div>
+                          <div className="text-xs text-slate-900 dark:text-foreground">Text sent to customer</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-500 mt-0.5">2 min ago</div>
                         </div>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full mt-1 flex-shrink-0"></div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
                         <div>
-                          <div className="text-[10px] text-slate-700 dark:text-slate-300">Missed call captured</div>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-500">3 min ago</div>
+                          <div className="text-xs text-slate-900 dark:text-foreground">Missed call captured</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-500 mt-0.5">3 min ago</div>
                         </div>
                       </div>
                     </div>
@@ -594,63 +600,114 @@ export default async function Home() {
                 </div>
               </div>
               
-              {/* Features Grid */}
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                {/* Lead Management - Real UI Snippet */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-2 mb-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-semibold text-xs text-slate-800 dark:text-slate-200">+1 (555) 123-4567</div>
-                        <div className="text-[10px] text-slate-600 dark:text-slate-400">Plumbing • 5m ago</div>
+              {/* Feature Widgets - Compact Dashboard Widgets */}
+              <div className="space-y-4">
+                {/* Lead Management Widget */}
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                  <div className="bg-slate-50 dark:bg-slate-800 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700">
+                    <h3 className="font-semibold text-xs text-slate-900 dark:text-foreground">Lead Management</h3>
+                  </div>
+                  <div className="p-3 space-y-2">
+                    <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-semibold text-xs text-slate-900 dark:text-foreground">+1 (555) 123-4567</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Plumbing repair • 5m</div>
                       </div>
-                      <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-[10px] px-1.5 py-0.5 rounded">New</div>
+                      <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[10px] px-2 py-0.5 rounded-md font-medium ml-2">New</div>
+                    </div>
+                    <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-semibold text-xs text-slate-900 dark:text-foreground">+1 (555) 987-6543</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">HVAC service • 12m</div>
+                      </div>
+                      <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] px-2 py-0.5 rounded-md font-medium ml-2">Active</div>
                     </div>
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-0.5 text-xs">Lead Management</h3>
-                  <p className="text-[10px] text-slate-600 dark:text-slate-400">Track all leads in one place</p>
                 </div>
 
-                {/* Conversation Inbox - Real UI Snippet */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-2 mb-2">
-                    <div className="flex items-start gap-1.5">
-                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1 flex-shrink-0"></div>
-                      <div>
-                        <div className="text-[10px] text-slate-700 dark:text-slate-300">Thanks for calling! We'll follow up shortly.</div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-500">Sent 2m ago</div>
+                {/* Conversation Inbox Widget */}
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                  <div className="bg-slate-50 dark:bg-slate-800 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700">
+                    <h3 className="font-semibold text-xs text-slate-900 dark:text-foreground">Conversation Inbox</h3>
+                  </div>
+                  <div className="p-3 space-y-3">
+                    <div className="flex gap-2">
+                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-xs font-medium">JS</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="bg-blue-600 text-white text-xs rounded-2xl rounded-tl-sm px-3 py-2">
+                          Thanks for calling! We'll follow up shortly.
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-500 mt-1">2m ago</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="flex-1 text-right">
+                        <div className="bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-foreground text-xs rounded-2xl rounded-tr-sm px-3 py-2 inline-block text-left">
+                          Great, looking forward to it!
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-500 mt-1">1m ago</div>
+                      </div>
+                      <div className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-xs font-medium">C</span>
                       </div>
                     </div>
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-0.5 text-xs">Conversation Inbox</h3>
-                  <p className="text-[10px] text-slate-600 dark:text-slate-400">All customer messages in one view</p>
                 </div>
 
-                {/* Google Calendar - Real UI Snippet */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-2 mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded flex items-center justify-center">
-                        <div className="w-3 h-3 bg-blue-600 dark:text-blue-400 text-[8px] flex items-center justify-center font-bold">15</div>
+                {/* Google Calendar Widget */}
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                  <div className="bg-slate-50 dark:bg-slate-800 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700">
+                    <h3 className="font-semibold text-xs text-slate-900 dark:text-foreground">Google Calendar</h3>
+                  </div>
+                  <div className="p-3 space-y-2">
+                    <div className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div className="text-center">
+                          <div className="text-xs font-bold text-blue-600 dark:text-blue-400">15</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-[10px] text-slate-700 dark:text-slate-300">Appt: John Smith</div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-500">2:00 PM</div>
+                      <div className="flex-1">
+                        <div className="text-xs font-medium text-slate-900 dark:text-foreground">John Smith</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">HVAC Repair • 2:00 PM</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div className="text-center">
+                          <div className="text-xs font-bold text-purple-600 dark:text-purple-400">16</div>
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-xs font-medium text-slate-900 dark:text-foreground">Sarah Johnson</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Plumbing • 4:30 PM</div>
                       </div>
                     </div>
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-0.5 text-xs">Google Calendar</h3>
-                  <p className="text-[10px] text-slate-600 dark:text-slate-400">Sync appointments automatically</p>
                 </div>
                 
-                {/* AI Intake - Real UI Snippet */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-2 mb-2">
-                    <div className="text-[10px] text-slate-700 dark:text-slate-300 font-semibold mb-0.5">Service: HVAC Repair</div>
-                    <div className="text-[10px] text-slate-600 dark:text-slate-400">Address: 123 Main St</div>
+                {/* AI Intake Widget */}
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                  <div className="bg-slate-50 dark:bg-slate-800 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700">
+                    <h3 className="font-semibold text-xs text-slate-900 dark:text-foreground">AI Intake</h3>
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-0.5 text-xs">AI Intake</h3>
-                  <p className="text-[10px] text-slate-600 dark:text-slate-400">AI captures caller details</p>
+                  <div className="p-3">
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400 font-medium w-16 flex-shrink-0">Service:</div>
+                        <div className="text-xs text-slate-900 dark:text-foreground">HVAC Repair</div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400 font-medium w-16 flex-shrink-0">Address:</div>
+                        <div className="text-xs text-slate-900 dark:text-foreground">123 Main St, Apt 4B</div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400 font-medium w-16 flex-shrink-0">Callback:</div>
+                        <div className="text-xs text-slate-900 dark:text-foreground">After 2 PM today</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
