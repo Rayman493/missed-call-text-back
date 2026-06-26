@@ -1133,11 +1133,15 @@ export default function SettingsContent() {
                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                               </svg>
                               <div>
-                                <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Using your personal phone as your business number?</p>
-                                <p className="text-[10px] text-blue-700 dark:text-blue-300">
-                                  ReplyFlow fully supports using one phone for both business and personal calls. You can control which callers ReplyFlow handles by using Ignored Contacts.
+                                <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Best experience: Dedicated business number</p>
+                                <p className="text-[10px] text-blue-700 dark:text-blue-300 mb-2">
+                                  A dedicated business phone number provides the best experience. It allows ReplyFlow to automatically handle every missed customer call without affecting personal callers.
                                 </p>
-                                <p className="text-[10px] text-blue-700 dark:text-blue-300 mt-1">
+                                <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Still fully supported: Personal business phones</p>
+                                <p className="text-[10px] text-blue-700 dark:text-blue-300 mb-1">
+                                  If you use one phone for both business and personal calls, ReplyFlow still works well. You can use Ignored Contacts to keep known personal callers out of the normal ReplyFlow customer workflow.
+                                </p>
+                                <p className="text-[10px] text-blue-700 dark:text-blue-300">
                                   See the Ignored Contacts section below for more information.
                                 </p>
                               </div>
@@ -1838,7 +1842,7 @@ export default function SettingsContent() {
                         </div>
                         <div className="flex items-start gap-1">
                           <span className="text-blue-600 dark:text-blue-400 font-semibold text-[10px]">•</span>
-                          <p className="text-[10px] text-blue-700 dark:text-blue-300"><strong>Add to Ignored Contacts:</strong> ReplyFlow stays out (no AI Voice, no automated texts, no lead, no follow-ups—just a simple voicemail).</p>
+                          <p className="text-[10px] text-blue-700 dark:text-blue-300"><strong>Add to Ignored Contacts:</strong> ReplyFlow stays out (no AI Voice, no automated texts, no lead, no follow-ups—the caller hears a brief unavailable message).</p>
                         </div>
                       </div>
                     </div>
@@ -1853,11 +1857,14 @@ export default function SettingsContent() {
                     <div>
                       <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1">When should I use Ignored Contacts?</p>
                       <p className="text-[10px] text-slate-700 dark:text-slate-300 mb-1">
-                        Add people here when you never want ReplyFlow to respond to their missed calls. Friends, family, schools, doctors, and other personal contacts are common examples.
+                        Add people here when you never want ReplyFlow to respond to their missed calls. This is especially useful when using one phone for both business and personal calls.
+                      </p>
+                      <p className="text-[10px] text-slate-700 dark:text-slate-300 mb-1">
+                        Friends, family, schools, doctors, and other personal contacts are common examples.
                       </p>
                       <p className="text-[10px] font-semibold text-slate-900 dark:text-slate-100 mb-1 mt-2">What happens when someone IS on the list:</p>
                       <p className="text-[10px] text-slate-700 dark:text-slate-300">
-                        No AI Voice, no automated text messages, no lead is created, no follow-ups are scheduled. The caller simply hears a brief unavailable voicemail message.
+                        No AI Voice, no automated text messages, no lead is created, no follow-ups are scheduled. The caller hears a brief unavailable message instead of entering the ReplyFlow experience.
                       </p>
                       <p className="text-[10px] font-semibold text-slate-900 dark:text-slate-100 mb-1 mt-2">What happens when someone IS NOT on the list:</p>
                       <p className="text-[10px] text-slate-700 dark:text-slate-300">

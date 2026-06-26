@@ -120,9 +120,17 @@ export default function PricingPage() {
                   </div>
                   
                   {/* Reassurance */}
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    ReplyFlow works seamlessly alongside your existing business phone number.
-                  </p>
+                  <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                      ReplyFlow works seamlessly alongside your existing business phone number.
+                    </p>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                      <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">Best experience: Dedicated business number</p>
+                      <p className="text-[10px] text-blue-700 dark:text-blue-300">
+                        A dedicated business phone number provides the best experience. Personal business phones are still fully supported using Ignored Contacts.
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 
                 {/* Action Buttons */}

@@ -378,8 +378,10 @@ export default function OnboardingPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-blue-200 font-medium mb-1">How it works</p>
-                <p className="text-xs text-blue-300 leading-relaxed">When you can't answer a call, ReplyFlow automatically texts the customer back. You keep your regular phone number.</p>
+                <p className="text-sm text-blue-200 font-medium mb-1">Best experience: Dedicated business number</p>
+                <p className="text-xs text-blue-300 mb-2">A dedicated business phone number provides the best experience. It allows ReplyFlow to automatically handle every missed customer call without affecting personal callers.</p>
+                <p className="text-sm text-blue-200 font-medium mb-1">Still fully supported: Personal business phones</p>
+                <p className="text-xs text-blue-300 leading-relaxed">If you use one phone for both business and personal calls, ReplyFlow still works well. You can use Ignored Contacts to keep known personal callers out of the normal ReplyFlow customer workflow.</p>
               </div>
             </div>
           </div>

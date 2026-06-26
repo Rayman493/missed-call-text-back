@@ -206,9 +206,19 @@ export default function PublicHome() {
             </div>
 
             {/* Trust Copy */}
-            <div className="flex flex-col items-center gap-1 mt-3">
+            <div className="flex flex-col items-center gap-2 mt-3">
               <span className="text-slate-500 dark:text-muted-foreground text-sm">No contracts. Cancel anytime.</span>
               <span className="text-slate-500 dark:text-muted-foreground text-sm">Keep using the business number you already advertise everywhere.</span>
+            </div>
+
+            {/* Business Number Note */}
+            <div className="mt-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 max-w-md">
+                <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">Best experience: Dedicated business number</p>
+                <p className="text-[10px] text-blue-700 dark:text-blue-300">
+                  A dedicated business phone number provides the best experience. Personal business phones are still fully supported using Ignored Contacts.
+                </p>
+              </div>
             </div>
 
             {/* Trust Indicators */}

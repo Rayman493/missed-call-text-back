@@ -198,6 +198,37 @@ export default function FAQPage() {
             </div>
           </div>
 
+          {/* Do I need a dedicated business phone number? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                Do I need a dedicated business phone number?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  <strong>No.</strong> ReplyFlowHQ works with either a dedicated business number or a personal phone used for business.
+                </p>
+                <div className="mt-4 space-y-4">
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-4">
+                    <h3 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-2">Best experience: Dedicated business number</h3>
+                    <p className="text-sm text-green-800 dark:text-green-200 mb-2">
+                      A dedicated business phone number provides the best experience. It allows ReplyFlow to automatically handle every missed customer call without affecting personal callers.
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-4">
+                    <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">Still fully supported: Personal business phones</h3>
+                    <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+                      If you use one phone for both business and personal calls, ReplyFlow still works well. You can use Ignored Contacts to keep known personal callers out of the normal ReplyFlow customer workflow.
+                    </p>
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      Those callers will hear a brief unavailable message instead of entering the ReplyFlow experience.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Can I use my personal phone as my business number? */}
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="p-8">
@@ -218,7 +249,7 @@ export default function FAQPage() {
                       ReplyFlow will treat the missed call like any potential customer:
                     </p>
                     <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc pl-5">
-                      <li>AI Voice (or ReplyFlow voicemail when applicable) can collect information</li>
+                      <li>AI Voice can collect information</li>
                       <li>A lead is created</li>
                       <li>Automated text messages and follow-ups work normally</li>
                     </ul>
@@ -233,7 +264,7 @@ export default function FAQPage() {
                       <li>No automated text messages</li>
                       <li>No lead is created</li>
                       <li>No follow-ups are scheduled</li>
-                      <li>The caller simply hears a brief unavailable voicemail message</li>
+                      <li>The caller hears a brief unavailable message</li>
                     </ul>
                   </div>
                 </div>
