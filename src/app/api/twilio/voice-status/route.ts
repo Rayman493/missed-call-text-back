@@ -677,7 +677,7 @@ async function processVoiceStatusCallback(params: any, method: string) {
         })
       } else {
         // Default after-hours message when custom message is blank
-        autoReplyMessage = `Thanks for calling {{business_name}}. We are currently closed and will get back to you during business hours. Reply STOP to opt out.`
+        autoReplyMessage = `Thanks for contacting {{business_name}}. We're currently closed and will get back to you during business hours.`
         templateSource = 'after_hours'
         console.log('[AFTER HOURS MESSAGE SELECTED]', {
           template: messageTemplate,
