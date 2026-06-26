@@ -154,18 +154,21 @@ Return JSON only with these fields:
     // Clean up extracted text to be business-ready
     const cleanedExtracted = cleanExtractedInfo(filteredExtracted);
 
+    // Apply AI-based CRM normalization for professional formatting
+    const normalizedExtracted = await applyCRMNormalization(cleanedExtracted);
+
     // Calculate confidence based on number of fields extracted
-    const fieldsExtracted = Object.keys(cleanedExtracted).length;
+    const fieldsExtracted = Object.keys(normalizedExtracted).length;
     const confidence = fieldsExtracted > 0 ? Math.min(1, 0.2 + (fieldsExtracted * 0.15)) : 0;
 
     console.log('[VOICEMAIL EXTRACTION] LLM extraction successful:', {
       fieldsExtracted,
       confidence,
-      extracted: cleanedExtracted
+      extracted: normalizedExtracted
     });
 
     return {
-      extractedInfo: cleanedExtracted,
+      extractedInfo: normalizedExtracted,
       confidence,
       source: 'voicemail',
       extractedAt: new Date().toISOString()
@@ -303,12 +306,15 @@ Please merge these, preserving all original information and only updating what t
 
     const merged = JSON.parse(content) as VoicemailExtractedInfo
 
+    // Apply AI-based CRM normalization for professional formatting
+    const normalizedMerged = await applyCRMNormalization(merged)
+
     console.log('[INTELLIGENT CORRECTION MERGE] LLM merge successful:', {
-      merged,
-      fieldsChanged: Object.keys(merged).filter(key => merged[key as keyof VoicemailExtractedInfo] !== existingExtractedInfo[key as keyof VoicemailExtractedInfo])
+      merged: normalizedMerged,
+      fieldsChanged: Object.keys(normalizedMerged).filter(key => normalizedMerged[key as keyof VoicemailExtractedInfo] !== existingExtractedInfo[key as keyof VoicemailExtractedInfo])
     })
 
-    return merged
+    return normalizedMerged
   } catch (error: any) {
     console.error('[INTELLIGENT CORRECTION MERGE] Error during LLM merge:', error)
     // Fallback to existing extraction on error
@@ -447,18 +453,21 @@ Return JSON only with these fields:
     // Clean up extracted text to be business-ready
     const cleanedExtracted = cleanExtractedInfo(filteredExtracted);
 
+    // Apply AI-based CRM normalization for professional formatting
+    const normalizedExtracted = await applyCRMNormalization(cleanedExtracted);
+
     // Calculate confidence based on number of fields extracted
-    const fieldsExtracted = Object.keys(cleanedExtracted).length;
+    const fieldsExtracted = Object.keys(normalizedExtracted).length;
     const confidence = fieldsExtracted > 0 ? Math.min(1, 0.2 + (fieldsExtracted * 0.15)) : 0;
 
     console.log('[SMS EXTRACTION] LLM extraction successful:', {
       fieldsExtracted,
       confidence,
-      extracted: cleanedExtracted
+      extracted: normalizedExtracted
     });
 
     return {
-      extractedInfo: cleanedExtracted,
+      extractedInfo: normalizedExtracted,
       confidence,
       source: 'sms',
       extractedAt: new Date().toISOString()
@@ -923,9 +932,9 @@ export async function safeMergeSmsExtraction(
 }
 
 /**
- * Clean up extracted text to be business-ready
- * Removes filler words, unnecessary first-person wording, and conversational noise
- * Applies CRM note formatting rules for concise, scannable output
+ * Clean up extracted text with basic cleanup only
+ * Removes filler words, trims whitespace, and normalizes simple patterns
+ * This is a lightweight pass before AI-based CRM normalization
  */
 export function cleanExtractedText(text: string): string {
   if (!text || typeof text !== 'string') {
@@ -943,17 +952,6 @@ export function cleanExtractedText(text: string): string {
 
   for (const pattern of fillerStartPatterns) {
     cleaned = cleaned.replace(pattern, '')
-  }
-
-  // Remove hedge words (case-insensitive)
-  const hedgeWordPatterns = [
-    /\s+(maybe|probably|i guess|i think|i suppose|i believe|sort of|kind of|just|actually|basically|well)\s+/gi,
-    /^(maybe|probably|i guess|i think|i suppose|i believe|sort of|kind of|just|actually|basically|well)\s+/gi,
-    /\s+(maybe|probably|i guess|i think|i suppose|i believe|sort of|kind of|just|actually|basically|well)\.?\s*$/gi,
-  ]
-
-  for (const pattern of hedgeWordPatterns) {
-    cleaned = cleaned.replace(pattern, ' ')
   }
 
   // Remove filler words in the middle
@@ -975,53 +973,6 @@ export function cleanExtractedText(text: string): string {
     cleaned = cleaned.replace(pattern, '.')
   }
 
-  // Convert first-person statements to business-ready statements
-  // "I need X" -> "X"
-  const firstPersonPatterns = [
-    /^(i need|I need|i want|I want|i'd like|I'd like)\s+(.+)$/gi,
-    /^(i'm calling because|I'm calling because|i called because|I called because)\s+(.+)$/gi,
-    /^(i was wondering if|I was wondering if|i was hoping|I was hoping)\s+(.+)$/gi,
-  ]
-
-  for (const pattern of firstPersonPatterns) {
-    cleaned = cleaned.replace(pattern, (match, p1, p2) => {
-      // Return the object without the first-person prefix
-      return p2.trim()
-    })
-  }
-
-  // Normalize time patterns
-  cleaned = cleaned.replace(/\bin the mornings?\b/gi, 'Morning')
-  cleaned = cleaned.replace(/\bin the afternoons?\b/gi, 'Afternoon')
-  cleaned = cleaned.replace(/\bin the evenings?\b/gi, 'Evening')
-  cleaned = cleaned.replace(/\bthis weekend\b/gi, 'Weekend')
-  cleaned = cleaned.replace(/\bnext weekend\b/gi, 'Next weekend')
-  cleaned = cleaned.replace(/\bas soon as possible\b/gi, 'ASAP')
-  cleaned = cleaned.replace(/\basap\b/gi, 'ASAP')
-  cleaned = cleaned.replace(/\btomorrow morning\b/gi, 'Tomorrow morning')
-  cleaned = cleaned.replace(/\btomorrow afternoon\b/gi, 'Tomorrow afternoon')
-  cleaned = cleaned.replace(/\btomorrow evening\b/gi, 'Tomorrow evening')
-
-  // Normalize location prefixes
-  cleaned = cleaned.replace(/^(my house at|my place at|it's at my house|its at my house|it's at my place|its at my place)\s+/gi, '')
-  cleaned = cleaned.replace(/^(my business at|it's at my business|its at my business)\s+/gi, '')
-  cleaned = cleaned.replace(/^(at my house|at my place|at my business)\s+/gi, '')
-  cleaned = cleaned.replace(/^(my house|my place|my business)\s+/gi, '')
-
-  // Remove unnecessary verbs and common phrases
-  cleaned = cleaned.replace(/\bto be\b/gi, '')
-  cleaned = cleaned.replace(/\bto have\b/gi, '')
-  cleaned = cleaned.replace(/\bto get\b/gi, '')
-  cleaned = cleaned.replace(/\bto do\b/gi, '')
-  cleaned = cleaned.replace(/\bi would like to\b/gi, '')
-  cleaned = cleaned.replace(/\bi'd like to\b/gi, '')
-  cleaned = cleaned.replace(/\bhave to\b/gi, '')
-  cleaned = cleaned.replace(/\bneed to\b/gi, '')
-  cleaned = cleaned.replace(/\bwant to\b/gi, '')
-  cleaned = cleaned.replace(/\bgoing to\b/gi, '')
-  cleaned = cleaned.replace(/\bgonna\b/gi, '')
-  cleaned = cleaned.replace(/\btrying to\b/gi, '')
-
   // Clean up multiple spaces
   cleaned = cleaned.replace(/\s+/g, ' ')
 
@@ -1035,6 +986,106 @@ export function cleanExtractedText(text: string): string {
   }
 
   return cleaned
+}
+
+/**
+ * Normalize extracted info into CRM-friendly language using AI
+ * This is a second pass after extraction to rewrite fields into concise, professional CRM notes
+ */
+export async function applyCRMNormalization(info: VoicemailExtractedInfo): Promise<VoicemailExtractedInfo> {
+  if (!info || Object.keys(info).length === 0) {
+    return info
+  }
+
+  try {
+    const openai = getOpenAIClient()
+
+    const systemPrompt = `You are a CRM normalization assistant. Rewrite extracted customer information into concise, professional CRM notes.
+
+Your goal: Make each field read like something an experienced office receptionist typed into a CRM.
+
+Rules:
+- Write as a noun phrase, not a full sentence
+- Remove ALL conversational wording
+- Remove ALL first-person wording: I, my, me, we, us
+- Remove ALL hedge words: maybe, probably, I guess, I think, sort of, kind of, just, actually, basically
+- Remove unnecessary verbs: "would like to have", "need to", "want to", "going to"
+- Keep the core meaning intact
+- Never invent information
+- Never shorten so much that context is lost
+- Keep every field readable in 1-3 seconds
+- Prefer professional terminology over casual language
+
+Field-specific examples:
+
+reasonForCalling:
+- "Would like to have plumbing pipes fixed" → "Plumbing repair"
+- "Need my grass cut" → "Lawn mowing"
+- "My AC isn't cooling" → "AC not cooling"
+- "My water heater stopped working" → "Water heater repair"
+
+importantDetails:
+- "Needs the downstairs pipes to be fixed because they're leaking." → "Basement pipe leak"
+- "It'll be about half an acre." → "Half-acre lawn"
+- "Tree fell onto the fence." → "Tree damaged fence"
+- "The upstairs AC has been broken for two days." → "Upstairs AC out for 2 days"
+
+addressOrLocation:
+- "At my house at 1632 South Pine Drive" → "1632 South Pine Drive"
+
+desiredCompletionTime:
+- "I guess probably Monday or Tuesday" → "Monday or Tuesday"
+- "As soon as possible" → "ASAP"
+
+preferredCallbackTime:
+- "Probably in the mornings" → "Morning"
+- "After 5 PM" → "After 5 PM"
+
+Return JSON only with these fields:
+{
+  "callerName": string | null,
+  "reasonForCalling": string | null,
+  "importantDetails": string | null,
+  "urgencyLevel": "high" | "medium" | "low" | null,
+  "addressOrLocation": string | null,
+  "preferredCallbackTime": string | null,
+  "callbackNumber": string | null
+}`
+
+    const userPrompt = `Normalize the following extracted information into CRM-friendly language:
+
+${JSON.stringify(info, null, 2)}`
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+    })
+
+    const content = response.choices[0].message.content
+    if (!content) {
+      console.error('[NORMALIZE EXTRACTED INFO] No content in response')
+      return info
+    }
+
+    const normalized = JSON.parse(content) as VoicemailExtractedInfo
+
+    console.log('[NORMALIZE EXTRACTED INFO] AI normalization successful:', {
+      original: info,
+      normalized,
+      fieldsChanged: Object.keys(info).filter(key => info[key as keyof VoicemailExtractedInfo] !== normalized[key as keyof VoicemailExtractedInfo])
+    })
+
+    return normalized
+  } catch (error: any) {
+    console.error('[NORMALIZE EXTRACTED INFO] Error during AI normalization:', error)
+    // Fallback to original info on error
+    return info
+  }
 }
 
 /**
