@@ -576,6 +576,8 @@ export async function POST(request: NextRequest) {
     parts.push('');
     
     // Footer
+    parts.push('We\'ll be in touch soon.');
+    parts.push('');
     parts.push('Reply to this message if you\'d like to add or correct anything.');
     
     messageBody = parts.join('\n');

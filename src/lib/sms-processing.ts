@@ -98,15 +98,44 @@ export function generateSummaryFromExtractedInfo(extractedInfo: any): string {
   const normalized = normalizeExtractedInfo(extractedInfo)
   const parts: string[] = []
   
-  // Always display all fields, using "Not collected" for missing values
-  parts.push(`Caller: ${normalized.callerName ? normalizePunctuation(normalized.callerName) : 'Not collected'}`)
-  parts.push(`Service: ${normalized.reasonForCalling ? normalizePunctuation(normalized.reasonForCalling) : 'Not collected'}`)
-  parts.push(`Location: ${normalized.addressOrLocation ? normalizePunctuation(normalized.addressOrLocation) : 'Not collected'}`)
-  parts.push(`Desired Completion Time: ${normalized.desiredCompletionTime ? normalizePunctuation(normalized.desiredCompletionTime) : 'Not collected'}`)
-  parts.push(`Best Callback Time: ${normalized.preferredCallbackTime ? normalizePunctuation(normalized.preferredCallbackTime) : 'Not collected'}`)
-  parts.push(`Details: ${normalized.importantDetails ? normalizePunctuation(normalized.importantDetails) : 'Not collected'}`)
+  // Use business-friendly labels with values on separate lines
+  if (normalized.callerName) {
+    parts.push('Customer')
+    parts.push(normalizePunctuation(normalized.callerName))
+    parts.push('')
+  }
   
-  return parts.join('. ')
+  if (normalized.reasonForCalling) {
+    parts.push('Service')
+    parts.push(normalizePunctuation(normalized.reasonForCalling))
+    parts.push('')
+  }
+  
+  if (normalized.addressOrLocation) {
+    parts.push('Address')
+    parts.push(normalizePunctuation(normalized.addressOrLocation))
+    parts.push('')
+  }
+  
+  if (normalized.desiredCompletionTime) {
+    parts.push('Desired Completion')
+    parts.push(normalizePunctuation(normalized.desiredCompletionTime))
+    parts.push('')
+  }
+  
+  if (normalized.preferredCallbackTime) {
+    parts.push('Best Callback Time')
+    parts.push(normalizePunctuation(normalized.preferredCallbackTime))
+    parts.push('')
+  }
+  
+  if (normalized.importantDetails) {
+    parts.push('Details')
+    parts.push(normalizePunctuation(normalized.importantDetails))
+    parts.push('')
+  }
+  
+  return parts.join('\n')
 }
 
 export async function processInboundSms(params: ProcessInboundSmsParams) {
