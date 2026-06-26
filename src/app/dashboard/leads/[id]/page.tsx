@@ -1929,43 +1929,43 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           
           {/* Desktop Sidebar */}
           <aside className="sticky top-6 overflow-y-auto max-h-[calc(100vh-230px)]" data-sidebar>
-            <div className="space-y-5">
+            <div className="space-y-3">
               {/* AI Intake Summary Card - Sticky on Desktop */}
               {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                <div className="sticky top-0 bg-background z-10 pb-4">
-                  <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
-                    <button
-                      onClick={() => setCollapsedSections(prev => ({ ...prev, aiIntake: !prev.aiIntake }))}
-                      className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                    >
-                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">AI Intake Summary</h3>
-                      <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    {!collapsedSections.aiIntake && (
-                      <div className="px-4 pb-4 pt-2">
-                        <AICallDetails
-                          leadId={params.id}
-                          businessId={business.id}
-                          conversationId={leadData?.conversation?.id}
-                          callerPhone={leadData?.phone_number || lead?.phone}
-                          leadData={leadData}
-                          collapsible={false}
-                        />
-                      </div>
-                    )}
-                  </div>
+                <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
+                  <button
+                    onClick={() => setCollapsedSections(prev => ({ ...prev, aiIntake: !prev.aiIntake }))}
+                    className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">AI Intake Summary</h3>
+                    <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {!collapsedSections.aiIntake && (
+                    <div className="px-3 pb-3 pt-2">
+                      <AICallDetails
+                        leadId={params.id}
+                        businessId={business.id}
+                        conversationId={leadData?.conversation?.id}
+                        callerPhone={leadData?.phone_number || lead?.phone}
+                        leadData={leadData}
+                        collapsible={false}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Voicemail Summary Card - Show when voicemail extraction exists */}
-              <VoicemailSummary leadData={leadData} />
+              {/* Voicemail Summary Card - Show when voicemail extraction exists but no AI Intake */}
+              {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
+                <VoicemailSummary leadData={leadData} />
+              )}
               {/* Lead Health Card */}
               <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                 <button
                   onClick={() => setCollapsedSections(prev => ({ ...prev, leadHealth: !prev.leadHealth }))}
-                  className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lead Health</h3>
                   <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.leadHealth ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1973,15 +1973,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </svg>
                 </button>
                 {!collapsedSections.leadHealth && (
-                  <div className="px-4 pb-4 pt-2">
-                    <div className="space-y-3">
+                  <div className="px-3 pb-3 pt-2">
+                    <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">AI Intake</span>
                         <span className="text-xs font-medium text-foreground">
                           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 ? (() => {
                             const latestAiRecord = leadData.aiCallRecords[0];
                             return latestAiRecord.outcome === 'completed' ? 'Complete' : 'Incomplete';
-                          })() : 'Incomplete'}
+                          })() : 'Not Started'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -1991,7 +1991,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Corrections Made</span>
+                        <span className="text-xs text-muted-foreground">Corrections</span>
                         <span className="text-xs font-medium text-foreground">
                           {leadData?.raw_metadata?.corrected_fields ? Object.keys(leadData.raw_metadata.corrected_fields).length : 0}
                         </span>
@@ -1999,8 +1999,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">Follow-Ups</span>
                         <span className="text-xs font-medium text-foreground">
-                          {followUpJobs.some((j: any) => j.status === 'pending') ? 'Active' : 
-                           followUpJobs.some((j: any) => j.status === 'cancelled') ? 'Cancelled' : 'Complete'}
+                          {!followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0 ? 'Not Configured' :
+                           !followUpSettings.enabled ? 'Disabled' :
+                           followUpJobs.some((j: any) => j.status === 'pending') ? 'Scheduled' :
+                           followUpJobs.some((j: any) => j.status === 'sent') ? 'Complete' : 'Configured'}
                         </span>
                       </div>
                     </div>
@@ -2013,7 +2015,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                   <button
                     onClick={() => setCollapsedSections(prev => ({ ...prev, photos: !prev.photos }))}
-                    className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Photos Received</h3>
                     <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.photos ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2021,7 +2023,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </svg>
                   </button>
                   {!collapsedSections.photos && (
-                    <div className="px-4 pb-4">
+                    <div className="px-3 pb-3">
                       <div className="grid grid-cols-2 gap-2">
                         {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (
                           media.urls.slice(0, 1).map((url: string, idx: number) => (
@@ -2060,7 +2062,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                 <button
                   onClick={() => setCollapsedSections(prev => ({ ...prev, quickActions: !prev.quickActions }))}
-                  className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quick Actions</h3>
                   <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.quickActions ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2068,7 +2070,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </svg>
                 </button>
                 {!collapsedSections.quickActions && (
-                  <div className="px-4 pb-4 pt-2">
+                  <div className="px-3 pb-3 pt-2">
                     <div className="flex flex-wrap gap-2">
                       {/* Primary Actions */}
                       <button
@@ -2126,7 +2128,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                 <button
                   onClick={() => setCollapsedSections(prev => ({ ...prev, automation: !prev.automation }))}
-                  className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Follow-Up Status</h3>
                   <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.automation ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2134,7 +2136,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </svg>
                 </button>
                 {!collapsedSections.automation && (
-                  <div className="px-4 pb-4 pt-2">
+                  <div className="px-3 pb-3 pt-2">
                     <AutomaticFollowUpsControl
                       followUpJobs={followUpJobs}
                       leadId={params.id}
