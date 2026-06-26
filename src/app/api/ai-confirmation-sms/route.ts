@@ -561,7 +561,7 @@ export async function POST(request: NextRequest) {
       parts.push(prefixNotice);
       parts.push('');
     }
-    parts.push('Here\'s what we have:');
+    parts.push('NEW CUSTOMER REQUEST');
     parts.push('');
     
     // Summary body from centralized formatter
