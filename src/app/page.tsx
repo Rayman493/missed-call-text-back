@@ -619,7 +619,7 @@ export default async function Home() {
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="space-y-2 mb-3 flex-1">
+                    <div className="space-y-2.5 flex-1">
                       <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-[10px] text-slate-900 dark:text-foreground truncate">+1 (555) 123-4567</div>
@@ -644,7 +644,7 @@ export default async function Home() {
                     </div>
                     
                     {/* CTA */}
-                    <div className="flex justify-end">
+                    <div className="flex justify-end mt-auto">
                       <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">View All Leads →</a>
                     </div>
                   </div>
@@ -667,7 +667,7 @@ export default async function Home() {
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="space-y-3 mb-3 flex-1">
+                    <div className="space-y-3 flex-1">
                       <div className="flex gap-2">
                         <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                           <span className="text-white text-[9px] font-medium">JS</span>
@@ -703,7 +703,7 @@ export default async function Home() {
                     </div>
                     
                     {/* CTA */}
-                    <div className="flex justify-end">
+                    <div className="flex justify-end mt-auto">
                       <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Open Inbox →</a>
                     </div>
                   </div>
@@ -726,7 +726,7 @@ export default async function Home() {
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="space-y-2 mb-3 flex-1">
+                    <div className="space-y-2.5 flex-1">
                       <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
                         <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-md flex items-center justify-center flex-shrink-0">
                           <div className="text-center">
@@ -763,7 +763,7 @@ export default async function Home() {
                     </div>
                     
                     {/* CTA */}
-                    <div className="flex justify-end">
+                    <div className="flex justify-end mt-auto">
                       <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">View Calendar →</a>
                     </div>
                   </div>
@@ -786,8 +786,8 @@ export default async function Home() {
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="mb-3 flex-1">
-                      <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-2 space-y-2">
+                    <div className="flex-1">
+                      <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-2 space-y-2 h-full">
                         <div className="flex items-start gap-1.5">
                           <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-12 flex-shrink-0">Service</div>
                           <div className="text-[10px] text-slate-900 dark:text-foreground">HVAC Repair</div>
@@ -808,7 +808,7 @@ export default async function Home() {
                     </div>
                     
                     {/* CTA */}
-                    <div className="flex justify-end">
+                    <div className="flex justify-end mt-auto">
                       <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">View Intake →</a>
                     </div>
                   </div>
