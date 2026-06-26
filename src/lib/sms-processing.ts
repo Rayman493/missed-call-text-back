@@ -93,47 +93,52 @@ export interface ProcessInboundSmsParams {
 }
 
 // Generate summary from extracted_info fields using canonical keys
-// Always displays all expected fields with "Not collected" for missing values
+// Clean section-based layout for professional confirmation SMS
 export function generateSummaryFromExtractedInfo(extractedInfo: any): string {
   const normalized = normalizeExtractedInfo(extractedInfo)
   const parts: string[] = []
   
-  // Use business-friendly labels with values on separate lines
-  if (normalized.callerName) {
-    parts.push('Customer')
-    parts.push(normalizePunctuation(normalized.callerName))
-    parts.push('')
-  }
+  // Service (was Reason)
+  parts.push('Service')
+  parts.push(normalized.reasonForCalling ? normalizePunctuation(normalized.reasonForCalling) : 'Not collected')
+  parts.push('')
   
-  if (normalized.reasonForCalling) {
-    parts.push('Service')
-    parts.push(normalizePunctuation(normalized.reasonForCalling))
-    parts.push('')
-  }
+  // Address (was Location)
+  parts.push('Address')
+  parts.push(normalized.addressOrLocation ? normalizePunctuation(normalized.addressOrLocation) : 'Not collected')
+  parts.push('')
   
-  if (normalized.addressOrLocation) {
-    parts.push('Address')
-    parts.push(normalizePunctuation(normalized.addressOrLocation))
-    parts.push('')
-  }
+  // Desired completion (was Desired Completion Time)
+  parts.push('Desired completion')
+  parts.push(normalized.desiredCompletionTime ? normalizePunctuation(normalized.desiredCompletionTime) : 'Not collected')
+  parts.push('')
   
-  if (normalized.desiredCompletionTime) {
-    parts.push('Desired Completion')
-    parts.push(normalizePunctuation(normalized.desiredCompletionTime))
-    parts.push('')
-  }
+  // Best time to call (was Best Callback Time)
+  parts.push('Best time to call')
+  parts.push(normalized.preferredCallbackTime ? normalizePunctuation(normalized.preferredCallbackTime) : 'Not collected')
+  parts.push('')
   
-  if (normalized.preferredCallbackTime) {
-    parts.push('Best Callback Time')
-    parts.push(normalizePunctuation(normalized.preferredCallbackTime))
-    parts.push('')
-  }
-  
+  // Details - format with bullets if multiple pieces, plain text if single
+  parts.push('Details')
   if (normalized.importantDetails) {
-    parts.push('Details')
-    parts.push(normalizePunctuation(normalized.importantDetails))
-    parts.push('')
+    const details = normalizePunctuation(normalized.importantDetails)
+    // Check if details contain multiple distinct items (separated by periods, newlines, or bullet-like patterns)
+    const multipleItems = details.includes('. ') || details.includes('\n') || details.includes('; ')
+    
+    if (multipleItems) {
+      // Split into bullet points
+      const items = details.split(/[.;\n]+/).filter(item => item.trim())
+      items.forEach(item => {
+        parts.push(`• ${item.trim()}`)
+      })
+    } else {
+      // Single detail, no bullet
+      parts.push(details)
+    }
+  } else {
+    parts.push('Not collected')
   }
+  parts.push('')
   
   return parts.join('\n')
 }

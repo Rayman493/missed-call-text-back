@@ -548,7 +548,7 @@ export async function POST(request: NextRequest) {
 
     // Opening
     const parts: string[] = [];
-    parts.push(`Thanks for contacting ${businessName}.`);
+    parts.push(`Thanks for calling ${businessName}!`);
     parts.push('');
     
     // Header
@@ -556,29 +556,15 @@ export async function POST(request: NextRequest) {
       parts.push(prefixNotice);
       parts.push('');
     }
-    parts.push('New customer request');
+    parts.push('Here\'s what we have:');
     parts.push('');
-    
-    // Customer name
-    if (extracted.callerName) {
-      parts.push(`👤 ${normalizePunctuation(safeFieldToString(extracted.callerName))}`);
-      parts.push('');
-    }
-    
-    // Callback number (use callerPhone)
-    if (callerPhone) {
-      parts.push(`📞 ${safeFieldToString(callerPhone)}`);
-      parts.push('');
-    }
     
     // Summary body from centralized formatter
     parts.push(summaryBody);
     parts.push('');
     
     // Footer
-    parts.push('We\'ll be in touch soon.');
-    parts.push('');
-    parts.push('Reply to this message if you\'d like to add or correct anything.');
+    parts.push('Need to change or add anything? Just reply to this message.');
     
     messageBody = parts.join('\n');
 
