@@ -374,13 +374,13 @@ export default function SetupStatusCard({
           <div className="flex-1">
             {cardState === 'needs-forwarding' ? (
               <>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Complete your setup</h1>
-                <p className="text-blue-100 text-base sm:text-lg">One final step before ReplyFlow can start capturing missed calls.</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Complete these three steps to activate ReplyFlow</h1>
+                <p className="text-blue-100 text-base sm:text-lg">Step 2 of 3 — Set up call forwarding to start capturing missed calls.</p>
               </>
             ) : cardState === 'needs-verification' ? (
               <>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Verify Your Setup</h1>
-                <p className="text-blue-100 text-base sm:text-lg">Complete your setup by testing call forwarding.</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Complete these three steps to activate ReplyFlow</h1>
+                <p className="text-blue-100 text-base sm:text-lg">Step 3 of 3 — Make a test call to verify your setup.</p>
               </>
             ) : (
               <>
@@ -399,10 +399,11 @@ export default function SetupStatusCard({
           )}
         </div>
 
-        {/* Setup Progress - Only show during onboarding */}
+        {/* Setup Progress - Always show all three steps */}
         {(cardState === 'needs-forwarding' || cardState === 'needs-verification') && (
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
             <div className="space-y-3">
+              {/* Step 1: Always Complete */}
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
                   <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -411,27 +412,29 @@ export default function SetupStatusCard({
                 </div>
                 <span className="text-white text-sm">Your ReplyFlow number is ready</span>
               </div>
-              {cardState === 'needs-verification' && (
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+
+              {/* Step 2: Complete or Current */}
+              <div className={`flex items-center gap-3 ${cardState === 'needs-forwarding' ? '' : 'opacity-100'}`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${cardState === 'needs-verification' ? 'bg-green-500' : 'bg-blue-400'}`}>
+                  {cardState === 'needs-verification' ? (
                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
-                  </div>
-                  <span className="text-white text-sm">Call forwarding connected</span>
+                  ) : null}
                 </div>
-              )}
+                <span className="text-white text-sm">Set up call forwarding</span>
+              </div>
+
+              {/* Step 3: Upcoming or Current */}
               <div className={`flex items-center gap-3 ${cardState === 'needs-forwarding' ? 'opacity-50' : ''}`}>
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${hasCompletedTestCall ? 'bg-green-500' : 'bg-blue-400'}`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${hasCompletedTestCall ? 'bg-green-500' : cardState === 'needs-verification' ? 'bg-blue-400' : 'bg-slate-400'}`}>
                   {hasCompletedTestCall ? (
                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   ) : null}
                 </div>
-                <span className="text-white text-sm">
-                  {cardState === 'needs-forwarding' ? 'Set up call forwarding' : 'Verify with a test call'}
-                </span>
+                <span className="text-white text-sm">Make a test call</span>
               </div>
             </div>
           </div>
@@ -546,13 +549,11 @@ export default function SetupStatusCard({
         )}
 
         {cardState === 'needs-verification' && (
-          <div className="text-center sm:text-left">
-            <Link
-              href="/setup/phone-forwarding?mode=review"
-              className="text-blue-200 text-sm hover:text-white underline underline-offset-2 transition-colors"
-            >
-              View carrier forwarding instructions
-            </Link>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="text-center sm:text-left">
+              <p className="text-white text-base font-medium mb-1">Make a test call to your business number</p>
+              <p className="text-blue-200 text-sm">Let it ring and complete a short conversation with the AI.</p>
+            </div>
           </div>
         )}
 
