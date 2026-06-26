@@ -1659,12 +1659,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Conversation Sub-Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3">
+        <div className="max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 py-1.5 sm:py-3">
           {/* Mobile Layout: Messaging App Header */}
           <div className="md:hidden">
             <div className="flex items-center justify-between">
               {/* Back + Name/Phone */}
-              <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
                 <button
                   type="button"
                   onClick={() => {
@@ -1672,28 +1672,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   }}
                   className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors p-1"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-base font-semibold text-slate-900 dark:text-white leading-tight truncate">
-                    {getLeadDisplayName(leadData || lead)}
-                  </h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                    {formatPhoneNumber(lead?.caller_phone || '')}
-                  </p>
-                  {/* Small Status Badge */}
-                  <div className="mt-0.5">
-                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
+                  <div className="flex items-center gap-1.5">
+                    <h1 className="text-sm font-semibold text-slate-900 dark:text-white leading-tight truncate">
+                      {getLeadDisplayName(leadData || lead)}
+                    </h1>
+                    {/* Compact Status Badge */}
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium flex-shrink-0 ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
                       {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
                     </span>
                   </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                    {formatPhoneNumber(lead?.caller_phone || '')}
+                  </p>
                 </div>
               </div>
               
               {/* Action Buttons */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
@@ -1701,7 +1701,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   title="Lead information"
                   aria-label="Lead information"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </button>
@@ -1913,7 +1913,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread - CSS-based Layout */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         
         {/* Desktop Layout */}
         <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
@@ -2270,17 +2270,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
         
         {/* Mobile Layout */}
-        <div className="lg:hidden space-y-4">
+        <div className="lg:hidden space-y-3">
           {/* Mobile Quick Actions */}
-          <div className="bg-card border border-border/50 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center gap-2 overflow-x-auto">
+          <div className="bg-card border border-border/50 rounded-xl p-2.5 shadow-sm">
+            <div className="flex items-center gap-1.5 overflow-x-auto">
               {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
                 <a
                   href={`tel:${leadData?.phone_number || lead?.phone}`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors flex-shrink-0"
+                  className="flex items-center gap-1 px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors flex-shrink-0"
                   title="Call customer"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
                   </svg>
                   <span>Call</span>
@@ -2291,20 +2291,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   const composer = document.querySelector('textarea')
                   if (composer) composer.focus()
                 }}
-                className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full transition-colors border border-blue-200 dark:border-blue-800 flex-shrink-0"
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full transition-colors border border-blue-200 dark:border-blue-800 flex-shrink-0"
                 title="Send text message"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
                 <span>Text</span>
               </button>
               <button
                 onClick={() => setShowLeadInfo(!showLeadInfo)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 dark:bg-slate-900/20 hover:bg-slate-100 dark:hover:bg-slate-900/30 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-full transition-colors border border-slate-200 dark:border-slate-800 flex-shrink-0"
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900/20 hover:bg-slate-100 dark:hover:bg-slate-900/30 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-full transition-colors border border-slate-200 dark:border-slate-800 flex-shrink-0"
                 title="More actions"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                 </svg>
                 <span>More</span>
@@ -2313,7 +2313,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           
           {/* Mobile Message Thread */}
-          <div ref={mobileConversationContainerRef} className="p-4 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth bg-card rounded-2xl border border-border/50 shadow-sm" style={{ minHeight: '200px', maxHeight: 'calc(100vh-280px)' }}>
+          <div ref={mobileConversationContainerRef} className="p-3 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth bg-card rounded-xl border border-border/50 shadow-sm" style={{ minHeight: '200px', maxHeight: 'calc(100vh-260px)' }}>
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -2411,49 +2411,51 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
           
-          {/* AI Intake Summary Card */}
+          {/* AI Intake Summary Card - Compact with Preview */}
           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-            <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-foreground mb-3">AI Intake Summary</h3>
-              <AICallDetails
-                leadId={params.id}
-                businessId={business.id}
-                conversationId={leadData?.conversation?.id}
-                callerPhone={leadData?.phone_number || lead?.phone}
-              />
+            <div className="bg-card border border-border rounded-xl p-3">
+              <button
+                onClick={() => setCollapsedSections(prev => ({ ...prev, aiIntake: !prev.aiIntake }))}
+                className="w-full flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <h3 className="text-sm font-semibold text-foreground">AI Intake Summary</h3>
+                </div>
+                <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {!collapsedSections.aiIntake && (
+                <div className="mt-2">
+                  <AICallDetails
+                    leadId={params.id}
+                    businessId={business.id}
+                    conversationId={leadData?.conversation?.id}
+                    callerPhone={leadData?.phone_number || lead?.phone}
+                    collapsible={false}
+                  />
+                </div>
+              )}
             </div>
           )}
           
-          {/* Customer Details Card */}
-          <div className="bg-card border border-border rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Customer Details</h3>
+          {/* Combined Customer Details + Lead Health Card */}
+          <div className="bg-card border border-border rounded-xl p-3">
+            <h3 className="text-sm font-semibold text-foreground mb-2.5">Customer Details</h3>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Phone</span>
-                <span className="text-sm font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.phone)}</span>
+                <span className="text-xs text-muted-foreground">Phone</span>
+                <span className="text-xs font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.phone)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Status</span>
-                <span className={`text-sm font-medium ${getLeadStatusColor(leadData?.status || lead?.status)}`}>
+                <span className="text-xs text-muted-foreground">Status</span>
+                <span className={`text-xs font-medium ${getLeadStatusColor(leadData?.status || lead?.status)}`}>
                   {leadData?.status || lead?.status || 'New'}
                 </span>
               </div>
-            </div>
-          </div>
-          
-          {/* Internal Notes Card */}
-          <div className="bg-card border border-border rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Internal Notes</h3>
-            <textarea
-              placeholder="Add internal notes..."
-              className="w-full min-h-[80px] px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          
-          {/* Lead Health Card */}
-          <div className="bg-card border border-border rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Lead Health</h3>
-            <div className="space-y-2">
               {/* Intake Status */}
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">
@@ -2505,29 +2507,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
           
-          {/* Actions Card */}
-          <div className="bg-card border border-border rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Actions</h3>
-            <div className="space-y-2">
-              <button
-                onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
-                className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                Call Lead
-              </button>
-              <button
-                className="w-full px-3 py-2 border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-lg transition-colors"
-              >
-                Mark Closed
-              </button>
-            </div>
+          {/* Internal Notes Card - Reduced Height */}
+          <div className="bg-card border border-border rounded-xl p-3">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Internal Notes</h3>
+            <textarea
+              value={internalNotes}
+              onChange={(e) => setInternalNotes(e.target.value)}
+              onBlur={handleSaveNotes}
+              placeholder="Add internal notes..."
+              className="w-full min-h-[48px] max-h-[120px] px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={1}
+            />
           </div>
           
-          {/* Automatic Follow-ups */}
-          <div className="mt-6 sm:mt-8 lg:mt-10">
+          {/* Automatic Follow-ups - Compact */}
+          <div className="mt-3">
             <AutomaticFollowUpsControl 
               followUpJobs={followUpJobs} 
               leadId={params.id}
+              leadData={leadData}
+              followUpSettings={followUpSettings}
               onUpdate={() => {
                 getLeadDetails(params.id).then(setLeadData)
               }}
