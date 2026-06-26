@@ -260,8 +260,8 @@ export default function PhoneForwardingPage() {
         setForwardingCompleted(true)
         setShowSuccess(true)
         
-        // Refresh business context to update state
-        await refreshBusiness()
+        // Force refresh business context to get latest state (bypasses cache)
+        await refreshBusiness(true)
         
         // Redirect to test setup after showing success confirmation
         setTimeout(() => {

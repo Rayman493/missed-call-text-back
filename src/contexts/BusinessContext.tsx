@@ -15,7 +15,7 @@ interface BusinessContextType {
   fetchComplete: boolean
   businessMissingConfirmed: boolean // True only if PGRST116 confirmed no business
   businessVerified: boolean // True if business was previously verified (cached)
-  refreshBusiness: () => Promise<void>
+  refreshBusiness: (force?: boolean) => Promise<void>
   setBusiness: (business: Business | null) => void
 }
 
@@ -41,12 +41,12 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     return false
   })
 
-  const fetchBusiness = useCallback(async () => {
+  const fetchBusiness = useCallback(async (force: boolean = false) => {
     if (!supabase) return
-    log('[BusinessContext] Fetching business...')
+    log('[BusinessContext] Fetching business...', { force })
     
-    // Skip loading if business is already verified and we have cached data
-    if (businessVerified && business) {
+    // Skip loading if business is already verified and we have cached data, unless force is true
+    if (!force && businessVerified && business) {
       log('[BusinessContext] Skipping fetch - business already verified')
       setFetchComplete(true)
       return
@@ -178,7 +178,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       fetchComplete,
       businessMissingConfirmed,
       businessVerified,
-      refreshBusiness: fetchBusiness,
+      refreshBusiness: (force?: boolean) => fetchBusiness(force),
       setBusiness,
     }
   }, [business, loading, error, fetchComplete, businessMissingConfirmed, businessVerified, fetchBusiness])

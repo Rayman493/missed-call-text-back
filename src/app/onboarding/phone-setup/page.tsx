@@ -115,8 +115,8 @@ function PhoneSetupContent() {
       // Update local state
       setIsForwardingEnabled(true)
       
-      // Refresh business data to get latest state
-      await refreshBusiness()
+      // Force refresh business data to get latest state (bypasses cache)
+      await refreshBusiness(true)
       
       console.log('[Phone Setup] Forwarding enabled and saved successfully')
       
@@ -241,8 +241,8 @@ function PhoneSetupContent() {
 
       console.log('[Phone Setup] Successfully updated business:', business.id)
 
-      // Refresh business context
-      await refreshBusiness()
+      // Force refresh business context to get latest state (bypasses cache)
+      await refreshBusiness(true)
 
       // Clear persisted state after successful completion
       clearPhoneSetupState()

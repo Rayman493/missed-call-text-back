@@ -42,10 +42,15 @@ export function useOperationalMetrics(business: Business | null) {
           .eq('business_id', business.id)
 
         // Fetch ALL outbound messages (no time restriction)
-        const { data: allMessages } = await supabase
-          .from('messages')
-          .select('id, direction, created_at')
+        // Messages are associated with conversations/leads, not businesses directly
+        // Query through leads to get all messages
+        const { data: leadsWithMessages } = await supabase
+          .from('leads')
+          .select('id, messages(id, direction, created_at)')
           .eq('business_id', business.id)
+
+        // Flatten messages from all leads
+        const allMessages = leadsWithMessages?.flatMap((lead: any) => lead.messages || []) || []
 
         // Fetch leads from last 30 days for recent activity check
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
