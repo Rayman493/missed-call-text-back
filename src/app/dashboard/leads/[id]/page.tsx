@@ -1660,40 +1660,66 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Conversation Sub-Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 py-1.5 sm:py-3">
-          {/* Mobile Layout: Messaging App Header */}
+          {/* Mobile Layout: Enhanced Information Header */}
           <div className="md:hidden">
-            <div className="flex items-center justify-between">
-              {/* Back + Name/Phone */}
-              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              {/* Back + Enhanced Lead Info */}
+              <div className="flex items-center gap-2 flex-1 min-w-0">
                 <button
                   type="button"
                   onClick={() => {
                     router.push('/dashboard/leads')
                   }}
-                  className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors p-1"
+                  className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors p-1 flex-shrink-0"
                 >
                   <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
                 <div className="flex-1 min-w-0">
+                  {/* Name + Status */}
                   <div className="flex items-center gap-1.5">
                     <h1 className="text-sm font-semibold text-slate-900 dark:text-white leading-tight truncate">
                       {getLeadDisplayName(leadData || lead)}
                     </h1>
-                    {/* Compact Status Badge */}
-                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium flex-shrink-0 ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
+                    <span className={`inline-flex items-center px-1 py-0.5 rounded-full text-[9px] font-medium flex-shrink-0 ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
                       {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                    {formatPhoneNumber(lead?.caller_phone || '')}
-                  </p>
+                  {/* Service Requested + Phone */}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-[10px] text-slate-600 dark:text-slate-400 truncate flex-1">
+                      {leadData?.raw_metadata?.extracted_info?.reasonForCalling || leadData?.raw_metadata?.extracted_info?.reason || 'Service requested'}
+                    </p>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500">•</span>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate flex-shrink-0">
+                      {formatPhoneNumber(lead?.caller_phone || '')}
+                    </p>
+                  </div>
+                  {/* AI Intake Status */}
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
+                      <span className="inline-flex items-center gap-0.5 text-[9px] text-green-600 dark:text-green-400 font-medium">
+                        <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        AI Complete
+                      </span>
+                    )}
+                    {followUpJobs && followUpJobs.length > 0 && followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled') && (
+                      <span className="inline-flex items-center gap-0.5 text-[9px] text-blue-600 dark:text-blue-400 font-medium">
+                        <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                        </svg>
+                        Follow-Up
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               
               {/* Action Buttons */}
-              <div className="flex items-center gap-0.5">
+              <div className="flex items-center gap-0.5 flex-shrink-0">
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
@@ -2343,21 +2369,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
           
-          {/* Combined Customer Details + Lead Health Card */}
+          {/* Lead Status Card - Lightweight */}
           <div className="bg-card border border-border rounded-xl p-2.5">
-            <h3 className="text-xs font-semibold text-foreground mb-2">Customer Details</h3>
+            <h3 className="text-xs font-semibold text-foreground mb-2">Lead Status</h3>
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground">Phone</span>
-                <span className="text-[11px] font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.phone)}</span>
-              </div>
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-muted-foreground">Status</span>
                 <span className={`text-[11px] font-medium ${getLeadStatusColor(leadData?.status || lead?.status)}`}>
                   {leadData?.status || lead?.status || 'New'}
                 </span>
               </div>
-              {/* Intake Status */}
+              {/* AI Intake Status */}
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-muted-foreground">
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
@@ -2387,21 +2409,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Yes' : 'No'}
                 </span>
               </div>
-              {/* Corrections Made */}
-              {leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0 && (
+              {/* Follow-Up Status */}
+              {followUpJobs && followUpJobs.length > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground">Corrections</span>
-                  <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
-                    {Object.keys(leadData.raw_metadata.corrected_fields).length}
-                  </span>
-                </div>
-              )}
-              {/* Appointment */}
-              {leadData?.raw_metadata?.appointment && (
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground">Appointment</span>
-                  <span className="text-[11px] font-medium text-green-600 dark:text-green-400">
-                    Scheduled
+                  <span className="text-[11px] text-muted-foreground">Follow-Ups</span>
+                  <span className={`text-[11px] font-medium ${
+                    followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : followUpJobs.some((job: any) => job.status === 'completed')
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-slate-500 dark:text-slate-400'
+                  }`}>
+                    {followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
+                      ? 'Active'
+                      : followUpJobs.some((job: any) => job.status === 'completed')
+                        ? 'Completed'
+                        : 'Paused'}
                   </span>
                 </div>
               )}
