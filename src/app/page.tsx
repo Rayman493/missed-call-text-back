@@ -518,51 +518,75 @@ export default async function Home() {
                 </div>
                 
                 <div className="p-2.5 sm:p-4 md:p-6 space-y-2 sm:space-y-3 md:space-y-4">
-                  {/* Navigation Tabs */}
-                  <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
-                    <button className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg">Leads</button>
-                    <button className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm rounded-lg">Inbox</button>
-                    <button className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm rounded-lg">Calendar</button>
-                    <button className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm rounded-lg">AI Calls</button>
+                  {/* Setup Complete Card */}
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 sm:p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <h4 className="font-semibold text-sm sm:text-base text-green-800 dark:text-green-200">Setup Complete</h4>
+                    </div>
+                    <p className="text-xs sm:text-sm text-green-700 dark:text-green-300">ReplyFlow successfully captured your first missed call. You're all set.</p>
                   </div>
-                  
-                  {/* Leads Table */}
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-2 sm:p-2.5">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold text-xs sm:text-sm text-green-800 dark:text-green-200">John Smith</div>
-                          <div className="text-[10px] sm:text-xs text-green-600 dark:text-green-400">Water heater leak • Urgent</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[10px] sm:text-xs text-slate-500">2:34 PM</div>
-                          <div className="bg-green-600 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">New</div>
-                        </div>
+
+                  {/* ReplyFlow Performance Card */}
+                  <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-3 sm:p-4">
+                    <h4 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-foreground mb-3">ReplyFlow Performance</h4>
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      <div className="text-center p-2 bg-slate-50 dark:bg-slate-600 rounded">
+                        <div className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400">12</div>
+                        <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">Missed Calls Captured</div>
+                      </div>
+                      <div className="text-center p-2 bg-slate-50 dark:bg-slate-600 rounded">
+                        <div className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400">8</div>
+                        <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">Customer Replies</div>
+                      </div>
+                      <div className="text-center p-2 bg-slate-50 dark:bg-slate-600 rounded">
+                        <div className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400">5</div>
+                        <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">Follow-Ups Sent</div>
+                      </div>
+                      <div className="text-center p-2 bg-slate-50 dark:bg-slate-600 rounded">
+                        <div className="text-lg sm:text-xl font-bold text-orange-600 dark:text-orange-400">10</div>
+                        <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">Active Leads</div>
                       </div>
                     </div>
-                    
-                    <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-2 sm:p-2.5">
-                      <div className="flex items-center justify-between">
+                  </div>
+
+                  {/* Recovery Rate Card */}
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4">
+                    <h4 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-foreground mb-2">Recovery Rate</h4>
+                    <div className="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400">100%</div>
+                    <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1">All missed calls recovered</p>
+                  </div>
+
+                  {/* Recent Lead */}
+                  <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-3 sm:p-4">
+                    <h4 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-foreground mb-3">Recent Leads</h4>
+                    <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-600 rounded">
+                      <div>
+                        <div className="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200">+1 (555) 234-5678</div>
+                        <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">HVAC repair • 2 min ago</div>
+                      </div>
+                      <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-[10px] sm:text-xs px-2 py-1 rounded">New</div>
+                    </div>
+                  </div>
+
+                  {/* Activity Timeline */}
+                  <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-3 sm:p-4">
+                    <h4 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-foreground mb-3">Activity Timeline</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
                         <div>
-                          <div className="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200">Sarah Johnson</div>
-                          <div className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400">AC repair • Medium</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[10px] sm:text-xs text-slate-500">1:15 PM</div>
-                          <div className="bg-blue-600 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">Contacted</div>
+                          <div className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">Text sent to customer</div>
+                          <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500">2 min ago</div>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-2 sm:p-2.5">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
                         <div>
-                          <div className="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200">Mike Davis</div>
-                          <div className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400">Plumbing estimate • Low</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[10px] sm:text-xs text-slate-500">11:30 AM</div>
-                          <div className="bg-slate-600 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">Scheduled</div>
+                          <div className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">Missed call captured</div>
+                          <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500">3 min ago</div>
                         </div>
                       </div>
                     </div>
