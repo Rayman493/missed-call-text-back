@@ -93,35 +93,20 @@ export interface ProcessInboundSmsParams {
 }
 
 // Generate summary from extracted_info fields using canonical keys
+// Always displays all expected fields with "Not collected" for missing values
 function generateSummaryFromExtractedInfo(extractedInfo: any): string {
   const normalized = normalizeExtractedInfo(extractedInfo)
   const parts: string[] = []
   
-  if (normalized.callerName) {
-    parts.push(`Caller: ${normalizePunctuation(normalized.callerName)}`)
-  }
+  // Always display all fields, using "Not collected" for missing values
+  parts.push(`Caller: ${normalized.callerName ? normalizePunctuation(normalized.callerName) : 'Not collected'}`)
+  parts.push(`Service: ${normalized.reasonForCalling ? normalizePunctuation(normalized.reasonForCalling) : 'Not collected'}`)
+  parts.push(`Location: ${normalized.addressOrLocation ? normalizePunctuation(normalized.addressOrLocation) : 'Not collected'}`)
+  parts.push(`Desired Completion Time: ${normalized.desiredCompletionTime ? normalizePunctuation(normalized.desiredCompletionTime) : 'Not collected'}`)
+  parts.push(`Best Callback Time: ${normalized.preferredCallbackTime ? normalizePunctuation(normalized.preferredCallbackTime) : 'Not collected'}`)
+  parts.push(`Details: ${normalized.importantDetails ? normalizePunctuation(normalized.importantDetails) : 'Not collected'}`)
   
-  if (normalized.reasonForCalling) {
-    parts.push(`Service: ${normalizePunctuation(normalized.reasonForCalling)}`)
-  }
-  
-  if (normalized.addressOrLocation) {
-    parts.push(`Location: ${normalizePunctuation(normalized.addressOrLocation)}`)
-  }
-  
-  if (normalized.desiredCompletionTime) {
-    parts.push(`Desired Completion Time: ${normalizePunctuation(normalized.desiredCompletionTime)}`)
-  }
-  
-  if (normalized.preferredCallbackTime) {
-    parts.push(`Best Callback Time: ${normalizePunctuation(normalized.preferredCallbackTime)}`)
-  }
-  
-  if (normalized.importantDetails) {
-    parts.push(`Details: ${normalizePunctuation(normalized.importantDetails)}`)
-  }
-  
-  return parts.length > 0 ? parts.join('. ') : 'No information provided'
+  return parts.join('. ')
 }
 
 export async function processInboundSms(params: ProcessInboundSmsParams) {
