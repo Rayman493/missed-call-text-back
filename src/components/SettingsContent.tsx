@@ -59,6 +59,9 @@ export default function SettingsContent() {
   // Default out of office message
   const DEFAULT_OUT_OF_OFFICE_MESSAGE = "Thanks for contacting {{business_name}}. We are currently out of office and responses may be delayed. Please provide details about what you need and we will get back to you as soon as possible."
 
+  // Default after hours message
+  const DEFAULT_AFTER_HOURS_MESSAGE = "Thanks for contacting {{business_name}}. We're currently closed and will get back to you during business hours."
+
   // Use centralized onboarding state machine
   const onboardingState = getBusinessOnboardingState(business, {})
 
@@ -769,6 +772,11 @@ export default function SettingsContent() {
       fetchCalendarStatus()
       // Check phone cooldown status
       checkPhoneCooldown()
+
+      // Prefill default after-hours message if business hours are enabled but message is empty
+      if (business.business_hours_enabled && (!business.after_hours_message || business.after_hours_message.trim() === '')) {
+        updateBusiness({ after_hours_message: DEFAULT_AFTER_HOURS_MESSAGE })
+      }
     }
   }, [business, user])
 
@@ -1395,7 +1403,14 @@ export default function SettingsContent() {
                         </p>
                       </div>
                       <button
-                        onClick={() => updateBusiness({ business_hours_enabled: !formBusiness.business_hours_enabled })}
+                        onClick={() => {
+                          const newEnabled = !formBusiness.business_hours_enabled
+                          updateBusiness({ business_hours_enabled: newEnabled })
+                          // If enabling and message is empty, set default message
+                          if (newEnabled && (!formBusiness.after_hours_message || formBusiness.after_hours_message.trim() === '')) {
+                            updateBusiness({ after_hours_message: DEFAULT_AFTER_HOURS_MESSAGE })
+                          }
+                        }}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
                           formBusiness.business_hours_enabled ? 'bg-blue-600' : 'bg-gray-600'
                         }`}
