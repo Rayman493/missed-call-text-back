@@ -2270,7 +2270,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
         
         {/* Mobile Layout */}
-        <div className="lg:hidden space-y-3">
+        <div className="lg:hidden space-y-2">
           {/* Mobile Quick Actions */}
           <div className="bg-card border border-border/50 rounded-xl p-2.5 shadow-sm">
             <div className="flex items-center gap-1.5 overflow-x-auto">
@@ -2407,35 +2407,65 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               )}
             </div>
           </div>
-          
-          {/* Mobile Message Thread - Compact with max-height */}
-          <div ref={mobileConversationContainerRef} className="p-2.5 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth bg-card rounded-xl border border-border/50 shadow-sm" style={{ minHeight: '150px', maxHeight: '250px' }}>
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : conversationTimeline.length === 0 ? (
-              <div className="text-center py-8 sm:py-12 animate-fadeIn">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
-                  <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                </div>
-                <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-1 sm:mb-2">No Messages Yet</h3>
-                <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">Send a message to start the conversation with this customer.</p>
-              </div>
-            ) : (
-              <MobileConversationMessageList
-                messagesArray={messagesArray}
-                conversationTimeline={conversationTimeline}
-                sending={sending}
-                handleRetry={handleRetry}
-                getErrorMessage={getErrorMessage}
-                renderAudio={false}
-              />
-            )}
+
+          {/* Internal Notes Card - Reduced Height */}
+          <div className="bg-card border border-border rounded-xl p-2.5">
+            <h3 className="text-xs font-semibold text-foreground mb-2">Internal Notes</h3>
+            <textarea
+              value={internalNotes}
+              onChange={(e) => setInternalNotes(e.target.value)}
+              onBlur={handleSaveNotes}
+              placeholder="Add internal notes..."
+              className="w-full min-h-[48px] max-h-[120px] px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={1}
+            />
           </div>
           
+          {/* Automatic Follow-ups - Compact */}
+          <div className="mt-2">
+            <AutomaticFollowUpsControl
+              followUpJobs={followUpJobs}
+              leadId={params.id}
+              leadData={leadData}
+              followUpSettings={followUpSettings}
+              onUpdate={() => {
+                getLeadDetails(params.id).then(setLeadData)
+              }}
+            />
+          </div>
+
+          {/* Conversation Section - Moved to bottom for mobile */}
+          <div className="bg-card border border-border rounded-xl p-2.5">
+            <h3 className="text-xs font-semibold text-foreground mb-2">Conversation</h3>
+            {/* Mobile Message Thread - Fixed-height scroll container */}
+            <div ref={mobileConversationContainerRef} className="overflow-y-auto scroll-smooth rounded-lg" style={{ minHeight: '150px', maxHeight: '200px' }}>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : conversationTimeline.length === 0 ? (
+                <div className="text-center py-8 sm:py-12 animate-fadeIn">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
+                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-1 sm:mb-2">No Messages Yet</h3>
+                  <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">Send a message to start the conversation with this customer.</p>
+                </div>
+              ) : (
+                <MobileConversationMessageList
+                  messagesArray={messagesArray}
+                  conversationTimeline={conversationTimeline}
+                  sending={sending}
+                  handleRetry={handleRetry}
+                  getErrorMessage={getErrorMessage}
+                  renderAudio={false}
+                />
+              )}
+            </div>
+          </div>
+
           {/* Mobile Message Composer */}
           <div className="border-t border-border/50 px-3 sm:px-5 lg:px-6 py-3 bg-background/90 backdrop-blur-sm">
             {/* Image Previews */}
@@ -2505,32 +2535,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 )}
               </button>
             </div>
-          </div>
-          
-          {/* Internal Notes Card - Reduced Height */}
-          <div className="bg-card border border-border rounded-xl p-2.5">
-            <h3 className="text-xs font-semibold text-foreground mb-2">Internal Notes</h3>
-            <textarea
-              value={internalNotes}
-              onChange={(e) => setInternalNotes(e.target.value)}
-              onBlur={handleSaveNotes}
-              placeholder="Add internal notes..."
-              className="w-full min-h-[48px] max-h-[120px] px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows={1}
-            />
-          </div>
-          
-          {/* Automatic Follow-ups - Compact */}
-          <div className="mt-2">
-            <AutomaticFollowUpsControl 
-              followUpJobs={followUpJobs} 
-              leadId={params.id}
-              leadData={leadData}
-              followUpSettings={followUpSettings}
-              onUpdate={() => {
-                getLeadDetails(params.id).then(setLeadData)
-              }}
-            />
           </div>
         </div>
       </div>
