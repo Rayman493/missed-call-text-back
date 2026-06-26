@@ -38,6 +38,7 @@ export default function SetupStatusCard({
   const [billingError, setBillingError] = useState<string | null>(null)
   const [successDismissed, setSuccessDismissed] = useState(false)
   const [showHelpModal, setShowHelpModal] = useState(false)
+  const [expandedStep, setExpandedStep] = useState<number | null>(null)
   const { user } = useAuth()
   const setupState = deriveSetupState(business, missedCallCount)
   const hasSubscription = hasActiveSubscription(business)
@@ -189,6 +190,15 @@ export default function SetupStatusCard({
       setIsExpanded(false)
     }
   }, [shouldAutoExpand])
+
+  // Auto-expand the current step
+  React.useEffect(() => {
+    if (cardState === 'needs-forwarding') {
+      setExpandedStep(2)
+    } else if (cardState === 'needs-verification') {
+      setExpandedStep(3)
+    }
+  }, [cardState])
   
   // Render billing blocker state
   if (cardState === 'billing-blocker') {
@@ -399,22 +409,52 @@ export default function SetupStatusCard({
           )}
         </div>
 
-        {/* Setup Progress - Always show all three steps */}
+        {/* Setup Progress - Always show all three steps with collapsible sections */}
         {(cardState === 'needs-forwarding' || cardState === 'needs-verification') && (
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <div className="space-y-3">
-              {/* Step 1: Always Complete */}
-              <div className="flex items-center gap-3">
+          <div className="space-y-3">
+            {/* Step 1: Always Complete */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden">
+              <button
+                onClick={() => setExpandedStep(expandedStep === 1 ? null : 1)}
+                className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors"
+              >
                 <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
                   <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span className="text-white text-sm">Your ReplyFlow number is ready</span>
-              </div>
+                <span className="text-white text-sm font-medium flex-1 text-left">✓ Step 1 — Your ReplyFlow number is ready</span>
+                <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${expandedStep === 1 ? 'rotate-180' : ''}`} />
+              </button>
+              {expandedStep === 1 && (
+                <div className="p-4 pt-0 border-t border-white/10">
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-blue-200 text-xs block mb-1">ReplyFlow Number</span>
+                      <span className="text-white font-mono text-sm">
+                        {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-blue-200 text-xs block mb-1">Business Number</span>
+                      <span className="text-white font-mono text-sm">
+                        {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
+                      </span>
+                    </div>
+                    <p className="text-blue-200 text-xs mt-2">
+                      Your ReplyFlow number has been provisioned and is ready to receive forwarded missed calls.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
 
-              {/* Step 2: Complete or Current */}
-              <div className={`flex items-center gap-3 ${cardState === 'needs-forwarding' ? '' : 'opacity-100'}`}>
+            {/* Step 2: Complete or Current */}
+            <div className={`bg-white/10 backdrop-blur-sm rounded-xl border ${cardState === 'needs-verification' ? 'border-green-400/30' : 'border-blue-400/30'} overflow-hidden`}>
+              <button
+                onClick={() => setExpandedStep(expandedStep === 2 ? null : 2)}
+                className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors"
+              >
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${cardState === 'needs-verification' ? 'bg-green-500' : 'bg-blue-400'}`}>
                   {cardState === 'needs-verification' ? (
                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -422,11 +462,41 @@ export default function SetupStatusCard({
                     </svg>
                   ) : null}
                 </div>
-                <span className="text-white text-sm">Set up call forwarding</span>
-              </div>
+                <span className="text-white text-sm font-medium flex-1 text-left">
+                  {cardState === 'needs-verification' ? '✓ Step 2' : '○ Step 2'} — Set up call forwarding
+                </span>
+                <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${expandedStep === 2 ? 'rotate-180' : ''}`} />
+              </button>
+              {expandedStep === 2 && (
+                <div className="p-4 pt-0 border-t border-white/10">
+                  <div className="space-y-3">
+                    <p className="text-white text-sm">
+                      Set up call forwarding on your business phone to route missed calls to your ReplyFlow number.
+                    </p>
+                    <div>
+                      <span className="text-blue-200 text-xs block mb-1">Your ReplyFlow Number</span>
+                      <span className="text-white font-mono text-sm">
+                        {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
+                      </span>
+                    </div>
+                    <Link
+                      href="/setup/phone-forwarding"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-blue-50 text-blue-600 text-sm font-medium rounded-lg transition-colors"
+                    >
+                      {cardState === 'needs-verification' ? 'Review Forwarding Setup' : 'Set Up Call Forwarding'}
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
 
-              {/* Step 3: Upcoming or Current */}
-              <div className={`flex items-center gap-3 ${cardState === 'needs-forwarding' ? 'opacity-50' : ''}`}>
+            {/* Step 3: Upcoming or Current */}
+            <div className={`bg-white/10 backdrop-blur-sm rounded-xl border ${cardState === 'needs-verification' ? 'border-blue-400/30' : 'border-white/20'} overflow-hidden`}>
+              <button
+                onClick={() => setExpandedStep(expandedStep === 3 ? null : 3)}
+                className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors"
+              >
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${hasCompletedTestCall ? 'bg-green-500' : cardState === 'needs-verification' ? 'bg-blue-400' : 'bg-slate-400'}`}>
                   {hasCompletedTestCall ? (
                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -434,46 +504,51 @@ export default function SetupStatusCard({
                     </svg>
                   ) : null}
                 </div>
-                <span className="text-white text-sm">Make a test call</span>
-              </div>
+                <span className="text-white text-sm font-medium flex-1 text-left">
+                  {hasCompletedTestCall ? '✓ Step 3' : cardState === 'needs-verification' ? '○ Step 3' : '○ Step 3'} — Make a test call
+                </span>
+                <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${expandedStep === 3 ? 'rotate-180' : ''}`} />
+              </button>
+              {expandedStep === 3 && (
+                <div className="p-4 pt-0 border-t border-white/10">
+                  <div className="space-y-3">
+                    <p className="text-white text-sm">
+                      Make a test call to your business number to verify that ReplyFlow is working correctly.
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2">
+                        <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-white text-xs font-semibold">1</span>
+                        </div>
+                        <p className="text-white text-sm pt-0.5">Call your business phone number from another phone.</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-white text-xs font-semibold">2</span>
+                        </div>
+                        <p className="text-white text-sm pt-0.5">Let the call ring until it forwards to ReplyFlow.</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-white text-xs font-semibold">3</span>
+                        </div>
+                        <p className="text-white text-sm pt-0.5">Listen for the AI greeting and complete a short conversation.</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-white text-xs font-semibold">4</span>
+                        </div>
+                        <p className="text-white text-sm pt-0.5">Confirm that a new lead appears in your dashboard.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Test Instructions - Only show for needs-verification */}
-        {cardState === 'needs-verification' && (
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <h3 className="text-white font-semibold mb-3">How to test:</h3>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm font-semibold">1</span>
-                </div>
-                <p className="text-white text-sm pt-0.5">Call your business phone number from another phone.</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm font-semibold">2</span>
-                </div>
-                <p className="text-white text-sm pt-0.5">Let the call ring until it forwards to ReplyFlow.</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm font-semibold">3</span>
-                </div>
-                <p className="text-white text-sm pt-0.5">Listen for the AI greeting and complete a short conversation.</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm font-semibold">4</span>
-                </div>
-                <p className="text-white text-sm pt-0.5">Confirm that a new lead appears in your dashboard.</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Status Indicators - Only show for setup-complete and healthy states */}
+        {/* Phone Numbers - Always show in expanded state */}
         {(cardState === 'setup-complete' || cardState === 'healthy') && (
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -514,49 +589,7 @@ export default function SetupStatusCard({
           </div>
         )}
 
-        {/* Phone Numbers - Always show in expanded state */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <span className="text-blue-200 text-xs block mb-1">Business Number</span>
-              <span className="text-white font-mono text-sm">
-                {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
-              </span>
-            </div>
-            <div>
-              <span className="text-blue-200 text-xs block mb-1">ReplyFlow Number</span>
-              <span className="text-white font-mono text-sm">
-                {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
-              </span>
-            </div>
-          </div>
-          <p className="text-blue-200 text-xs mt-3 pt-3 border-t border-white/10">
-            Your business phone number stays the same. ReplyFlow simply receives your forwarded missed calls and automatically texts customers back.
-          </p>
-        </div>
-
-        {/* CTA Button - Based on current state */}
-        {cardState === 'needs-forwarding' && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <Link
-              href="/setup/phone-forwarding"
-              className="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-blue-50 text-blue-600 text-base font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-            >
-              Set Up Call Forwarding
-            </Link>
-            <p className="text-blue-200 text-sm">Takes about 2 minutes.</p>
-          </div>
-        )}
-
-        {cardState === 'needs-verification' && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="text-center sm:text-left">
-              <p className="text-white text-base font-medium mb-1">Make a test call to your business number</p>
-              <p className="text-blue-200 text-sm">Let it ring and complete a short conversation with the AI.</p>
-            </div>
-          </div>
-        )}
-
+        {/* CTA Buttons - Only show for setup-complete and healthy states */}
         {(cardState === 'setup-complete' || cardState === 'healthy') && (
           <div className="flex flex-col gap-4">
             <div className="flex gap-3">
