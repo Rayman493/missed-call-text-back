@@ -601,193 +601,193 @@ export default async function Home() {
               </div>
               
               {/* Feature Widgets - Dashboard Panels */}
-              <div className="space-y-4 flex flex-col">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Lead Management Widget */}
                 <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                  <div className="p-4">
+                  <div className="p-3">
                     {/* Header */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-sm text-slate-900 dark:text-foreground">Lead Management</h3>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">Track every lead in one place</p>
+                        <h3 className="font-semibold text-xs text-slate-900 dark:text-foreground">Lead Management</h3>
+                        <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Track every lead in one place</p>
                       </div>
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                    <div className="space-y-1.5 mb-3">
+                      <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-xs text-slate-900 dark:text-foreground truncate">+1 (555) 123-4567</div>
-                          <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Plumbing • 5m</div>
+                          <div className="font-semibold text-[10px] text-slate-900 dark:text-foreground truncate">+1 (555) 123-4567</div>
+                          <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">Plumbing • 5m</div>
                         </div>
-                        <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[10px] px-2 py-0.5 rounded font-medium ml-2 flex-shrink-0">New</div>
+                        <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[9px] px-1.5 py-0.5 rounded font-medium ml-1.5 flex-shrink-0">New</div>
                       </div>
-                      <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-xs text-slate-900 dark:text-foreground truncate">+1 (555) 987-6543</div>
-                          <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">HVAC • 12m</div>
+                          <div className="font-semibold text-[10px] text-slate-900 dark:text-foreground truncate">+1 (555) 987-6543</div>
+                          <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">HVAC • 12m</div>
                         </div>
-                        <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] px-2 py-0.5 rounded font-medium ml-2 flex-shrink-0">Active</div>
+                        <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[9px] px-1.5 py-0.5 rounded font-medium ml-1.5 flex-shrink-0">Active</div>
                       </div>
                     </div>
                     
                     {/* CTA */}
                     <div className="flex justify-end">
-                      <a href="#" className="text-xs text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">View All Leads →</a>
+                      <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">View All Leads →</a>
                     </div>
                   </div>
                 </div>
 
                 {/* Conversation Inbox Widget */}
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-1">
-                  <div className="p-4 flex flex-col h-full">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                  <div className="p-3">
                     {/* Header */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-9 h-9 bg-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                         </svg>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-sm text-slate-900 dark:text-foreground">Conversation Inbox</h3>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">View every customer conversation in one inbox</p>
+                        <h3 className="font-semibold text-xs text-slate-900 dark:text-foreground">Conversation Inbox</h3>
+                        <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">View every customer conversation in one inbox</p>
                       </div>
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="space-y-3 mb-4 flex-1">
-                      <div className="flex gap-2">
-                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-white text-[10px] font-medium">JS</span>
+                    <div className="space-y-2 mb-3">
+                      <div className="flex gap-1.5">
+                        <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-white text-[9px] font-medium">JS</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="bg-blue-600 text-white text-xs rounded-2xl rounded-tl-sm px-3 py-2">
-                            Thanks for calling! We'll follow up shortly.
+                          <div className="bg-blue-600 text-white text-[10px] rounded-2xl rounded-tl-sm px-2 py-1.5">
+                            Thanks for calling!
                           </div>
-                          <div className="flex items-center gap-1 mt-1">
-                            <div className="text-[10px] text-slate-500 dark:text-slate-500">2m ago</div>
-                            <svg className="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                          <div className="flex items-center gap-0.5 mt-0.5">
+                            <div className="text-[9px] text-slate-500 dark:text-slate-500">2m</div>
+                            <svg className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1.5">
                         <div className="flex-1 min-w-0 text-right">
-                          <div className="bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-foreground text-xs rounded-2xl rounded-tr-sm px-3 py-2 inline-block text-left">
-                            Great, looking forward to it!
+                          <div className="bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-foreground text-[10px] rounded-2xl rounded-tr-sm px-2 py-1.5 inline-block text-left">
+                            Great!
                           </div>
-                          <div className="flex items-center gap-1 mt-1 justify-end">
-                            <div className="text-[10px] text-slate-500 dark:text-slate-500">1m ago</div>
-                            <svg className="w-3 h-3 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                          <div className="flex items-center gap-0.5 mt-0.5 justify-end">
+                            <div className="text-[9px] text-slate-500 dark:text-slate-500">1m</div>
+                            <svg className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           </div>
                         </div>
-                        <div className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-white text-[10px] font-medium">C</span>
+                        <div className="w-7 h-7 bg-slate-600 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-white text-[9px] font-medium">C</span>
                         </div>
                       </div>
                     </div>
                     
                     {/* CTA */}
                     <div className="flex justify-end">
-                      <a href="#" className="text-xs text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Open Inbox →</a>
+                      <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">Open Inbox →</a>
                     </div>
                   </div>
                 </div>
 
                 {/* Google Calendar Widget */}
                 <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                  <div className="p-4">
+                  <div className="p-3">
                     {/* Header */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-9 h-9 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-sm text-slate-900 dark:text-foreground">Google Calendar</h3>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">Automatically sync appointments</p>
+                        <h3 className="font-semibold text-xs text-slate-900 dark:text-foreground">Google Calendar</h3>
+                        <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Automatically sync appointments</p>
                       </div>
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="space-y-1.5 mb-3">
+                      <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
+                        <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-md flex items-center justify-center flex-shrink-0">
                           <div className="text-center">
-                            <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400">15</div>
+                            <div className="text-[9px] font-bold text-blue-600 dark:text-blue-400">15</div>
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs font-medium text-slate-900 dark:text-foreground truncate">John Smith</div>
-                          <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">HVAC • 2:00 PM</div>
+                          <div className="text-[10px] font-medium text-slate-900 dark:text-foreground truncate">John Smith</div>
+                          <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">HVAC • 2:00 PM</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                        <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
+                        <div className="w-9 h-9 bg-purple-100 dark:bg-purple-900/30 rounded-md flex items-center justify-center flex-shrink-0">
                           <div className="text-center">
-                            <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400">16</div>
+                            <div className="text-[9px] font-bold text-purple-600 dark:text-purple-400">16</div>
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs font-medium text-slate-900 dark:text-foreground truncate">Sarah Johnson</div>
-                          <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Plumbing • 4:30 PM</div>
+                          <div className="text-[10px] font-medium text-slate-900 dark:text-foreground truncate">Sarah Johnson</div>
+                          <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">Plumbing • 4:30 PM</div>
                         </div>
                       </div>
                     </div>
                     
                     {/* CTA */}
                     <div className="flex justify-end">
-                      <a href="#" className="text-xs text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">View Calendar →</a>
+                      <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">View Calendar →</a>
                     </div>
                   </div>
                 </div>
                 
                 {/* AI Intake Widget */}
                 <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                  <div className="p-4">
+                  <div className="p-3">
                     {/* Header */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-9 h-9 bg-orange-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                         </svg>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-sm text-slate-900 dark:text-foreground">AI Intake</h3>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">AI captures caller information automatically</p>
+                        <h3 className="font-semibold text-xs text-slate-900 dark:text-foreground">AI Intake</h3>
+                        <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">AI captures caller information automatically</p>
                       </div>
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="mb-4">
-                      <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 space-y-2">
-                        <div className="flex items-start gap-2">
-                          <div className="text-[10px] text-slate-500 dark:text-slate-500 font-medium w-14 flex-shrink-0">Service</div>
-                          <div className="text-xs text-slate-900 dark:text-foreground">HVAC Repair</div>
+                    <div className="mb-3">
+                      <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-2 space-y-1.5">
+                        <div className="flex items-start gap-1.5">
+                          <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-12 flex-shrink-0">Service</div>
+                          <div className="text-[10px] text-slate-900 dark:text-foreground">HVAC Repair</div>
                         </div>
-                        <div className="flex items-start gap-2">
-                          <div className="text-[10px] text-slate-500 dark:text-slate-500 font-medium w-14 flex-shrink-0">Address</div>
-                          <div className="text-xs text-slate-900 dark:text-foreground">123 Main St, Apt 4B</div>
+                        <div className="flex items-start gap-1.5">
+                          <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-12 flex-shrink-0">Address</div>
+                          <div className="text-[10px] text-slate-900 dark:text-foreground">123 Main St</div>
                         </div>
-                        <div className="flex items-start gap-2">
-                          <div className="text-[10px] text-slate-500 dark:text-slate-500 font-medium w-14 flex-shrink-0">Callback</div>
-                          <div className="text-xs text-slate-900 dark:text-foreground">After 2 PM today</div>
+                        <div className="flex items-start gap-1.5">
+                          <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-12 flex-shrink-0">Callback</div>
+                          <div className="text-[10px] text-slate-900 dark:text-foreground">After 2 PM</div>
                         </div>
                       </div>
                     </div>
                     
                     {/* CTA */}
                     <div className="flex justify-end">
-                      <a href="#" className="text-xs text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">View Intake →</a>
+                      <a href="#" className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">View Intake →</a>
                     </div>
                   </div>
                 </div>
