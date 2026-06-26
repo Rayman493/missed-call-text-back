@@ -505,9 +505,9 @@ export default async function Home() {
               </p>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-              {/* Dashboard Mockup */}
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10">
+              {/* Dashboard Mockup - Hero */}
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 ring-4 ring-slate-100 dark:ring-slate-900/50 ring-offset-2 ring-offset-white dark:ring-offset-slate-900">
                 <div className="bg-slate-900 dark:bg-slate-900 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-slate-700">
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full"></div>
@@ -517,76 +517,76 @@ export default async function Home() {
                   </div>
                 </div>
                 
-                <div className="p-2.5 sm:p-4 md:p-6 space-y-2 sm:space-y-3 md:space-y-4">
+                <div className="p-4 sm:p-5 md:p-6 space-y-3 sm:space-y-4">
                   {/* Setup Complete Card */}
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 sm:p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <h4 className="font-semibold text-sm sm:text-base text-green-800 dark:text-green-200">Setup Complete</h4>
+                      <h4 className="font-semibold text-sm text-green-800 dark:text-green-200">Setup Complete</h4>
                     </div>
-                    <p className="text-xs sm:text-sm text-green-700 dark:text-green-300">ReplyFlow successfully captured your first missed call. You're all set.</p>
+                    <p className="text-xs text-green-700 dark:text-green-300">ReplyFlow successfully captured your first missed call. You're all set.</p>
                   </div>
 
-                  {/* ReplyFlow Performance Card */}
-                  <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-3 sm:p-4">
-                    <h4 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-foreground mb-3">ReplyFlow Performance</h4>
-                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                      <div className="text-center p-2 bg-slate-50 dark:bg-slate-600 rounded">
-                        <div className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400">12</div>
-                        <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">Missed Calls Captured</div>
+                  {/* ReplyFlow Performance Card - Horizontal Row */}
+                  <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-3">
+                    <h4 className="font-semibold text-sm text-slate-900 dark:text-foreground mb-3">ReplyFlow Performance</h4>
+                    <div className="grid grid-cols-4 gap-2">
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-blue-600 dark:text-blue-400">12</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400">Missed Calls</div>
                       </div>
-                      <div className="text-center p-2 bg-slate-50 dark:bg-slate-600 rounded">
-                        <div className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400">8</div>
-                        <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">Customer Replies</div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">8</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400">Replies</div>
                       </div>
-                      <div className="text-center p-2 bg-slate-50 dark:bg-slate-600 rounded">
-                        <div className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400">5</div>
-                        <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">Follow-Ups Sent</div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-purple-600 dark:text-purple-400">5</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400">Follow-Ups</div>
                       </div>
-                      <div className="text-center p-2 bg-slate-50 dark:bg-slate-600 rounded">
-                        <div className="text-lg sm:text-xl font-bold text-orange-600 dark:text-orange-400">10</div>
-                        <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">Active Leads</div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-orange-600 dark:text-orange-400">10</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400">Active Leads</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Recovery Rate Card */}
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4">
-                    <h4 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-foreground mb-2">Recovery Rate</h4>
-                    <div className="text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400">100%</div>
-                    <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1">All missed calls recovered</p>
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                    <h4 className="font-semibold text-sm text-slate-900 dark:text-foreground mb-1.5">Recovery Rate</h4>
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">100%</div>
+                    <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-1">All missed calls recovered</p>
                   </div>
 
                   {/* Recent Lead */}
-                  <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-3 sm:p-4">
-                    <h4 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-foreground mb-3">Recent Leads</h4>
+                  <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-3">
+                    <h4 className="font-semibold text-sm text-slate-900 dark:text-foreground mb-2.5">Recent Leads</h4>
                     <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-600 rounded">
                       <div>
-                        <div className="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200">+1 (555) 234-5678</div>
-                        <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">HVAC repair • 2 min ago</div>
+                        <div className="font-semibold text-xs text-slate-800 dark:text-slate-200">+1 (555) 234-5678</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400">HVAC repair • 2 min ago</div>
                       </div>
-                      <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-[10px] sm:text-xs px-2 py-1 rounded">New</div>
+                      <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-[10px] px-2 py-0.5 rounded">New</div>
                     </div>
                   </div>
 
                   {/* Activity Timeline */}
-                  <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-3 sm:p-4">
-                    <h4 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-foreground mb-3">Activity Timeline</h4>
+                  <div className="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-3">
+                    <h4 className="font-semibold text-sm text-slate-900 dark:text-foreground mb-2.5">Activity Timeline</h4>
                     <div className="space-y-2">
                       <div className="flex items-start gap-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-1 flex-shrink-0"></div>
                         <div>
-                          <div className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">Text sent to customer</div>
-                          <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500">2 min ago</div>
+                          <div className="text-[10px] text-slate-700 dark:text-slate-300">Text sent to customer</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-500">2 min ago</div>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full mt-1 flex-shrink-0"></div>
                         <div>
-                          <div className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">Missed call captured</div>
-                          <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500">3 min ago</div>
+                          <div className="text-[10px] text-slate-700 dark:text-slate-300">Missed call captured</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-500">3 min ago</div>
                         </div>
                       </div>
                     </div>
@@ -596,44 +596,61 @@ export default async function Home() {
               
               {/* Features Grid */}
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-3 sm:p-4 border border-blue-200 dark:border-blue-800 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-600 rounded-xl flex items-center justify-center mb-2 sm:mb-2.5 shadow-sm">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
+                {/* Lead Management - Real UI Snippet */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200 dark:border-slate-700 shadow-sm">
+                  <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-2 mb-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-xs text-slate-800 dark:text-slate-200">+1 (555) 123-4567</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400">Plumbing • 5m ago</div>
+                      </div>
+                      <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-[10px] px-1.5 py-0.5 rounded">New</div>
+                    </div>
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-sm sm:text-base">Lead Management</h3>
-                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed">Never lose track of a customer with status updates and priority levels</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-0.5 text-xs">Lead Management</h3>
+                  <p className="text-[10px] text-slate-600 dark:text-slate-400">Track all leads in one place</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 rounded-xl p-3 sm:p-4 border border-emerald-200 dark:border-emerald-800 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-emerald-600 rounded-xl flex items-center justify-center mb-2 sm:mb-2.5 shadow-sm">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                    </svg>
+                {/* Conversation Inbox - Real UI Snippet */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200 dark:border-slate-700 shadow-sm">
+                  <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-2 mb-2">
+                    <div className="flex items-start gap-1.5">
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1 flex-shrink-0"></div>
+                      <div>
+                        <div className="text-[10px] text-slate-700 dark:text-slate-300">Thanks for calling! We'll follow up shortly.</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-500">Sent 2m ago</div>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-sm sm:text-base">Conversation Inbox</h3>
-                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed">Keep every customer conversation organized in one place</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-0.5 text-xs">Conversation Inbox</h3>
+                  <p className="text-[10px] text-slate-600 dark:text-slate-400">All customer messages in one view</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-3 sm:p-4 border border-purple-200 dark:border-purple-800 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-purple-600 rounded-xl flex items-center justify-center mb-2 sm:mb-2.5 shadow-sm">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
+                {/* Google Calendar - Real UI Snippet */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200 dark:border-slate-700 shadow-sm">
+                  <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded flex items-center justify-center">
+                        <div className="w-3 h-3 bg-blue-600 dark:text-blue-400 text-[8px] flex items-center justify-center font-bold">15</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-slate-700 dark:text-slate-300">Appt: John Smith</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-500">2:00 PM</div>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-sm sm:text-base">Google Calendar Sync</h3>
-                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed">Manage appointments alongside your leads without switching tools</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-0.5 text-xs">Google Calendar</h3>
+                  <p className="text-[10px] text-slate-600 dark:text-slate-400">Sync appointments automatically</p>
                 </div>
                 
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-3 sm:p-4 border border-orange-200 dark:border-orange-800 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-orange-600 rounded-xl flex items-center justify-center mb-2 sm:mb-2.5 shadow-sm">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
+                {/* AI Intake - Real UI Snippet */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-slate-200 dark:border-slate-700 shadow-sm">
+                  <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-2 mb-2">
+                    <div className="text-[10px] text-slate-700 dark:text-slate-300 font-semibold mb-0.5">Service: HVAC Repair</div>
+                    <div className="text-[10px] text-slate-600 dark:text-slate-400">Address: 123 Main St</div>
                   </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-sm sm:text-base">AI Intake History</h3>
-                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed">Review AI-captured caller information and call summaries</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground mb-0.5 text-xs">AI Intake</h3>
+                  <p className="text-[10px] text-slate-600 dark:text-slate-400">AI captures caller details</p>
                 </div>
               </div>
             </div>
