@@ -60,14 +60,28 @@ export async function extractFromVoicemailTranscript(transcript: string): Promis
 
     const systemPrompt = `You are a voicemail transcription assistant. Extract structured information from voicemail transcripts for a business.
 
+CRITICAL: Write all extracted fields in clear, concise, business-ready language.
+
 Rules:
+- Remove ALL filler words: yeah, yep, uh, um, like, you know, basically, actually, well, i mean, just, sort of, kind of
+- Remove unnecessary first-person wording: instead of "I need my grass cut" write "Grass cutting requested" or "Grass cut"
+- Summarize, don't transcribe: preserve meaning but use professional, concise language
 - Extract the ACTUAL service/problem, not conversational filler
-- Prefer concise summaries
 - Never hallucinate information not present in the transcript
 - Leave unknown values as null
 - Ignore greetings and polite language
-- For "reasonForCalling", capture the core service request (e.g., "Cut my grass", "Air conditioner not working", "Pressure washing estimate")
+- For "reasonForCalling", capture the core service request (e.g., "Grass cutting", "AC not cooling", "Driveway pressure washing")
 - For "importantDetails", capture relevant context like timing, specific requirements, or additional context
+- For "desiredCompletionTime", be concise (e.g., "Tomorrow", "Next week", "Flexible")
+- For "preferredCallbackTime", be concise (e.g., "After 3 PM", "Tomorrow morning")
+
+Examples:
+- "Yeah I was wondering if maybe somebody could come tomorrow" -> "Tomorrow"
+- "Um my water heater isn't working" -> "Water heater not working"
+- "Like I need the grass cut sometime this week" -> "Grass cutting this week"
+- "Yeah it's just maintenance every other week" -> "Maintenance every other week"
+- "I need my grass cut" -> "Grass cutting"
+- "I'm calling because my AC isn't cooling" -> "AC not cooling"
 
 Return JSON only with these fields:
 {
@@ -111,18 +125,21 @@ Return JSON only with these fields:
       }
     }
 
+    // Clean up extracted text to be business-ready
+    const cleanedExtracted = cleanExtractedInfo(filteredExtracted);
+
     // Calculate confidence based on number of fields extracted
-    const fieldsExtracted = Object.keys(filteredExtracted).length;
+    const fieldsExtracted = Object.keys(cleanedExtracted).length;
     const confidence = fieldsExtracted > 0 ? Math.min(1, 0.2 + (fieldsExtracted * 0.15)) : 0;
 
     console.log('[VOICEMAIL EXTRACTION] LLM extraction successful:', {
       fieldsExtracted,
       confidence,
-      extracted: filteredExtracted
+      extracted: cleanedExtracted
     });
 
     return {
-      extractedInfo: filteredExtracted,
+      extractedInfo: cleanedExtracted,
       confidence,
       source: 'voicemail',
       extractedAt: new Date().toISOString()
@@ -159,11 +176,15 @@ export async function intelligentCorrectionMerge(
 
     const systemPrompt = `You are a customer information correction assistant. A customer sent an SMS to correct or clarify their previous voicemail.
 
+CRITICAL: Write all extracted fields in clear, concise, business-ready language.
+Remove ALL filler words: yeah, yep, uh, um, like, you know, basically, actually, well, i mean, just, sort of, kind of
+Remove unnecessary first-person wording: instead of "I need my grass cut" write "Grass cutting requested" or "Grass cut"
+
 Your task:
 - Update ONLY the fields that the customer is correcting
 - PRESERVE unrelated metadata: callerName, callbackNumber, addressOrLocation, urgencyLevel, preferredCallbackTime
 - If the customer changes the requested service (e.g., "shower" to "toilet", "lawn mowing" to "flower planting"):
-  * Regenerate reasonForCalling to be specific (e.g., "Help installing a toilet" not "Toilet issue")
+  * Regenerate reasonForCalling to be specific (e.g., "Toilet installation" not "Toilet issue")
   * CRITICAL: Re-evaluate importantDetails in the context of the NEW service
   * If old details are specific to the old service (e.g., "shower is leaking" when now it's a toilet), CLEAR importantDetails instead of preserving stale info
   * If details are still relevant (e.g., "upstairs bathroom"), preserve them
@@ -262,15 +283,27 @@ export async function extractFromSmsBody(smsBody: string): Promise<VoicemailExtr
 
     const systemPrompt = `You are an SMS message analysis assistant. Extract structured information from customer SMS replies for a business.
 
+CRITICAL: Write all extracted fields in clear, concise, business-ready language.
+
 Rules:
+- Remove ALL filler words: yeah, yep, uh, um, like, you know, basically, actually, well, i mean, just, sort of, kind of
+- Remove unnecessary first-person wording: instead of "I need my grass cut" write "Grass cutting requested" or "Grass cut"
+- Summarize, don't transcribe: preserve meaning but use professional, concise language
 - Extract the ACTUAL service/problem, not conversational filler
-- Prefer concise summaries
 - Never hallucinate information not present in the message
 - Leave unknown values as null
 - Ignore greetings, polite language, and acknowledgments (e.g., "thanks", "ok", "sure")
-- For "reasonForCalling", capture the core service request (e.g., "Cut my grass", "Air conditioner not working", "Pressure washing estimate")
+- For "reasonForCalling", capture the core service request (e.g., "Grass cutting", "AC not cooling", "Driveway pressure washing")
 - For "importantDetails", capture relevant context like timing, specific requirements, or additional context
 - For "urgencyLevel", only set if the message explicitly indicates urgency (e.g., "asap", "tomorrow morning", "emergency")
+
+Examples:
+- "Yeah I was wondering if maybe somebody could come tomorrow" -> "Tomorrow"
+- "Um my water heater isn't working" -> "Water heater not working"
+- "Like I need the grass cut sometime this week" -> "Grass cutting this week"
+- "Yeah it's just maintenance every other week" -> "Maintenance every other week"
+- "I need my grass cut" -> "Grass cutting"
+- "I'm calling because my AC isn't cooling" -> "AC not cooling"
 
 Return JSON only with these fields:
 {
@@ -314,18 +347,21 @@ Return JSON only with these fields:
       }
     }
 
+    // Clean up extracted text to be business-ready
+    const cleanedExtracted = cleanExtractedInfo(filteredExtracted);
+
     // Calculate confidence based on number of fields extracted
-    const fieldsExtracted = Object.keys(filteredExtracted).length;
+    const fieldsExtracted = Object.keys(cleanedExtracted).length;
     const confidence = fieldsExtracted > 0 ? Math.min(1, 0.2 + (fieldsExtracted * 0.15)) : 0;
 
     console.log('[SMS EXTRACTION] LLM extraction successful:', {
       fieldsExtracted,
       confidence,
-      extracted: filteredExtracted
+      extracted: cleanedExtracted
     });
 
     return {
-      extractedInfo: filteredExtracted,
+      extractedInfo: cleanedExtracted,
       confidence,
       source: 'sms',
       extractedAt: new Date().toISOString()
@@ -787,6 +823,93 @@ export async function safeMergeSmsExtraction(
   })
 
   return result
+}
+
+/**
+ * Clean up extracted text to be business-ready
+ * Removes filler words, unnecessary first-person wording, and conversational noise
+ */
+export function cleanExtractedText(text: string): string {
+  if (!text || typeof text !== 'string') {
+    return text
+  }
+
+  let cleaned = text.trim()
+
+  // Remove filler words and phrases at the start
+  const fillerStartPatterns = [
+    /^(yeah|yep|yes|ok|okay|sure|alright|uh|um|like|you know|basically|actually|well|i mean|so)\s*,?\s*/gi,
+    /^(i'm|i am|i need|i want|i'm looking for|i was wondering if maybe|i was hoping)\s*/gi,
+    /^(it's|its|there's|theres|that is|that's)\s*/gi,
+  ]
+
+  for (const pattern of fillerStartPatterns) {
+    cleaned = cleaned.replace(pattern, '')
+  }
+
+  // Remove filler words in the middle (case-insensitive)
+  const fillerMiddlePatterns = [
+    /\s+(yeah|yep|yep|uh|um|like|you know|basically|actually|well|i mean|just|sort of|kind of|pretty much)\s+/gi,
+    /\s+(i think|i guess|i suppose|i believe)\s+/gi,
+  ]
+
+  for (const pattern of fillerMiddlePatterns) {
+    cleaned = cleaned.replace(pattern, ' ')
+  }
+
+  // Remove filler words at the end
+  const fillerEndPatterns = [
+    /\s+(yeah|yep|ok|okay|sure|alright|thanks|thank you|bye|goodbye|please|maybe|probably)\.?\s*$/gi,
+  ]
+
+  for (const pattern of fillerEndPatterns) {
+    cleaned = cleaned.replace(pattern, '.')
+  }
+
+  // Convert first-person statements to business-ready statements
+  // "I need X" -> "X" or "X requested"
+  const firstPersonPatterns = [
+    /^(i need|I need|i want|I want|i'd like|I'd like)\s+(.+)$/gi,
+    /^(i'm calling because|I'm calling because|i called because|I called because)\s+(.+)$/gi,
+    /^(i was wondering if|I was wondering if|i was hoping|I was hoping)\s+(.+)$/gi,
+  ]
+
+  for (const pattern of firstPersonPatterns) {
+    cleaned = cleaned.replace(pattern, (match, p1, p2) => {
+      // Capitalize first letter of the result
+      const result = p2.charAt(0).toUpperCase() + p2.slice(1)
+      return result
+    })
+  }
+
+  // Clean up multiple spaces
+  cleaned = cleaned.replace(/\s+/g, ' ')
+
+  // Clean up multiple periods
+  cleaned = cleaned.replace(/\.+/g, '.')
+
+  // Remove trailing period if exists, then add single period
+  cleaned = cleaned.replace(/\.$/, '').trim()
+  if (cleaned.length > 0) {
+    cleaned += '.'
+  }
+
+  return cleaned
+}
+
+/**
+ * Clean all extracted info fields to be business-ready
+ */
+export function cleanExtractedInfo(info: VoicemailExtractedInfo): VoicemailExtractedInfo {
+  const cleaned: VoicemailExtractedInfo = {}
+
+  for (const [key, value] of Object.entries(info)) {
+    if (value && typeof value === 'string') {
+      cleaned[key as keyof VoicemailExtractedInfo] = cleanExtractedText(value)
+    }
+  }
+
+  return cleaned
 }
 
 /**
