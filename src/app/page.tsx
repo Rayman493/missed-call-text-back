@@ -505,7 +505,7 @@ export default async function Home() {
               </p>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8 lg:gap-10 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8 lg:gap-10 items-start">
               {/* Dashboard Mockup - Hero */}
               <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 ring-1 ring-slate-900/5 dark:ring-white/10">
                 <div className="bg-slate-950 dark:bg-slate-950 px-4 py-3 border-b border-slate-800">
@@ -614,7 +614,7 @@ export default async function Home() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-xs text-slate-900 dark:text-foreground">Lead Management</h3>
-                        <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Track every lead in one place</p>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">Track every lead in one place</p>
                       </div>
                     </div>
                     
@@ -657,19 +657,19 @@ export default async function Home() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-xs text-slate-900 dark:text-foreground">Conversation Inbox</h3>
-                        <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">View every customer conversation in one inbox</p>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">View every customer conversation in one inbox</p>
                       </div>
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="space-y-4 flex-1">
+                    <div className="space-y-3 flex-1">
                       <div className="flex gap-2">
                         <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                           <span className="text-white text-[9px] font-medium">JS</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="bg-blue-600 text-white text-[10px] rounded-2xl rounded-tl-sm px-2 py-1.5">
-                            Thanks for calling! We'll follow up shortly.
+                          <div className="bg-blue-600 text-white text-[10px] rounded-2xl rounded-tl-sm px-2 py-1.5 inline-block max-w-[85%]">
+                            Thanks for calling!
                           </div>
                           <div className="flex items-center gap-0.5 mt-0.5">
                             <div className="text-[9px] text-slate-500 dark:text-slate-500">2m</div>
@@ -711,7 +711,7 @@ export default async function Home() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-xs text-slate-900 dark:text-foreground">Google Calendar</h3>
-                        <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Automatically sync appointments</p>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">Automatically sync appointments</p>
                       </div>
                     </div>
                     
@@ -766,7 +766,7 @@ export default async function Home() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-xs text-slate-900 dark:text-foreground">AI Intake</h3>
-                        <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">AI captures caller information automatically</p>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">AI captures caller information automatically</p>
                       </div>
                     </div>
                     
