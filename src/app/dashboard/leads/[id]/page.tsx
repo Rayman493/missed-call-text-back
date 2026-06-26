@@ -142,6 +142,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false)
   const [calendarConnected, setCalendarConnected] = useState(false)
   const [isLoadingCalendarStatus, setIsLoadingCalendarStatus] = useState(false)
+  const [followUpSettings, setFollowUpSettings] = useState<any>(null)
 
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -932,6 +933,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setLoading(false)
     })
   }, [params.id])
+
+  // Fetch business follow-up settings
+  useEffect(() => {
+    const fetchFollowUpSettings = async () => {
+      try {
+        const response = await fetch('/api/settings/follow-ups')
+        if (response.ok) {
+          const data = await response.json()
+          setFollowUpSettings(data)
+        }
+      } catch (error) {
+        console.error('Error fetching follow-up settings:', error)
+      }
+    }
+
+    fetchFollowUpSettings()
+  }, [])
 
   // Realtime subscription for messages
   useEffect(() => {
@@ -2121,6 +2139,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       followUpJobs={followUpJobs}
                       leadId={params.id}
                       leadData={leadData}
+                      followUpSettings={followUpSettings}
                       onUpdate={() => {
                         getLeadDetails(params.id).then(setLeadData)
                       }}

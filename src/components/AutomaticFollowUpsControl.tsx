@@ -14,14 +14,28 @@ interface FollowUpJob {
   cancelled_reason?: string
 }
 
+interface FollowUpSettings {
+  enabled: boolean
+  followUps: FollowUpConfig[]
+}
+
+interface FollowUpConfig {
+  step: number
+  enabled: boolean
+  delayDays: number
+  delayUnit: 'minutes' | 'hours' | 'days'
+  message: string
+}
+
 interface AutomaticFollowUpsControlProps {
   followUpJobs: FollowUpJob[]
   leadId: string
   leadData?: any
+  followUpSettings?: FollowUpSettings
   onUpdate?: () => void
 }
 
-export default function AutomaticFollowUpsControl({ followUpJobs, leadId, leadData, onUpdate }: AutomaticFollowUpsControlProps) {
+export default function AutomaticFollowUpsControl({ followUpJobs, leadId, leadData, followUpSettings, onUpdate }: AutomaticFollowUpsControlProps) {
   const [loading, setLoading] = useState(false)
 
   const allCancelledAfterReply = followUpJobs.every(
@@ -44,10 +58,27 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, leadDa
     (message: any) => message.direction === 'inbound'
   ) ?? false
 
-  // Determine automation status with more granular states
+  // Determine automation status based on business settings first, then job status
   const getAutomationStatus = () => {
-    if (followUpJobs.length === 0) {
+    // Check business-level configuration first
+    if (!followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0) {
       return { label: 'Not Configured', variant: 'neutral' as const }
+    }
+
+    // Check if automation is disabled at business level
+    if (!followUpSettings.enabled) {
+      return { label: 'Disabled', variant: 'neutral' as const }
+    }
+
+    // Check if at least one follow-up is enabled
+    const hasEnabledFollowUps = followUpSettings.followUps.some(fu => fu.enabled)
+    if (!hasEnabledFollowUps) {
+      return { label: 'Disabled', variant: 'neutral' as const }
+    }
+
+    // Business is configured and enabled, now check job-specific status
+    if (followUpJobs.length === 0) {
+      return { label: 'Configured', variant: 'success' as const }
     }
 
     if (allCancelledAfterReply) {
