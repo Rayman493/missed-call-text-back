@@ -2461,7 +2461,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="bg-card border border-border rounded-xl p-2.5">
             <h3 className="text-xs font-semibold text-foreground mb-2">Conversation</h3>
             {/* Mobile Message Thread - Fixed-height scroll container */}
-            <div ref={mobileConversationContainerRef} className="overflow-y-auto scroll-smooth rounded-lg" style={{ minHeight: '150px', maxHeight: '200px' }}>
+            <div ref={mobileConversationContainerRef} className="overflow-y-auto scroll-smooth rounded-lg" style={{ minHeight: '200px', maxHeight: '320px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -2514,11 +2514,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 ))}
               </div>
             )}
-            <div className="flex gap-2 items-end">
+            <div className="flex gap-2 items-center">
               <button
                 type="button"
                 onClick={() => mobileFileInputRef.current?.click()}
-                className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors flex-shrink-0"
                 disabled={sending}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2538,13 +2538,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleMobileKeyDown}
                 placeholder="Type a message..."
-                className="flex-1 min-h-[48px] max-h-[120px] px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="flex-1 min-h-[44px] max-h-[120px] px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 rows={1}
               />
               <button
                 onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
                 disabled={(!message.trim() && mobileImages.length === 0) || sending}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2 self-end"
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2 flex-shrink-0"
               >
                 {sending ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

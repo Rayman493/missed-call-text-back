@@ -168,7 +168,7 @@ export default function MobileConversationMessageList({
             )}
             
             {/* Message Content */}
-            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} max-w-[80%] sm:max-w-[70%] ${!isInbound && !shouldShowAvatar ? 'ml-14' : ''}`}>
+            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} max-w-[82%] sm:max-w-[72%] ${!isInbound && !shouldShowAvatar ? 'ml-14' : ''}`}>
               {/* Message Bubble - Modern messaging app styling */}
               <div
                 className={`rounded-2xl shadow-md transition-all duration-200 ${
@@ -179,9 +179,9 @@ export default function MobileConversationMessageList({
                     : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 shadow-md hover:shadow-lg border border-blue-700'
                 }`}
               >
-                <div className={`${msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-2.5 py-1.5 sm:px-3 sm:py-2'}`}>
+                <div className={`${msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-3 py-2 sm:px-3 sm:py-2'}`}>
                   {msg.body && (
-                    <p className="text-xs sm:text-sm leading-tight sm:leading-snug break-words overflow-wrap-anywhere whitespace-pre-wrap">
+                    <p className="text-[12px] sm:text-sm leading-snug sm:leading-snug break-words overflow-wrap-anywhere whitespace-pre-wrap">
                       {msg.body}
                     </p>
                   )}
