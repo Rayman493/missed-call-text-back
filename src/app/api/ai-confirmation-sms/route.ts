@@ -541,6 +541,11 @@ export async function POST(request: NextRequest) {
     })
 
     // Use the centralized SMS summary formatter that always displays all fields with "Not collected" for missing values
+    console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] =========================================');
+    console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] route: /api/ai-confirmation-sms');
+    console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] Timestamp:', new Date().toISOString());
+    console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] =========================================');
+    
     const summaryBody = generateSummaryFromExtractedInfo(extracted)
 
     // Build comprehensive confirmation message
@@ -567,6 +572,12 @@ export async function POST(request: NextRequest) {
     parts.push('Need to change or add anything? Just reply to this message.');
     
     messageBody = parts.join('\n');
+
+    console.log('[AI SMS FINAL BODY PREVIEW] =========================================');
+    console.log('[AI SMS FINAL BODY PREVIEW] First 300 characters:', messageBody.substring(0, 300));
+    console.log('[AI SMS FINAL BODY PREVIEW] Total length:', messageBody.length);
+    console.log('[AI SMS FINAL BODY PREVIEW] Timestamp:', new Date().toISOString());
+    console.log('[AI SMS FINAL BODY PREVIEW] =========================================');
 
     console.log('[AI SMS FINAL BODY]', {
       route: '/api/ai-confirmation-sms',

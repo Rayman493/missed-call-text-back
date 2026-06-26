@@ -98,6 +98,11 @@ export function generateSummaryFromExtractedInfo(extractedInfo: any): string {
   const normalized = normalizeExtractedInfo(extractedInfo)
   const parts: string[] = []
   
+  console.log('[AI SMS FORMATTER VERSION] =========================================');
+  console.log('[AI SMS FORMATTER VERSION] Using centralized section-based formatter');
+  console.log('[AI SMS FORMATTER VERSION] Timestamp:', new Date().toISOString());
+  console.log('[AI SMS FORMATTER VERSION] =========================================');
+  
   // Service (was Reason)
   parts.push('Service')
   parts.push(normalized.reasonForCalling ? normalizePunctuation(normalized.reasonForCalling) : 'Not collected')
@@ -140,7 +145,14 @@ export function generateSummaryFromExtractedInfo(extractedInfo: any): string {
   }
   parts.push('')
   
-  return parts.join('\n')
+  const summary = parts.join('\n')
+  
+  console.log('[AI SMS FORMATTER OUTPUT PREVIEW] =========================================');
+  console.log('[AI SMS FORMATTER OUTPUT PREVIEW] First 300 characters:', summary.substring(0, 300));
+  console.log('[AI SMS FORMATTER OUTPUT PREVIEW] Timestamp:', new Date().toISOString());
+  console.log('[AI SMS FORMATTER OUTPUT PREVIEW] =========================================');
+  
+  return summary
 }
 
 export async function processInboundSms(params: ProcessInboundSmsParams) {
