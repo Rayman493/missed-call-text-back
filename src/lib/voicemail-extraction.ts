@@ -108,6 +108,9 @@ reasonForCalling: Normalize into concise business terminology as a noun phrase. 
 - "Pressure washing needed" → "Pressure washing"
 - "Tree needs to come down" → "Tree removal"
 - "Water heater replacement" → "Water heater replacement"
+- "In the next three weeks" → "Within 3 weeks"
+- "Get my grass cut" → "Lawn mowing"
+- "Calling about grass cutting" → "Lawn mowing"
 Do NOT invent services the customer didn't request. Preserve meaningful differences like inspection vs repair vs replacement.
 
 importantDetails: Keep factual information only, avoid conversational wording. This field should contain supporting facts about the job (size, condition, urgency, access instructions, special circumstances, etc.). Do NOT repeat the service requested in the Details field unless the customer provides meaningful new information. If the customer only repeats the service without adding anything new, leave this field empty.
@@ -127,6 +130,9 @@ importantDetails: Keep factual information only, avoid conversational wording. T
 - "I'd like recurring service every two weeks" → "Recurring service every two weeks"
 - "The gate code is 1234" → "Gate code: 1234"
 - "Backyard only" → "Backyard only"
+- "It is very hard to get a lawnmower into the backyard, and the entire yard is an acre" → "Difficult backyard access, 1-acre property"
+- "The entire yard is about an acre" → "1-acre property"
+- "It's really hard to access the backyard" → "Difficult backyard access"
 
 desiredCompletionTime: Normalize to concise scheduling language. This field represents WHEN the customer wants the work completed. Avoid conversational wording like "I'd like...", "I'm hoping...", "Probably...", "I guess...".
 - "Tomorrow morning" → "Tomorrow morning"
@@ -134,9 +140,10 @@ desiredCompletionTime: Normalize to concise scheduling language. This field repr
 - "This week" → "This week"
 - "Wednesday" → "Wednesday"
 - "Next week" → "Next week"
-- "Within two weeks" → "Within two weeks"
+- "Within two weeks" → "Within 2 weeks"
 - "Within the next few days" → "Within few days"
 - "Within the next week" → "Within the next week"
+- "In the next three weeks" → "Within 3 weeks"
 - "As soon as possible" → "ASAP"
 - "I guess anytime this week" → "This week"
 - "Whenever possible" → "Flexible"
@@ -161,6 +168,9 @@ preferredCallbackTime: Normalize into concise values. This field represents WHEN
 - "Probably after five if possible." → "After 5 PM"
 - "Evenings are usually best" → "Evening"
 - "Mornings are usually best for a callback" → "Morning"
+- "In the afternoons any day" → "Afternoons"
+- "Any afternoon works" → "Afternoons"
+- "Morning or afternoon" → "Morning or afternoon"
 
 CRITICAL: Never copy the desiredCompletionTime field into preferredCallbackTime. If the customer only mentions when they want the work done but does not provide a callback time preference, leave preferredCallbackTime as null.
 
@@ -326,6 +336,9 @@ reasonForCalling: Normalize into concise business terminology as a noun phrase. 
 - "Pressure washing needed" → "Pressure washing"
 - "Tree needs to come down" → "Tree removal"
 - "Water heater replacement" → "Water heater replacement"
+- "In the next three weeks" → "Within 3 weeks"
+- "Get my grass cut" → "Lawn mowing"
+- "Calling about grass cutting" → "Lawn mowing"
 Do NOT invent services the customer didn't request. Preserve meaningful differences like inspection vs repair vs replacement.
 
 importantDetails: Keep factual information only, avoid conversational wording. This field should contain supporting facts about the job (size, condition, urgency, access instructions, special circumstances, etc.). Do NOT repeat the service requested in the Details field unless the customer provides meaningful new information. If the customer only repeats the service without adding anything new, leave this field empty.
@@ -345,6 +358,9 @@ importantDetails: Keep factual information only, avoid conversational wording. T
 - "I'd like recurring service every two weeks" → "Recurring service every two weeks"
 - "The gate code is 1234" → "Gate code: 1234"
 - "Backyard only" → "Backyard only"
+- "It is very hard to get a lawnmower into the backyard, and the entire yard is an acre" → "Difficult backyard access, 1-acre property"
+- "The entire yard is about an acre" → "1-acre property"
+- "It's really hard to access the backyard" → "Difficult backyard access"
 
 desiredCompletionTime: Normalize to concise scheduling language. This field represents WHEN the customer wants the work completed. Avoid conversational wording like "I'd like...", "I'm hoping...", "Probably...", "I guess...".
 - "Tomorrow morning" → "Tomorrow morning"
@@ -352,9 +368,10 @@ desiredCompletionTime: Normalize to concise scheduling language. This field repr
 - "This week" → "This week"
 - "Wednesday" → "Wednesday"
 - "Next week" → "Next week"
-- "Within two weeks" → "Within two weeks"
+- "Within two weeks" → "Within 2 weeks"
 - "Within the next few days" → "Within few days"
 - "Within the next week" → "Within the next week"
+- "In the next three weeks" → "Within 3 weeks"
 - "As soon as possible" → "ASAP"
 - "I guess anytime this week" → "This week"
 - "Whenever possible" → "Flexible"
@@ -379,6 +396,9 @@ preferredCallbackTime: Normalize into concise values. This field represents WHEN
 - "Probably after five if possible." → "After 5 PM"
 - "Evenings are usually best" → "Evening"
 - "Mornings are usually best for a callback" → "Morning"
+- "In the afternoons any day" → "Afternoons"
+- "Any afternoon works" → "Afternoons"
+- "Morning or afternoon" → "Morning or afternoon"
 
 CRITICAL: Never copy the desiredCompletionTime field into preferredCallbackTime. If the customer only mentions when they want the work done but does not provide a callback time preference, leave preferredCallbackTime as null.
 
@@ -560,6 +580,9 @@ reasonForCalling: Normalize into concise business terminology as a noun phrase. 
 - "Pressure washing needed" → "Pressure washing"
 - "Tree needs to come down" → "Tree removal"
 - "Water heater replacement" → "Water heater replacement"
+- "In the next three weeks" → "Within 3 weeks"
+- "Get my grass cut" → "Lawn mowing"
+- "Calling about grass cutting" → "Lawn mowing"
 Do NOT invent services the customer didn't request. Preserve meaningful differences like inspection vs repair vs replacement.
 
 importantDetails: Keep factual information only, avoid conversational wording. This field should contain supporting facts about the job (size, condition, urgency, access instructions, special circumstances, etc.). Do NOT repeat the service requested in the Details field unless the customer provides meaningful new information. If the customer only repeats the service without adding anything new, leave this field empty.
@@ -579,6 +602,9 @@ importantDetails: Keep factual information only, avoid conversational wording. T
 - "I'd like recurring service every two weeks" → "Recurring service every two weeks"
 - "The gate code is 1234" → "Gate code: 1234"
 - "Backyard only" → "Backyard only"
+- "It is very hard to get a lawnmower into the backyard, and the entire yard is an acre" → "Difficult backyard access, 1-acre property"
+- "The entire yard is about an acre" → "1-acre property"
+- "It's really hard to access the backyard" → "Difficult backyard access"
 
 desiredCompletionTime: Normalize to concise scheduling language. This field represents WHEN the customer wants the work completed. Avoid conversational wording like "I'd like...", "I'm hoping...", "Probably...", "I guess...".
 - "Tomorrow morning" → "Tomorrow morning"
@@ -586,9 +612,10 @@ desiredCompletionTime: Normalize to concise scheduling language. This field repr
 - "This week" → "This week"
 - "Wednesday" → "Wednesday"
 - "Next week" → "Next week"
-- "Within two weeks" → "Within two weeks"
+- "Within two weeks" → "Within 2 weeks"
 - "Within the next few days" → "Within few days"
 - "Within the next week" → "Within the next week"
+- "In the next three weeks" → "Within 3 weeks"
 - "As soon as possible" → "ASAP"
 - "I guess anytime this week" → "This week"
 - "Whenever possible" → "Flexible"
@@ -613,6 +640,9 @@ preferredCallbackTime: Normalize into concise values. This field represents WHEN
 - "Probably after five if possible." → "After 5 PM"
 - "Evenings are usually best" → "Evening"
 - "Mornings are usually best for a callback" → "Morning"
+- "In the afternoons any day" → "Afternoons"
+- "Any afternoon works" → "Afternoons"
+- "Morning or afternoon" → "Morning or afternoon"
 
 CRITICAL: Never copy the desiredCompletionTime field into preferredCallbackTime. If the customer only mentions when they want the work done but does not provide a callback time preference, leave preferredCallbackTime as null.
 

@@ -335,20 +335,20 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
               </div>
             )}
 
-            {/* Desired Completion Time - only show if not a placeholder */}
-            {extractedInfo.desiredCompletionTime && !isPlaceholderValue(extractedInfo.desiredCompletionTime) && (
-              <div className="flex items-center justify-between py-2.5 border-b border-border/50">
-                <div className="flex items-center gap-2.5">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">{labels.desiredCompletionTime}</span>
+            {/* Important Details - only show if not a placeholder */}
+            {extractedInfo.importantDetails && !isPlaceholderValue(extractedInfo.importantDetails) && (
+              <div className="py-2.5 border-b border-border/50">
+                <div className="flex items-center gap-2.5 mb-1.5">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground font-medium">{labels.importantDetails}</span>
                 </div>
-                <span className="text-sm text-foreground">
-                  {extractedInfo.desiredCompletionTime}
-                </span>
+                <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground leading-relaxed">
+                  {extractedInfo.importantDetails}
+                </p>
               </div>
             )}
 
-            {/* Address/Location - only show if not a placeholder */}
+            {/* Address/Location - full width, only show if not a placeholder */}
             {extractedInfo.addressOrLocation && !isPlaceholderValue(extractedInfo.addressOrLocation) && (
               <div className="py-2.5 border-b border-border/50">
                 <div className="flex items-center gap-2.5 mb-1.5">
@@ -361,29 +361,34 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
               </div>
             )}
 
-            {/* Preferred Callback Time - only show if not a placeholder */}
-            {extractedInfo.preferredCallbackTime && !isPlaceholderValue(extractedInfo.preferredCallbackTime) && (
-              <div className="flex items-center justify-between py-2.5 border-b border-border/50">
-                <div className="flex items-center gap-2.5">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">{labels.preferredCallbackTime}</span>
-                </div>
-                <span className="text-sm text-foreground">
-                  {extractedInfo.preferredCallbackTime}
-                </span>
-              </div>
-            )}
+            {/* Desired Completion Time + Preferred Callback Time - two columns */}
+            {(extractedInfo.desiredCompletionTime || extractedInfo.preferredCallbackTime) && (
+              <div className="grid grid-cols-2 gap-4 py-2.5 border-b border-border/50">
+                {/* Desired Completion Time */}
+                {extractedInfo.desiredCompletionTime && !isPlaceholderValue(extractedInfo.desiredCompletionTime) && (
+                  <div>
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground font-medium">{labels.desiredCompletionTime}</span>
+                    </div>
+                    <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
+                      {extractedInfo.desiredCompletionTime}
+                    </p>
+                  </div>
+                )}
 
-            {/* Important Details - only show if not a placeholder */}
-            {extractedInfo.importantDetails && !isPlaceholderValue(extractedInfo.importantDetails) && (
-              <div className="py-2.5 border-b border-border/50">
-                <div className="flex items-center gap-2.5 mb-1.5">
-                  <FileText className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">{labels.importantDetails}</span>
-                </div>
-                <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground leading-relaxed">
-                  {extractedInfo.importantDetails}
-                </p>
+                {/* Preferred Callback Time */}
+                {extractedInfo.preferredCallbackTime && !isPlaceholderValue(extractedInfo.preferredCallbackTime) && (
+                  <div>
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground font-medium">{labels.preferredCallbackTime}</span>
+                    </div>
+                    <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
+                      {extractedInfo.preferredCallbackTime}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </>
