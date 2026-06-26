@@ -814,8 +814,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-xs sm:text-sm">Works with your existing phone number</h3>
-                    <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400">Keep the number your customers already know.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-xs sm:text-sm">Use your existing business number</h3>
+                    <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400">Keep the number your customers already know. Dedicated business numbers provide the best experience.</p>
                   </div>
                 </div>
               </div>
