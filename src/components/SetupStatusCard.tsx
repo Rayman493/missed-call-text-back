@@ -418,11 +418,6 @@ export default function SetupStatusCard({
                 onClick={() => setExpandedStep(expandedStep === 1 ? null : 1)}
                 className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors"
               >
-                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                </div>
                 <span className="text-white text-sm font-medium flex-1 text-left">✓ Step 1 — Your ReplyFlow number is ready</span>
                 <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${expandedStep === 1 ? 'rotate-180' : ''}`} />
               </button>
@@ -455,15 +450,8 @@ export default function SetupStatusCard({
                 onClick={() => setExpandedStep(expandedStep === 2 ? null : 2)}
                 className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors"
               >
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${cardState === 'needs-verification' ? 'bg-green-500' : 'bg-blue-400'}`}>
-                  {cardState === 'needs-verification' ? (
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  ) : null}
-                </div>
                 <span className="text-white text-sm font-medium flex-1 text-left">
-                  {cardState === 'needs-verification' ? '✓ Step 2' : '○ Step 2'} — Set up call forwarding
+                  {cardState === 'needs-verification' ? '✓ Step 2 — Set up call forwarding' : '2. Set up call forwarding'}
                 </span>
                 <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${expandedStep === 2 ? 'rotate-180' : ''}`} />
               </button>
@@ -497,15 +485,8 @@ export default function SetupStatusCard({
                 onClick={() => setExpandedStep(expandedStep === 3 ? null : 3)}
                 className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors"
               >
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${hasCompletedTestCall ? 'bg-green-500' : cardState === 'needs-verification' ? 'bg-blue-400' : 'bg-slate-400'}`}>
-                  {hasCompletedTestCall ? (
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  ) : null}
-                </div>
                 <span className="text-white text-sm font-medium flex-1 text-left">
-                  {hasCompletedTestCall ? '✓ Step 3' : cardState === 'needs-verification' ? '○ Step 3' : '○ Step 3'} — Make a test call
+                  {hasCompletedTestCall ? '✓ Step 3 — Make a test call' : '3. Make a test call'}
                 </span>
                 <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${expandedStep === 3 ? 'rotate-180' : ''}`} />
               </button>
