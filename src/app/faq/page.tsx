@@ -225,6 +225,9 @@ export default function FAQPage() {
                     </p>
                   </div>
                 </div>
+                <p className="text-muted-foreground mt-4">
+                  <strong>Recommendation:</strong> While ReplyFlow supports both dedicated and shared business phones, businesses with a dedicated business phone number receive the most seamless experience.
+                </p>
               </div>
             </div>
           </div>

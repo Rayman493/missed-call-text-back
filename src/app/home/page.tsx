@@ -188,7 +188,7 @@ export default function PublicHome() {
                   <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-base">Your existing number</span>
+                  <span className="text-base">Your existing business number</span>
                 </div>
                 <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
                   <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -213,10 +213,10 @@ export default function PublicHome() {
 
             {/* Business Number Note */}
             <div className="mt-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 max-w-md">
-                <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">Best experience: Dedicated business number</p>
-                <p className="text-[10px] text-blue-700 dark:text-blue-300">
-                  A dedicated business phone number provides the best experience. Personal business phones are still fully supported using Ignored Contacts.
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-md">
+                <p className="text-sm text-blue-800 dark:text-blue-200 font-semibold mb-1">Best experience: Dedicated business number</p>
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  ReplyFlow is designed for service businesses with a dedicated business phone number. Businesses using one phone for both business and personal calls are still fully supported, though a dedicated business number provides the most seamless experience.
                 </p>
               </div>
             </div>
@@ -427,7 +427,7 @@ export default function PublicHome() {
                     </svg>
                   </div>
                   <span className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">
-                    Works with your existing number
+                    Works with your existing business number
                   </span>
                 </div>
                 <div className="flex flex-col items-center text-center group">
