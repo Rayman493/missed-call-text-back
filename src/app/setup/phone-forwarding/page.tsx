@@ -53,6 +53,7 @@ export default function PhoneForwardingPage() {
   const [forwardingCompleted, setForwardingCompleted] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [showHelpSection, setShowHelpSection] = useState(false)
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false)
 
   // Initialize business_phone_carrier from business data if available
   useEffect(() => {
@@ -322,70 +323,62 @@ export default function PhoneForwardingPage() {
 
               {/* Error message */}
               {carrierError && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
                   <p className="text-sm text-red-600 dark:text-red-400">{carrierError}</p>
                 </div>
               )}
 
               {saveError && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
                   <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>
                 </div>
               )}
 
-              {/* ReplyFlow Number */}
-              <div className="bg-muted border border-border rounded-xl p-6 mb-8">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-base font-semibold text-foreground">Your ReplyFlow Number</p>
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+              {/* ReplyFlow Number - Compact card with reassurance */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5 mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">Your ReplyFlow Number</p>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-white dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
                     Handles missed calls
                   </span>
                 </div>
-                <div className="flex items-center gap-3 mb-3">
-                  <p className="text-3xl font-mono font-bold text-foreground">
-                    {formatPhoneNumber(business?.twilio_phone_number)}
-                  </p>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  This is the number your missed calls are forwarded to. Customers continue calling your normal business number.
+                <p className="text-2xl font-mono font-bold text-blue-900 dark:text-blue-100 mb-2">
+                  {formatPhoneNumber(business?.twilio_phone_number)}
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  Your business phone still rings first. ReplyFlow only answers calls you miss or decline.
                 </p>
               </div>
 
-              {/* Personal phone notice */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-8">
-                <div className="flex items-start gap-3">
-                  <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">Best experience: Dedicated business number</p>
-                    <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-                      A dedicated business phone number provides the best experience. It allows ReplyFlow to automatically handle every missed customer call without affecting personal callers.
+              {/* Personal phone notice - Collapsible */}
+              <div className="bg-slate-50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700 rounded-xl mb-6">
+                <button
+                  onClick={() => setShowHelpSection(!showHelpSection)}
+                  className="w-full flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors rounded-xl"
+                >
+                  <div className="flex items-center gap-2">
+                    <Info className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                    <span className="text-sm font-medium text-slate-900 dark:text-foreground">Good to know: Personal vs. business numbers</span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-slate-600 dark:text-slate-400 transition-transform ${showHelpSection ? 'rotate-180' : ''}`} />
+                </button>
+                {showHelpSection && (
+                  <div className="px-4 pb-4 pt-0 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <p className="text-xs text-slate-700 dark:text-slate-300 mb-3">
+                      A dedicated business phone number provides the best experience. If you use one phone for both business and personal calls, you can use Ignored Contacts to control which calls ReplyFlow handles.
                     </p>
-                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">Still fully supported: Personal business phones</p>
-                    <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-                      If you use one phone for both business and personal calls, ReplyFlow still works well. You can use Ignored Contacts to keep known personal callers out of the normal ReplyFlow customer workflow.
-                    </p>
-                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">You have complete control over how specific callers are handled:</p>
-                    <div className="space-y-2 mt-2">
+                    <div className="space-y-2">
                       <div className="flex items-start gap-2">
-                        <span className="text-blue-600 dark:text-blue-400 font-semibold">•</span>
-                        <p className="text-sm text-blue-700 dark:text-blue-300"><strong>Leave a number off your Ignored Contacts list:</strong> ReplyFlow will treat the missed call like any potential customer (AI Voice, lead creation, automated texts, and follow-ups work normally).</p>
+                        <span className="text-slate-600 dark:text-slate-400 font-semibold text-xs">•</span>
+                        <p className="text-xs text-slate-700 dark:text-slate-300"><strong>Off Ignored Contacts list:</strong> ReplyFlow treats missed calls as potential customers.</p>
                       </div>
                       <div className="flex items-start gap-2">
-                        <span className="text-blue-600 dark:text-blue-400 font-semibold">•</span>
-                        <p className="text-sm text-blue-700 dark:text-blue-300"><strong>Add a number to Ignored Contacts:</strong> ReplyFlow stays out of the conversation (no AI Voice, no automated texts, no lead, no follow-ups—the caller hears a brief unavailable message).</p>
+                        <span className="text-slate-600 dark:text-slate-400 font-semibold text-xs">•</span>
+                        <p className="text-xs text-slate-700 dark:text-slate-300"><strong>On Ignored Contacts list:</strong> ReplyFlow stays out of the conversation.</p>
                       </div>
-                    </div>
-                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-3">
-                      This makes it easy to keep business calls inside ReplyFlow while allowing personal contacts to bypass automation.
-                    </p>
-                    <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
-                      <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Why does this work this way?</p>
-                      <p className="text-xs text-blue-700 dark:text-blue-300">
-                        ReplyFlow identifies callers by their incoming phone number. It can't automatically know whether a missed call is from a customer, a friend, or a family member. Ignored Contacts gives you complete control over which phone numbers ReplyFlow should handle and which ones it should leave alone.
-                      </p>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Carrier Selection */}
@@ -439,7 +432,7 @@ export default function PhoneForwardingPage() {
 
               {/* Connection Instructions */}
               {selectedCarrier && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
                       Step 2
@@ -447,39 +440,39 @@ export default function PhoneForwardingPage() {
                     <p className="font-medium text-foreground">Set Up Conditional Call Forwarding</p>
                   </div>
                   {hasValidCode ? (
-                    <div className="bg-card border border-blue-200/60 dark:border-blue-700/30 rounded-2xl p-6 sm:p-8 shadow-sm">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-2 border-blue-200 dark:border-blue-700 rounded-2xl p-6 sm:p-8 shadow-lg">
                       <p className="text-sm font-semibold text-foreground mb-1">{CARRIERS.find(c => c.id === selectedCarrier)?.name}</p>
-                      <p className="text-sm text-muted-foreground mb-3">
+                      <p className="text-sm text-muted-foreground mb-4">
                         Open your phone's dialer, enter the code below, then press Call. Wait for the confirmation tone or message.
                       </p>
                       <div 
-                        className="bg-muted border-2 border-blue-200 dark:border-blue-800 rounded-xl px-6 py-6 sm:py-8 mb-3 cursor-pointer hover:bg-muted/80 transition-colors"
+                        className="bg-white dark:bg-slate-800 border-2 border-blue-300 dark:border-blue-600 rounded-xl px-6 py-8 sm:py-10 mb-4 cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
                         onClick={handleCopyCode}
                         title="Click to copy code"
                       >
                         <code
                           aria-label="Connection dial code"
-                          className="block font-mono font-bold text-foreground text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl tracking-normal break-words leading-relaxed"
+                          className="block font-mono font-bold text-foreground text-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-normal break-words leading-relaxed"
                         >
                           {getForwardingCodeDisplay()}
                         </code>
                       </div>
-                      <p className="text-xs text-muted-foreground/70 text-center mb-3">
+                      <p className="text-xs text-muted-foreground/70 text-center mb-4">
                         Wait for the confirmation tone or message.
                       </p>
                       {selectedCarrier === 'at&t' && (
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3">
-                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4">
+                          <p className="text-xs text-amber-700 dark:text-amber-300">
                             Some AT&T plans or devices may use different forwarding methods. Contact AT&T if this code doesn't work.
                           </p>
                         </div>
                       )}
                       {selectedCarrier === 't-mobile' && (
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3">
-                          <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4">
+                          <p className="text-xs text-amber-700 dark:text-amber-300 mb-2">
                             This code forwards unanswered calls after approximately 20 seconds. You can copy and paste it directly into your phone's dialer.
                           </p>
-                          <p className="text-xs text-blue-700/80 dark:text-blue-300/80">
+                          <p className="text-xs text-amber-700/80 dark:text-amber-300/80">
                             Some T-Mobile plans or devices may use different forwarding methods. Contact T-Mobile if this code doesn't work.
                           </p>
                         </div>
@@ -490,7 +483,7 @@ export default function PhoneForwardingPage() {
                           className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg border transition-all ${
                             copiedCode
                               ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
-                              : 'bg-transparent dark:bg-transparent border-border text-muted-foreground hover:bg-muted hover:border-slate-300 dark:hover:border-slate-500'
+                              : 'bg-white dark:bg-slate-800 border-border text-muted-foreground hover:bg-blue-50 dark:hover:bg-slate-700 hover:border-blue-300 dark:hover:border-blue-600'
                           }`}
                         >
                           {copiedCode ? (
@@ -512,7 +505,7 @@ export default function PhoneForwardingPage() {
                               window.location.href = `tel:${code}`
                             }
                           }}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg border border-border text-muted-foreground hover:bg-muted hover:border-slate-300 dark:hover:border-slate-500 transition-all"
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg border border-border bg-white dark:bg-slate-800 text-muted-foreground hover:bg-blue-50 dark:hover:bg-slate-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all"
                         >
                           <Phone className="w-4 h-4" />
                           Dial
@@ -532,95 +525,44 @@ export default function PhoneForwardingPage() {
                     </div>
                   )}
 
-                  {/* Simplified troubleshooting */}
-                  <div className="bg-muted/50 border border-border rounded-xl p-5">
-                    <p className="text-sm font-semibold text-foreground mb-3">Troubleshooting</p>
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li className="flex items-start gap-2">
-                        <span className="text-muted-foreground mt-0.5">•</span>
-                        <span>Verify the forwarding code is correct</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-muted-foreground mt-0.5">•</span>
-                        <span>Press Call/Send after entering the code</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-muted-foreground mt-0.5">•</span>
-                        <span>Wait for the carrier confirmation tone or message</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-muted-foreground mt-0.5">•</span>
-                        <span>Restart your phone if needed</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-muted-foreground mt-0.5">•</span>
-                        <span>Contact your carrier if activation fails</span>
-                      </li>
-                    </ul>
+                  {/* Collapsible troubleshooting */}
+                  <div className="bg-slate-50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700 rounded-xl">
+                    <button
+                      onClick={() => setShowTroubleshooting(!showTroubleshooting)}
+                      className="w-full flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors rounded-xl"
+                    >
+                      <span className="text-sm font-medium text-foreground">Troubleshooting</span>
+                      <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showTroubleshooting ? 'rotate-180' : ''}`} />
+                    </button>
+                    {showTroubleshooting && (
+                      <div className="px-4 pb-4 pt-0 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                          <li className="flex items-start gap-2">
+                            <span className="text-muted-foreground mt-0.5">•</span>
+                            <span>Verify the forwarding code is correct</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-muted-foreground mt-0.5">•</span>
+                            <span>Press Call/Send after entering the code</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-muted-foreground mt-0.5">•</span>
+                            <span>Wait for the carrier confirmation tone or message</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-muted-foreground mt-0.5">•</span>
+                            <span>Restart your phone if needed</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-muted-foreground mt-0.5">•</span>
+                            <span>Contact your carrier if activation fails</span>
+                          </li>
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
-
-              {/* Collapsible Help Section */}
-              <div className="mt-6">
-                <button
-                  onClick={() => setShowHelpSection(!showHelpSection)}
-                  className="w-full flex items-center justify-between p-4 bg-muted/50 border border-border rounded-xl hover:bg-muted transition-colors"
-                >
-                  <span className="font-medium text-foreground">Need Help?</span>
-                  <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${showHelpSection ? 'rotate-180' : ''}`} />
-                </button>
-                {showHelpSection && (
-                  <div className="mt-3 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                    {/* Disable Forwarding */}
-                    <div className="bg-muted border border-border rounded-xl p-4">
-                      <p className="text-sm font-semibold text-foreground mb-3">Disable Call Forwarding</p>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        If you need to temporarily disable ReplyFlow, use your carrier's disable code:
-                      </p>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="font-medium text-foreground w-16">Verizon:</span>
-                          <code className="font-mono text-foreground">*73</code>
-                          <span className="text-muted-foreground">and press Call</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="font-medium text-foreground w-16">AT&T:</span>
-                          <code className="font-mono text-foreground">*93</code>
-                          <span className="text-muted-foreground">and press Call</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="font-medium text-foreground w-16">T-Mobile:</span>
-                          <code className="font-mono text-foreground">##61#</code>
-                          <span className="text-muted-foreground">and press Call</span>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          <span className="font-medium text-foreground">Other:</span> Contact your carrier to remove conditional call forwarding
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Re-enable Forwarding */}
-                    <div className="bg-muted border border-border rounded-xl p-4">
-                      <p className="text-sm font-semibold text-foreground mb-2">Re-enable Call Forwarding</p>
-                      <p className="text-sm text-muted-foreground">
-                        To restore ReplyFlow, revisit this page and re-enter your carrier's forwarding code shown above.
-                      </p>
-                    </div>
-
-                    {/* Common Issues */}
-                    <div className="bg-muted border border-border rounded-xl p-4">
-                      <p className="text-sm font-semibold text-foreground mb-3">Common Issues</p>
-                      <ul className="space-y-2 text-sm text-muted-foreground">
-                        <li>• <span className="text-foreground font-medium">Calls not forwarding:</span> Verify the code was entered correctly and restart your phone</li>
-                        <li>• <span className="text-foreground font-medium">After switching carriers:</span> Re-enter the new carrier's forwarding code</li>
-                        <li>• <span className="text-foreground font-medium">After changing phones:</span> Forwarding settings may need to be re-enabled on the new device</li>
-                        <li>• <span className="text-foreground font-medium">After making changes:</span> Use "Verify Again" to confirm everything is working</li>
-                      </ul>
-                    </div>
-                  </div>
-                )}
-              </div>
 
               {showSuccess && (
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6 mb-6 mt-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
