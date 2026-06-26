@@ -603,7 +603,7 @@ export default async function Home() {
               {/* Feature Widgets - Dashboard Panels */}
               <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-rows-2 gap-4 h-full">
                 {/* Lead Management Widget */}
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
                   <div className="p-3 flex-1 flex flex-col">
                     {/* Header */}
                     <div className="flex items-center gap-2.5 mb-4">
@@ -656,7 +656,7 @@ export default async function Home() {
                 </div>
 
                 {/* Conversation Inbox Widget */}
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
                   <div className="p-3 flex-1 flex flex-col">
                     {/* Header */}
                     <div className="flex items-center gap-2.5 mb-4">
@@ -728,7 +728,7 @@ export default async function Home() {
                 </div>
 
                 {/* Google Calendar Widget */}
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
                   <div className="p-3 flex-1 flex flex-col justify-center">
                     {/* Header */}
                     <div className="flex items-center gap-2.5 mb-4">
@@ -786,7 +786,7 @@ export default async function Home() {
                 </div>
                 
                 {/* AI Intake Widget */}
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-full">
                   <div className="p-3 flex-1 flex flex-col">
                     {/* Header */}
                     <div className="flex items-center gap-2.5 mb-4">
