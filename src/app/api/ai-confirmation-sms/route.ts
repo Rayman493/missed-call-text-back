@@ -5,6 +5,7 @@ import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizePunctuation } from '@/lib/utils'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { getOutOfOfficeNotice } from '@/lib/out-of-office'
+import { generateSummaryFromExtractedInfo } from '@/lib/sms-processing'
 
 /**
  * Check if current time is within business hours for a business
@@ -539,136 +540,45 @@ export async function POST(request: NextRequest) {
       businessHoursEnabled: business.business_hours_enabled
     })
 
+    // Use the centralized SMS summary formatter that always displays all fields with "Not collected" for missing values
+    const summaryBody = generateSummaryFromExtractedInfo(extracted)
+
     // Build comprehensive confirmation message
     let messageBody: string;
 
-    if (isComplete) {
-      // Complete intake message
-      const parts: string[] = [];
-      
-      // Opening
-      parts.push(`Thanks for calling ${businessName}.`);
+    // Opening
+    const parts: string[] = [];
+    parts.push(`Thanks for contacting ${businessName}.`);
+    parts.push('');
+    
+    // Header
+    if (prefixNotice) {
+      parts.push(prefixNotice);
       parts.push('');
-      
-      // Header
-      if (prefixNotice) {
-        parts.push(prefixNotice);
-        parts.push('');
-      }
-      parts.push('New customer request');
-      parts.push('');
-      
-      // Customer name
-      if (extracted.callerName) {
-        parts.push(`👤 ${normalizePunctuation(safeFieldToString(extracted.callerName))}`);
-        parts.push('');
-      }
-      
-      // Callback number (use callerPhone)
-      if (callerPhone) {
-        parts.push(`📞 ${safeFieldToString(callerPhone)}`);
-        parts.push('');
-      }
-      
-      // Service
-      if (extracted.reasonForCalling) {
-        parts.push('Service');
-        parts.push(normalizePunctuation(safeFieldToString(extracted.reasonForCalling)));
-        parts.push('');
-      }
-      
-      // Address
-      if (extracted.addressOrLocation) {
-        parts.push('Address');
-        parts.push(normalizePunctuation(safeFieldToString(extracted.addressOrLocation)));
-        parts.push('');
-      }
-      
-      // Desired completion
-      if (extracted.desiredCompletionTime) {
-        parts.push('Desired completion');
-        parts.push(normalizePunctuation(safeFieldToString(extracted.desiredCompletionTime)));
-        parts.push('');
-      }
-      
-      // Best callback time
-      if (extracted.preferredCallbackTime) {
-        parts.push('Best callback time');
-        parts.push(normalizePunctuation(safeFieldToString(extracted.preferredCallbackTime)));
-        parts.push('');
-      }
-      
-      // Details
-      if (extracted.importantDetails) {
-        parts.push('Details');
-        parts.push(normalizePunctuation(safeFieldToString(extracted.importantDetails)));
-        parts.push('');
-      }
-      
-      // Footer
-      parts.push('Reply to this message if you\'d like to add or correct anything.');
-      
-      messageBody = parts.join('\n');
-    } else {
-      // Incomplete intake message
-      const parts: string[] = [];
-      
-      // Opening
-      parts.push(`Thanks for calling ${businessName}.`);
-      parts.push('');
-      
-      // Prefix notice (out of office or after hours)
-      if (prefixNotice) {
-        parts.push(prefixNotice);
-        parts.push('');
-      }
-      
-      parts.push('We received part of your request.');
-      parts.push('');
-      
-      // Customer name
-      if (extracted.callerName) {
-        parts.push(`👤 ${normalizePunctuation(safeFieldToString(extracted.callerName))}`);
-        parts.push('');
-      }
-      
-      // Only include fields that exist
-      if (extracted.reasonForCalling) {
-        parts.push('Service');
-        parts.push(normalizePunctuation(safeFieldToString(extracted.reasonForCalling)));
-        parts.push('');
-      }
-      
-      if (extracted.addressOrLocation) {
-        parts.push('Address');
-        parts.push(normalizePunctuation(safeFieldToString(extracted.addressOrLocation)));
-        parts.push('');
-      }
-      
-      if (extracted.desiredCompletionTime) {
-        parts.push('Desired completion');
-        parts.push(normalizePunctuation(safeFieldToString(extracted.desiredCompletionTime)));
-        parts.push('');
-      }
-      
-      if (extracted.preferredCallbackTime) {
-        parts.push('Best callback time');
-        parts.push(normalizePunctuation(safeFieldToString(extracted.preferredCallbackTime)));
-        parts.push('');
-      }
-      
-      // Details
-      if (extracted.importantDetails) {
-        parts.push('Details');
-        parts.push(normalizePunctuation(safeFieldToString(extracted.importantDetails)));
-        parts.push('');
-      }
-      
-      // Footer
-      parts.push('Reply to this message with any missing details and we\'ll pass them along.');
-      
-      messageBody = parts.join('\n');
     }
+    parts.push('New customer request');
+    parts.push('');
+    
+    // Customer name
+    if (extracted.callerName) {
+      parts.push(`👤 ${normalizePunctuation(safeFieldToString(extracted.callerName))}`);
+      parts.push('');
+    }
+    
+    // Callback number (use callerPhone)
+    if (callerPhone) {
+      parts.push(`📞 ${safeFieldToString(callerPhone)}`);
+      parts.push('');
+    }
+    
+    // Summary body from centralized formatter
+    parts.push(summaryBody);
+    parts.push('');
+    
+    // Footer
+    parts.push('Reply to this message if you\'d like to add or correct anything.');
+    
+    messageBody = parts.join('\n');
 
     console.log('[AI SMS FINAL BODY]', {
       route: '/api/ai-confirmation-sms',

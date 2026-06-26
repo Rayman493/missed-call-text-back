@@ -879,7 +879,8 @@ async function processVoiceStatusCallback(params: any, method: string) {
         })
 
         // Suppress follow-up creation for completed AI intake calls
-        if (aiCallRecord && aiCallRecord.outcome === 'completed') {
+        // Check for both 'completed_intake' (from outcome classifier) and 'completed' (legacy/compatibility)
+        if (aiCallRecord && (aiCallRecord.outcome === 'completed_intake' || aiCallRecord.outcome === 'completed')) {
           console.log('[FOLLOWUP SKIP REASON] =========================================');
           console.log('[FOLLOWUP SKIP REASON] businessId:', business.id);
           console.log('[FOLLOWUP SKIP REASON] leadId:', lead.id);

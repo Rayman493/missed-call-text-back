@@ -94,7 +94,7 @@ export interface ProcessInboundSmsParams {
 
 // Generate summary from extracted_info fields using canonical keys
 // Always displays all expected fields with "Not collected" for missing values
-function generateSummaryFromExtractedInfo(extractedInfo: any): string {
+export function generateSummaryFromExtractedInfo(extractedInfo: any): string {
   const normalized = normalizeExtractedInfo(extractedInfo)
   const parts: string[] = []
   

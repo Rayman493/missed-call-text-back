@@ -449,15 +449,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const voicemails = leadData?.voicemailRecordings || []
     const systemEvents: any[] = []
     
-    // Add AI Intake Completed event
+    // Add AI Intake Completed event - check actual outcome for consistency
     if (leadData?.aiCallRecords && leadData.aiCallRecords.length > 0) {
       const latestAiCall = leadData.aiCallRecords[0]
+      const outcome = latestAiCall.outcome
+      
+      // Determine message based on actual outcome
+      let intakeMessage = 'AI Intake Completed'
+      if (outcome === 'partial_intake') {
+        intakeMessage = 'AI Intake Incomplete'
+      } else if (outcome === 'early_hangup') {
+        intakeMessage = 'Caller Hung Up Early'
+      } else if (outcome === 'no_speech') {
+        intakeMessage = 'No Speech Detected'
+      } else if (outcome === 'ai_connection_failed') {
+        intakeMessage = 'AI Connection Failed'
+      }
+      
       systemEvents.push({
         type: 'system_event',
         id: `ai-intake-${latestAiCall.id}`,
         created_at: latestAiCall.created_at,
         data: {
-          message: 'AI Intake Completed',
+          message: intakeMessage,
           timestamp: latestAiCall.created_at
         }
       })
@@ -1830,27 +1844,47 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (() => {
                     const latestAiRecord = leadData.aiCallRecords[0];
-                    const extractedInfo = latestAiRecord.extracted_info || {};
-                    const requiredFields = ['callerName', 'reasonForCalling', 'importantDetails', 'addressOrLocation', 'desiredCompletionTime', 'preferredCallbackTime'];
-                    const missingFields = requiredFields.filter(field => !extractedInfo[field] || extractedInfo[field].trim() === '');
-                    const isComplete = missingFields.length === 0;
+                    const outcome = latestAiRecord.outcome;
                     
-                    if (isComplete) {
+                    // Use the actual outcome for consistency with timeline
+                    let intakeStatus = 'complete';
+                    let intakeLabel = 'AI Intake Complete';
+                    let intakeColor = 'text-green-600 dark:text-green-400';
+                    
+                    if (outcome === 'partial_intake') {
+                      intakeStatus = 'incomplete';
+                      intakeLabel = 'AI Intake Incomplete';
+                      intakeColor = 'text-amber-600 dark:text-amber-400';
+                    } else if (outcome === 'early_hangup') {
+                      intakeStatus = 'incomplete';
+                      intakeLabel = 'Caller Hung Up Early';
+                      intakeColor = 'text-red-600 dark:text-red-400';
+                    } else if (outcome === 'no_speech') {
+                      intakeStatus = 'incomplete';
+                      intakeLabel = 'No Speech Detected';
+                      intakeColor = 'text-red-600 dark:text-red-400';
+                    } else if (outcome === 'ai_connection_failed') {
+                      intakeStatus = 'incomplete';
+                      intakeLabel = 'AI Connection Failed';
+                      intakeColor = 'text-red-600 dark:text-red-400';
+                    }
+                    
+                    if (intakeStatus === 'complete') {
                       return (
-                        <span className="text-green-600 dark:text-green-400 font-semibold flex items-center gap-1.5">
+                        <span className={`${intakeColor} font-semibold flex items-center gap-1.5`}>
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          AI Intake Complete
+                          {intakeLabel}
                         </span>
                       );
                     } else {
                       return (
-                        <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5">
+                        <span className={`${intakeColor} font-semibold flex items-center gap-1.5`}>
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77-1.333.192 3 1.732 3z" />
                           </svg>
-                          AI Intake Incomplete
+                          {intakeLabel}
                         </span>
                       );
                     }
