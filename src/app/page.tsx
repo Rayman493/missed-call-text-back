@@ -601,10 +601,10 @@ export default async function Home() {
               </div>
               
               {/* Feature Widgets - Dashboard Panels */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-rows-2 gap-4 h-full">
                 {/* Lead Management Widget */}
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                  <div className="p-3">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                  <div className="p-3 flex-1 flex flex-col">
                     {/* Header */}
                     <div className="flex items-center gap-2.5 mb-3">
                       <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -619,7 +619,7 @@ export default async function Home() {
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="space-y-1.5 mb-3">
+                    <div className="space-y-2 mb-3 flex-1">
                       <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-[10px] text-slate-900 dark:text-foreground truncate">+1 (555) 123-4567</div>
@@ -634,6 +634,13 @@ export default async function Home() {
                         </div>
                         <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[9px] px-1.5 py-0.5 rounded font-medium ml-1.5 flex-shrink-0">Active</div>
                       </div>
+                      <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-[10px] text-slate-900 dark:text-foreground truncate">+1 (555) 456-7890</div>
+                          <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">Electrical • 1h</div>
+                        </div>
+                        <div className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[9px] px-1.5 py-0.5 rounded font-medium ml-1.5 flex-shrink-0">Contacted</div>
+                      </div>
                     </div>
                     
                     {/* CTA */}
@@ -644,8 +651,8 @@ export default async function Home() {
                 </div>
 
                 {/* Conversation Inbox Widget */}
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                  <div className="p-3">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                  <div className="p-3 flex-1 flex flex-col">
                     {/* Header */}
                     <div className="flex items-center gap-2.5 mb-3">
                       <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -660,14 +667,14 @@ export default async function Home() {
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="space-y-2 mb-3">
-                      <div className="flex gap-1.5">
+                    <div className="space-y-3 mb-3 flex-1">
+                      <div className="flex gap-2">
                         <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                           <span className="text-white text-[9px] font-medium">JS</span>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="bg-blue-600 text-white text-[10px] rounded-2xl rounded-tl-sm px-2 py-1.5">
-                            Thanks for calling!
+                            Thanks for calling! We'll follow up shortly.
                           </div>
                           <div className="flex items-center gap-0.5 mt-0.5">
                             <div className="text-[9px] text-slate-500 dark:text-slate-500">2m</div>
@@ -677,10 +684,10 @@ export default async function Home() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-2">
                         <div className="flex-1 min-w-0 text-right">
                           <div className="bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-foreground text-[10px] rounded-2xl rounded-tr-sm px-2 py-1.5 inline-block text-left">
-                            Great!
+                            Great, looking forward to it!
                           </div>
                           <div className="flex items-center gap-0.5 mt-0.5 justify-end">
                             <div className="text-[9px] text-slate-500 dark:text-slate-500">1m</div>
@@ -703,8 +710,8 @@ export default async function Home() {
                 </div>
 
                 {/* Google Calendar Widget */}
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                  <div className="p-3">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                  <div className="p-3 flex-1 flex flex-col">
                     {/* Header */}
                     <div className="flex items-center gap-2.5 mb-3">
                       <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -719,7 +726,7 @@ export default async function Home() {
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="space-y-1.5 mb-3">
+                    <div className="space-y-2 mb-3 flex-1">
                       <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
                         <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-md flex items-center justify-center flex-shrink-0">
                           <div className="text-center">
@@ -742,6 +749,17 @@ export default async function Home() {
                           <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">Plumbing • 4:30 PM</div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
+                        <div className="w-9 h-9 bg-orange-100 dark:bg-orange-900/30 rounded-md flex items-center justify-center flex-shrink-0">
+                          <div className="text-center">
+                            <div className="text-[9px] font-bold text-orange-600 dark:text-orange-400">17</div>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-medium text-slate-900 dark:text-foreground truncate">Mike Davis</div>
+                          <div className="text-[9px] text-slate-600 dark:text-slate-400 mt-0.5">Electrical • 5:00 PM</div>
+                        </div>
+                      </div>
                     </div>
                     
                     {/* CTA */}
@@ -752,8 +770,8 @@ export default async function Home() {
                 </div>
                 
                 {/* AI Intake Widget */}
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                  <div className="p-3">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                  <div className="p-3 flex-1 flex flex-col">
                     {/* Header */}
                     <div className="flex items-center gap-2.5 mb-3">
                       <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -768,19 +786,23 @@ export default async function Home() {
                     </div>
                     
                     {/* Product Preview */}
-                    <div className="mb-3">
-                      <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-2 space-y-1.5">
+                    <div className="mb-3 flex-1">
+                      <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-2 space-y-2">
                         <div className="flex items-start gap-1.5">
                           <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-12 flex-shrink-0">Service</div>
                           <div className="text-[10px] text-slate-900 dark:text-foreground">HVAC Repair</div>
                         </div>
                         <div className="flex items-start gap-1.5">
                           <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-12 flex-shrink-0">Address</div>
-                          <div className="text-[10px] text-slate-900 dark:text-foreground">123 Main St</div>
+                          <div className="text-[10px] text-slate-900 dark:text-foreground">123 Main St, Apt 4B</div>
                         </div>
                         <div className="flex items-start gap-1.5">
                           <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-12 flex-shrink-0">Callback</div>
-                          <div className="text-[10px] text-slate-900 dark:text-foreground">After 2 PM</div>
+                          <div className="text-[10px] text-slate-900 dark:text-foreground">After 2 PM today</div>
+                        </div>
+                        <div className="flex items-start gap-1.5">
+                          <div className="text-[9px] text-slate-500 dark:text-slate-500 font-medium w-12 flex-shrink-0">Notes</div>
+                          <div className="text-[10px] text-slate-900 dark:text-foreground">Customer mentioned urgent AC issue</div>
                         </div>
                       </div>
                     </div>
