@@ -2312,8 +2312,104 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
           
-          {/* Mobile Message Thread */}
-          <div ref={mobileConversationContainerRef} className="p-3 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth bg-card rounded-xl border border-border/50 shadow-sm" style={{ minHeight: '200px', maxHeight: 'calc(100vh-260px)' }}>
+          {/* AI Intake Summary Card - Compact with Preview */}
+          {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
+            <div className="bg-card border border-border rounded-xl p-2.5">
+              <button
+                onClick={() => setCollapsedSections(prev => ({ ...prev, aiIntake: !prev.aiIntake }))}
+                className="w-full flex items-center justify-between"
+              >
+                <div className="flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <h3 className="text-xs font-semibold text-foreground">AI Intake Summary</h3>
+                </div>
+                <svg className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {!collapsedSections.aiIntake && (
+                <div className="mt-2">
+                  <AICallDetails
+                    leadId={params.id}
+                    businessId={business.id}
+                    conversationId={leadData?.conversation?.id}
+                    callerPhone={leadData?.phone_number || lead?.phone}
+                    collapsible={false}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Combined Customer Details + Lead Health Card */}
+          <div className="bg-card border border-border rounded-xl p-2.5">
+            <h3 className="text-xs font-semibold text-foreground mb-2">Customer Details</h3>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Phone</span>
+                <span className="text-[11px] font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.phone)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Status</span>
+                <span className={`text-[11px] font-medium ${getLeadStatusColor(leadData?.status || lead?.status)}`}>
+                  {leadData?.status || lead?.status || 'New'}
+                </span>
+              </div>
+              {/* Intake Status */}
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">
+                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
+                    ? 'AI Intake'
+                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
+                      ? 'Voicemail Intake'
+                      : 'Intake'}
+                </span>
+                <span className={`text-[11px] font-medium ${
+                  leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
+                    ? 'text-green-600 dark:text-green-400'
+                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-slate-500 dark:text-slate-400'
+                }`}>
+                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
+                    ? 'Complete'
+                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
+                      ? 'Complete'
+                      : 'Incomplete'}
+                </span>
+              </div>
+              {/* Customer Replied */}
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Customer Replied</span>
+                <span className={`text-[11px] font-medium ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                  {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Yes' : 'No'}
+                </span>
+              </div>
+              {/* Corrections Made */}
+              {leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">Corrections</span>
+                  <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                    {Object.keys(leadData.raw_metadata.corrected_fields).length}
+                  </span>
+                </div>
+              )}
+              {/* Appointment */}
+              {leadData?.raw_metadata?.appointment && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">Appointment</span>
+                  <span className="text-[11px] font-medium text-green-600 dark:text-green-400">
+                    Scheduled
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Mobile Message Thread - Compact with max-height */}
+          <div ref={mobileConversationContainerRef} className="p-2.5 sm:p-5 lg:p-6 overflow-y-auto scroll-smooth bg-card rounded-xl border border-border/50 shadow-sm" style={{ minHeight: '150px', maxHeight: '250px' }}>
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -2341,10 +2437,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           
           {/* Mobile Message Composer */}
-          <div className="border-t border-border/50 px-4 sm:px-5 lg:px-6 py-4 bg-background/90 backdrop-blur-sm">
+          <div className="border-t border-border/50 px-3 sm:px-5 lg:px-6 py-3 bg-background/90 backdrop-blur-sm">
             {/* Image Previews */}
             {mobileImages.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
+              <div className="flex flex-wrap gap-2 mb-2">
                 {mobileImages.map((file, index) => (
                   <div key={index} className="relative group">
                     <img
@@ -2365,14 +2461,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 ))}
               </div>
             )}
-            <div className="flex gap-3 items-end">
+            <div className="flex gap-2 items-end">
               <button
                 type="button"
                 onClick={() => mobileFileInputRef.current?.click()}
-                className="p-3 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
                 disabled={sending}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </button>
@@ -2389,13 +2485,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleMobileKeyDown}
                 placeholder="Type a message..."
-                className="flex-1 min-h-[60px] max-h-[120px] px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                rows={2}
+                className="flex-1 min-h-[48px] max-h-[120px] px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                rows={1}
               />
               <button
                 onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
                 disabled={(!message.trim() && mobileImages.length === 0) || sending}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2 self-end"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2 self-end"
               >
                 {sending ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -2411,117 +2507,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
           
-          {/* AI Intake Summary Card - Compact with Preview */}
-          {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-            <div className="bg-card border border-border rounded-xl p-3">
-              <button
-                onClick={() => setCollapsedSections(prev => ({ ...prev, aiIntake: !prev.aiIntake }))}
-                className="w-full flex items-center justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <h3 className="text-sm font-semibold text-foreground">AI Intake Summary</h3>
-                </div>
-                <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {!collapsedSections.aiIntake && (
-                <div className="mt-2">
-                  <AICallDetails
-                    leadId={params.id}
-                    businessId={business.id}
-                    conversationId={leadData?.conversation?.id}
-                    callerPhone={leadData?.phone_number || lead?.phone}
-                    collapsible={false}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* Combined Customer Details + Lead Health Card */}
-          <div className="bg-card border border-border rounded-xl p-3">
-            <h3 className="text-sm font-semibold text-foreground mb-2.5">Customer Details</h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Phone</span>
-                <span className="text-xs font-medium text-foreground">{formatPhoneNumber(leadData?.phone_number || lead?.phone)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Status</span>
-                <span className={`text-xs font-medium ${getLeadStatusColor(leadData?.status || lead?.status)}`}>
-                  {leadData?.status || lead?.status || 'New'}
-                </span>
-              </div>
-              {/* Intake Status */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                    ? 'AI Intake'
-                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                      ? 'Voicemail Intake'
-                      : 'Intake'}
-                </span>
-                <span className={`text-xs font-medium ${
-                  leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                    ? 'text-green-600 dark:text-green-400'
-                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-slate-500 dark:text-slate-400'
-                }`}>
-                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                    ? 'Complete'
-                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                      ? 'Complete'
-                      : 'Incomplete'}
-                </span>
-              </div>
-              {/* Customer Replied */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Customer Replied</span>
-                <span className={`text-xs font-medium ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                  {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Yes' : 'No'}
-                </span>
-              </div>
-              {/* Corrections Made */}
-              {leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Corrections</span>
-                  <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                    {Object.keys(leadData.raw_metadata.corrected_fields).length}
-                  </span>
-                </div>
-              )}
-              {/* Appointment */}
-              {leadData?.raw_metadata?.appointment && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Appointment</span>
-                  <span className="text-xs font-medium text-green-600 dark:text-green-400">
-                    Scheduled
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-          
           {/* Internal Notes Card - Reduced Height */}
-          <div className="bg-card border border-border rounded-xl p-3">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Internal Notes</h3>
+          <div className="bg-card border border-border rounded-xl p-2.5">
+            <h3 className="text-xs font-semibold text-foreground mb-2">Internal Notes</h3>
             <textarea
               value={internalNotes}
               onChange={(e) => setInternalNotes(e.target.value)}
               onBlur={handleSaveNotes}
               placeholder="Add internal notes..."
-              className="w-full min-h-[48px] max-h-[120px] px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full min-h-[48px] max-h-[120px] px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
               rows={1}
             />
           </div>
           
           {/* Automatic Follow-ups - Compact */}
-          <div className="mt-3">
+          <div className="mt-2">
             <AutomaticFollowUpsControl 
               followUpJobs={followUpJobs} 
               leadId={params.id}

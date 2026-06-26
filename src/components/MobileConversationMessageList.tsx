@@ -39,7 +39,7 @@ export default function MobileConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-4 pb-24" data-mobile-layout data-active-conversation-list>
+    <div className="space-y-3 pb-24" data-mobile-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle system events
         if (item.type === 'system_event') {
@@ -179,9 +179,9 @@ export default function MobileConversationMessageList({
                     : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 shadow-md hover:shadow-lg border border-blue-700'
                 }`}
               >
-                <div className={`${msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-5 py-3'}`}>
+                <div className={`${msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-3 py-2 sm:px-4 sm:py-2.5'}`}>
                   {msg.body && (
-                    <p className="text-base leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
+                    <p className="text-sm sm:text-base leading-snug sm:leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
                       {msg.body}
                     </p>
                   )}
