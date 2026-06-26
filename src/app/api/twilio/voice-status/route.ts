@@ -291,6 +291,138 @@ async function processVoiceStatusCallback(params: any, method: string) {
   const normalizedCallerPhone = normalizePhoneNumber(From)
   console.log(`[Twilio Voice Status Webhook] Normalized caller phone: ${normalizedCallerPhone}`)
 
+  // CRITICAL FIX: If AI call record exists but has no lead_id, create lead now
+  // This happens when AI intake finalizes after the voice webhook created the session without early lead
+  // Handle both complete and incomplete intakes - create lead with whatever data is available
+  if (aiCallRecord && !aiCallRecord.lead_id) {
+    console.log('[AI INTAKE FINALIZE] Creating lead after AI intake finalized', {
+      callSid: CallSid,
+      aiCallRecordId: aiCallRecord.id,
+      outcome: aiCallRecord.outcome,
+      hasExtractedInfo: !!aiCallRecord.extracted_info,
+      extractedInfo: aiCallRecord.extracted_info
+    })
+
+    const normalizedPhone = normalizePhoneNumber(From)
+    
+    // Check for existing lead by phone
+    const { data: existingLeadForAI } = await supabase
+      .from('leads')
+      .select('id, status')
+      .eq('business_id', business.id)
+      .eq('caller_phone', normalizedPhone)
+      .maybeSingle()
+
+    let leadId: string | null = null
+    let isNewLead = false
+
+    if (existingLeadForAI) {
+      // Reuse existing lead
+      leadId = existingLeadForAI.id
+      isNewLead = false
+      console.log('[AI INTAKE FINALIZE] Reusing existing lead for AI intake:', leadId)
+    } else {
+      // Create new lead with extracted info from AI (may be partial or missing for incomplete intakes)
+      const extracted = aiCallRecord.extracted_info || {}
+      const leadName = extracted.caller_name || null
+      const leadReason = extracted.reason_for_call || null
+      const leadUrgency = extracted.urgency || null
+
+      // For incomplete intakes, mark status appropriately
+      const isCompleteIntake = aiCallRecord.outcome === 'completed_intake'
+      const leadStatus = isCompleteIntake ? 'new' : 'new' // Keep as 'new' even for incomplete - will be updated by follow-up
+
+      const { data: newLead, error: leadCreateError } = await supabase
+        .from('leads')
+        .insert({
+          business_id: business.id,
+          caller_phone: normalizedPhone,
+          status: leadStatus,
+          name: leadName,
+          reason_for_call: leadReason,
+          urgency: leadUrgency,
+          raw_metadata: { 
+            source: 'ai_intake', 
+            callSid: CallSid,
+            ai_call_record_id: aiCallRecord.id,
+            ai_outcome: aiCallRecord.outcome,
+            extracted_info: extracted
+          }
+        })
+        .select()
+        .single()
+
+      if (leadCreateError || !newLead) {
+        console.error('[AI INTAKE FINALIZE] Failed to create lead:', leadCreateError)
+      } else {
+        leadId = newLead.id
+        isNewLead = true
+        console.log('[AI INTAKE FINALIZE] Created lead from AI intake (may be incomplete):', {
+          leadId: newLead.id,
+          name: leadName,
+          reason: leadReason,
+          urgency: leadUrgency,
+          outcome: aiCallRecord.outcome,
+          isCompleteIntake
+        })
+      }
+    }
+
+    // Create conversation for this lead
+    let conversationId: string | null = null
+    if (leadId) {
+      const { data: newConversation, error: conversationError } = await supabase
+        .from('conversations')
+        .insert({
+          lead_id: leadId,
+          business_id: business.id,
+          status: 'active'
+        })
+        .select()
+        .single()
+
+      if (conversationError || !newConversation) {
+        console.error('[AI INTAKE FINALIZE] Failed to create conversation:', conversationError)
+      } else {
+        conversationId = newConversation.id
+        console.log('[AI INTAKE FINALIZE] Created conversation for AI intake:', conversationId)
+      }
+    }
+
+    // Update ai_call_record with lead_id and conversation_id
+    if (leadId && conversationId) {
+      const { error: updateError } = await supabase
+        .from('ai_call_records')
+        .update({
+          lead_id: leadId,
+          conversation_id: conversationId
+        })
+        .eq('id', aiCallRecord.id)
+
+      if (updateError) {
+        console.error('[AI INTAKE FINALIZE] Failed to update ai_call_record:', updateError)
+      } else {
+        console.log('[AI INTAKE FINALIZE] Updated ai_call_record with lead and conversation:', {
+          aiCallRecordId: aiCallRecord.id,
+          leadId: leadId,
+          conversationId: conversationId
+        })
+
+        // Update call_events with conversation_id
+        await supabase
+          .from('call_events')
+          .update({ conversation_id: conversationId })
+          .eq('twilio_call_sid', CallSid)
+
+        console.log('[AI INTAKE FINALIZE] Updated call_events with conversation_id')
+      }
+    }
+
+    // Update the aiCallRecord variable with the new lead/conversation IDs
+    aiCallRecord.lead_id = leadId
+    aiCallRecord.conversation_id = conversationId
+  }
+
   // Store canonical conversationId from helper
   let canonicalConversationId: string | null = null
 
