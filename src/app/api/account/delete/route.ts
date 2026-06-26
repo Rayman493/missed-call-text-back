@@ -581,13 +581,19 @@ export async function POST(request: NextRequest) {
             replyflow_number: replyFlowNumber,
           })
 
-          const offboardingSmsMessage = `ReplyFlow has been disconnected for your account.
+          const offboardingSmsMessage = `ReplyFlow has been disconnected from your account.
 
 Important: Disable call forwarding so missed calls return to your normal voicemail.
 
+Common carrier codes:
+
 Verizon: *73
+
 AT&T: ##004#
+
 T-Mobile: ##004#
+
+Using another carrier? Contact your mobile carrier for instructions to disable conditional call forwarding.
 
 If forwarding does not stop immediately, restart your phone or contact your carrier.`
 
