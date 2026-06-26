@@ -113,10 +113,12 @@ importantDetails: Keep factual information only, avoid conversational wording. T
 - "Tree fell on the fence" → "Tree on fence"
 - "It's my grandma's house, the yard is pretty overgrown." → "Yard is overgrown."
 
-desiredCompletionTime: Normalize naturally, keep customer's intent
+desiredCompletionTime: Normalize naturally, keep customer's intent. This field represents WHEN the customer wants the work completed.
 - "Tomorrow morning" → "Tomorrow morning"
 - "Monday or Tuesday" → "Monday or Tuesday"
 - "This week" → "This week"
+- "Wednesday" → "Wednesday"
+- "Next week" → "Next week"
 - "Within the next few days" → "Within few days"
 - "Within the next week" → "Within the next week"
 - "As soon as possible" → "ASAP"
@@ -126,7 +128,7 @@ desiredCompletionTime: Normalize naturally, keep customer's intent
 - "Tomorrow afternoon" → "Tomorrow afternoon"
 - "This weekend" → "Weekend"
 
-preferredCallbackTime: Normalize into concise values
+preferredCallbackTime: Normalize into concise values. This field represents WHEN the business should CALL the customer (time of day), not when the work should be done.
 - "Morning" → "Morning"
 - "Afternoon" → "Afternoon"
 - "Evening" → "Evening"
@@ -138,7 +140,27 @@ preferredCallbackTime: Normalize into concise values
 - "Sometime in the mornings" → "Morning"
 - "After 5 PM works best" → "After 5 PM"
 - "Probably after five if possible." → "After 5 PM"
-- "Tomorrow morning" → "Tomorrow morning"
+- "Evenings are usually best" → "Evening"
+- "Mornings are usually best for a callback" → "Morning"
+
+CRITICAL: Never copy the desiredCompletionTime field into preferredCallbackTime. If the customer only mentions when they want the work done but does not provide a callback time preference, leave preferredCallbackTime as null.
+
+Examples of correct extraction:
+Customer: "I'd like the work done Tuesday or Wednesday."
+Desired completion: "Tuesday or Wednesday"
+Best callback time: (null/empty)
+
+Customer: "I'm hoping it can be completed next week. Mornings are usually best for a callback."
+Desired completion: "Next week"
+Best callback time: "Morning"
+
+Customer: "Can you get this done by Wednesday? Afternoons work best for calling me."
+Desired completion: "Wednesday"
+Best callback time: "Afternoon"
+
+Customer: "I need this done ASAP."
+Desired completion: "ASAP"
+Best callback time: (null/empty)
 
 addressOrLocation: Return only the service location, remove unnecessary conversation
 - "1632 South Pine Drive" → "1632 South Pine Drive"
@@ -289,10 +311,12 @@ importantDetails: Keep factual information only, avoid conversational wording. T
 - "Tree fell on the fence" → "Tree on fence"
 - "It's my grandma's house, the yard is pretty overgrown." → "Yard is overgrown."
 
-desiredCompletionTime: Normalize naturally, keep customer's intent
+desiredCompletionTime: Normalize naturally, keep customer's intent. This field represents WHEN the customer wants the work completed.
 - "Tomorrow morning" → "Tomorrow morning"
 - "Monday or Tuesday" → "Monday or Tuesday"
 - "This week" → "This week"
+- "Wednesday" → "Wednesday"
+- "Next week" → "Next week"
 - "Within the next few days" → "Within few days"
 - "Within the next week" → "Within the next week"
 - "As soon as possible" → "ASAP"
@@ -302,7 +326,7 @@ desiredCompletionTime: Normalize naturally, keep customer's intent
 - "Tomorrow afternoon" → "Tomorrow afternoon"
 - "This weekend" → "Weekend"
 
-preferredCallbackTime: Normalize into concise values
+preferredCallbackTime: Normalize into concise values. This field represents WHEN the business should CALL the customer (time of day), not when the work should be done.
 - "Morning" → "Morning"
 - "Afternoon" → "Afternoon"
 - "Evening" → "Evening"
@@ -314,7 +338,27 @@ preferredCallbackTime: Normalize into concise values
 - "Sometime in the mornings" → "Morning"
 - "After 5 PM works best" → "After 5 PM"
 - "Probably after five if possible." → "After 5 PM"
-- "Tomorrow morning" → "Tomorrow morning"
+- "Evenings are usually best" → "Evening"
+- "Mornings are usually best for a callback" → "Morning"
+
+CRITICAL: Never copy the desiredCompletionTime field into preferredCallbackTime. If the customer only mentions when they want the work done but does not provide a callback time preference, leave preferredCallbackTime as null.
+
+Examples of correct extraction:
+Customer: "I'd like the work done Tuesday or Wednesday."
+Desired completion: "Tuesday or Wednesday"
+Best callback time: (null/empty)
+
+Customer: "I'm hoping it can be completed next week. Mornings are usually best for a callback."
+Desired completion: "Next week"
+Best callback time: "Morning"
+
+Customer: "Can you get this done by Wednesday? Afternoons work best for calling me."
+Desired completion: "Wednesday"
+Best callback time: "Afternoon"
+
+Customer: "I need this done ASAP."
+Desired completion: "ASAP"
+Best callback time: (null/empty)
 
 addressOrLocation: Return only the service location, remove unnecessary conversation
 - "1632 South Pine Drive" → "1632 South Pine Drive"
@@ -481,10 +525,12 @@ importantDetails: Keep factual information only, avoid conversational wording. T
 - "Tree fell on the fence" → "Tree on fence"
 - "It's my grandma's house, the yard is pretty overgrown." → "Yard is overgrown."
 
-desiredCompletionTime: Normalize naturally, keep customer's intent
+desiredCompletionTime: Normalize naturally, keep customer's intent. This field represents WHEN the customer wants the work completed.
 - "Tomorrow morning" → "Tomorrow morning"
 - "Monday or Tuesday" → "Monday or Tuesday"
 - "This week" → "This week"
+- "Wednesday" → "Wednesday"
+- "Next week" → "Next week"
 - "Within the next few days" → "Within few days"
 - "Within the next week" → "Within the next week"
 - "As soon as possible" → "ASAP"
@@ -494,7 +540,7 @@ desiredCompletionTime: Normalize naturally, keep customer's intent
 - "Tomorrow afternoon" → "Tomorrow afternoon"
 - "This weekend" → "Weekend"
 
-preferredCallbackTime: Normalize into concise values
+preferredCallbackTime: Normalize into concise values. This field represents WHEN the business should CALL the customer (time of day), not when the work should be done.
 - "Morning" → "Morning"
 - "Afternoon" → "Afternoon"
 - "Evening" → "Evening"
@@ -506,7 +552,27 @@ preferredCallbackTime: Normalize into concise values
 - "Sometime in the mornings" → "Morning"
 - "After 5 PM works best" → "After 5 PM"
 - "Probably after five if possible." → "After 5 PM"
-- "Tomorrow morning" → "Tomorrow morning"
+- "Evenings are usually best" → "Evening"
+- "Mornings are usually best for a callback" → "Morning"
+
+CRITICAL: Never copy the desiredCompletionTime field into preferredCallbackTime. If the customer only mentions when they want the work done but does not provide a callback time preference, leave preferredCallbackTime as null.
+
+Examples of correct extraction:
+Customer: "I'd like the work done Tuesday or Wednesday."
+Desired completion: "Tuesday or Wednesday"
+Best callback time: (null/empty)
+
+Customer: "I'm hoping it can be completed next week. Mornings are usually best for a callback."
+Desired completion: "Next week"
+Best callback time: "Morning"
+
+Customer: "Can you get this done by Wednesday? Afternoons work best for calling me."
+Desired completion: "Wednesday"
+Best callback time: "Afternoon"
+
+Customer: "I need this done ASAP."
+Desired completion: "ASAP"
+Best callback time: (null/empty)
 
 addressOrLocation: Return only the service location, remove unnecessary conversation
 - "1632 South Pine Drive" → "1632 South Pine Drive"
