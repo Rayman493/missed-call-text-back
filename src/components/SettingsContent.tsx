@@ -1505,10 +1505,10 @@ export default function SettingsContent() {
                             className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
                           />
                           <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1.5">
-                            {`{{business_name}}`} will automatically be replaced with your business name when messages are sent.
+                            {`{{business_name}}`} is automatically replaced with your business name when messages are sent.
                           </p>
                           {formBusiness.business_hours_enabled && !formBusiness.after_hours_message?.trim() && (
-                            <div className="flex items-start gap-2 mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                            <div className="flex items-start gap-2 mt-2 px-2 py-1.5 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
                               <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                               </svg>
@@ -1581,7 +1581,7 @@ export default function SettingsContent() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                           {/* Start Date/Time */}
                           <div>
-                            <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-0.5">
+                            <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
                               Start Date/Time
                             </label>
                             <input
@@ -1594,7 +1594,7 @@ export default function SettingsContent() {
 
                           {/* End Date/Time */}
                           <div>
-                            <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-0.5">
+                            <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
                               End Date/Time
                             </label>
                             <input
@@ -1615,7 +1615,7 @@ export default function SettingsContent() {
 
                         {/* Custom Message */}
                         <div>
-                          <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-0.5">
+                          <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
                             Out of Office Message
                           </label>
                           <textarea
@@ -1642,7 +1642,7 @@ export default function SettingsContent() {
 
                         {/* Customer Preview */}
                         <div>
-                          <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-0.5">
+                          <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
                             Customer preview
                           </label>
                           <div className="p-2 sm:p-3 bg-slate-100 dark:bg-slate-800/60 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
