@@ -129,84 +129,60 @@ export default function DemoPage() {
                   <div className="pl-11">
                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
                       <p className="text-blue-900 dark:text-blue-100 text-sm">
-                        <span className="font-semibold">AI Voice:</span> "Hi, thanks for calling Arctic Air HVAC. I'm the automated assistant. How can I help you today?"
+                        <span className="font-semibold">AI Voice:</span> Hi! Thanks for calling Arctic Air HVAC. What's your name and how can I help?
                       </p>
                       <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">
-                        <span className="font-semibold">Caller:</span> "Hi, my AC isn't cooling and I need someone to come take a look."
+                        <span className="font-semibold">Caller:</span> My AC isn't cooling.
                       </p>
                       <p className="text-blue-900 dark:text-blue-100 text-sm mt-2">
-                        <span className="font-semibold">AI Voice:</span> "I'd be happy to help with that. What's your name?"
+                        <span className="font-semibold">AI Voice:</span> What's the service address?
                       </p>
                       <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">
-                        <span className="font-semibold">Caller:</span> "This is John Smith."
+                        <span className="font-semibold">Caller:</span> 1234 Oak Street.
                       </p>
                       <p className="text-blue-900 dark:text-blue-100 text-sm mt-2">
-                        <span className="font-semibold">AI Voice:</span> "Thanks John. Can you tell me more about the issue?"
-                      </p>
-                      <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">
-                        <span className="font-semibold">Caller:</span> "The upstairs unit isn't cooling at all. It's been like this for two days."
-                      </p>
-                      <p className="text-blue-900 dark:text-blue-100 text-sm mt-2">
-                        <span className="font-semibold">AI Voice:</span> "Got it. What's your address or service location?"
-                      </p>
-                      <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">
-                        <span className="font-semibold">Caller:</span> "1234 Oak Street, Pittsburgh."
-                      </p>
-                      <p className="text-blue-900 dark:text-blue-100 text-sm mt-2">
-                        <span className="font-semibold">AI Voice:</span> "And when would you like this completed?"
-                      </p>
-                      <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">
-                        <span className="font-semibold">Caller:</span> "As soon as possible, preferably this weekend."
-                      </p>
-                      <p className="text-blue-900 dark:text-blue-100 text-sm mt-2">
-                        <span className="font-semibold">AI Voice:</span> "Perfect. What's the best time to reach you?"
-                      </p>
-                      <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">
-                        <span className="font-semibold">Caller:</span> "Anytime after 5 PM works for me."
-                      </p>
-                      <p className="text-blue-900 dark:text-blue-100 text-sm mt-2">
-                        <span className="font-semibold">AI Voice:</span> "Thanks John. I have all the details. Someone from Arctic Air HVAC will follow up with you shortly. Have a good day!"
+                        <span className="font-semibold">AI Voice:</span> Perfect. I'll pass this along to the business.
                       </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Step 4: AI Intake Summary */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 border-2 border-purple-200 dark:border-purple-800 shadow-md">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-white text-sm font-bold">4</span>
                     </div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground">AI Intake Summary</h3>
+                    <h3 className="font-semibold text-purple-900 dark:text-purple-100">AI Intake Summary</h3>
                   </div>
                   <div className="pl-11 space-y-3">
                     {/* Name */}
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
-                      <p className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-1">Name</p>
+                    <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-purple-100 dark:border-purple-700 shadow-sm">
+                      <p className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider mb-1">Name</p>
                       <p className="text-base font-bold text-slate-900 dark:text-foreground">John Smith</p>
                     </div>
                     {/* Reason */}
-                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-3 border border-purple-100 dark:border-purple-800">
+                    <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-purple-100 dark:border-purple-700 shadow-sm">
                       <p className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider mb-1">Reason</p>
                       <p className="text-sm font-semibold text-slate-900 dark:text-foreground">AC not cooling</p>
                     </div>
                     {/* Details */}
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                    <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-purple-100 dark:border-purple-700 shadow-sm">
                       <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Details</p>
                       <p className="text-sm text-slate-900 dark:text-foreground">The upstairs unit isn't cooling at all. It's been like this for two days.</p>
                     </div>
                     {/* Location */}
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                    <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-purple-100 dark:border-purple-700 shadow-sm">
                       <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Location</p>
                       <p className="text-sm text-slate-900 dark:text-foreground">1234 Oak Street, Pittsburgh</p>
                     </div>
                     {/* Desired Completion Time */}
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                    <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-purple-100 dark:border-purple-700 shadow-sm">
                       <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Desired Completion Time</p>
                       <p className="text-sm text-slate-900 dark:text-foreground">As soon as possible, preferably this weekend</p>
                     </div>
                     {/* Best Callback Time */}
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                    <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-purple-100 dark:border-purple-700 shadow-sm">
                       <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Best Callback Time</p>
                       <p className="text-sm text-slate-900 dark:text-foreground">Anytime after 5 PM</p>
                     </div>
