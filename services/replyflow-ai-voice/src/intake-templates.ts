@@ -37,7 +37,7 @@ export type IntakeStage =
 export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, string>> = {
   on_site: {
     ask_name_reason: "Hi, I'm the assistant for the business. Can you please tell me your name and what you're calling about?",
-    ask_details: "Got it. Can you share any important details about the work you need?",
+    ask_details: "Got it. What else would be helpful for the business to know about this job?",
     ask_location_or_context: "Thanks. What address or location is this for?",
     ask_timing: "When would you like this work completed?",
     ask_callback_time: "What is the best time for the business to call you back?",
@@ -45,7 +45,7 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
   },
   appointment: {
     ask_name_reason: "Hi, I'm the assistant for the business. Can you tell me your name and what service you're interested in?",
-    ask_details: "Can you share any important details the business should know?",
+    ask_details: "Got it. What else would be helpful for the business to know about this job?",
     ask_location_or_context: "Will this be at the business location, or do you need mobile service?",
     ask_timing: "When would you like to schedule this appointment?",
     ask_callback_time: "What is the best time for the business to call you back?",
@@ -53,7 +53,7 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
   },
   lessons: {
     ask_name_reason: "Hi, I'm the assistant for the business. Can you tell me your name and what type of lessons or coaching you're interested in?",
-    ask_details: "Can you share a little more about what you're looking for?",
+    ask_details: "Got it. What else would be helpful for the business to know about this request?",
     ask_location_or_context: "Would you prefer in-person lessons, online lessons, or either?",
     ask_timing: "What days or times generally work best for you?",
     ask_callback_time: "What is the best time for the business to call you back?",
@@ -61,7 +61,7 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
   },
   professional: {
     ask_name_reason: "Hi, I'm the assistant for the business. Can you tell me your name and what you'd like help with?",
-    ask_details: "Can you share any important details about your situation?",
+    ask_details: "Got it. What else would be helpful for the business to know about your situation?",
     ask_location_or_context: "Are you looking for a new consultation, ongoing assistance, or something else?",
     ask_timing: "When would you like to speak with the business?",
     ask_callback_time: "What is the best time for the business to call you back?",
@@ -85,7 +85,7 @@ export function getIntakeStageText(template: IntakeTemplate, stage: IntakeStage)
  */
 const LEGACY_FALLBACK_PROMPTS: Record<IntakeStage, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?",
-  ask_details: "Got it. Can you share any important details the business should know?",
+  ask_details: "Got it. What else would be helpful for the business to know about this job?",
   ask_location_or_context: "Thanks. What address or location is this for?",
   ask_timing: "Got it. When would you like this work completed?",
   ask_callback_time: "Thanks. What is the best time for the business to call you back?",

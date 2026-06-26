@@ -83,7 +83,7 @@ General Rules:
 
 Field-Specific Rules:
 
-reasonForCalling: Normalize into concise business terminology as a noun phrase
+reasonForCalling: Normalize into concise business terminology as a noun phrase. This is the high-level service requested.
 - "Get my grass cut" → "Lawn mowing"
 - "See if I can get my grass cut" → "Lawn mowing"
 - "Need my grass cut" → "Lawn mowing"
@@ -100,7 +100,7 @@ reasonForCalling: Normalize into concise business terminology as a noun phrase
 - "My AC isn't cooling" → "AC repair"
 Do NOT invent services the customer didn't request. Preserve meaningful differences like inspection vs repair vs replacement.
 
-importantDetails: Keep factual information only, avoid conversational wording
+importantDetails: Keep factual information only, avoid conversational wording. This field should contain supporting facts about the job (size, condition, urgency, access instructions, special circumstances, etc.). Do NOT repeat the service requested in the Details field unless the customer provides meaningful new information. If the customer only repeats the service without adding anything new, leave this field empty.
 - "Three-fourths acre lawn" → "Three-fourths acre lawn"
 - "Um, yeah, it's like, I don't know, about three-quarters of an acre, the yard is." → "Three-quarter acre lawn."
 - "Front flower beds need weeding" → "Front flower beds weeding"
@@ -259,7 +259,7 @@ General Rules:
 
 Field-Specific Rules:
 
-reasonForCalling: Normalize into concise business terminology as a noun phrase
+reasonForCalling: Normalize into concise business terminology as a noun phrase. This is the high-level service requested.
 - "Get my grass cut" → "Lawn mowing"
 - "See if I can get my grass cut" → "Lawn mowing"
 - "Need my grass cut" → "Lawn mowing"
@@ -276,7 +276,7 @@ reasonForCalling: Normalize into concise business terminology as a noun phrase
 - "My AC isn't cooling" → "AC repair"
 Do NOT invent services the customer didn't request. Preserve meaningful differences like inspection vs repair vs replacement.
 
-importantDetails: Keep factual information only, avoid conversational wording
+importantDetails: Keep factual information only, avoid conversational wording. This field should contain supporting facts about the job (size, condition, urgency, access instructions, special circumstances, etc.). Do NOT repeat the service requested in the Details field unless the customer provides meaningful new information. If the customer only repeats the service without adding anything new, leave this field empty.
 - "Three-fourths acre lawn" → "Three-fourths acre lawn"
 - "Um, yeah, it's like, I don't know, about three-quarters of an acre, the yard is." → "Three-quarter acre lawn."
 - "Front flower beds need weeding" → "Front flower beds weeding"
@@ -451,7 +451,7 @@ General Rules:
 
 Field-Specific Rules:
 
-reasonForCalling: Normalize into concise business terminology as a noun phrase
+reasonForCalling: Normalize into concise business terminology as a noun phrase. This is the high-level service requested.
 - "Get my grass cut" → "Lawn mowing"
 - "See if I can get my grass cut" → "Lawn mowing"
 - "Need my grass cut" → "Lawn mowing"
@@ -468,7 +468,7 @@ reasonForCalling: Normalize into concise business terminology as a noun phrase
 - "My AC isn't cooling" → "AC repair"
 Do NOT invent services the customer didn't request. Preserve meaningful differences like inspection vs repair vs replacement.
 
-importantDetails: Keep factual information only, avoid conversational wording
+importantDetails: Keep factual information only, avoid conversational wording. This field should contain supporting facts about the job (size, condition, urgency, access instructions, special circumstances, etc.). Do NOT repeat the service requested in the Details field unless the customer provides meaningful new information. If the customer only repeats the service without adding anything new, leave this field empty.
 - "Three-fourths acre lawn" → "Three-fourths acre lawn"
 - "Um, yeah, it's like, I don't know, about three-quarters of an acre, the yard is." → "Three-quarter acre lawn."
 - "Front flower beds need weeding" → "Front flower beds weeding"
