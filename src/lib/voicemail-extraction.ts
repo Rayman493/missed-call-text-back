@@ -60,49 +60,54 @@ export async function extractFromVoicemailTranscript(transcript: string): Promis
 
     const systemPrompt = `You are a voicemail transcription assistant. Extract structured information from voicemail transcripts for a business.
 
-CRITICAL: Write all extracted fields as concise office-note style phrases that a business owner can scan in 2-3 seconds.
+CRITICAL: Write all extracted fields like an office receptionist entering notes into a CRM. A business owner should understand the job in 2 seconds.
 
 General Rules:
-- Never include filler words: yeah, yep, uh, um, like, you know, basically, actually, well, i mean, just, sort of, kind of
-- Never include first-person wording: instead of "I need my grass cut" write "Grass cutting"
-- Never include incomplete sentence fragments
-- Prefer noun phrases over full sentences
-- Keep every field under roughly 3-6 words whenever possible
-- Preserve meaning exactly—do not summarize away important information
+- Write like a CRM note, not a transcript
+- Never preserve conversational wording
+- Never preserve sentence structure
+- Rewrite into concise professional phrases
+- Prefer noun phrases over sentences
+- Remove ALL filler words: yeah, yep, uh, um, like, you know
+- Remove ALL first-person wording: I, my, me, we, us
+- Remove ALL hedge words: maybe, probably, I guess, I think, sort of, kind of, just, actually, basically, well
+- Remove unnecessary verbs whenever possible
+- Keep every field extremely scannable (1-5 words when possible)
+- Preserve meaning, not wording
 - Never hallucinate information not present in the transcript
 - Leave unknown values as null
 - Ignore greetings and polite language
 
 Field-Specific Rules:
 
-reasonForCalling: Capture the core service request as a noun phrase
-- "Yeah I want my grass cut tomorrow" → "Grass cutting"
-- "It's about half an acre" → "Half-acre lawn"
-- "I'm calling because my AC isn't cooling" → "AC not cooling"
-- "Need mulch around flower beds" → "Mulch flower beds"
-- "Tree fell on the fence" → "Tree on fence"
+reasonForCalling: Core service request as a noun phrase
+- "Yeah I need my plumbing fixed" → "Plumbing repair"
+- "The plumbing in the walls of my basement is leaking" → "Basement wall plumbing leak"
+- "I need my grass cut" → "Grass cutting"
+- "My AC isn't cooling" → "AC repair"
 
-importantDetails: Convert into short service notes, not transcript text
+importantDetails: Short service notes, not transcript text
 - "It'll be to cut half an acre of grass" → "Half-acre lawn"
 - "Need mulch around flower beds" → "Mulch flower beds"
 - "Tree fell on the fence" → "Tree on fence"
 
-desiredCompletionTime: Strip conversational wording, leave only scheduling information
-- "This week I would like to" → "This week"
+desiredCompletionTime: Strip conversational wording, only scheduling info
+- "I guess anytime this week" → "This week"
 - "Whenever possible" → "Flexible"
 - "Tomorrow afternoon" → "Tomorrow afternoon"
-- "As soon as possible, preferably this weekend" → "ASAP / This weekend"
-- "Whenever you can" → "Flexible"
+- "As soon as possible" → "ASAP"
+- "This weekend" → "Weekend"
 
-preferredCallbackTime: Normalize into concise time windows
+preferredCallbackTime: Concise time windows
+- "Probably in the mornings" → "Morning"
 - "Sometime in the mornings" → "Morning"
 - "After 5 PM works best" → "After 5 PM"
 - "Anytime" → "Anytime"
-- "Tomorrow afternoon" → "Tomorrow afternoon"
+- "Tomorrow morning" → "Tomorrow morning"
 
-addressOrLocation: Remove unnecessary words like "My house", "My place", "It's at"
-- "My house at 1632 South Pine Drive" → "1632 South Pine Drive"
-- "It's at my office on Main Street" → "Main Street office"
+addressOrLocation: Remove "my house at", "my business at", etc.
+- "It's at my house at 1632 South Pine Drive" → "1632 South Pine Drive"
+- "My business at 123 Main Street" → "123 Main Street"
 
 Return JSON only with these fields:
 {
@@ -197,46 +202,51 @@ export async function intelligentCorrectionMerge(
 
     const systemPrompt = `You are a customer information correction assistant. A customer sent an SMS to correct or clarify their previous voicemail.
 
-CRITICAL: Write all extracted fields as concise office-note style phrases that a business owner can scan in 2-3 seconds.
+CRITICAL: Write all extracted fields like an office receptionist entering notes into a CRM. A business owner should understand the job in 2 seconds.
 
 General Rules:
-- Never include filler words: yeah, yep, uh, um, like, you know, basically, actually, well, i mean, just, sort of, kind of
-- Never include first-person wording: instead of "I need my grass cut" write "Grass cutting"
-- Never include incomplete sentence fragments
-- Prefer noun phrases over full sentences
-- Keep every field under roughly 3-6 words whenever possible
-- Preserve meaning exactly—do not summarize away important information
+- Write like a CRM note, not a transcript
+- Never preserve conversational wording
+- Never preserve sentence structure
+- Rewrite into concise professional phrases
+- Prefer noun phrases over sentences
+- Remove ALL filler words: yeah, yep, uh, um, like, you know
+- Remove ALL first-person wording: I, my, me, we, us
+- Remove ALL hedge words: maybe, probably, I guess, I think, sort of, kind of, just, actually, basically, well
+- Remove unnecessary verbs whenever possible
+- Keep every field extremely scannable (1-5 words when possible)
+- Preserve meaning, not wording
 
 Field-Specific Rules:
 
-reasonForCalling: Capture the core service request as a noun phrase
-- "Yeah I want my grass cut tomorrow" → "Grass cutting"
-- "It's about half an acre" → "Half-acre lawn"
-- "I'm calling because my AC isn't cooling" → "AC not cooling"
-- "Need mulch around flower beds" → "Mulch flower beds"
-- "Tree fell on the fence" → "Tree on fence"
+reasonForCalling: Core service request as a noun phrase
+- "Yeah I need my plumbing fixed" → "Plumbing repair"
+- "The plumbing in the walls of my basement is leaking" → "Basement wall plumbing leak"
+- "I need my grass cut" → "Grass cutting"
+- "My AC isn't cooling" → "AC repair"
 
-importantDetails: Convert into short service notes, not transcript text
+importantDetails: Short service notes, not transcript text
 - "It'll be to cut half an acre of grass" → "Half-acre lawn"
 - "Need mulch around flower beds" → "Mulch flower beds"
 - "Tree fell on the fence" → "Tree on fence"
 
-desiredCompletionTime: Strip conversational wording, leave only scheduling information
-- "This week I would like to" → "This week"
+desiredCompletionTime: Strip conversational wording, only scheduling info
+- "I guess anytime this week" → "This week"
 - "Whenever possible" → "Flexible"
 - "Tomorrow afternoon" → "Tomorrow afternoon"
-- "As soon as possible, preferably this weekend" → "ASAP / This weekend"
-- "Whenever you can" → "Flexible"
+- "As soon as possible" → "ASAP"
+- "This weekend" → "Weekend"
 
-preferredCallbackTime: Normalize into concise time windows
+preferredCallbackTime: Concise time windows
+- "Probably in the mornings" → "Morning"
 - "Sometime in the mornings" → "Morning"
 - "After 5 PM works best" → "After 5 PM"
 - "Anytime" → "Anytime"
-- "Tomorrow afternoon" → "Tomorrow afternoon"
+- "Tomorrow morning" → "Tomorrow morning"
 
-addressOrLocation: Remove unnecessary words like "My house", "My place", "It's at"
-- "My house at 1632 South Pine Drive" → "1632 South Pine Drive"
-- "It's at my office on Main Street" → "Main Street office"
+addressOrLocation: Remove "my house at", "my business at", etc.
+- "It's at my house at 1632 South Pine Drive" → "1632 South Pine Drive"
+- "My business at 123 Main Street" → "123 Main Street"
 
 Your task:
 - Update ONLY the fields that the customer is correcting
@@ -341,49 +351,54 @@ export async function extractFromSmsBody(smsBody: string): Promise<VoicemailExtr
 
     const systemPrompt = `You are an SMS message analysis assistant. Extract structured information from customer SMS replies for a business.
 
-CRITICAL: Write all extracted fields as concise office-note style phrases that a business owner can scan in 2-3 seconds.
+CRITICAL: Write all extracted fields like an office receptionist entering notes into a CRM. A business owner should understand the job in 2 seconds.
 
 General Rules:
-- Never include filler words: yeah, yep, uh, um, like, you know, basically, actually, well, i mean, just, sort of, kind of
-- Never include first-person wording: instead of "I need my grass cut" write "Grass cutting"
-- Never include incomplete sentence fragments
-- Prefer noun phrases over full sentences
-- Keep every field under roughly 3-6 words whenever possible
-- Preserve meaning exactly—do not summarize away important information
+- Write like a CRM note, not a transcript
+- Never preserve conversational wording
+- Never preserve sentence structure
+- Rewrite into concise professional phrases
+- Prefer noun phrases over sentences
+- Remove ALL filler words: yeah, yep, uh, um, like, you know
+- Remove ALL first-person wording: I, my, me, we, us
+- Remove ALL hedge words: maybe, probably, I guess, I think, sort of, kind of, just, actually, basically, well
+- Remove unnecessary verbs whenever possible
+- Keep every field extremely scannable (1-5 words when possible)
+- Preserve meaning, not wording
 - Never hallucinate information not present in the message
 - Leave unknown values as null
 - Ignore greetings, polite language, and acknowledgments (e.g., "thanks", "ok", "sure")
 
 Field-Specific Rules:
 
-reasonForCalling: Capture the core service request as a noun phrase
-- "Yeah I want my grass cut tomorrow" → "Grass cutting"
-- "It's about half an acre" → "Half-acre lawn"
-- "I'm calling because my AC isn't cooling" → "AC not cooling"
-- "Need mulch around flower beds" → "Mulch flower beds"
-- "Tree fell on the fence" → "Tree on fence"
+reasonForCalling: Core service request as a noun phrase
+- "Yeah I need my plumbing fixed" → "Plumbing repair"
+- "The plumbing in the walls of my basement is leaking" → "Basement wall plumbing leak"
+- "I need my grass cut" → "Grass cutting"
+- "My AC isn't cooling" → "AC repair"
 
-importantDetails: Convert into short service notes, not transcript text
+importantDetails: Short service notes, not transcript text
 - "It'll be to cut half an acre of grass" → "Half-acre lawn"
 - "Need mulch around flower beds" → "Mulch flower beds"
 - "Tree fell on the fence" → "Tree on fence"
 
-desiredCompletionTime: Strip conversational wording, leave only scheduling information
-- "This week I would like to" → "This week"
+desiredCompletionTime: Strip conversational wording, only scheduling info
+- "I guess anytime this week" → "This week"
 - "Whenever possible" → "Flexible"
 - "Tomorrow afternoon" → "Tomorrow afternoon"
-- "As soon as possible, preferably this weekend" → "ASAP / This weekend"
-- "Whenever you can" → "Flexible"
+- "As soon as possible" → "ASAP"
+- "This weekend" → "Weekend"
 
-preferredCallbackTime: Normalize into concise time windows
+preferredCallbackTime: Concise time windows
+- "Probably in the mornings" → "Morning"
 - "Sometime in the mornings" → "Morning"
 - "After 5 PM works best" → "After 5 PM"
 - "Anytime" → "Anytime"
-- "Tomorrow afternoon" → "Tomorrow afternoon"
+- "Tomorrow morning" → "Tomorrow morning"
 
-addressOrLocation: Remove unnecessary words like "My house", "My place", "It's at"
-- "My house at 1632 South Pine Drive" → "1632 South Pine Drive"
-- "It's at my office on Main Street" → "Main Street office"
+addressOrLocation: Remove "my house at", "my business at", etc.
+- "It's at my house at 1632 South Pine Drive" → "1632 South Pine Drive"
+- "My business at 123 Main Street" → "123 Main Street"
 
 For "urgencyLevel", only set if the message explicitly indicates urgency (e.g., "asap", "tomorrow morning", "emergency")
 
@@ -910,6 +925,7 @@ export async function safeMergeSmsExtraction(
 /**
  * Clean up extracted text to be business-ready
  * Removes filler words, unnecessary first-person wording, and conversational noise
+ * Applies CRM note formatting rules for concise, scannable output
  */
 export function cleanExtractedText(text: string): string {
   if (!text || typeof text !== 'string') {
@@ -929,7 +945,18 @@ export function cleanExtractedText(text: string): string {
     cleaned = cleaned.replace(pattern, '')
   }
 
-  // Remove filler words in the middle (case-insensitive)
+  // Remove hedge words (case-insensitive)
+  const hedgeWordPatterns = [
+    /\s+(maybe|probably|i guess|i think|i suppose|i believe|sort of|kind of|just|actually|basically|well)\s+/gi,
+    /^(maybe|probably|i guess|i think|i suppose|i believe|sort of|kind of|just|actually|basically|well)\s+/gi,
+    /\s+(maybe|probably|i guess|i think|i suppose|i believe|sort of|kind of|just|actually|basically|well)\.?\s*$/gi,
+  ]
+
+  for (const pattern of hedgeWordPatterns) {
+    cleaned = cleaned.replace(pattern, ' ')
+  }
+
+  // Remove filler words in the middle
   const fillerMiddlePatterns = [
     /\s+(yeah|yep|yep|uh|um|like|you know|basically|actually|well|i mean|just|sort of|kind of|pretty much)\s+/gi,
     /\s+(i think|i guess|i suppose|i believe)\s+/gi,
@@ -949,7 +976,7 @@ export function cleanExtractedText(text: string): string {
   }
 
   // Convert first-person statements to business-ready statements
-  // "I need X" -> "X" or "X requested"
+  // "I need X" -> "X"
   const firstPersonPatterns = [
     /^(i need|I need|i want|I want|i'd like|I'd like)\s+(.+)$/gi,
     /^(i'm calling because|I'm calling because|i called because|I called because)\s+(.+)$/gi,
@@ -958,11 +985,42 @@ export function cleanExtractedText(text: string): string {
 
   for (const pattern of firstPersonPatterns) {
     cleaned = cleaned.replace(pattern, (match, p1, p2) => {
-      // Capitalize first letter of the result
-      const result = p2.charAt(0).toUpperCase() + p2.slice(1)
-      return result
+      // Return the object without the first-person prefix
+      return p2.trim()
     })
   }
+
+  // Normalize time patterns
+  cleaned = cleaned.replace(/\bin the mornings?\b/gi, 'Morning')
+  cleaned = cleaned.replace(/\bin the afternoons?\b/gi, 'Afternoon')
+  cleaned = cleaned.replace(/\bin the evenings?\b/gi, 'Evening')
+  cleaned = cleaned.replace(/\bthis weekend\b/gi, 'Weekend')
+  cleaned = cleaned.replace(/\bnext weekend\b/gi, 'Next weekend')
+  cleaned = cleaned.replace(/\bas soon as possible\b/gi, 'ASAP')
+  cleaned = cleaned.replace(/\basap\b/gi, 'ASAP')
+  cleaned = cleaned.replace(/\btomorrow morning\b/gi, 'Tomorrow morning')
+  cleaned = cleaned.replace(/\btomorrow afternoon\b/gi, 'Tomorrow afternoon')
+  cleaned = cleaned.replace(/\btomorrow evening\b/gi, 'Tomorrow evening')
+
+  // Normalize location prefixes
+  cleaned = cleaned.replace(/^(my house at|my place at|it's at my house|its at my house|it's at my place|its at my place)\s+/gi, '')
+  cleaned = cleaned.replace(/^(my business at|it's at my business|its at my business)\s+/gi, '')
+  cleaned = cleaned.replace(/^(at my house|at my place|at my business)\s+/gi, '')
+  cleaned = cleaned.replace(/^(my house|my place|my business)\s+/gi, '')
+
+  // Remove unnecessary verbs and common phrases
+  cleaned = cleaned.replace(/\bto be\b/gi, '')
+  cleaned = cleaned.replace(/\bto have\b/gi, '')
+  cleaned = cleaned.replace(/\bto get\b/gi, '')
+  cleaned = cleaned.replace(/\bto do\b/gi, '')
+  cleaned = cleaned.replace(/\bi would like to\b/gi, '')
+  cleaned = cleaned.replace(/\bi'd like to\b/gi, '')
+  cleaned = cleaned.replace(/\bhave to\b/gi, '')
+  cleaned = cleaned.replace(/\bneed to\b/gi, '')
+  cleaned = cleaned.replace(/\bwant to\b/gi, '')
+  cleaned = cleaned.replace(/\bgoing to\b/gi, '')
+  cleaned = cleaned.replace(/\bgonna\b/gi, '')
+  cleaned = cleaned.replace(/\btrying to\b/gi, '')
 
   // Clean up multiple spaces
   cleaned = cleaned.replace(/\s+/g, ' ')
