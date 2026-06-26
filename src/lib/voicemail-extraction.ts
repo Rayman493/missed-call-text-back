@@ -73,6 +73,7 @@ General Rules:
 - Remove ALL first-person wording: I, my, me, we, us
 - Remove ALL hedge words unless they materially change meaning: maybe, probably, I guess, I think, sort of, kind of, just, actually, basically, well
 - Remove unnecessary verbs whenever possible
+- Remove conversational phrases: "I want...", "I'd like...", "I'm hoping...", "Can someone...", "Looking for...", "Need someone to...", "Trying to get..."
 - Keep every field extremely scannable (1-5 words when possible)
 - Preserve meaning, not wording
 - Never hallucinate information not present in the transcript
@@ -83,11 +84,14 @@ General Rules:
 
 Field-Specific Rules:
 
-reasonForCalling: Normalize into concise business terminology as a noun phrase. This is the high-level service requested.
+reasonForCalling: Normalize into concise business terminology as a noun phrase. Extract the SERVICE being requested, not what the customer literally said. This should be a short noun phrase describing the work.
 - "Get my grass cut" → "Lawn mowing"
 - "See if I can get my grass cut" → "Lawn mowing"
 - "Need my grass cut" → "Lawn mowing"
 - "Get the yard mowed" → "Lawn mowing"
+- "Wants his grass cut" → "Lawn mowing"
+- "Calling about getting grass cut" → "Lawn mowing"
+- "Looking to have somebody mow" → "Lawn mowing"
 - "Need bushes trimmed" → "Bush trimming"
 - "Need mulch put down" → "Mulch installation"
 - "Need AC looked at" → "Air conditioner inspection"
@@ -98,35 +102,50 @@ reasonForCalling: Normalize into concise business terminology as a noun phrase. 
 - "Need my sink fixed" → "Sink repair"
 - "The plumbing in the walls of my basement is leaking" → "Basement wall plumbing leak"
 - "My AC isn't cooling" → "AC repair"
+- "I'd like to get my piano tuned" → "Piano tuning"
+- "Looking for piano lessons" → "Piano lessons"
+- "Need my dog groomed" → "Dog grooming"
+- "Pressure washing needed" → "Pressure washing"
+- "Tree needs to come down" → "Tree removal"
+- "Water heater replacement" → "Water heater replacement"
 Do NOT invent services the customer didn't request. Preserve meaningful differences like inspection vs repair vs replacement.
 
 importantDetails: Keep factual information only, avoid conversational wording. This field should contain supporting facts about the job (size, condition, urgency, access instructions, special circumstances, etc.). Do NOT repeat the service requested in the Details field unless the customer provides meaningful new information. If the customer only repeats the service without adding anything new, leave this field empty.
 - "Three-fourths acre lawn" → "Three-fourths acre lawn"
-- "Um, yeah, it's like, I don't know, about three-quarters of an acre, the yard is." → "Three-quarter acre lawn."
+- "Um, yeah, it's like, I don't know, about three-quarters of an acre, the yard is." → "¾-acre lawn"
+- "The yard is about three quarters of an acre and it's just the backyard." → "¾-acre backyard"
 - "Front flower beds need weeding" → "Front flower beds weeding"
 - "Fence damaged from storm" → "Storm-damaged fence"
 - "Dog is friendly" → "Dog is friendly"
 - "Multiple rooms need painting" → "Multiple rooms painting"
-- "There are a couple rooms that need painted." → "Multiple rooms need painting."
+- "There are a couple rooms that need painted." → "Multiple rooms need painting"
 - "It'll be to cut half an acre of grass" → "Half-acre lawn"
 - "Need mulch around flower beds" → "Mulch flower beds"
 - "Tree fell on the fence" → "Tree on fence"
-- "It's my grandma's house, the yard is pretty overgrown." → "Yard is overgrown."
+- "It's my grandma's house, the yard is pretty overgrown." → "Overgrown yard"
+- "It's really steep" → "Steep terrain"
+- "I'd like recurring service every two weeks" → "Recurring service every two weeks"
+- "The gate code is 1234" → "Gate code: 1234"
+- "Backyard only" → "Backyard only"
 
-desiredCompletionTime: Normalize naturally, keep customer's intent. This field represents WHEN the customer wants the work completed.
+desiredCompletionTime: Normalize to concise scheduling language. This field represents WHEN the customer wants the work completed. Avoid conversational wording like "I'd like...", "I'm hoping...", "Probably...", "I guess...".
 - "Tomorrow morning" → "Tomorrow morning"
 - "Monday or Tuesday" → "Monday or Tuesday"
 - "This week" → "This week"
 - "Wednesday" → "Wednesday"
 - "Next week" → "Next week"
+- "Within two weeks" → "Within two weeks"
 - "Within the next few days" → "Within few days"
 - "Within the next week" → "Within the next week"
 - "As soon as possible" → "ASAP"
 - "I guess anytime this week" → "This week"
 - "Whenever possible" → "Flexible"
-- "Whenever they can get to it." → "Flexible"
+- "Whenever they can get to it" → "Flexible"
 - "Tomorrow afternoon" → "Tomorrow afternoon"
 - "This weekend" → "Weekend"
+- "Today" → "Today"
+- "I'm hoping for next week" → "Next week"
+- "I'd like it done by Wednesday" → "Wednesday"
 
 preferredCallbackTime: Normalize into concise values. This field represents WHEN the business should CALL the customer (time of day), not when the work should be done.
 - "Morning" → "Morning"
@@ -162,11 +181,13 @@ Customer: "I need this done ASAP."
 Desired completion: "ASAP"
 Best callback time: (null/empty)
 
-addressOrLocation: Return only the service location, remove unnecessary conversation
+addressOrLocation: Return only the service location, remove ALL conversational context and relationship references. Extract just the address or location name.
 - "1632 South Pine Drive" → "1632 South Pine Drive"
 - "It'll be at my grandma's house at 1632 South Pine Drive" → "1632 South Pine Drive"
 - "It's at my house at 1632 South Pine Drive" → "1632 South Pine Drive"
 - "My business at 123 Main Street" → "123 Main Street"
+- "My sister's place at 1632 South Pine Drive" → "1632 South Pine Drive"
+- "It's my grandma's house, the yard is pretty overgrown" → "Grandma's house" (if no address provided)
 
 Return JSON only with these fields:
 {
@@ -281,11 +302,14 @@ General Rules:
 
 Field-Specific Rules:
 
-reasonForCalling: Normalize into concise business terminology as a noun phrase. This is the high-level service requested.
+reasonForCalling: Normalize into concise business terminology as a noun phrase. Extract the SERVICE being requested, not what the customer literally said. This should be a short noun phrase describing the work.
 - "Get my grass cut" → "Lawn mowing"
 - "See if I can get my grass cut" → "Lawn mowing"
 - "Need my grass cut" → "Lawn mowing"
 - "Get the yard mowed" → "Lawn mowing"
+- "Wants his grass cut" → "Lawn mowing"
+- "Calling about getting grass cut" → "Lawn mowing"
+- "Looking to have somebody mow" → "Lawn mowing"
 - "Need bushes trimmed" → "Bush trimming"
 - "Need mulch put down" → "Mulch installation"
 - "Need AC looked at" → "Air conditioner inspection"
@@ -296,35 +320,50 @@ reasonForCalling: Normalize into concise business terminology as a noun phrase. 
 - "Need my sink fixed" → "Sink repair"
 - "The plumbing in the walls of my basement is leaking" → "Basement wall plumbing leak"
 - "My AC isn't cooling" → "AC repair"
+- "I'd like to get my piano tuned" → "Piano tuning"
+- "Looking for piano lessons" → "Piano lessons"
+- "Need my dog groomed" → "Dog grooming"
+- "Pressure washing needed" → "Pressure washing"
+- "Tree needs to come down" → "Tree removal"
+- "Water heater replacement" → "Water heater replacement"
 Do NOT invent services the customer didn't request. Preserve meaningful differences like inspection vs repair vs replacement.
 
 importantDetails: Keep factual information only, avoid conversational wording. This field should contain supporting facts about the job (size, condition, urgency, access instructions, special circumstances, etc.). Do NOT repeat the service requested in the Details field unless the customer provides meaningful new information. If the customer only repeats the service without adding anything new, leave this field empty.
 - "Three-fourths acre lawn" → "Three-fourths acre lawn"
-- "Um, yeah, it's like, I don't know, about three-quarters of an acre, the yard is." → "Three-quarter acre lawn."
+- "Um, yeah, it's like, I don't know, about three-quarters of an acre, the yard is." → "¾-acre lawn"
+- "The yard is about three quarters of an acre and it's just the backyard." → "¾-acre backyard"
 - "Front flower beds need weeding" → "Front flower beds weeding"
 - "Fence damaged from storm" → "Storm-damaged fence"
 - "Dog is friendly" → "Dog is friendly"
 - "Multiple rooms need painting" → "Multiple rooms painting"
-- "There are a couple rooms that need painted." → "Multiple rooms need painting."
+- "There are a couple rooms that need painted." → "Multiple rooms need painting"
 - "It'll be to cut half an acre of grass" → "Half-acre lawn"
 - "Need mulch around flower beds" → "Mulch flower beds"
 - "Tree fell on the fence" → "Tree on fence"
-- "It's my grandma's house, the yard is pretty overgrown." → "Yard is overgrown."
+- "It's my grandma's house, the yard is pretty overgrown." → "Overgrown yard"
+- "It's really steep" → "Steep terrain"
+- "I'd like recurring service every two weeks" → "Recurring service every two weeks"
+- "The gate code is 1234" → "Gate code: 1234"
+- "Backyard only" → "Backyard only"
 
-desiredCompletionTime: Normalize naturally, keep customer's intent. This field represents WHEN the customer wants the work completed.
+desiredCompletionTime: Normalize to concise scheduling language. This field represents WHEN the customer wants the work completed. Avoid conversational wording like "I'd like...", "I'm hoping...", "Probably...", "I guess...".
 - "Tomorrow morning" → "Tomorrow morning"
 - "Monday or Tuesday" → "Monday or Tuesday"
 - "This week" → "This week"
 - "Wednesday" → "Wednesday"
 - "Next week" → "Next week"
+- "Within two weeks" → "Within two weeks"
 - "Within the next few days" → "Within few days"
 - "Within the next week" → "Within the next week"
 - "As soon as possible" → "ASAP"
 - "I guess anytime this week" → "This week"
 - "Whenever possible" → "Flexible"
-- "Whenever they can get to it." → "Flexible"
+- "Whenever they can get to it" → "Flexible"
 - "Tomorrow afternoon" → "Tomorrow afternoon"
 - "This weekend" → "Weekend"
+- "Today" → "Today"
+- "I'm hoping for next week" → "Next week"
+- "I'd like it done by Wednesday" → "Wednesday"
 
 preferredCallbackTime: Normalize into concise values. This field represents WHEN the business should CALL the customer (time of day), not when the work should be done.
 - "Morning" → "Morning"
@@ -360,11 +399,13 @@ Customer: "I need this done ASAP."
 Desired completion: "ASAP"
 Best callback time: (null/empty)
 
-addressOrLocation: Return only the service location, remove unnecessary conversation
+addressOrLocation: Return only the service location, remove ALL conversational context and relationship references. Extract just the address or location name.
 - "1632 South Pine Drive" → "1632 South Pine Drive"
 - "It'll be at my grandma's house at 1632 South Pine Drive" → "1632 South Pine Drive"
 - "It's at my house at 1632 South Pine Drive" → "1632 South Pine Drive"
 - "My business at 123 Main Street" → "123 Main Street"
+- "My sister's place at 1632 South Pine Drive" → "1632 South Pine Drive"
+- "It's my grandma's house, the yard is pretty overgrown" → "Grandma's house" (if no address provided)
 
 Your task:
 - Update ONLY the fields that the customer is correcting
@@ -495,11 +536,14 @@ General Rules:
 
 Field-Specific Rules:
 
-reasonForCalling: Normalize into concise business terminology as a noun phrase. This is the high-level service requested.
+reasonForCalling: Normalize into concise business terminology as a noun phrase. Extract the SERVICE being requested, not what the customer literally said. This should be a short noun phrase describing the work.
 - "Get my grass cut" → "Lawn mowing"
 - "See if I can get my grass cut" → "Lawn mowing"
 - "Need my grass cut" → "Lawn mowing"
 - "Get the yard mowed" → "Lawn mowing"
+- "Wants his grass cut" → "Lawn mowing"
+- "Calling about getting grass cut" → "Lawn mowing"
+- "Looking to have somebody mow" → "Lawn mowing"
 - "Need bushes trimmed" → "Bush trimming"
 - "Need mulch put down" → "Mulch installation"
 - "Need AC looked at" → "Air conditioner inspection"
@@ -510,35 +554,50 @@ reasonForCalling: Normalize into concise business terminology as a noun phrase. 
 - "Need my sink fixed" → "Sink repair"
 - "The plumbing in the walls of my basement is leaking" → "Basement wall plumbing leak"
 - "My AC isn't cooling" → "AC repair"
+- "I'd like to get my piano tuned" → "Piano tuning"
+- "Looking for piano lessons" → "Piano lessons"
+- "Need my dog groomed" → "Dog grooming"
+- "Pressure washing needed" → "Pressure washing"
+- "Tree needs to come down" → "Tree removal"
+- "Water heater replacement" → "Water heater replacement"
 Do NOT invent services the customer didn't request. Preserve meaningful differences like inspection vs repair vs replacement.
 
 importantDetails: Keep factual information only, avoid conversational wording. This field should contain supporting facts about the job (size, condition, urgency, access instructions, special circumstances, etc.). Do NOT repeat the service requested in the Details field unless the customer provides meaningful new information. If the customer only repeats the service without adding anything new, leave this field empty.
 - "Three-fourths acre lawn" → "Three-fourths acre lawn"
-- "Um, yeah, it's like, I don't know, about three-quarters of an acre, the yard is." → "Three-quarter acre lawn."
+- "Um, yeah, it's like, I don't know, about three-quarters of an acre, the yard is." → "¾-acre lawn"
+- "The yard is about three quarters of an acre and it's just the backyard." → "¾-acre backyard"
 - "Front flower beds need weeding" → "Front flower beds weeding"
 - "Fence damaged from storm" → "Storm-damaged fence"
 - "Dog is friendly" → "Dog is friendly"
 - "Multiple rooms need painting" → "Multiple rooms painting"
-- "There are a couple rooms that need painted." → "Multiple rooms need painting."
+- "There are a couple rooms that need painted." → "Multiple rooms need painting"
 - "It'll be to cut half an acre of grass" → "Half-acre lawn"
 - "Need mulch around flower beds" → "Mulch flower beds"
 - "Tree fell on the fence" → "Tree on fence"
-- "It's my grandma's house, the yard is pretty overgrown." → "Yard is overgrown."
+- "It's my grandma's house, the yard is pretty overgrown." → "Overgrown yard"
+- "It's really steep" → "Steep terrain"
+- "I'd like recurring service every two weeks" → "Recurring service every two weeks"
+- "The gate code is 1234" → "Gate code: 1234"
+- "Backyard only" → "Backyard only"
 
-desiredCompletionTime: Normalize naturally, keep customer's intent. This field represents WHEN the customer wants the work completed.
+desiredCompletionTime: Normalize to concise scheduling language. This field represents WHEN the customer wants the work completed. Avoid conversational wording like "I'd like...", "I'm hoping...", "Probably...", "I guess...".
 - "Tomorrow morning" → "Tomorrow morning"
 - "Monday or Tuesday" → "Monday or Tuesday"
 - "This week" → "This week"
 - "Wednesday" → "Wednesday"
 - "Next week" → "Next week"
+- "Within two weeks" → "Within two weeks"
 - "Within the next few days" → "Within few days"
 - "Within the next week" → "Within the next week"
 - "As soon as possible" → "ASAP"
 - "I guess anytime this week" → "This week"
 - "Whenever possible" → "Flexible"
-- "Whenever they can get to it." → "Flexible"
+- "Whenever they can get to it" → "Flexible"
 - "Tomorrow afternoon" → "Tomorrow afternoon"
 - "This weekend" → "Weekend"
+- "Today" → "Today"
+- "I'm hoping for next week" → "Next week"
+- "I'd like it done by Wednesday" → "Wednesday"
 
 preferredCallbackTime: Normalize into concise values. This field represents WHEN the business should CALL the customer (time of day), not when the work should be done.
 - "Morning" → "Morning"
@@ -574,11 +633,13 @@ Customer: "I need this done ASAP."
 Desired completion: "ASAP"
 Best callback time: (null/empty)
 
-addressOrLocation: Return only the service location, remove unnecessary conversation
+addressOrLocation: Return only the service location, remove ALL conversational context and relationship references. Extract just the address or location name.
 - "1632 South Pine Drive" → "1632 South Pine Drive"
 - "It'll be at my grandma's house at 1632 South Pine Drive" → "1632 South Pine Drive"
 - "It's at my house at 1632 South Pine Drive" → "1632 South Pine Drive"
 - "My business at 123 Main Street" → "123 Main Street"
+- "My sister's place at 1632 South Pine Drive" → "1632 South Pine Drive"
+- "It's my grandma's house, the yard is pretty overgrown" → "Grandma's house" (if no address provided)
 - "My business at 123 Main Street" → "123 Main Street"
 
 For "urgencyLevel", only set if the message explicitly indicates urgency (e.g., "asap", "tomorrow morning", "emergency")
