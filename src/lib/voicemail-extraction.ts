@@ -68,6 +68,7 @@ General Rules:
 - Never preserve sentence structure
 - Rewrite into concise professional phrases
 - Prefer noun phrases over sentences
+- Each extracted field must be a clean standalone CRM value. Do not preserve the customer's sentence structure. Do not output sentence fragments copied from the transcript. Rewrite into concise business-ready notes while preserving meaning.
 - Remove ALL filler words unless they materially change meaning: yeah, yep, yes, ok, okay, sure, uh, um, like, you know, alright
 - Remove ALL first-person wording: I, my, me, we, us
 - Remove ALL hedge words unless they materially change meaning: maybe, probably, I guess, I think, sort of, kind of, just, actually, basically, well
@@ -84,33 +85,44 @@ Field-Specific Rules:
 
 reasonForCalling: Normalize into concise business terminology as a noun phrase
 - "Get my grass cut" → "Lawn mowing"
+- "See if I can get my grass cut" → "Lawn mowing"
+- "Need my grass cut" → "Lawn mowing"
+- "Get the yard mowed" → "Lawn mowing"
 - "Need bushes trimmed" → "Bush trimming"
 - "Need mulch put down" → "Mulch installation"
 - "Need AC looked at" → "Air conditioner inspection"
+- "Need someone to look at my AC" → "Air conditioner inspection"
 - "Need someone to clean my house" → "House cleaning"
 - "Yeah I need my plumbing fixed" → "Plumbing repair"
+- "Need my AC fixed" → "Air conditioner repair"
+- "Need my sink fixed" → "Sink repair"
 - "The plumbing in the walls of my basement is leaking" → "Basement wall plumbing leak"
 - "My AC isn't cooling" → "AC repair"
-Do NOT invent services the customer didn't request.
+Do NOT invent services the customer didn't request. Preserve meaningful differences like inspection vs repair vs replacement.
 
 importantDetails: Keep factual information only, avoid conversational wording
 - "Three-fourths acre lawn" → "Three-fourths acre lawn"
+- "Um, yeah, it's like, I don't know, about three-quarters of an acre, the yard is." → "Three-quarter acre lawn."
 - "Front flower beds need weeding" → "Front flower beds weeding"
 - "Fence damaged from storm" → "Storm-damaged fence"
 - "Dog is friendly" → "Dog is friendly"
 - "Multiple rooms need painting" → "Multiple rooms painting"
+- "There are a couple rooms that need painted." → "Multiple rooms need painting."
 - "It'll be to cut half an acre of grass" → "Half-acre lawn"
 - "Need mulch around flower beds" → "Mulch flower beds"
 - "Tree fell on the fence" → "Tree on fence"
+- "It's my grandma's house, the yard is pretty overgrown." → "Yard is overgrown."
 
 desiredCompletionTime: Normalize naturally, keep customer's intent
 - "Tomorrow morning" → "Tomorrow morning"
 - "Monday or Tuesday" → "Monday or Tuesday"
 - "This week" → "This week"
 - "Within the next few days" → "Within few days"
+- "Within the next week" → "Within the next week"
 - "As soon as possible" → "ASAP"
 - "I guess anytime this week" → "This week"
 - "Whenever possible" → "Flexible"
+- "Whenever they can get to it." → "Flexible"
 - "Tomorrow afternoon" → "Tomorrow afternoon"
 - "This weekend" → "Weekend"
 
@@ -122,8 +134,10 @@ preferredCallbackTime: Normalize into concise values
 - "Weekdays" → "Weekdays"
 - "Anytime" → "Anytime"
 - "Probably in the mornings" → "Morning"
+- "I guess probably in the morning." → "Morning"
 - "Sometime in the mornings" → "Morning"
 - "After 5 PM works best" → "After 5 PM"
+- "Probably after five if possible." → "After 5 PM"
 - "Tomorrow morning" → "Tomorrow morning"
 
 addressOrLocation: Return only the service location, remove unnecessary conversation
@@ -233,6 +247,7 @@ General Rules:
 - Never preserve sentence structure
 - Rewrite into concise professional phrases
 - Prefer noun phrases over sentences
+- Each extracted field must be a clean standalone CRM value. Do not preserve the customer's sentence structure. Do not output sentence fragments copied from the transcript. Rewrite into concise business-ready notes while preserving meaning.
 - Remove ALL filler words unless they materially change meaning: yeah, yep, yes, ok, okay, sure, uh, um, like, you know, alright
 - Remove ALL first-person wording: I, my, me, we, us
 - Remove ALL hedge words unless they materially change meaning: maybe, probably, I guess, I think, sort of, kind of, just, actually, basically, well
@@ -246,33 +261,44 @@ Field-Specific Rules:
 
 reasonForCalling: Normalize into concise business terminology as a noun phrase
 - "Get my grass cut" → "Lawn mowing"
+- "See if I can get my grass cut" → "Lawn mowing"
+- "Need my grass cut" → "Lawn mowing"
+- "Get the yard mowed" → "Lawn mowing"
 - "Need bushes trimmed" → "Bush trimming"
 - "Need mulch put down" → "Mulch installation"
 - "Need AC looked at" → "Air conditioner inspection"
+- "Need someone to look at my AC" → "Air conditioner inspection"
 - "Need someone to clean my house" → "House cleaning"
 - "Yeah I need my plumbing fixed" → "Plumbing repair"
+- "Need my AC fixed" → "Air conditioner repair"
+- "Need my sink fixed" → "Sink repair"
 - "The plumbing in the walls of my basement is leaking" → "Basement wall plumbing leak"
 - "My AC isn't cooling" → "AC repair"
-Do NOT invent services the customer didn't request.
+Do NOT invent services the customer didn't request. Preserve meaningful differences like inspection vs repair vs replacement.
 
 importantDetails: Keep factual information only, avoid conversational wording
 - "Three-fourths acre lawn" → "Three-fourths acre lawn"
+- "Um, yeah, it's like, I don't know, about three-quarters of an acre, the yard is." → "Three-quarter acre lawn."
 - "Front flower beds need weeding" → "Front flower beds weeding"
 - "Fence damaged from storm" → "Storm-damaged fence"
 - "Dog is friendly" → "Dog is friendly"
 - "Multiple rooms need painting" → "Multiple rooms painting"
+- "There are a couple rooms that need painted." → "Multiple rooms need painting."
 - "It'll be to cut half an acre of grass" → "Half-acre lawn"
 - "Need mulch around flower beds" → "Mulch flower beds"
 - "Tree fell on the fence" → "Tree on fence"
+- "It's my grandma's house, the yard is pretty overgrown." → "Yard is overgrown."
 
 desiredCompletionTime: Normalize naturally, keep customer's intent
 - "Tomorrow morning" → "Tomorrow morning"
 - "Monday or Tuesday" → "Monday or Tuesday"
 - "This week" → "This week"
 - "Within the next few days" → "Within few days"
+- "Within the next week" → "Within the next week"
 - "As soon as possible" → "ASAP"
 - "I guess anytime this week" → "This week"
 - "Whenever possible" → "Flexible"
+- "Whenever they can get to it." → "Flexible"
 - "Tomorrow afternoon" → "Tomorrow afternoon"
 - "This weekend" → "Weekend"
 
@@ -284,8 +310,10 @@ preferredCallbackTime: Normalize into concise values
 - "Weekdays" → "Weekdays"
 - "Anytime" → "Anytime"
 - "Probably in the mornings" → "Morning"
+- "I guess probably in the morning." → "Morning"
 - "Sometime in the mornings" → "Morning"
 - "After 5 PM works best" → "After 5 PM"
+- "Probably after five if possible." → "After 5 PM"
 - "Tomorrow morning" → "Tomorrow morning"
 
 addressOrLocation: Return only the service location, remove unnecessary conversation
@@ -408,6 +436,7 @@ General Rules:
 - Never preserve sentence structure
 - Rewrite into concise professional phrases
 - Prefer noun phrases over sentences
+- Each extracted field must be a clean standalone CRM value. Do not preserve the customer's sentence structure. Do not output sentence fragments copied from the transcript. Rewrite into concise business-ready notes while preserving meaning.
 - Remove ALL filler words unless they materially change meaning: yeah, yep, yes, ok, okay, sure, uh, um, like, you know, alright
 - Remove ALL first-person wording: I, my, me, we, us
 - Remove ALL hedge words unless they materially change meaning: maybe, probably, I guess, I think, sort of, kind of, just, actually, basically, well
@@ -424,33 +453,44 @@ Field-Specific Rules:
 
 reasonForCalling: Normalize into concise business terminology as a noun phrase
 - "Get my grass cut" → "Lawn mowing"
+- "See if I can get my grass cut" → "Lawn mowing"
+- "Need my grass cut" → "Lawn mowing"
+- "Get the yard mowed" → "Lawn mowing"
 - "Need bushes trimmed" → "Bush trimming"
 - "Need mulch put down" → "Mulch installation"
 - "Need AC looked at" → "Air conditioner inspection"
+- "Need someone to look at my AC" → "Air conditioner inspection"
 - "Need someone to clean my house" → "House cleaning"
 - "Yeah I need my plumbing fixed" → "Plumbing repair"
+- "Need my AC fixed" → "Air conditioner repair"
+- "Need my sink fixed" → "Sink repair"
 - "The plumbing in the walls of my basement is leaking" → "Basement wall plumbing leak"
 - "My AC isn't cooling" → "AC repair"
-Do NOT invent services the customer didn't request.
+Do NOT invent services the customer didn't request. Preserve meaningful differences like inspection vs repair vs replacement.
 
 importantDetails: Keep factual information only, avoid conversational wording
 - "Three-fourths acre lawn" → "Three-fourths acre lawn"
+- "Um, yeah, it's like, I don't know, about three-quarters of an acre, the yard is." → "Three-quarter acre lawn."
 - "Front flower beds need weeding" → "Front flower beds weeding"
 - "Fence damaged from storm" → "Storm-damaged fence"
 - "Dog is friendly" → "Dog is friendly"
 - "Multiple rooms need painting" → "Multiple rooms painting"
+- "There are a couple rooms that need painted." → "Multiple rooms need painting."
 - "It'll be to cut half an acre of grass" → "Half-acre lawn"
 - "Need mulch around flower beds" → "Mulch flower beds"
 - "Tree fell on the fence" → "Tree on fence"
+- "It's my grandma's house, the yard is pretty overgrown." → "Yard is overgrown."
 
 desiredCompletionTime: Normalize naturally, keep customer's intent
 - "Tomorrow morning" → "Tomorrow morning"
 - "Monday or Tuesday" → "Monday or Tuesday"
 - "This week" → "This week"
 - "Within the next few days" → "Within few days"
+- "Within the next week" → "Within the next week"
 - "As soon as possible" → "ASAP"
 - "I guess anytime this week" → "This week"
 - "Whenever possible" → "Flexible"
+- "Whenever they can get to it." → "Flexible"
 - "Tomorrow afternoon" → "Tomorrow afternoon"
 - "This weekend" → "Weekend"
 
@@ -462,8 +502,10 @@ preferredCallbackTime: Normalize into concise values
 - "Weekdays" → "Weekdays"
 - "Anytime" → "Anytime"
 - "Probably in the mornings" → "Morning"
+- "I guess probably in the morning." → "Morning"
 - "Sometime in the mornings" → "Morning"
 - "After 5 PM works best" → "After 5 PM"
+- "Probably after five if possible." → "After 5 PM"
 - "Tomorrow morning" → "Tomorrow morning"
 
 addressOrLocation: Return only the service location, remove unnecessary conversation
