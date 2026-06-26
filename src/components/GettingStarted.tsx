@@ -603,7 +603,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       {
         id: 'test',
         title: 'Verify Setup',
-        description: 'Place a test call to confirm ReplyFlow is live.',
+        description: 'Recommended: Place a quick test call now to verify your forwarding is working correctly. If you\'d rather wait, ReplyFlow will automatically verify your setup the first time you naturally miss a call.',
         status: testActionNeeded ? 'action-needed' : (step3Complete ? 'complete' : 'needs-action'),
         details: testActionNeeded
           ? 'Verification failed - try again'
