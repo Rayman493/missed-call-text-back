@@ -263,8 +263,8 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
   const isNoIntakeOutcome = aiCallRecord.outcome === 'early_hangup' || aiCallRecord.outcome === 'no_speech'
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-      <div className="flex items-center justify-between mb-5">
+    <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2.5">
           <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
             <Phone className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -278,9 +278,9 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
         )}
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         {/* Call Time */}
-        <div className="flex items-center justify-between py-2 border-b border-border/50">
+        <div className="flex items-center justify-between py-3 border-b border-border/50">
           <span className="text-xs text-muted-foreground font-medium">Call Time</span>
           <span className="text-sm text-foreground">{formatRelativeTime(aiCallRecord.created_at)}</span>
         </div>
@@ -311,7 +311,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
           <>
             {/* Caller Name - only show if not a placeholder */}
             {extractedInfo.callerName && !isPlaceholderValue(extractedInfo.callerName) && (
-              <div className="flex items-center justify-between py-2.5 border-b border-border/50">
+              <div className="flex items-center justify-between py-3 border-b border-border/50">
                 <div className="flex items-center gap-2.5">
                   <User className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">{labels.callerName}</span>
@@ -324,12 +324,12 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
             {/* Reason for Calling - only show if not a placeholder */}
             {extractedInfo.reasonForCalling && !isPlaceholderValue(extractedInfo.reasonForCalling) && (
-              <div className="py-2.5 border-b border-border/50">
-                <div className="flex items-center gap-2.5 mb-1.5">
+              <div className="py-3 border-b border-border/50">
+                <div className="flex items-center gap-2.5 mb-2">
                   <Briefcase className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">{labels.reasonForCalling}</span>
                 </div>
-                <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground leading-relaxed">
+                <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
                   {extractedInfo.reasonForCalling}
                 </p>
               </div>
@@ -337,12 +337,12 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
             {/* Important Details - only show if not a placeholder */}
             {extractedInfo.importantDetails && !isPlaceholderValue(extractedInfo.importantDetails) && (
-              <div className="py-2.5 border-b border-border/50">
-                <div className="flex items-center gap-2.5 mb-1.5">
+              <div className="py-3 border-b border-border/50">
+                <div className="flex items-center gap-2.5 mb-2">
                   <FileText className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">{labels.importantDetails}</span>
                 </div>
-                <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground leading-relaxed">
+                <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed whitespace-pre-wrap">
                   {extractedInfo.importantDetails}
                 </p>
               </div>
@@ -350,12 +350,12 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
             {/* Address/Location - full width, only show if not a placeholder */}
             {extractedInfo.addressOrLocation && !isPlaceholderValue(extractedInfo.addressOrLocation) && (
-              <div className="py-2.5 border-b border-border/50">
-                <div className="flex items-center gap-2.5 mb-1.5">
+              <div className="py-3 border-b border-border/50">
+                <div className="flex items-center gap-2.5 mb-2">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">{labels.addressOrLocation}</span>
                 </div>
-                <p className="text-sm mt-1 line-clamp-2 pl-6 text-foreground leading-relaxed">
+                <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed whitespace-pre-wrap">
                   {extractedInfo.addressOrLocation}
                 </p>
               </div>
@@ -363,11 +363,11 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
             {/* Desired Completion Time + Preferred Callback Time - two columns */}
             {(extractedInfo.desiredCompletionTime || extractedInfo.preferredCallbackTime) && (
-              <div className="grid grid-cols-2 gap-4 py-2.5 border-b border-border/50">
+              <div className="grid grid-cols-2 gap-4 py-3 border-b border-border/50">
                 {/* Desired Completion Time */}
                 {extractedInfo.desiredCompletionTime && !isPlaceholderValue(extractedInfo.desiredCompletionTime) && (
                   <div>
-                    <div className="flex items-center gap-2.5 mb-1.5">
+                    <div className="flex items-center gap-2.5 mb-2">
                       <Clock className="w-4 h-4 text-muted-foreground" />
                       <span className="text-xs text-muted-foreground font-medium">{labels.desiredCompletionTime}</span>
                     </div>
@@ -380,7 +380,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
                 {/* Preferred Callback Time */}
                 {extractedInfo.preferredCallbackTime && !isPlaceholderValue(extractedInfo.preferredCallbackTime) && (
                   <div>
-                    <div className="flex items-center gap-2.5 mb-1.5">
+                    <div className="flex items-center gap-2.5 mb-2">
                       <Phone className="w-4 h-4 text-muted-foreground" />
                       <span className="text-xs text-muted-foreground font-medium">{labels.preferredCallbackTime}</span>
                     </div>

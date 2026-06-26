@@ -197,42 +197,43 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, leadDa
 
   return (
     <div className="bg-card border border-border rounded-xl p-4">
-      {/* Compact Status Row */}
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-xs text-muted-foreground">Automation Status</span>
-        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-          automationStatus.variant === 'success'
-            ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-100 dark:border-green-800/30'
-            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-        }`}>
+      {/* Follow-Up Status Header */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-foreground">Follow-Up Status</h3>
+          {automationStatus.variant === 'success' && (
+            <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+          )}
+        </div>
+        <p className={`text-xs font-medium mt-1 ${automationStatus.variant === 'success' ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
           {automationStatus.label}
-        </span>
+        </p>
       </div>
 
-      {/* Compact Follow-Up Jobs */}
+      {/* Next Follow-Up */}
+      {upcomingJobs.length > 0 && (
+        <div className="mb-4">
+          <p className="text-[10px] text-muted-foreground font-medium mb-1 uppercase tracking-wide">Next Follow-Up</p>
+          <p className="text-sm font-medium text-foreground">
+            {formatRelativeTime(upcomingJobs[0].scheduled_for)}
+          </p>
+        </div>
+      )}
+
+      {/* Remaining Count */}
       {followUpJobs.length > 0 && (
-        <div className="space-y-2 mb-4">
-          {followUpJobs.map((job) => (
-            <div key={job.id} className="flex items-center justify-between py-2 px-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-foreground">
-                  {job.step === 1 ? 'Auto Reply' : `Follow-Up ${job.step - 1}`}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {job.status === 'sent' ? `Sent ${formatRelativeTime(job.scheduled_for)}` :
-                   job.status === 'pending' ? `Scheduled ${formatRelativeTime(job.scheduled_for)}` :
-                   job.status === 'paused' ? 'Paused' :
-                   job.cancelled_reason ? `Cancelled (${job.cancelled_reason.replace('_', ' ')})` : 'Cancelled'}
-                </span>
-              </div>
-              {getStatusBadge(job.status)}
-            </div>
-          ))}
+        <div className="mb-4">
+          <p className="text-[10px] text-muted-foreground font-medium mb-1 uppercase tracking-wide">Remaining</p>
+          <p className="text-sm font-medium text-foreground">
+            {upcomingJobs.length}
+          </p>
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border">
         {hasAnyActiveJobs && (
           <button
             onClick={allPaused ? handleResumeAll : handlePauseAll}
