@@ -103,28 +103,24 @@ export function generateSummaryFromExtractedInfo(extractedInfo: any): string {
   console.log('[AI SMS FORMATTER VERSION] Timestamp:', new Date().toISOString());
   console.log('[AI SMS FORMATTER VERSION] =========================================');
   
-  // Service (was Reason)
-  parts.push('Service')
-  parts.push(normalized.reasonForCalling ? normalizePunctuation(normalized.reasonForCalling) : 'Not collected')
+  // Service (was Reason) - inline label
+  parts.push(`Service: ${normalized.reasonForCalling ? normalizePunctuation(normalized.reasonForCalling) : 'Not collected'}`)
   parts.push('')
   
-  // Address (was Location)
-  parts.push('Address')
-  parts.push(normalized.addressOrLocation ? normalizePunctuation(normalized.addressOrLocation) : 'Not collected')
+  // Address (was Location) - inline label
+  parts.push(`Address: ${normalized.addressOrLocation ? normalizePunctuation(normalized.addressOrLocation) : 'Not collected'}`)
   parts.push('')
   
-  // Desired completion (was Desired Completion Time)
-  parts.push('Desired completion')
-  parts.push(normalized.desiredCompletionTime ? normalizePunctuation(normalized.desiredCompletionTime) : 'Not collected')
+  // Desired completion (was Desired Completion Time) - inline label
+  parts.push(`Desired completion: ${normalized.desiredCompletionTime ? normalizePunctuation(normalized.desiredCompletionTime) : 'Not collected'}`)
   parts.push('')
   
-  // Best time to call (was Best Callback Time)
-  parts.push('Best time to call')
-  parts.push(normalized.preferredCallbackTime ? normalizePunctuation(normalized.preferredCallbackTime) : 'Not collected')
+  // Best time to call (was Best Callback Time) - inline label
+  parts.push(`Best time to call: ${normalized.preferredCallbackTime ? normalizePunctuation(normalized.preferredCallbackTime) : 'Not collected'}`)
   parts.push('')
   
   // Details - format with bullets if multiple pieces, plain text if single
-  parts.push('Details')
+  parts.push('Details:')
   if (normalized.importantDetails) {
     const details = normalizePunctuation(normalized.importantDetails)
     // Check if details contain multiple distinct items (separated by periods, newlines, or bullet-like patterns)
