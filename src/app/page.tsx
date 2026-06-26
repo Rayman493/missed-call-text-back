@@ -601,7 +601,7 @@ export default async function Home() {
               </div>
               
               {/* Feature Widgets - Dashboard Panels */}
-              <div className="space-y-3">
+              <div className="space-y-3 flex flex-col">
                 {/* Lead Management Widget */}
                 <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                   <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
@@ -622,11 +622,18 @@ export default async function Home() {
                       </div>
                       <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] px-1.5 py-0.5 rounded font-medium ml-2 flex-shrink-0">Active</div>
                     </div>
+                    <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-xs text-slate-900 dark:text-foreground truncate">+1 (555) 456-7890</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">Electrical • 1h</div>
+                      </div>
+                      <div className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] px-1.5 py-0.5 rounded font-medium ml-2 flex-shrink-0">Contacted</div>
+                    </div>
                   </div>
                 </div>
 
                 {/* Conversation Inbox Widget */}
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-1">
                   <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
                     <h3 className="font-semibold text-xs text-slate-900 dark:text-foreground">Conversation Inbox</h3>
                   </div>
