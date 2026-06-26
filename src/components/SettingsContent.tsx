@@ -971,7 +971,7 @@ export default function SettingsContent() {
           <AppHeader title="Settings" />
 
             {/* Main Content */}
-            <div className="flex-1 pt-4 px-3 sm:px-4 lg:px-6 pb-20 bg-background dark:bg-background">
+            <div className="flex-1 px-3 sm:px-4 lg:px-6 pb-20 bg-background dark:bg-background">
               <div className="max-w-[1400px] mx-auto">
 
             {/* Settings Header Block - Sticky */}
