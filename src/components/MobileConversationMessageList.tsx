@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { formatRelativeTime } from '@/lib/utils'
 import VoicemailMessage from '@/components/VoicemailMessage'
 import MessageMediaRenderer from '@/components/MessageMediaRenderer'
+import AIIntakeSummaryMessage, { isAISummaryMessage } from '@/components/AIIntakeSummaryMessage'
 
 // Helper function to extract recording SID from URL
 function extractRecordingSid(url: string): string | null {
@@ -143,6 +144,10 @@ export default function MobileConversationMessageList({
         const isOptimistic = msg.isOptimistic
         const isSending = msg.status === 'sending'
         
+        // Check if this is the first outbound message (likely AI intake summary)
+        const isFirstOutbound = isOutbound && index === 0
+        const isAISummary = isAISummaryMessage(msg.body || '', isFirstOutbound)
+        
         // Check if we should show avatar (only when sender changes)
         const prevItem = conversationTimeline[index - 1]
         const shouldShowAvatar = index === 0 || 
@@ -180,10 +185,13 @@ export default function MobileConversationMessageList({
                 }`}
               >
                 <div className={`${msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-2.5 py-1 sm:px-2.5 sm:py-1.5'}`}>
-                  {msg.body && (
+                  {msg.body && !isAISummary && (
                     <p className="text-[11px] sm:text-sm leading-snug sm:leading-snug break-words overflow-wrap-anywhere whitespace-pre-wrap">
                       {msg.body}
                     </p>
+                  )}
+                  {msg.body && isAISummary && (
+                    <AIIntakeSummaryMessage body={msg.body} />
                   )}
                   {/* Render media attachments */}
                   {msg.media && msg.media.length > 0 && (
