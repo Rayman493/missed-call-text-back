@@ -1085,6 +1085,9 @@ export async function POST(request: Request) {
           })
           .eq('id', paymentRequest.lead_id)
 
+        // Mark event as processed
+        await markEventProcessed(supabase, event.id, event.type, paymentRequest.business_id)
+
         console.log('[PAYMENT WEBHOOK] ========== CHECKOUT.SESSION.COMPLETED END ==========')
         break
       }
@@ -1119,7 +1122,7 @@ export async function POST(request: Request) {
         // Update lead payment status if this was the most recent payment request
         const { data: paymentRequest } = await supabase
           .from('payment_requests')
-          .select('lead_id')
+          .select('lead_id, business_id')
           .eq('stripe_checkout_session_id', session.id)
           .single()
 
@@ -1136,6 +1139,9 @@ export async function POST(request: Request) {
               .update({ payment_status: 'cancelled' })
               .eq('id', paymentRequest.lead_id)
           }
+
+          // Mark event as processed
+          await markEventProcessed(supabase, event.id, event.type, paymentRequest.business_id)
         }
 
         console.log('[PAYMENT WEBHOOK] ========== CHECKOUT.SESSION.EXPIRED END ==========')
@@ -1187,6 +1193,9 @@ export async function POST(request: Request) {
         } else {
           console.log('[STRIPE CONNECT] Updated business Stripe Connect status')
         }
+
+        // Mark event as processed
+        await markEventProcessed(supabase, event.id, event.type, businessId)
 
         console.log('[STRIPE CONNECT] ========== ACCOUNT.UPDATED END ==========')
         break

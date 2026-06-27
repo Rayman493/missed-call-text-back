@@ -87,6 +87,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Lead not found or unauthorized' }, { status: 404 })
     }
 
+    // Verify conversation belongs to the same business and lead
+    const { data: conversation, error: conversationError } = await supabase
+      .from('conversations')
+      .select('id, business_id, lead_id')
+      .eq('id', conversation_id)
+      .eq('business_id', business_id)
+      .eq('lead_id', lead_id)
+      .single()
+
+    if (conversationError || !conversation) {
+      console.error('[PAYMENT REQUEST] Conversation not found or unauthorized')
+      return NextResponse.json({ error: 'Conversation not found or unauthorized' }, { status: 404 })
+    }
+
     // Prefill description from service requested if not provided
     let paymentDescription = description
     if (!paymentDescription) {
