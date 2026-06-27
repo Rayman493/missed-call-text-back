@@ -2315,7 +2315,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
         
         {/* Mobile Layout */}
-        <div className="lg:hidden space-y-0.5 pb-20">
+        <div className="lg:hidden space-y-0.5">
           {/* Mobile Quick Actions */}
           <div className="bg-card border border-border/50 rounded-xl p-2.5 shadow-sm">
             <div className="flex items-center gap-1.5 overflow-x-auto">
@@ -2455,11 +2455,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             )}
           </div>
 
-          {/* Conversation Section - Apple Messages style */}
-          <div className="bg-card border border-border/50 rounded-xl p-1">
-            <h3 className="text-xs font-semibold text-foreground mb-0.5">Conversation</h3>
-            {/* Mobile Message Thread - Natural sizing with scrollbar hiding */}
-            <div ref={mobileConversationContainerRef} className="overflow-y-auto scroll-smooth rounded-lg" style={{ minHeight: '100px', maxHeight: '240px' }}>
+          {/* Conversation Section - Self-contained messaging experience */}
+          <div className="bg-card border border-border/50 rounded-xl lg:hidden flex flex-col" style={{ height: '400px' }}>
+            <div className="p-2 flex-shrink-0">
+              <h3 className="text-xs font-semibold text-foreground">Conversation</h3>
+            </div>
+            {/* Mobile Message Thread - Scrollable inside card */}
+            <div ref={mobileConversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-2">
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -2485,76 +2487,77 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 />
               )}
             </div>
-          </div>
-
-          {/* Mobile Message Composer - Integrated with Conversation */}
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border/50 px-3 sm:px-5 lg:px-6 py-1.5 z-40">
-            {/* Image Previews */}
-            {mobileImages.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-1.5">
-                {mobileImages.map((file, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt="Preview"
-                      className="w-16 h-16 object-cover rounded-lg border border-slate-200 dark:border-slate-700"
-                    />
-                    <button
-                      onClick={() => removeMobileImage(index)}
-                      className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      type="button"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            {/* Divider */}
+            <div className="border-t border-border/50 flex-shrink-0"></div>
+            {/* Composer - Integrated at bottom of card */}
+            <div className="p-2 flex-shrink-0">
+              {/* Image Previews */}
+              {mobileImages.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-1.5">
+                  {mobileImages.map((file, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt="Preview"
+                        className="w-16 h-16 object-cover rounded-lg border border-slate-200 dark:border-slate-700"
+                      />
+                      <button
+                        onClick={() => removeMobileImage(index)}
+                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        type="button"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2 items-center">
+                <button
+                  type="button"
+                  onClick={() => mobileFileInputRef.current?.click()}
+                  className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors flex-shrink-0 h-10 flex items-center justify-center"
+                  disabled={sending}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </button>
+                <input
+                  ref={mobileFileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif"
+                  multiple
+                  onChange={handleMobileImageSelect}
+                  className="hidden"
+                />
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={handleMobileKeyDown}
+                  placeholder="Type a message..."
+                  className="flex-1 min-h-[40px] max-h-[96px] px-3 py-2 bg-background border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  rows={1}
+                />
+                <button
+                  onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
+                  disabled={(!message.trim() && mobileImages.length === 0) || sending}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2 flex-shrink-0 h-10"
+                >
+                  {sending ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                       </svg>
-                    </button>
-                  </div>
-                ))}
+                      <span className="hidden sm:inline">Send</span>
+                    </>
+                  )}
+                </button>
               </div>
-            )}
-            <div className="flex gap-2 items-center">
-              <button
-                type="button"
-                onClick={() => mobileFileInputRef.current?.click()}
-                className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors flex-shrink-0 h-10 flex items-center justify-center"
-                disabled={sending}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </button>
-              <input
-                ref={mobileFileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/gif"
-                multiple
-                onChange={handleMobileImageSelect}
-                className="hidden"
-              />
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={handleMobileKeyDown}
-                placeholder="Type a message..."
-                className="flex-1 min-h-[40px] max-h-[120px] px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                rows={1}
-              />
-              <button
-                onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
-                disabled={(!message.trim() && mobileImages.length === 0) || sending}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2 flex-shrink-0 h-10"
-              >
-                {sending ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                    <span className="hidden sm:inline">Send</span>
-                  </>
-                )}
-              </button>
             </div>
           </div>
 
