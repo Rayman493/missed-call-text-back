@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 import getStripe from '@/lib/stripe'
 
@@ -15,24 +15,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Stripe is not configured' }, { status: 500 })
     }
 
-    // Get user from session
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    // Get user from session using server client
+    const supabase = createServerSupabaseClient()
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
+    if (sessionError) {
+      console.error('[STRIPE CONNECT REFRESH] Session error:', sessionError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
-
-    if (userError || !user) {
-      console.error('[STRIPE CONNECT REFRESH] Invalid token:', userError)
+    if (!session) {
+      console.log('[STRIPE CONNECT REFRESH] No session found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    console.log('[STRIPE CONNECT REFRESH] Authenticated user:', session.user.id)
 
     // Get business_id from request body
     const body = await request.json()
@@ -47,7 +44,7 @@ export async function POST(request: Request) {
       .from('businesses')
       .select('id, user_id, stripe_connect_account_id')
       .eq('id', business_id)
-      .eq('user_id', user.id)
+      .eq('user_id', session.user.id)
       .single()
 
     if (businessError || !business) {

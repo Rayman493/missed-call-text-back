@@ -751,7 +751,6 @@ export default function SettingsContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.session?.access_token || ''}`
         },
         body: JSON.stringify({ business_id: business.id })
       })
