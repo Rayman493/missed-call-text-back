@@ -114,7 +114,7 @@ export async function POST(request: Request) {
 
     const { data: lead, error: leadError } = await supabase
       .from('leads')
-      .select('id, business_id, caller_phone, name, raw_metadata')
+      .select('id, business_id, caller_phone, raw_metadata')
       .eq('id', lead_id)
       .maybeSingle()
 
@@ -271,7 +271,7 @@ export async function POST(request: Request) {
       .eq('id', lead_id)
 
     // Send SMS with Checkout link
-    const customerName = lead.name || 'Customer'
+    const customerName = lead.raw_metadata?.extracted_info?.callerName || 'Customer'
     const smsMessage = `Hi ${customerName},\n\nYou can securely pay for your service here:\n\n${checkoutSession.url}\n\nThank you!`
 
     const smsResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-sms`, {
