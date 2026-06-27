@@ -7,6 +7,7 @@ import getStripe from '@/lib/stripe'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
+  console.log('[PAYMENT CREATE] ROUTE ENTERED')
   try {
     console.log('[PAYMENT REQUEST] Creation request received')
 
