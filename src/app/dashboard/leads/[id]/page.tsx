@@ -2457,10 +2457,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
           {/* Conversation Section - Self-contained messaging experience */}
           <div className="bg-card border border-border/50 rounded-xl lg:hidden flex flex-col overflow-hidden" style={{ height: 'min(520px, 60vh)' }}>
-            <div className="px-3 py-2 flex-shrink-0">
+            <div className="px-3 py-2 flex-shrink-0 flex items-center justify-between">
               <h3 className="text-xs font-semibold text-foreground">Conversation</h3>
               {!loading && conversationTimeline.length > 0 && (
-                <p className="text-[10px] text-muted-foreground mt-0.5">
+                <p className="text-[10px] text-muted-foreground">
                   {conversationTimeline.length === 1 ? '1 message' : `${conversationTimeline.length} messages`}
                 </p>
               )}
@@ -2498,7 +2498,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {/* Divider - Softer for natural integration */}
             <div className="border-t border-border/20 flex-shrink-0"></div>
             {/* Composer - Integrated at bottom of card with breathing room */}
-            <div className="px-3 py-3 flex-shrink-0">
+            <div className="px-3 py-2.5 flex-shrink-0">
               {/* Image Previews */}
               {mobileImages.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">

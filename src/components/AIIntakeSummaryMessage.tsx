@@ -74,17 +74,13 @@ export default function AIIntakeSummaryMessage({ body }: AIIntakeSummaryMessageP
   const { service, address, completionTime, callTime, details } = parseAISummary(body)
 
   return (
-    <div className="space-y-2">
-      <div className="text-xs font-semibold text-blue-900 dark:text-blue-100">
-        New Customer Request
-      </div>
-      
-      <div className="text-sm font-medium text-blue-900 dark:text-blue-100">
+    <div className="space-y-1.5">
+      <div className="text-sm font-semibold text-blue-900 dark:text-blue-100">
         {service}
       </div>
 
       {(address || completionTime || callTime) && (
-        <div className="space-y-1 text-[10px] text-blue-800 dark:text-blue-200">
+        <div className="space-y-0.5 text-[10px] text-blue-800 dark:text-blue-200">
           {address && (
             <div className="flex items-center gap-1">
               <span>📍</span>
