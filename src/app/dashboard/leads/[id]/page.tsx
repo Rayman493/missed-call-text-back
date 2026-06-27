@@ -2448,7 +2448,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {(followUpSettings?.enabled || (followUpJobs && followUpJobs.length > 0)) && (
               <button
                 onClick={() => router.push('/dashboard/settings/follow-ups')}
-                className="mt-1.5 px-2 py-1 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-medium rounded-lg transition-colors border border-slate-200 dark:border-slate-700"
+                className="mt-1.5 px-2 py-1 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-500 text-[10px] font-medium rounded-lg transition-colors duration-200 border border-slate-200 dark:border-slate-700/50"
               >
                 Configure Follow-Ups
               </button>
@@ -2459,6 +2459,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="bg-card border border-border/50 rounded-xl lg:hidden flex flex-col" style={{ height: '400px' }}>
             <div className="px-3 py-2 flex-shrink-0">
               <h3 className="text-xs font-semibold text-foreground">Conversation</h3>
+              {!loading && conversationTimeline.length > 0 && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {conversationTimeline.length === 1 ? '1 message' : `${conversationTimeline.length} messages`}
+                </p>
+              )}
             </div>
             {/* Mobile Message Thread - Scrollable inside card, anchored to bottom */}
             <div ref={mobileConversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-3 flex flex-col justify-end">
@@ -2487,8 +2492,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 />
               )}
             </div>
-            {/* Divider */}
-            <div className="border-t border-border/50 flex-shrink-0"></div>
+            {/* Divider - Softer for natural integration */}
+            <div className="border-t border-border/20 flex-shrink-0"></div>
             {/* Composer - Integrated at bottom of card with breathing room */}
             <div className="px-3 py-3 flex-shrink-0">
               {/* Image Previews */}
@@ -2499,11 +2504,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <img
                         src={URL.createObjectURL(file)}
                         alt="Preview"
-                        className="w-16 h-16 object-cover rounded-lg border border-slate-200 dark:border-slate-700"
+                        className="w-16 h-16 object-cover rounded-lg border border-slate-200 dark:border-slate-700 transition-opacity duration-200"
                       />
                       <button
                         onClick={() => removeMobileImage(index)}
-                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                         type="button"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2518,7 +2523,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   type="button"
                   onClick={() => mobileFileInputRef.current?.click()}
-                  className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors flex-shrink-0 h-10 flex items-center justify-center"
+                  className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors duration-200 flex-shrink-0 h-10 flex items-center justify-center"
                   disabled={sending}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2538,13 +2543,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleMobileKeyDown}
                   placeholder="Type a message..."
-                  className="flex-1 min-h-[40px] max-h-[96px] px-3 py-2 bg-background border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="flex-1 min-h-[40px] max-h-[96px] px-3 py-2 bg-background border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   rows={1}
                 />
                 <button
                   onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
                   disabled={(!message.trim() && mobileImages.length === 0) || sending}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2 flex-shrink-0 h-10"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2 flex-shrink-0 h-10"
                 >
                   {sending ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
