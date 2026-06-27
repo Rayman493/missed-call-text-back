@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 import getStripe from '@/lib/stripe'
 
@@ -15,28 +15,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Stripe is not configured' }, { status: 500 })
     }
 
-    // Get user from session
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    // Get user from session using server client
+    const supabase = createServerSupabaseClient()
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
+    if (sessionError) {
+      console.error('[PAYMENT REQUEST] Session error:', sessionError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
-
-    if (userError || !user) {
-      console.error('[PAYMENT REQUEST] Invalid token:', userError)
+    if (!session) {
+      console.log('[PAYMENT REQUEST] No session found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    console.log('[PAYMENT REQUEST] Authenticated user:', session.user.id)
 
     // Get request body
     const body = await request.json()
     const { business_id, lead_id, conversation_id, amount_cents, description } = body
+
+    console.log('[PAYMENT REQUEST] Incoming payload:', {
+      business_id,
+      lead_id,
+      conversation_id,
+      amount_cents,
+      description,
+    })
 
     if (!business_id || !lead_id || !conversation_id || !amount_cents) {
       return NextResponse.json(
@@ -50,16 +55,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Amount must be greater than 0' }, { status: 400 })
     }
 
-    // Verify user owns the business
+    // Verify user owns the business - using user_id column (not owner_id)
+    console.log('[PAYMENT REQUEST] Business lookup query:', {
+      business_id,
+      user_id: session.user.id,
+      column: 'user_id'
+    })
+
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id, owner_id, stripe_connect_account_id, stripe_connect_status, stripe_charges_enabled, twilio_phone_number')
+      .select('id, user_id, stripe_connect_account_id, stripe_connect_status, stripe_charges_enabled, twilio_phone_number')
       .eq('id', business_id)
-      .eq('owner_id', user.id)
+      .eq('user_id', session.user.id)
       .single()
+
+    console.log('[PAYMENT REQUEST] Business lookup result:', {
+      data: business,
+      error: businessError,
+      errorCode: businessError?.code,
+      errorMessage: businessError?.message
+    })
 
     if (businessError || !business) {
       console.error('[PAYMENT REQUEST] Business not found or unauthorized')
+      console.error('[PAYMENT REQUEST] Exact reason for 404:', {
+        businessError: businessError?.message,
+        businessErrorCode: businessError?.code,
+        businessExists: !!business,
+        userId: session.user.id,
+        businessId: business_id
+      })
       return NextResponse.json({ error: 'Business not found or unauthorized' }, { status: 404 })
     }
 
@@ -111,7 +136,7 @@ export async function POST(request: Request) {
     }
 
     // Create Stripe Checkout Session with destination charge
-    const session = await stripe.checkout.sessions.create({
+    const checkoutSession = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
@@ -142,7 +167,7 @@ export async function POST(request: Request) {
       stripeAccount: business.stripe_connect_account_id, // Destination charge
     })
 
-    console.log('[PAYMENT REQUEST] Created Checkout Session:', session.id)
+    console.log('[PAYMENT REQUEST] Created Checkout Session:', checkoutSession.id)
 
     // Create payment_request record
     const { data: paymentRequest, error: paymentRequestError } = await supabase
@@ -155,11 +180,11 @@ export async function POST(request: Request) {
         currency: 'usd',
         description: paymentDescription,
         status: 'pending',
-        stripe_checkout_session_id: session.id,
-        stripe_payment_intent_id: session.payment_intent as string,
+        stripe_checkout_session_id: checkoutSession.id,
+        stripe_payment_intent_id: checkoutSession.payment_intent as string,
         stripe_connect_account_id: business.stripe_connect_account_id,
-        checkout_url: session.url,
-        requested_by: user.id,
+        checkout_url: checkoutSession.url,
+        requested_by: session.user.id,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
       })
       .select()
@@ -173,10 +198,10 @@ export async function POST(request: Request) {
     console.log('[PAYMENT REQUEST] Created payment_request record:', paymentRequest.id)
 
     // Update Stripe Payment Intent metadata with payment_request_id
-    if (session.payment_intent) {
+    if (checkoutSession.payment_intent) {
       try {
         await stripe.paymentIntents.update(
-          session.payment_intent as string,
+          checkoutSession.payment_intent as string,
           {
             metadata: {
               payment_request_id: paymentRequest.id,
@@ -208,13 +233,12 @@ export async function POST(request: Request) {
 
     // Send SMS with Checkout link
     const customerName = lead.name || 'Customer'
-    const smsMessage = `Hi ${customerName},\n\nYou can securely pay for your service here:\n\n${session.url}\n\nThank you!`
+    const smsMessage = `Hi ${customerName},\n\nYou can securely pay for your service here:\n\n${checkoutSession.url}\n\nThank you!`
 
     const smsResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-sms`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         business_id: business_id,
@@ -232,7 +256,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       payment_request_id: paymentRequest.id,
-      checkout_url: session.url,
+      checkout_url: checkoutSession.url,
       status: 'pending',
     })
   } catch (error) {
