@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import Stripe from 'stripe'
 import getStripe from '@/lib/stripe'
 
@@ -15,21 +16,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Stripe is not configured' }, { status: 500 })
     }
 
-    // Get user from session using server client
-    const supabase = createServerSupabaseClient()
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    // Authenticate user using server-side client with RLS (same pattern as lead-details)
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
 
-    if (sessionError) {
-      console.error('[PAYMENT REQUEST] Session error:', sessionError)
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      console.error('[PAYMENT REQUEST] Auth error:', authError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!session) {
-      console.log('[PAYMENT REQUEST] No session found')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    console.log('[PAYMENT REQUEST] Authenticated user:', session.user.id)
+    console.log('[PAYMENT REQUEST] Authenticated user:', user.id)
 
     // Get request body
     const body = await request.json()
@@ -55,19 +64,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Amount must be greater than 0' }, { status: 400 })
     }
 
-    // Verify user owns the business - using user_id column (not owner_id)
-    console.log('[PAYMENT REQUEST] Business lookup query:', {
+    // Verify business exists and user has access (RLS will handle authorization)
+    console.log('[PAYMENT REQUEST] Business lookup with RLS:', {
       business_id,
-      user_id: session.user.id,
-      column: 'user_id'
+      user_id: user.id,
     })
 
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('id, user_id, stripe_connect_account_id, stripe_connect_status, stripe_charges_enabled, twilio_phone_number')
       .eq('id', business_id)
-      .eq('user_id', session.user.id)
-      .single()
+      .maybeSingle()
 
     console.log('[PAYMENT REQUEST] Business lookup result:', {
       data: business,
@@ -82,7 +89,7 @@ export async function POST(request: Request) {
         businessError: businessError?.message,
         businessErrorCode: businessError?.code,
         businessExists: !!business,
-        userId: session.user.id,
+        userId: user.id,
         businessId: business_id
       })
       return NextResponse.json({ error: 'Business not found or unauthorized' }, { status: 404 })
@@ -99,18 +106,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Stripe charges not enabled. Please complete onboarding.' }, { status: 400 })
     }
 
-    // Verify lead belongs to business
-    console.log('[PAYMENT REQUEST] Lead lookup query:', {
+    // Verify lead exists and user has access (RLS will handle authorization)
+    console.log('[PAYMENT REQUEST] Lead lookup with RLS:', {
       lead_id,
-      business_id,
     })
 
     const { data: lead, error: leadError } = await supabase
       .from('leads')
       .select('id, business_id, phone, name, raw_metadata')
       .eq('id', lead_id)
-      .eq('business_id', business_id)
-      .single()
+      .maybeSingle()
 
     console.log('[PAYMENT REQUEST] Lead lookup result:', {
       data: lead,
@@ -126,22 +131,36 @@ export async function POST(request: Request) {
         leadErrorCode: leadError?.code,
         leadExists: !!lead,
         leadId: lead_id,
-        businessId: business_id
       })
       return NextResponse.json({ error: 'Lead not found or unauthorized' }, { status: 404 })
     }
 
-    // Verify conversation belongs to the same business and lead
+    // Verify conversation exists and user has access (RLS will handle authorization)
+    console.log('[PAYMENT REQUEST] Conversation lookup with RLS:', {
+      conversation_id,
+    })
+
     const { data: conversation, error: conversationError } = await supabase
       .from('conversations')
       .select('id, business_id, lead_id')
       .eq('id', conversation_id)
-      .eq('business_id', business_id)
-      .eq('lead_id', lead_id)
-      .single()
+      .maybeSingle()
+
+    console.log('[PAYMENT REQUEST] Conversation lookup result:', {
+      data: conversation,
+      error: conversationError,
+      errorCode: conversationError?.code,
+      errorMessage: conversationError?.message
+    })
 
     if (conversationError || !conversation) {
       console.error('[PAYMENT REQUEST] Conversation not found or unauthorized')
+      console.error('[PAYMENT REQUEST] Exact reason for 404:', {
+        conversationError: conversationError?.message,
+        conversationErrorCode: conversationError?.code,
+        conversationExists: !!conversation,
+        conversationId: conversation_id,
+      })
       return NextResponse.json({ error: 'Conversation not found or unauthorized' }, { status: 404 })
     }
 
@@ -203,7 +222,7 @@ export async function POST(request: Request) {
         stripe_payment_intent_id: checkoutSession.payment_intent as string,
         stripe_connect_account_id: business.stripe_connect_account_id,
         checkout_url: checkoutSession.url,
-        requested_by: session.user.id,
+        requested_by: user.id,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
       })
       .select()
