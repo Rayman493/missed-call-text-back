@@ -3188,19 +3188,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     throw new Error('Not authenticated')
                   }
 
+                  const payload = {
+                    business_id: business?.id,
+                    lead_id: leadData?.id || params.id,
+                    conversation_id: leadData?.conversation?.id,
+                    amount_cents: Math.round(parseFloat(paymentAmount) * 100),
+                    description: paymentDescription || undefined,
+                  }
+
+                  console.log('[PAYMENT CREATE] Payload:', payload)
+
                   const response = await fetch('/api/payments/create', {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
                       'Authorization': `Bearer ${token}`,
                     },
-                    body: JSON.stringify({
-                      business_id: business?.id,
-                      lead_id: lead?.id,
-                      conversation_id: leadData?.conversations?.[0]?.id,
-                      amount_cents: Math.round(parseFloat(paymentAmount) * 100),
-                      description: paymentDescription || undefined,
-                    }),
+                    body: JSON.stringify(payload),
                   })
 
                   if (!response.ok) {
