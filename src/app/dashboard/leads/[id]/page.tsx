@@ -1686,16 +1686,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
                     </span>
                   </div>
-                  {/* Service Requested + Phone */}
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-[10px] text-slate-600 dark:text-slate-400 truncate flex-1">
-                      {leadData?.raw_metadata?.extracted_info?.reasonForCalling || leadData?.raw_metadata?.extracted_info?.reason || 'No service requested'}
+                  {/* Service Requested - Display if available */}
+                  {leadData?.raw_metadata?.extracted_info?.reasonForCalling || leadData?.raw_metadata?.extracted_info?.reason ? (
+                    <p className="text-[10px] text-slate-600 dark:text-slate-400 truncate mt-0.5">
+                      {leadData?.raw_metadata?.extracted_info?.reasonForCalling || leadData?.raw_metadata?.extracted_info?.reason}
                     </p>
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500">•</span>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate flex-shrink-0">
-                      {formatPhoneNumber(lead?.caller_phone || '')}
-                    </p>
-                  </div>
+                  ) : null}
+                  {/* Phone */}
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                    {formatPhoneNumber(lead?.caller_phone || '')}
+                  </p>
                   {/* AI Intake Status */}
                   <div className="flex items-center gap-1.5 mt-0.5">
                     {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
@@ -2296,7 +2296,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
         
         {/* Mobile Layout */}
-        <div className="lg:hidden space-y-2">
+        <div className="lg:hidden space-y-1.5">
           {/* Mobile Quick Actions */}
           <div className="bg-card border border-border/50 rounded-xl p-2.5 shadow-sm">
             <div className="flex items-center gap-1.5 overflow-x-auto">
@@ -2369,10 +2369,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
           
-          {/* Lead Status Card - Lightweight */}
-          <div className="bg-card border border-border rounded-xl p-2.5">
+          {/* Lead Status Card - Compact Status Indicators */}
+          <div className="bg-card border border-border rounded-xl p-2">
             <h3 className="text-xs font-semibold text-foreground mb-2">Lead Status</h3>
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-muted-foreground">Status</span>
                 <span className={`text-[11px] font-medium ${getLeadStatusColor(leadData?.status || lead?.status)}`}>
@@ -2458,10 +2458,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Conversation Section - Moved to bottom for mobile */}
-          <div className="bg-card border border-border rounded-xl p-2.5">
-            <h3 className="text-xs font-semibold text-foreground mb-2">Conversation</h3>
+          <div className="bg-card border border-border rounded-xl p-2">
+            <h3 className="text-xs font-semibold text-foreground mb-1.5">Conversation</h3>
             {/* Mobile Message Thread - Natural sizing with scrollbar hiding */}
-            <div ref={mobileConversationContainerRef} className="overflow-y-auto scroll-smooth rounded-lg" style={{ minHeight: '180px', maxHeight: '320px' }}>
+            <div ref={mobileConversationContainerRef} className="overflow-y-auto scroll-smooth rounded-lg" style={{ minHeight: '160px', maxHeight: '300px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -2490,7 +2490,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Mobile Message Composer */}
-          <div className="border-t border-border/50 px-3 sm:px-5 lg:px-6 py-2 bg-background/90 backdrop-blur-sm">
+          <div className="border-t border-border/50 px-3 sm:px-5 lg:px-6 py-1.5 bg-background/90 backdrop-blur-sm">
             {/* Image Previews */}
             {mobileImages.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
