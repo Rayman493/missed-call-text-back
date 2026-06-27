@@ -2299,7 +2299,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
         
         {/* Mobile Layout */}
-        <div className="lg:hidden space-y-1">
+        <div className="lg:hidden space-y-0.5">
           {/* Mobile Quick Actions */}
           <div className="bg-card border border-border/50 rounded-xl p-2.5 shadow-sm">
             <div className="flex items-center gap-1.5 overflow-x-auto">
@@ -2374,14 +2374,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           
           {/* Lead Status Card - Compact Badges */}
           <div className="bg-card border border-border/50 rounded-xl p-2">
-            <h3 className="text-xs font-semibold text-foreground mb-2">Lead Status</h3>
-            <div className="flex flex-wrap gap-1.5">
+            <h3 className="text-xs font-semibold text-foreground mb-1.5">Lead Status</h3>
+            <div className="flex flex-wrap gap-1">
               {/* Status Badge */}
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
                 {leadData?.status || lead?.status || 'New'}
               </span>
               {/* AI Intake Badge */}
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium ${
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
                 leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
                   ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
                   : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
@@ -2395,11 +2395,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     : 'Intake Incomplete'}
               </span>
               {/* Customer Reply Badge */}
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'}`}>
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'}`}>
                 {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Replied' : 'No Reply'}
               </span>
               {/* Follow-Up Badge */}
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium ${
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
                 followUpJobs && followUpJobs.length > 0
                   ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
                     ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
@@ -2425,16 +2425,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {(followUpSettings?.enabled || (followUpJobs && followUpJobs.length > 0)) && (
               <button
                 onClick={() => router.push('/dashboard/settings/follow-ups')}
-                className="mt-2 w-full text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                className="mt-1.5 w-full px-2 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-medium rounded-lg transition-colors"
               >
-                Configure Follow-Ups →
+                Configure Follow-Ups
               </button>
             )}
           </div>
 
           {/* Conversation Section - Apple Messages style */}
           <div className="bg-card border border-border/50 rounded-xl p-1.5">
-            <h3 className="text-xs font-semibold text-foreground mb-1">Conversation</h3>
+            <h3 className="text-xs font-semibold text-foreground mb-0.5">Conversation</h3>
             {/* Mobile Message Thread - Natural sizing with scrollbar hiding */}
             <div ref={mobileConversationContainerRef} className="overflow-y-auto scroll-smooth rounded-lg" style={{ minHeight: '120px', maxHeight: '260px' }}>
               {loading ? (
@@ -2466,7 +2466,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
           {/* Internal Notes Card - Single-line field */}
           <div className="bg-card border border-border/50 rounded-xl p-2">
-            <h3 className="text-xs font-semibold text-foreground mb-1.5">Internal Notes</h3>
+            <h3 className="text-xs font-semibold text-foreground mb-1">Internal Notes</h3>
             <textarea
               value={internalNotes}
               onChange={(e) => setInternalNotes(e.target.value)}

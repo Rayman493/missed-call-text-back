@@ -333,47 +333,47 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </div>
 
               {/* Structured Information */}
-              <div className="space-y-4">
+              <div className="space-y-3">
           {/* Customer Information - Prominent */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800">
-            <div className="flex items-center gap-2.5 mb-2">
-              <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Name</span>
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-3 border border-blue-100 dark:border-blue-800">
+            <div className="flex items-center gap-2 mb-1.5">
+              <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Name</span>
             </div>
-            <span className="text-lg font-bold text-foreground">
+            <span className="text-base font-bold text-foreground">
               {extractedInfo?.callerName || 'Not Provided'}
             </span>
           </div>
 
           {/* Service Requested - Prominent */}
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 border border-purple-100 dark:border-purple-800">
-            <div className="flex items-center gap-2.5 mb-2">
-              <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-              <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider">Reason</span>
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-3 border border-purple-100 dark:border-purple-800">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Briefcase className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+              <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider">Reason</span>
             </div>
-            <p className="text-base font-semibold text-foreground leading-relaxed">
+            <p className="text-sm font-semibold text-foreground leading-relaxed">
               {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
             </p>
           </div>
 
           {/* Details - Truncated with expansion */}
           {(extractedInfo?.importantDetails || correctedFields?.details) && (
-            <div className="bg-card rounded-xl p-4 border border-border/50">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2.5">
-                  <FileText className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Details</span>
+            <div className="bg-card rounded-xl p-3 border border-border/50">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Details</span>
                 </div>
                 {(correctedFields?.details?.length > 200 || (extractedInfo?.importantDetails?.length || 0) > 200) && (
                   <button
                     onClick={() => setDetailsExpanded(!detailsExpanded)}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                    className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
                   >
                     {detailsExpanded ? 'Show Less' : 'Show More'}
                   </button>
                 )}
               </div>
-              <p className="text-sm text-foreground leading-relaxed">
+              <p className="text-xs text-foreground leading-relaxed">
                 {detailsExpanded 
                   ? (correctedFields?.details ? sentenceCase(correctedFields.details) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : '')
                   : (correctedFields?.details ? sentenceCase(correctedFields.details.substring(0, 200) + (correctedFields.details.length > 200 ? '...' : '')) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails.substring(0, 200) + ((extractedInfo.importantDetails.length || 0) > 200 ? '...' : '')) : '')
@@ -383,16 +383,16 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           )}
 
           {/* Compact Row: Location, Callback, Urgency */}
-          <div className="bg-card rounded-xl p-4 border border-border/50">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="bg-card rounded-xl p-3 border border-border/50">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
               {/* Location */}
               {(extractedInfo?.addressOrLocation || correctedFields?.address) && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Location</span>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Location</span>
                   </div>
-                  <p className="text-xs text-foreground leading-snug line-clamp-2">
+                  <p className="text-[11px] text-foreground leading-snug line-clamp-2">
                     {correctedFields?.address || extractedInfo?.addressOrLocation}
                   </p>
                 </div>
@@ -400,24 +400,24 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
               {/* Callback Time */}
               {extractedInfo?.preferredCallbackTime && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Callback Time</span>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Callback Time</span>
                   </div>
-                  <p className="text-xs text-foreground leading-snug line-clamp-2">
+                  <p className="text-[11px] text-foreground leading-snug line-clamp-2">
                     {sentenceCase(extractedInfo.preferredCallbackTime)}
                   </p>
                 </div>
               )}
 
               {/* Desired Completion Time */}
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Desired Completion Time</span>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Desired Completion Time</span>
                 </div>
-                <p className="text-xs text-foreground leading-snug line-clamp-2">
+                <p className="text-[11px] text-foreground leading-snug line-clamp-2">
                   {sentenceCase(extractedInfo.desiredCompletionTime) || 'Not Provided'}
                 </p>
               </div>
@@ -490,12 +490,12 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {/* Location */}
               {(extractedInfo?.addressOrLocation || correctedFields?.address) && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Location</span>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Location</span>
                   </div>
-                  <p className="text-xs text-foreground leading-snug line-clamp-2">
+                  <p className="text-[11px] text-foreground leading-snug line-clamp-2">
                     {correctedFields?.address || extractedInfo?.addressOrLocation}
                   </p>
                 </div>
@@ -503,24 +503,24 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
               {/* Callback Time */}
               {extractedInfo?.preferredCallbackTime && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Callback Time</span>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Callback Time</span>
                   </div>
-                  <p className="text-xs text-foreground leading-snug line-clamp-2">
+                  <p className="text-[11px] text-foreground leading-snug line-clamp-2">
                     {sentenceCase(extractedInfo.preferredCallbackTime)}
                   </p>
                 </div>
               )}
 
               {/* Desired Completion Time */}
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Desired Completion Time</span>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Desired Completion Time</span>
                 </div>
-                <p className="text-xs text-foreground leading-snug line-clamp-2">
+                <p className="text-[11px] text-foreground leading-snug line-clamp-2">
                   {sentenceCase(extractedInfo.desiredCompletionTime) || 'Not Provided'}
                 </p>
               </div>

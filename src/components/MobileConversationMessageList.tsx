@@ -158,7 +158,7 @@ export default function MobileConversationMessageList({
         return (
           <div
             key={msg.id}
-            className={`flex items-start gap-3 ${msg.media && msg.media.length > 0 ? 'mb-3' : 'mb-4'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-3 ${msg.media && msg.media.length > 0 ? 'mb-2.5' : 'mb-3'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Avatar - Only show customer avatar for inbound messages */}
             {shouldShowAvatar && isInbound && (
@@ -168,18 +168,18 @@ export default function MobileConversationMessageList({
             )}
             
             {/* Message Content */}
-            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} max-w-[78%] sm:max-w-[72%] ${!isInbound && !shouldShowAvatar ? 'ml-14' : ''}`}>
+            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} max-w-[72%] sm:max-w-[68%] ${!isInbound && !shouldShowAvatar ? 'ml-14' : ''}`}>
               {/* Message Bubble - Modern messaging app styling */}
               <div
-                className={`rounded-2xl shadow-md transition-all duration-200 ${
+                className={`rounded-2xl shadow-sm transition-all duration-200 ${
                   isInbound
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200 dark:border-slate-700/50 hover:shadow-lg'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200 dark:border-slate-700/50 hover:shadow-md'
                     : isOptimistic && isSending
-                    ? 'bg-blue-600 text-white rounded-br-md opacity-90 shadow-md border border-blue-700'
-                    : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 shadow-md hover:shadow-lg border border-blue-700'
+                    ? 'bg-blue-600 text-white rounded-br-md opacity-90 shadow-sm border border-blue-700'
+                    : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 shadow-sm hover:shadow-md border border-blue-700'
                 }`}
               >
-                <div className={`${msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-3 py-1.5 sm:px-3 sm:py-2'}`}>
+                <div className={`${msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-2.5 py-1 sm:px-2.5 sm:py-1.5'}`}>
                   {msg.body && (
                     <p className="text-[11px] sm:text-sm leading-snug sm:leading-snug break-words overflow-wrap-anywhere whitespace-pre-wrap">
                       {msg.body}
@@ -187,17 +187,17 @@ export default function MobileConversationMessageList({
                   )}
                   {/* Render media attachments */}
                   {msg.media && msg.media.length > 0 && (
-                    <MessageMediaRenderer 
-                      media={msg.media} 
+                    <MessageMediaRenderer
+                      media={msg.media}
                       isInbound={isInbound}
                       onImageLoad={index === conversationTimeline.length - 1 ? onImageLoad : undefined}
                     />
                   )}
                 </div>
               </div>
-              
+
               {/* Message Status/Timestamp - Beneath bubble, aligned with bubble */}
-              <div className={`mt-1 flex items-center gap-1.5 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+              <div className={`mt-0.5 flex items-center gap-1.5 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                 {isOutbound && (
                   <>
                     {msg.status === 'delivered' && (
