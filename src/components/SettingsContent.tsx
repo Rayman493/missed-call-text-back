@@ -739,6 +739,35 @@ export default function SettingsContent() {
     }
   }
 
+  // Refresh Stripe Connect status after onboarding return
+  const refreshStripeStatus = async () => {
+    if (!business?.stripe_connect_account_id) return
+
+    console.log('[STRIPE CONNECT] Refresh endpoint called')
+    console.log('[STRIPE CONNECT] Connected account id:', business.stripe_connect_account_id)
+
+    try {
+      const response = await fetch('/api/stripe/connect/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.session?.access_token || ''}`
+        },
+        body: JSON.stringify({ business_id: business.id })
+      })
+
+      if (response.ok) {
+        console.log('[STRIPE CONNECT] Status refreshed successfully')
+        await refreshBusiness()
+        showToast('Stripe Connect status updated', 'success')
+      } else {
+        console.error('[STRIPE CONNECT] Failed to refresh status')
+      }
+    } catch (error) {
+      console.error('[STRIPE CONNECT] Error refreshing status:', error)
+    }
+  }
+
   // Delete account handler
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== 'DELETE') return
@@ -831,6 +860,18 @@ export default function SettingsContent() {
       window.history.replaceState({}, '', '/dashboard/settings')
     }
   }, [])
+
+  // Check URL params for Stripe onboarding return
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const stripeOnboarding = urlParams.get('stripe_onboarding')
+    if (stripeOnboarding === 'complete' && business?.stripe_connect_account_id) {
+      console.log('[STRIPE CONNECT] Onboarding return detected, refreshing status')
+      refreshStripeStatus()
+      // Clean up URL
+      window.history.replaceState({}, '', '/dashboard/settings#payments')
+    }
+  }, [business])
 
   // Scroll-aware active section detection using explicit scroll positions
   useEffect(() => {
@@ -1882,10 +1923,10 @@ export default function SettingsContent() {
                     <div className="flex-1 pr-3 sm:pr-4">
                       <div className="flex items-center gap-2 sm:gap-2.5 mb-0.5 sm:mb-1">
                         <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 003-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                         </svg>
                         <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Stripe Connect</h3>
-                        {business?.stripe_connect_status === 'connected' && (
+                        {business?.stripe_charges_enabled && business?.stripe_details_submitted && (
                           <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
                             <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                             Connected
@@ -1895,10 +1936,11 @@ export default function SettingsContent() {
                       <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
                         Connect your Stripe account to request and receive payments from customers via text message.
                       </p>
-                      {business?.stripe_connect_status === 'connected' && (
+                      {business?.stripe_charges_enabled && business?.stripe_details_submitted && (
                         <div className="mt-2 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
                           {business.stripe_charges_enabled && <div className="flex items-center gap-1"><span className="w-1 h-1 bg-green-500 rounded-full"></span>Charges enabled</div>}
                           {business.stripe_payouts_enabled && <div className="flex items-center gap-1"><span className="w-1 h-1 bg-green-500 rounded-full"></span>Payouts enabled</div>}
+                          {!business.stripe_payouts_enabled && <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400"><span className="w-1 h-1 bg-amber-500 rounded-full"></span>Additional verification may be required before live payouts</div>}
                         </div>
                       )}
                     </div>
@@ -1907,16 +1949,16 @@ export default function SettingsContent() {
                         onClick={handleConnectStripe}
                         disabled={isConnectingStripe}
                         className={`flex-shrink-0 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2 ${
-                          business?.stripe_connect_status === 'connected'
+                          business?.stripe_charges_enabled && business?.stripe_details_submitted
                             ? 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
                             : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
                         }`}
                       >
-                        {business?.stripe_connect_status === 'connected' ? 'Manage' : 'Connect'}
+                        {business?.stripe_charges_enabled && business?.stripe_details_submitted ? 'Manage' : 'Connect'}
                       </button>
                     )}
                   </div>
-                  {business?.stripe_connect_status === 'pending' && (
+                  {business?.stripe_connect_account_id && !(business?.stripe_charges_enabled && business?.stripe_details_submitted) && (
                     <div className="mt-3 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                       <p className="text-xs text-amber-700 dark:text-amber-300">
                         <span className="font-semibold">Setup in progress:</span> Complete the Stripe onboarding to start receiving payments.
