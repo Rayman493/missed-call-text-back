@@ -2343,7 +2343,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           
           {/* AI Intake Summary Card - Compact with Preview */}
           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-            <div className="bg-card border border-border rounded-xl p-2.5">
+            <div className="bg-card border border-border/50 rounded-xl p-2">
               <button
                 onClick={() => setCollapsedSections(prev => ({ ...prev, aiIntake: !prev.aiIntake }))}
                 className="w-full flex items-center justify-between"
@@ -2372,74 +2372,54 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
           
-          {/* Lead Status Card - Compact Status Indicators */}
-          <div className="bg-card border border-border rounded-xl p-2">
+          {/* Lead Status Card - Compact Badges */}
+          <div className="bg-card border border-border/50 rounded-xl p-2">
             <h3 className="text-xs font-semibold text-foreground mb-2">Lead Status</h3>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground">Status</span>
-                <span className={`text-[11px] font-medium ${getLeadStatusColor(leadData?.status || lead?.status)}`}>
-                  {leadData?.status || lead?.status || 'New'}
-                </span>
-              </div>
-              {/* AI Intake Status */}
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground">
-                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                    ? 'AI Intake'
-                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                      ? 'Voicemail Intake'
-                      : 'Intake'}
-                </span>
-                <span className={`text-[11px] font-medium ${
-                  leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                    ? 'text-green-600 dark:text-green-400'
-                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-slate-500 dark:text-slate-400'
-                }`}>
-                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                    ? 'Complete'
-                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                      ? 'Complete'
-                      : 'Incomplete'}
-                </span>
-              </div>
-              {/* Customer Replied */}
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground">Customer Replied</span>
-                <span className={`text-[11px] font-medium ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                  {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Yes' : 'No'}
-                </span>
-              </div>
-              {/* Follow-Up Status - Integrated */}
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground">Follow-Ups</span>
-                <div className="flex items-center gap-1">
-                  <span className={`text-[11px] font-medium ${
-                    followUpJobs && followUpJobs.length > 0
-                      ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
-                        ? 'text-blue-600 dark:text-blue-400'
-                        : followUpJobs.some((job: any) => job.status === 'completed')
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-slate-500 dark:text-slate-400'
-                      : 'text-slate-500 dark:text-slate-400'
-                  }`}>
-                    {followUpJobs && followUpJobs.length > 0
-                      ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
-                        ? 'Active'
-                        : followUpJobs.some((job: any) => job.status === 'completed')
-                          ? 'Completed'
-                          : 'Paused'
-                      : followUpSettings?.enabled ? 'Configured' : 'Not Configured'}
-                  </span>
-                  {(followUpSettings?.enabled || (followUpJobs && followUpJobs.length > 0)) && (
-                    <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </div>
-              </div>
+            <div className="flex flex-wrap gap-1.5">
+              {/* Status Badge */}
+              <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
+                {leadData?.status || lead?.status || 'New'}
+              </span>
+              {/* AI Intake Badge */}
+              <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium ${
+                leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
+                  ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
+                  : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
+                    ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
+                    : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
+              }`}>
+                {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
+                  ? 'AI Complete'
+                  : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
+                    ? 'Voicemail Complete'
+                    : 'Intake Incomplete'}
+              </span>
+              {/* Customer Reply Badge */}
+              <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'}`}>
+                {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Replied' : 'No Reply'}
+              </span>
+              {/* Follow-Up Badge */}
+              <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium ${
+                followUpJobs && followUpJobs.length > 0
+                  ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
+                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                    : followUpJobs.some((job: any) => job.status === 'completed')
+                      ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
+                      : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
+                  : followUpSettings?.enabled
+                    ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
+                    : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
+              }`}>
+                {followUpJobs && followUpJobs.length > 0
+                  ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
+                    ? 'Follow-Ups Active'
+                    : followUpJobs.some((job: any) => job.status === 'completed')
+                      ? 'Follow-Ups Complete'
+                      : 'Follow-Ups Paused'
+                  : followUpSettings?.enabled
+                    ? 'Follow-Ups Configured'
+                    : 'Follow-Ups Off'}
+              </span>
             </div>
             {/* Configure Button - Show if follow-ups are enabled or configured */}
             {(followUpSettings?.enabled || (followUpJobs && followUpJobs.length > 0)) && (
@@ -2452,24 +2432,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             )}
           </div>
 
-          {/* Internal Notes Card - Single-line field */}
-          <div className="bg-card border border-border rounded-xl p-2">
-            <h3 className="text-xs font-semibold text-foreground mb-1.5">Internal Notes</h3>
-            <textarea
-              value={internalNotes}
-              onChange={(e) => setInternalNotes(e.target.value)}
-              onBlur={handleSaveNotes}
-              placeholder="Add internal notes..."
-              className="w-full min-h-[36px] max-h-[80px] px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows={1}
-            />
-          </div>
-
-          {/* Conversation Section - Moved to bottom for mobile */}
-          <div className="bg-card border border-border rounded-xl p-2">
+          {/* Conversation Section - Apple Messages style */}
+          <div className="bg-card border border-border/50 rounded-xl p-1.5">
             <h3 className="text-xs font-semibold text-foreground mb-1">Conversation</h3>
             {/* Mobile Message Thread - Natural sizing with scrollbar hiding */}
-            <div ref={mobileConversationContainerRef} className="overflow-y-auto scroll-smooth rounded-lg" style={{ minHeight: '140px', maxHeight: '280px' }}>
+            <div ref={mobileConversationContainerRef} className="overflow-y-auto scroll-smooth rounded-lg" style={{ minHeight: '120px', maxHeight: '260px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -2495,6 +2462,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 />
               )}
             </div>
+          </div>
+
+          {/* Internal Notes Card - Single-line field */}
+          <div className="bg-card border border-border/50 rounded-xl p-2">
+            <h3 className="text-xs font-semibold text-foreground mb-1.5">Internal Notes</h3>
+            <textarea
+              value={internalNotes}
+              onChange={(e) => setInternalNotes(e.target.value)}
+              onBlur={handleSaveNotes}
+              placeholder="Add internal notes..."
+              className="w-full min-h-[36px] max-h-[80px] px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={1}
+            />
           </div>
 
           {/* Mobile Message Composer */}
