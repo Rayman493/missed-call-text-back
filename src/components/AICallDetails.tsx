@@ -384,7 +384,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
           {/* Compact Row: Location, Callback, Urgency */}
           <div className="bg-card rounded-xl p-4 border border-border/50">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {/* Location */}
               {(extractedInfo?.addressOrLocation || correctedFields?.address) && (
                 <div className="space-y-1.5">
@@ -487,7 +487,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
           {/* Compact Row: Location, Callback, Urgency */}
           <div className="bg-card rounded-xl p-4 border border-border/50">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {/* Location */}
               {(extractedInfo?.addressOrLocation || correctedFields?.address) && (
                 <div className="space-y-1.5">
