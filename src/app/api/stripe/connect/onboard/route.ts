@@ -22,11 +22,14 @@ export async function POST(request: Request) {
     )
 
     const authHeader = request.headers.get('authorization')
+    console.log('[STRIPE CONNECT] Authorization header present:', !!authHeader)
     if (!authHeader) {
+      console.error('[STRIPE CONNECT] No authorization header')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const token = authHeader.replace('Bearer ', '')
+    console.log('[STRIPE CONNECT] Token extracted (length):', token.length)
     const { data: { user }, error: userError } = await supabase.auth.getUser(token)
 
     if (userError || !user) {
@@ -34,26 +37,57 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    console.log('[STRIPE CONNECT] Authenticated user id:', user.id)
+
     // Get business_id from request body
     const body = await request.json()
     const { business_id } = body
 
+    console.log('[STRIPE CONNECT] Business id received from request:', business_id)
+    console.log('[STRIPE CONNECT] Business id source: request body')
+
     if (!business_id) {
+      console.error('[STRIPE CONNECT] business_id is required')
       return NextResponse.json({ error: 'business_id is required' }, { status: 400 })
     }
 
-    // Verify user owns the business
+    // Verify user owns the business - using user_id column (not owner_id)
+    console.log('[STRIPE CONNECT] Executing business lookup query')
+    console.log('[STRIPE CONNECT] SQL: SELECT id, user_id, stripe_connect_account_id, stripe_connect_status FROM businesses WHERE id = ? AND user_id = ?', business_id, user.id)
+    console.log('[STRIPE CONNECT] Checking column: user_id')
+
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id, owner_id, stripe_connect_account_id, stripe_connect_status')
+      .select('id, user_id, stripe_connect_account_id, stripe_connect_status')
       .eq('id', business_id)
-      .eq('owner_id', user.id)
+      .eq('user_id', user.id)
       .single()
+
+    console.log('[STRIPE CONNECT] Business lookup result:', {
+      data: business,
+      error: businessError,
+      errorCode: businessError?.code,
+      errorMessage: businessError?.message
+    })
 
     if (businessError || !business) {
       console.error('[STRIPE CONNECT] Business not found or unauthorized')
+      console.error('[STRIPE CONNECT] Exact reason for 404:', {
+        businessError: businessError?.message,
+        businessErrorCode: businessError?.code,
+        businessExists: !!business,
+        userId: user.id,
+        businessId: business_id
+      })
       return NextResponse.json({ error: 'Business not found or unauthorized' }, { status: 404 })
     }
+
+    console.log('[STRIPE CONNECT] Business row returned from Supabase:', {
+      id: business.id,
+      user_id: business.user_id,
+      stripe_connect_account_id: business.stripe_connect_account_id,
+      stripe_connect_status: business.stripe_connect_status
+    })
 
     // If already connected, return existing account
     if (business.stripe_connect_account_id && business.stripe_connect_status === 'connected') {
