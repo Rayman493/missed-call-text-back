@@ -126,13 +126,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isMobileView, setIsMobileView] = useState(false)
   const [messageMedia, setMessageMedia] = useState<Record<string, { urls: string[]; types: string[] }>>({})
   const [showAllPhotos, setShowAllPhotos] = useState(false)
-  const [collapsedSections, setCollapsedSections] = useState({
-    photos: true,
-    activity: true,
-    automation: true,
-    leadHealth: false,
-    quickActions: true,
-    aiIntake: false
+  const [collapsedSections, setCollapsedSections] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('leadDetailsCollapsedSections')
+      if (saved) {
+        return JSON.parse(saved)
+      }
+    }
+    return {
+      photos: true,
+      activity: true,
+      automation: true,
+      leadHealth: false,
+      quickActions: true,
+      aiIntake: true // Default to collapsed
+    }
   })
   const [photoModalOpen, setPhotoModalOpen] = useState(false)
   const [selectedPhotoUrl, setSelectedPhotoUrl] = useState('')
@@ -158,6 +166,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [showLeadInfo, setShowLeadInfo] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [internalNotesExpanded, setInternalNotesExpanded] = useState(false)
   const conversationContainerRef = useRef<HTMLDivElement>(null)
   const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
   const bottomSentinelRef = useRef<HTMLDivElement>(null)
@@ -170,13 +179,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         setShowMoreActions(false)
       }
     }
-    
+
     // Guard against SSR
     if (typeof document !== 'undefined') {
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showMoreActions])
+
+  // Persist collapsedSections to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('leadDetailsCollapsedSections', JSON.stringify(collapsedSections))
+    }
+  }, [collapsedSections])
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth', force = false, isInitialLoad = false) => {
     // Guard against SSR
@@ -1997,7 +2013,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
                 <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                   <button
-                    onClick={() => setCollapsedSections(prev => ({ ...prev, aiIntake: !prev.aiIntake }))}
+                    onClick={() => setCollapsedSections((prev: any) => ({ ...prev, aiIntake: !prev.aiIntake }))}
                     className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">AI Intake Summary</h3>
@@ -2027,7 +2043,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {/* Lead Health Card */}
               <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                 <button
-                  onClick={() => setCollapsedSections(prev => ({ ...prev, leadHealth: !prev.leadHealth }))}
+                  onClick={() => setCollapsedSections((prev: any) => ({ ...prev, leadHealth: !prev.leadHealth }))}
                   className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lead Health</h3>
@@ -2144,7 +2160,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {Object.keys(messageMedia).length > 0 && (
                 <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                   <button
-                    onClick={() => setCollapsedSections(prev => ({ ...prev, photos: !prev.photos }))}
+                    onClick={() => setCollapsedSections((prev: any) => ({ ...prev, photos: !prev.photos }))}
                     className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Photos Received</h3>
@@ -2191,7 +2207,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {/* Quick Actions Card */}
               <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                 <button
-                  onClick={() => setCollapsedSections(prev => ({ ...prev, quickActions: !prev.quickActions }))}
+                  onClick={() => setCollapsedSections((prev: any) => ({ ...prev, quickActions: !prev.quickActions }))}
                   className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quick Actions</h3>
@@ -2272,7 +2288,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {/* Automatic Follow-ups */}
               <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                 <button
-                  onClick={() => setCollapsedSections(prev => ({ ...prev, automation: !prev.automation }))}
+                  onClick={() => setCollapsedSections((prev: any) => ({ ...prev, automation: !prev.automation }))}
                   className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Follow-Up Status</h3>
@@ -2299,7 +2315,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
         
         {/* Mobile Layout */}
-        <div className="lg:hidden space-y-0.5">
+        <div className="lg:hidden space-y-0.5 pb-20">
           {/* Mobile Quick Actions */}
           <div className="bg-card border border-border/50 rounded-xl p-2.5 shadow-sm">
             <div className="flex items-center gap-1.5 overflow-x-auto">
@@ -2345,7 +2361,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
             <div className="bg-card border border-border/50 rounded-xl p-2">
               <button
-                onClick={() => setCollapsedSections(prev => ({ ...prev, aiIntake: !prev.aiIntake }))}
+                onClick={() => setCollapsedSections((prev: any) => ({ ...prev, aiIntake: !prev.aiIntake }))}
                 className="w-full flex items-center justify-between"
               >
                 <div className="flex items-center gap-1.5">
@@ -2354,12 +2370,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </svg>
                   <h3 className="text-xs font-semibold text-foreground">AI Intake Summary</h3>
                 </div>
-                <svg className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
+              {collapsedSections.aiIntake && (
+                <div className="mt-1.5 text-[10px] text-muted-foreground transition-all duration-200">
+                  <span className="font-medium text-foreground">{leadData?.raw_metadata?.extracted_info?.callerName || leadData?.caller_name || 'Customer'}</span>
+                  {' • '}
+                  {leadData?.raw_metadata?.extracted_info?.reasonForCalling || leadData?.raw_metadata?.extracted_info?.reason || leadData?.reason || 'Service request'}
+                </div>
+              )}
               {!collapsedSections.aiIntake && (
-                <div className="mt-2">
+                <div className="mt-2 transition-all duration-200">
                   <AICallDetails
                     leadId={params.id}
                     businessId={business.id}
@@ -2377,11 +2400,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <h3 className="text-xs font-semibold text-foreground mb-1.5">Lead Status</h3>
             <div className="flex flex-wrap gap-1">
               {/* Status Badge */}
-              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all duration-200 ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
                 {leadData?.status || lead?.status || 'New'}
               </span>
               {/* AI Intake Badge */}
-              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all duration-200 ${
                 leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
                   ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
                   : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
@@ -2395,11 +2418,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     : 'Intake Incomplete'}
               </span>
               {/* Customer Reply Badge */}
-              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'}`}>
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all duration-200 ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'}`}>
                 {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Replied' : 'No Reply'}
               </span>
               {/* Follow-Up Badge */}
-              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all duration-200 ${
                 followUpJobs && followUpJobs.length > 0
                   ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
                     ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
@@ -2425,7 +2448,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {(followUpSettings?.enabled || (followUpJobs && followUpJobs.length > 0)) && (
               <button
                 onClick={() => router.push('/dashboard/settings/follow-ups')}
-                className="mt-1.5 w-full px-2 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-medium rounded-lg transition-colors"
+                className="mt-1.5 px-2 py-1 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-medium rounded-lg transition-colors border border-slate-200 dark:border-slate-700"
               >
                 Configure Follow-Ups
               </button>
@@ -2433,7 +2456,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Conversation Section - Apple Messages style */}
-          <div className="bg-card border border-border/50 rounded-xl p-1.5">
+          <div className="bg-card border border-border/50 rounded-xl p-1">
             <h3 className="text-xs font-semibold text-foreground mb-0.5">Conversation</h3>
             {/* Mobile Message Thread - Natural sizing with scrollbar hiding */}
             <div ref={mobileConversationContainerRef} className="overflow-y-auto scroll-smooth rounded-lg" style={{ minHeight: '100px', maxHeight: '240px' }}>
@@ -2465,7 +2488,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Mobile Message Composer - Integrated with Conversation */}
-          <div className="bg-card border-t border-border/50 px-3 sm:px-5 lg:px-6 py-1.5">
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border/50 px-3 sm:px-5 lg:px-6 py-1.5 z-40">
             {/* Image Previews */}
             {mobileImages.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-1.5">
@@ -2538,14 +2561,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Internal Notes Card - Lightweight utility */}
           <div className="bg-card border border-border/50 rounded-xl p-1.5">
             <h3 className="text-[10px] font-semibold text-foreground mb-0.5">Internal Notes</h3>
-            <textarea
-              value={internalNotes}
-              onChange={(e) => setInternalNotes(e.target.value)}
-              onBlur={handleSaveNotes}
-              placeholder="Add internal notes..."
-              className="w-full min-h-[32px] max-h-[72px] px-2 py-1.5 bg-background border border-border rounded-lg text-[11px] text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows={1}
-            />
+            {!internalNotesExpanded && !internalNotes ? (
+              <button
+                onClick={() => setInternalNotesExpanded(true)}
+                className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                No internal notes yet. Tap to add.
+              </button>
+            ) : (
+              <textarea
+                value={internalNotes}
+                onChange={(e) => setInternalNotes(e.target.value)}
+                onBlur={handleSaveNotes}
+                placeholder="Add internal notes..."
+                className="w-full min-h-[32px] max-h-[72px] px-2 py-1.5 bg-background border border-border rounded-lg text-[11px] text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                rows={1}
+              />
+            )}
           </div>
         </div>
       </div>
