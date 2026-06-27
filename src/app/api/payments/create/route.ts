@@ -100,6 +100,11 @@ export async function POST(request: Request) {
     }
 
     // Verify lead belongs to business
+    console.log('[PAYMENT REQUEST] Lead lookup query:', {
+      lead_id,
+      business_id,
+    })
+
     const { data: lead, error: leadError } = await supabase
       .from('leads')
       .select('id, business_id, phone, name, raw_metadata')
@@ -107,8 +112,22 @@ export async function POST(request: Request) {
       .eq('business_id', business_id)
       .single()
 
+    console.log('[PAYMENT REQUEST] Lead lookup result:', {
+      data: lead,
+      error: leadError,
+      errorCode: leadError?.code,
+      errorMessage: leadError?.message
+    })
+
     if (leadError || !lead) {
       console.error('[PAYMENT REQUEST] Lead not found or unauthorized')
+      console.error('[PAYMENT REQUEST] Exact reason for 404:', {
+        leadError: leadError?.message,
+        leadErrorCode: leadError?.code,
+        leadExists: !!lead,
+        leadId: lead_id,
+        businessId: business_id
+      })
       return NextResponse.json({ error: 'Lead not found or unauthorized' }, { status: 404 })
     }
 
