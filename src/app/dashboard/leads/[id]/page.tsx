@@ -2317,7 +2317,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {/* Mobile Layout */}
         <div className="lg:hidden space-y-0.5">
           {/* Mobile Quick Actions */}
-          <div className="bg-card border border-border/50 rounded-xl p-2.5 shadow-sm">
+          <div className="bg-card border border-border/50 rounded-xl p-2 shadow-sm">
             <div className="flex items-center gap-1.5 overflow-x-auto">
               {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
                 <a
@@ -2359,7 +2359,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           
           {/* AI Intake Summary Card - Compact with Preview */}
           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-            <div className="bg-card border border-border/50 rounded-xl p-2">
+            <div className="bg-card border border-border/50 rounded-xl p-1.5">
               <button
                 onClick={() => setCollapsedSections((prev: any) => ({ ...prev, aiIntake: !prev.aiIntake }))}
                 className="w-full flex items-center justify-between"
@@ -2375,14 +2375,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </svg>
               </button>
               {collapsedSections.aiIntake && (
-                <div className="mt-1.5 text-[10px] text-muted-foreground transition-all duration-200">
+                <div className="mt-1 text-[10px] text-muted-foreground transition-all duration-200">
                   <span className="font-medium text-foreground">{leadData?.raw_metadata?.extracted_info?.callerName || leadData?.caller_name || 'Customer'}</span>
                   {' • '}
                   {leadData?.raw_metadata?.extracted_info?.reasonForCalling || leadData?.raw_metadata?.extracted_info?.reason || leadData?.reason || 'Service request'}
                 </div>
               )}
               {!collapsedSections.aiIntake && (
-                <div className="mt-2 transition-all duration-200">
+                <div className="mt-1.5 transition-all duration-200">
                   <AICallDetails
                     leadId={params.id}
                     businessId={business.id}
@@ -2396,8 +2396,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           )}
           
           {/* Lead Status Card - Compact Badges */}
-          <div className="bg-card border border-border/50 rounded-xl p-2">
-            <h3 className="text-xs font-semibold text-foreground mb-1.5">Lead Status</h3>
+          <div className="bg-card border border-border/50 rounded-xl p-1.5">
+            <h3 className="text-xs font-semibold text-foreground mb-1">Lead Status</h3>
             <div className="flex flex-wrap gap-1">
               {/* Status Badge */}
               <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all duration-200 ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
@@ -2448,7 +2448,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {(followUpSettings?.enabled || (followUpJobs && followUpJobs.length > 0)) && (
               <button
                 onClick={() => router.push('/dashboard/settings/follow-ups')}
-                className="mt-1.5 px-2 py-1 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-500 text-[10px] font-medium rounded-lg transition-colors duration-200 border border-slate-200 dark:border-slate-700/50"
+                className="mt-1 px-2 py-1 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-500 text-[10px] font-medium rounded-lg transition-colors duration-200 border border-slate-200 dark:border-slate-700/50"
               >
                 Configure Follow-Ups
               </button>
@@ -2456,7 +2456,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Conversation Section - Self-contained messaging experience */}
-          <div className="bg-card border border-border/50 rounded-xl lg:hidden flex flex-col overflow-hidden" style={{ height: '400px' }}>
+          <div className="bg-card border border-border/50 rounded-xl lg:hidden flex flex-col overflow-hidden" style={{ height: 'min(520px, 60vh)' }}>
             <div className="px-3 py-2 flex-shrink-0">
               <h3 className="text-xs font-semibold text-foreground">Conversation</h3>
               {!loading && conversationTimeline.length > 0 && (
