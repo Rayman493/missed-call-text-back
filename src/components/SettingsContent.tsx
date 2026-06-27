@@ -834,7 +834,7 @@ export default function SettingsContent() {
 
   // Scroll-aware active section detection using explicit scroll positions
   useEffect(() => {
-    const sections = ['general', 'automation', 'integrations', 'contacts', 'account']
+    const sections = ['general', 'automation', 'integrations', 'payments', 'contacts', 'account']
     let timeoutId: NodeJS.Timeout | null = null
     
     const updateActiveSection = () => {
@@ -842,10 +842,11 @@ export default function SettingsContent() {
       const generalSection = document.getElementById('general')
       const automationSection = document.getElementById('automation')
       const integrationsSection = document.getElementById('integrations')
+      const paymentsSection = document.getElementById('payments')
       const contactsSection = document.getElementById('contacts')
       const accountSection = document.getElementById('account')
       
-      if (!generalSection || !automationSection || !integrationsSection || !contactsSection || !accountSection) {
+      if (!generalSection || !automationSection || !integrationsSection || !paymentsSection || !contactsSection || !accountSection) {
         return
       }
       
@@ -872,6 +873,7 @@ export default function SettingsContent() {
       const generalTop = generalSection.offsetTop
       const automationTop = automationSection.offsetTop
       const integrationsTop = integrationsSection.offsetTop
+      const paymentsTop = paymentsSection.offsetTop
       const contactsTop = contactsSection.offsetTop
       const accountTop = accountSection.offsetTop
       
@@ -885,8 +887,10 @@ export default function SettingsContent() {
         computedActiveSection = 'general'
       } else if (scrollY < integrationsTop - offset) {
         computedActiveSection = 'automation'
-      } else if (scrollY < contactsTop - offset) {
+      } else if (scrollY < paymentsTop - offset) {
         computedActiveSection = 'integrations'
+      } else if (scrollY < contactsTop - offset) {
+        computedActiveSection = 'payments'
       } else if (scrollY < accountTop - offset) {
         computedActiveSection = 'contacts'
       } else {
@@ -962,11 +966,15 @@ export default function SettingsContent() {
 
   // Shared scroll-to-section helper
   const scrollToSection = (sectionId: string) => {
-    // Scroll to the top of the page to ensure the "Settings" heading is always visible
-    window.scrollTo({
-      top: 0,
-      behavior: 'auto'
-    })
+    const element = document.getElementById(sectionId)
+    if (element) {
+      const offset = getScrollOffset()
+      const elementPosition = element.getBoundingClientRect().top + window.scrollY - offset
+      window.scrollTo({
+        top: elementPosition,
+        behavior: 'smooth'
+      })
+    }
   }
 
   // Smooth scroll handler
