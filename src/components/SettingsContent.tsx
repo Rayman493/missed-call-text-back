@@ -757,7 +757,15 @@ export default function SettingsContent() {
 
       if (response.ok) {
         console.log('[STRIPE CONNECT] Status refreshed successfully')
+        console.log('[STRIPE CONNECT] Refreshing business data...')
         await refreshBusiness()
+        console.log('[STRIPE CONNECT] Business data refreshed, new state:', {
+          stripe_connect_account_id: business?.stripe_connect_account_id,
+          stripe_connect_status: business?.stripe_connect_status,
+          stripe_charges_enabled: business?.stripe_charges_enabled,
+          stripe_payouts_enabled: business?.stripe_payouts_enabled,
+          stripe_details_submitted: business?.stripe_details_submitted,
+        })
         showToast('Stripe Connect status updated', 'success')
       } else {
         console.error('[STRIPE CONNECT] Failed to refresh status')

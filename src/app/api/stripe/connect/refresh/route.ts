@@ -62,9 +62,12 @@ export async function POST(request: Request) {
     // Retrieve Stripe account to get current status
     const account = await stripe.accounts.retrieve(business.stripe_connect_account_id)
 
+    console.log('[STRIPE CONNECT REFRESH] Stripe account details_submitted:', account.details_submitted)
     console.log('[STRIPE CONNECT REFRESH] Stripe account charges_enabled:', account.charges_enabled)
     console.log('[STRIPE CONNECT REFRESH] Stripe account payouts_enabled:', account.payouts_enabled)
-    console.log('[STRIPE CONNECT REFRESH] Stripe account details_submitted:', account.details_submitted)
+    console.log('[STRIPE CONNECT REFRESH] Stripe account requirements.currently_due:', account.requirements?.currently_due)
+    console.log('[STRIPE CONNECT REFRESH] Stripe account requirements.eventually_due:', account.requirements?.eventually_due)
+    console.log('[STRIPE CONNECT REFRESH] Stripe account requirements.disabled_reason:', account.requirements?.disabled_reason)
 
     // Determine status
     let stripe_connect_status = 'not_connected'
@@ -76,15 +79,19 @@ export async function POST(request: Request) {
       stripe_connect_status = 'pending'
     }
 
+    const updateData = {
+      stripe_connect_status,
+      stripe_details_submitted: account.details_submitted,
+      stripe_charges_enabled: account.charges_enabled,
+      stripe_payouts_enabled: account.payouts_enabled,
+    }
+
+    console.log('[STRIPE CONNECT REFRESH] Writing to businesses table:', updateData)
+
     // Update business with current status
     const { error: updateError } = await supabase
       .from('businesses')
-      .update({
-        stripe_connect_status,
-        stripe_details_submitted: account.details_submitted,
-        stripe_charges_enabled: account.charges_enabled,
-        stripe_payouts_enabled: account.payouts_enabled,
-      })
+      .update(updateData)
       .eq('id', business_id)
 
     if (updateError) {
