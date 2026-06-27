@@ -158,8 +158,24 @@ export async function POST(request: Request) {
       url: accountLink.url,
       account_id: accountId,
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('[STRIPE CONNECT] Error:', error)
+    console.error('[STRIPE CONNECT] Error code:', error?.code)
+    console.error('[STRIPE CONNECT] Error message:', error?.message)
+
+    // Handle Stripe Connect not enabled error
+    if (error?.code === 'platform_required' || 
+        error?.message?.includes('signed up for Connect') ||
+        error?.message?.includes('Connect has not been enabled')) {
+      console.error('[STRIPE CONNECT] Platform Connect not enabled')
+      return NextResponse.json(
+        { 
+          error: 'Stripe Connect has not yet been enabled for this ReplyFlow platform. Complete the Stripe Connect setup in the Stripe Dashboard before connecting business accounts.' 
+        },
+        { status: 503 }
+      )
+    }
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to create onboarding link' },
       { status: 500 }
