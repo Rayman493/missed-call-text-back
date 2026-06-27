@@ -2466,7 +2466,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               )}
             </div>
             {/* Mobile Message Thread - Scrollable inside card, anchored to bottom */}
-            <div ref={mobileConversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-3 flex flex-col justify-end">
+            <div ref={mobileConversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-3 flex flex-col justify-end min-h-0 overscroll-behavior-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
