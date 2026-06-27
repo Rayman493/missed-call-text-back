@@ -958,7 +958,8 @@ export default function SettingsContent() {
   const getScrollOffset = () => {
     const header = document.querySelector('header') as HTMLElement | null
     const headerHeight = header ? header.offsetHeight : 0
-    const settingsHeader = document.querySelector('.sticky.top-\\[52px\\]') as HTMLElement | null
+    // Find the sticky settings header by looking for the sticky element with z-40
+    const settingsHeader = document.querySelector('.sticky.z-40') as HTMLElement | null
     const settingsHeaderHeight = settingsHeader ? settingsHeader.offsetHeight : 0
     // Add extra padding for comfortable spacing
     return headerHeight + settingsHeaderHeight + 20
