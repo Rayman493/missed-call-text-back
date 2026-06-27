@@ -196,9 +196,9 @@ export default function AutomaticFollowUpsControl({ followUpJobs, leadId, leadDa
   }
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4">
+    <div className="bg-card border border-border rounded-xl p-2.5">
       {/* Follow-Up Status Header */}
-      <div className="mb-4">
+      <div className="mb-3">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-foreground">Follow-Up Status</h3>
           {automationStatus.variant === 'success' && (

@@ -1689,7 +1689,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   {/* Service Requested + Phone */}
                   <div className="flex items-center gap-2 mt-0.5">
                     <p className="text-[10px] text-slate-600 dark:text-slate-400 truncate flex-1">
-                      {leadData?.raw_metadata?.extracted_info?.reasonForCalling || leadData?.raw_metadata?.extracted_info?.reason || 'Service requested'}
+                      {leadData?.raw_metadata?.extracted_info?.reasonForCalling || leadData?.raw_metadata?.extracted_info?.reason || 'No service requested'}
                     </p>
                     <span className="text-[10px] text-slate-400 dark:text-slate-500">•</span>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate flex-shrink-0">
@@ -2439,7 +2439,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               onChange={(e) => setInternalNotes(e.target.value)}
               onBlur={handleSaveNotes}
               placeholder="Add internal notes..."
-              className="w-full min-h-[48px] max-h-[120px] px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full min-h-[40px] max-h-[100px] px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
               rows={1}
             />
           </div>
@@ -2460,8 +2460,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Conversation Section - Moved to bottom for mobile */}
           <div className="bg-card border border-border rounded-xl p-2.5">
             <h3 className="text-xs font-semibold text-foreground mb-2">Conversation</h3>
-            {/* Mobile Message Thread - Fixed-height scroll container */}
-            <div ref={mobileConversationContainerRef} className="overflow-y-auto scroll-smooth rounded-lg" style={{ minHeight: '200px', maxHeight: '320px' }}>
+            {/* Mobile Message Thread - Natural sizing with scrollbar hiding */}
+            <div ref={mobileConversationContainerRef} className="overflow-y-auto scroll-smooth rounded-lg" style={{ minHeight: '180px', maxHeight: '320px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -2490,7 +2490,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Mobile Message Composer */}
-          <div className="border-t border-border/50 px-3 sm:px-5 lg:px-6 py-3 bg-background/90 backdrop-blur-sm">
+          <div className="border-t border-border/50 px-3 sm:px-5 lg:px-6 py-2 bg-background/90 backdrop-blur-sm">
             {/* Image Previews */}
             {mobileImages.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">

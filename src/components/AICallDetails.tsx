@@ -201,7 +201,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
           {/* Display corrected fields */}
           {correctedFields && Object.keys(correctedFields).length > 0 && (
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {correctedFields.address && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
                   <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
