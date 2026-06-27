@@ -2436,7 +2436,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="bg-card border border-border/50 rounded-xl p-1.5">
             <h3 className="text-xs font-semibold text-foreground mb-0.5">Conversation</h3>
             {/* Mobile Message Thread - Natural sizing with scrollbar hiding */}
-            <div ref={mobileConversationContainerRef} className="overflow-y-auto scroll-smooth rounded-lg" style={{ minHeight: '120px', maxHeight: '260px' }}>
+            <div ref={mobileConversationContainerRef} className="overflow-y-auto scroll-smooth rounded-lg" style={{ minHeight: '100px', maxHeight: '240px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -2464,24 +2464,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* Internal Notes Card - Single-line field */}
-          <div className="bg-card border border-border/50 rounded-xl p-2">
-            <h3 className="text-xs font-semibold text-foreground mb-1">Internal Notes</h3>
-            <textarea
-              value={internalNotes}
-              onChange={(e) => setInternalNotes(e.target.value)}
-              onBlur={handleSaveNotes}
-              placeholder="Add internal notes..."
-              className="w-full min-h-[36px] max-h-[80px] px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows={1}
-            />
-          </div>
-
-          {/* Mobile Message Composer */}
-          <div className="border-t border-border/50 px-3 sm:px-5 lg:px-6 py-1.5 bg-background/90 backdrop-blur-sm">
+          {/* Mobile Message Composer - Integrated with Conversation */}
+          <div className="bg-card border-t border-border/50 px-3 sm:px-5 lg:px-6 py-1.5">
             {/* Image Previews */}
             {mobileImages.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-2">
+              <div className="flex flex-wrap gap-2 mb-1.5">
                 {mobileImages.map((file, index) => (
                   <div key={index} className="relative group">
                     <img
@@ -2506,7 +2493,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 type="button"
                 onClick={() => mobileFileInputRef.current?.click()}
-                className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors flex-shrink-0"
+                className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors flex-shrink-0 h-10 flex items-center justify-center"
                 disabled={sending}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2526,13 +2513,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleMobileKeyDown}
                 placeholder="Type a message..."
-                className="flex-1 min-h-[44px] max-h-[120px] px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="flex-1 min-h-[40px] max-h-[120px] px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 rows={1}
               />
               <button
                 onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
                 disabled={(!message.trim() && mobileImages.length === 0) || sending}
-                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2 flex-shrink-0"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all flex items-center gap-2 flex-shrink-0 h-10"
               >
                 {sending ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -2546,6 +2533,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 )}
               </button>
             </div>
+          </div>
+
+          {/* Internal Notes Card - Lightweight utility */}
+          <div className="bg-card border border-border/50 rounded-xl p-1.5">
+            <h3 className="text-[10px] font-semibold text-foreground mb-0.5">Internal Notes</h3>
+            <textarea
+              value={internalNotes}
+              onChange={(e) => setInternalNotes(e.target.value)}
+              onBlur={handleSaveNotes}
+              placeholder="Add internal notes..."
+              className="w-full min-h-[32px] max-h-[72px] px-2 py-1.5 bg-background border border-border rounded-lg text-[11px] text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={1}
+            />
           </div>
         </div>
       </div>
