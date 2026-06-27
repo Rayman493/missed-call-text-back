@@ -2456,7 +2456,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Conversation Section - Self-contained messaging experience */}
-          <div className="bg-card border border-border/50 rounded-xl lg:hidden flex flex-col" style={{ height: '400px' }}>
+          <div className="bg-card border border-border/50 rounded-xl lg:hidden flex flex-col overflow-hidden" style={{ height: '400px' }}>
             <div className="px-3 py-2 flex-shrink-0">
               <h3 className="text-xs font-semibold text-foreground">Conversation</h3>
               {!loading && conversationTimeline.length > 0 && (
@@ -2465,32 +2465,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </p>
               )}
             </div>
-            {/* Mobile Message Thread - Scrollable inside card, anchored to bottom */}
-            <div ref={mobileConversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-3 flex flex-col justify-end min-h-0 overscroll-behavior-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-              ) : conversationTimeline.length === 0 ? (
-                <div className="text-center py-8 sm:py-12 animate-fadeIn">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
-                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
+            {/* Mobile Message Thread - Scrollable viewport */}
+            <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-behavior-contain" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
+              {/* Inner content wrapper for justify-end */}
+              <div className="min-h-full px-3 flex flex-col justify-end">
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   </div>
-                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-1 sm:mb-2">No Messages Yet</h3>
-                  <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">Send a message to start the conversation with this customer.</p>
-                </div>
-              ) : (
-                <MobileConversationMessageList
-                  messagesArray={messagesArray}
-                  conversationTimeline={conversationTimeline}
-                  sending={sending}
-                  handleRetry={handleRetry}
-                  getErrorMessage={getErrorMessage}
-                  renderAudio={false}
-                />
-              )}
+                ) : conversationTimeline.length === 0 ? (
+                  <div className="text-center py-8 sm:py-12 animate-fadeIn">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
+                      <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-1 sm:mb-2">No Messages Yet</h3>
+                    <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">Send a message to start the conversation with this customer.</p>
+                  </div>
+                ) : (
+                  <MobileConversationMessageList
+                    messagesArray={messagesArray}
+                    conversationTimeline={conversationTimeline}
+                    sending={sending}
+                    handleRetry={handleRetry}
+                    getErrorMessage={getErrorMessage}
+                    renderAudio={false}
+                  />
+                )}
+              </div>
             </div>
             {/* Divider - Softer for natural integration */}
             <div className="border-t border-border/20 flex-shrink-0"></div>
