@@ -74,7 +74,7 @@ export async function POST(request: Request) {
 
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id, user_id, stripe_connect_account_id, stripe_connect_status, stripe_charges_enabled, twilio_phone_number')
+      .select('id, user_id, stripe_connect_account_id, stripe_connect_status, stripe_charges_enabled, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status')
       .eq('id', business_id)
       .maybeSingle()
 
