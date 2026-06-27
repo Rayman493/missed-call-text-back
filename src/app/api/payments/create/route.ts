@@ -114,7 +114,7 @@ export async function POST(request: Request) {
 
     const { data: lead, error: leadError } = await supabase
       .from('leads')
-      .select('id, business_id, phone, name, raw_metadata')
+      .select('id, business_id, caller_phone, name, raw_metadata')
       .eq('id', lead_id)
       .maybeSingle()
 
@@ -281,7 +281,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         business_id: business_id,
-        to: lead.phone,
+        to: lead.caller_phone,
         body: smsMessage,
       }),
     })
