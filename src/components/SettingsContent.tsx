@@ -114,6 +114,9 @@ export default function SettingsContent() {
   const [phoneChangeError, setPhoneChangeError] = useState('')
   const [phoneCooldown, setPhoneCooldown] = useState<{ inCooldown: boolean; nextAvailableDate: string | null } | null>(null)
 
+  // Stripe Connect state
+  const [isConnectingStripe, setIsConnectingStripe] = useState(false)
+
   const supabase = createBrowserClient()
 
   // Time input refs for better UX
@@ -598,8 +601,8 @@ export default function SettingsContent() {
       return
     }
 
-    setPhoneChangeError('')
     setIsChangingPhone(true)
+    setPhoneChangeError('')
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -613,48 +616,86 @@ export default function SettingsContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           businessId: business.id,
-          phoneNumber: newPhoneNumber.trim()
-        })
+          newPhoneNumber: newPhoneNumber.trim(),
+        }),
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        if (response.status === 429) {
-          // Cooldown error
-          const nextDate = data.nextAvailableChangeDate
-            ? new Date(data.nextAvailableChangeDate).toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric'
-              })
-            : '7 days from now'
-          setPhoneChangeError(`This number was recently changed. You can update it again on ${nextDate}. Contact support if you need to switch sooner.`)
-        } else {
-          setPhoneChangeError(data.error || 'Failed to update phone number')
-        }
-        return
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to change phone number')
       }
 
-      // Success
-      showToast('Phone number updated successfully', 'success')
-      setShowPhoneChangeModal(false)
-      setNewPhoneNumber('')
-      refreshBusiness()
+      const data = await response.json()
       
-      // Redirect to forwarding review
-      setTimeout(() => {
-        router.push('/setup/phone-forwarding?mode=review')
-      }, 1500)
+      if (data.success) {
+        showToast('Phone number changed successfully', 'success')
+        setShowPhoneChangeModal(false)
+        setNewPhoneNumber('')
+        refreshBusiness()
+        // Check cooldown again
+        checkPhoneCooldown()
+      } else {
+        throw new Error(data.error || 'Failed to change phone number')
+      }
     } catch (error) {
       console.error('[Settings] Error changing phone number:', error)
-      setPhoneChangeError('An unexpected error occurred')
+      setPhoneChangeError(error instanceof Error ? error.message : 'Failed to change phone number')
     } finally {
       setIsChangingPhone(false)
+    }
+  }
+
+  // Handle Stripe Connect onboarding
+  const handleConnectStripe = async () => {
+    if (!business?.id) {
+      showToast('Business not found', 'error')
+      return
+    }
+
+    setIsConnectingStripe(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch('/api/stripe/connect/onboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          business_id: business.id,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to start Stripe onboarding')
+      }
+
+      const data = await response.json()
+      
+      if (data.connected) {
+        showToast('Stripe already connected', 'success')
+        refreshBusiness()
+      } else if (data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error('No onboarding URL returned')
+      }
+    } catch (error) {
+      console.error('[Settings] Error connecting Stripe:', error)
+      showToast(error instanceof Error ? error.message : 'Failed to connect Stripe', 'error')
+    } finally {
+      setIsConnectingStripe(false)
     }
   }
 
@@ -1021,6 +1062,16 @@ export default function SettingsContent() {
                   }`}
                 >
                   Integrations
+                </button>
+                <button
+                  onClick={() => handleSectionClick('payments')}
+                  className={`px-2 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
+                    activeSection === 'payments'
+                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                  }`}
+                >
+                  Payments
                 </button>
                 <button
                   onClick={() => handleSectionClick('contacts')}
@@ -1805,6 +1856,68 @@ export default function SettingsContent() {
                     <div className="mt-3 p-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                       <p className="text-xs text-blue-700 dark:text-blue-300">
                         <span className="font-semibold">Coming soon:</span> Automatic calendar event creation for scheduled follow-ups and appointment reminders.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Payments Section */}
+              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[220px]">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Payments</h2>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Request and receive payments from customers directly in ReplyFlow.</p>
+                
+                {/* Stripe Connect Card */}
+                <div className="p-2 sm:p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
+                  <div className="flex items-start justify-between mb-2 sm:mb-3">
+                    <div className="flex-1 pr-3 sm:pr-4">
+                      <div className="flex items-center gap-2 sm:gap-2.5 mb-0.5 sm:mb-1">
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Stripe Connect</h3>
+                        {business?.stripe_connect_status === 'connected' && (
+                          <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
+                            <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                            Connected
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
+                        Connect your Stripe account to request and receive payments from customers via text message.
+                      </p>
+                      {business?.stripe_connect_status === 'connected' && (
+                        <div className="mt-2 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
+                          {business.stripe_charges_enabled && <div className="flex items-center gap-1"><span className="w-1 h-1 bg-green-500 rounded-full"></span>Charges enabled</div>}
+                          {business.stripe_payouts_enabled && <div className="flex items-center gap-1"><span className="w-1 h-1 bg-green-500 rounded-full"></span>Payouts enabled</div>}
+                        </div>
+                      )}
+                    </div>
+                    {!isConnectingStripe && (
+                      <button
+                        onClick={handleConnectStripe}
+                        disabled={isConnectingStripe}
+                        className={`flex-shrink-0 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2 ${
+                          business?.stripe_connect_status === 'connected'
+                            ? 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                        }`}
+                      >
+                        {business?.stripe_connect_status === 'connected' ? 'Manage' : 'Connect'}
+                      </button>
+                    )}
+                  </div>
+                  {business?.stripe_connect_status === 'pending' && (
+                    <div className="mt-3 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        <span className="font-semibold">Setup in progress:</span> Complete the Stripe onboarding to start receiving payments.
+                      </p>
+                    </div>
+                  )}
+                  {!business?.stripe_connect_status || business.stripe_connect_status === 'not_connected' && (
+                    <div className="mt-3 p-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        <span className="font-semibold">Ready to accept payments:</span> Connect your Stripe account to request payments from customers via SMS.
                       </p>
                     </div>
                   )}

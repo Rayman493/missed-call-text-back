@@ -543,6 +543,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       })
     }
     
+    // Add Payment Request events
+    const paymentRequests = leadData?.paymentRequests || []
+    if (paymentRequests.length > 0) {
+      paymentRequests.forEach((pr: any) => {
+        if (pr.status === 'paid') {
+          systemEvents.push({
+            type: 'system_event',
+            id: `payment-paid-${pr.id}`,
+            created_at: pr.paid_at || pr.updated_at,
+            data: {
+              message: `Payment Received: $${(pr.amount_cents / 100).toFixed(2)}`,
+              timestamp: pr.paid_at || pr.updated_at,
+              isDivider: true
+            }
+          })
+        } else if (pr.status === 'pending') {
+          systemEvents.push({
+            type: 'system_event',
+            id: `payment-requested-${pr.id}`,
+            created_at: pr.created_at,
+            data: {
+              message: `Payment Requested: $${(pr.amount_cents / 100).toFixed(2)}`,
+              timestamp: pr.created_at
+            }
+          })
+        }
+      })
+    }
+    
     // Add Lead Marked Complete event
     if (leadData?.status === 'completed') {
       systemEvents.push({
@@ -766,6 +795,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [showRemoveModal, setShowRemoveModal] = useState(false)
   const [isRemoving, setIsRemoving] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
+
+  // State for payment modal
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentDescription, setPaymentDescription] = useState('')
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false)
 
   // Handle ignore contact
   const handleIgnoreContact = async () => {
@@ -1794,6 +1829,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </span>
                   )}
 
+                  {/* Payment Badge */}
+                  {leadData?.payment_status === 'paid' && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 flex-shrink-0">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                      <span>Paid</span>
+                    </span>
+                  )}
+                  {leadData?.payment_status === 'pending' && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex-shrink-0">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>Payment Pending</span>
+                    </span>
+                  )}
+
                   {/* Quick Actions */}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {/* Primary Action: Message */}
@@ -1831,6 +1884,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                       <span className="hidden sm:inline">Schedule</span>
+                    </button>
+                    <button
+                      onClick={() => setShowPaymentModal(true)}
+                      disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors border border-slate-200 dark:border-slate-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Request payment"
+                      title={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' ? 'Connect Stripe in Settings to request payments' : 'Request payment'}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                      <span className="hidden sm:inline">Request Payment</span>
                     </button>
                     
                     {/* Separator */}
@@ -2330,6 +2395,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
                 <span>Text</span>
+              </button>
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium rounded-full transition-colors border border-purple-200 dark:border-purple-800 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' ? 'Connect Stripe in Settings to request payments' : 'Request payment'}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                <span>Pay</span>
               </button>
               <button
                 onClick={() => setShowLeadInfo(!showLeadInfo)}
@@ -3036,6 +3112,130 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
     </main>
+
+    {/* Payment Request Modal */}
+    {showPaymentModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+            Request Payment
+          </h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+            Send a payment request to {lead?.name || 'this customer'} via text message.
+          </p>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
+                Amount (USD)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                <input
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0.01"
+                  className="w-full pl-8 pr-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
+                Description
+              </label>
+              <textarea
+                value={paymentDescription}
+                onChange={(e) => setPaymentDescription(e.target.value)}
+                placeholder="Service payment"
+                rows={3}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none"
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                This will be prefilled from the service requested when available.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 justify-end mt-6">
+            <button
+              onClick={() => {
+                setShowPaymentModal(false)
+                setPaymentAmount('')
+                setPaymentDescription('')
+              }}
+              disabled={isCreatingPayment}
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+                  setError('Please enter a valid amount')
+                  return
+                }
+
+                setIsCreatingPayment(true)
+                try {
+                  const { data: { session } } = await supabase.auth.getSession()
+                  const token = session?.access_token
+
+                  if (!token) {
+                    throw new Error('Not authenticated')
+                  }
+
+                  const response = await fetch('/api/payments/create', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      business_id: business?.id,
+                      lead_id: lead?.id,
+                      conversation_id: leadData?.conversations?.[0]?.id,
+                      amount_cents: Math.round(parseFloat(paymentAmount) * 100),
+                      description: paymentDescription || undefined,
+                    }),
+                  })
+
+                  if (!response.ok) {
+                    const error = await response.json()
+                    throw new Error(error.error || 'Failed to create payment request')
+                  }
+
+                  const data = await response.json()
+                  setShowPaymentModal(false)
+                  setPaymentAmount('')
+                  setPaymentDescription('')
+                  setSuccessMessage('Payment request sent successfully')
+                  
+                  // Refresh lead data
+                  const updatedData = await getLeadDetails(lead?.id)
+                  if (updatedData) {
+                    setLeadData(updatedData)
+                  }
+                } catch (error) {
+                  console.error('Error creating payment request:', error)
+                  setError(error instanceof Error ? error.message : 'Failed to create payment request')
+                } finally {
+                  setIsCreatingPayment(false)
+                }
+              }}
+              disabled={isCreatingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isCreatingPayment ? 'Creating...' : 'Send Payment Request'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
     <PhotoModal
       imageUrl={selectedPhotoUrl}
       isOpen={photoModalOpen}

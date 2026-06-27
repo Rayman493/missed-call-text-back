@@ -167,6 +167,13 @@ export async function GET(request: NextRequest) {
       .eq("lead_id", leadId)
       .order("created_at", { ascending: false })
 
+    // Fetch payment requests for this lead with RLS protection
+    const { data: paymentRequests } = await supabase
+      .from("payment_requests")
+      .select("*")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false })
+
     // Attach media to messages
     const messagesWithMedia = (messages || []).map(message => ({
       ...message,
@@ -185,7 +192,8 @@ export async function GET(request: NextRequest) {
         messages: messagesWithMedia,
         voicemailRecordings: voicemailRecordings || [],
         followUpJobs: followUpJobs || [],
-        aiCallRecords: aiCallRecords || []
+        aiCallRecords: aiCallRecords || [],
+        paymentRequests: paymentRequests || []
       }
     }
 

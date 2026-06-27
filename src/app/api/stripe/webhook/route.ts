@@ -1028,6 +1028,170 @@ export async function POST(request: Request) {
         break
       }
 
+      // Payment-related events for Stripe Connect
+      case 'checkout.session.completed': {
+        console.log('[PAYMENT WEBHOOK] ========== CHECKOUT.SESSION.COMPLETED START ==========')
+        
+        const session = event.data.object as Stripe.Checkout.Session
+        const paymentIntentId = session.payment_intent as string
+        const metadata = session.metadata || {}
+        
+        console.log('[PAYMENT WEBHOOK] Session ID:', session.id)
+        console.log('[PAYMENT WEBHOOK] Payment Intent ID:', paymentIntentId)
+        console.log('[PAYMENT WEBHOOK] Metadata:', metadata)
+
+        // Check if this is a payment request (has payment_request_id in metadata)
+        const paymentRequestId = metadata.payment_request_id
+        if (!paymentRequestId) {
+          console.log('[PAYMENT WEBHOOK] Not a payment request, skipping')
+          break
+        }
+
+        // Update payment_request record
+        const { data: paymentRequest, error: paymentRequestError } = await supabase
+          .from('payment_requests')
+          .select('id, lead_id, business_id, status')
+          .eq('stripe_checkout_session_id', session.id)
+          .single()
+
+        if (paymentRequestError || !paymentRequest) {
+          console.error('[PAYMENT WEBHOOK] Payment request not found:', paymentRequestError)
+          break
+        }
+
+        console.log('[PAYMENT WEBHOOK] Found payment request:', paymentRequest.id)
+
+        // Update payment request status
+        const { error: updateError } = await supabase
+          .from('payment_requests')
+          .update({
+            status: 'paid',
+            paid_at: new Date().toISOString(),
+          })
+          .eq('id', paymentRequest.id)
+
+        if (updateError) {
+          console.error('[PAYMENT WEBHOOK] Failed to update payment request:', updateError)
+        } else {
+          console.log('[PAYMENT WEBHOOK] Updated payment request to paid')
+        }
+
+        // Update lead payment status
+        await supabase
+          .from('leads')
+          .update({
+            payment_status: 'paid',
+            last_payment_paid_at: new Date().toISOString(),
+          })
+          .eq('id', paymentRequest.lead_id)
+
+        console.log('[PAYMENT WEBHOOK] ========== CHECKOUT.SESSION.COMPLETED END ==========')
+        break
+      }
+
+      case 'checkout.session.expired': {
+        console.log('[PAYMENT WEBHOOK] ========== CHECKOUT.SESSION.EXPIRED START ==========')
+        
+        const session = event.data.object as Stripe.Checkout.Session
+        const metadata = session.metadata || {}
+        const paymentRequestId = metadata.payment_request_id
+
+        if (!paymentRequestId) {
+          console.log('[PAYMENT WEBHOOK] Not a payment request, skipping')
+          break
+        }
+
+        // Update payment request status
+        const { error: updateError } = await supabase
+          .from('payment_requests')
+          .update({
+            status: 'expired',
+            expires_at: new Date().toISOString(),
+          })
+          .eq('stripe_checkout_session_id', session.id)
+
+        if (updateError) {
+          console.error('[PAYMENT WEBHOOK] Failed to update payment request:', updateError)
+        } else {
+          console.log('[PAYMENT WEBHOOK] Updated payment request to expired')
+        }
+
+        // Update lead payment status if this was the most recent payment request
+        const { data: paymentRequest } = await supabase
+          .from('payment_requests')
+          .select('lead_id')
+          .eq('stripe_checkout_session_id', session.id)
+          .single()
+
+        if (paymentRequest) {
+          const { data: lead } = await supabase
+            .from('leads')
+            .select('last_payment_request_id')
+            .eq('id', paymentRequest.lead_id)
+            .single()
+
+          if (lead && lead.last_payment_request_id === paymentRequestId) {
+            await supabase
+              .from('leads')
+              .update({ payment_status: 'cancelled' })
+              .eq('id', paymentRequest.lead_id)
+          }
+        }
+
+        console.log('[PAYMENT WEBHOOK] ========== CHECKOUT.SESSION.EXPIRED END ==========')
+        break
+      }
+
+      case 'account.updated': {
+        console.log('[STRIPE CONNECT] ========== ACCOUNT.UPDATED START ==========')
+        
+        const account = event.data.object as Stripe.Account
+        const accountId = account.id
+        const metadata = account.metadata || {}
+        const businessId = metadata.business_id
+
+        console.log('[STRIPE CONNECT] Account ID:', accountId)
+        console.log('[STRIPE CONNECT] Business ID:', businessId)
+        console.log('[STRIPE CONNECT] Charges enabled:', account.charges_enabled)
+        console.log('[STRIPE CONNECT] Payouts enabled:', account.payouts_enabled)
+        console.log('[STRIPE CONNECT] Details submitted:', account.details_submitted)
+
+        if (!businessId) {
+          console.log('[STRIPE CONNECT] No business_id in metadata, skipping')
+          break
+        }
+
+        // Update business Stripe Connect status
+        const updateData: any = {
+          stripe_charges_enabled: account.charges_enabled,
+          stripe_payouts_enabled: account.payouts_enabled,
+          stripe_details_submitted: account.details_submitted,
+        }
+
+        // Determine overall status
+        if (account.charges_enabled && account.payouts_enabled) {
+          updateData.stripe_connect_status = 'connected'
+        } else if (account.details_submitted) {
+          updateData.stripe_connect_status = 'pending'
+        } else {
+          updateData.stripe_connect_status = 'not_connected'
+        }
+
+        const { error: updateError } = await supabase
+          .from('businesses')
+          .update(updateData)
+          .eq('id', businessId)
+
+        if (updateError) {
+          console.error('[STRIPE CONNECT] Failed to update business:', updateError)
+        } else {
+          console.log('[STRIPE CONNECT] Updated business Stripe Connect status')
+        }
+
+        console.log('[STRIPE CONNECT] ========== ACCOUNT.UPDATED END ==========')
+        break
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`)
     }

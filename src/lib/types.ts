@@ -107,6 +107,13 @@ export interface Business {
   twilio_release_reason?: string | null;
   twilio_release_grace_days?: number | null;
 
+  // Stripe Connect fields
+  stripe_connect_account_id?: string | null;
+  stripe_connect_status?: 'not_connected' | 'pending' | 'connected' | 'restricted' | string | null;
+  stripe_charges_enabled?: boolean | null;
+  stripe_payouts_enabled?: boolean | null;
+  stripe_details_submitted?: boolean | null;
+
   created_at: string;
   updated_at?: string;
 }
@@ -115,6 +122,7 @@ export interface Lead {
   id: string;
   business_id: string;
   caller_phone: string;
+  phone?: string | null;
   name?: string | null;
   email?: string | null;
   source?: string;
@@ -127,6 +135,13 @@ export interface Lead {
   last_message_at?: string | null;
   last_reply_at?: string | null;
   opted_out?: boolean;
+  
+  // Payment status fields
+  payment_status?: 'none' | 'pending' | 'paid' | 'failed' | 'cancelled' | string | null;
+  last_payment_request_id?: string | null;
+  last_payment_amount_cents?: number | null;
+  last_payment_requested_at?: string | null;
+  last_payment_paid_at?: string | null;
 }
 
 export interface Message {
