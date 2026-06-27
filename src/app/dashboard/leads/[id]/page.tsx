@@ -127,10 +127,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [messageMedia, setMessageMedia] = useState<Record<string, { urls: string[]; types: string[] }>>({})
   const [showAllPhotos, setShowAllPhotos] = useState(false)
   const [collapsedSections, setCollapsedSections] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('leadDetailsCollapsedSections')
-      if (saved) {
+    // Guard against SSR
+    if (typeof window === 'undefined') {
+      return {
+        photos: true,
+        activity: true,
+        automation: true,
+        leadHealth: false,
+        quickActions: true,
+        aiIntake: true // Default to collapsed
+      }
+    }
+    const saved = localStorage.getItem('leadDetailsCollapsedSections')
+    if (saved) {
+      try {
         return JSON.parse(saved)
+      } catch {
+        return {
+          photos: true,
+          activity: true,
+          automation: true,
+          leadHealth: false,
+          quickActions: true,
+          aiIntake: true
+        }
       }
     }
     return {

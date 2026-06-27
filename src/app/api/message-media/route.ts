@@ -30,22 +30,46 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // Verify message belongs to user's business
+    // Verify message belongs to user's business through conversation relationship
+    // Production schema: messages → conversation → business
     const { data: message, error: messageError } = await supabase
       .from('messages')
-      .select('id, business_id')
+      .select('id, conversation_id')
       .eq('id', messageId)
-      .single()
+      .maybeSingle()
 
-    if (messageError || !message) {
-      console.error('[MESSAGE MEDIA API ERROR] Message not found:', messageError)
+    if (messageError) {
+      console.error('[MESSAGE MEDIA API ERROR] Message lookup error:', messageError)
+      return NextResponse.json({ error: 'Message lookup error' }, { status: 500 })
+    }
+
+    if (!message) {
+      console.error('[MESSAGE MEDIA API ERROR] Message not found')
       return NextResponse.json({ error: 'Message not found' }, { status: 404 })
     }
 
-    if (message.business_id !== business.id) {
+    // Verify conversation belongs to user's business
+    const { data: conversation, error: conversationError } = await supabase
+      .from('conversations')
+      .select('id, business_id')
+      .eq('id', message.conversation_id)
+      .maybeSingle()
+
+    if (conversationError) {
+      console.error('[MESSAGE MEDIA API ERROR] Conversation lookup error:', conversationError)
+      return NextResponse.json({ error: 'Conversation lookup error' }, { status: 500 })
+    }
+
+    if (!conversation) {
+      console.error('[MESSAGE MEDIA API ERROR] Conversation not found')
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+    }
+
+    if (conversation.business_id !== business.id) {
       console.error('[MESSAGE MEDIA API ERROR] Message does not belong to user\'s business', {
         messageId,
-        messageBusinessId: message.business_id,
+        conversationId: message.conversation_id,
+        conversationBusinessId: conversation.business_id,
         userBusinessId: business.id
       })
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
