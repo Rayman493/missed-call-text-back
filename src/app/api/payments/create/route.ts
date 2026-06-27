@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import Stripe from 'stripe'
 import getStripe from '@/lib/stripe'
+import { sendSms } from '@/lib/twilio'
 
 export const dynamic = 'force-dynamic'
 
@@ -270,25 +271,30 @@ export async function POST(request: Request) {
       })
       .eq('id', lead_id)
 
-    // Send SMS with Checkout link
+    // Send SMS with Checkout link using shared Twilio helper
     const customerName = lead.raw_metadata?.extracted_info?.callerName || 'Customer'
     const smsMessage = `Hi ${customerName},\n\nYou can securely pay for your service here:\n\n${checkoutSession.url}\n\nThank you!`
 
-    const smsResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-sms`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        business_id: business_id,
-        to: lead.caller_phone,
-        body: smsMessage,
-      }),
+    console.log('[PAYMENT REQUEST] Sending payment link SMS using Twilio helper')
+
+    const smsResult = await sendSms(business, lead.caller_phone, smsMessage, {
+      lead_id: lead_id,
+      conversation_id: conversation_id,
+      source: 'payment_request',
     })
 
-    if (!smsResponse.ok) {
-      console.error('[PAYMENT REQUEST] Failed to send SMS')
-      // Don't fail the request if SMS fails, but log it
+    if (!smsResult.sid) {
+      console.error('[PAYMENT REQUEST] Failed to send SMS payment link')
+      // Payment request was created but SMS failed - return partial success
+      return NextResponse.json({
+        payment_request_id: paymentRequest.id,
+        checkout_url: checkoutSession.url,
+        status: 'pending',
+        sms_sent: false,
+        warning: 'Payment request created, but SMS failed to send. The customer can still pay using the checkout URL.',
+      })
+    } else {
+      console.log('[PAYMENT REQUEST] SMS sent successfully:', smsResult.sid)
     }
 
     console.log('[PAYMENT REQUEST] Payment request created successfully')
@@ -297,6 +303,7 @@ export async function POST(request: Request) {
       payment_request_id: paymentRequest.id,
       checkout_url: checkoutSession.url,
       status: 'pending',
+      sms_sent: true,
     })
   } catch (error) {
     console.error('[PAYMENT REQUEST] Error:', error)
