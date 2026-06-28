@@ -1053,9 +1053,9 @@ export default function LeadsPage() {
                         href={`/dashboard/leads/${lead.id}`}
                         prefetch={false}
                         onClick={() => handleConversationClick(lead.id)}
-                        className="w-full max-w-2xl bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 overflow-hidden group cursor-pointer"
+                        className="w-full max-w-2xl h-full flex flex-col bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 overflow-hidden group cursor-pointer"
                       >
-                        <div className="p-4 sm:p-5">
+                        <div className="p-4 sm:p-5 flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
                           <div className="flex items-start justify-between mb-3 sm:mb-4">
                             <div className="flex-1 min-w-0">
@@ -1074,7 +1074,7 @@ export default function LeadsPage() {
                           </div>
 
                           {/* Compact Preview */}
-                          <div className="mb-3 sm:mb-4 space-y-1.5 sm:space-y-2">
+                          <div className="mb-3 sm:mb-4 space-y-1.5 sm:space-y-2 flex-1">
                             {aiData.reason && (
                               <div className="flex items-center gap-2">
                                 <span className="text-sm">📋</span>
@@ -1142,7 +1142,7 @@ export default function LeadsPage() {
                           </div>
 
                           {/* Action Buttons - Improved mobile touch targets */}
-                          <div className="flex items-center gap-2 sm:gap-3 pt-3 border-t border-slate-700/50">
+                          <div className="flex items-center gap-2 sm:gap-3 pt-3 border-t border-slate-700/50 mt-auto">
                             {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
                               <a
                                 href={`tel:${lead.caller_phone}`}
