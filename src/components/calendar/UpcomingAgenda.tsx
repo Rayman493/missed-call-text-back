@@ -91,11 +91,21 @@ export default function UpcomingAgenda({ events, maxEvents = 5, onRefresh, calen
   const formatTime = (dateStr: string | undefined) => {
     if (!dateStr) return ''
     const date = new Date(dateStr)
-    return date.toLocaleTimeString('en-US', { 
+    
+    const formatted = date.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
       minute: '2-digit',
       hour12: true 
     })
+    
+    console.log('[UPCOMING AGENDA] formatTime:', {
+      input: dateStr,
+      parsedDate: date.toString(),
+      formattedOutput: formatted,
+      timezoneOffset: date.getTimezoneOffset()
+    })
+    
+    return formatted
   }
 
   const isAllDay = (start: { dateTime?: string; date?: string }) => {

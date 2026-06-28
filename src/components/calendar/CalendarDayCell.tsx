@@ -5,6 +5,7 @@ interface CalendarDayCellProps {
   isCurrentMonth: boolean
   isToday: boolean
   isSelected?: boolean
+  isWeekend?: boolean
   events?: ReactNode
   overflowCount?: number
   onClick?: () => void
@@ -15,6 +16,7 @@ export default function CalendarDayCell({
   isCurrentMonth,
   isToday,
   isSelected,
+  isWeekend = false,
   events,
   overflowCount,
   onClick
@@ -25,7 +27,9 @@ export default function CalendarDayCell({
       className={`
         min-h-[56px] sm:min-h-[63px] md:min-h-[81px] p-1.5 sm:p-1.5 md:p-2.5 rounded-sm border transition-all duration-150 cursor-pointer active:scale-95
         ${isCurrentMonth
-          ? 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md hover:scale-[1.02]'
+          ? isWeekend
+            ? 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md hover:scale-[1.02]'
+            : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md hover:scale-[1.02]'
           : 'bg-slate-50 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800/50 opacity-50'
         }
         ${isToday

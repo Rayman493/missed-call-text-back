@@ -202,12 +202,19 @@ export default function CalendarGrid({
           const { events: dayEvents, overflowCount } = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
           const dayDate = dayInfo.isCurrentMonth ? new Date(year, monthIndex, dayInfo.day) : null
           
+          // Calculate if this is a weekend (Saturday or Sunday)
+          // Grid starts with Sunday (index 0), so:
+          // Sunday: index % 7 === 0
+          // Saturday: index % 7 === 6
+          const isWeekend = index % 7 === 0 || index % 7 === 6
+          
           return (
             <CalendarDayCell
               key={index}
               day={dayInfo.day}
               isCurrentMonth={dayInfo.isCurrentMonth}
               isToday={dayInfo.isToday}
+              isWeekend={isWeekend}
               events={
                 dayEvents.length > 0 ? (
                   <>

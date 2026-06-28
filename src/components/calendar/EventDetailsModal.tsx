@@ -35,7 +35,17 @@ export default function EventDetailsModal({ isOpen, onClose, event }: EventDetai
     if (date) return 'All day'
     if (!dateTime) return ''
     const d = new Date(dateTime)
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    
+    const formatted = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    
+    console.log('[EVENT DETAILS MODAL] formatTime:', {
+      input: dateTime,
+      parsedDate: d.toString(),
+      formattedOutput: formatted,
+      timezoneOffset: d.getTimezoneOffset()
+    })
+    
+    return formatted
   }
 
   const formatTimeRange = () => {

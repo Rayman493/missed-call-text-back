@@ -243,12 +243,15 @@ export default function CalendarPage() {
       }
 
       const data = await response.json()
+      
+      // Set connection status first
       setCalendarConnected(data.connected || false)
       setCalendarEmail(data.calendarEmail || null)
       if (data.connectedAt) {
         setLastSyncTime(new Date(data.connectedAt))
       }
 
+      // Only clear loading state after connection status is determined
       setIsLoading(false)
       setIsInitialLoad(false)
 
@@ -360,11 +363,21 @@ export default function CalendarPage() {
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return ''
     const date = new Date(dateStr)
-    return date.toLocaleTimeString('en-US', { 
+    
+    const formatted = date.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
       minute: '2-digit',
       hour12: true 
     })
+    
+    console.log('[CALENDAR PAGE] formatDate:', {
+      input: dateStr,
+      parsedDate: date.toString(),
+      formattedOutput: formatted,
+      timezoneOffset: date.getTimezoneOffset()
+    })
+    
+    return formatted
   }
 
   const formatTimeAgo = (date: Date) => {
@@ -626,6 +639,36 @@ export default function CalendarPage() {
                         </div>
                       </div>
 
+                      {/* Calendar Header with Sync Button */}
+                      <div className="flex items-center justify-between gap-4 mb-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-green-500 rounded-full"></div>
+                          <div>
+                            <p className="text-xs sm:text-sm font-semibold text-foreground">Google Calendar</p>
+                            {calendarEmail && (
+                              <p className="text-[10px] sm:text-xs text-slate-400">{calendarEmail}</p>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={handleSync}
+                          disabled={isSyncing}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                        >
+                          {isSyncing ? (
+                            <>
+                              <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                              <span>Syncing...</span>
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5" />
+                              <span>Sync</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
                       {/* View Mode Toggle - Desktop - Simplified */}
                       <div className="hidden md:block mb-4">
                         <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit">
@@ -754,43 +797,24 @@ export default function CalendarPage() {
                           </div>
                         </div>
 
-                        {/* Google Calendar Controls - Improved mobile spacing */}
+                        {/* Google Calendar Controls - Simplified (email only, sync moved to top) */}
                         <div className="p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-slate-700/50 shadow-sm mt-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-green-500 rounded-full"></div>
-                              <div>
-                                <p className="text-xs font-semibold text-foreground">Google Calendar</p>
-                                {calendarEmail && (
-                                  <p className="text-[10px] text-slate-400">{calendarEmail}</p>
-                                )}
-                              </div>
-                            </div>
-                            <button
-                              onClick={handleSync}
-                              disabled={isSyncing}
-                              className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
-                            >
-                              {isSyncing ? (
-                                <>
-                                  <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                                  <span>Syncing...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw className="w-3.5 h-3.5" />
-                                  <span>Sync</span>
-                                </>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-green-500 rounded-full"></div>
+                            <div>
+                              <p className="text-xs font-semibold text-foreground">Google Calendar</p>
+                              {calendarEmail && (
+                                <p className="text-[10px] text-slate-400">{calendarEmail}</p>
                               )}
-                            </button>
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Floating Add Event button for mobile - Improved positioning to avoid overlap */}
+                      {/* Floating Add Event button for mobile - returned to natural bottom-right position */}
                       <button
                         onClick={() => handleAddEvent()}
-                        className="md:hidden fixed bottom-24 sm:bottom-28 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40 pb-safe"
+                        className="md:hidden fixed bottom-20 sm:bottom-24 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40 pb-safe"
                         aria-label="Add event"
                       >
                         <Plus className="w-6 h-6" />

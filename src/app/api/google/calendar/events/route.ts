@@ -264,13 +264,22 @@ export async function GET(request: NextRequest) {
 
     // Normalize primary events
     const primaryEvents = (eventsData.items || []).map((event: any) => {
-      console.log('[Google Calendar Events] Raw event from Google:', {
+      console.log('[Google Calendar Events] RAW GOOGLE API EVENT:', {
         id: event.id,
         summary: event.summary,
-        start: event.start,
-        end: event.end
+        start: {
+          dateTime: event.start?.dateTime,
+          date: event.start?.date,
+          timeZone: event.start?.timeZone
+        },
+        end: {
+          dateTime: event.end?.dateTime,
+          date: event.end?.date,
+          timeZone: event.end?.timeZone
+        }
       })
-      return {
+      
+      const normalizedEvent = {
         id: event.id,
         summary: event.summary || 'No title',
         description: event.description || null,
@@ -281,6 +290,15 @@ export async function GET(request: NextRequest) {
         source: 'primary' as const,
         isHoliday: false
       }
+      
+      console.log('[Google Calendar Events] NORMALIZED EVENT:', {
+        id: normalizedEvent.id,
+        summary: normalizedEvent.summary,
+        start: normalizedEvent.start,
+        end: normalizedEvent.end
+      })
+      
+      return normalizedEvent
     })
 
     // Normalize holiday events
