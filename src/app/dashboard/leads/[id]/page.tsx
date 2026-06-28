@@ -1852,7 +1852,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Secondary Actions - Simplified */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 relative">
               <button
                 onClick={handleScheduleClick}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm font-medium"
