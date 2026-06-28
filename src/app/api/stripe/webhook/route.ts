@@ -1031,17 +1031,21 @@ export async function POST(request: Request) {
       // Payment-related events for Stripe Connect
       case 'checkout.session.completed': {
         console.log('[PAYMENT WEBHOOK] ========== CHECKOUT.SESSION.COMPLETED START ==========')
+        console.log('[PAYMENT WEBHOOK] Event type:', event.type)
         
         const session = event.data.object as Stripe.Checkout.Session
+        const sessionId = session.id
         const paymentIntentId = session.payment_intent as string
         const metadata = session.metadata || {}
         
-        console.log('[PAYMENT WEBHOOK] Session ID:', session.id)
+        console.log('[PAYMENT WEBHOOK] Checkout session ID:', sessionId)
         console.log('[PAYMENT WEBHOOK] Payment Intent ID:', paymentIntentId)
         console.log('[PAYMENT WEBHOOK] Metadata:', metadata)
 
         // Check if this is a payment request (has payment_request_id in metadata)
         const paymentRequestId = metadata.payment_request_id
+        console.log('[PAYMENT WEBHOOK] Payment request ID:', paymentRequestId)
+        
         if (!paymentRequestId) {
           console.log('[PAYMENT WEBHOOK] Not a payment request, skipping')
           break
@@ -1062,41 +1066,74 @@ export async function POST(request: Request) {
         console.log('[PAYMENT WEBHOOK] Found payment request:', paymentRequest.id)
 
         // Update payment request status
+        const updatePayload: any = {
+          status: 'paid'
+        }
+        
+        // Only set paid_at if column exists in production
+        try {
+          const { error: testError } = await supabase
+            .from('payment_requests')
+            .select('paid_at')
+            .limit(1)
+            .single()
+          
+          if (!testError) {
+            updatePayload.paid_at = new Date().toISOString()
+          }
+        } catch (e) {
+          console.log('[PAYMENT WEBHOOK] paid_at column may not exist, skipping')
+        }
+
+        console.log('[PAYMENT WEBHOOK] Updating payment request with payload:', updatePayload)
+        
         const { error: updateError } = await supabase
           .from('payment_requests')
-          .update({
-            status: 'paid',
-            paid_at: new Date().toISOString(),
-          })
+          .update(updatePayload)
           .eq('id', paymentRequest.id)
 
         if (updateError) {
           console.error('[PAYMENT WEBHOOK] Failed to update payment request:', updateError)
+          console.error('[PAYMENT WEBHOOK] Error code:', updateError.code)
+          console.error('[PAYMENT WEBHOOK] Error message:', updateError.message)
         } else {
-          console.log('[PAYMENT WEBHOOK] Updated payment request to paid')
+          console.log('[PAYMENT WEBHOOK] Successfully updated payment request to paid')
         }
 
-        // Update lead payment status and lead status
-        const leadStatusUpdate: any = {
-          payment_status: 'paid',
-          last_payment_paid_at: new Date().toISOString(),
+        // Update lead status to paid (optional - don't fail if this fails)
+        try {
+          const { data: lead } = await supabase
+            .from('leads')
+            .select('id, status')
+            .eq('id', paymentRequest.lead_id)
+            .single()
+
+          if (lead) {
+            console.log('[PAYMENT WEBHOOK] Found lead:', lead.id, 'current status:', lead.status)
+            
+            if (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active') {
+              const { error: leadUpdateError } = await supabase
+                .from('leads')
+                .update({ status: 'paid' })
+                .eq('id', paymentRequest.lead_id)
+
+              if (leadUpdateError) {
+                console.error('[PAYMENT WEBHOOK] Failed to update lead status:', leadUpdateError)
+                console.error('[PAYMENT WEBHOOK] Error code:', leadUpdateError.code)
+                console.error('[PAYMENT WEBHOOK] Error message:', leadUpdateError.message)
+              } else {
+                console.log('[PAYMENT WEBHOOK] Successfully updated lead status to paid')
+              }
+            } else {
+              console.log('[PAYMENT WEBHOOK] Lead status not eligible for update, skipping')
+            }
+          } else {
+            console.log('[PAYMENT WEBHOOK] Lead not found, skipping lead update')
+          }
+        } catch (leadError) {
+          console.error('[PAYMENT WEBHOOK] Exception during lead update (non-critical):', leadError)
+          // Don't fail webhook for lead update errors
         }
-
-        // Update lead status to paid only if current status is payment_requested
-        const { data: lead } = await supabase
-          .from('leads')
-          .select('id, status')
-          .eq('id', paymentRequest.lead_id)
-          .single()
-
-        if (lead && (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active')) {
-          leadStatusUpdate.status = 'paid'
-        }
-
-        await supabase
-          .from('leads')
-          .update(leadStatusUpdate)
-          .eq('id', paymentRequest.lead_id)
 
         // Mark event as processed
         await markEventProcessed(supabase, event.id, event.type, paymentRequest.business_id)
