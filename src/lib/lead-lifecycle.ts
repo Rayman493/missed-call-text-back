@@ -32,8 +32,8 @@ export const LEAD_LIFECYCLE_CONFIG: Record<LeadLifecycleStatus, LeadLifecycleCon
     description: 'Appointment scheduled'
   },
   payment_requested: {
-    color: 'text-yellow-700 dark:text-yellow-300',
-    bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+    color: 'text-amber-700 dark:text-amber-300',
+    bgColor: 'bg-amber-100 dark:bg-amber-900/30',
     label: 'Payment Requested',
     description: 'Payment request sent'
   },

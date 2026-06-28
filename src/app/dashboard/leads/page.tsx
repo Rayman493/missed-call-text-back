@@ -1233,6 +1233,7 @@ export default function LeadsPage() {
                             <div className="relative">
                               <button
                                 onClick={(e) => {
+                                  e.preventDefault()
                                   e.stopPropagation()
                                   setCardOverflowMenu(cardOverflowMenu === lead.id ? null : lead.id)
                                 }}
@@ -1256,6 +1257,7 @@ export default function LeadsPage() {
                                     {getLeadLifecycleStatus(lead) !== 'ignored' && (
                                       <button
                                         onClick={(e) => {
+                                          e.preventDefault()
                                           e.stopPropagation()
                                           handleIgnoreLead(lead.id)
                                           setCardOverflowMenu(null)
@@ -1271,6 +1273,7 @@ export default function LeadsPage() {
                                     {getLeadLifecycleStatus(lead) === 'ignored' && (
                                       <button
                                         onClick={(e) => {
+                                          e.preventDefault()
                                           e.stopPropagation()
                                           handleLeadStatusChange(lead.id, 'active')
                                           setCardOverflowMenu(null)
@@ -1436,6 +1439,7 @@ export default function LeadsPage() {
                                 <div className="relative">
                                   <button
                                     onClick={(e) => {
+                                      e.preventDefault()
                                       e.stopPropagation()
                                       setCardOverflowMenu(cardOverflowMenu === lead.id ? null : lead.id)
                                     }}
@@ -1459,6 +1463,7 @@ export default function LeadsPage() {
                                         {getLeadLifecycleStatus(lead) !== 'ignored' && (
                                           <button
                                             onClick={(e) => {
+                                              e.preventDefault()
                                               e.stopPropagation()
                                               handleIgnoreLead(lead.id)
                                               setCardOverflowMenu(null)
@@ -1474,6 +1479,7 @@ export default function LeadsPage() {
                                         {getLeadLifecycleStatus(lead) === 'ignored' && (
                                           <button
                                             onClick={(e) => {
+                                              e.preventDefault()
                                               e.stopPropagation()
                                               handleLeadStatusChange(lead.id, 'active')
                                               setCardOverflowMenu(null)
