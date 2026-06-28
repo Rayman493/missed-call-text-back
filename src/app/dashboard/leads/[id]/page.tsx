@@ -1955,7 +1955,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Conversation Section - Independent Scroll */}
           <section className="flex flex-col min-h-0 h-[calc(100vh-240px)]">
             {/* Desktop Message Thread - Scrollable */}
-            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth p-4 min-h-0 custom-scrollbar" style={{ minHeight: '200px' }}>
+            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth p-3 min-h-0 custom-scrollbar" style={{ minHeight: '200px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1983,7 +1983,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Desktop Message Composer - Fixed to Bottom */}
-            <div className="shrink-0 border-t border-border/40 pt-3">
+            <div className="shrink-0 border-t border-border/40 pt-2">
               <ConversationComposer
                 message={message}
                 setMessage={setMessage}
