@@ -152,7 +152,7 @@ function getLatestActivity(lead: any): string {
   if (lead.last_activity_at) return lead.last_activity_at
   if (lead.last_message_at) return lead.last_message_at
   if (lead.first_contact_at) return lead.first_contact_at
-  return lead.created_at
+  return lead.created_at_v1
 }
 
 // Helper to determine if lead needs response
@@ -237,8 +237,8 @@ export default function LeadsPage() {
           business_id,
           caller_phone,
           status,
-          created_at,
-          updated_at,
+          created_at_v1,
+          updated_at_v1,
           first_contact_at,
           last_message_at,
           last_activity_at,
@@ -263,7 +263,7 @@ export default function LeadsPage() {
           )
         `)
         .eq('business_id', business.id)
-        .order('created_at', { ascending: false })
+        .order('created_at_v1', { ascending: false })
 
       if (error) throw error
 
@@ -336,7 +336,7 @@ export default function LeadsPage() {
       // Update local state
       setLeads(prev => prev.map(lead => 
         lead.id === leadId 
-          ? { ...lead, status: newStatus, updated_at: new Date().toISOString() }
+          ? { ...lead, status: newStatus, updated_at_v1: new Date().toISOString() }
           : lead
       ))
     } catch (error) {
@@ -1169,7 +1169,7 @@ export default function LeadsPage() {
                     : null
 
                   const messageStatus = getLeadMessageStatus(latestMessage)
-                  const lastActivity = lead.last_message_at || lead.first_contact_at || lead.created_at
+                  const lastActivity = lead.last_message_at || lead.first_contact_at || lead.created_at_v1
                   const hasReplied = lead.messages?.some((m: any) => m.direction === 'inbound')
                   const hasTexted = lead.messages?.some((m: any) => m.direction === 'outbound')
                   const isUnread = hasUnread(lead.id)
@@ -1271,7 +1271,7 @@ export default function LeadsPage() {
                                 {isNewLead ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
                               </button>
                               <span className="text-sm text-slate-400">
-                                {formatRelativeTime(lead.created_at)}
+                                {formatRelativeTime(lead.created_at_v1)}
                               </span>
                             </div>
                             {isNewLead && (
@@ -1399,7 +1399,7 @@ export default function LeadsPage() {
                           : null
 
                         const messageStatus = getLeadMessageStatus(latestMessage)
-                        const lastActivity = lead.last_message_at || lead.first_contact_at || lead.created_at
+                        const lastActivity = lead.last_message_at || lead.first_contact_at || lead.created_at_v1
                         const hasReplied = lead.messages?.some((m: any) => m.direction === 'inbound')
                         const hasTexted = lead.messages?.some((m: any) => m.direction === 'outbound')
                         const isUnread = hasUnread(lead.id)
@@ -1499,7 +1499,7 @@ export default function LeadsPage() {
                                     {isNewLead ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
                                   </button>
                                   <span className="text-xs text-slate-400">
-                                    {formatRelativeTime(lead.created_at)}
+                                    {formatRelativeTime(lead.created_at_v1)}
                                   </span>
                                 </div>
                                 {isNewLead && (
