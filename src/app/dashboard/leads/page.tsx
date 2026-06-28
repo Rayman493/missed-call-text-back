@@ -1168,19 +1168,19 @@ export default function LeadsPage() {
                           : `${filteredLeads.length} ${statusFilter} ${filteredLeads.length === 1 ? 'lead' : 'leads'}`
                         }
                       </p>
-                      <Link
+                      <div
                         key={lead.id}
-                        href={`/dashboard/leads/${lead.id}`}
-                        prefetch={false}
-                        onClick={() => handleConversationClick(lead.id)}
-                        className="w-full max-w-2xl h-full flex flex-col bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 group cursor-pointer"
+                        className="w-full max-w-2xl h-full flex flex-col bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 group"
                       >
                         {/* Status Accent Bar */}
                         <div className={`h-1 rounded-t-lg ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
                         <div className="p-4 sm:p-5 flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
                           <div className="flex items-start justify-between mb-3 sm:mb-4">
-                            <div className="flex-1 min-w-0">
+                            <div 
+                              className="flex-1 min-w-0 cursor-pointer"
+                              onClick={() => handleConversationClick(lead.id)}
+                            >
                               <h3 className={`text-base sm:text-lg font-semibold text-white mb-1 truncate tracking-tight ${isNewLead ? 'text-orange-400' : ''}`}>
                                 {getLeadDisplayName(lead)}
                               </h3>
@@ -1303,6 +1303,7 @@ export default function LeadsPage() {
                                   <div
                                     className="fixed inset-0 z-[9999]"
                                     onClick={(e) => {
+                                      e.preventDefault()
                                       e.stopPropagation()
                                       setCardOverflowMenu(null)
                                     }}
@@ -1362,7 +1363,7 @@ export default function LeadsPage() {
                             </div>
                           </div>
                         </div>
-                      </Link>
+                      </div>
                     </div>
                   )
                 } else {
@@ -1390,19 +1391,19 @@ export default function LeadsPage() {
                         const aiData = getAIData(lead)
 
                         return (
-                          <Link
+                          <div
                             key={lead.id}
-                            href={`/dashboard/leads/${lead.id}`}
-                            prefetch={false}
-                            onClick={() => handleConversationClick(lead.id)}
-                            className="bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 group cursor-pointer"
+                            className="bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 group"
                           >
                             {/* Status Accent Bar */}
                             <div className={`h-1 rounded-t-lg ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
                             <div className="p-3 sm:p-4">
                               {/* Header: Name, Phone, Status */}
                               <div className="flex items-start justify-between mb-2 sm:mb-3">
-                                <div className="flex-1 min-w-0">
+                                <div 
+                                  className="flex-1 min-w-0 cursor-pointer"
+                                  onClick={() => handleConversationClick(lead.id)}
+                                >
                                   <h3 className={`text-sm sm:text-base font-semibold text-white mb-1 truncate tracking-tight ${isNewLead ? 'text-orange-400' : ''}`}>
                                     {getLeadDisplayName(lead)}
                                   </h3>
@@ -1525,6 +1526,7 @@ export default function LeadsPage() {
                                       <div
                                         className="fixed inset-0 z-[9999]"
                                         onClick={(e) => {
+                                          e.preventDefault()
                                           e.stopPropagation()
                                           setCardOverflowMenu(null)
                                         }}
@@ -1584,7 +1586,7 @@ export default function LeadsPage() {
                                 </div>
                               </div>
                             </div>
-                          </Link>
+                          </div>
                         )
                       })}
                     </div>
