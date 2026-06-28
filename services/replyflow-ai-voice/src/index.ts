@@ -4916,17 +4916,17 @@ wss.on('connection', (ws, req) => {
     callSessionState.businessId = urlBusinessId || '';
     callSessionState.callSid = urlCallSid || '';
 
-    // Set up mark received callback to track when Twilio acknowledges final goodbye audio playback
+    // Set up mark received callback to track when Twilio acknowledges audio playback completion
     twilioHandler.setOnMarkReceived((markName: string) => {
       console.log('[MARK RECEIVED CALLBACK] Mark received from Twilio:', { markName, timestamp: new Date().toISOString() });
-      
+
       if (markName === 'final-goodbye-complete') {
         console.log('[FINAL GOODBYE MARK RECEIVED] final-goodbye-complete mark received');
         console.log('[FINAL GOODBYE MARK RECEIVED] Timestamp:', new Date().toISOString());
         console.log('[FINAL GOODBYE MARK RECEIVED] callState:', callState);
         console.log('[FINAL GOODBYE MARK RECEIVED] finalClosingStarted:', finalClosingStarted);
         console.log('[FINAL GOODBYE MARK RECEIVED] hangupScheduled:', hangupScheduled);
-        
+
         finalGoodbyeMarkReceived = true;
         (twilioHandler as any).finalGoodbyeMarkReceived = finalGoodbyeMarkReceived;
 
@@ -4938,9 +4938,131 @@ wss.on('connection', (ws, req) => {
           console.log('[FINAL_CLOSING_HARD_STOP_CLEARED] Hard-stop timer cleared since normal hangup path is working');
         }
 
-        // Final-goodbye-complete mark handling removed - using response.audio.done instead
-        // The 5s buffer after response.audio.done handles the successful close path
-        console.log('[FINAL GOODBYE MARK RECEIVED] Mark received, but hangup handled by response.audio.done');
+        console.log('[FINAL GOODBYE MARK RECEIVED] Mark received, hangup handled by response.audio.done');
+      } else if (markName === 'prompt-complete') {
+        console.log('[PROMPT COMPLETE MARK RECEIVED] =========================================');
+        console.log('[PROMPT COMPLETE MARK RECEIVED] Prompt playback completed (mark-based)');
+        console.log('[PROMPT COMPLETE MARK RECEIVED] Timestamp:', new Date().toISOString());
+        console.log('[PROMPT COMPLETE MARK RECEIVED] Stage:', callSessionState.currentStage || 'unknown');
+        console.log('[PROMPT COMPLETE MARK RECEIVED] =========================================');
+
+        // Start silence timer when prompt playback completes (mark-based)
+        if (callSessionState.assistantSpeaking) {
+          // Set prompt completion time for answer gating
+          callSessionState.promptCompletedAt = Date.now();
+          callSessionState.listeningStartedAt = Date.now();
+
+          console.log('[STAGE LISTENING OPENED (MARK-BASED)] =========================================');
+          console.log('[STAGE LISTENING OPENED (MARK-BASED)] Prompt playback completed');
+          console.log('[STAGE LISTENING OPENED (MARK-BASED)] promptCompletedAt:', callSessionState.promptCompletedAt);
+          console.log('[STAGE LISTENING OPENED (MARK-BASED)] listeningStartedAt:', callSessionState.listeningStartedAt);
+          console.log('[STAGE LISTENING OPENED (MARK-BASED)] promptStartedAt:', callSessionState.promptStartedAt);
+          console.log('[STAGE LISTENING OPENED (MARK-BASED)] blockedAudioDuringPrompt:', callSessionState.blockedAudioDuringPrompt);
+          console.log('[STAGE LISTENING OPENED (MARK-BASED)] Stage:', callSessionState.currentStage || 'unknown');
+          console.log('[STAGE LISTENING OPENED (MARK-BASED)] Timestamp:', new Date().toISOString());
+          console.log('[STAGE LISTENING OPENED (MARK-BASED)] =========================================');
+
+          // Start silence timer for this stage
+          // Clear any existing silence timer
+          if (callSessionState.silenceTimeoutId) {
+            clearTimeout(callSessionState.silenceTimeoutId);
+            callSessionState.silenceTimeoutId = null;
+          }
+
+          // Reset silence timer state
+          callSessionState.silenceTimerStartedAt = Date.now();
+          callSessionState.validUserAnswerReceivedAt = null;
+
+          // Start new silence timer (10 seconds)
+          const SILENCE_TIMEOUT_MS = 10000;
+          callSessionState.silenceTimeoutId = setTimeout(() => {
+            console.log('[SILENCE TIMEOUT TRIGGERED (MARK-BASED)] =========================================');
+            console.log('[SILENCE TIMEOUT TRIGGERED (MARK-BASED)] No user answer received within timeout');
+            console.log('[SILENCE TIMEOUT TRIGGERED (MARK-BASED)] silenceTimerStartedAt:', callSessionState.silenceTimerStartedAt);
+            console.log('[SILENCE TIMEOUT TRIGGERED (MARK-BASED)] validUserAnswerReceivedAt:', callSessionState.validUserAnswerReceivedAt);
+            console.log('[SILENCE TIMEOUT TRIGGERED (MARK-BASED)] repromptCount:', callSessionState.repromptCount);
+            console.log('[SILENCE TIMEOUT TRIGGERED (MARK-BASED)] currentStage:', callSessionState.currentStage);
+            console.log('[SILENCE TIMEOUT TRIGGERED (MARK-BASED)] Timestamp:', new Date().toISOString());
+            console.log('[SILENCE TIMEOUT TRIGGERED (MARK-BASED)] =========================================');
+
+            // Check if a valid answer was received (timer may have fired but answer came in)
+            if (callSessionState.validUserAnswerReceivedAt && callSessionState.validUserAnswerReceivedAt > callSessionState.silenceTimerStartedAt!) {
+              console.log('[SILENCE TIMEOUT SKIPPED (MARK-BASED)] Valid answer received, ignoring timeout');
+              return;
+            }
+
+            // Handle silence: reprompt or finalize incomplete
+            if (callSessionState.repromptCount === 0) {
+              console.log('[SILENCE TIMEOUT REPROMPT (MARK-BASED)] =========================================');
+              console.log('[SILENCE TIMEOUT REPROMPT (MARK-BASED)] First silence - reprompting current stage');
+              console.log('[SILENCE TIMEOUT REPROMPT (MARK-BASED)] Stage:', callSessionState.currentStage);
+              console.log('[SILENCE TIMEOUT REPROMPT (MARK-BASED)] Timestamp:', new Date().toISOString());
+              console.log('[SILENCE TIMEOUT REPROMPT (MARK-BASED)] =========================================');
+
+              // Increment reprompt count
+              callSessionState.repromptCount++;
+
+              // Reprompt the same stage
+              const currentStage = callSessionState.currentStage;
+
+              if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
+                // Reset prompt gating state for reprompt
+                callSessionState.promptStartedAt = Date.now();
+                callSessionState.promptCompletedAt = null;
+                callSessionState.blockedAudioDuringPrompt = false;
+                callSessionState.listeningStartedAt = null;
+                callSessionState.validUserAnswerReceivedAt = null;
+
+                // Clear silence timer for reprompt
+                if (callSessionState.silenceTimeoutId) {
+                  clearTimeout(callSessionState.silenceTimeoutId);
+                  callSessionState.silenceTimeoutId = null;
+                }
+                callSessionState.silenceTimerStartedAt = null;
+
+                // Send reprompt with all required arguments
+                sendStagePrompt(
+                  currentStage,
+                  openAiWs,
+                  promptedStages,
+                  callSessionState.lastPromptAt,
+                  callSessionState.assistantSpeaking,
+                  callSessionState.activeResponseId,
+                  twilioHandler,
+                  callSessionState.lastPromptStage,
+                  stagePromptAttempts,
+                  ws
+                );
+              }
+            } else {
+              console.log('[SILENCE TIMEOUT FINALIZE (MARK-BASED)] =========================================');
+              console.log('[SILENCE TIMEOUT FINALIZE (MARK-BASED)] Second silence - finalizing incomplete');
+              console.log('[SILENCE TIMEOUT FINALIZE (MARK-BASED)] Stage:', callSessionState.currentStage);
+              console.log('[SILENCE TIMEOUT FINALIZE (MARK-BASED)] Timestamp:', new Date().toISOString());
+              console.log('[SILENCE TIMEOUT FINALIZE (MARK-BASED)] =========================================');
+
+              // Finalize incomplete intake - close both WebSockets to trigger finalization
+              if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
+                openAiWs.close(1000, 'Silence timeout - incomplete intake');
+              }
+              if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close(1000, 'Silence timeout - incomplete intake');
+              }
+            }
+          }, SILENCE_TIMEOUT_MS);
+
+          console.log('[SILENCE TIMER STARTED (MARK-BASED)] =========================================');
+          console.log('[SILENCE TIMER STARTED (MARK-BASED)] Silence timer started');
+          console.log('[SILENCE TIMER STARTED (MARK-BASED)] Timeout:', SILENCE_TIMEOUT_MS, 'ms');
+          console.log('[SILENCE TIMER STARTED (MARK-BASED)] silenceTimerStartedAt:', callSessionState.silenceTimerStartedAt);
+          console.log('[SILENCE TIMER STARTED (MARK-BASED)] Stage:', callSessionState.currentStage);
+          console.log('[SILENCE TIMER STARTED (MARK-BASED)] Timestamp:', new Date().toISOString());
+          console.log('[SILENCE TIMER STARTED (MARK-BASED)] =========================================');
+
+          callSessionState.assistantSpeaking = false;
+          assistantSpeaking = false; // Sync individual variable for backward compatibility
+          (twilioHandler as any).assistantSpeaking = false;
+        }
       }
     });
 
@@ -8715,9 +8837,12 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       console.log('[SILENCE TIMEOUT FINALIZE] Timestamp:', new Date().toISOString());
                       console.log('[SILENCE TIMEOUT FINALIZE] =========================================');
 
-                      // Finalize incomplete intake
+                      // Finalize incomplete intake - close both WebSockets to trigger finalization
                       if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
                         openAiWs.close(1000, 'Silence timeout - incomplete intake');
+                      }
+                      if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.close(1000, 'Silence timeout - incomplete intake');
                       }
                     }
                   }, SILENCE_TIMEOUT_MS);
@@ -8729,6 +8854,14 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[SILENCE TIMER STARTED] Stage:', callSessionState.currentStage);
                   console.log('[SILENCE TIMER STARTED] Timestamp:', new Date().toISOString());
                   console.log('[SILENCE TIMER STARTED] =========================================');
+
+                  // Send prompt-complete mark to Twilio to ensure reliable playback completion detection
+                  twilioHandler.sendMark('prompt-complete');
+                  console.log('[PROMPT COMPLETE MARK SENT] =========================================');
+                  console.log('[PROMPT COMPLETE MARK SENT] markName: prompt-complete');
+                  console.log('[PROMPT COMPLETE MARK SENT] Stage:', callSessionState.currentStage);
+                  console.log('[PROMPT COMPLETE MARK SENT] Timestamp:', new Date().toISOString());
+                  console.log('[PROMPT COMPLETE MARK SENT] =========================================');
 
                   callSessionState.assistantSpeaking = false;
                   assistantSpeaking = false; // Sync individual variable for backward compatibility
