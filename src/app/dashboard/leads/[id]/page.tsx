@@ -1819,7 +1819,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Lead Identity Section - Simplified */}
-            <div className="flex items-center justify-between gap-8 mb-3">
+            <div className="flex items-start gap-8 mb-3">
               {/* Customer Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-5 mb-2">
@@ -1849,20 +1849,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <span>{messagesArray.length} Messages</span>
                 </div>
               </div>
-
-              {/* Primary Action - Message */}
-              <button
-                onClick={() => {
-                  const composer = document.querySelector('textarea[name="message"]') as HTMLTextAreaElement
-                  if (composer) composer.focus()
-                }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors text-sm font-medium shadow-sm"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                Message
-              </button>
             </div>
 
             {/* Secondary Actions - Simplified */}
