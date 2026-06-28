@@ -474,7 +474,7 @@ export default function LeadsPage() {
 
   // Handle conversation click
   const handleConversationClick = (leadId: string) => {
-    setSelectedLeadId(leadId)
+    router.push(`/dashboard/leads/${leadId}`)
   }
 
   // Handle billing actions
@@ -1279,7 +1279,10 @@ export default function LeadsPage() {
                               </a>
                             )}
                             <div className="flex-1 sm:flex-1 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(`/dashboard/leads/${lead.id}`)
+                              }}
                             >
                               View Conversation
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1504,7 +1507,10 @@ export default function LeadsPage() {
                                   </a>
                                 )}
                                 <div className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer"
-                                  onClick={(e) => e.stopPropagation()}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    router.push(`/dashboard/leads/${lead.id}`)
+                                  }}
                                 >
                                   View
                                   <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
