@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { getLeadLifecycleStatus, getLeadStatusLabel, getLeadStatusClasses, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
 
 interface LeadStatusDropdownProps {
@@ -18,12 +19,25 @@ export default function LeadStatusDropdown({
 }: LeadStatusDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   const sizeClasses = {
     sm: 'px-3 py-1.5 text-sm',
     md: 'px-4 py-2 text-sm',
     lg: 'px-5 py-2.5 text-base'
   }
+
+  // Calculate dropdown position when opened
+  useEffect(() => {
+    if (isOpen && buttonRef.current && typeof window !== 'undefined') {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + 4,
+        left: rect.left
+      })
+    }
+  }, [isOpen])
 
   const handleStatusSelect = async (newStatus: LeadLifecycleStatus) => {
     if (newStatus === currentStatus || isUpdating) return
@@ -38,6 +52,24 @@ export default function LeadStatusDropdown({
     } finally {
       setIsUpdating(false)
     }
+  }
+
+  const handleButtonClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    setIsOpen(!isOpen)
+  }
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    setIsOpen(false)
+  }
+
+  const handleStatusOptionClick = (e: React.MouseEvent, newStatus: LeadLifecycleStatus) => {
+    e.stopPropagation()
+    e.preventDefault()
+    handleStatusSelect(newStatus)
   }
 
   const getStatusIcon = (status: LeadLifecycleStatus) => {
@@ -87,7 +119,10 @@ export default function LeadStatusDropdown({
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={handleButtonClick}
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
         disabled={disabled || isUpdating}
         className={`${sizeClasses[size]} ${getLeadStatusClasses(currentStatus)} rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 ${
           isOpen ? 'ring-2 ring-offset-2 ring-slate-300 dark:ring-slate-600' : ''
@@ -109,36 +144,45 @@ export default function LeadStatusDropdown({
         )}
       </button>
 
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-10" 
-            onClick={() => setIsOpen(false)}
-          />
-          
-          {/* Dropdown */}
-          <div className="absolute top-full left-0 mt-1 bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-lg shadow-lg z-20 min-w-[160px] overflow-hidden">
-            {allStatuses.map((status: LeadLifecycleStatus) => (
-              <button
-                key={status}
-                onClick={() => handleStatusSelect(status)}
-                disabled={isUpdating}
-                className="w-full px-4 py-2.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span className="text-sm">{getStatusIcon(status)}</span>
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-slate-900 dark:text-foreground">
-                    {getLeadStatusLabel(status)}
+      {isOpen && typeof window !== 'undefined' && (
+        createPortal(
+          <>
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 z-50" 
+              onClick={handleBackdropClick}
+            />
+            
+            {/* Dropdown */}
+            <div 
+              className="fixed z-[51] bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-lg shadow-lg min-w-[160px] overflow-hidden max-h-[400px] overflow-y-auto"
+              style={{
+                top: `${dropdownPosition.top}px`,
+                left: `${dropdownPosition.left}px`
+              }}
+            >
+              {allStatuses.map((status: LeadLifecycleStatus) => (
+                <button
+                  key={status}
+                  onClick={(e) => handleStatusOptionClick(e, status)}
+                  disabled={isUpdating}
+                  className="w-full px-4 py-2.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="text-sm">{getStatusIcon(status)}</span>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-slate-900 dark:text-foreground">
+                      {getLeadStatusLabel(status)}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      {getStatusDescription(status)}
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    {getStatusDescription(status)}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </>
+                </button>
+              ))}
+            </div>
+          </>,
+          document.body
+        )
       )}
     </div>
   )
