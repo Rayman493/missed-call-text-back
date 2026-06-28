@@ -909,6 +909,9 @@ export default function CalendarPage() {
                       onDelete={async () => {
                         // Remove the deleted event from local state
                         setEvents(prev => prev.filter(e => e.id !== selectedEvent.id))
+                        // Clear selected event and day to prevent add event modal from opening
+                        setSelectedEvent(null)
+                        setSelectedDay(null)
                         // Refresh events from Google Calendar
                         await fetchEvents()
                         // Show success message
