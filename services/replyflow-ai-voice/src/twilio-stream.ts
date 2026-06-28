@@ -240,12 +240,16 @@ export class TwilioStreamHandler {
                   // Do NOT return - allow caller audio to proceed
                 } else {
                   // Valid blocking state - assistant is actually speaking
+                  // Mark that blocked audio was received during prompt for answer gating
+                  callSessionState.blockedAudioDuringPrompt = true;
+                  
                   // V1 STRICT: Always block caller audio when assistantSpeaking is true
                   console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] =========================================');
                   console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] V1 TURN-BASED FLOW ACTIVE');
                   console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] Caller audio blocked while AI is speaking');
                   console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] assistantSpeaking:', assistantSpeaking);
                   console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] activeResponseId:', activeResponseId);
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] blockedAudioDuringPrompt set to TRUE');
                   console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] Timestamp:', new Date().toISOString());
                   console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] =========================================');
                   

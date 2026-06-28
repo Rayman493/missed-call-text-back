@@ -1683,16 +1683,24 @@ function sendStagePrompt(
   // not when OpenAI acknowledges receipt (response.created)
   const callSessionState = (ws as any).callSessionState || {};
   if (!callSessionState.assistantSpeaking) {
+    // Initialize prompt gating state for this stage on callSessionState
+    callSessionState.promptStartedAt = Date.now();
+    callSessionState.promptCompletedAt = null;
+    callSessionState.blockedAudioDuringPrompt = false;
+    callSessionState.listeningStartedAt = null;
+    callSessionState.validUserAnswerReceivedAt = null;
+    
     callSessionState.assistantSpeaking = true;
     assistantSpeaking = true; // Sync individual variable for backward compatibility
     (twilioHandler as any).assistantSpeaking = true;
     
-    console.log('[PROMPT START - ASSISTANT SPEAKING SET] =========================================');
-    console.log('[PROMPT START - ASSISTANT SPEAKING SET] Stage:', stage);
-    console.log('[PROMPT START - ASSISTANT SPEAKING SET] assistantSpeaking set to TRUE BEFORE sending to OpenAI');
-    console.log('[PROMPT START - ASSISTANT SPEAKING SET] Source: sendStagePrompt (before OpenAI send)');
-    console.log('[PROMPT START - ASSISTANT SPEAKING SET] Timestamp:', new Date().toISOString());
-    console.log('[PROMPT START - ASSISTANT SPEAKING SET] =========================================');
+    console.log('[PROMPT START - ANSWER GATING INITIALIZED] =========================================');
+    console.log('[PROMPT START - ANSWER GATING INITIALIZED] Stage:', stage);
+    console.log('[PROMPT START - ANSWER GATING INITIALIZED] promptStartedAt:', callSessionState.promptStartedAt);
+    console.log('[PROMPT START - ANSWER GATING INITIALIZED] assistantSpeaking set to TRUE BEFORE sending to OpenAI');
+    console.log('[PROMPT START - ANSWER GATING INITIALIZED] Source: sendStagePrompt (before OpenAI send)');
+    console.log('[PROMPT START - ANSWER GATING INITIALIZED] Timestamp:', new Date().toISOString());
+    console.log('[PROMPT START - ANSWER GATING INITIALIZED] =========================================');
   }
 
   // Use centralized sendApprovedPrompt for all stage prompts
@@ -4829,7 +4837,13 @@ wss.on('connection', (ws, req) => {
       currentStage: 'ask_name_reason' as IntakeStage,
       sessionId: '',
       businessId: '',
-      callSid: ''
+      callSid: '',
+      // Answer gating state
+      promptStartedAt: null as number | null,
+      promptCompletedAt: null as number | null,
+      blockedAudioDuringPrompt: false,
+      listeningStartedAt: null as number | null,
+      validUserAnswerReceivedAt: null as number | null
     };
 
     console.log('[CALL_SESSION_STATE_INIT] Shared call session state object created');
@@ -7374,6 +7388,51 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
 
                   
                                     
+                  // CRITICAL FIX: Answer gating - check if transcript was received after prompt completed
+                  const currentTimestamp = Date.now();
+                  const promptCompletedAt = callSessionState.promptCompletedAt || 0;
+                  const blockedAudioDuringPrompt = callSessionState.blockedAudioDuringPrompt || false;
+                  const promptStartedAt = callSessionState.promptStartedAt || 0;
+                  
+                  console.log('[ANSWER GATING CHECK] =========================================');
+                  console.log('[ANSWER GATING CHECK] currentTimestamp:', currentTimestamp);
+                  console.log('[ANSWER GATING CHECK] promptStartedAt:', promptStartedAt);
+                  console.log('[ANSWER GATING CHECK] promptCompletedAt:', promptCompletedAt);
+                  console.log('[ANSWER GATING CHECK] blockedAudioDuringPrompt:', blockedAudioDuringPrompt);
+                  console.log('[ANSWER GATING CHECK] transcript:', userTranscript);
+                  console.log('[ANSWER GATING CHECK] currentStage:', intakeData!.stage);
+                  console.log('[ANSWER GATING CHECK] Timestamp:', new Date().toISOString());
+                  console.log('[ANSWER GATING CHECK] =========================================');
+                  
+                  // Check if answer was received during prompt playback (before prompt completed)
+                  const answerReceivedDuringPrompt = promptCompletedAt > 0 && currentTimestamp < promptCompletedAt;
+                  
+                  if (answerReceivedDuringPrompt || blockedAudioDuringPrompt) {
+                    console.log('[BLOCKED AUDIO DOES NOT SATISFY STAGE] =========================================');
+                    console.log('[BLOCKED AUDIO DOES NOT SATISFY STAGE] Answer received during prompt or blocked audio detected');
+                    console.log('[BLOCKED AUDIO DOES NOT SATISFY STAGE] answerReceivedDuringPrompt:', answerReceivedDuringPrompt);
+                    console.log('[BLOCKED AUDIO DOES NOT SATISFY STAGE] blockedAudioDuringPrompt:', blockedAudioDuringPrompt);
+                    console.log('[BLOCKED AUDIO DOES NOT SATISFY STAGE] Stage will NOT advance');
+                    console.log('[BLOCKED AUDIO DOES NOT SATISFY STAGE] Transcript:', userTranscript);
+                    console.log('[BLOCKED AUDIO DOES NOT SATISFY STAGE] Timestamp:', new Date().toISOString());
+                    console.log('[BLOCKED AUDIO DOES NOT SATISFY STAGE] =========================================');
+                    
+                    // Do not advance stage - skip the rest of the processing
+                    return;
+                  }
+                  
+                  // Mark that we received a valid user answer after prompt completion
+                  callSessionState.validUserAnswerReceivedAt = currentTimestamp;
+                  
+                  console.log('[USER ANSWER ACCEPTED FOR STAGE] =========================================');
+                  console.log('[USER ANSWER ACCEPTED FOR STAGE] Answer received after prompt completion');
+                  console.log('[USER ANSWER ACCEPTED FOR STAGE] validUserAnswerReceivedAt:', callSessionState.validUserAnswerReceivedAt);
+                  console.log('[USER ANSWER ACCEPTED FOR STAGE] promptCompletedAt:', promptCompletedAt);
+                  console.log('[USER ANSWER ACCEPTED FOR STAGE] Transcript:', userTranscript);
+                  console.log('[USER ANSWER ACCEPTED FOR STAGE] Stage:', intakeData!.stage);
+                  console.log('[USER ANSWER ACCEPTED FOR STAGE] Timestamp:', new Date().toISOString());
+                  console.log('[USER ANSWER ACCEPTED FOR STAGE] =========================================');
+                  
                   // Get next intake response
                   const intakeResponse = getIntakeResponse(intakeData!, userTranscript, stagePromptAttempts);
 
@@ -7421,6 +7480,16 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[CURRENT STAGE SET] sourceFunction: getIntakeResponse');
                   console.log('[CURRENT STAGE SET] Timestamp:', new Date().toISOString());
                   console.log('[CURRENT STAGE SET] =========================================');
+                  
+                  console.log('[STAGE ADVANCED] =========================================');
+                  console.log('[STAGE ADVANCED] Stage advanced successfully');
+                  console.log('[STAGE ADVANCED] oldStage:', intakeData!.stage);
+                  console.log('[STAGE ADVANCED] newStage:', intakeResponse.nextStage);
+                  console.log('[STAGE ADVANCED] validUserAnswerReceivedAt:', callSessionState.validUserAnswerReceivedAt);
+                  console.log('[STAGE ADVANCED] promptCompletedAt:', callSessionState.promptCompletedAt);
+                  console.log('[STAGE ADVANCED] blockedAudioDuringPrompt:', callSessionState.blockedAudioDuringPrompt);
+                  console.log('[STAGE ADVANCED] Timestamp:', new Date().toISOString());
+                  console.log('[STAGE ADVANCED] =========================================');
                   
                   // Clear activeResponseId when stage changes to allow new response
                   if (activeResponseId) {
@@ -8533,6 +8602,20 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 // This ensures caller audio is only accepted after AI has finished speaking
                 const previousAssistantSpeaking = callSessionState.assistantSpeaking;
                 if (callSessionState.assistantSpeaking) {
+                  // Set prompt completion time for answer gating
+                  callSessionState.promptCompletedAt = Date.now();
+                  callSessionState.listeningStartedAt = Date.now();
+                  
+                  console.log('[STAGE LISTENING OPENED] =========================================');
+                  console.log('[STAGE LISTENING OPENED] Prompt playback completed');
+                  console.log('[STAGE LISTENING OPENED] promptCompletedAt:', callSessionState.promptCompletedAt);
+                  console.log('[STAGE LISTENING OPENED] listeningStartedAt:', callSessionState.listeningStartedAt);
+                  console.log('[STAGE LISTENING OPENED] promptStartedAt:', callSessionState.promptStartedAt);
+                  console.log('[STAGE LISTENING OPENED] blockedAudioDuringPrompt:', callSessionState.blockedAudioDuringPrompt);
+                  console.log('[STAGE LISTENING OPENED] Stage:', callSessionState.currentStage || 'unknown');
+                  console.log('[STAGE LISTENING OPENED] Timestamp:', new Date().toISOString());
+                  console.log('[STAGE LISTENING OPENED] =========================================');
+                  
                   callSessionState.assistantSpeaking = false;
                   assistantSpeaking = false; // Sync individual variable for backward compatibility
                   (twilioHandler as any).assistantSpeaking = false;
