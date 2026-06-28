@@ -233,7 +233,21 @@ export default function LeadsPage() {
       const { data, error } = await supabase
         .from('leads')
         .select(`
-          *,
+          id,
+          business_id,
+          caller_phone,
+          name,
+          status,
+          created_at,
+          updated_at,
+          first_contact_at,
+          last_message_at,
+          last_activity_at,
+          conversation_id,
+          deleted_at,
+          deleted_by,
+          deletion_reason,
+          raw_metadata,
           messages (
             id,
             body,
