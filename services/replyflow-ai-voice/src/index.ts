@@ -4843,7 +4843,11 @@ wss.on('connection', (ws, req) => {
       promptCompletedAt: null as number | null,
       blockedAudioDuringPrompt: false,
       listeningStartedAt: null as number | null,
-      validUserAnswerReceivedAt: null as number | null
+      validUserAnswerReceivedAt: null as number | null,
+      // Silence timeout state
+      repromptCount: 0,
+      silenceTimerStartedAt: null as number | null,
+      silenceTimeoutId: null as NodeJS.Timeout | null
     };
 
     console.log('[CALL_SESSION_STATE_INIT] Shared call session state object created');
@@ -7432,7 +7436,23 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[USER ANSWER ACCEPTED FOR STAGE] Stage:', intakeData!.stage);
                   console.log('[USER ANSWER ACCEPTED FOR STAGE] Timestamp:', new Date().toISOString());
                   console.log('[USER ANSWER ACCEPTED FOR STAGE] =========================================');
-                  
+
+                  // Clear silence timer since valid answer was received
+                  if (callSessionState.silenceTimeoutId) {
+                    console.log('[SILENCE TIMER CLEARED] =========================================');
+                    console.log('[SILENCE TIMER CLEARED] Valid answer received, clearing silence timer');
+                    console.log('[SILENCE TIMER CLEARED] silenceTimerStartedAt:', callSessionState.silenceTimerStartedAt);
+                    console.log('[SILENCE TIMER CLEARED] Timestamp:', new Date().toISOString());
+                    console.log('[SILENCE TIMER CLEARED] =========================================');
+
+                    clearTimeout(callSessionState.silenceTimeoutId);
+                    callSessionState.silenceTimeoutId = null;
+                    callSessionState.silenceTimerStartedAt = null;
+                  }
+
+                  // Reset reprompt count for next stage
+                  callSessionState.repromptCount = 0;
+
                   // Get next intake response
                   const intakeResponse = getIntakeResponse(intakeData!, userTranscript, stagePromptAttempts);
 
@@ -8615,7 +8635,101 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[STAGE LISTENING OPENED] Stage:', callSessionState.currentStage || 'unknown');
                   console.log('[STAGE LISTENING OPENED] Timestamp:', new Date().toISOString());
                   console.log('[STAGE LISTENING OPENED] =========================================');
-                  
+
+                  // Start silence timer for this stage
+                  // Clear any existing silence timer
+                  if (callSessionState.silenceTimeoutId) {
+                    clearTimeout(callSessionState.silenceTimeoutId);
+                    callSessionState.silenceTimeoutId = null;
+                  }
+
+                  // Reset silence timer state
+                  callSessionState.silenceTimerStartedAt = Date.now();
+                  callSessionState.validUserAnswerReceivedAt = null;
+
+                  // Start new silence timer (10 seconds)
+                  const SILENCE_TIMEOUT_MS = 10000;
+                  callSessionState.silenceTimeoutId = setTimeout(() => {
+                    console.log('[SILENCE TIMEOUT TRIGGERED] =========================================');
+                    console.log('[SILENCE TIMEOUT TRIGGERED] No user answer received within timeout');
+                    console.log('[SILENCE TIMEOUT TRIGGERED] silenceTimerStartedAt:', callSessionState.silenceTimerStartedAt);
+                    console.log('[SILENCE TIMEOUT TRIGGERED] validUserAnswerReceivedAt:', callSessionState.validUserAnswerReceivedAt);
+                    console.log('[SILENCE TIMEOUT TRIGGERED] repromptCount:', callSessionState.repromptCount);
+                    console.log('[SILENCE TIMEOUT TRIGGERED] currentStage:', callSessionState.currentStage);
+                    console.log('[SILENCE TIMEOUT TRIGGERED] Timestamp:', new Date().toISOString());
+                    console.log('[SILENCE TIMEOUT TRIGGERED] =========================================');
+
+                    // Check if a valid answer was received (timer may have fired but answer came in)
+                    if (callSessionState.validUserAnswerReceivedAt && callSessionState.validUserAnswerReceivedAt > callSessionState.silenceTimerStartedAt!) {
+                      console.log('[SILENCE TIMEOUT SKIPPED] Valid answer received, ignoring timeout');
+                      return;
+                    }
+
+                    // Handle silence: reprompt or finalize incomplete
+                    if (callSessionState.repromptCount === 0) {
+                      console.log('[SILENCE TIMEOUT REPROMPT] =========================================');
+                      console.log('[SILENCE TIMEOUT REPROMPT] First silence - reprompting current stage');
+                      console.log('[SILENCE TIMEOUT REPROMPT] Stage:', callSessionState.currentStage);
+                      console.log('[SILENCE TIMEOUT REPROMPT] Timestamp:', new Date().toISOString());
+                      console.log('[SILENCE TIMEOUT REPROMPT] =========================================');
+
+                      // Increment reprompt count
+                      callSessionState.repromptCount++;
+
+                      // Reprompt the same stage
+                      const currentStage = callSessionState.currentStage;
+
+                      if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
+                        // Reset prompt gating state for reprompt
+                        callSessionState.promptStartedAt = Date.now();
+                        callSessionState.promptCompletedAt = null;
+                        callSessionState.blockedAudioDuringPrompt = false;
+                        callSessionState.listeningStartedAt = null;
+                        callSessionState.validUserAnswerReceivedAt = null;
+
+                        // Clear silence timer for reprompt
+                        if (callSessionState.silenceTimeoutId) {
+                          clearTimeout(callSessionState.silenceTimeoutId);
+                          callSessionState.silenceTimeoutId = null;
+                        }
+                        callSessionState.silenceTimerStartedAt = null;
+
+                        // Send reprompt with all required arguments
+                        sendStagePrompt(
+                          currentStage,
+                          openAiWs,
+                          promptedStages,
+                          callSessionState.lastPromptAt,
+                          callSessionState.assistantSpeaking,
+                          callSessionState.activeResponseId,
+                          twilioHandler,
+                          callSessionState.lastPromptStage,
+                          stagePromptAttempts,
+                          ws
+                        );
+                      }
+                    } else {
+                      console.log('[SILENCE TIMEOUT FINALIZE] =========================================');
+                      console.log('[SILENCE TIMEOUT FINALIZE] Second silence - finalizing incomplete');
+                      console.log('[SILENCE TIMEOUT FINALIZE] Stage:', callSessionState.currentStage);
+                      console.log('[SILENCE TIMEOUT FINALIZE] Timestamp:', new Date().toISOString());
+                      console.log('[SILENCE TIMEOUT FINALIZE] =========================================');
+
+                      // Finalize incomplete intake
+                      if (openAiWs && openAiWs.readyState === WebSocket.OPEN) {
+                        openAiWs.close(1000, 'Silence timeout - incomplete intake');
+                      }
+                    }
+                  }, SILENCE_TIMEOUT_MS);
+
+                  console.log('[SILENCE TIMER STARTED] =========================================');
+                  console.log('[SILENCE TIMER STARTED] Silence timer started');
+                  console.log('[SILENCE TIMER STARTED] Timeout:', SILENCE_TIMEOUT_MS, 'ms');
+                  console.log('[SILENCE TIMER STARTED] silenceTimerStartedAt:', callSessionState.silenceTimerStartedAt);
+                  console.log('[SILENCE TIMER STARTED] Stage:', callSessionState.currentStage);
+                  console.log('[SILENCE TIMER STARTED] Timestamp:', new Date().toISOString());
+                  console.log('[SILENCE TIMER STARTED] =========================================');
+
                   callSessionState.assistantSpeaking = false;
                   assistantSpeaking = false; // Sync individual variable for backward compatibility
                   (twilioHandler as any).assistantSpeaking = false;
