@@ -1048,11 +1048,13 @@ export default function LeadsPage() {
                                 {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                               </p>
                             </div>
-                            <LeadStatusDropdown
-                              currentStatus={getLeadLifecycleStatus(lead)}
-                              onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
-                              size="sm"
-                            />
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <LeadStatusDropdown
+                                currentStatus={getLeadLifecycleStatus(lead)}
+                                onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
+                                size="sm"
+                              />
+                            </div>
                           </div>
 
                           {/* Compact Preview */}
@@ -1200,11 +1202,13 @@ export default function LeadsPage() {
                                     {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                                   </p>
                                 </div>
-                                <LeadStatusDropdown
-                                  currentStatus={getLeadLifecycleStatus(lead)}
-                                  onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
-                                  size="sm"
-                                />
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <LeadStatusDropdown
+                                    currentStatus={getLeadLifecycleStatus(lead)}
+                                    onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
+                                    size="sm"
+                                  />
+                                </div>
                               </div>
 
                               {/* Compact Preview */}
