@@ -1156,7 +1156,7 @@ export default function LeadsPage() {
                                 Call
                               </a>
                             )}
-                            <div className="flex-1 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            <div className="flex-1 sm:flex-1 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
                               View Conversation
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -1291,7 +1291,7 @@ export default function LeadsPage() {
                                   <a
                                     href={`tel:${lead.caller_phone}`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg transition-colors group-hover:bg-blue-900/20 group-hover:text-blue-400"
+                                    className="flex sm:hidden flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg transition-colors group-hover:bg-blue-900/20 group-hover:text-blue-400"
                                     title="Call"
                                   >
                                     <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
