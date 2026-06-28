@@ -2980,10 +2980,12 @@ async function finalizeIncompleteIntake(
   console.log('[AI INCOMPLETE FINALIZATION STARTED] callerPhone:', callerPhone);
   console.log('[AI INCOMPLETE FINALIZATION STARTED] Timestamp:', new Date().toISOString());
   console.log('[AI INCOMPLETE FINALIZATION STARTED] =========================================');
-  
+
+  console.log('[STEP 1] Checking if any useful field was collected');
   // Check if any useful field was collected
   const hasUsefulData = hasUsefulCollectedFields(intakeData);
-  
+  console.log('[STEP 1 RETURNED] hasUsefulData:', hasUsefulData);
+
   if (!hasUsefulData) {
     console.log('[FINALIZE INCOMPLETE RETURN] =========================================');
     console.log('[FINALIZE INCOMPLETE RETURN] reason: No useful data collected, skipping finalization');
@@ -2991,6 +2993,7 @@ async function finalizeIncompleteIntake(
     console.log('[FINALIZE INCOMPLETE RETURN] =========================================');
     return;
   }
+  console.log('[STEP 1 PASSED] Useful data check passed');
   
   console.log('[AI INCOMPLETE FINALIZATION] Useful data collected, proceeding with finalization');
   
@@ -3016,13 +3019,14 @@ async function finalizeIncompleteIntake(
   console.log('[AI INCOMPLETE STEP 1 SUCCESS] =========================================');
   
   // Create or update lead
-  console.log('[AI INCOMPLETE STEP 2] =========================================');
-  console.log('[AI INCOMPLETE STEP 2] Creating or updating lead');
-  console.log('[AI INCOMPLETE STEP 2] businessId:', businessId);
-  console.log('[AI INCOMPLETE STEP 2] callerPhone:', callerPhone);
-  console.log('[AI INCOMPLETE STEP 2] Timestamp:', new Date().toISOString());
-  console.log('[AI INCOMPLETE STEP 2] =========================================');
-  
+  console.log('[STEP 2] =========================================');
+  console.log('[STEP 2] Creating or updating lead');
+  console.log('[STEP 2] businessId:', businessId);
+  console.log('[STEP 2] callerPhone:', callerPhone);
+  console.log('[STEP 2] Timestamp:', new Date().toISOString());
+  console.log('[STEP 2] =========================================');
+
+  console.log('[STEP 2 CALLING retrySupabaseOperation for lead creation]');
   const { data: lead, error: leadError } = await retrySupabaseOperation(
   async () => {
     const result = await supabase
@@ -3042,6 +3046,7 @@ async function finalizeIncompleteIntake(
   3,
   1000
 );
+  console.log('[STEP 2 RETURNED from retrySupabaseOperation] lead:', !!lead, 'leadError:', !!leadError);
   
   if (leadError) {
     console.error('[AI INCOMPLETE STEP 2 FAILED] =========================================');
@@ -3057,14 +3062,15 @@ async function finalizeIncompleteIntake(
   console.log('[AI INCOMPLETE STEP 2 SUCCESS] Lead created/updated:', lead.id);
   console.log('[AI INCOMPLETE STEP 2 SUCCESS] Timestamp:', new Date().toISOString());
   console.log('[AI INCOMPLETE STEP 2 SUCCESS] =========================================');
-  
+
   // Create or update conversation
-  console.log('[AI INCOMPLETE STEP 3] =========================================');
-  console.log('[AI INCOMPLETE STEP 3] Creating or updating conversation');
-  console.log('[AI INCOMPLETE STEP 3] leadId:', lead.id);
-  console.log('[AI INCOMPLETE STEP 3] Timestamp:', new Date().toISOString());
-  console.log('[AI INCOMPLETE STEP 3] =========================================');
-  
+  console.log('[STEP 3] =========================================');
+  console.log('[STEP 3] Creating or updating conversation');
+  console.log('[STEP 3] leadId:', lead.id);
+  console.log('[STEP 3] Timestamp:', new Date().toISOString());
+  console.log('[STEP 3] =========================================');
+
+  console.log('[STEP 3 CALLING retrySupabaseOperation for conversation lookup]');
   let conversation;
   const { data: existingConversation } = await retrySupabaseOperation(
     async () => {
@@ -3079,11 +3085,13 @@ async function finalizeIncompleteIntake(
     3,
     1000
   );
+  console.log('[STEP 3 RETURNED from conversation lookup] existingConversation:', !!existingConversation);
   
   if (existingConversation) {
     conversation = existingConversation;
-    console.log('[AI INCOMPLETE STEP 3] Using existing conversation:', conversation.id);
+    console.log('[STEP 3] Using existing conversation:', conversation.id);
   } else {
+    console.log('[STEP 3 CALLING retrySupabaseOperation for conversation creation]');
     const result = await retrySupabaseOperation(
       async () => {
         const res = await supabase
@@ -3102,6 +3110,7 @@ async function finalizeIncompleteIntake(
       3,
       1000
     );
+    console.log('[STEP 3 RETURNED from conversation creation] result.data:', !!result.data, 'result.error:', !!result.error);
     conversation = result.data;
   }
   
@@ -3109,15 +3118,16 @@ async function finalizeIncompleteIntake(
   console.log('[AI INCOMPLETE STEP 3 SUCCESS] Conversation:', conversation.id);
   console.log('[AI INCOMPLETE STEP 3 SUCCESS] Timestamp:', new Date().toISOString());
   console.log('[AI INCOMPLETE STEP 3 SUCCESS] =========================================');
-  
+
   // Insert AI call record with incomplete outcome (idempotent)
-  console.log('[AI INCOMPLETE STEP 4] =========================================');
-  console.log('[AI INCOMPLETE STEP 4] Inserting AI call record with incomplete outcome (idempotent)');
-  console.log('[AI INCOMPLETE STEP 4] callSid:', callSid);
-  console.log('[AI INCOMPLETE STEP 4] Timestamp:', new Date().toISOString());
-  console.log('[AI INCOMPLETE STEP 4] =========================================');
-  
+  console.log('[STEP 4] =========================================');
+  console.log('[STEP 4] Inserting AI call record with incomplete outcome (idempotent)');
+  console.log('[STEP 4] callSid:', callSid);
+  console.log('[STEP 4] Timestamp:', new Date().toISOString());
+  console.log('[STEP 4] =========================================');
+
   // Check for existing record by call_sid
+  console.log('[STEP 4 CALLING retrySupabaseOperation for existing record check]');
   const { data: existingRecord, error: checkError } = await retrySupabaseOperation(
     async () => {
       const result = await supabase
@@ -3131,6 +3141,7 @@ async function finalizeIncompleteIntake(
     3,
     1000
   );
+  console.log('[STEP 4 RETURNED from existing record check] existingRecord:', !!existingRecord, 'checkError:', !!checkError);
   
   if (checkError && checkError.code !== 'PGRST116') {
     console.error('[AI INCOMPLETE STEP 4 FAILED] =========================================');
@@ -3144,7 +3155,8 @@ async function finalizeIncompleteIntake(
   
   let recordError;
   if (existingRecord) {
-    console.log('[AI INCOMPLETE STEP 4] Existing record found, updating instead of inserting');
+    console.log('[STEP 4] Existing record found, updating instead of inserting');
+    console.log('[STEP 4 CALLING retrySupabaseOperation for record update]');
     // Update existing record
     const { error: updateError } = await retrySupabaseOperation(
       async () => {
@@ -3166,8 +3178,11 @@ async function finalizeIncompleteIntake(
       3,
       1000
     );
+    console.log('[STEP 4 RETURNED from record update] updateError:', !!updateError);
     recordError = updateError;
   } else {
+    console.log('[STEP 4] No existing record, inserting new record');
+    console.log('[STEP 4 CALLING retrySupabaseOperation for record insert]');
     // Insert new record
     const { error: insertError } = await retrySupabaseOperation(
       async () => {
@@ -3191,6 +3206,7 @@ async function finalizeIncompleteIntake(
       3,
       1000
     );
+    console.log('[STEP 4 RETURNED from record insert] insertError:', !!insertError);
     recordError = insertError;
   }
   
@@ -3210,17 +3226,18 @@ async function finalizeIncompleteIntake(
   console.log('[AI INCOMPLETE STEP 4 SUCCESS] existingRecord:', !!existingRecord);
   console.log('[AI INCOMPLETE STEP 4 SUCCESS] Timestamp:', new Date().toISOString());
   console.log('[AI INCOMPLETE STEP 4 SUCCESS] =========================================');
-  
+
   // Send partial AI summary SMS
-  console.log('[AI INCOMPLETE STEP 5] =========================================');
-  console.log('[AI INCOMPLETE STEP 5] Sending partial summary SMS');
-  console.log('[AI INCOMPLETE STEP 5] businessId:', businessId);
-  console.log('[AI INCOMPLETE STEP 5] leadId:', lead.id);
-  console.log('[AI INCOMPLETE STEP 5] conversationId:', conversation.id);
-  console.log('[AI INCOMPLETE STEP 5] Timestamp:', new Date().toISOString());
-  console.log('[AI INCOMPLETE STEP 5] =========================================');
-  
+  console.log('[STEP 5] =========================================');
+  console.log('[STEP 5] Sending partial summary SMS');
+  console.log('[STEP 5] businessId:', businessId);
+  console.log('[STEP 5] leadId:', lead.id);
+  console.log('[STEP 5] conversationId:', conversation.id);
+  console.log('[STEP 5] Timestamp:', new Date().toISOString());
+  console.log('[STEP 5] =========================================');
+
   try {
+    console.log('[STEP 5 CALLING sendAIConfirmationSMS]');
     await sendAIConfirmationSMS(
       businessId,
       lead.id,
@@ -3229,7 +3246,8 @@ async function finalizeIncompleteIntake(
       callerPhone,
       extractedFields
     );
-    
+    console.log('[STEP 5 RETURNED from sendAIConfirmationSMS]');
+
     console.log('[AI INCOMPLETE STEP 5 SUCCESS] =========================================');
     console.log('[AI INCOMPLETE STEP 5 SUCCESS] Partial summary SMS sent successfully');
     console.log('[AI INCOMPLETE STEP 5 SUCCESS] Timestamp:', new Date().toISOString());
@@ -3244,14 +3262,14 @@ async function finalizeIncompleteIntake(
   }
   
   // Create follow-up jobs (idempotent via API)
-  console.log('[AI INCOMPLETE STEP 6] =========================================');
-  console.log('[AI INCOMPLETE STEP 6] Creating follow-up jobs (idempotent)');
-  console.log('[AI INCOMPLETE STEP 6] businessId:', businessId);
-  console.log('[AI INCOMPLETE STEP 6] leadId:', lead.id);
-  console.log('[AI INCOMPLETE STEP 6] conversationId:', conversation.id);
-  console.log('[AI INCOMPLETE STEP 6] Timestamp:', new Date().toISOString());
-  console.log('[AI INCOMPLETE STEP 6] =========================================');
-  
+  console.log('[STEP 6] =========================================');
+  console.log('[STEP 6] Creating follow-up jobs (idempotent)');
+  console.log('[STEP 6] businessId:', businessId);
+  console.log('[STEP 6] leadId:', lead.id);
+  console.log('[STEP 6] conversationId:', conversation.id);
+  console.log('[STEP 6] Timestamp:', new Date().toISOString());
+  console.log('[STEP 6] =========================================');
+
   try {
     const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
     const notificationApiUrl = appBaseUrl;
@@ -3264,30 +3282,31 @@ async function finalizeIncompleteIntake(
     console.log('[MAIN APP API CONFIG] Timestamp:', new Date().toISOString());
     console.log('[MAIN APP API CONFIG] =========================================');
 
-    console.log('[AI INCOMPLETE STEP 6] API URL:', notificationApiUrl);
-    console.log('[AI INCOMPLETE STEP 6] INTERNAL_API_SECRET present:', !!internalApiSecret);
-    
+    console.log('[STEP 6] API URL:', notificationApiUrl);
+    console.log('[STEP 6] INTERNAL_API_SECRET present:', !!internalApiSecret);
+
     const headers: any = {
       'Content-Type': 'application/json',
     };
     if (internalApiSecret) {
       headers['Authorization'] = `Bearer ${internalApiSecret}`;
     }
-    
-    console.log('[AI INCOMPLETE STEP 6] Headers:', JSON.stringify({
+
+    console.log('[STEP 6] Headers:', JSON.stringify({
       'Content-Type': headers['Content-Type'],
       'Authorization': headers['Authorization'] ? 'Bearer ***' : 'none'
     }));
-    
+
     const requestBody = {
       businessId,
       leadId: lead.id,
       conversationId: conversation.id,
       businessName
     };
-    
-    console.log('[AI INCOMPLETE STEP 6] Request body:', JSON.stringify(requestBody));
-    
+
+    console.log('[STEP 6] Request body:', JSON.stringify(requestBody));
+
+    console.log('[STEP 6 CALLING retrySupabaseOperation for follow-up API]');
     const response = await retrySupabaseOperation(
       async () => {
         const res = await fetch(`${notificationApiUrl}/api/follow-ups/create-jobs`, {
@@ -3301,23 +3320,24 @@ async function finalizeIncompleteIntake(
       3,
       1000
     );
-    
-    console.log('[AI INCOMPLETE STEP 6] Response status:', response.status);
-    console.log('[AI INCOMPLETE STEP 6] Response statusText:', response.statusText);
-    
+    console.log('[STEP 6 RETURNED from follow-up API] response.status:', response.status);
+
+    console.log('[STEP 6] Response status:', response.status);
+    console.log('[STEP 6] Response statusText:', response.statusText);
+
     const responseBody = await response.text();
-    console.log('[AI INCOMPLETE STEP 6] Response body:', responseBody);
-    
+    console.log('[STEP 6] Response body:', responseBody);
+
     // Parse response body as JSON for better error diagnostics
     let parsedResponseBody;
     try {
       parsedResponseBody = JSON.parse(responseBody);
-      console.log('[AI INCOMPLETE STEP 6] Parsed response body:', JSON.stringify(parsedResponseBody, null, 2));
+      console.log('[STEP 6] Parsed response body:', JSON.stringify(parsedResponseBody, null, 2));
     } catch (parseError) {
-      console.log('[AI INCOMPLETE STEP 6] Response body is not JSON, using raw text');
+      console.log('[STEP 6] Response body is not JSON, using raw text');
       parsedResponseBody = responseBody;
     }
-    
+
     if (!response.ok) {
       console.error('[AI INCOMPLETE STEP 6 FAILED] =========================================');
       console.error('[AI INCOMPLETE STEP 6 FAILED] Non-OK status code:', response.status);
