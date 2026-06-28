@@ -4583,7 +4583,7 @@ function startAuthoritativeFinalClose(
         console.log('[FINAL_CLOSING_HARD_STOP_SKIPPED] callState:', currentCallState);
         console.log('[FINAL_CLOSING_HARD_STOP_SKIPPED] hardStopExecuted:', currentHardStopExecuted);
       }
-    }, 10000); // 10 second hard-stop
+    }, 15000); // 15 second hard-stop to allow final goodbye to complete
   }
   // Note: callState will be set to 'closing' when the actual audio delta starts
   // This prevents blocking audio before it's ready
@@ -6829,8 +6829,8 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       turn_detection: {
                         type: "server_vad",
                         threshold: 0.5,
-                        prefix_padding_ms: 500,
-                        silence_duration_ms: 1800,
+                        prefix_padding_ms: 300,
+                        silence_duration_ms: 800,
                         create_response: false
                       },
                       transcription: {
