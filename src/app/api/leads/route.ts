@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   console.log('[API LEADS GET] ========== ROUTE ENTERED ==========')
+  console.log('[API LEADS GET] Request URL:', request.url)
+  console.log('[API LEADS GET] Request method:', request.method)
+  console.log('[API LEADS GET] Request headers:', Object.fromEntries(request.headers.entries()))
   
   try {
     const supabase = createClient(
@@ -12,16 +15,26 @@ export async function GET(request: NextRequest) {
 
     // Get user from auth header
     const authHeader = request.headers.get('Authorization');
+    console.log('[API LEADS GET] Auth header present:', !!authHeader)
+    console.log('[API LEADS GET] Auth header starts with Bearer:', authHeader?.startsWith('Bearer '))
+    
     if (!authHeader?.startsWith('Bearer ')) {
-      console.log('[API LEADS GET] Missing or invalid auth header')
+      console.log('[API LEADS GET] 401: Missing or invalid auth header')
+      console.log('[API LEADS GET] Returning 401 - Unauthorized')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.split(' ')[1];
+    console.log('[API LEADS GET] Token length:', token?.length)
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
+    console.log('[API LEADS GET] Auth error:', authError)
+    console.log('[API LEADS GET] User found:', !!user)
+
     if (authError || !user) {
-      console.log('[API LEADS GET] Auth failed:', authError)
+      console.log('[API LEADS GET] 401: Auth failed')
+      console.log('[API LEADS GET] Returning 401 - Unauthorized')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -129,7 +142,12 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ leads: leads || [] });
   } catch (error) {
-    console.log('[API LEADS GET] Unhandled exception:', error)
+    console.log('[API LEADS GET] ========== UNHANDLED EXCEPTION ==========')
+    console.log('[API LEADS GET] Exception:', error)
+    console.log('[API LEADS GET] Exception name:', error instanceof Error ? error.name : 'Unknown')
+    console.log('[API LEADS GET] Exception message:', error instanceof Error ? error.message : String(error))
+    console.log('[API LEADS GET] Exception stack:', error instanceof Error ? error.stack : 'No stack')
+    console.log('[API LEADS GET] Returning 500 - Internal server error')
     return NextResponse.json({ error: 'Internal server error', details: String(error) }, { status: 500 });
   }
 }
@@ -186,7 +204,11 @@ export async function POST(request: NextRequest) {
     const { phone, name } = body;
 
     if (!phone) {
+      console.log('[API LEADS POST] ========== 400 RETURN ==========')
       console.log('[API LEADS POST] Missing phone number')
+      console.log('[API LEADS POST] Request body:', body)
+      console.log('[API LEADS POST] Request URL:', request.url)
+      console.log('[API LEADS POST] Returning 400 - Phone number is required')
       return NextResponse.json({ error: 'Phone number is required' }, { status: 400 });
     }
 
