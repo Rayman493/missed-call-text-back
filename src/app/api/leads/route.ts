@@ -47,14 +47,69 @@ export async function GET(request: NextRequest) {
 
     console.log('[API LEADS GET] Business found:', business.id)
 
+    // Get query parameters for filtering
+    const { searchParams } = new URL(request.url)
+    const statusFilter = searchParams.get('status')
+    console.log('[API LEADS GET] Query params - statusFilter:', statusFilter)
+
     // Fetch leads for this business
     console.log('[API LEADS GET] Fetching leads for business:', business.id)
+    
+    let query = supabase
+      .from('leads')
+      .select(`
+        id,
+        business_id,
+        caller_phone,
+        name,
+        status,
+        created_at,
+        updated_at,
+        first_contact_at,
+        last_message_at,
+        last_activity_at,
+        conversation_id,
+        deleted_at,
+        deleted_by,
+        deletion_reason,
+        raw_metadata
+      `)
+      .eq('business_id', business.id)
+
+    // Apply status filter if provided (note: deleted is handled separately via deleted_at)
+    if (statusFilter && statusFilter !== 'all' && statusFilter !== 'deleted') {
+      // Map frontend status values to database status values
+      const statusMap: Record<string, string> = {
+        'new': 'new',
+        'active': 'active',
+        'scheduled': 'scheduled',
+        'payment_requested': 'payment_requested',
+        'paid': 'paid',
+        'completed': 'completed',
+        'lost': 'lost',
+        'ignored': 'ignored',
+      }
+      
+      const dbStatus = statusMap[statusFilter]
+      if (dbStatus) {
+        query = query.eq('status', dbStatus)
+        console.log('[API LEADS GET] Applied status filter:', dbStatus)
+      }
+    }
+
+    // For deleted filter, we need to filter by deleted_at IS NOT NULL
+    if (statusFilter === 'deleted') {
+      query = query.not('deleted_at', 'is', null)
+      console.log('[API LEADS GET] Applied deleted filter (deleted_at IS NOT NULL)')
+    } else {
+      // For all other filters, exclude deleted leads by default
+      query = query.is('deleted_at', null)
+      console.log('[API LEADS GET] Excluding deleted leads (deleted_at IS NULL)')
+    }
+
     let leads, leadsError
     try {
-      const result = await supabase
-        .from('leads')
-        .select('id, caller_phone, status, raw_metadata')
-        .eq('business_id', business.id)
+      const result = await query
         .order('created_at', { ascending: false })
         .limit(100);
       leads = result.data
