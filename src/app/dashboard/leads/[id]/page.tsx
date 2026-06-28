@@ -2173,7 +2173,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 onClick={() => {
                   const composer = document.querySelector('textarea[name="message"]') as HTMLTextAreaElement
-                  if (composer) composer.focus()
+                  if (composer) {
+                    composer.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    setTimeout(() => composer.focus(), 300)
+                  }
                 }}
                 className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium rounded-lg transition-colors border border-blue-200 dark:border-blue-800 flex-shrink-0"
                 title="Send text message"
