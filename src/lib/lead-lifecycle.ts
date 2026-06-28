@@ -3,7 +3,7 @@
  * Business-controlled status management for ReplyFlowHQ
  */
 
-export type LeadLifecycleStatus = 'new' | 'active' | 'scheduled' | 'payment_requested' | 'paid' | 'completed' | 'lost'
+export type LeadLifecycleStatus = 'new' | 'active' | 'scheduled' | 'payment_requested' | 'paid' | 'completed' | 'lost' | 'ignored'
 
 export interface LeadLifecycleConfig {
   color: string
@@ -54,6 +54,12 @@ export const LEAD_LIFECYCLE_CONFIG: Record<LeadLifecycleStatus, LeadLifecycleCon
     bgColor: 'bg-red-100 dark:bg-red-900/30',
     label: 'Lost',
     description: 'Lead lost'
+  },
+  ignored: {
+    color: 'text-red-700 dark:text-red-300',
+    bgColor: 'bg-red-100 dark:bg-red-900/30',
+    label: 'Ignored',
+    description: 'Lead ignored'
   }
 }
 
@@ -123,7 +129,7 @@ export function isCompletedLead(lead: any): boolean {
  */
 export function getLeadLifecycleStatus(lead: any): LeadLifecycleStatus {
   // Use the database status directly if it's a valid status
-  const validStatuses: LeadLifecycleStatus[] = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'lost']
+  const validStatuses: LeadLifecycleStatus[] = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'lost', 'ignored']
   if (lead.status && validStatuses.includes(lead.status)) {
     return lead.status as LeadLifecycleStatus
   }

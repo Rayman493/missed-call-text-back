@@ -184,6 +184,7 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [cardOverflowMenu, setCardOverflowMenu] = useState<string | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const { checkoutMode, isLoading: eligibilityLoading } = useTrialEligibility()
@@ -312,6 +313,45 @@ export default function LeadsPage() {
     }
   }
 
+  // Handle ignoring a lead
+  const handleIgnoreLead = async (leadId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      // Update lead status to ignored via API
+      const response = await fetch(`/api/leads/${leadId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: 'ignored'
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to ignore lead')
+      }
+
+      // Update local state
+      setLeads(prev => prev.map(lead => 
+        lead.id === leadId 
+          ? { ...lead, status: 'ignored', updated_at: new Date().toISOString() }
+          : lead
+      ))
+    } catch (error) {
+      console.error('Error ignoring lead:', error)
+      alert('Failed to ignore lead. Please try again.')
+    }
+  }
+
   // Realtime updates
   useRealtimeLeads(
     business?.id,
@@ -402,9 +442,15 @@ export default function LeadsPage() {
         m.body.toLowerCase().includes(searchQuery.toLowerCase())
       ))
     
-    const matchesStatus = statusFilter === 'all' || lead.status === statusFilter
+    const leadStatus = getLeadLifecycleStatus(lead)
+    const matchesStatus = statusFilter === 'all' || leadStatus === statusFilter
     
-    return matchesSearch && matchesStatus
+    // Hide ignored leads from default view (when filter is 'all')
+    const isIgnored = leadStatus === 'ignored'
+    const showIgnored = statusFilter === 'ignored'
+    const shouldShowIgnored = showIgnored || statusFilter !== 'all'
+    
+    return matchesSearch && matchesStatus && (shouldShowIgnored || !isIgnored)
   })
 
   
@@ -821,6 +867,7 @@ export default function LeadsPage() {
                       <option value="paid">Paid</option>
                       <option value="completed">Completed</option>
                       <option value="lost">Lost</option>
+                      <option value="ignored">Ignored</option>
                     </select>
                   </div>
                 </div>
@@ -1162,6 +1209,63 @@ export default function LeadsPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>
                             </div>
+                            <div className="relative">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setCardOverflowMenu(cardOverflowMenu === lead.id ? null : lead.id)
+                                }}
+                                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                title="More actions"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                </svg>
+                              </button>
+                              {cardOverflowMenu === lead.id && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setCardOverflowMenu(null)
+                                    }}
+                                  />
+                                  <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[140px]">
+                                    {getLeadLifecycleStatus(lead) !== 'ignored' && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleIgnoreLead(lead.id)
+                                          setCardOverflowMenu(null)
+                                        }}
+                                        className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                        Ignore Lead
+                                      </button>
+                                    )}
+                                    {getLeadLifecycleStatus(lead) === 'ignored' && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleLeadStatusChange(lead.id, 'active')
+                                          setCardOverflowMenu(null)
+                                        }}
+                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Restore Lead
+                                      </button>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </Link>
@@ -1305,6 +1409,63 @@ export default function LeadsPage() {
                                   <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                   </svg>
+                                </div>
+                                <div className="relative">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setCardOverflowMenu(cardOverflowMenu === lead.id ? null : lead.id)
+                                    }}
+                                    className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                    title="More actions"
+                                  >
+                                    <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                    </svg>
+                                  </button>
+                                  {cardOverflowMenu === lead.id && (
+                                    <>
+                                      <div
+                                        className="fixed inset-0 z-40"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          setCardOverflowMenu(null)
+                                        }}
+                                      />
+                                      <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[140px]">
+                                        {getLeadLifecycleStatus(lead) !== 'ignored' && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              handleIgnoreLead(lead.id)
+                                              setCardOverflowMenu(null)
+                                            }}
+                                            className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                          >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                            </svg>
+                                            Ignore Lead
+                                          </button>
+                                        )}
+                                        {getLeadLifecycleStatus(lead) === 'ignored' && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              handleLeadStatusChange(lead.id, 'active')
+                                              setCardOverflowMenu(null)
+                                            }}
+                                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                                          >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                            Restore Lead
+                                          </button>
+                                        )}
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
                               </div>
                             </div>
