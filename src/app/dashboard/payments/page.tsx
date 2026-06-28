@@ -366,8 +366,8 @@ export default function PaymentsPage() {
 
             {/* Payment Requests Table */}
             <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg border border-slate-700 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
+              <div className="overflow-x-auto -mx-4 px-4">
+                  <table className="w-full min-w-[800px]">
                   <thead className="bg-[#0f172a] dark:bg-[#0f172a]">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">

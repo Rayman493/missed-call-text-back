@@ -93,6 +93,7 @@ export default function MobileMenu() {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/dashboard/leads', label: 'Leads' },
     { href: '/dashboard/calendar', label: 'Calendar' },
+    { href: '/dashboard/payments', label: 'Payments' },
     { href: '/dashboard/settings', label: 'Settings' },
     { href: '#', label: 'Account' }, // This will be handled by UserDropdown
     { href: '/home', label: 'View Public Site' },
