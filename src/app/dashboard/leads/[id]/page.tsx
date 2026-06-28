@@ -1755,14 +1755,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Conversation Sub-Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 py-1.5 sm:py-3">
-          {/* Status Accent Bar - Desktop */}
-          <div className="hidden md:block">
-            <div className={`h-1 rounded-t-lg ${getLeadStatusAccentColor(getLeadLifecycleStatus(leadData || lead))}`}></div>
-          </div>
           {/* Mobile Layout: Enhanced Information Header */}
           <div className="md:hidden">
-            {/* Status Accent Bar - Mobile */}
-            <div className={`h-1 rounded-t-lg ${getLeadStatusAccentColor(getLeadLifecycleStatus(leadData || lead))}`}></div>
             {/* Back to Leads link for mobile */}
             <div className="mb-3">
               <button

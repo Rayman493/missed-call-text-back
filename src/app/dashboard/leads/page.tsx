@@ -108,6 +108,25 @@ function getAddress(lead: any): string | null {
   return lead.raw_metadata?.address || null
 }
 
+// Helper to get lead status accent color
+function getLeadStatusAccentColor(status: string): string {
+  const normalizedStatus = status?.toLowerCase()
+  switch (normalizedStatus) {
+    case 'new':
+      return 'bg-blue-500'
+    case 'active':
+      return 'bg-green-500'
+    case 'scheduled':
+      return 'bg-purple-500'
+    case 'completed':
+      return 'bg-gray-500'
+    case 'ignored':
+      return 'bg-red-500'
+    default:
+      return 'bg-blue-500'
+  }
+}
+
 // Helper to normalize phone number for deduplication
 function normalizePhoneNumber(phone: string): string {
   if (!phone) return ''
@@ -1102,6 +1121,8 @@ export default function LeadsPage() {
                         onClick={() => handleConversationClick(lead.id)}
                         className="w-full max-w-2xl h-full flex flex-col bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 overflow-hidden group cursor-pointer"
                       >
+                        {/* Status Accent Bar */}
+                        <div className={`h-1 rounded-t-lg ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
                         <div className="p-4 sm:p-5 flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
                           <div className="flex items-start justify-between mb-3 sm:mb-4">
@@ -1303,6 +1324,8 @@ export default function LeadsPage() {
                             onClick={() => handleConversationClick(lead.id)}
                             className="bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 overflow-hidden group cursor-pointer"
                           >
+                            {/* Status Accent Bar */}
+                            <div className={`h-1 rounded-t-lg ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
                             <div className="p-3 sm:p-4">
                               {/* Header: Name, Phone, Status */}
                               <div className="flex items-start justify-between mb-2 sm:mb-3">
