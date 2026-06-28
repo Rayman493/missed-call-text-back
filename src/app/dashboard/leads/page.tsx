@@ -238,7 +238,6 @@ export default function LeadsPage() {
           caller_phone,
           status,
           created_at,
-          updated_at,
           first_contact_at,
           last_message_at,
           last_activity_at,
@@ -336,7 +335,7 @@ export default function LeadsPage() {
       // Update local state
       setLeads(prev => prev.map(lead => 
         lead.id === leadId 
-          ? { ...lead, status: newStatus, updated_at: new Date().toISOString() }
+          ? { ...lead, status: newStatus }
           : lead
       ))
     } catch (error) {
@@ -375,7 +374,7 @@ export default function LeadsPage() {
       // Update local state
       setLeads(prev => prev.map(lead => 
         lead.id === leadId 
-          ? { ...lead, status: 'ignored', updated_at: new Date().toISOString() }
+          ? { ...lead, status: 'ignored' }
           : lead
       ))
     } catch (error) {
@@ -413,7 +412,7 @@ export default function LeadsPage() {
       // Update local state
       setLeads(prev => prev.map(lead => 
         lead.id === leadId 
-          ? { ...lead, deleted_at: null, deleted_by: null, deletion_reason: null, updated_at: new Date().toISOString() }
+          ? { ...lead, deleted_at: null, deleted_by: null, deletion_reason: null }
           : lead
       ))
     } catch (error) {

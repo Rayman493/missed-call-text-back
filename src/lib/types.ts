@@ -129,10 +129,10 @@ export interface Lead {
   status: string;
   raw_metadata: any;
   created_at: string;
-  updated_at: string;
   // Optional fields that may be added by backend or derived
   first_contact_at?: string | null;
   last_message_at?: string | null;
+  last_activity_at?: string | null;
   last_reply_at?: string | null;
   opted_out?: boolean;
   

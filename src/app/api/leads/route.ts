@@ -64,7 +64,6 @@ export async function GET(request: NextRequest) {
         name,
         status,
         created_at,
-        updated_at,
         first_contact_at,
         last_message_at,
         last_activity_at,

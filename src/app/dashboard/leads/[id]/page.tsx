@@ -535,7 +535,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     
     // Add Customer Corrected Address event
     if (leadData?.raw_metadata?.customer_corrected_info || leadData?.raw_metadata?.corrected_fields) {
-      const correctionTimestamp = leadData.raw_metadata.last_customer_reply_at || leadData.updated_at
+      const correctionTimestamp = leadData.raw_metadata.last_customer_reply_at || leadData.last_activity_at || leadData.created_at
       const hasAddressCorrection = leadData.raw_metadata.corrected_fields?.address
       systemEvents.push({
         type: 'system_event',
@@ -591,10 +591,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           systemEvents.push({
             type: 'system_event',
             id: `payment-paid-${pr.id}`,
-            created_at: pr.paid_at || pr.updated_at,
+            created_at: pr.paid_at || pr.created_at,
             data: {
               message: `Payment Received: $${(pr.amount_cents / 100).toFixed(2)}`,
-              timestamp: pr.paid_at || pr.updated_at,
+              timestamp: pr.paid_at || pr.created_at,
               isDivider: true
             }
           })
@@ -617,10 +617,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       systemEvents.push({
         type: 'system_event',
         id: `lead-complete-${leadData.id}`,
-        created_at: leadData.updated_at,
+        created_at: leadData.last_activity_at || leadData.created_at,
         data: {
           message: 'Lead Marked Complete',
-          timestamp: leadData.updated_at
+          timestamp: leadData.last_activity_at || leadData.created_at
         }
       })
     }
@@ -672,7 +672,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     })
 
     return timeline
-  }, [allMessages, leadData?.voicemailRecordings, leadData?.aiCallRecords, leadData?.raw_metadata, leadData?.followUpJobs, leadData?.status, leadData?.updated_at, leadData?.id])
+  }, [allMessages, leadData?.voicemailRecordings, leadData?.aiCallRecords, leadData?.raw_metadata, leadData?.followUpJobs, leadData?.status, leadData?.last_activity_at, leadData?.created_at, leadData?.id])
   
   const messagesArray = allMessages || []
   const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
