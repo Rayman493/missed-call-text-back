@@ -203,6 +203,8 @@ export class NotificationServiceServer {
         title: notificationData.title,
         message: message || notificationData.message,
         data,
+        action_url: actionUrl || notificationData.action_url,
+        action_text: actionText || notificationData.action_text,
         read: false,
         created_at: new Date().toISOString()
       })

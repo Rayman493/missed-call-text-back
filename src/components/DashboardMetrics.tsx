@@ -116,13 +116,12 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           messagesToday = messagesTodayData || []
         }
 
-        // Fetch active conversations (leads with recent activity)
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        // Fetch active conversations (leads with recent activity) - use same 30-day period for accurate recovery rate
         const { data: activeConversations } = await supabase
           .from('leads')
           .select('id')
           .eq('business_id', business.id)
-          .gte('created_at', sevenDaysAgo)
+          .gte('created_at', thirtyDaysAgo)
 
         // Calculate metrics - 30 days
         const missedCallsCaptured = leads?.length || 0
