@@ -961,25 +961,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         throw new Error('Not authenticated')
       }
 
-      // Archive the lead by setting status to 'archived'
+      // Soft delete the lead using DELETE endpoint
       const response = await fetch(`/api/leads/${params.id}`, {
-        method: 'PATCH',
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          status: 'archived'
-        })
+        }
       })
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to remove lead')
+        throw new Error(error.error || 'Failed to delete lead')
       }
 
       // Show success message
-      setSuccessMessage('Lead removed from active inbox.')
+      setSuccessMessage('Lead deleted successfully.')
       setShowRemoveModal(false)
       
       // Redirect to leads list after a short delay

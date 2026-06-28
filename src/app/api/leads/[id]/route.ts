@@ -104,7 +104,7 @@ export async function DELETE(
     // Verify lead belongs to user's business
     const { data: lead, error: leadError } = await supabase
       .from('leads')
-      .select('id, business_id')
+      .select('id, business_id, status')
       .eq('id', leadId)
       .eq('business_id', business.id)
       .single();
@@ -113,97 +113,51 @@ export async function DELETE(
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
 
-    // Delete related records
-    const deletedCounts: Record<string, number> = {};
-
-    // Delete messages
-    const { error: messagesError, count: messagesCount } = await supabase
-      .from('messages')
-      .delete()
-      .eq('lead_id', leadId);
-    if (!messagesError && messagesCount !== null) {
-      deletedCounts.messages = messagesCount;
-    }
-
-    // Delete message media
-    const { error: mediaError, count: mediaCount } = await supabase
-      .from('message_media')
-      .delete()
-      .eq('lead_id', leadId);
-    if (!mediaError && mediaCount !== null) {
-      deletedCounts.messageMedia = mediaCount;
-    }
-
-    // Delete notifications for this lead
-    const { error: notificationsError, count: notificationsCount } = await supabase
-      .from('notifications')
-      .delete()
-      .eq('lead_id', leadId);
-    if (!notificationsError && notificationsCount !== null) {
-      deletedCounts.notifications = notificationsCount;
-    }
-
-    // Delete follow-up jobs
-    const { error: followUpsError, count: followUpsCount } = await supabase
+    // Pause/cancel pending follow-up jobs before soft delete
+    const { error: followUpsError } = await supabase
       .from('follow_up_jobs')
-      .delete()
-      .eq('lead_id', leadId);
-    if (!followUpsError && followUpsCount !== null) {
-      deletedCounts.followUpJobs = followUpsCount;
+      .update({
+        status: 'paused',
+        paused_at: new Date().toISOString(),
+        paused_by: 'system',
+        cancellation_reason: 'lead_deleted'
+      })
+      .eq('lead_id', leadId)
+      .eq('status', 'pending');
+
+    if (followUpsError) {
+      console.log('[LEAD DELETE] Failed to pause follow-ups:', followUpsError);
+      // Don't fail the request if follow-up pause fails
     }
 
-    // Delete AI call records
-    const { error: aiCallsError, count: aiCallsCount } = await supabase
-      .from('ai_call_records')
-      .delete()
-      .eq('lead_id', leadId);
-    if (!aiCallsError && aiCallsCount !== null) {
-      deletedCounts.aiCallRecords = aiCallsCount;
-    }
-
-    // Delete voicemail recordings
-    const { error: voicemailError, count: voicemailCount } = await supabase
-      .from('voicemail_recordings')
-      .delete()
-      .eq('lead_id', leadId);
-    if (!voicemailError && voicemailCount !== null) {
-      deletedCounts.voicemailRecordings = voicemailCount;
-    }
-
-    // Delete conversations
-    const { error: conversationsError, count: conversationsCount } = await supabase
-      .from('conversations')
-      .delete()
-      .eq('lead_id', leadId);
-    if (!conversationsError && conversationsCount !== null) {
-      deletedCounts.conversations = conversationsCount;
-    }
-
-    // Delete the lead
+    // Soft delete the lead by setting deleted_at and deleted_by
     const { error: deleteLeadError } = await supabase
       .from('leads')
-      .delete()
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: user.id,
+        deletion_reason: 'user_deleted'
+      })
       .eq('id', leadId)
       .eq('business_id', business.id);
 
     if (deleteLeadError) {
-      console.error('Error deleting lead:', deleteLeadError);
+      console.error('Error soft deleting lead:', deleteLeadError);
       return NextResponse.json({ error: 'Failed to delete lead' }, { status: 500 });
     }
 
-    // Log deletion
-    console.log('[LEAD DELETE] Lead deleted successfully:', {
+    // Log soft deletion
+    console.log('[LEAD DELETE] Lead soft deleted successfully:', {
       leadId,
       businessId: business.id,
       userId: user.id,
-      deletedCounts,
+      previousStatus: lead.status,
       timestamp: new Date().toISOString()
     });
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Lead deleted successfully',
-      deletedCounts 
+      message: 'Lead deleted successfully'
     });
   } catch (error) {
     console.error('Error in DELETE /api/leads/[id]:', error);

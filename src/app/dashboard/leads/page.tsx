@@ -371,6 +371,44 @@ export default function LeadsPage() {
     }
   }
 
+  // Handle restore deleted lead
+  const handleRestoreLead = async (leadId: string) => {
+    try {
+      const token = await supabase.auth.getSession()
+      if (!token.data.session?.access_token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch(`/api/leads/${leadId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.data.session.access_token}`
+        },
+        body: JSON.stringify({
+          deleted_at: null,
+          deleted_by: null,
+          deletion_reason: null
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to restore lead')
+      }
+
+      // Update local state
+      setLeads(prev => prev.map(lead => 
+        lead.id === leadId 
+          ? { ...lead, deleted_at: null, deleted_by: null, deletion_reason: null, updated_at: new Date().toISOString() }
+          : lead
+      ))
+    } catch (error) {
+      console.error('Error restoring lead:', error)
+      alert('Failed to restore lead. Please try again.')
+    }
+  }
+
   // Realtime updates
   useRealtimeLeads(
     business?.id,
@@ -462,6 +500,7 @@ export default function LeadsPage() {
       ))
     
     const leadStatus = getLeadLifecycleStatus(lead)
+    const isDeleted = !!lead.deleted_at
     const matchesStatus = statusFilter === 'all' || leadStatus === statusFilter
     
     // Hide ignored leads from default view (when filter is 'all')
@@ -469,7 +508,11 @@ export default function LeadsPage() {
     const showIgnored = statusFilter === 'ignored'
     const shouldShowIgnored = showIgnored || statusFilter !== 'all'
     
-    return matchesSearch && matchesStatus && (shouldShowIgnored || !isIgnored)
+    // Hide deleted leads from default view (when filter is 'all')
+    const showDeleted = statusFilter === 'deleted'
+    const shouldShowDeleted = showDeleted || statusFilter !== 'all'
+    
+    return matchesSearch && matchesStatus && (shouldShowIgnored || !isIgnored) && (shouldShowDeleted || !isDeleted)
   })
 
   
@@ -823,6 +866,11 @@ export default function LeadsPage() {
                     Ignored leads are hidden from your main list and can be restored for up to 30 days.
                   </p>
                 )}
+                {statusFilter === 'deleted' && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Deleted leads are hidden from your main list and can be restored for up to 30 days.
+                  </p>
+                )}
               </div>
               
               <div className="flex items-center gap-2">
@@ -892,6 +940,7 @@ export default function LeadsPage() {
                       <option value="completed">Completed</option>
                       <option value="lost">Lost</option>
                       <option value="ignored">Ignored</option>
+                      <option value="deleted">Deleted</option>
                     </select>
                   </div>
                 </div>
@@ -1259,7 +1308,23 @@ export default function LeadsPage() {
                                     }}
                                   />
                                   <div className="absolute right-0 top-full mt-1 z-[10000] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[140px]">
-                                    {getLeadLifecycleStatus(lead) !== 'ignored' && (
+                                    {lead.deleted_at && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault()
+                                          e.stopPropagation()
+                                          handleRestoreLead(lead.id)
+                                          setCardOverflowMenu(null)
+                                        }}
+                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Restore Lead
+                                      </button>
+                                    )}
+                                    {!lead.deleted_at && getLeadLifecycleStatus(lead) !== 'ignored' && (
                                       <button
                                         onClick={(e) => {
                                           e.preventDefault()
@@ -1275,7 +1340,7 @@ export default function LeadsPage() {
                                         Ignore Lead
                                       </button>
                                     )}
-                                    {getLeadLifecycleStatus(lead) === 'ignored' && (
+                                    {!lead.deleted_at && getLeadLifecycleStatus(lead) === 'ignored' && (
                                       <button
                                         onClick={(e) => {
                                           e.preventDefault()
@@ -1465,7 +1530,23 @@ export default function LeadsPage() {
                                         }}
                                       />
                                       <div className="absolute right-0 top-full mt-1 z-[10000] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[140px]">
-                                        {getLeadLifecycleStatus(lead) !== 'ignored' && (
+                                        {lead.deleted_at && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.preventDefault()
+                                              e.stopPropagation()
+                                              handleRestoreLead(lead.id)
+                                              setCardOverflowMenu(null)
+                                            }}
+                                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                                          >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                            Restore Lead
+                                          </button>
+                                        )}
+                                        {!lead.deleted_at && getLeadLifecycleStatus(lead) !== 'ignored' && (
                                           <button
                                             onClick={(e) => {
                                               e.preventDefault()
@@ -1481,7 +1562,7 @@ export default function LeadsPage() {
                                             Ignore Lead
                                           </button>
                                         )}
-                                        {getLeadLifecycleStatus(lead) === 'ignored' && (
+                                        {!lead.deleted_at && getLeadLifecycleStatus(lead) === 'ignored' && (
                                           <button
                                             onClick={(e) => {
                                               e.preventDefault()
