@@ -180,11 +180,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const timeMin = searchParams.get('timeMin')
     const timeMax = searchParams.get('timeMax')
-    const timeZone = searchParams.get('timeZone') || Intl.DateTimeFormat().resolvedOptions().timeZone
 
-    console.log('[Google Calendar Events] Date range:', { timeMin, timeMax, timeZone })
+    console.log('[Google Calendar Events] Date range:', { timeMin, timeMax })
 
-    // Build Google Calendar API URL with date range and timezone
+    // Build Google Calendar API URL with date range
     let apiUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?'
     
     if (timeMin) {
@@ -198,8 +197,6 @@ export async function GET(request: NextRequest) {
       apiUrl += `timeMax=${encodeURIComponent(timeMax)}&`
     }
     
-    // Add timeZone parameter to ensure times are returned in the user's local timezone
-    apiUrl += `timeZone=${encodeURIComponent(timeZone)}&`
     apiUrl += 'maxResults=250&orderBy=startTime&singleEvents=true'
 
     // Fetch events from Google Calendar
@@ -246,7 +243,6 @@ export async function GET(request: NextRequest) {
         `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(holidayCalendarId)}/events?` +
         (timeMin ? `timeMin=${encodeURIComponent(timeMin)}&` : `timeMin=${new Date().toISOString()}&`) +
         (timeMax ? `timeMax=${encodeURIComponent(timeMax)}&` : '') +
-        `timeZone=${encodeURIComponent(timeZone)}&` +
         'maxResults=250&orderBy=startTime&singleEvents=true',
         {
           headers: {
@@ -267,17 +263,25 @@ export async function GET(request: NextRequest) {
     }
 
     // Normalize primary events
-    const primaryEvents = (eventsData.items || []).map((event: any) => ({
-      id: event.id,
-      summary: event.summary || 'No title',
-      description: event.description || null,
-      start: event.start,
-      end: event.end,
-      location: event.location || null,
-      htmlLink: event.htmlLink || null,
-      source: 'primary' as const,
-      isHoliday: false
-    }))
+    const primaryEvents = (eventsData.items || []).map((event: any) => {
+      console.log('[Google Calendar Events] Raw event from Google:', {
+        id: event.id,
+        summary: event.summary,
+        start: event.start,
+        end: event.end
+      })
+      return {
+        id: event.id,
+        summary: event.summary || 'No title',
+        description: event.description || null,
+        start: event.start,
+        end: event.end,
+        location: event.location || null,
+        htmlLink: event.htmlLink || null,
+        source: 'primary' as const,
+        isHoliday: false
+      }
+    })
 
     // Normalize holiday events
     const normalizedHolidays = holidayEvents.map((event: any) => ({

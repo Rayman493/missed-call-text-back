@@ -43,6 +43,7 @@ export default function CalendarPage() {
 
   const [calendarConnected, setCalendarConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [isConnecting, setIsConnecting] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [calendarEmail, setCalendarEmail] = useState<string | null>(null)
@@ -219,6 +220,7 @@ export default function CalendarPage() {
       if (!token) {
         setCalendarConnected(false)
         setIsLoading(false)
+        setIsInitialLoad(false)
         return
       }
 
@@ -232,6 +234,7 @@ export default function CalendarPage() {
         if (response.status === 401) {
           setCalendarConnected(false)
           setIsLoading(false)
+          setIsInitialLoad(false)
           return
         }
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
@@ -247,6 +250,7 @@ export default function CalendarPage() {
       }
 
       setIsLoading(false)
+      setIsInitialLoad(false)
 
       if (data.connected) {
         await fetchEvents()
@@ -255,6 +259,7 @@ export default function CalendarPage() {
       console.error('[GOOGLE CALENDAR SYNC ERROR] Error fetching calendar status:', error)
       setCalendarConnected(false)
       setIsLoading(false)
+      setIsInitialLoad(false)
     }
   }
 
@@ -285,11 +290,8 @@ export default function CalendarPage() {
       const gridEnd = new Date(year, monthIndex + 1, remainingDays)
       gridEnd.setHours(23, 59, 59, 999)
 
-      // Get user's timezone
-      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
-
       const response = await fetch(
-        `/api/google/calendar/events?timeMin=${gridStart.toISOString()}&timeMax=${gridEnd.toISOString()}&timeZone=${encodeURIComponent(userTimeZone)}`,
+        `/api/google/calendar/events?timeMin=${gridStart.toISOString()}&timeMax=${gridEnd.toISOString()}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -347,6 +349,13 @@ export default function CalendarPage() {
       fetchCalendarStatus()
     }
   }, [business])
+
+  // Fetch events when month changes
+  useEffect(() => {
+    if (calendarConnected && !isLoading) {
+      fetchEvents()
+    }
+  }, [currentMonth])
 
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return ''
@@ -482,8 +491,8 @@ export default function CalendarPage() {
                 </div>
               ) : (
                 <>
-                  {/* Disconnected State */}
-                  {!calendarConnected && (
+                  {/* Disconnected State - only show if not initial load */}
+                  {!calendarConnected && !isInitialLoad && (
                     <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-8 sm:p-12 text-center">
                       <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
                         <CalendarIcon className="w-8 h-8 text-slate-400" />
@@ -781,7 +790,7 @@ export default function CalendarPage() {
                       {/* Floating Add Event button for mobile - Improved positioning to avoid overlap */}
                       <button
                         onClick={() => handleAddEvent()}
-                        className="md:hidden fixed bottom-32 sm:bottom-36 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40 pb-safe"
+                        className="md:hidden fixed bottom-24 sm:bottom-28 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40 pb-safe"
                         aria-label="Add event"
                       >
                         <Plus className="w-6 h-6" />
