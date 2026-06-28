@@ -46,10 +46,16 @@ export default function LeadStatusDropdown({
         return '📞'
       case 'active':
         return '💬'
-      case 'completed':
+      case 'scheduled':
+        return '📅'
+      case 'payment_requested':
+        return '💳'
+      case 'paid':
         return '✅'
-      case 'ignored':
-        return '🔕'
+      case 'completed':
+        return '✓'
+      case 'lost':
+        return '❌'
       default:
         return '📋'
     }
@@ -58,32 +64,31 @@ export default function LeadStatusDropdown({
   const getStatusDescription = (status: LeadLifecycleStatus) => {
     switch (status) {
       case 'new':
-        return 'Needs Attention'
+        return 'Recently received'
       case 'active':
-        return 'Conversation Open'
+        return 'Conversation in progress'
+      case 'scheduled':
+        return 'Appointment scheduled'
+      case 'payment_requested':
+        return 'Payment request sent'
+      case 'paid':
+        return 'Payment received'
       case 'completed':
-        return 'Handled and Resolved'
-      case 'ignored':
-        return 'Do Not Contact'
+        return 'Handled and resolved'
+      case 'lost':
+        return 'Lead lost'
       default:
         return ''
     }
   }
 
-  const validTransitions: Record<LeadLifecycleStatus, LeadLifecycleStatus[]> = {
-    new: ['active', 'completed', 'ignored'],
-    active: ['completed', 'ignored'],
-    completed: ['active'],
-    ignored: ['new', 'active']
-  }
-
-  const availableStatuses = validTransitions[currentStatus] || []
+  const allStatuses: LeadLifecycleStatus[] = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'lost']
 
   return (
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        disabled={disabled || isUpdating || availableStatuses.length === 0}
+        disabled={disabled || isUpdating}
         className={`${sizeClasses[size]} ${getLeadStatusClasses(currentStatus)} rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 ${
           isOpen ? 'ring-2 ring-offset-2 ring-slate-300 dark:ring-slate-600' : ''
         }`}
@@ -114,7 +119,7 @@ export default function LeadStatusDropdown({
           
           {/* Dropdown */}
           <div className="absolute top-full left-0 mt-1 bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-lg shadow-lg z-20 min-w-[160px] overflow-hidden">
-            {availableStatuses.map((status) => (
+            {allStatuses.map((status: LeadLifecycleStatus) => (
               <button
                 key={status}
                 onClick={() => handleStatusSelect(status)}

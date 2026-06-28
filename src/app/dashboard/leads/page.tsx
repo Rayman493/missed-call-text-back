@@ -775,8 +775,11 @@ export default function LeadsPage() {
                       <option value="all">All Status</option>
                       <option value="new">New</option>
                       <option value="active">Active</option>
+                      <option value="scheduled">Scheduled</option>
+                      <option value="payment_requested">Payment Requested</option>
+                      <option value="paid">Paid</option>
                       <option value="completed">Completed</option>
-                      <option value="ignored">Ignored</option>
+                      <option value="lost">Lost</option>
                     </select>
                   </div>
                 </div>

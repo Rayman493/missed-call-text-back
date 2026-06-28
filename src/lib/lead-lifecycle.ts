@@ -1,9 +1,9 @@
 /**
  * Lead Lifecycle Management
- * Lightweight operational lifecycle for ReplyFlowHQ
+ * Business-controlled status management for ReplyFlowHQ
  */
 
-export type LeadLifecycleStatus = 'new' | 'active' | 'completed' | 'ignored'
+export type LeadLifecycleStatus = 'new' | 'active' | 'scheduled' | 'payment_requested' | 'paid' | 'completed' | 'lost'
 
 export interface LeadLifecycleConfig {
   color: string
@@ -25,17 +25,35 @@ export const LEAD_LIFECYCLE_CONFIG: Record<LeadLifecycleStatus, LeadLifecycleCon
     label: 'Active',
     description: 'Conversation in progress'
   },
+  scheduled: {
+    color: 'text-purple-700 dark:text-purple-300',
+    bgColor: 'bg-purple-100 dark:bg-purple-900/30',
+    label: 'Scheduled',
+    description: 'Appointment scheduled'
+  },
+  payment_requested: {
+    color: 'text-yellow-700 dark:text-yellow-300',
+    bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+    label: 'Payment Requested',
+    description: 'Payment request sent'
+  },
+  paid: {
+    color: 'text-emerald-700 dark:text-emerald-300',
+    bgColor: 'bg-emerald-100 dark:bg-emerald-900/30',
+    label: 'Paid',
+    description: 'Payment received'
+  },
   completed: {
     color: 'text-slate-600 dark:text-muted-foreground',
     bgColor: 'bg-slate-100 dark:bg-muted',
     label: 'Completed',
     description: 'Handled and resolved'
   },
-  ignored: {
-    color: 'text-amber-700 dark:text-orange-300',
-    bgColor: 'bg-amber-100 dark:bg-orange-900/30',
-    label: 'Ignored',
-    description: 'Ignored contact'
+  lost: {
+    color: 'text-red-700 dark:text-red-300',
+    bgColor: 'bg-red-100 dark:bg-red-900/30',
+    label: 'Lost',
+    description: 'Lead lost'
   }
 }
 
@@ -101,17 +119,19 @@ export function isCompletedLead(lead: any): boolean {
 }
 
 /**
- * Determine if a lead is ignored (separate from lifecycle)
- */
-export function isIgnoredLead(lead: any): boolean {
-  return lead.status === 'ignored' || lead.lead_status === 'ignored'
-}
-
-/**
  * Get the appropriate lifecycle status for a lead
  */
 export function getLeadLifecycleStatus(lead: any): LeadLifecycleStatus {
-  if (isIgnoredLead(lead)) return 'ignored'
+  // Use the database status directly if it's a valid status
+  const validStatuses: LeadLifecycleStatus[] = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'lost']
+  if (lead.status && validStatuses.includes(lead.status)) {
+    return lead.status as LeadLifecycleStatus
+  }
+  if (lead.lead_status && validStatuses.includes(lead.lead_status)) {
+    return lead.lead_status as LeadLifecycleStatus
+  }
+  
+  // Fallback to inference
   if (isCompletedLead(lead)) return 'completed'
   if (isActiveLead(lead)) return 'active'
   return 'new'
@@ -121,13 +141,6 @@ export function getLeadLifecycleStatus(lead: any): LeadLifecycleStatus {
  * Transition a lead to a new lifecycle status
  */
 export function transitionLeadStatus(currentStatus: LeadLifecycleStatus, targetStatus: LeadLifecycleStatus): boolean {
-  // Define valid transitions
-  const validTransitions: Record<LeadLifecycleStatus, LeadLifecycleStatus[]> = {
-    new: ['active', 'completed', 'ignored'],
-    active: ['completed', 'ignored'],
-    completed: ['active'], // Allow reopening
-    ignored: ['new', 'active'] // Allow unignoring
-  }
-  
-  return validTransitions[currentStatus]?.includes(targetStatus) || false
+  // Allow all transitions for business-controlled status management
+  return true
 }

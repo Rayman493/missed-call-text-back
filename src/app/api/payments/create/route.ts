@@ -115,7 +115,7 @@ export async function POST(request: Request) {
 
     const { data: lead, error: leadError } = await supabase
       .from('leads')
-      .select('id, business_id, caller_phone, raw_metadata')
+      .select('id, business_id, caller_phone, raw_metadata, status')
       .eq('id', lead_id)
       .maybeSingle()
 
@@ -260,15 +260,22 @@ export async function POST(request: Request) {
       }
     }
 
-    // Update lead payment status
+    // Update lead payment status and lead status
+    const leadStatusUpdate: any = {
+      payment_status: 'pending',
+      last_payment_request_id: paymentRequest.id,
+      last_payment_amount_cents: amount_cents,
+      last_payment_requested_at: new Date().toISOString(),
+    }
+
+    // Update lead status to payment_requested only if current status is new or active
+    if (lead.status === 'new' || lead.status === 'active') {
+      leadStatusUpdate.status = 'payment_requested'
+    }
+
     await supabase
       .from('leads')
-      .update({
-        payment_status: 'pending',
-        last_payment_request_id: paymentRequest.id,
-        last_payment_amount_cents: amount_cents,
-        last_payment_requested_at: new Date().toISOString(),
-      })
+      .update(leadStatusUpdate)
       .eq('id', lead_id)
 
     // Send SMS with Checkout link using shared Twilio helper

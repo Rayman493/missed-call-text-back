@@ -1076,13 +1076,26 @@ export async function POST(request: Request) {
           console.log('[PAYMENT WEBHOOK] Updated payment request to paid')
         }
 
-        // Update lead payment status
+        // Update lead payment status and lead status
+        const leadStatusUpdate: any = {
+          payment_status: 'paid',
+          last_payment_paid_at: new Date().toISOString(),
+        }
+
+        // Update lead status to paid only if current status is payment_requested
+        const { data: lead } = await supabase
+          .from('leads')
+          .select('id, status')
+          .eq('id', paymentRequest.lead_id)
+          .single()
+
+        if (lead && (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active')) {
+          leadStatusUpdate.status = 'paid'
+        }
+
         await supabase
           .from('leads')
-          .update({
-            payment_status: 'paid',
-            last_payment_paid_at: new Date().toISOString(),
-          })
+          .update(leadStatusUpdate)
           .eq('id', paymentRequest.lead_id)
 
         // Mark event as processed
