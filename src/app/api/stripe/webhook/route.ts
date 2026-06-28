@@ -1040,11 +1040,25 @@ export async function POST(request: Request) {
         
         console.log('[PAYMENT WEBHOOK] Checkout session ID:', sessionId)
         console.log('[PAYMENT WEBHOOK] Payment Intent ID:', paymentIntentId)
-        console.log('[PAYMENT WEBHOOK] Metadata:', metadata)
+        console.log('[PAYMENT WEBHOOK] Session metadata:', metadata)
 
         // Check if this is a payment request (has payment_request_id in metadata)
-        const paymentRequestId = metadata.payment_request_id
-        console.log('[PAYMENT WEBHOOK] Payment request ID:', paymentRequestId)
+        let paymentRequestId = metadata.payment_request_id
+        
+        // If not found in session metadata, check payment intent metadata
+        if (!paymentRequestId && paymentIntentId) {
+          console.log('[PAYMENT WEBHOOK] payment_request_id not in session metadata, checking payment intent metadata')
+          try {
+            const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+            paymentRequestId = paymentIntent.metadata?.payment_request_id
+            console.log('[PAYMENT WEBHOOK] Payment intent metadata:', paymentIntent.metadata)
+            console.log('[PAYMENT WEBHOOK] Payment request ID from payment intent:', paymentRequestId)
+          } catch (piError) {
+            console.error('[PAYMENT WEBHOOK] Failed to retrieve payment intent:', piError)
+          }
+        }
+        
+        console.log('[PAYMENT WEBHOOK] Final payment request ID:', paymentRequestId)
         
         if (!paymentRequestId) {
           console.log('[PAYMENT WEBHOOK] Not a payment request, skipping')
