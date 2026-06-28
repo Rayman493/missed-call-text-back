@@ -1,17 +1,23 @@
 /**
  * AI Voice Service - Phase 1A POC
- * 
+ *
  * Purpose: Prove technical loop:
  * - Twilio → Fly.io WebSocket
  * - Fly.io → OpenAI Realtime
  * - AI speaks greeting
  * - Caller hears greeting
  * - Safe fallback
- * 
+ *
  * Version: ai-record-post-insert-hooks-v2
  * Updated: 2026-06-03
  * Rollback state: c5acba53
  */
+
+// VERSION PROOF CONSTANTS - Hardcoded to prove deployment
+const AI_VOICE_DEPLOY_VERSION = "phase4-silence-gating-v5";
+const AI_VOICE_EXPECTED_COMMIT = "cc9b0632";
+const AI_VOICE_BUILD_TIMESTAMP = new Date().toISOString();
+const AI_VOICE_DEPLOY_ENV = process.env.NODE_ENV || "unknown";
 
 import { createServer } from 'http';
 import { Server as WebSocketServer } from 'ws';
@@ -47,6 +53,24 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
 console.log('[AUDIO TRACE BUILD VERSION] caller-audio-debug-v1');
 console.log('[AI CONFIRMATION TEMPLATE VERSION] confirmation-v3-your-name-is');
 console.log('[AI VOICE STARTUP] Service initializing');
+
+// VERSION PROOF STARTUP LOGS
+console.log('====================================================================================================');
+console.log('[VERSION PROOF - STARTUP] =========================================');
+console.log('[VERSION PROOF - STARTUP] AI_VOICE_DEPLOY_VERSION:', AI_VOICE_DEPLOY_VERSION);
+console.log('[VERSION PROOF - STARTUP] AI_VOICE_EXPECTED_COMMIT:', AI_VOICE_EXPECTED_COMMIT);
+console.log('[VERSION PROOF - STARTUP] AI_VOICE_BUILD_TIMESTAMP:', AI_VOICE_BUILD_TIMESTAMP);
+console.log('[VERSION PROOF - STARTUP] AI_VOICE_DEPLOY_ENV:', AI_VOICE_DEPLOY_ENV);
+console.log('[VERSION PROOF - STARTUP] NODE_ENV:', process.env.NODE_ENV || 'unknown');
+console.log('[VERSION PROOF - STARTUP] App-driven intake enabled: true');
+console.log('[VERSION PROOF - STARTUP] Centralized speech control enabled: true');
+console.log('[VERSION PROOF - STARTUP] Silence timeout logic enabled: true');
+console.log('[VERSION PROOF - STARTUP] Stage answer gating enabled: true');
+console.log('[VERSION PROOF - STARTUP] Mark-based silence timer enabled: true');
+console.log('[VERSION PROOF - STARTUP] Dual WebSocket closure on incomplete: true');
+console.log('[VERSION PROOF - STARTUP] Timestamp:', new Date().toISOString());
+console.log('[VERSION PROOF - STARTUP] =========================================');
+console.log('====================================================================================================');
 
 // Deployment fingerprint logging
 console.log('[AI VOICE BUILD INFO] =========================================');
@@ -1570,6 +1594,13 @@ function sendStagePrompt(
   stagePromptAttempts: Map<IntakeStage, number>,
   ws?: any
 ): void {
+  console.log('[VERSION PROOF - SEND STAGE PROMPT ENTERED] =========================================');
+  console.log('[VERSION PROOF - SEND STAGE PROMPT ENTERED] AI_VOICE_DEPLOY_VERSION:', AI_VOICE_DEPLOY_VERSION);
+  console.log('[VERSION PROOF - SEND STAGE PROMPT ENTERED] AI_VOICE_EXPECTED_COMMIT:', AI_VOICE_EXPECTED_COMMIT);
+  console.log('[VERSION PROOF - SEND STAGE PROMPT ENTERED] Stage:', stage);
+  console.log('[VERSION PROOF - SEND STAGE PROMPT ENTERED] Timestamp:', new Date().toISOString());
+  console.log('[VERSION PROOF - SEND STAGE PROMPT ENTERED] =========================================');
+
   console.log('[ACTIVE INTAKE STAGE] =========================================');
   console.log('[ACTIVE INTAKE STAGE] stage:', stage);
 
@@ -1693,7 +1724,15 @@ function sendStagePrompt(
     callSessionState.assistantSpeaking = true;
     assistantSpeaking = true; // Sync individual variable for backward compatibility
     (twilioHandler as any).assistantSpeaking = true;
-    
+
+    console.log('[VERSION PROOF - ASSISTANT SPEAKING SET TRUE BEFORE PROMPT] =========================================');
+    console.log('[VERSION PROOF - ASSISTANT SPEAKING SET TRUE BEFORE PROMPT] AI_VOICE_DEPLOY_VERSION:', AI_VOICE_DEPLOY_VERSION);
+    console.log('[VERSION PROOF - ASSISTANT SPEAKING SET TRUE BEFORE PROMPT] AI_VOICE_EXPECTED_COMMIT:', AI_VOICE_EXPECTED_COMMIT);
+    console.log('[VERSION PROOF - ASSISTANT SPEAKING SET TRUE BEFORE PROMPT] Stage:', stage);
+    console.log('[VERSION PROOF - ASSISTANT SPEAKING SET TRUE BEFORE PROMPT] assistantSpeaking set to TRUE before sending to OpenAI');
+    console.log('[VERSION PROOF - ASSISTANT SPEAKING SET TRUE BEFORE PROMPT] Timestamp:', new Date().toISOString());
+    console.log('[VERSION PROOF - ASSISTANT SPEAKING SET TRUE BEFORE PROMPT] =========================================');
+
     console.log('[PROMPT START - ANSWER GATING INITIALIZED] =========================================');
     console.log('[PROMPT START - ANSWER GATING INITIALIZED] Stage:', stage);
     console.log('[PROMPT START - ANSWER GATING INITIALIZED] promptStartedAt:', callSessionState.promptStartedAt);
@@ -8772,6 +8811,13 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   // Start new silence timer (10 seconds)
                   const SILENCE_TIMEOUT_MS = 10000;
                   callSessionState.silenceTimeoutId = setTimeout(() => {
+                    console.log('[VERSION PROOF - SILENCE TIMER CODE PRESENT] =========================================');
+                    console.log('[VERSION PROOF - SILENCE TIMER CODE PRESENT] AI_VOICE_DEPLOY_VERSION:', AI_VOICE_DEPLOY_VERSION);
+                    console.log('[VERSION PROOF - SILENCE TIMER CODE PRESENT] AI_VOICE_EXPECTED_COMMIT:', AI_VOICE_EXPECTED_COMMIT);
+                    console.log('[VERSION PROOF - SILENCE TIMER CODE PRESENT] Silence timer code is executing');
+                    console.log('[VERSION PROOF - SILENCE TIMER CODE PRESENT] Timestamp:', new Date().toISOString());
+                    console.log('[VERSION PROOF - SILENCE TIMER CODE PRESENT] =========================================');
+
                     console.log('[SILENCE TIMEOUT TRIGGERED] =========================================');
                     console.log('[SILENCE TIMEOUT TRIGGERED] No user answer received within timeout');
                     console.log('[SILENCE TIMEOUT TRIGGERED] silenceTimerStartedAt:', callSessionState.silenceTimerStartedAt);

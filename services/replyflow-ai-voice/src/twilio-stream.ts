@@ -174,7 +174,14 @@ export class TwilioStreamHandler {
 
               // V1 TURN-BASED FLOW: Block caller audio while assistant is speaking
               // This ensures reliable turn-taking: AI asks -> AI finishes -> caller answers
-              
+
+              // VERSION PROOF: Log that we're using shared state
+              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] =========================================');
+              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] callSessionState present:', !!callSessionState);
+              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] Reading assistantSpeaking from callSessionState:', assistantSpeaking);
+              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] Timestamp:', new Date().toISOString());
+              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] =========================================');
+
               // LOG: Every caller audio packet for debugging
               console.log('[CALLER AUDIO PACKET RECEIVED] =========================================');
               console.log('[CALLER AUDIO PACKET RECEIVED] assistantSpeaking:', assistantSpeaking);
