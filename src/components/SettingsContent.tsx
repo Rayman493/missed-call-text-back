@@ -1353,23 +1353,23 @@ export default function SettingsContent() {
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[220px]">
-                <div className="mb-1 sm:mb-2">
-                  <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 scroll-mt-[220px]">
+                <div className="mb-2 sm:mb-3">
+                  <div className="flex items-center justify-between mb-1 sm:mb-2">
                     <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Instant Response Settings</h2>
                   </div>
-                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Control when ReplyFlow sends instant responses to missed calls.</p>
+                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-3">Control when ReplyFlow sends instant responses to missed calls.</p>
                 </div>
                 
-                <div className="space-y-1.5 sm:space-y-2">
+                <div className="space-y-3 sm:space-y-4">
                   {/* Spam & Repeat Call Filtering */}
-                  <div className="p-2 sm:p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-700/40">
-                    <div className="flex items-start justify-between mb-2 sm:mb-3">
+                  <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-700/40">
+                    <div className="flex items-start justify-between mb-3 sm:mb-4">
                       <div className="flex-1 pr-3 sm:pr-4">
-                        <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
+                        <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
                           <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Spam & Repeat Call Filtering</h3>
                         </div>
-                        <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-1.5 sm:mb-2">
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground mb-2 sm:mb-2.5">
                           Control which callers receive instant text responses and which calls ReplyFlow should ignore.
                         </p>
                         <div className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
@@ -1394,11 +1394,11 @@ export default function SettingsContent() {
 
                     {/* Filtering Options - Only show when enabled */}
                     {spamFilteringEnabled && (
-                      <div className="space-y-2 sm:space-y-3 border-t border-border pt-2 sm:pt-3">
+                      <div className="space-y-3 sm:space-y-4 border-t border-border pt-3 sm:pt-4">
                         {/* Repeat Call Protection */}
-                        <div className="flex items-start justify-between p-2 sm:p-3 bg-white/60 dark:bg-slate-800/30 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
+                        <div className="flex items-start justify-between p-3 sm:p-4 bg-white/60 dark:bg-slate-800/30 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
                           <div className="flex-1 pr-3 sm:pr-4">
-                            <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
+                            <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                               <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Prevent duplicate instant replies</h4>
                             </div>
                             <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
@@ -1426,9 +1426,9 @@ export default function SettingsContent() {
                         </div>
 
                         {/* Private/Blocked Numbers */}
-                        <div className="flex items-start justify-between p-2 sm:p-3 bg-white/60 dark:bg-slate-800/30 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
+                        <div className="flex items-start justify-between p-3 sm:p-4 bg-white/60 dark:bg-slate-800/30 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
                           <div className="flex-1 pr-3 sm:pr-4">
-                            <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
+                            <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                               <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Skip blocked or hidden callers</h4>
                             </div>
                             <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">

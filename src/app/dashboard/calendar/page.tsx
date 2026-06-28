@@ -437,7 +437,7 @@ export default function CalendarPage() {
           <AppHeader title="Calendar" />
 
           {/* Main Content */}
-          <div className="flex-1 pt-1 sm:pt-2 lg:pt-4 px-1 sm:px-2 lg:px-3 pb-20 md:pb-8">
+          <div className="flex-1 pt-0 lg:pt-2 px-1 sm:px-2 lg:px-3 pb-20 md:pb-8">
             <div className="max-w-[1400px] mx-auto">
               {/* Loading State */}
               {isLoading ? (
@@ -549,7 +549,7 @@ export default function CalendarPage() {
                       )}
 
                       {/* Compact Status Bar - Desktop: combines metrics + calendar status + sync + new appointment */}
-                      <div className="hidden md:flex items-center justify-between gap-4 mb-4 p-4 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
+                      <div className="hidden md:flex items-center justify-between gap-4 mb-3 p-4 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
                         {/* Metrics */}
                         <div className="flex items-center gap-8">
                           <div className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
@@ -609,7 +609,7 @@ export default function CalendarPage() {
                       </div>
 
                       {/* View Mode Toggle - Desktop */}
-                      <div className="hidden md:block mb-4">
+                      <div className="hidden md:block mb-3">
                         <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 shadow-sm w-fit">
                           <button
                             onClick={() => setViewMode('month')}
@@ -662,7 +662,7 @@ export default function CalendarPage() {
 
                       {/* Conditionally render Month or Agenda view */}
                       {viewMode === 'month' ? (
-                        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+                        <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 xl:gap-6">
                           {/* Calendar Grid - takes 4 columns on extra-large screens, full width on smaller screens */}
                           <div className="xl:col-span-4 order-1">
                             <CalendarGrid

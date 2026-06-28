@@ -370,28 +370,28 @@ export default function PaymentsPage() {
                   <table className="w-full min-w-[800px]">
                   <thead className="bg-[#0f172a] dark:bg-[#0f172a]">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Customer
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Phone Number
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Amount
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Description
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Requested
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Paid
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -414,7 +414,7 @@ export default function PaymentsPage() {
                       </tr>
                     ) : (
                       paymentRequests.map((payment) => (
-                        <tr key={payment.id} className="hover:bg-[#0f172a] dark:hover:bg-[#0f172a]">
+                        <tr key={payment.id} className="hover:bg-[#1a2235] dark:hover:bg-[#1a2235] transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <User className="h-5 w-5 text-gray-400 mr-2" />
@@ -426,14 +426,14 @@ export default function PaymentsPage() {
                           <td className="px-6 py-4 whitespace-nowrap text-gray-400">
                             {formatPhoneNumber(payment.leads.caller_phone)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-white font-medium">
+                          <td className="px-6 py-4 whitespace-nowrap text-white font-semibold">
                             {formatCurrency(payment.amount_cents / 100)}
                           </td>
                           <td className="px-6 py-4 text-gray-400">
                             {payment.description}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}>
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}>
                               {getStatusLabel(payment.status)}
                             </span>
                           </td>

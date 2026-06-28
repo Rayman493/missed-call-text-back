@@ -995,14 +995,14 @@ export default function DashboardContent() {
 
                     {/* Dashboard Metrics - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="DashboardMetrics">
-                      <div className={`mb-3 transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                      <div className={`mb-4 transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
                         <DashboardMetrics business={business} />
                       </div>
                     </SectionErrorBoundary>
 
                     {/* Latest Lead Section - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
-                      <div className={`transition-opacity duration-300 mb-3 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                      <div className={`transition-opacity duration-300 mb-4 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
                         {business?.id && (
                           <RecentLeadsSection
                             businessId={business.id}
@@ -1017,7 +1017,7 @@ export default function DashboardContent() {
 
                     {/* Recent Activity Card - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="RecentActivityCard">
-                      <div className={`mb-3 transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                      <div className={`mb-4 transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
                         <RecentActivityCard business={business} />
                       </div>
                     </SectionErrorBoundary>

@@ -1063,14 +1063,14 @@ export default function LeadsPage() {
                           'bg-slate-400'
                         }`}></div>
 
-                        <div className="p-4 sm:p-5">
+                        <div className="p-5 sm:p-6">
                           {/* Header: Name, Phone, Status */}
-                          <div className="flex items-start justify-between mb-3 sm:mb-4">
+                          <div className="flex items-start justify-between mb-4 sm:mb-5">
                             <div className="flex-1 min-w-0">
-                              <h3 className={`text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-1 truncate tracking-tight ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                              <h3 className={`text-lg sm:text-xl font-semibold text-slate-900 dark:text-white mb-1.5 truncate tracking-tight ${isNewLead ? 'text-orange-600 dark:text-orange-400' : ''}`}>
                                 {getLeadDisplayName(lead)}
                               </h3>
-                              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+                              <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-normal">
                                 {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                               </p>
                             </div>
@@ -1082,11 +1082,11 @@ export default function LeadsPage() {
                           </div>
 
                           {/* Compact Preview */}
-                          <div className="mb-3 sm:mb-4 space-y-1.5 sm:space-y-2">
+                          <div className="mb-4 sm:mb-5 space-y-2 sm:space-y-2.5">
                             {aiData.reason && (
                               <div className="flex items-center gap-2">
                                 <span className="text-xs sm:text-sm">📋</span>
-                                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-normal">
+                                <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-normal">
                                   {sentenceCase(aiData.reason)}
                                 </p>
                               </div>
@@ -1094,7 +1094,7 @@ export default function LeadsPage() {
                             {aiData.details && (
                               <div className="flex items-center gap-2">
                                 <span className="text-xs sm:text-sm">📝</span>
-                                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-normal">
+                                <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-normal">
                                   {sentenceCase(aiData.details)}
                                 </p>
                               </div>
@@ -1105,29 +1105,29 @@ export default function LeadsPage() {
                                 <span className={`text-xs sm:text-sm font-medium ${
                                   aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
                                     ? 'text-red-600 dark:text-red-400'
-                                    : 'text-slate-700 dark:text-slate-300'
+                                    : 'text-slate-800 dark:text-slate-200'
                                 }`}>
                                   {sentenceCase(aiData.urgency)}
                                 </span>
                               </div>
                             )}
                             {!aiData.reason && !aiData.details && !aiData.urgency && (
-                              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-normal">
+                              <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-normal">
                                 {getCompactSummary(lead)}
                               </p>
                             )}
                           </div>
 
                           {/* Metadata */}
-                          <div className="flex items-center justify-between mb-3 sm:mb-4">
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-between mb-4 sm:mb-5">
+                            <div className="flex items-center gap-2.5">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   const status = isNewLead ? 'new' : getLeadLifecycleStatus(lead)
                                   setStatusFilter(statusFilter === status ? 'all' : status)
                                 }}
-                                className={`px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] sm:text-xs font-medium rounded-full transition-all duration-200 ${
+                                className={`px-2.5 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-full transition-all duration-200 ${
                                   isNewLead ? 'bg-orange-100 text-orange-700 dark:bg-orange-600/20 dark:text-orange-300' :
                                   getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-100 text-blue-700 dark:bg-blue-600/20 dark:text-blue-300' :
                                   getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-600/20 dark:text-green-300' :
@@ -1138,7 +1138,7 @@ export default function LeadsPage() {
                               >
                                 {isNewLead ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
                               </button>
-                              <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+                              <span className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-normal">
                                 {formatRelativeTime(lead.created_at)}
                               </span>
                             </div>

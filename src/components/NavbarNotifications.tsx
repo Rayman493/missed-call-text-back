@@ -449,7 +449,7 @@ export default function NavbarNotifications() {
                                   }
                                 }}
                               >
-                                <div className="flex items-start gap-3 p-3">
+                                <div className="flex items-start gap-3 p-4">
                                   {/* Icon */}
                                   <div className="flex-shrink-0 mt-0.5">
                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${notification.read ? 'bg-slate-100 dark:bg-slate-800' : 'bg-white dark:bg-slate-700'}`}>
@@ -459,24 +459,24 @@ export default function NavbarNotifications() {
                                   
                                   <div className="flex-1 min-w-0">
                                     {/* Title with timestamp */}
-                                    <div className="flex items-start justify-between mb-0.5">
-                                      <h4 className={`text-sm ${notification.read ? 'font-medium text-slate-600 dark:text-slate-400' : 'font-semibold text-slate-900 dark:text-foreground'}`}>
+                                    <div className="flex items-start justify-between mb-1">
+                                      <h4 className={`text-base ${notification.read ? 'font-medium text-slate-600 dark:text-slate-400' : 'font-semibold text-slate-900 dark:text-foreground'}`}>
                                         {notification.title}
                                       </h4>
-                                      <span className="text-[10px] text-slate-500 dark:text-slate-400 flex-shrink-0 ml-2 whitespace-nowrap">
+                                      <span className="text-xs text-slate-400 dark:text-slate-500 flex-shrink-0 ml-2 whitespace-nowrap">
                                         {formatTime(notification.created_at)}
                                       </span>
                                     </div>
                                     
                                     {/* Customer name or phone number */}
                                     {displayName && (
-                                      <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-0.5">
+                                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                         {displayName}
                                       </p>
                                     )}
                                     
                                     {/* Message preview - single line truncated */}
-                                    <p className="text-xs text-slate-600 dark:text-slate-400 truncate">
+                                    <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
                                       {notification.message}
                                     </p>
                                   </div>
