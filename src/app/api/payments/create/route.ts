@@ -74,7 +74,7 @@ export async function POST(request: Request) {
 
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id, user_id, stripe_connect_account_id, stripe_connect_status, stripe_charges_enabled, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status')
+      .select('id, user_id, name, stripe_connect_account_id, stripe_connect_status, stripe_charges_enabled, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status')
       .eq('id', business_id)
       .maybeSingle()
 
@@ -279,8 +279,14 @@ export async function POST(request: Request) {
       .eq('id', lead_id)
 
     // Send SMS with Checkout link using shared Twilio helper
-    const customerName = lead.raw_metadata?.extracted_info?.callerName || 'Customer'
-    const smsMessage = `Hi ${customerName},\n\nYou can securely pay for your service here:\n\n${checkoutSession.url}\n\nThank you!`
+    const businessName = business.name || 'our business'
+    const smsMessage = `Thanks for choosing ${businessName}!
+
+You can securely make your payment here:
+
+${checkoutSession.url}
+
+Thank you! If you have any questions, simply reply to this message.`
 
     console.log('[PAYMENT REQUEST] Sending payment link SMS using Twilio helper')
 
