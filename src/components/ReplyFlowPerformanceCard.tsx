@@ -72,14 +72,14 @@ export default function ReplyFlowPerformanceCard() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-5 sm:p-6">
+      <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-700/50 shadow-sm p-5 sm:p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
+          <div className="h-6 bg-slate-700 rounded w-1/3"></div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="space-y-2">
-                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
-                <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div>
+                <div className="h-4 bg-slate-700 rounded w-3/4"></div>
+                <div className="h-8 bg-slate-700 rounded w-1/2"></div>
               </div>
             ))}
           </div>
@@ -89,14 +89,14 @@ export default function ReplyFlowPerformanceCard() {
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-5 sm:p-6">
+    <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-5 sm:p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground">
+        <h3 className="text-base sm:text-lg font-semibold text-foreground">
           ReplyFlow Performance
         </h3>
         <Link
           href="/analytics"
-          className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium flex items-center gap-1 transition-colors"
+          className="text-xs sm:text-sm text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 transition-colors"
         >
           View Analytics <ChevronRight className="w-4 h-4" />
         </Link>
@@ -144,10 +144,10 @@ function MetricItem({
   color: 'blue' | 'green' | 'purple' | 'amber'
 }) {
   const colorClasses = {
-    blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
-    green: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
-    purple: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
-    amber: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+    blue: 'bg-blue-900/30 text-blue-400',
+    green: 'bg-green-900/30 text-green-400',
+    purple: 'bg-purple-900/30 text-purple-400',
+    amber: 'bg-amber-900/30 text-amber-400'
   }
 
   return (
@@ -155,10 +155,10 @@ function MetricItem({
       <div className={`p-2 rounded-lg ${colorClasses[color]} mb-2`}>
         <Icon className="w-4 h-4" />
       </div>
-      <p className="text-2xl font-bold text-slate-900 dark:text-foreground">
+      <p className="text-2xl font-bold text-foreground">
         {value}
       </p>
-      <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1">
+      <p className="text-xs text-muted-foreground mt-1">
         {label}
       </p>
     </div>

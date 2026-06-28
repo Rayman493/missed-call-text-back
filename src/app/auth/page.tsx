@@ -15,22 +15,22 @@ function AuthFooter() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="bg-slate-900 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
+    <footer className="bg-slate-950 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="flex flex-col md:flex-row justify-between items-center">
-          <p className="text-slate-600/70 dark:text-slate-400/70 text-xs sm:text-sm">
+          <p className="text-slate-400/70 text-xs sm:text-sm">
             © {currentYear} ReplyFlowHQ. All rights reserved.
           </p>
           <div className="flex items-center gap-4 sm:gap-6 mt-4 md:mt-0">
             <a
               href="/privacy"
-              className="text-slate-500/60 dark:text-slate-400/60 hover:text-slate-700/80 dark:hover:text-slate-300/80 text-xs sm:text-sm transition-colors"
+              className="text-slate-400/60 hover:text-slate-300/80 text-xs sm:text-sm transition-colors"
             >
               Privacy Policy
             </a>
             <a
               href="/terms"
-              className="text-slate-500/60 dark:text-slate-400/60 hover:text-slate-700/80 dark:hover:text-slate-300/80 text-xs sm:text-sm transition-colors"
+              className="text-slate-400/60 hover:text-slate-300/80 text-xs sm:text-sm transition-colors"
             >
               Terms of Service
             </a>
@@ -382,42 +382,42 @@ function AuthContent() {
           </button>
         </div>
         
-        <div className="w-full max-w-md sm:max-w-[480px] bg-gradient-to-b from-slate-900 to-slate-900/95 dark:from-slate-900 dark:to-slate-900/95 border border-slate-700/50 dark:border-slate-700/50 rounded-2xl shadow-xl shadow-blue-900/5 p-5 sm:p-6 md:p-8 backdrop-blur-sm">
+        <div className="w-full max-w-md sm:max-w-[480px] bg-gradient-to-b from-slate-900 to-slate-900/95 border border-slate-700/50 rounded-2xl shadow-xl shadow-blue-900/5 p-5 sm:p-6 md:p-8 backdrop-blur-sm">
           <div className="text-center mb-5 sm:mb-6">
             <div className="inline-flex items-center justify-center mb-3 sm:mb-4">
               <BrandIcon size={64} />
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-100 dark:text-slate-100 mb-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-100 mb-2">
               {isCheckoutReturn ? 'Sign In' : (isSignIn ? 'Sign In' : 'Sign Up')}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-400">
+            <p className="text-xs sm:text-sm text-slate-400">
               {isCheckoutReturn ? 'Sign in to finish your trial setup' : 'Automatically text back missed calls.'}
             </p>
           </div>
           
           {isSignIn && emailParam && !isCheckoutReturn && (
-            <p className="text-sm text-slate-400 dark:text-slate-400 mb-4 sm:mb-6">Welcome back — please sign in</p>
+            <p className="text-sm text-slate-400 mb-4 sm:mb-6">Welcome back — please sign in</p>
           )}
           
           {isCheckoutReturn && (
-            <p className="text-sm text-slate-400 dark:text-slate-400 mb-4 sm:mb-6">Complete your trial setup by signing in</p>
+            <p className="text-sm text-slate-400 mb-4 sm:mb-6">Complete your trial setup by signing in</p>
           )}
           
           {!isSignIn && !isCheckoutReturn && (
-            <p className="text-sm text-slate-400 dark:text-slate-400 mb-4 sm:mb-6">Create your account to get started</p>
+            <p className="text-sm text-slate-400 mb-4 sm:mb-6">Create your account to get started</p>
           )}
           
           {error && (
-            <div className="bg-amber-900/20 dark:bg-amber-900/20 border border-amber-800 dark:border-amber-800 rounded-2xl p-4 mb-6">
+            <div className="bg-amber-900/20 border border-amber-800 rounded-2xl p-4 mb-6">
               <div className="flex items-start gap-3 mb-3">
                 <svg className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-amber-100 dark:text-amber-100 mb-1">
+                  <p className="text-sm font-semibold text-amber-100 mb-1">
                     {existingAccount ? 'Account Already Exists' : 'Authentication Error'}
                   </p>
-                  <p className="text-sm text-amber-200/80 dark:text-amber-200/80">
+                  <p className="text-sm text-amber-200/80">
                     {existingAccount 
                       ? 'An account with this email address already exists. Please sign in to continue or use a different email address.'
                       : error}
@@ -441,7 +441,7 @@ function AuthContent() {
                       setExistingAccount(false)
                       setError('')
                     }}
-                    className="w-full text-sm text-amber-200/70 dark:text-amber-200/70 hover:text-amber-100 dark:hover:text-amber-100 underline"
+                    className="w-full text-sm text-amber-200/70 hover:text-amber-100 underline"
                   >
                     Use a different email
                   </button>
@@ -450,7 +450,7 @@ function AuthContent() {
               {/* Debug info only in development */}
               {debugError && process.env.NODE_ENV === 'development' && (
                 <div className="mt-3 pt-3 border-t border-amber-800/50">
-                  <details className="text-xs text-amber-400/50 dark:text-amber-400/50 font-mono">
+                  <details className="text-xs text-amber-400/50 font-mono">
                     <summary className="cursor-pointer hover:text-amber-400/70">Debug Info (dev only)</summary>
                     <div className="mt-2 space-y-1 pl-2">
                       <div>Message: {debugError.message}</div>
@@ -467,7 +467,7 @@ function AuthContent() {
 
           <form onSubmit={isSignIn ? handleSignIn : handleSignUp} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-300 dark:text-slate-300 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
                 Email
               </label>
               <input
@@ -479,13 +479,13 @@ function AuthContent() {
                 required
                 autoComplete="email"
                 name="email"
-                className="w-full px-4 py-3 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
                 placeholder="you@example.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-300 dark:text-slate-300 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
                 Password
               </label>
               <PasswordInput
@@ -495,13 +495,13 @@ function AuthContent() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete={isSignIn ? "current-password" : "new-password"}
-                className="w-full px-4 py-3 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
               />
               
               {/* Password Requirements - Only show for signup */}
               {!isSignIn && (
                 <div className="mt-3 space-y-2">
-                  <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-400 font-medium">Password must contain:</p>
+                  <p className="text-xs sm:text-sm text-slate-400 font-medium">Password must contain:</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div className={`flex items-center gap-2 text-xs sm:text-sm ${passwordRequirements.minLength ? 'text-green-400' : 'text-slate-500'}`}>
                       {passwordRequirements.minLength ? (
@@ -551,7 +551,7 @@ function AuthContent() {
             {/* Confirm Password - Only show for signup */}
             {!isSignIn && (
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 dark:text-slate-300 mb-2">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-2">
                   Confirm Password
                 </label>
                 <PasswordInput
@@ -561,7 +561,7 @@ function AuthContent() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                   autoComplete="new-password"
-                  className="w-full px-4 py-3 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                  className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
                 />
                 {confirmPassword && (
                   <div className={`mt-2 text-xs ${password === confirmPassword ? 'text-green-400' : 'text-red-400'}`}>
@@ -625,11 +625,11 @@ function AuthContent() {
             </p>
           </div>
 
-          <p className="mt-5 sm:mt-6 text-center text-sm text-slate-400 dark:text-slate-400">
+          <p className="mt-5 sm:mt-6 text-center text-sm text-slate-400">
             {isSignIn ? "New to ReplyFlow? " : "Already have an account? "}
             <button
               onClick={toggleMode}
-              className="text-blue-400 dark:text-blue-400 hover:text-blue-300 dark:hover:text-blue-300 font-medium"
+              className="text-blue-400 hover:text-blue-300 font-medium"
             >
               {isSignIn ? 'Create an account' : 'Sign in'}
             </button>
@@ -644,10 +644,10 @@ function AuthContent() {
 
 export default function AuthPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-950 dark:bg-slate-950 flex flex-col">
+    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-md bg-slate-900 dark:bg-slate-900 border border-slate-700 dark:border-slate-700 rounded-lg shadow-lg p-6 sm:p-8">
-          <p className="text-slate-100 dark:text-slate-100">Loading...</p>
+        <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-lg shadow-lg p-6 sm:p-8">
+          <p className="text-slate-100">Loading...</p>
         </div>
       </div>
       <AuthFooter />

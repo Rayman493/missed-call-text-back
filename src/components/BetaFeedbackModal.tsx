@@ -74,12 +74,12 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
       />
 
       {/* Modal */}
-      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-border px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-slate-900 border-b border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-              <MessageCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="w-10 h-10 bg-blue-900/30 rounded-full flex items-center justify-center">
+              <MessageCircle className="w-5 h-5 text-blue-400" />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-foreground">Beta Feedback</h2>
@@ -104,11 +104,11 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
 
           {/* Success Message */}
           {showSuccess && (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6 flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+            <div className="bg-green-900/20 border border-green-800 rounded-lg p-4 mb-6 flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-green-900 dark:text-green-100">Thanks for your feedback!</p>
-                <p className="text-xs text-green-700 dark:text-green-300">Your feedback has been sent to the ReplyFlow team.</p>
+                <p className="text-sm font-medium text-green-100">Thanks for your feedback!</p>
+                <p className="text-xs text-green-300">Your feedback has been sent to the ReplyFlow team.</p>
               </div>
             </div>
           )}
@@ -154,7 +154,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-600 dark:text-red-400">
+              <div className="bg-red-900/20 border border-red-800 rounded-lg p-3 text-sm text-red-400">
                 {error}
               </div>
             )}
@@ -171,7 +171,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Feedback'}

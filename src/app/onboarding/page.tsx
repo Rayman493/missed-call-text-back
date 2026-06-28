@@ -394,7 +394,7 @@ export default function OnboardingPage() {
 
           <form onSubmit={handleOnboarding} className="space-y-4">
             <div>
-              <label htmlFor="businessName" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="businessName" className="block text-sm font-medium text-slate-300 mb-2">
                 Business Name
               </label>
               <input
@@ -404,12 +404,12 @@ export default function OnboardingPage() {
                 onChange={(e) => setBusinessName(e.target.value)}
                 required
                 placeholder="e.g., ABC Plumbing"
-                className="w-full px-3 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white text-sm"
+                className="w-full px-3 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white text-sm"
               />
             </div>
 
             <div>
-              <label htmlFor="businessPhone" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="businessPhone" className="block text-sm font-medium text-slate-300 mb-2">
                 Your Business Phone Number
               </label>
               <input
@@ -419,15 +419,15 @@ export default function OnboardingPage() {
                 onChange={(e) => setBusinessPhone(e.target.value)}
                 required
                 placeholder="(555) 123-4567"
-                className="w-full px-3 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white text-sm"
+                className="w-full px-3 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white text-sm"
               />
-              <p className="mt-2 text-xs text-gray-400">
+              <p className="mt-2 text-xs text-slate-400">
                 The phone number customers call to reach you
               </p>
             </div>
 
             <div>
-              <label htmlFor="businessType" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="businessType" className="block text-sm font-medium text-slate-300 mb-2">
                 Business Service Type
               </label>
               <select
@@ -435,21 +435,21 @@ export default function OnboardingPage() {
                 value={businessType}
                 onChange={(e) => setBusinessType(e.target.value)}
                 required
-                className="w-full px-3 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white text-sm"
+                className="w-full px-3 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white text-sm"
               >
                 <option value="">Select your service type</option>
                 {BUSINESS_SERVICE_TYPES.map((type) => (
                   <option key={type} value={type}>{type}</option>
                 ))}
               </select>
-              <p className="mt-2 text-xs text-gray-400">
+              <p className="mt-2 text-xs text-slate-400">
                 This helps our AI provide better service for your industry
               </p>
             </div>
 
             {businessType === 'Other' && (
               <div>
-                <label htmlFor="businessTypeOther" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="businessTypeOther" className="block text-sm font-medium text-slate-300 mb-2">
                   Specify Your Business Type
                 </label>
                 <input
@@ -459,7 +459,7 @@ export default function OnboardingPage() {
                   onChange={(e) => setBusinessTypeOther(e.target.value)}
                   required
                   placeholder="e.g., Pool Service, Wedding Photographer"
-                  className="w-full px-3 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white text-sm"
+                  className="w-full px-3 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white text-sm"
                 />
               </div>
             )}
@@ -467,7 +467,7 @@ export default function OnboardingPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-3 px-4 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all"
+              className="w-full bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white py-3 px-4 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all"
             >
               {loading ? (
                 <>
@@ -478,31 +478,31 @@ export default function OnboardingPage() {
                 'Continue to Free Trial'
               )}
             </button>
-            <p className="text-xs text-gray-400 text-center mt-3">Takes about 2 minutes</p>
+            <p className="text-xs text-slate-400 text-center mt-3">Takes about 2 minutes</p>
           </form>
 
           {/* Live Preview Section */}
-          <div className="mt-8 pt-6 border-t border-gray-700">
-            <h3 className="text-sm font-medium text-gray-300 mb-3">Your auto-reply message</h3>
+          <div className="mt-8 pt-6 border-t border-slate-700">
+            <h3 className="text-sm font-medium text-slate-300 mb-3">Your auto-reply message</h3>
             <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-800">
-              <p className="text-sm text-gray-200">
+              <p className="text-sm text-slate-200">
                 "Hi, this is {businessName || 'Your Business'}. Sorry we missed your call — how can we help?"
               </p>
             </div>
-            <p className="text-xs text-gray-400 mt-2">
+            <p className="text-xs text-slate-400 mt-2">
               This message goes out automatically when you miss a call
             </p>
           </div>
 
           {/* Trust Messaging */}
           <div className="mt-6 space-y-2">
-            <p className="text-xs text-gray-400 text-center leading-relaxed">
+            <p className="text-xs text-slate-400 text-center leading-relaxed">
               ✓ You'll still receive all your normal calls
             </p>
-            <p className="text-xs text-gray-400 text-center leading-relaxed">
+            <p className="text-xs text-slate-400 text-center leading-relaxed">
               ✓ ReplyFlow only responds when a call is missed
             </p>
-            <p className="text-xs text-gray-400 text-center leading-relaxed">
+            <p className="text-xs text-slate-400 text-center leading-relaxed">
               ✓ You can turn this off anytime
             </p>
           </div>

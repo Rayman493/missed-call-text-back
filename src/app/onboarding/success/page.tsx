@@ -6,7 +6,7 @@ import { CheckCircle, ArrowRight, Sparkles } from 'lucide-react'
 
 export default function OnboardingSuccessPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 flex items-center justify-center min-h-[calc(100vh-200px)]">
         <div className="text-center w-full">
           {/* Success Icon */}

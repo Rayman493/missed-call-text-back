@@ -41,12 +41,12 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
       />
 
       {/* Modal */}
-      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" tabIndex={-1}>
+      <div className="relative bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" tabIndex={-1}>
         {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-border px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-slate-900 border-b border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-              <HelpCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="w-10 h-10 bg-blue-900/30 rounded-full flex items-center justify-center">
+              <HelpCircle className="w-5 h-5 text-blue-400" />
             </div>
             <div>
               <h2 id="help-modal-title" className="text-lg font-semibold text-foreground">Help & Troubleshooting</h2>
@@ -67,7 +67,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
           {/* Disable Forwarding Section */}
           <div>
             <h3 className="text-base font-semibold text-foreground mb-2 flex items-center gap-2">
-              <Phone className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <Phone className="w-4 h-4 text-blue-400" />
               Disable Call Forwarding
             </h3>
             <p className="text-sm text-muted-foreground mb-3">
@@ -79,7 +79,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
                   <span className="text-sm font-medium text-foreground">Verizon</span>
                   <button
                     onClick={() => handleCopyCode('*73', 'verizon')}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5 transition-colors"
+                    className="text-xs text-blue-400 hover:underline flex items-center gap-1.5 transition-colors"
                   >
                     {copiedCode === 'verizon' ? (
                       <>
@@ -102,7 +102,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
                   <span className="text-sm font-medium text-foreground">AT&T</span>
                   <button
                     onClick={() => handleCopyCode('*93', 'att')}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5 transition-colors"
+                    className="text-xs text-blue-400 hover:underline flex items-center gap-1.5 transition-colors"
                   >
                     {copiedCode === 'att' ? (
                       <>
@@ -125,7 +125,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
                   <span className="text-sm font-medium text-foreground">T-Mobile</span>
                   <button
                     onClick={() => handleCopyCode('##61#', 'tmobile')}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5 transition-colors"
+                    className="text-xs text-blue-400 hover:underline flex items-center gap-1.5 transition-colors"
                   >
                     {copiedCode === 'tmobile' ? (
                       <>
@@ -151,7 +151,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
           {/* Re-enable Forwarding Section */}
           <div>
             <h3 className="text-base font-semibold text-foreground mb-2 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+              <CheckCircle2 className="w-4 h-4 text-green-400" />
               Re-enable Call Forwarding
             </h3>
             <p className="text-sm text-muted-foreground mb-2">
@@ -162,7 +162,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
           {/* Troubleshooting Steps */}
           <div>
             <h3 className="text-base font-semibold text-foreground mb-2 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <AlertCircle className="w-4 h-4 text-amber-400" />
               Common Issues
             </h3>
             <div className="space-y-3">

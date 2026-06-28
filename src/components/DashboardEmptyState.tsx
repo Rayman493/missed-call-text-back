@@ -51,21 +51,21 @@ export default function DashboardEmptyState() {
       </div>
 
       {/* Empty State Message */}
-      <h2 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-2 text-center">
+      <h2 className="text-xl font-semibold text-foreground mb-2 text-center">
         You're ready to start recovering leads
       </h2>
-      <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-6 max-w-md">
+      <p className="text-sm text-slate-400 text-center mb-6 max-w-md">
         Your first missed call will appear here automatically.
       </p>
 
       {/* SMS Status */}
       {!hasTwilioNumber && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-6 max-w-md">
+        <div className="bg-green-900/20 border border-green-800 rounded-lg p-3 mb-6 max-w-md">
           <div className="flex items-center">
-            <svg className="w-5 h-5 text-green-600 dark:text-green-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-green-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <p className="text-sm text-green-800 dark:text-green-200">
+            <p className="text-sm text-green-200">
               Your ReplyFlow texting is ready
             </p>
           </div>
@@ -84,7 +84,7 @@ export default function DashboardEmptyState() {
         )}
         <button
           onClick={handleViewInstructions}
-          className="bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-foreground py-2.5 px-4 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-medium text-sm"
+          className="bg-slate-800 text-foreground py-2.5 px-4 rounded-lg hover:bg-slate-700 transition-colors font-medium text-sm"
         >
           View Setup Instructions
         </button>
@@ -105,8 +105,8 @@ export default function DashboardEmptyState() {
             </h2>
             
             {/* Introductory helper text */}
-            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <p className="text-sm text-green-800 dark:text-green-200 leading-relaxed">
+            <div className="mb-6 p-4 bg-green-900/20 rounded-lg">
+              <p className="text-sm text-green-200 leading-relaxed">
                 This test verifies that real missed calls forward correctly.
               </p>
             </div>
@@ -121,7 +121,7 @@ export default function DashboardEmptyState() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">ReplyFlow Number</p>
-                <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                <p className="text-lg font-semibold text-blue-400">
                   {business?.twilio_phone_number ? getReplyFlowPhoneNumberDisplay(business) : 'Assigning...'}
                 </p>
               </div>
@@ -130,40 +130,40 @@ export default function DashboardEmptyState() {
             {/* Test Instructions */}
             <div className="space-y-4 text-sm text-muted-foreground mb-6">
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">1</span>
+                <div className="w-6 h-6 bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-400 font-semibold text-xs">1</span>
                 </div>
                 <p className="leading-relaxed">
                   <strong>Call your business number</strong> from another phone.
                 </p>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">2</span>
+                <div className="w-6 h-6 bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-400 font-semibold text-xs">2</span>
                 </div>
                 <p className="leading-relaxed">
                   <strong>Do not answer the call.</strong> Let it ring and go to voicemail.
                 </p>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">3</span>
+                <div className="w-6 h-6 bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-400 font-semibold text-xs">3</span>
                 </div>
                 <p className="leading-relaxed">
                   Your missed call will forward to ReplyFlow.
                 </p>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">4</span>
+                <div className="w-6 h-6 bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-400 font-semibold text-xs">4</span>
                 </div>
                 <p className="leading-relaxed">
                   ReplyFlow will automatically text the caller.
                 </p>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">5</span>
+                <div className="w-6 h-6 bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-400 font-semibold text-xs">5</span>
                 </div>
                 <p className="leading-relaxed">
                   Check your inbox/dashboard for the conversation.

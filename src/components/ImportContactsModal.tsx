@@ -188,13 +188,13 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+      <div className="bg-slate-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-6 border-b border-slate-700">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Import Contacts</h2>
+            <h2 className="text-2xl font-bold text-white">Import Contacts</h2>
             <button
               onClick={handleClose}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              className="text-slate-400 hover:text-slate-200"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -213,7 +213,7 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeTab === 'paste'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
               }`}
             >
               Paste Numbers
@@ -228,7 +228,7 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeTab === 'csv'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
               }`}
             >
               Upload CSV
@@ -241,19 +241,19 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
             <div className="space-y-4">
               {activeTab === 'paste' ? (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
                     Paste phone numbers (one per line, optional "Name, Phone" format)
                   </label>
                   <textarea
                     value={pasteContent}
                     onChange={(e) => setPasteContent(e.target.value)}
                     placeholder="John Doe, +14125551234&#10;+14125555678&#10;Jane Smith, 4155559012"
-                    className="w-full h-64 px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-700 dark:text-white resize-none"
+                    className="w-full h-64 px-4 py-3 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-slate-700 text-white resize-none"
                   />
                 </div>
               ) : (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
                     Upload CSV file
                   </label>
                   <input
@@ -261,21 +261,21 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
                     type="file"
                     accept=".csv"
                     onChange={handleFileChange}
-                    className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-700 dark:text-white"
+                    className="w-full px-4 py-3 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-slate-700 text-white"
                   />
                   {csvFile && (
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                    <p className="mt-2 text-sm text-slate-400">
                       Selected: {csvFile.name}
                     </p>
                   )}
-                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                  <p className="mt-2 text-sm text-slate-400">
                     CSV should contain columns like: name, phone, phone_number, mobile, or number
                   </p>
                 </div>
               )}
 
               {error && (
-                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
+                <div className="p-4 bg-red-900/20 border border-red-800 rounded-lg text-red-200">
                   {error}
                 </div>
               )}
@@ -292,21 +292,21 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
             <div className="space-y-4">
               {stats && (
                 <div className="grid grid-cols-4 gap-4 mb-6">
-                  <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
-                    <div className="text-2xl font-bold text-slate-900 dark:text-white">{stats.total}</div>
-                    <div className="text-sm text-slate-600 dark:text-slate-400">Total</div>
+                  <div className="p-4 bg-slate-700 rounded-lg">
+                    <div className="text-2xl font-bold text-white">{stats.total}</div>
+                    <div className="text-sm text-slate-400">Total</div>
                   </div>
-                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.valid}</div>
-                    <div className="text-sm text-green-700 dark:text-green-300">Valid</div>
+                  <div className="p-4 bg-green-900/20 rounded-lg">
+                    <div className="text-2xl font-bold text-green-400">{stats.valid}</div>
+                    <div className="text-sm text-green-300">Valid</div>
                   </div>
-                  <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                    <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.duplicate}</div>
-                    <div className="text-sm text-yellow-700 dark:text-yellow-300">Duplicates</div>
+                  <div className="p-4 bg-yellow-900/20 rounded-lg">
+                    <div className="text-2xl font-bold text-yellow-400">{stats.duplicate}</div>
+                    <div className="text-sm text-yellow-300">Duplicates</div>
                   </div>
-                  <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.invalid}</div>
-                    <div className="text-sm text-red-700 dark:text-red-300">Invalid</div>
+                  <div className="p-4 bg-red-900/20 rounded-lg">
+                    <div className="text-2xl font-bold text-red-400">{stats.invalid}</div>
+                    <div className="text-sm text-red-300">Invalid</div>
                   </div>
                 </div>
               )}
@@ -319,7 +319,7 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
                     onChange={handleToggleAll}
                     className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Select All Valid</span>
+                  <span className="text-sm font-medium text-slate-300">Select All Valid</span>
                 </label>
                 <button
                   onClick={() => {
@@ -327,36 +327,36 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
                     setStats(null)
                     setError('')
                   }}
-                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="text-sm text-blue-400 hover:text-blue-300"
                 >
                   Back
                 </button>
               </div>
 
-              <div className="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-lg">
+              <div className="overflow-x-auto border border-slate-700 rounded-lg">
                 <table className="w-full">
-                  <thead className="bg-slate-50 dark:bg-slate-700">
+                  <thead className="bg-slate-700">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                         Select
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                         Name
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                         Original Phone
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                         Normalized Phone
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                         Status
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
+                  <tbody className="bg-slate-800 divide-y divide-slate-700">
                     {preview.map((contact, index) => (
-                      <tr key={index} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                      <tr key={index} className="hover:bg-slate-700/50">
                         <td className="px-4 py-3">
                           <input
                             type="checkbox"
@@ -366,27 +366,27 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
                             className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                           />
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-900 dark:text-white">
+                        <td className="px-4 py-3 text-sm text-white">
                           {contact.name || '-'}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+                        <td className="px-4 py-3 text-sm text-slate-400">
                           {contact.phoneOriginal}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+                        <td className="px-4 py-3 text-sm text-slate-400">
                           {contact.phoneNormalized}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                             contact.status === 'valid'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                              ? 'bg-green-900/30 text-green-400'
                               : contact.status === 'duplicate'
-                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                              ? 'bg-yellow-900/30 text-yellow-400'
+                              : 'bg-red-900/30 text-red-400'
                           }`}>
                             {contact.status}
                           </span>
                           {contact.reason && (
-                            <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
+                            <span className="ml-2 text-xs text-slate-400">
                               ({contact.reason})
                             </span>
                           )}
@@ -398,7 +398,7 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
               </div>
 
               {error && (
-                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
+                <div className="p-4 bg-red-900/20 border border-red-800 rounded-lg text-red-200">
                   {error}
                 </div>
               )}

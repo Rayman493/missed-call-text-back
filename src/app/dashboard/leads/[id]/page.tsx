@@ -1803,7 +1803,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Layout: Simplified */}
           <div className="hidden md:block">
             {/* Back to Leads */}
-            <div className="mb-6">
+            <div className="mb-4">
               <button
                 type="button"
                 onClick={() => {
@@ -1819,15 +1819,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Lead Identity Section - Simplified */}
-            <div className="flex items-start justify-between gap-8 mb-6">
+            <div className="flex items-start justify-between gap-8 mb-4">
               {/* Customer Info */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-5 mb-4">
+                <div className="flex items-center gap-5 mb-3">
                   <div className="flex-1 min-w-0">
                     <h1 className="text-3xl font-semibold text-foreground tracking-tight">
                       {getLeadDisplayName(leadData || lead)}
                     </h1>
-                    <p className="text-sm text-muted-foreground mt-1.5">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {formatPhoneNumber(lead?.caller_phone || '')}
                     </p>
                   </div>
@@ -1841,7 +1841,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
 
                 {/* Compact Metadata - Reduced Visual Weight */}
-                <div className="flex items-center gap-5 text-sm text-slate-400 dark:text-slate-500">
+                <div className="flex items-center gap-4 text-sm text-slate-400 dark:text-slate-500">
                   <span>Created {formatRelativeTime(lead?.created_at)}</span>
                   {lead?.last_message_at && (
                     <span>Last Activity {formatRelativeTime(lead.last_message_at)}</span>
@@ -1856,7 +1856,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   const composer = document.querySelector('textarea[name="message"]') as HTMLTextAreaElement
                   if (composer) composer.focus()
                 }}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors text-sm font-medium shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors text-sm font-medium shadow-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -1948,14 +1948,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread - CSS-based Layout */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-8 py-6">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-8 py-4">
         
         {/* Desktop Layout */}
         <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] gap-8 items-start">
           {/* Desktop Conversation Section - Independent Scroll */}
-          <section className="flex flex-col min-h-0 h-[calc(100vh-280px)]">
+          <section className="flex flex-col min-h-0 h-[calc(100vh-240px)]">
             {/* Desktop Message Thread - Scrollable */}
-            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth p-0 min-h-0" style={{ minHeight: '200px' }}>
+            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth p-4 min-h-0 custom-scrollbar" style={{ minHeight: '200px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1983,7 +1983,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Desktop Message Composer - Fixed to Bottom */}
-            <div className="shrink-0 border-t border-border/40 pt-4">
+            <div className="shrink-0 border-t border-border/40 pt-3">
               <ConversationComposer
                 message={message}
                 setMessage={setMessage}
@@ -1997,7 +1997,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </section>
           
           {/* Desktop Sidebar - Simplified */}
-          <aside className="sticky top-6 overflow-y-auto max-h-[calc(100vh-230px)]" data-sidebar>
+          <aside className="sticky top-4 overflow-y-auto max-h-[calc(100vh-240px)]" data-sidebar>
             <div className="space-y-6">
               {/* Consolidated Information Panel - Simplified */}
               <div className="bg-card rounded-lg border border-border/30 p-5">

@@ -9,7 +9,7 @@ export default function AppLoadingScreen() {
   ]
 
   return (
-    <div className="min-h-screen bg-slate-950 dark:bg-slate-950 flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4">
       {/* Logo - using actual ReplyFlow logo */}
       <div className="mb-8">
         <img
@@ -32,7 +32,7 @@ export default function AppLoadingScreen() {
       </h1>
 
       {/* Reassuring subtitle */}
-      <p className="text-slate-400 dark:text-slate-400 text-sm sm:text-base mb-8">
+      <p className="text-slate-400 text-sm sm:text-base mb-8">
         This usually takes less than a minute.
       </p>
 

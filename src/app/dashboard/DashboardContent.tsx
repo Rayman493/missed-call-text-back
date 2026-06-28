@@ -943,14 +943,14 @@ export default function DashboardContent() {
                 {/* Out of Office Mode Banner - Simplified with mobile padding */}
                 {business && isBusinessOutOfOffice(business) && (
                   <SectionErrorBoundary sectionName="OutOfOfficeBanner">
-                    <div className="bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200/60 dark:border-blue-800/40 rounded-lg p-3 sm:p-4">
+                    <div className="bg-blue-900/20 border border-blue-800/40 rounded-lg p-3 sm:p-4">
                       <div className="flex items-start gap-2 sm:gap-3">
-                        <CalendarOff className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                        <CalendarOff className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
-                          <h3 className="text-xs sm:text-sm font-semibold text-blue-900 dark:text-blue-100 mb-0.5 sm:mb-1">
+                          <h3 className="text-xs sm:text-sm font-semibold text-blue-100 mb-0.5 sm:mb-1">
                             Out of Office Mode is active
                           </h3>
-                          <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-300">
+                          <p className="text-[10px] sm:text-xs text-blue-300">
                             Customers are being informed that responses may be delayed.
                           </p>
                           {(() => {
@@ -958,7 +958,7 @@ export default function DashboardContent() {
                             if (status.status === 'active' && status.endDate) {
                               const daysRemaining = status.daysRemaining
                               return (
-                                <p className="text-[10px] sm:text-[10px] text-blue-600 dark:text-blue-400 mt-0.5 sm:mt-1">
+                                <p className="text-[10px] sm:text-[10px] text-blue-400 mt-0.5 sm:mt-1">
                                   Returning {status.endDate.toLocaleDateString()}{daysRemaining !== undefined ? ` (${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining)` : ''}
                                 </p>
                               )
@@ -968,7 +968,7 @@ export default function DashboardContent() {
                         </div>
                         <Link
                           href="/dashboard/settings#out-of-office"
-                          className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium flex-shrink-0"
+                          className="text-[10px] sm:text-xs text-blue-400 hover:text-blue-300 font-medium flex-shrink-0"
                         >
                           Settings
                         </Link>
