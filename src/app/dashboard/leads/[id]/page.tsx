@@ -1803,7 +1803,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Layout: Simplified */}
           <div className="hidden md:block">
             {/* Back to Leads */}
-            <div className="mb-3">
+            <div className="mb-2">
               <button
                 type="button"
                 onClick={() => {
@@ -1819,15 +1819,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Lead Identity Section - Simplified */}
-            <div className="flex items-start gap-8 mb-3">
+            <div className="flex items-center gap-8 mb-2">
               {/* Customer Info */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-5 mb-2">
+                <div className="flex items-center gap-5 mb-1">
                   <div className="flex-1 min-w-0">
                     <h1 className="text-3xl font-semibold text-foreground tracking-tight">
                       {getLeadDisplayName(leadData || lead)}
                     </h1>
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                    <p className="text-sm text-muted-foreground mt-0">
                       {formatPhoneNumber(lead?.caller_phone || '')}
                     </p>
                   </div>
@@ -1934,7 +1934,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread - CSS-based Layout */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-8 py-4">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-8 py-3">
         
         {/* Desktop Layout */}
         <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] gap-8 items-start">
