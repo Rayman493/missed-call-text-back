@@ -192,8 +192,8 @@ export async function POST(request: Request) {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/leads/${lead_id}?payment=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/leads/${lead_id}?payment=cancelled`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/cancelled`,
       payment_intent_data: {
         metadata: {
           payment_request_id: '', // Will be filled after creating payment_request record
