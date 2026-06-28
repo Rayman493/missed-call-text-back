@@ -734,6 +734,7 @@ export default function CalendarPage() {
                                   source={event.source === 'holiday' ? 'holiday' : 'primary'}
                                   onClick={() => {
                                     setSelectedEvent(event)
+                                    setSelectedDay(null) // Clear selected day to prevent day modal from showing underneath
                                     setIsEventDetailsOpen(true)
                                   }}
                                 />
