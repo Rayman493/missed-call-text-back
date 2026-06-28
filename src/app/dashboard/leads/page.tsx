@@ -1170,17 +1170,15 @@ export default function LeadsPage() {
                       </p>
                       <div
                         key={lead.id}
-                        className="w-full max-w-2xl h-full flex flex-col bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 group"
+                        className="w-full max-w-2xl h-full flex flex-col bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 group cursor-pointer"
+                        onClick={() => handleConversationClick(lead.id)}
                       >
                         {/* Status Accent Bar */}
                         <div className={`h-1 rounded-t-lg ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
                         <div className="p-4 sm:p-5 flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
                           <div className="flex items-start justify-between mb-3 sm:mb-4">
-                            <div 
-                              className="flex-1 min-w-0 cursor-pointer"
-                              onClick={() => handleConversationClick(lead.id)}
-                            >
+                            <div className="flex-1 min-w-0">
                               <h3 className={`text-base sm:text-lg font-semibold text-white mb-1 truncate tracking-tight ${isNewLead ? 'text-orange-400' : ''}`}>
                                 {getLeadDisplayName(lead)}
                               </h3>
@@ -1188,11 +1186,13 @@ export default function LeadsPage() {
                                 {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                               </p>
                             </div>
-                            <LeadStatusDropdown
-                              currentStatus={getLeadLifecycleStatus(lead)}
-                              onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
-                              size="sm"
-                            />
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <LeadStatusDropdown
+                                currentStatus={getLeadLifecycleStatus(lead)}
+                                onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
+                                size="sm"
+                              />
+                            </div>
                           </div>
 
                           {/* Compact Preview */}
@@ -1278,7 +1278,9 @@ export default function LeadsPage() {
                                 Call
                               </a>
                             )}
-                            <div className="flex-1 sm:flex-1 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            <div className="flex-1 sm:flex-1 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               View Conversation
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -1393,17 +1395,15 @@ export default function LeadsPage() {
                         return (
                           <div
                             key={lead.id}
-                            className="bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 group"
+                            className="bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 group cursor-pointer"
+                            onClick={() => handleConversationClick(lead.id)}
                           >
                             {/* Status Accent Bar */}
                             <div className={`h-1 rounded-t-lg ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
                             <div className="p-3 sm:p-4">
                               {/* Header: Name, Phone, Status */}
                               <div className="flex items-start justify-between mb-2 sm:mb-3">
-                                <div 
-                                  className="flex-1 min-w-0 cursor-pointer"
-                                  onClick={() => handleConversationClick(lead.id)}
-                                >
+                                <div className="flex-1 min-w-0">
                                   <h3 className={`text-sm sm:text-base font-semibold text-white mb-1 truncate tracking-tight ${isNewLead ? 'text-orange-400' : ''}`}>
                                     {getLeadDisplayName(lead)}
                                   </h3>
@@ -1411,11 +1411,13 @@ export default function LeadsPage() {
                                     {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                                   </p>
                                 </div>
-                                <LeadStatusDropdown
-                                  currentStatus={getLeadLifecycleStatus(lead)}
-                                  onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
-                                  size="sm"
-                                />
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <LeadStatusDropdown
+                                    currentStatus={getLeadLifecycleStatus(lead)}
+                                    onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
+                                    size="sm"
+                                  />
+                                </div>
                               </div>
 
                               {/* Compact Preview */}
@@ -1501,7 +1503,9 @@ export default function LeadsPage() {
                                     Call
                                   </a>
                                 )}
-                                <div className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors">
+                                <div className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
                                   View
                                   <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
