@@ -6977,12 +6977,16 @@ Return only JSON, no other text.`;
                   type: "realtime",
                   instructions: `You are an extraction-only AI assistant for missed call intake.
 
-EXTRACTION-ONLY MODE:
+EXTRACTION-ONLY MODE - STRICT SCRIPTED RESPONSES ONLY:
 Your ONLY function is to extract structured fields from user transcripts.
 You MUST NOT generate any conversational responses on your own.
 You MUST NOT ask questions, give advice, troubleshoot, diagnose, or provide guidance.
 You MUST NOT add conversational filler, acknowledgments, or follow-up questions.
 You MUST NOT say anything other than the exact text provided by the app.
+
+CRITICAL: NEVER respond to off-topic questions like "How are you?", "Hello?", "Can you hear me?", or any casual small talk.
+If the caller says anything off-topic, do NOT respond. Ignore it completely.
+Only speak the exact scripted prompts provided by the app via response.create instructions.
 
 BUSINESS CONTEXT (for extraction only):
 Business Name: ${businessName || 'Unknown'}
@@ -7684,7 +7688,90 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     activeResponseId = null;
                     (twilioHandler as any).activeResponseId = activeResponseId;
                   }
-                  
+
+                  // CRITICAL FIX: Enforce first stage requires valid name/reason before advancing
+                  const currentStage = intakeData!.stage;
+                  const hasName = !!intakeData!.customerName && intakeData!.customerName.trim().length > 0;
+                  const hasReason = !!intakeData!.serviceRequested && intakeData!.serviceRequested.trim().length > 0;
+
+                  if (currentStage === 'ask_name_reason' && !hasReason) {
+                    console.log('[FIRST STAGE VALIDATION FAILED] =========================================');
+                    console.log('[FIRST STAGE VALIDATION FAILED] First stage requires valid reason before advancing');
+                    console.log('[FIRST STAGE VALIDATION FAILED] currentStage:', currentStage);
+                    console.log('[FIRST STAGE VALIDATION FAILED] hasName:', hasName);
+                    console.log('[FIRST STAGE VALIDATION FAILED] hasReason:', hasReason);
+                    console.log('[FIRST STAGE VALIDATION FAILED] customerName:', intakeData!.customerName);
+                    console.log('[FIRST STAGE VALIDATION FAILED] serviceRequested:', intakeData!.serviceRequested);
+                    console.log('[FIRST STAGE VALIDATION FAILED] userTranscript:', userTranscript);
+                    console.log('[FIRST STAGE VALIDATION FAILED] Transcript appears to be off-topic or invalid');
+                    console.log('[FIRST STAGE VALIDATION FAILED] Reprompting first stage');
+                    console.log('[FIRST STAGE VALIDATION FAILED] Timestamp:', new Date().toISOString());
+                    console.log('[FIRST STAGE VALIDATION FAILED] =========================================');
+
+                    // Reprompt the same stage instead of advancing
+                    sendStagePrompt(
+                      currentStage,
+                      openAiWs,
+                      promptedStages,
+                      lastPromptAt,
+                      assistantSpeaking,
+                      activeResponseId,
+                      twilioHandler,
+                      lastPromptStage,
+                      stagePromptAttempts,
+                      ws
+                    );
+                    return; // Skip stage advance
+                  }
+
+                  // CRITICAL FIX: Never mark stage complete if required fields are missing
+                  if (intakeResponse.nextStage === 'complete' && !areAllRequiredFieldsCollected(intakeData!)) {
+                    console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] =========================================');
+                    console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] Cannot mark stage complete - required fields missing');
+                    console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] nextStage:', intakeResponse.nextStage);
+                    console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] areAllRequiredFieldsCollected:', areAllRequiredFieldsCollected(intakeData!));
+                    console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] customerName:', !!intakeData!.customerName);
+                    console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] serviceRequested:', !!intakeData!.serviceRequested);
+                    console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] issueDescription:', !!intakeData!.issueDescription);
+                    console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] serviceAddress:', !!intakeData!.serviceAddress);
+                    console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] desiredCompletionTime:', !!intakeData!.desiredCompletionTime);
+                    console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] callbackTime:', !!intakeData!.callbackTime);
+                    console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] Timestamp:', new Date().toISOString());
+                    console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] =========================================');
+
+                    // Reprompt missing stage instead of completing
+                    const missingFields = getMissingRequiredFields(intakeData!);
+                    // Determine next missing stage based on missing fields
+                    let nextMissingStage: IntakeStage | null = null;
+                    if (!intakeData!.customerName || !intakeData!.serviceRequested) {
+                      nextMissingStage = 'ask_name_reason';
+                    } else if (!intakeData!.issueDescription) {
+                      nextMissingStage = 'ask_details';
+                    } else if (!intakeData!.serviceAddress) {
+                      nextMissingStage = 'ask_location_or_context';
+                    } else if (!intakeData!.desiredCompletionTime) {
+                      nextMissingStage = 'ask_timing';
+                    } else if (!intakeData!.callbackTime) {
+                      nextMissingStage = 'ask_callback_time';
+                    }
+
+                    if (nextMissingStage) {
+                      sendStagePrompt(
+                        nextMissingStage,
+                        openAiWs,
+                        promptedStages,
+                        lastPromptAt,
+                        assistantSpeaking,
+                        activeResponseId,
+                        twilioHandler,
+                        lastPromptStage,
+                        stagePromptAttempts,
+                        ws
+                      );
+                    }
+                    return; // Skip stage advance to complete
+                  }
+
                   intakeData!.stage = intakeResponse.nextStage;
                   
                   if (intakeData!.stage === 'complete') {
@@ -10402,13 +10489,15 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
       
       // Corrected condition: prevent ANY call that reached complete or terminal close from entering incomplete finalization
       // FIXED: Read from closingState instead of local variables to prevent race condition
-      if (!incompleteFinalizationStarted && 
-          closingState.callState === 'active' && 
-          !closingState.finalClosingStarted && 
+      // CRITICAL FIX: Allow incomplete finalization even if terminalClosingResponseStarted is true when required fields are missing
+      if (!incompleteFinalizationStarted &&
+          closingState.callState === 'active' &&
+          !closingState.finalClosingStarted &&
           !closingState.hangupScheduled &&
           stage !== 'complete' &&
-          !allRequiredFieldsCollected &&
-          !closingState.terminalClosingResponseStarted) {
+          !allRequiredFieldsCollected) {
+        // Note: We removed the !closingState.terminalClosingResponseStarted check
+        // This ensures incomplete finalization runs even if terminal closing started when required fields are missing
         console.log('[FINALIZE INCOMPLETE CALLSITE] =========================================');
         console.log('[FINALIZE INCOMPLETE CALLSITE] source: WebSocket close handler (Twilio)');
         console.log('[FINALIZE INCOMPLETE CALLSITE] callSid:', callSid);
