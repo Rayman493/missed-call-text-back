@@ -168,14 +168,24 @@ export async function POST(request: NextRequest) {
 
       // Construct local datetime string preserving user's wall-clock time
       // Format: YYYY-MM-DDTHH:mm:ss (e.g., 2026-06-29T09:00:00)
-      const startDateTimeStr = `${date}T${startTime}`
-      const endDateTimeStr = `${finalEndDate}T${endTime}`
+      const startDateTimeStr = `${date}T${startTime}:00`
+      const endDateTimeStr = `${finalEndDate}T${endTime}:00`
 
       console.log('[CALENDAR EVENT CREATE] values stored', {
         startDateTimeStr,
         endDateTimeStr,
-        businessTimezone
+        businessTimezone,
+        date,
+        startTime,
+        finalEndDate,
+        endTime
       })
+
+      // Validate business timezone
+      if (!businessTimezone) {
+        console.error('[CALENDAR EVENT CREATE] businessTimezone is undefined')
+        return NextResponse.json({ error: 'Business timezone not configured' }, { status: 500 })
+      }
 
       // Send datetime in local format WITH timezone parameter
       // This tells Google Calendar to interpret the datetime in the specified timezone
@@ -217,7 +227,18 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('[Calendar Create] failed with reason:', response.status, errorText)
+      let errorData
+      try {
+        errorData = JSON.parse(errorText)
+      } catch {
+        errorData = errorText
+      }
+      console.error('[Calendar Create] Google API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+        payloadSent: eventBody
+      })
       
       // Handle specific Google Calendar API errors
       if (response.status === 401) {
