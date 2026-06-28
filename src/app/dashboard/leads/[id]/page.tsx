@@ -1737,20 +1737,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         <div className="max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 py-1.5 sm:py-3">
           {/* Mobile Layout: Enhanced Information Header */}
           <div className="md:hidden">
+            {/* Back to Leads link for mobile */}
+            <div className="mb-3">
+              <button
+                type="button"
+                onClick={() => {
+                  router.push('/dashboard/leads')
+                }}
+                className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Leads
+              </button>
+            </div>
             <div className="flex items-center justify-between gap-2">
-              {/* Back + Enhanced Lead Info */}
+              {/* Enhanced Lead Info */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    router.push('/dashboard/leads')
-                  }}
-                  className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors p-1 flex-shrink-0"
-                >
-                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
                 <div className="flex-1 min-w-0">
                   {/* Compact single-row header */}
                   <div className="flex items-center gap-1.5 text-xs">

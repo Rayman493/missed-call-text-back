@@ -176,7 +176,7 @@ export default function MobileConversationMessageList({
             <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} max-w-[72%] sm:max-w-[68%] ${!isInbound && !shouldShowAvatar ? 'ml-11' : ''}`}>
               {/* Message Bubble - Modern messaging app styling */}
               <div
-                className={`rounded-2xl shadow-sm transition-all duration-200 ${
+                className={`rounded-2xl shadow-sm transition-all duration-200 overflow-hidden ${
                   isInbound
                     ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200 dark:border-slate-700/50 hover:shadow-md'
                     : isOptimistic && isSending

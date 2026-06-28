@@ -129,7 +129,7 @@ export default function DesktopConversationMessageList({
             <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isOutbound ? 'max-w-[75%]' : 'max-w-[85%]'} ${!isInbound && !shouldShowAvatar ? 'ml-11' : ''}`}>
               {/* Message Bubble - Desktop styling */}
               <div
-                className={`rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
+                className={`rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md overflow-hidden ${
                   isInbound
                     ? 'bg-white dark:bg-slate-800/95 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200 dark:border-slate-700'
                     : isOptimistic && isSending
