@@ -8,22 +8,32 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  console.log('[API LEADS STATUS PATCH] ========== ROUTE ENTERED ==========')
+  
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const { status } = await request.json()
+    const body = await request.json()
+    const { status } = body
+    
+    console.log('[API LEADS STATUS PATCH] Lead ID:', params.id)
+    console.log('[API LEADS STATUS PATCH] Requested status:', status)
 
-    // Validate status
-    const validStatuses = ['new', 'active', 'completed', 'ignored']
+    // Validate status - include all new business-controlled statuses
+    const validStatuses = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'lost']
     if (!validStatuses.includes(status)) {
+      console.log('[API LEADS STATUS PATCH] Invalid status. Valid statuses:', validStatuses)
       return NextResponse.json(
-        { error: 'Invalid status. Must be one of: new, active, completed, ignored' },
+        { error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` },
         { status: 400 }
       )
     }
+    
+    console.log('[API LEADS STATUS PATCH] Status validation passed')
 
     // Get auth token
     const authHeader = request.headers.get('authorization')
     if (!authHeader?.startsWith('Bearer ')) {
+      console.log('[API LEADS STATUS PATCH] Missing or invalid auth header')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -31,55 +41,105 @@ export async function PATCH(
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
 
     if (authError || !user) {
+      console.log('[API LEADS STATUS PATCH] Auth failed:', authError)
       return NextResponse.json({ error: 'Invalid authentication' }, { status: 401 })
     }
+    
+    console.log('[API LEADS STATUS PATCH] Authenticated user ID:', user.id)
 
     // Get lead details for activity logging
-    const { data: existingLead, error: fetchError } = await supabase
-      .from('leads')
-      .select('*')
-      .eq('id', params.id)
-      .single()
+    console.log('[API LEADS STATUS PATCH] Fetching lead details for:', params.id)
+    let existingLead, fetchError
+    try {
+      const result = await supabase
+        .from('leads')
+        .select('*')
+        .eq('id', params.id)
+        .single()
+      existingLead = result.data
+      fetchError = result.error
+    } catch (e) {
+      console.log('[API LEADS STATUS PATCH] Exception during lead fetch:', e)
+      return NextResponse.json({ error: 'Database error during lead fetch', details: String(e) }, { status: 500 })
+    }
     
-    if (fetchError || !existingLead) {
+    if (fetchError) {
+      console.log('[API LEADS STATUS PATCH] Lead fetch error:', fetchError)
+      return NextResponse.json({ error: 'Lead not found', details: fetchError.message }, { status: 404 })
+    }
+    
+    if (!existingLead) {
+      console.log('[API LEADS STATUS PATCH] Lead not found:', params.id)
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
     }
+    
+    console.log('[API LEADS STATUS PATCH] Lead found, business_id:', existingLead.business_id)
 
     // Verify business ownership
-    const { data: business } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('id', existingLead.business_id)
-      .eq('user_id', user.id)
-      .single()
+    console.log('[API LEADS STATUS PATCH] Verifying business ownership for user:', user.id, 'business:', existingLead.business_id)
+    let business, businessError
+    try {
+      const result = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('id', existingLead.business_id)
+        .eq('user_id', user.id)
+        .single()
+      business = result.data
+      businessError = result.error
+    } catch (e) {
+      console.log('[API LEADS STATUS PATCH] Exception during business ownership check:', e)
+      return NextResponse.json({ error: 'Database error during ownership check', details: String(e) }, { status: 500 })
+    }
+    
+    if (businessError) {
+      console.log('[API LEADS STATUS PATCH] Business ownership check error:', businessError)
+      return NextResponse.json({ error: 'Unauthorized', details: businessError.message }, { status: 403 })
+    }
     
     if (!business) {
+      console.log('[API LEADS STATUS PATCH] Business ownership failed - user does not own this lead')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
+    
+    console.log('[API LEADS STATUS PATCH] Business ownership verified')
 
     // Update lead status
-    const { data: lead, error: updateError } = await supabase
-      .from('leads')
-      .update({ 
-        status: status,
-        lead_status: status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', params.id)
-      .select()
-      .single()
+    const updatePayload = {
+      status: status,
+      updated_at: new Date().toISOString()
+    }
+    console.log('[API LEADS STATUS PATCH] Updating lead with payload:', updatePayload)
+    
+    let lead, updateError
+    try {
+      const result = await supabase
+        .from('leads')
+        .update(updatePayload)
+        .eq('id', params.id)
+        .select()
+        .single()
+      lead = result.data
+      updateError = result.error
+    } catch (e) {
+      console.log('[API LEADS STATUS PATCH] Exception during lead update:', e)
+      return NextResponse.json({ error: 'Database error during lead update', details: String(e) }, { status: 500 })
+    }
 
     if (updateError) {
-      console.error('Error updating lead status:', updateError)
+      console.log('[API LEADS STATUS PATCH] Lead update error:', updateError)
       return NextResponse.json(
-        { error: 'Failed to update lead status' },
+        { error: 'Failed to update lead status', details: updateError.message },
         { status: 500 }
       )
     }
 
     if (!lead) {
+      console.log('[API LEADS STATUS PATCH] Lead not found after update')
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
     }
+    
+    console.log('[API LEADS STATUS PATCH] Lead updated successfully:', lead.id)
 
     // Log activity event
     let activityMessage = ''
@@ -90,43 +150,65 @@ export async function PATCH(
         activityMessage = `Lead marked completed for ${existingLead.caller_phone === '+10000000000' ? 'Test Lead' : existingLead.caller_phone}`
         activityType = 'lead_completed'
         break
-      case 'ignored':
-        activityMessage = `Lead ignored for ${existingLead.caller_phone === '+10000000000' ? 'Test Lead' : existingLead.caller_phone}`
-        activityType = 'lead_ignored'
+      case 'lost':
+        activityMessage = `Lead marked lost for ${existingLead.caller_phone === '+10000000000' ? 'Test Lead' : existingLead.caller_phone}`
+        activityType = 'lead_lost'
+        break
+      case 'scheduled':
+        activityMessage = `Lead marked scheduled for ${existingLead.caller_phone === '+10000000000' ? 'Test Lead' : existingLead.caller_phone}`
+        activityType = 'lead_scheduled'
+        break
+      case 'payment_requested':
+        activityMessage = `Payment requested for ${existingLead.caller_phone === '+10000000000' ? 'Test Lead' : existingLead.caller_phone}`
+        activityType = 'payment_requested'
+        break
+      case 'paid':
+        activityMessage = `Payment received for ${existingLead.caller_phone === '+10000000000' ? 'Test Lead' : existingLead.caller_phone}`
+        activityType = 'payment_received'
         break
       case 'active':
         activityMessage = `Lead marked active for ${existingLead.caller_phone === '+10000000000' ? 'Test Lead' : existingLead.caller_phone}`
-        activityType = 'customer_replied' // Reuse existing type
+        activityType = 'customer_replied'
         break
       case 'new':
         activityMessage = `Lead reset to new for ${existingLead.caller_phone === '+10000000000' ? 'Test Lead' : existingLead.caller_phone}`
-        activityType = 'customer_replied' // Reuse existing type
+        activityType = 'customer_replied'
         break
     }
     
     if (activityType && activityMessage) {
-      await supabase.rpc('log_activity_event', {
-        p_business_id: existingLead.business_id,
-        p_lead_id: existingLead.id,
-        p_event_type: activityType,
-        p_message: activityMessage,
-        p_metadata: { previous_status: existingLead.lead_status, new_status: status }
-      })
+      console.log('[API LEADS STATUS PATCH] Logging activity event:', activityType)
+      try {
+        await supabase.rpc('log_activity_event', {
+          p_business_id: existingLead.business_id,
+          p_lead_id: existingLead.id,
+          p_event_type: activityType,
+          p_message: activityMessage,
+          p_metadata: { previous_status: existingLead.status, new_status: status }
+        })
+        console.log('[API LEADS STATUS PATCH] Activity event logged')
+      } catch (e) {
+        console.log('[API LEADS STATUS PATCH] Failed to log activity event:', e)
+        // Don't fail the request if activity logging fails
+      }
     }
 
+    console.log('[API LEADS STATUS PATCH] Final response - success')
+    console.log('[API LEADS STATUS PATCH] ========== ROUTE COMPLETE ==========')
+    
     return NextResponse.json({ 
       success: true, 
       lead: {
         id: lead.id,
-        lead_status: lead.lead_status,
+        status: lead.status,
         updated_at: lead.updated_at
       }
     })
 
   } catch (error) {
-    console.error('Lead status update error:', error)
+    console.log('[API LEADS STATUS PATCH] Unhandled exception:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: String(error) },
       { status: 500 }
     )
   }
