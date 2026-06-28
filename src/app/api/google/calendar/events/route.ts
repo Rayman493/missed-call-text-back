@@ -264,22 +264,6 @@ export async function GET(request: NextRequest) {
 
     // Normalize primary events
     const primaryEvents = (eventsData.items || []).map((event: any) => {
-      console.log('[GOOGLE API RAW EVENT - COMPLETE]:', {
-        summary: event.summary,
-        start: {
-          dateTime: event.start?.dateTime,
-          date: event.start?.date,
-          timeZone: event.start?.timeZone
-        },
-        end: {
-          dateTime: event.end?.dateTime,
-          date: event.end?.date,
-          timeZone: event.end?.timeZone
-        },
-        location: event.location,
-        htmlLink: event.htmlLink
-      })
-      
       const normalizedEvent = {
         id: event.id,
         summary: event.summary || 'No title',
@@ -291,13 +275,6 @@ export async function GET(request: NextRequest) {
         source: 'primary' as const,
         isHoliday: false
       }
-      
-      console.log('[BACKEND NORMALIZED EVENT]:', {
-        id: normalizedEvent.id,
-        summary: normalizedEvent.summary,
-        start: normalizedEvent.start,
-        end: normalizedEvent.end
-      })
       
       return normalizedEvent
     })
@@ -340,8 +317,6 @@ export async function GET(request: NextRequest) {
       events: allEvents,
       calendarEmail: integration.calendar_email || null
     }
-
-    console.log('[BACKEND API RESPONSE TO FRONTEND]:', JSON.stringify(responsePayload, null, 2))
 
     return NextResponse.json(responsePayload)
   } catch (error) {

@@ -166,29 +166,31 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Start and end time are required for timed events' }, { status: 400 })
       }
 
-      // Combine date and time, treating them as local time in the business timezone
-      const startDateTime = new Date(`${date}T${startTime}`)
-      const endDateTime = new Date(`${finalEndDate}T${endTime}`)
+      // Construct local datetime string preserving user's wall-clock time
+      // Format: YYYY-MM-DDTHH:mm:ss (e.g., 2026-06-29T09:00:00)
+      const startDateTimeStr = `${date}T${startTime}`
+      const endDateTimeStr = `${finalEndDate}T${endTime}`
 
       console.log('[CALENDAR EVENT CREATE] values stored', {
-        startDateTime: startDateTime.toISOString(),
-        endDateTime: endDateTime.toISOString()
+        startDateTimeStr,
+        endDateTimeStr,
+        businessTimezone
       })
 
-      // Send datetime in ISO format WITHOUT timezone parameter
-      // The ISO string already contains the timezone offset (e.g., -04:00 for EDT)
-      // Google Calendar will interpret the offset correctly
+      // Send datetime in local format WITH timezone parameter
+      // This tells Google Calendar to interpret the datetime in the specified timezone
       start = {
-        dateTime: startDateTime.toISOString()
+        dateTime: startDateTimeStr,
+        timeZone: businessTimezone
       }
       end = {
-        dateTime: endDateTime.toISOString()
+        dateTime: endDateTimeStr,
+        timeZone: businessTimezone
       }
 
       console.log('[CALENDAR EVENT CREATE] value sent to Google', {
         start,
-        end,
-        businessTimezone
+        end
       })
     }
 

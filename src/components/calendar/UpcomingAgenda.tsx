@@ -92,24 +92,11 @@ export default function UpcomingAgenda({ events, maxEvents = 5, onRefresh, calen
     if (!dateStr) return ''
     const date = new Date(dateStr)
     
-    const formatted = date.toLocaleTimeString('en-US', { 
+    return date.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
       minute: '2-digit',
       hour12: true 
     })
-    
-    console.log('[FORMATTER - AGENDA VIEW]:', {
-      input: dateStr,
-      inputType: typeof dateStr,
-      parsedDate: date.toString(),
-      toISOString: date.toISOString(),
-      getHours: date.getHours(),
-      getUTCHours: date.getUTCHours(),
-      getTimezoneOffset: date.getTimezoneOffset(),
-      formattedOutput: formatted
-    })
-    
-    return formatted
   }
 
   const isAllDay = (start: { dateTime?: string; date?: string }) => {

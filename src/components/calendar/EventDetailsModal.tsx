@@ -45,20 +45,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete }: 
     if (!dateTime) return ''
     const d = new Date(dateTime)
     
-    const formatted = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-    
-    console.log('[FORMATTER - EVENT DETAILS MODAL]:', {
-      input: dateTime,
-      inputType: typeof dateTime,
-      parsedDate: d.toString(),
-      toISOString: d.toISOString(),
-      getHours: d.getHours(),
-      getUTCHours: d.getUTCHours(),
-      getTimezoneOffset: d.getTimezoneOffset(),
-      formattedOutput: formatted
-    })
-    
-    return formatted
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
   }
 
   const formatTimeRange = () => {
