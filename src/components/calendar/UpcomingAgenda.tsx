@@ -98,11 +98,15 @@ export default function UpcomingAgenda({ events, maxEvents = 5, onRefresh, calen
       hour12: true 
     })
     
-    console.log('[UPCOMING AGENDA] formatTime:', {
+    console.log('[FORMATTER - AGENDA VIEW]:', {
       input: dateStr,
+      inputType: typeof dateStr,
       parsedDate: date.toString(),
-      formattedOutput: formatted,
-      timezoneOffset: date.getTimezoneOffset()
+      toISOString: date.toISOString(),
+      getHours: date.getHours(),
+      getUTCHours: date.getUTCHours(),
+      getTimezoneOffset: date.getTimezoneOffset(),
+      formattedOutput: formatted
     })
     
     return formatted

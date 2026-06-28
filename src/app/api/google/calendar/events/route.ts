@@ -264,8 +264,7 @@ export async function GET(request: NextRequest) {
 
     // Normalize primary events
     const primaryEvents = (eventsData.items || []).map((event: any) => {
-      console.log('[Google Calendar Events] RAW GOOGLE API EVENT:', {
-        id: event.id,
+      console.log('[GOOGLE API RAW EVENT - COMPLETE]:', {
         summary: event.summary,
         start: {
           dateTime: event.start?.dateTime,
@@ -276,7 +275,9 @@ export async function GET(request: NextRequest) {
           dateTime: event.end?.dateTime,
           date: event.end?.date,
           timeZone: event.end?.timeZone
-        }
+        },
+        location: event.location,
+        htmlLink: event.htmlLink
       })
       
       const normalizedEvent = {
@@ -291,7 +292,7 @@ export async function GET(request: NextRequest) {
         isHoliday: false
       }
       
-      console.log('[Google Calendar Events] NORMALIZED EVENT:', {
+      console.log('[BACKEND NORMALIZED EVENT]:', {
         id: normalizedEvent.id,
         summary: normalizedEvent.summary,
         start: normalizedEvent.start,
@@ -335,10 +336,14 @@ export async function GET(request: NextRequest) {
 
     console.log('[Google Calendar Events] Total events after merge:', allEvents.length)
 
-    return NextResponse.json({
+    const responsePayload = {
       events: allEvents,
       calendarEmail: integration.calendar_email || null
-    })
+    }
+
+    console.log('[BACKEND API RESPONSE TO FRONTEND]:', JSON.stringify(responsePayload, null, 2))
+
+    return NextResponse.json(responsePayload)
   } catch (error) {
     console.error('[GOOGLE CALENDAR API ERROR]', {
       type: 'unexpected',

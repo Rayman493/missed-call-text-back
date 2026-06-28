@@ -41,6 +41,20 @@ export default function CalendarPage() {
   const supabase = createBrowserClient()
   const searchParams = useSearchParams()
 
+  // Log browser timezone info on mount
+  useEffect(() => {
+    const timezone = Intl.DateTimeFormat().resolvedOptions()
+    const now = new Date()
+    console.log('[BROWSER TIMEZONE INFO]:', {
+      timeZone: timezone.timeZone,
+      calendar: timezone.calendar,
+      locale: timezone.locale,
+      currentTimezoneOffset: now.getTimezoneOffset(),
+      currentHours: now.getHours(),
+      currentUTCHours: now.getUTCHours()
+    })
+  }, [])
+
   const [calendarConnected, setCalendarConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
@@ -317,6 +331,8 @@ export default function CalendarPage() {
 
       const data = await response.json()
       
+      console.log('[FRONTEND API RESPONSE RECEIVED]:', JSON.stringify(data, null, 2))
+      
       // Update last sync time
       setLastSyncTime(new Date())
       
@@ -324,6 +340,45 @@ export default function CalendarPage() {
       const uniqueEvents = Array.from(
         new Map((data.events || []).map((event: CalendarEvent) => [event.id, event])).values()
       ) as CalendarEvent[]
+      
+      // Log detailed parsing for first event
+      if (uniqueEvents.length > 0) {
+        const firstEvent = uniqueEvents[0]
+        const startDateTime = firstEvent.start?.dateTime
+        const endDateTime = firstEvent.end?.dateTime
+
+        console.log('[FRONTEND EVENT PARSING]:', {
+          summary: firstEvent.summary,
+          start: firstEvent.start,
+          end: firstEvent.end,
+          typeof_start: typeof firstEvent.start?.dateTime,
+          typeof_end: typeof firstEvent.end?.dateTime
+        })
+
+        if (startDateTime) {
+          const startDate = new Date(startDateTime)
+          console.log('[FRONTEND DATE PARSING - Start]:', {
+            input: startDateTime,
+            parsedDate: startDate.toString(),
+            toISOString: startDate.toISOString(),
+            getHours: startDate.getHours(),
+            getUTCHours: startDate.getUTCHours(),
+            getTimezoneOffset: startDate.getTimezoneOffset()
+          })
+        }
+
+        if (endDateTime) {
+          const endDate = new Date(endDateTime)
+          console.log('[FRONTEND DATE PARSING - End]:', {
+            input: endDateTime,
+            parsedDate: endDate.toString(),
+            toISOString: endDate.toISOString(),
+            getHours: endDate.getHours(),
+            getUTCHours: endDate.getUTCHours(),
+            getTimezoneOffset: endDate.getTimezoneOffset()
+          })
+        }
+      }
       
       setEvents(uniqueEvents)
     } catch (error) {
@@ -370,11 +425,15 @@ export default function CalendarPage() {
       hour12: true 
     })
     
-    console.log('[CALENDAR PAGE] formatDate:', {
+    console.log('[FORMATTER - MONTH VIEW]:', {
       input: dateStr,
+      inputType: typeof dateStr,
       parsedDate: date.toString(),
-      formattedOutput: formatted,
-      timezoneOffset: date.getTimezoneOffset()
+      toISOString: date.toISOString(),
+      getHours: date.getHours(),
+      getUTCHours: date.getUTCHours(),
+      getTimezoneOffset: date.getTimezoneOffset(),
+      formattedOutput: formatted
     })
     
     return formatted

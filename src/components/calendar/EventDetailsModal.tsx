@@ -47,11 +47,15 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete }: 
     
     const formatted = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
     
-    console.log('[EVENT DETAILS MODAL] formatTime:', {
+    console.log('[FORMATTER - EVENT DETAILS MODAL]:', {
       input: dateTime,
+      inputType: typeof dateTime,
       parsedDate: d.toString(),
-      formattedOutput: formatted,
-      timezoneOffset: d.getTimezoneOffset()
+      toISOString: d.toISOString(),
+      getHours: d.getHours(),
+      getUTCHours: d.getUTCHours(),
+      getTimezoneOffset: d.getTimezoneOffset(),
+      formattedOutput: formatted
     })
     
     return formatted
