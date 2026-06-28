@@ -63,8 +63,8 @@ export async function GET(request: NextRequest) {
         caller_phone,
         name,
         status,
-        created_at_v1,
-        updated_at_v1,
+        created_at,
+        updated_at,
         first_contact_at,
         last_message_at,
         last_activity_at,
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     let leads, leadsError
     try {
       const result = await query
-        .order('created_at_v1', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(100);
       leads = result.data
       leadsError = result.error
