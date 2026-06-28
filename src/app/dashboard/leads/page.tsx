@@ -501,6 +501,12 @@ export default function LeadsPage() {
     
     const leadStatus = getLeadLifecycleStatus(lead)
     const isDeleted = !!lead.deleted_at
+    
+    // Handle Deleted filter specifically
+    if (statusFilter === 'deleted') {
+      return matchesSearch && isDeleted
+    }
+    
     const matchesStatus = statusFilter === 'all' || leadStatus === statusFilter
     
     // Hide ignored leads from default view (when filter is 'all')
@@ -508,11 +514,10 @@ export default function LeadsPage() {
     const showIgnored = statusFilter === 'ignored'
     const shouldShowIgnored = showIgnored || statusFilter !== 'all'
     
-    // Hide deleted leads from default view (when filter is 'all')
-    const showDeleted = statusFilter === 'deleted'
-    const shouldShowDeleted = showDeleted || statusFilter !== 'all'
+    // Hide deleted leads from default view (when filter is not 'deleted')
+    const shouldShowDeleted = !isDeleted
     
-    return matchesSearch && matchesStatus && (shouldShowIgnored || !isIgnored) && (shouldShowDeleted || !isDeleted)
+    return matchesSearch && matchesStatus && (shouldShowIgnored || !isIgnored) && shouldShowDeleted
   })
 
   
