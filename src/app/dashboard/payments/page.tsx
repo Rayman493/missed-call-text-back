@@ -520,11 +520,17 @@ export default function PaymentsPage() {
                       className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white"
                     >
                       <option value="">Select a lead</option>
-                      {leads.map((lead) => (
-                        <option key={lead.id} value={lead.id}>
-                          {formatPhoneNumber(lead.caller_phone)} - {lead.raw_metadata?.extracted_info?.callerName || 'Customer'}
-                        </option>
-                      ))}
+                      {leads.map((lead) => {
+                        const displayName = lead.raw_metadata?.customerName || 
+                                            lead.raw_metadata?.callerName || 
+                                            lead.raw_metadata?.name || 
+                                            'Customer'
+                        return (
+                          <option key={lead.id} value={lead.id}>
+                            {formatPhoneNumber(lead.caller_phone)} - {displayName}
+                          </option>
+                        )
+                      })}
                     </select>
                   </div>
                 ) : (

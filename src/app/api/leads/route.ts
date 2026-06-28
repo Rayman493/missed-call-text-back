@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     try {
       const result = await supabase
         .from('leads')
-        .select('id, caller_phone, name, status, created_at, updated_at')
+        .select('id, caller_phone, status, raw_metadata')
         .eq('business_id', business.id)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -244,9 +244,14 @@ export async function POST(request: NextRequest) {
       const leadPayload = {
         business_id: business.id,
         caller_phone: normalizedPhone,
-        name: name || null,
-        source: 'manual',
         status: 'new',
+        raw_metadata: name ? {
+          customerName: name,
+          callerName: name,
+          source: 'manual_payment_request'
+        } : {
+          source: 'manual_payment_request'
+        }
       }
       console.log('[API LEADS POST] Creating lead with payload:', leadPayload)
       
