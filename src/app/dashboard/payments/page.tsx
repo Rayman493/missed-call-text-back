@@ -180,6 +180,8 @@ export default function PaymentsPage() {
 
       if (recipientType === 'manual') {
         // Create lead/conversation for manual phone number
+        console.log('[PAYMENT MODAL] Creating lead for manual phone:', manualPhone)
+        
         const createResponse = await fetch('/api/leads', {
           method: 'POST',
           headers: {
@@ -192,12 +194,38 @@ export default function PaymentsPage() {
           }),
         })
 
+        console.log('[PAYMENT MODAL] Lead creation response status:', createResponse.status)
+
         if (!createResponse.ok) {
-          const error = await createResponse.json()
-          throw new Error(error.error || 'Failed to create lead')
+          const contentType = createResponse.headers.get('content-type')
+          let errorMessage = 'Failed to create lead'
+          
+          if (contentType && contentType.includes('application/json')) {
+            try {
+              const error = await createResponse.json()
+              errorMessage = error.error || errorMessage
+            } catch (e) {
+              console.error('[PAYMENT MODAL] Failed to parse error JSON:', e)
+            }
+          } else {
+            const text = await createResponse.text()
+            console.error('[PAYMENT MODAL] Non-JSON error response:', text)
+            errorMessage = 'Server error creating lead'
+          }
+          
+          throw new Error(errorMessage)
+        }
+
+        const contentType = createResponse.headers.get('content-type')
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await createResponse.text()
+          console.error('[PAYMENT MODAL] Non-JSON response:', text)
+          throw new Error('Invalid response from server')
         }
 
         const createData = await createResponse.json()
+        console.log('[PAYMENT MODAL] Lead created:', createData.lead?.id)
+        
         leadId = createData.lead.id
         conversationId = createData.conversation?.id
       } else {
