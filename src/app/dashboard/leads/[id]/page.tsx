@@ -115,6 +115,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [optimisticMessage, setOptimisticMessage] = useState<any>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [showMoreActions, setShowMoreActions] = useState(false)
+  const [showMobileOverflow, setShowMobileOverflow] = useState(false)
   const [showCustomerInfoModal, setShowCustomerInfoModal] = useState(false)
   const [savingCustomerInfo, setSavingCustomerInfo] = useState(false)
   const [mobileCustomerExpanded, setMobileCustomerExpanded] = useState(true)
@@ -1785,7 +1786,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
               
               {/* Action Buttons */}
-              <div className="flex items-center gap-0.5 flex-shrink-0">
+              <div className="flex items-center gap-0.5 flex-shrink-0 relative">
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
@@ -1797,6 +1798,93 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </button>
+                
+                {/* Mobile Overflow Button */}
+                <button
+                  onClick={() => setShowMobileOverflow(!showMobileOverflow)}
+                  className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                  title="More actions"
+                  aria-label="More actions"
+                >
+                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
+                </button>
+
+                {/* Mobile Overflow Menu */}
+                {showMobileOverflow && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowMobileOverflow(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[180px]">
+                      {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
+                        <a
+                          href={`tel:${leadData?.phone_number || lead?.phone}`}
+                          onClick={() => setShowMobileOverflow(false)}
+                          className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
+                          </svg>
+                          Call
+                        </a>
+                      )}
+                      <button
+                        onClick={() => {
+                          handleScheduleClick()
+                          setShowMobileOverflow(false)
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Schedule
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowPaymentModal(true)
+                          setShowMobileOverflow(false)
+                        }}
+                        disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
+                        className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        Request Payment
+                      </button>
+                      <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
+                      <button
+                        onClick={() => {
+                          handleRefresh()
+                          setShowMobileOverflow(false)
+                        }}
+                        disabled={refreshing}
+                        className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Refresh
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDeleteModal(true)
+                          setShowMobileOverflow(false)
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete Lead
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -2156,61 +2244,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         
         {/* Mobile Layout */}
         <div className="lg:hidden space-y-3">
-          {/* Mobile Quick Actions - Improved touch targets */}
-          <div className="bg-card border border-border/50 rounded-xl p-3 shadow-sm">
-            <div className="flex items-center gap-2 overflow-x-auto">
-              {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
-                <a
-                  href={`tel:${leadData?.phone_number || lead?.phone}`}
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
-                  title="Call customer"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
-                  </svg>
-                  <span>Call</span>
-                </a>
-              )}
-              <button
-                onClick={() => {
-                  const composer = document.querySelector('textarea[name="message"]') as HTMLTextAreaElement
-                  if (composer) {
-                    composer.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                    setTimeout(() => composer.focus(), 300)
-                  }
-                }}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium rounded-lg transition-colors border border-blue-200 dark:border-blue-800 flex-shrink-0"
-                title="Send text message"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <span>Text</span>
-              </button>
-              <button
-                onClick={() => setShowPaymentModal(true)}
-                disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium rounded-lg transition-colors border border-purple-200 dark:border-purple-800 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' ? 'Connect Stripe in Settings to request payments' : 'Request payment'}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-                <span>Pay</span>
-              </button>
-              <button
-                onClick={() => setShowLeadInfo(!showLeadInfo)}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/20 hover:bg-slate-100 dark:hover:bg-slate-900/30 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg transition-colors border border-slate-200 dark:border-slate-800 flex-shrink-0"
-                title="More actions"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                </svg>
-                <span>More</span>
-              </button>
-            </div>
-          </div>
-          
           {/* Lead Overview Card - Unified AI Intake + Lead Status - Mobile optimized */}
           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id ? (
             <div className="bg-card border border-border/50 rounded-xl p-3">
