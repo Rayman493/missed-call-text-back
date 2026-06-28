@@ -1088,68 +1088,68 @@ export default function SettingsContent() {
               </div>
 
               {/* Settings Navigation Tabs */}
-              <div className="py-1.5 sm:py-2">
-                <nav className="flex items-center gap-1 sm:gap-2">
+              <div className="py-2 sm:py-2.5">
+                <nav className="flex items-center gap-1.5 sm:gap-2">
                   <button
                     onClick={() => handleSectionClick('general')}
-                    className={`px-2 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
+                    className={`px-2.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
                       activeSection === 'general'
                         ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                     }`}
-                >
-                  General
-                </button>
-                <button
-                  onClick={() => handleSectionClick('automation')}
-                  className={`px-2 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
-                    activeSection === 'automation'
-                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                  }`}
-                >
-                  Automation
-                </button>
-                <button
-                  onClick={() => handleSectionClick('integrations')}
-                  className={`px-2 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
-                    activeSection === 'integrations'
-                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                  }`}
-                >
-                  Integrations
-                </button>
-                <button
-                  onClick={() => handleSectionClick('payments')}
-                  className={`px-2 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
-                    activeSection === 'payments'
-                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                  }`}
-                >
-                  Payments
-                </button>
-                <button
-                  onClick={() => handleSectionClick('contacts')}
-                  className={`px-2 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
-                    activeSection === 'contacts'
-                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                  }`}
-                >
-                  Contacts
-                </button>
-                <button
-                  onClick={() => handleSectionClick('account')}
-                  className={`px-2 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
-                    activeSection === 'account'
-                      ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                  }`}
-                >
-                  Account
-                </button>
+                  >
+                    General
+                  </button>
+                  <button
+                    onClick={() => handleSectionClick('automation')}
+                    className={`px-2.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
+                      activeSection === 'automation'
+                        ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                    }`}
+                  >
+                    Automation
+                  </button>
+                  <button
+                    onClick={() => handleSectionClick('integrations')}
+                    className={`px-2.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
+                      activeSection === 'integrations'
+                        ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                    }`}
+                  >
+                    Integrations
+                  </button>
+                  <button
+                    onClick={() => handleSectionClick('payments')}
+                    className={`px-2.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
+                      activeSection === 'payments'
+                        ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                    }`}
+                  >
+                    Payments
+                  </button>
+                  <button
+                    onClick={() => handleSectionClick('contacts')}
+                    className={`px-2.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
+                      activeSection === 'contacts'
+                        ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                    }`}
+                  >
+                    Contacts
+                  </button>
+                  <button
+                    onClick={() => handleSectionClick('account')}
+                    className={`px-2.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
+                      activeSection === 'account'
+                        ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                    }`}
+                  >
+                    Account
+                  </button>
               </nav>
               </div>
             </div>
@@ -1920,34 +1920,34 @@ export default function SettingsContent() {
               </div>
 
               {/* Payments Section */}
-              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[220px]">
-                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Payments</h2>
-                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Request and receive payments from customers directly in ReplyFlow.</p>
+              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 scroll-mt-[220px]">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1">Payments</h2>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-3 sm:mb-4">Request and receive payments from customers directly in ReplyFlow.</p>
                 
                 {/* Stripe Connect Card */}
-                <div className="p-2 sm:p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
-                  <div className="flex items-start justify-between mb-2 sm:mb-3">
-                    <div className="flex-1 pr-3 sm:pr-4">
-                      <div className="flex items-center gap-2 sm:gap-2.5 mb-0.5 sm:mb-1">
-                        <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
+                  <div className="flex items-start justify-between mb-3 sm:mb-4">
+                    <div className="flex-1 pr-4">
+                      <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
+                        <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 003-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                         </svg>
                         <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Stripe Connect</h3>
                         {business?.stripe_charges_enabled && business?.stripe_details_submitted && (
-                          <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
-                            <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                          <span className="text-[10px] sm:text-xs px-2.5 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                             Connected
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
+                      <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground leading-relaxed">
                         Connect your Stripe account to request and receive payments from customers via text message.
                       </p>
                       {business?.stripe_charges_enabled && business?.stripe_details_submitted && (
-                        <div className="mt-2 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
-                          {business.stripe_charges_enabled && <div className="flex items-center gap-1"><span className="w-1 h-1 bg-green-500 rounded-full"></span>Charges enabled</div>}
-                          {business.stripe_payouts_enabled && <div className="flex items-center gap-1"><span className="w-1 h-1 bg-green-500 rounded-full"></span>Payouts enabled</div>}
-                          {!business.stripe_payouts_enabled && <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400"><span className="w-1 h-1 bg-amber-500 rounded-full"></span>Additional verification may be required before live payouts</div>}
+                        <div className="mt-2.5 sm:mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
+                          {business.stripe_charges_enabled && <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Charges enabled</div>}
+                          {business.stripe_payouts_enabled && <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Payouts enabled</div>}
+                          {!business.stripe_payouts_enabled && <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400"><span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>Additional verification required for payouts</div>}
                         </div>
                       )}
                     </div>
@@ -1955,7 +1955,7 @@ export default function SettingsContent() {
                       <button
                         onClick={handleConnectStripe}
                         disabled={isConnectingStripe}
-                        className={`flex-shrink-0 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2 ${
+                        className={`flex-shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2 shadow-sm ${
                           business?.stripe_charges_enabled && business?.stripe_details_submitted
                             ? 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
                             : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
@@ -1966,15 +1966,15 @@ export default function SettingsContent() {
                     )}
                   </div>
                   {business?.stripe_connect_account_id && !(business?.stripe_charges_enabled && business?.stripe_details_submitted) && (
-                    <div className="mt-3 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                    <div className="mt-3 p-2.5 sm:p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                      <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300">
                         <span className="font-semibold">Setup in progress:</span> Complete the Stripe onboarding to start receiving payments.
                       </p>
                     </div>
                   )}
                   {!business?.stripe_connect_status || business.stripe_connect_status === 'not_connected' && (
-                    <div className="mt-3 p-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                    <div className="mt-3 p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-300">
                         <span className="font-semibold">Ready to accept payments:</span> Connect your Stripe account to request payments from customers via SMS.
                       </p>
                     </div>
@@ -1983,122 +1983,119 @@ export default function SettingsContent() {
               </div>
 
               {/* Ignored Contacts Section */}
-              <div id="contacts" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-2 sm:p-3.5 scroll-mt-[220px]">
-                <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div id="contacts" className="bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-border/60 p-3 sm:p-4 scroll-mt-[220px]">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <div>
-                    <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-0.5">Ignored Contacts</h2>
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1">Ignored Contacts</h2>
                     <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">Prevent employee, personal, vendor, or spam numbers from becoming leads.</p>
                   </div>
                   <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowAddModal(true)}
-                    className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs"
+                    className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs"
                   >
                     + Add
                   </button>
                   <button
                     onClick={() => setShowImportModal(true)}
-                    className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs"
+                    className="px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs"
                   >
                     Import
                   </button>
                 </div>
                 </div>
                 {/* Personal/Business Number Guidance */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-2 sm:mb-3">
-                  <div className="flex items-start gap-2">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
+                  <div className="flex items-start gap-2.5 sm:gap-3">
                     <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
                     <div>
                       <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-2">Using your personal phone as your business number?</p>
-                      <p className="text-[10px] text-blue-700 dark:text-blue-300 mb-2">
+                      <p className="text-[10px] text-blue-700 dark:text-blue-300 mb-2.5">
                         Many small business owners use one phone for both business and personal calls, and ReplyFlow fully supports this.
                       </p>
-                      <p className="text-[10px] font-semibold text-blue-900 dark:text-blue-100 mb-1">You have complete control over how specific callers are handled:</p>
-                      <div className="space-y-1 mt-1">
-                        <div className="flex items-start gap-1">
-                          <span className="text-blue-600 dark:text-blue-400 font-semibold text-[10px]">•</span>
+                      <p className="text-[10px] font-semibold text-blue-900 dark:text-blue-100 mb-1.5">You have complete control:</p>
+                      <div className="space-y-1.5 mt-2">
+                        <div className="flex items-start gap-2">
+                          <span className="text-blue-600 dark:text-blue-400 font-semibold text-[10px] mt-0.5">•</span>
                           <p className="text-[10px] text-blue-700 dark:text-blue-300"><strong>Leave off Ignored Contacts:</strong> ReplyFlow treats it like a customer (AI Voice, lead creation, automated texts, follow-ups).</p>
                         </div>
-                        <div className="flex items-start gap-1">
-                          <span className="text-blue-600 dark:text-blue-400 font-semibold text-[10px]">•</span>
-                          <p className="text-[10px] text-blue-700 dark:text-blue-300"><strong>Add to Ignored Contacts:</strong> ReplyFlow stays out (no AI Voice, no automated texts, no lead, no follow-ups—the caller hears a brief unavailable message).</p>
+                        <div className="flex items-start gap-2">
+                          <span className="text-blue-600 dark:text-blue-400 font-semibold text-[10px] mt-0.5">•</span>
+                          <p className="text-[10px] text-blue-700 dark:text-blue-300"><strong>Add to Ignored Contacts:</strong> ReplyFlow stays out (no AI Voice, no automated texts, no lead, no follow-ups).</p>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
                 {/* When should I use Ignored Contacts */}
-                <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg p-3 mb-2 sm:mb-3">
-                  <div className="flex items-start gap-2">
+                <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
+                  <div className="flex items-start gap-2.5 sm:gap-3">
                     <svg className="w-4 h-4 text-slate-600 dark:text-slate-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
                     <div>
-                      <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1">When should I use Ignored Contacts?</p>
-                      <p className="text-[10px] text-slate-700 dark:text-slate-300 mb-1">
-                        Add people here when you never want ReplyFlow to respond to their missed calls. This is especially useful when using one phone for both business and personal calls.
+                      <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 mb-2">When should I use Ignored Contacts?</p>
+                      <p className="text-[10px] text-slate-700 dark:text-slate-300 mb-2">
+                        Add people here when you never want ReplyFlow to respond to their missed calls.
                       </p>
-                      <p className="text-[10px] text-slate-700 dark:text-slate-300 mb-1">
-                        Friends, family, schools, doctors, and other personal contacts are common examples.
+                      <p className="text-[10px] text-slate-700 dark:text-slate-300 mb-3">
+                        Common examples: friends, family, schools, doctors, and other personal contacts.
                       </p>
-                      <p className="text-[10px] font-semibold text-slate-900 dark:text-slate-100 mb-1 mt-2">What happens when someone IS on the list:</p>
-                      <p className="text-[10px] text-slate-700 dark:text-slate-300">
-                        No AI Voice, no automated text messages, no lead is created, no follow-ups are scheduled. The caller hears a brief unavailable message instead of entering the ReplyFlow experience.
-                      </p>
-                      <p className="text-[10px] font-semibold text-slate-900 dark:text-slate-100 mb-1 mt-2">What happens when someone IS NOT on the list:</p>
-                      <p className="text-[10px] text-slate-700 dark:text-slate-300">
-                        ReplyFlow treats the missed call like any potential customer (AI Voice, lead creation, automated texts, and follow-ups work normally).
-                      </p>
-                      <p className="text-[10px] text-slate-700 dark:text-slate-300 mt-1">
-                        You can remove contacts from this list at any time.
-                      </p>
-                      <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-600">
-                        <p className="text-[10px] font-semibold text-slate-900 dark:text-slate-100 mb-1">Why does this work this way?</p>
-                        <p className="text-[10px] text-slate-700 dark:text-slate-300">
-                          ReplyFlow identifies callers by their incoming phone number. It can't automatically know whether a missed call is from a customer, a friend, or a family member. Ignored Contacts gives you complete control over which phone numbers ReplyFlow should handle and which ones it should leave alone.
-                        </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200 dark:border-slate-600">
+                        <div>
+                          <p className="text-[10px] font-semibold text-slate-900 dark:text-slate-100 mb-1">On the list:</p>
+                          <p className="text-[10px] text-slate-700 dark:text-slate-300">
+                            No AI Voice, no automated texts, no lead is created.
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-semibold text-slate-900 dark:text-slate-100 mb-1">Off the list:</p>
+                          <p className="text-[10px] text-slate-700 dark:text-slate-300">
+                            Treated like a customer (AI Voice, texts, follow-ups).
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-2 sm:space-y-2.5">
                   {isLoadingIgnored ? (
-                    <div className="flex items-center justify-center py-2 sm:py-3">
-                      <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-blue-600"></div>
+                    <div className="flex items-center justify-center py-4 sm:py-6">
+                      <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-blue-600"></div>
                     </div>
                   ) : ignoredContacts.length === 0 ? (
-                    <div className="text-center py-2 sm:py-3 bg-muted/40 rounded-lg border border-border/50">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-1 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                        <svg className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="text-center py-6 sm:py-8 bg-muted/40 rounded-lg border border-border/50">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-2 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
-                      <h3 className="text-[9px] sm:text-[10px] font-medium text-slate-900 dark:text-foreground mb-0.5">No ignored contacts yet</h3>
-                      <p className="text-[9px] text-slate-600 dark:text-muted-foreground max-w-[200px] mx-auto">
+                      <h3 className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">No ignored contacts yet</h3>
+                      <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground max-w-[220px] sm:max-w-[280px] mx-auto">
                         Add employees, family members, vendors, or other personal contacts that ReplyFlow should ignore.
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-1 sm:space-y-1.5">
+                    <div className="space-y-1.5 sm:space-y-2">
                       {ignoredContacts.map((contact) => (
                         <div
                           key={contact.id}
-                          className="flex items-center justify-between p-1.5 sm:p-2 bg-muted/40 rounded-lg border border-border/60 hover:bg-muted/50 transition-colors"
+                          className="flex items-center justify-between p-2 sm:p-2.5 bg-muted/40 rounded-lg border border-border/60 hover:bg-muted/50 transition-colors"
                         >
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5">
-                              <span className="text-[10px] sm:text-xs font-medium text-slate-900 dark:text-foreground">
+                            <div className="flex items-center gap-2 sm:gap-2.5 mb-1">
+                              <span className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">
                                 {formatPhoneNumber(contact.phone_number)}
                               </span>
                               {contact.label && (
-                                <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 bg-secondary text-secondary-foreground rounded-full font-medium">
+                                <span className="text-[10px] sm:text-[11px] px-2 py-0.5 bg-secondary text-secondary-foreground rounded-full font-medium">
                                   {contact.label}
                                 </span>
                               )}
                               {contact.type && (
-                                <span className={`text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                                <span className={`text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full font-medium ${
                                   contact.type === 'spam' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' :
                                   contact.type === 'personal' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
                                   contact.type === 'employee' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
@@ -2112,7 +2109,7 @@ export default function SettingsContent() {
                           </div>
                           <button
                             onClick={() => removeIgnoredContact(contact.id)}
-                            className="ml-2 sm:ml-3 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all hover:scale-105 active:scale-95"
+                            className="ml-2 sm:ml-3 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all hover:scale-105 active:scale-95"
                           >
                             Remove
                           </button>
@@ -2129,11 +2126,11 @@ export default function SettingsContent() {
               {/* Account Section - Merged Profile and Account Access */}
               <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6 scroll-mt-[220px]">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Account</h2>
-                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-4">Your account details and status.</p>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-4 sm:mb-5">Your account details and status.</p>
                 <div className="bg-slate-50/50 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40 overflow-hidden">
                   {/* Email */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 p-3 sm:p-4 border-b border-slate-200/50 dark:border-slate-700/40 last:border-b-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                       <svg className="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 00-2-2H7a2 2 0 00-2 2z" />
                       </svg>
@@ -2144,8 +2141,8 @@ export default function SettingsContent() {
 
                   {/* Status */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 p-3 sm:p-4 border-b border-slate-200/50 dark:border-slate-700/40 last:border-b-0">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-2.5 h-2.5 rounded-full ${
                         isInTrialPeriod(business?.subscription_status) 
                           ? 'bg-blue-500' 
                           : hasActiveSubscription(business)
@@ -2164,8 +2161,8 @@ export default function SettingsContent() {
                     
                     return (
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-2 p-3 sm:p-4 last:border-b-0">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-2.5 h-2.5 rounded-full ${
                             manualStatus.hasManualAccess && accessInfo.status === 'active' 
                               ? 'bg-green-500' 
                               : manualStatus.hasManualAccess && accessInfo.status === 'expired'
@@ -2217,16 +2214,16 @@ export default function SettingsContent() {
               </div>
 
               {/* Subscription & Billing Section */}
-              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[220px]">
+              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 scroll-mt-[220px]">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Subscription & Billing</h2>
-                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2">Manage your subscription and billing.</p>
-                <div className="space-y-2 sm:space-y-3">
-                  <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/40 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200/60 dark:border-blue-800/50 p-2 sm:p-3">
-                    <div className="flex items-center justify-between gap-2 sm:gap-4">
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-3 sm:mb-4">Manage your subscription and billing.</p>
+                <div className="space-y-2.5 sm:space-y-3">
+                  <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/40 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200/60 dark:border-blue-800/50 p-3 sm:p-4">
+                    <div className="flex items-center justify-between gap-3 sm:gap-4">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-[10px] sm:text-xs font-semibold text-blue-900 dark:text-blue-100">Current Plan</h4>
-                          <span className={`text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                        <div className="flex items-center gap-2 sm:gap-2.5 mb-1.5">
+                          <h4 className="text-xs sm:text-sm font-semibold text-blue-900 dark:text-blue-100">Current Plan</h4>
+                          <span className={`text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${
                             isInTrialPeriod(business?.subscription_status) 
                               ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
                               : hasActiveSubscription(business)
@@ -2240,7 +2237,7 @@ export default function SettingsContent() {
                           {getPricingDisplay()}
                           {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
                         </p>
-                        <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1">
+                        <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
                           {getSubscriptionStatusDescription(
                             business?.subscription_status,
                             business?.stripe_customer_id,
@@ -2260,7 +2257,7 @@ export default function SettingsContent() {
                           <button
                             onClick={() => handleBillingActionClick('portal')}
                             disabled={isOpeningPortal}
-                            className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs flex items-center gap-2"
+                            className="px-3 py-1.5 sm:px-4 sm:py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs flex items-center gap-2 shadow-sm"
                           >
                             {isOpeningPortal ? (
                               <>
@@ -2282,7 +2279,7 @@ export default function SettingsContent() {
                     <button
                       onClick={() => handleBillingActionClick('upgrade')}
                       disabled={isStartingCheckout}
-                      className="w-full px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2 sm:px-5 sm:py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs flex items-center justify-center gap-2 shadow-sm"
                     >
                       {isStartingCheckout ? (
                         <>
@@ -2301,17 +2298,17 @@ export default function SettingsContent() {
               </div>
 
               {/* Security Section */}
-              <div id="security" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-2 sm:p-3.5 scroll-mt-[220px]">
+              <div id="security" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 scroll-mt-[220px]">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Security</h2>
-                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-2 sm:mb-3">Manage your account security and access.</p>
-                <div className="space-y-1.5 sm:space-y-2">
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-3 sm:mb-4">Manage your account security and access.</p>
+                <div className="space-y-2 sm:space-y-2.5">
                   {/* Change Password Section */}
-                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30 p-2 sm:p-3">
+                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30 p-3 sm:p-4">
                     <div>
-                      <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground mb-0.5 sm:mb-1">Change Password</h3>
+                      <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Change Password</h3>
                       <button
                         onClick={() => setShowChangePasswordModal(true)}
-                        className="mt-1 sm:mt-2 px-3 py-1 sm:px-4 sm:py-1.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs"
+                        className="mt-1 sm:mt-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs shadow-sm"
                       >
                         Change Password
                       </button>
@@ -2323,15 +2320,15 @@ export default function SettingsContent() {
               {/* Danger Zone Section */}
               <div className="mt-6 sm:mt-8">
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium mb-2 sm:mb-3 uppercase tracking-wider">Danger Zone</p>
-                <div className="bg-red-50/60 dark:bg-red-900/20 rounded-xl border border-red-200/50 dark:border-red-800/30 p-2 sm:p-3.5">
-                  <p className="text-[10px] sm:text-xs text-red-700/80 dark:text-red-300/80 mb-2 sm:mb-3">
+                <div className="bg-red-50/60 dark:bg-red-900/20 rounded-xl border border-red-200/50 dark:border-red-800/30 p-3 sm:p-4">
+                  <p className="text-[10px] sm:text-xs text-red-700/80 dark:text-red-300/80 mb-3 sm:mb-4">
                     Permanent destructive actions that cannot be undone.
                   </p>
                   <div>
-                    <h3 className="text-xs sm:text-sm font-semibold text-red-900 dark:text-red-100 mb-0.5 sm:mb-1">Delete Account</h3>
+                    <h3 className="text-xs sm:text-sm font-semibold text-red-900 dark:text-red-100 mb-1.5 sm:mb-2">Delete Account</h3>
                     <button
                       onClick={() => setShowDeleteModal(true)}
-                      className="px-3 py-1 sm:px-4 sm:py-1.5 bg-red-600/90 hover:bg-red-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs"
+                      className="px-3 py-1.5 sm:px-4 sm:py-2 bg-red-600/90 hover:bg-red-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs shadow-sm"
                     >
                       Delete Account
                     </button>
