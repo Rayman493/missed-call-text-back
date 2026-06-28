@@ -1800,16 +1800,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* Desktop Layout: Enhanced */}
+          {/* Desktop Layout: Simplified */}
           <div className="hidden md:block">
             {/* Back to Leads */}
-            <div className="mb-3 sm:mb-4">
+            <div className="mb-6">
               <button
                 type="button"
                 onClick={() => {
                   router.push('/dashboard/leads')
                 }}
-                className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
+                className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -1818,250 +1818,157 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </button>
             </div>
 
-            {/* Lead Identity Section - Desktop Enhanced */}
-            <div className="flex items-start gap-5 flex-1 min-w-0">
-              {/* Lead Details */}
+            {/* Lead Identity Section - Simplified */}
+            <div className="flex items-start justify-between gap-8 mb-6">
+              {/* Customer Info */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-4 mb-2">
-                  {/* Name - Emphasized */}
+                <div className="flex items-center gap-5 mb-4">
                   <div className="flex-1 min-w-0">
-                    <h1 className="text-3xl sm:text-4xl font-bold text-foreground leading-tight tracking-tight">
+                    <h1 className="text-3xl font-semibold text-foreground tracking-tight">
                       {getLeadDisplayName(leadData || lead)}
                     </h1>
-                    <p className="text-sm text-muted-foreground mt-1 font-medium">
+                    <p className="text-sm text-muted-foreground mt-1.5">
                       {formatPhoneNumber(lead?.caller_phone || '')}
                     </p>
                   </div>
 
-                  {/* Correction Badge */}
-                  {leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0 && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex-shrink-0">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                      <span>{Object.keys(leadData.raw_metadata.corrected_fields).length}</span>
-                    </span>
-                  )}
-
-                  {/* Appointment Badge */}
-                  {leadData?.raw_metadata?.appointment && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 flex-shrink-0">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span>Appointment</span>
-                    </span>
-                  )}
-
-                  {/* Lead Status Dropdown */}
+                  {/* Lead Status - Simplified */}
                   <LeadStatusDropdown
                     currentStatus={getLeadLifecycleStatus(leadData || lead)}
                     onStatusChange={handleStatusUpdate}
                     size="md"
                   />
-
-                  {/* Quick Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* Primary Action: Message */}
-                    <button
-                      onClick={() => {
-                        const composer = document.querySelector('textarea[name="message"]') as HTMLTextAreaElement
-                        if (composer) composer.focus()
-                      }}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors border border-blue-600 text-sm font-semibold shadow-sm"
-                      aria-label="Send text message"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      <span className="hidden sm:inline">Message</span>
-                    </button>
-                    
-                    {/* Secondary Actions */}
-                    <button
-                      onClick={handleScheduleClick}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors border border-slate-200 dark:border-slate-700 text-sm font-medium"
-                      aria-label="Schedule appointment"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span className="hidden sm:inline">Schedule</span>
-                    </button>
-                    <button
-                      onClick={() => setShowPaymentModal(true)}
-                      disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors border border-slate-200 dark:border-slate-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                      aria-label="Request payment"
-                      title={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' ? 'Connect Stripe in Settings to request payments' : 'Request payment'}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                      </svg>
-                      <span className="hidden sm:inline">Request Payment</span>
-                    </button>
-                    
-                    {/* Separator */}
-                    <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-1" />
-                    
-                    {/* Utility Actions */}
-                    <LeadStatusDropdown
-                      currentStatus={leadData?.status || 'new'}
-                      onStatusChange={async (newStatus) => {
-                        // Status change handled by dropdown
-                      }}
-                    />
-                    
-                    {/* Overflow Menu */}
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowOverflowMenu(!showOverflowMenu)}
-                        className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                        aria-label="More actions"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                        </svg>
-                      </button>
-                      
-                      {showOverflowMenu && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-40"
-                            onClick={() => setShowOverflowMenu(false)}
-                          />
-                          <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[160px]">
-                            <button
-                              onClick={() => {
-                                handleRefresh()
-                                setShowOverflowMenu(false)
-                              }}
-                              disabled={refreshing}
-                              className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                              <svg
-                                className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                              Refresh
-                            </button>
-                            <button
-                              onClick={() => {
-                                setShowDeleteModal(true)
-                                setShowOverflowMenu(false)
-                              }}
-                              className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                              Delete Lead
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
                 </div>
 
-                {/* Compact Meta Row */}
-                <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (() => {
-                    const latestAiRecord = leadData.aiCallRecords[0];
-                    const outcome = latestAiRecord.outcome;
-                    
-                    // Use the actual outcome for consistency with timeline
-                    let intakeStatus = 'complete';
-                    let intakeLabel = 'AI Intake Complete';
-                    let intakeColor = 'text-green-600 dark:text-green-400';
-                    
-                    if (outcome === 'partial_intake') {
-                      intakeStatus = 'incomplete';
-                      intakeLabel = 'AI Intake Incomplete';
-                      intakeColor = 'text-amber-600 dark:text-amber-400';
-                    } else if (outcome === 'early_hangup') {
-                      intakeStatus = 'incomplete';
-                      intakeLabel = 'Caller Hung Up Early';
-                      intakeColor = 'text-red-600 dark:text-red-400';
-                    } else if (outcome === 'no_speech') {
-                      intakeStatus = 'incomplete';
-                      intakeLabel = 'No Speech Detected';
-                      intakeColor = 'text-red-600 dark:text-red-400';
-                    } else if (outcome === 'ai_connection_failed') {
-                      intakeStatus = 'incomplete';
-                      intakeLabel = 'AI Connection Failed';
-                      intakeColor = 'text-red-600 dark:text-red-400';
-                    }
-                    
-                    if (intakeStatus === 'complete') {
-                      return (
-                        <span className={`${intakeColor} font-semibold flex items-center gap-1.5`}>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {intakeLabel}
-                        </span>
-                      );
-                    } else {
-                      return (
-                        <span className={`${intakeColor} font-semibold flex items-center gap-1.5`}>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77-1.333.192 3 1.732 3z" />
-                          </svg>
-                          {intakeLabel}
-                        </span>
-                      );
-                    }
-                  })()}
-                  <span className="text-muted-foreground/50">•</span>
+                {/* Compact Metadata - Reduced Visual Weight */}
+                <div className="flex items-center gap-5 text-sm text-slate-400 dark:text-slate-500">
                   <span>Created {formatRelativeTime(lead?.created_at)}</span>
                   {lead?.last_message_at && (
-                    <>
-                      <span className="text-muted-foreground/50">•</span>
-                      <span>Last Activity {formatRelativeTime(lead.last_message_at)}</span>
-                    </>
+                    <span>Last Activity {formatRelativeTime(lead.last_message_at)}</span>
                   )}
-                  <span className="text-muted-foreground/50">•</span>
                   <span>{messagesArray.length} Messages</span>
-                  {leadData?.company_name && (
-                    <>
-                      <span className="text-muted-foreground/50">•</span>
-                      <span className="truncate">{leadData.company_name}</span>
-                    </>
-                  )}
                 </div>
               </div>
+
+              {/* Primary Action - Message */}
+              <button
+                onClick={() => {
+                  const composer = document.querySelector('textarea[name="message"]') as HTMLTextAreaElement
+                  if (composer) composer.focus()
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors text-sm font-medium shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Message
+              </button>
+            </div>
+
+            {/* Secondary Actions - Simplified */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleScheduleClick}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Schedule
+              </button>
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                title={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' ? 'Connect Stripe in Settings to request payments' : 'Request payment'}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 003-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                Request Payment
+              </button>
+
+              {/* Separator */}
+              <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-2" />
+
+              {/* Utility Actions - Quiet */}
+              <button
+                onClick={() => setShowOverflowMenu(!showOverflowMenu)}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors"
+                aria-label="More actions"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                </svg>
+              </button>
+
+              {showOverflowMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowOverflowMenu(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[160px]">
+                    <button
+                      onClick={() => {
+                        handleRefresh()
+                        setShowOverflowMenu(false)
+                      }}
+                      disabled={refreshing}
+                      className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <svg
+                        className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Refresh
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowDeleteModal(true)
+                        setShowOverflowMenu(false)
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete Lead
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* Conversation Thread - CSS-based Layout */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-8 py-6">
         
         {/* Desktop Layout */}
-        <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
-          {/* Desktop Conversation Section */}
-          <section className="flex flex-col min-h-0 bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden h-[calc(100vh-350px)]">
-            {/* Desktop Message Thread */}
-            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth p-6 sm:p-7 lg:p-8 min-h-0 bg-background/20" style={{ minHeight: '200px' }}>
+        <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] gap-8 items-start">
+          {/* Desktop Conversation Section - Simplified */}
+          <section className="flex flex-col min-h-0">
+            {/* Desktop Message Thread - Reduced Borders */}
+            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth p-0 min-h-0" style={{ minHeight: '200px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
               ) : conversationTimeline.length === 0 ? (
-                <div className="text-center py-8 sm:py-12 animate-fadeIn">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
-                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center py-12 animate-fadeIn">
+                  <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                   </div>
-                  <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-1 sm:mb-2">No Messages Yet</h3>
-                  <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">Send a message to start the conversation with this customer.</p>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-2">No Messages Yet</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">Send a message to start the conversation with this customer.</p>
                 </div>
               ) : (
                 <DesktopConversationMessageList
@@ -2075,8 +1982,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               )}
             </div>
 
-            {/* Desktop Message Composer */}
-            <div className="shrink-0 border-t border-border/50 bg-background/90 backdrop-blur-sm">
+            {/* Desktop Message Composer - Reduced Border */}
+            <div className="shrink-0 border-t border-border/40 pt-4">
               <ConversationComposer
                 message={message}
                 setMessage={setMessage}
@@ -2089,23 +1996,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </section>
           
-          {/* Desktop Sidebar */}
+          {/* Desktop Sidebar - Simplified */}
           <aside className="sticky top-6 overflow-y-auto max-h-[calc(100vh-230px)]" data-sidebar>
-            <div className="space-y-3">
-              {/* AI Intake Summary Card - Sticky on Desktop */}
-              {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
-                  <button
-                    onClick={() => setCollapsedSections((prev: any) => ({ ...prev, aiIntake: !prev.aiIntake }))}
-                    className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                  >
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">AI Intake Summary</h3>
-                    <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {!collapsedSections.aiIntake && (
-                    <div className="px-3 pb-3 pt-2">
+            <div className="space-y-6">
+              {/* Consolidated Information Panel */}
+              <div className="bg-card rounded-xl border border-border/30 shadow-sm p-5">
+                <div className="space-y-5">
+                  {/* AI Intake Summary */}
+                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
+                    <div>
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">AI Intake</h3>
                       <AICallDetails
                         leadId={params.id}
                         businessId={business.id}
@@ -2116,41 +2016,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       />
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* Voicemail Summary Card - Show when voicemail extraction exists but no AI Intake */}
-              {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
-                <VoicemailSummary leadData={leadData} />
-              )}
-              {/* Lead Health Card */}
-              <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
-                <button
-                  onClick={() => setCollapsedSections((prev: any) => ({ ...prev, leadHealth: !prev.leadHealth }))}
-                  className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lead Health</h3>
-                  <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.leadHealth ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {!collapsedSections.leadHealth && (
-                  <div className="px-3 pb-3 pt-2">
-                    <div className="space-y-2">
+                  {/* Voicemail Summary - Show when voicemail extraction exists but no AI Intake */}
+                  {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
+                    <VoicemailSummary leadData={leadData} />
+                  )}
+
+                  {/* Lead Health */}
+                  <div>
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Lead Health</h3>
+                    <div className="space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">AI Intake</span>
-                        <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                        <span className="text-sm text-muted-foreground">AI Intake</span>
+                        <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
                           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 ? (() => {
                             const latestAiRecord = leadData.aiCallRecords[0];
                             const isComplete = latestAiRecord.outcome === 'completed';
                             return (
                               <>
                                 {isComplete ? (
-                                  <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                   </svg>
                                 ) : (
-                                  <svg className="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                   </svg>
                                 )}
@@ -2159,7 +2048,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             );
                           })() : (
                             <>
-                              <svg className="w-3.5 h-3.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                               </svg>
                               Not Started
@@ -2168,18 +2057,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Customer Replied</span>
-                        <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                        <span className="text-sm text-muted-foreground">Customer Replied</span>
+                        <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
                           {leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied') ? (
                             <>
-                              <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                               </svg>
                               Yes
                             </>
                           ) : (
                             <>
-                              <svg className="w-3.5 h-3.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                               </svg>
                               No
@@ -2188,45 +2077,45 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Corrections</span>
-                        <span className="text-xs font-medium text-foreground">
+                        <span className="text-sm text-muted-foreground">Corrections</span>
+                        <span className="text-sm font-medium text-foreground">
                           {leadData?.raw_metadata?.corrected_fields ? Object.keys(leadData.raw_metadata.corrected_fields).length : 0}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Follow-Ups</span>
-                        <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                        <span className="text-sm text-muted-foreground">Follow-Ups</span>
+                        <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
                           {!followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0 ? (
                             <>
-                              <svg className="w-3.5 h-3.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                               </svg>
                               Not Configured
                             </>
                           ) : !followUpSettings.enabled ? (
                             <>
-                              <svg className="w-3.5 h-3.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                               </svg>
                               Disabled
                             </>
                           ) : followUpJobs.some((j: any) => j.status === 'pending') ? (
                             <>
-                              <svg className="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                               </svg>
                               Scheduled
                             </>
                           ) : followUpJobs.some((j: any) => j.status === 'sent') ? (
                             <>
-                              <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                               </svg>
                               Complete
                             </>
                           ) : (
                             <>
-                              <svg className="w-3.5 h-3.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                               </svg>
                               Configured
@@ -2236,23 +2125,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
 
-              {/* Photos Received Card */}
-              {Object.keys(messageMedia).length > 0 && (
-                <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
-                  <button
-                    onClick={() => setCollapsedSections((prev: any) => ({ ...prev, photos: !prev.photos }))}
-                    className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                  >
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Photos Received</h3>
-                    <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.photos ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {!collapsedSections.photos && (
-                    <div className="px-3 pb-3">
+                  {/* Photos Received */}
+                  {Object.keys(messageMedia).length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Photos</h3>
                       <div className="grid grid-cols-2 gap-2">
                         {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (
                           media.urls.slice(0, 1).map((url: string, idx: number) => (
@@ -2277,7 +2154,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       {Object.keys(messageMedia).length > 4 && (
                         <button
                           onClick={() => setShowAllPhotos(!showAllPhotos)}
-                          className="w-full mt-3 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                          className="w-full mt-3 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
                         >
                           {showAllPhotos ? 'Show Less' : `View All Photos (${Object.keys(messageMedia).length})`}
                         </button>
@@ -2285,113 +2162,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </div>
                   )}
                 </div>
-              )}
-
-              {/* Quick Actions Card */}
-              <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
-                <button
-                  onClick={() => setCollapsedSections((prev: any) => ({ ...prev, quickActions: !prev.quickActions }))}
-                  className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quick Actions</h3>
-                  <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.quickActions ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {!collapsedSections.quickActions && (
-                  <div className="px-3 pb-3 pt-2 space-y-3">
-                    {/* Customer Actions */}
-                    <div>
-                      <p className="text-[10px] text-muted-foreground font-medium mb-2 uppercase tracking-wide">Customer</p>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => {
-                            const composer = document.querySelector('textarea[name="message"]') as HTMLTextAreaElement
-                            if (composer) composer.focus()
-                          }}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                          </svg>
-                          <span>Message</span>
-                        </button>
-                        <button
-                          onClick={() => window.open(`tel:${leadData?.phone_number}`, '_self')}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-medium rounded-md transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                          </svg>
-                          <span>Call</span>
-                        </button>
-                        <button
-                          onClick={handleScheduleClick}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-medium rounded-md transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span>Schedule</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Management Actions */}
-                    <div>
-                      <p className="text-[10px] text-muted-foreground font-medium mb-2 uppercase tracking-wide">Management</p>
-                      <div className="flex flex-wrap gap-2">
-                        {getLeadLifecycleStatus(leadData) !== 'completed' && (
-                          <button
-                            onClick={() => handleStatusUpdate('completed')}
-                            disabled={isCompleting}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span>{isCompleting ? 'Marking...' : 'Complete'}</span>
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setShowDeleteModal(true)}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-900/10 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 text-xs font-medium rounded-md transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          <span>Delete Lead</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Automatic Follow-ups */}
-              <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
-                <button
-                  onClick={() => setCollapsedSections((prev: any) => ({ ...prev, automation: !prev.automation }))}
-                  className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Follow-Up Status</h3>
-                  <svg className={`w-4 h-4 text-muted-foreground transition-transform ${collapsedSections.automation ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {!collapsedSections.automation && (
-                  <div className="px-3 pb-3 pt-2">
-                    <AutomaticFollowUpsControl
-                      followUpJobs={followUpJobs}
-                      leadId={params.id}
-                      leadData={leadData}
-                      followUpSettings={followUpSettings}
-                      onUpdate={() => {
-                        getLeadDetails(params.id).then(setLeadData)
-                      }}
-                    />
-                  </div>
-                )}
               </div>
             </div>
           </aside>
