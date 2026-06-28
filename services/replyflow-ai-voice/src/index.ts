@@ -1435,6 +1435,19 @@ Speak ONLY the exact text in quotes above.`;
   };
 
   if (openAiWs) {
+    // CRITICAL FIX: Set assistantSpeaking = TRUE BEFORE sending to OpenAI
+    // This ensures caller audio is blocked immediately when we initiate the prompt,
+    // not when OpenAI acknowledges receipt (response.created)
+    // Note: We need access to callSessionState and twilioHandler here
+    // Since this function doesn't have those parameters, the caller (sendStagePrompt)
+    // should have already set assistantSpeaking = true before calling this function
+    console.log('[APPROVED PROMPT SEND] =========================================');
+    console.log('[APPROVED PROMPT SEND] About to send response.create to OpenAI');
+    console.log('[APPROVED PROMPT SEND] Stage:', stage);
+    console.log('[APPROVED PROMPT SEND] assistantSpeaking should already be TRUE');
+    console.log('[APPROVED PROMPT SEND] Timestamp:', new Date().toISOString());
+    console.log('[APPROVED PROMPT SEND] =========================================');
+    
     openAiWs.send(JSON.stringify(message));
     console.log('[APPROVED RESPONSE CREATE SENT] =========================================');
     console.log('[APPROVED RESPONSE CREATE SENT] Response.create sent for stage:', stage);
@@ -1524,6 +1537,18 @@ Speak ONLY the exact text in quotes above.`;
   };
 
   if (openAiWs) {
+    // CRITICAL FIX: Set assistantSpeaking = TRUE BEFORE sending to OpenAI
+    // This ensures caller audio is blocked immediately when we initiate the prompt,
+    // not when OpenAI acknowledges receipt (response.created)
+    // Note: We need access to callSessionState and twilioHandler here
+    // Since this function doesn't have those parameters, the caller should have already set assistantSpeaking
+    console.log('[CONTROLLED TEXT SEND] =========================================');
+    console.log('[CONTROLLED TEXT SEND] About to send response.create to OpenAI');
+    console.log('[CONTROLLED TEXT SEND] Reason:', reason);
+    console.log('[CONTROLLED TEXT SEND] assistantSpeaking should already be TRUE');
+    console.log('[CONTROLLED TEXT SEND] Timestamp:', new Date().toISOString());
+    console.log('[CONTROLLED TEXT SEND] =========================================');
+    
     openAiWs.send(JSON.stringify(message));
     console.log('[CONTROLLED RESPONSE CREATE SENT] =========================================');
     console.log('[CONTROLLED RESPONSE CREATE SENT] Response.create sent');
@@ -1652,6 +1677,23 @@ function sendStagePrompt(
       console.log('[STAGE PROMPT SELECTED BUT NOT SENT] =========================================');
     }
   }, 500);
+
+  // CRITICAL FIX: Set assistantSpeaking = TRUE BEFORE sending prompt to OpenAI
+  // This ensures caller audio is blocked immediately when we initiate the prompt,
+  // not when OpenAI acknowledges receipt (response.created)
+  const callSessionState = (ws as any).callSessionState || {};
+  if (!callSessionState.assistantSpeaking) {
+    callSessionState.assistantSpeaking = true;
+    assistantSpeaking = true; // Sync individual variable for backward compatibility
+    (twilioHandler as any).assistantSpeaking = true;
+    
+    console.log('[PROMPT START - ASSISTANT SPEAKING SET] =========================================');
+    console.log('[PROMPT START - ASSISTANT SPEAKING SET] Stage:', stage);
+    console.log('[PROMPT START - ASSISTANT SPEAKING SET] assistantSpeaking set to TRUE BEFORE sending to OpenAI');
+    console.log('[PROMPT START - ASSISTANT SPEAKING SET] Source: sendStagePrompt (before OpenAI send)');
+    console.log('[PROMPT START - ASSISTANT SPEAKING SET] Timestamp:', new Date().toISOString());
+    console.log('[PROMPT START - ASSISTANT SPEAKING SET] =========================================');
+  }
 
   // Use centralized sendApprovedPrompt for all stage prompts
   const sent = sendApprovedPrompt(stage, openAiWs, ws);
