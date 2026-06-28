@@ -1756,11 +1756,123 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="flex items-center justify-between gap-2">
               {/* Enhanced Lead Info */}
               <div className="flex-1 min-w-0">
-                {/* Row 1: Customer name */}
-                <div className="mb-1.5">
+                {/* Row 1: Customer name with actions */}
+                <div className="flex items-center justify-between mb-1.5">
                   <h1 className="font-semibold text-slate-900 dark:text-white text-sm leading-tight truncate">
                     {getLeadDisplayName(leadData || lead)}
                   </h1>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {/* Info Button */}
+                    <button
+                      onClick={() => setShowLeadInfo(!showLeadInfo)}
+                      className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                      title="Lead information"
+                      aria-label="Lead information"
+                    >
+                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </button>
+                    
+                    {/* Mobile Overflow Button */}
+                    <button
+                      onClick={() => setShowMobileOverflow(!showMobileOverflow)}
+                      className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                      title="More actions"
+                      aria-label="More actions"
+                    >
+                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      </svg>
+                    </button>
+
+                    {/* Mobile Overflow Menu */}
+                    {showMobileOverflow && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setShowMobileOverflow(false)}
+                        />
+                        <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[180px]">
+                          {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
+                            <a
+                              href={`tel:${leadData?.phone_number || lead?.phone}`}
+                              onClick={() => setShowMobileOverflow(false)}
+                              className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
+                              </svg>
+                              Call
+                            </a>
+                          )}
+                          <button
+                            onClick={() => {
+                              handleScheduleClick()
+                              setShowMobileOverflow(false)
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Schedule
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowPaymentModal(true)
+                              setShowMobileOverflow(false)
+                            }}
+                            disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
+                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                            Request Payment
+                          </button>
+                          <button
+                            onClick={() => {
+                              setMobileInternalNotesExpanded(!mobileInternalNotesExpanded)
+                              setShowMobileOverflow(false)
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2h2.828l8.586-8.586z" />
+                            </svg>
+                            Internal Notes
+                          </button>
+                          <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
+                          <button
+                            onClick={() => {
+                              handleRefresh()
+                              setShowMobileOverflow(false)
+                            }}
+                            disabled={refreshing}
+                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Refresh
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowDeleteModal(true)
+                              setShowMobileOverflow(false)
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete Lead
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
                 {/* Row 2: Phone number and metadata */}
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
@@ -1783,108 +1895,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </div>
                   )}
                 </div>
-              </div>
-              
-              {/* Action Buttons */}
-              <div className="flex items-center gap-1 flex-shrink-0 relative">
-                {/* Info Button */}
-                <button
-                  onClick={() => setShowLeadInfo(!showLeadInfo)}
-                  className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
-                  title="Lead information"
-                  aria-label="Lead information"
-                >
-                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </button>
-                
-                {/* Mobile Overflow Button */}
-                <button
-                  onClick={() => setShowMobileOverflow(!showMobileOverflow)}
-                  className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
-                  title="More actions"
-                  aria-label="More actions"
-                >
-                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                  </svg>
-                </button>
-
-                {/* Mobile Overflow Menu */}
-                {showMobileOverflow && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setShowMobileOverflow(false)}
-                    />
-                    <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[180px]">
-                      {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
-                        <a
-                          href={`tel:${leadData?.phone_number || lead?.phone}`}
-                          onClick={() => setShowMobileOverflow(false)}
-                          className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
-                          </svg>
-                          Call
-                        </a>
-                      )}
-                      <button
-                        onClick={() => {
-                          handleScheduleClick()
-                          setShowMobileOverflow(false)
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Schedule
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowPaymentModal(true)
-                          setShowMobileOverflow(false)
-                        }}
-                        disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
-                        className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
-                        Request Payment
-                      </button>
-                      <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
-                      <button
-                        onClick={() => {
-                          handleRefresh()
-                          setShowMobileOverflow(false)
-                        }}
-                        disabled={refreshing}
-                        className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Refresh
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowDeleteModal(true)
-                          setShowMobileOverflow(false)
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Delete Lead
-                      </button>
-                    </div>
-                  </>
-                )}
               </div>
             </div>
           </div>
@@ -2498,28 +2508,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* Internal Notes Card - Mobile optimized */}
-          <div className="bg-card border border-border/50 rounded-xl p-3">
-            <h3 className="text-sm font-medium text-foreground mb-2">Internal Notes</h3>
-            {!internalNotesExpanded && !internalNotes ? (
-              <button
-                onClick={() => setInternalNotesExpanded(true)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                No internal notes yet. Tap to add.
-              </button>
-            ) : (
-              <textarea
-                value={internalNotes}
-                onChange={(e) => setInternalNotes(e.target.value)}
-                onBlur={handleSaveNotes}
-                placeholder="Add internal notes..."
-                className="w-full min-h-[40px] max-h-[80px] px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                rows={1}
-              />
-            )}
           </div>
         </div>
       </div>
