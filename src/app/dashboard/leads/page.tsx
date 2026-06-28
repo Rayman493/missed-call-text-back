@@ -375,7 +375,7 @@ export default function LeadsPage() {
       // Update local state
       setLeads(prev => prev.map(lead => 
         lead.id === leadId 
-          ? { ...lead, status: 'ignored', updated_at: new Date().toISOString() }
+          ? { ...lead, status: 'ignored', updated_at_v1: new Date().toISOString() }
           : lead
       ))
     } catch (error) {
@@ -413,7 +413,7 @@ export default function LeadsPage() {
       // Update local state
       setLeads(prev => prev.map(lead => 
         lead.id === leadId 
-          ? { ...lead, deleted_at: null, deleted_by: null, deletion_reason: null, updated_at: new Date().toISOString() }
+          ? { ...lead, deleted_at: null, deleted_by: null, deletion_reason: null, updated_at_v1: new Date().toISOString() }
           : lead
       ))
     } catch (error) {
