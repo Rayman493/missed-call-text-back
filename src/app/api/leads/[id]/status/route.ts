@@ -106,8 +106,7 @@ export async function PATCH(
 
     // Update lead status
     const updatePayload = {
-      status: status,
-      updated_at: new Date().toISOString()
+      status: status
     }
     console.log('[API LEADS STATUS PATCH] Updating lead with payload:', updatePayload)
     
@@ -200,8 +199,7 @@ export async function PATCH(
       success: true, 
       lead: {
         id: lead.id,
-        status: lead.status,
-        updated_at: lead.updated_at
+        status: lead.status
       }
     })
 
