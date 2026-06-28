@@ -78,10 +78,44 @@ export default function PaymentsPage() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [leads, setLeads] = useState<any[]>([])
+  const [recipientType, setRecipientType] = useState<'lead' | 'manual'>('lead')
+  const [selectedLeadId, setSelectedLeadId] = useState('')
+  const [manualPhone, setManualPhone] = useState('')
+  const [manualName, setManualName] = useState('')
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentDescription, setPaymentDescription] = useState('')
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
 
   useEffect(() => {
     fetchPayments()
   }, [])
+
+  const fetchLeads = async () => {
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+
+      const response = await fetch('/api/leads', { headers })
+      if (!response.ok) return
+      const data = await response.json()
+      setLeads(data.leads || [])
+    } catch (err) {
+      console.error('Error fetching leads:', err)
+    }
+  }
+
+  useEffect(() => {
+    if (showPaymentModal) {
+      fetchLeads()
+    }
+  }, [showPaymentModal])
 
   const fetchPayments = async () => {
     try {
@@ -112,17 +146,120 @@ export default function PaymentsPage() {
     }
   }
 
-  const copyPaymentLink = async (url: string) => {
+  const handleCreatePayment = async () => {
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+      setError('Please enter a valid amount')
+      return
+    }
+
+    if (recipientType === 'lead' && !selectedLeadId) {
+      setError('Please select a lead')
+      return
+    }
+
+    if (recipientType === 'manual' && !manualPhone) {
+      setError('Please enter a phone number')
+      return
+    }
+
+    setIsCreatingPayment(true)
+    setError('')
+    setSuccessMessage('')
+
     try {
-      await navigator.clipboard.writeText(url)
-      // You could add a toast notification here
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      let leadId: string
+      let conversationId: string
+
+      if (recipientType === 'manual') {
+        // Create lead/conversation for manual phone number
+        const createResponse = await fetch('/api/leads', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            phone: manualPhone,
+            name: manualName || undefined,
+          }),
+        })
+
+        if (!createResponse.ok) {
+          const error = await createResponse.json()
+          throw new Error(error.error || 'Failed to create lead')
+        }
+
+        const createData = await createResponse.json()
+        leadId = createData.lead.id
+        conversationId = createData.conversation?.id
+      } else {
+        // Use existing lead
+        const selectedLead = leads.find(l => l.id === selectedLeadId)
+        if (!selectedLead) {
+          throw new Error('Lead not found')
+        }
+        leadId = selectedLead.id
+        conversationId = selectedLead.conversation?.id
+      }
+
+      const payload = {
+        business_id: business?.id,
+        lead_id: leadId,
+        conversation_id: conversationId,
+        amount_cents: Math.round(parseFloat(paymentAmount) * 100),
+        description: paymentDescription || undefined,
+      }
+
+      const response = await fetch('/api/payments/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to create payment request')
+      }
+
+      setShowPaymentModal(false)
+      setSelectedLeadId('')
+      setManualPhone('')
+      setManualName('')
+      setPaymentAmount('')
+      setPaymentDescription('')
+      setSuccessMessage('Payment request sent successfully')
+      
+      // Refresh payments
+      await fetchPayments()
     } catch (err) {
-      console.error('Failed to copy link:', err)
+      console.error('Error creating payment request:', err)
+      setError(err instanceof Error ? err.message : 'Failed to create payment request')
+    } finally {
+      setIsCreatingPayment(false)
     }
   }
 
   const getCustomerName = (lead: PaymentRequest['leads']) => {
     return lead.raw_metadata?.extracted_info?.callerName || 'Customer'
+  }
+
+  const copyPaymentLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch (err) {
+      console.error('Failed to copy link:', err)
+    }
   }
 
   return (
@@ -138,7 +275,7 @@ export default function PaymentsPage() {
             <p className="text-gray-400">Request and track customer payments.</p>
           </div>
           <button
-            onClick={() => router.push('/dashboard/leads')}
+            onClick={() => setShowPaymentModal(true)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
           >
             <CreditCard className="h-5 w-5" />
@@ -316,6 +453,139 @@ export default function PaymentsPage() {
               </div>
             </div>
           </>
+        )}
+
+        {/* New Payment Request Modal */}
+        {showPaymentModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-700">
+              <h3 className="text-lg font-semibold text-white mb-2">
+                New Payment Request
+              </h3>
+              <p className="text-sm text-gray-400 mb-6">
+                Send a secure payment link by text message.
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Recipient
+                  </label>
+                  <select
+                    value={recipientType}
+                    onChange={(e) => setRecipientType(e.target.value as 'lead' | 'manual')}
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white"
+                  >
+                    <option value="lead">Select existing lead</option>
+                    <option value="manual">Enter phone number</option>
+                  </select>
+                </div>
+
+                {recipientType === 'lead' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Select Lead
+                    </label>
+                    <select
+                      value={selectedLeadId}
+                      onChange={(e) => setSelectedLeadId(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white"
+                    >
+                      <option value="">Select a lead</option>
+                      {leads.map((lead) => (
+                        <option key={lead.id} value={lead.id}>
+                          {formatPhoneNumber(lead.caller_phone)} - {lead.raw_metadata?.extracted_info?.callerName || 'Customer'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        value={manualPhone}
+                        onChange={(e) => setManualPhone(e.target.value)}
+                        placeholder="(555) 123-4567"
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">
+                        Customer Name (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={manualName}
+                        onChange={(e) => setManualName(e.target.value)}
+                        placeholder="John Doe"
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Amount (USD)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                    <input
+                      type="number"
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0.01"
+                      className="w-full pl-8 pr-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={paymentDescription}
+                    onChange={(e) => setPaymentDescription(e.target.value)}
+                    placeholder="Service payment"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end mt-6">
+                <button
+                  onClick={() => {
+                    setShowPaymentModal(false)
+                    setSelectedLeadId('')
+                    setManualPhone('')
+                    setManualName('')
+                    setPaymentAmount('')
+                    setPaymentDescription('')
+                    setError('')
+                  }}
+                  disabled={isCreatingPayment}
+                  className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreatePayment}
+                  disabled={isCreatingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || (recipientType === 'lead' && !selectedLeadId) || (recipientType === 'manual' && !manualPhone)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isCreatingPayment ? 'Creating...' : 'Send Payment Request'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </div>
