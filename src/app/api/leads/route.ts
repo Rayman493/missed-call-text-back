@@ -1,6 +1,84 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
 
+export async function GET(request: NextRequest) {
+  console.log('[API LEADS GET] ========== ROUTE ENTERED ==========')
+  
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Get user from auth header
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.log('[API LEADS GET] Missing or invalid auth header')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      console.log('[API LEADS GET] Auth failed:', authError)
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    console.log('[API LEADS GET] Authenticated user ID:', user.id)
+
+    // Get user's business
+    console.log('[API LEADS GET] Looking up business for user:', user.id)
+    const { data: business, error: businessError } = await supabase
+      .from('businesses')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (businessError) {
+      console.log('[API LEADS GET] Business lookup error:', businessError)
+      return NextResponse.json({ error: 'Business not found', details: businessError.message }, { status: 404 });
+    }
+
+    if (!business) {
+      console.log('[API LEADS GET] Business not found for user:', user.id)
+      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    }
+
+    console.log('[API LEADS GET] Business found:', business.id)
+
+    // Fetch leads for this business
+    console.log('[API LEADS GET] Fetching leads for business:', business.id)
+    let leads, leadsError
+    try {
+      const result = await supabase
+        .from('leads')
+        .select('id, caller_phone, name, status, created_at, updated_at')
+        .eq('business_id', business.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      leads = result.data
+      leadsError = result.error
+    } catch (e) {
+      console.log('[API LEADS GET] Exception during leads fetch:', e)
+      return NextResponse.json({ error: 'Database error during leads fetch', details: String(e) }, { status: 500 });
+    }
+
+    if (leadsError) {
+      console.log('[API LEADS GET] Leads fetch error:', leadsError)
+      return NextResponse.json({ error: 'Failed to fetch leads', details: leadsError.message }, { status: 500 });
+    }
+
+    console.log('[API LEADS GET] Fetched', leads?.length || 0, 'leads')
+    console.log('[API LEADS GET] ========== ROUTE COMPLETE ==========')
+    
+    return NextResponse.json({ leads: leads || [] });
+  } catch (error) {
+    console.log('[API LEADS GET] Unhandled exception:', error)
+    return NextResponse.json({ error: 'Internal server error', details: String(error) }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   console.log('[API LEADS POST] ========== ROUTE ENTERED ==========')
   
