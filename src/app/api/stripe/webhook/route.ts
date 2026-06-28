@@ -99,6 +99,7 @@ export async function POST(request: Request) {
 
     const event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
     console.log('[SYSTEM] [STRIPE] Event type:', event.type);
+    console.log('[SYSTEM] [STRIPE] Event id:', event.id);
 
     // Use service role key for webhook to bypass RLS
     const supabase = createClient(
@@ -1032,6 +1033,7 @@ export async function POST(request: Request) {
       case 'checkout.session.completed': {
         console.log('[PAYMENT WEBHOOK] ========== CHECKOUT.SESSION.COMPLETED START ==========')
         console.log('[PAYMENT WEBHOOK] Event type:', event.type)
+        console.log('[PAYMENT WEBHOOK] Event id:', event.id)
         
         const session = event.data.object as Stripe.Checkout.Session
         const sessionId = session.id
@@ -1040,10 +1042,11 @@ export async function POST(request: Request) {
         
         console.log('[PAYMENT WEBHOOK] Checkout session ID:', sessionId)
         console.log('[PAYMENT WEBHOOK] Payment Intent ID:', paymentIntentId)
-        console.log('[PAYMENT WEBHOOK] Session metadata:', metadata)
+        console.log('[PAYMENT WEBHOOK] Session metadata:', JSON.stringify(metadata))
 
         // Check if this is a payment request (has payment_request_id in metadata)
         let paymentRequestId = metadata.payment_request_id
+        console.log('[PAYMENT WEBHOOK] payment_request_id from session metadata:', paymentRequestId)
         
         // If not found in session metadata, check payment intent metadata
         if (!paymentRequestId && paymentIntentId) {
@@ -1051,7 +1054,7 @@ export async function POST(request: Request) {
           try {
             const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
             paymentRequestId = paymentIntent.metadata?.payment_request_id
-            console.log('[PAYMENT WEBHOOK] Payment intent metadata:', paymentIntent.metadata)
+            console.log('[PAYMENT WEBHOOK] Payment intent metadata:', JSON.stringify(paymentIntent.metadata))
             console.log('[PAYMENT WEBHOOK] Payment request ID from payment intent:', paymentRequestId)
           } catch (piError) {
             console.error('[PAYMENT WEBHOOK] Failed to retrieve payment intent:', piError)
@@ -1066,18 +1069,22 @@ export async function POST(request: Request) {
         }
 
         // Update payment_request record
+        console.log('[PAYMENT WEBHOOK] Looking up payment request by stripe_checkout_session_id:', sessionId)
         const { data: paymentRequest, error: paymentRequestError } = await supabase
           .from('payment_requests')
           .select('id, lead_id, business_id, status')
-          .eq('stripe_checkout_session_id', session.id)
+          .eq('stripe_checkout_session_id', sessionId)
           .single()
 
         if (paymentRequestError || !paymentRequest) {
           console.error('[PAYMENT WEBHOOK] Payment request not found:', paymentRequestError)
+          console.error('[PAYMENT WEBHOOK] Error code:', paymentRequestError?.code)
+          console.error('[PAYMENT WEBHOOK] Error message:', paymentRequestError?.message)
           break
         }
 
         console.log('[PAYMENT WEBHOOK] Found payment request:', paymentRequest.id)
+        console.log('[PAYMENT WEBHOOK] Payment request current status:', paymentRequest.status)
 
         // Update payment request status
         const updatePayload: any = {
@@ -1094,17 +1101,21 @@ export async function POST(request: Request) {
           
           if (!testError) {
             updatePayload.paid_at = new Date().toISOString()
+            console.log('[PAYMENT WEBHOOK] paid_at column exists, setting to:', updatePayload.paid_at)
           }
         } catch (e) {
           console.log('[PAYMENT WEBHOOK] paid_at column may not exist, skipping')
         }
 
         console.log('[PAYMENT WEBHOOK] Updating payment request with payload:', updatePayload)
+        console.log('[PAYMENT WEBHOOK] Updating payment request id:', paymentRequest.id)
         
-        const { error: updateError } = await supabase
+        const { data: updatedPayment, error: updateError } = await supabase
           .from('payment_requests')
           .update(updatePayload)
           .eq('id', paymentRequest.id)
+          .select()
+          .single()
 
         if (updateError) {
           console.error('[PAYMENT WEBHOOK] Failed to update payment request:', updateError)
@@ -1112,6 +1123,7 @@ export async function POST(request: Request) {
           console.error('[PAYMENT WEBHOOK] Error message:', updateError.message)
         } else {
           console.log('[PAYMENT WEBHOOK] Successfully updated payment request to paid')
+          console.log('[PAYMENT WEBHOOK] Updated payment request data:', updatedPayment)
         }
 
         // Update lead status to paid (optional - don't fail if this fails)
