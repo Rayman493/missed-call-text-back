@@ -1803,7 +1803,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Layout: Simplified */}
           <div className="hidden md:block">
             {/* Back to Leads */}
-            <div className="mb-4">
+            <div className="mb-3">
               <button
                 type="button"
                 onClick={() => {
@@ -1819,15 +1819,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Lead Identity Section - Simplified */}
-            <div className="flex items-center justify-between gap-8 mb-4">
+            <div className="flex items-center justify-between gap-8 mb-3">
               {/* Customer Info */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-5 mb-3">
+                <div className="flex items-center gap-5 mb-2">
                   <div className="flex-1 min-w-0">
                     <h1 className="text-3xl font-semibold text-foreground tracking-tight">
                       {getLeadDisplayName(leadData || lead)}
                     </h1>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-sm text-muted-foreground mt-0.5">
                       {formatPhoneNumber(lead?.caller_phone || '')}
                     </p>
                   </div>
@@ -1869,7 +1869,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleScheduleClick}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm font-medium"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm font-medium"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1879,7 +1879,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 onClick={() => setShowPaymentModal(true)}
                 disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 title={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' ? 'Connect Stripe in Settings to request payments' : 'Request payment'}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1889,12 +1889,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </button>
 
               {/* Separator */}
-              <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-2" />
+              <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />
 
               {/* Utility Actions - Quiet */}
               <button
                 onClick={() => setShowOverflowMenu(!showOverflowMenu)}
-                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors"
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors"
                 aria-label="More actions"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
