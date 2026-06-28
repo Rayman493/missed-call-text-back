@@ -170,7 +170,10 @@ export class TwilioStreamHandler {
               const terminalClosingResponseStarted = (this as any).terminalClosingResponseStarted || false;
               const confirmationState = (this as any).confirmationState || 'collecting_info';
 
-              // Hard guard: Do not append caller audio when call is not active or assistant is speaking
+              // V1 TURN-BASED FLOW: Block caller audio while assistant is speaking
+              // This ensures reliable turn-taking: AI asks -> AI finishes -> caller answers
+              
+              // Hard guard: Do not append caller audio when call is not active
               if (callState !== 'active') {
                 // CRITICAL: Check if this is an invalid closing state
                 if (callState === 'closing' && !terminalClosingResponseStarted) {
@@ -196,14 +199,17 @@ export class TwilioStreamHandler {
                 this.callerAudioBlockedLogged = false;
               }
 
+              // V1 STRICT BLOCKING: Block caller audio when assistant is speaking
+              // This prevents barge-in and ensures turn-based flow
               if (assistantSpeaking) {
                 const activeResponseId = (this as any).activeResponseId || 'unknown';
                 const lastPromptAt = (this as any).lastPromptAt || 0;
                 const timeSinceLastPrompt = Date.now() - lastPromptAt;
                 
-                // Fix caller audio blocking: if assistantSpeaking is true but activeResponseId is unknown/null after initialization
-                // or if it's been too long since last prompt (>10 seconds), reset assistantSpeaking to false
-                if (activeResponseId === 'unknown' || activeResponseId === null || activeResponseId === undefined || timeSinceLastPrompt > 10000) {
+                // V1 RELIABILITY: Only reset assistantSpeaking if we're confident the AI is not actually speaking
+                // Increased timeout from 10s to 30s to match the timeout protection in index.ts
+                // This prevents premature reset during long responses
+                if (activeResponseId === 'unknown' || activeResponseId === null || activeResponseId === undefined || timeSinceLastPrompt > 30000) {
                   console.log('[AUDIO BLOCKING STATE INVALID] =========================================');
                   console.log('[AUDIO BLOCKING STATE INVALID] assistantSpeaking is true but activeResponseId is unknown/null or timeout');
                   console.log('[AUDIO BLOCKING STATE INVALID] assistantSpeaking:', assistantSpeaking);
@@ -219,19 +225,14 @@ export class TwilioStreamHandler {
                   // Do NOT return - allow caller audio to proceed
                 } else {
                   // Valid blocking state - assistant is actually speaking
-                  console.log('[INBOUND CALLER AUDIO SKIPPED - ASSISTANT SPEAKING]', { assistantSpeaking });
-                  
-                  // Add enhanced logging for user audio blocked while speaking
-                  const lastPromptStage = (this as any).lastPromptStage || 'unknown';
-                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] =========================================');
-                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] stage:', lastPromptStage);
-                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] assistantSpeaking:', assistantSpeaking);
-                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] activeResponseId:', activeResponseId);
-                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] lastPromptStage:', lastPromptStage);
-                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] lastPromptAt:', lastPromptAt);
-                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] timeSinceLastPrompt:', timeSinceLastPrompt);
-                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] Timestamp:', new Date().toISOString());
-                  console.log('[USER AUDIO BLOCKED WHILE SPEAKING] =========================================');
+                  // V1 STRICT: Always block caller audio when assistantSpeaking is true
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] =========================================');
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] V1 TURN-BASED FLOW ACTIVE');
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] Caller audio blocked while AI is speaking');
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] assistantSpeaking:', assistantSpeaking);
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] activeResponseId:', activeResponseId);
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] Timestamp:', new Date().toISOString());
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] =========================================');
                   
                   return;
                 }
