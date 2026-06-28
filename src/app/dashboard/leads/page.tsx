@@ -818,6 +818,11 @@ export default function LeadsPage() {
                     : `${leads.filter(l => getLeadLifecycleStatus(l) === statusFilter).length} ${statusFilter} ${leads.filter(l => getLeadLifecycleStatus(l) === statusFilter).length === 1 ? 'lead' : 'leads'}`
                   }
                 </p>
+                {statusFilter === 'ignored' && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Ignored leads are hidden from your main list and can be restored for up to 30 days.
+                  </p>
+                )}
               </div>
               
               <div className="flex items-center gap-2">
@@ -1119,7 +1124,7 @@ export default function LeadsPage() {
                         href={`/dashboard/leads/${lead.id}`}
                         prefetch={false}
                         onClick={() => handleConversationClick(lead.id)}
-                        className="w-full max-w-2xl h-full flex flex-col bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 overflow-hidden group cursor-pointer"
+                        className="w-full max-w-2xl h-full flex flex-col bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 group cursor-pointer"
                       >
                         {/* Status Accent Bar */}
                         <div className={`h-1 rounded-t-lg ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
@@ -1247,13 +1252,13 @@ export default function LeadsPage() {
                               {cardOverflowMenu === lead.id && (
                                 <>
                                   <div
-                                    className="fixed inset-0 z-40"
+                                    className="fixed inset-0 z-[9999]"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       setCardOverflowMenu(null)
                                     }}
                                   />
-                                  <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[140px]">
+                                  <div className="absolute right-0 top-full mt-1 z-[10000] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[140px]">
                                     {getLeadLifecycleStatus(lead) !== 'ignored' && (
                                       <button
                                         onClick={(e) => {
@@ -1325,7 +1330,7 @@ export default function LeadsPage() {
                             href={`/dashboard/leads/${lead.id}`}
                             prefetch={false}
                             onClick={() => handleConversationClick(lead.id)}
-                            className="bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 overflow-hidden group cursor-pointer"
+                            className="bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 group cursor-pointer"
                           >
                             {/* Status Accent Bar */}
                             <div className={`h-1 rounded-t-lg ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
@@ -1453,13 +1458,13 @@ export default function LeadsPage() {
                                   {cardOverflowMenu === lead.id && (
                                     <>
                                       <div
-                                        className="fixed inset-0 z-40"
+                                        className="fixed inset-0 z-[9999]"
                                         onClick={(e) => {
                                           e.stopPropagation()
                                           setCardOverflowMenu(null)
                                         }}
                                       />
-                                      <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[140px]">
+                                      <div className="absolute right-0 top-full mt-1 z-[10000] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[140px]">
                                         {getLeadLifecycleStatus(lead) !== 'ignored' && (
                                           <button
                                             onClick={(e) => {
