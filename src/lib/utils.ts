@@ -340,3 +340,15 @@ export function normalizePhoneNumberForSearch(phone: string | null | undefined):
   if (!phone) return ''
   return phone.replace(/[\s\(\)\-\.\+]/g, '')
 }
+
+/**
+ * Format currency amount in USD
+ * @param amount - Amount in dollars (not cents)
+ * @returns Formatted currency string (e.g., "$123.45")
+ */
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(amount)
+}
