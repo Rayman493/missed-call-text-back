@@ -1823,7 +1823,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Lead Identity Section - Simplified */}
-            <div className="flex items-start justify-between gap-8 mb-4">
+            <div className="flex items-center justify-between gap-8 mb-4">
               {/* Customer Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-5 mb-3">
