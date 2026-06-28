@@ -7576,43 +7576,14 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[FINAL_OUTPUT_ITEM_DONE] callState:', callState);
                 console.log('[FINAL_OUTPUT_ITEM_DONE] item_id:', message.item_id || 'unknown');
                 
-                // Reset assistantSpeaking when output item is complete
-                const previousAssistantSpeaking = callSessionState.assistantSpeaking;
-                if (callSessionState.assistantSpeaking) {
-                  callSessionState.assistantSpeaking = false;
-                  assistantSpeaking = false; // Sync individual variable for backward compatibility
-                  (twilioHandler as any).assistantSpeaking = false;
-                  
-                  // Check for state desync
-                  if (!callSessionState.currentStage && callSessionState.sessionId) {
-                    console.log('[CALL STATE DESYNC] =========================================');
-                    console.log('[CALL STATE DESYNC] Unknown stage detected after initialization');
-                    console.log('[CALL STATE DESYNC] currentStage:', callSessionState.currentStage || 'unknown');
-                    console.log('[CALL STATE DESYNC] lastPromptStage:', callSessionState.lastPromptStage);
-                    console.log('[CALL STATE DESYNC] activeResponseId:', callSessionState.activeResponseId);
-                    console.log('[CALL STATE DESYNC] assistantSpeaking:', callSessionState.assistantSpeaking);
-                    console.log('[CALL STATE DESYNC] callSid:', callSessionState.callSid);
-                    console.log('[CALL STATE DESYNC] sessionId:', callSessionState.sessionId);
-                    console.log('[CALL STATE DESYNC] Timestamp:', new Date().toISOString());
-                    console.log('[CALL STATE DESYNC] =========================================');
-                  }
-                  
-                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
-                  console.log('[ASSISTANT SPEAKING STATE] State: FALSE');
-                  console.log('[ASSISTANT SPEAKING STATE] Source: response.output_item.done');
-                  console.log('[ASSISTANT SPEAKING STATE] Response ID:', message.response_id || 'unknown');
-                  console.log('[ASSISTANT SPEAKING STATE] Item ID:', message.item_id || 'unknown');
-                  console.log('[ASSISTANT SPEAKING STATE] Stage:', callSessionState.currentStage || 'unknown');
-                  console.log('[ASSISTANT SPEAKING STATE] Previous state:', previousAssistantSpeaking);
-                  console.log('[ASSISTANT SPEAKING STATE] Timestamp:', new Date().toISOString());
-                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
-                  
-                  // Clear timeout protection
-                  if (assistantSpeakingTimeout) {
-                    clearTimeout(assistantSpeakingTimeout);
-                    assistantSpeakingTimeout = null;
-                  }
-                }
+                // CRITICAL FIX: Do NOT reset assistantSpeaking here
+                // response.output_item.done fires when generation completes, NOT when audio playback completes
+                // assistantSpeaking will be reset in response.audio.done to ensure audio has fully finished
+                console.log('[ASSISTANT SPEAKING NOT RESET] =========================================');
+                console.log('[ASSISTANT SPEAKING NOT RESET] assistantSpeaking remains TRUE');
+                console.log('[ASSISTANT SPEAKING NOT RESET] Reason: Waiting for response.audio.done');
+                console.log('[ASSISTANT SPEAKING NOT RESET] Timestamp:', new Date().toISOString());
+                console.log('[ASSISTANT SPEAKING NOT RESET] =========================================');
               }
               if (message.type === 'response.output_audio.delta') {
                 if (process.env.DEBUG_AI_VOICE === 'true') {
@@ -7724,36 +7695,10 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   }
                 }
 
-                // Set assistant speaking to true when audio starts
-                if (!callSessionState.assistantSpeaking) {
-                  callSessionState.assistantSpeaking = true;
-                  assistantSpeaking = true; // Sync individual variable for backward compatibility
-                  (twilioHandler as any).assistantSpeaking = true;
-                  
-                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
-                  console.log('[ASSISTANT SPEAKING STATE] State: TRUE');
-                  console.log('[ASSISTANT SPEAKING STATE] Source: response.output_audio.delta');
-                  console.log('[ASSISTANT SPEAKING STATE] Response ID:', message.response_id || 'unknown');
-                  console.log('[ASSISTANT SPEAKING STATE] Stage:', callSessionState.currentStage || 'unknown');
-                  console.log('[ASSISTANT SPEAKING STATE] Timestamp:', new Date().toISOString());
-                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
-                  
-                  // Start timeout protection (30 seconds)
-                  if (assistantSpeakingTimeout) {
-                    clearTimeout(assistantSpeakingTimeout);
-                  }
-                  assistantSpeakingTimeout = setTimeout(() => {
-                    if (assistantSpeaking) {
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] =========================================');
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] assistantSpeaking stuck for 30 seconds');
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] Force resetting to false');
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] Timestamp:', new Date().toISOString());
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] =========================================');
-                      assistantSpeaking = false;
-                      (twilioHandler as any).assistantSpeaking = assistantSpeaking;
-                    }
-                  }, 30000); // 30 second timeout
-                }
+                // REMOVED: assistantSpeaking set/reset in response.output_audio.delta
+                // assistantSpeaking is now set in response.created (before audio starts)
+                // and reset in response.audio.done (after audio playback completes)
+                // This ensures proper timing for caller audio blocking
 
                 // REMOVED: callState = 'closing' transition from audio delta handler
                 // Closing state can only be entered through:
@@ -8243,6 +8188,39 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 // Clear the authorized source flag after verification
                 authorizedResponseCreateSource = null;
 
+                // CRITICAL FIX: Set assistantSpeaking to TRUE immediately when response.created is received
+                // This ensures caller audio is blocked BEFORE any audio starts streaming
+                if (!callSessionState.assistantSpeaking) {
+                  callSessionState.assistantSpeaking = true;
+                  assistantSpeaking = true; // Sync individual variable for backward compatibility
+                  (twilioHandler as any).assistantSpeaking = true;
+                  
+                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
+                  console.log('[ASSISTANT SPEAKING STATE] State: TRUE');
+                  console.log('[ASSISTANT SPEAKING STATE] Source: response.created (BEFORE audio starts)');
+                  console.log('[ASSISTANT SPEAKING STATE] Response ID:', actualResponseId);
+                  console.log('[ASSISTANT SPEAKING STATE] Stage:', callSessionState.currentStage || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Timestamp:', new Date().toISOString());
+                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
+                  
+                  // Start timeout protection (30 seconds)
+                  if (assistantSpeakingTimeout) {
+                    clearTimeout(assistantSpeakingTimeout);
+                  }
+                  assistantSpeakingTimeout = setTimeout(() => {
+                    if (assistantSpeaking) {
+                      console.log('[ASSISTANT SPEAKING TIMEOUT] =========================================');
+                      console.log('[ASSISTANT SPEAKING TIMEOUT] assistantSpeaking stuck for 30 seconds');
+                      console.log('[ASSISTANT SPEAKING TIMEOUT] Force resetting to false');
+                      console.log('[ASSISTANT SPEAKING TIMEOUT] Timestamp:', new Date().toISOString());
+                      console.log('[ASSISTANT SPEAKING TIMEOUT] =========================================');
+                      assistantSpeaking = false;
+                      callSessionState.assistantSpeaking = false;
+                      (twilioHandler as any).assistantSpeaking = false;
+                    }
+                  }, 30000); // 30 second timeout
+                }
+
                 // If this is the final close response, store the actual OpenAI response ID
                 if ((twilioHandler as any).finalClosingStarted) {
                   (twilioHandler as any).finalClosingResponseId = actualResponseId;
@@ -8500,6 +8478,38 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
 
                 // Do NOT trigger hangup on transcript completion - wait for response.audio.done only
                 // This prevents premature hangup before audio has finished generating
+              }
+              if (message.type === 'response.audio.done') {
+                console.log('[OPENAI RECV] response.audio.done');
+                console.log('[AUDIO PLAYBACK COMPLETE] =========================================');
+                console.log('[AUDIO PLAYBACK COMPLETE] Audio playback has completed');
+                console.log('[AUDIO PLAYBACK COMPLETE] Response ID:', message.response_id || 'unknown');
+                console.log('[AUDIO PLAYBACK COMPLETE] Timestamp:', new Date().toISOString());
+                console.log('[AUDIO PLAYBACK COMPLETE] =========================================');
+                
+                // CRITICAL FIX: Reset assistantSpeaking when audio playback completes
+                // This ensures caller audio is only accepted after AI has finished speaking
+                const previousAssistantSpeaking = callSessionState.assistantSpeaking;
+                if (callSessionState.assistantSpeaking) {
+                  callSessionState.assistantSpeaking = false;
+                  assistantSpeaking = false; // Sync individual variable for backward compatibility
+                  (twilioHandler as any).assistantSpeaking = false;
+                  
+                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
+                  console.log('[ASSISTANT SPEAKING STATE] State: FALSE');
+                  console.log('[ASSISTANT SPEAKING STATE] Source: response.audio.done (AUDIO PLAYBACK COMPLETE)');
+                  console.log('[ASSISTANT SPEAKING STATE] Response ID:', message.response_id || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Stage:', callSessionState.currentStage || 'unknown');
+                  console.log('[ASSISTANT SPEAKING STATE] Previous state:', previousAssistantSpeaking);
+                  console.log('[ASSISTANT SPEAKING STATE] Timestamp:', new Date().toISOString());
+                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
+                  
+                  // Clear timeout protection
+                  if (assistantSpeakingTimeout) {
+                    clearTimeout(assistantSpeakingTimeout);
+                    assistantSpeakingTimeout = null;
+                  }
+                }
               }
               if (message.type === 'response.output_audio.delta' && message.delta) {
                 if (process.env.DEBUG_AI_VOICE === 'true') {
