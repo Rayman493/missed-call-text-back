@@ -19,7 +19,7 @@ export async function PATCH(
     console.log('[API LEADS STATUS PATCH] Requested status:', status)
 
     // Validate status - include all new business-controlled statuses
-    const validStatuses = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'lost']
+    const validStatuses = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'lost', 'ignored']
     if (!validStatuses.includes(status)) {
       console.log('[API LEADS STATUS PATCH] Invalid status. Valid statuses:', validStatuses)
       return NextResponse.json(
@@ -140,6 +140,34 @@ export async function PATCH(
     
     console.log('[API LEADS STATUS PATCH] Lead updated successfully:', lead.id)
 
+    // Cancel pending follow-ups when lead is marked as ignored
+    if (status === 'ignored') {
+      console.log('[API LEADS STATUS PATCH] Cancelling pending follow-ups for ignored lead')
+      try {
+        const { data: updatedJobs, error: followUpError } = await supabase
+          .from('follow_up_jobs')
+          .update({
+            status: 'paused',
+            paused_at: new Date().toISOString(),
+            paused_by: 'system',
+            cancellation_reason: 'lead_ignored'
+          })
+          .eq('lead_id', params.id)
+          .eq('status', 'pending')
+          .select()
+
+        if (followUpError) {
+          console.log('[API LEADS STATUS PATCH] Failed to cancel follow-ups:', followUpError)
+          // Don't fail the request if follow-up cancellation fails
+        } else {
+          console.log('[API LEADS STATUS PATCH] Cancelled follow-ups:', updatedJobs?.length || 0)
+        }
+      } catch (e) {
+        console.log('[API LEADS STATUS PATCH] Exception during follow-up cancellation:', e)
+        // Don't fail the request if follow-up cancellation fails
+      }
+    }
+
     // Log activity event
     let activityMessage = ''
     let activityType: any = null
@@ -172,6 +200,10 @@ export async function PATCH(
       case 'new':
         activityMessage = `Lead reset to new for ${existingLead.caller_phone === '+10000000000' ? 'Test Lead' : existingLead.caller_phone}`
         activityType = 'customer_replied'
+        break
+      case 'ignored':
+        activityMessage = `Lead marked ignored for ${existingLead.caller_phone === '+10000000000' ? 'Test Lead' : existingLead.caller_phone}`
+        activityType = 'lead_ignored'
         break
     }
     
