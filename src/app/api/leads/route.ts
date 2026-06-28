@@ -57,19 +57,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Phone number is required' }, { status: 400 });
     }
 
-    // Normalize phone number
-    const normalizedPhone = phone.replace(/\D/g, '');
-    console.log('[API LEADS POST] Normalized phone:', normalizedPhone)
+    // Normalize phone number to E.164 format
+    let normalizedPhone = phone.replace(/\D/g, '');
+    
+    // If no country code and 10 digits, assume US and add +1
+    if (normalizedPhone.length === 10) {
+      normalizedPhone = '+1' + normalizedPhone;
+    } else if (normalizedPhone.length === 11 && normalizedPhone.startsWith('1')) {
+      normalizedPhone = '+' + normalizedPhone;
+    } else if (!normalizedPhone.startsWith('+')) {
+      // If it has a country code but no +, add it
+      normalizedPhone = '+' + normalizedPhone;
+    }
+    
+    console.log('[API LEADS POST] Normalized phone to E.164:', normalizedPhone)
 
-    // Check if lead already exists for this business and phone
-    console.log('[API LEADS POST] Looking for existing lead with business_id:', business.id, 'phone:', normalizedPhone)
+    // Check if lead already exists for this business and caller_phone
+    console.log('[API LEADS POST] Looking for existing lead with business_id:', business.id, 'caller_phone:', normalizedPhone)
     let existingLead, leadError
     try {
       const result = await supabase
         .from('leads')
         .select('*')
         .eq('business_id', business.id)
-        .eq('phone', normalizedPhone)
+        .eq('caller_phone', normalizedPhone)
         .maybeSingle();
       existingLead = result.data
       leadError = result.error
@@ -154,7 +165,7 @@ export async function POST(request: NextRequest) {
       // Create new lead
       const leadPayload = {
         business_id: business.id,
-        phone: normalizedPhone,
+        caller_phone: normalizedPhone,
         name: name || null,
         source: 'manual',
         status: 'new',
