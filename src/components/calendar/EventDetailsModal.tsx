@@ -1,6 +1,10 @@
 'use client'
 
-import { X, Calendar, Clock, MapPin, FileText, ExternalLink } from 'lucide-react'
+import { useState } from 'react'
+import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle } from 'lucide-react'
+import { createBrowserClient } from '@/lib/supabase/browser'
+
+const supabase = createBrowserClient()
 
 interface EventDetailsModalProps {
   isOpen: boolean
@@ -16,10 +20,15 @@ interface EventDetailsModalProps {
     isHoliday?: boolean
     source?: 'primary' | 'holiday'
   }
+  onDelete?: () => void
 }
 
-export default function EventDetailsModal({ isOpen, onClose, event }: EventDetailsModalProps) {
+export default function EventDetailsModal({ isOpen, onClose, event, onDelete }: EventDetailsModalProps) {
   if (!isOpen || !event) return null
+
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const formatDate = (dateTime?: string, date?: string) => {
     if (date) {
@@ -87,6 +96,55 @@ export default function EventDetailsModal({ isOpen, onClose, event }: EventDetai
     if (event.htmlLink) {
       window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
     }
+  }
+
+  const handleDeleteClick = () => {
+    setShowConfirm(true)
+    setError(null)
+  }
+
+  const handleDeleteConfirm = async () => {
+    setIsDeleting(true)
+    setError(null)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        setError('Not authenticated')
+        setIsDeleting(false)
+        return
+      }
+
+      const response = await fetch(`/api/google/calendar/events/${event.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to delete event' }))
+        setError(errorData.error || 'Failed to delete event')
+        setIsDeleting(false)
+        return
+      }
+
+      // Success
+      setShowConfirm(false)
+      setIsDeleting(false)
+      onDelete?.()
+      onClose()
+    } catch (err) {
+      setError('Failed to delete event')
+      setIsDeleting(false)
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setShowConfirm(false)
+    setError(null)
   }
 
   return (
@@ -189,13 +247,63 @@ export default function EventDetailsModal({ isOpen, onClose, event }: EventDetai
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-slate-700/60">
-          <button
-            onClick={openGoogleCalendar}
-            className="w-full px-4 py-2.5 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-slate-700/60"
-          >
-            <ExternalLink className="w-4 h-4" />
-            <span>Open in Google Calendar</span>
-          </button>
+          {error && (
+            <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-400">{error}</p>
+            </div>
+          )}
+          
+          {showConfirm ? (
+            <div className="space-y-2">
+              <p className="text-sm text-slate-300 mb-3">Are you sure you want to delete this event? This action cannot be undone.</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDeleteCancel}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      <span>Delete</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={openGoogleCalendar}
+                className="flex-1 px-4 py-2.5 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-slate-700/60"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>Open in Google Calendar</span>
+              </button>
+              {!event.isHoliday && (
+                <button
+                  onClick={handleDeleteClick}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-red-600/10 hover:bg-red-600/20 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-red-500/30"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -847,6 +847,14 @@ export default function CalendarPage() {
                       isOpen={isEventDetailsOpen}
                       onClose={() => setIsEventDetailsOpen(false)}
                       event={selectedEvent}
+                      onDelete={async () => {
+                        // Remove the deleted event from local state
+                        setEvents(prev => prev.filter(e => e.id !== selectedEvent.id))
+                        // Refresh events from Google Calendar
+                        await fetchEvents()
+                        // Show success message
+                        showToast('Event deleted successfully', 'success')
+                      }}
                     />
                   )}
                 </>
