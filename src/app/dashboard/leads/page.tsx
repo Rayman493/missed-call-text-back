@@ -748,9 +748,10 @@ export default function LeadsPage() {
                   Customer Leads
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
-                  {leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length === 0 
-                    ? 'No active leads' 
-                    : `${leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length} ${leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length === 1 ? 'active lead' : 'active leads'} total`}
+                  {statusFilter === 'all' 
+                    ? `${leads.length} ${leads.length === 1 ? 'lead' : 'leads'} total`
+                    : `${leads.filter(l => getLeadLifecycleStatus(l) === statusFilter).length} ${statusFilter} ${leads.filter(l => getLeadLifecycleStatus(l) === statusFilter).length === 1 ? 'lead' : 'leads'}`
+                  }
                 </p>
               </div>
               
@@ -838,7 +839,7 @@ export default function LeadsPage() {
             )}
 
             {/* Empty State */}
-            {!loading && !error && leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length === 0 && (
+            {!loading && !error && leads.length === 0 && (
               <div className="bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900/20 dark:to-blue-900/10 rounded-2xl border border-slate-200 dark:border-slate-700/50 p-6 sm:p-10 text-center animate-fadeIn relative overflow-hidden">
                 {/* Subtle background gradient for depth */}
                 <div className="absolute inset-0 bg-gradient-to-br from-transparent via-blue-50/30 to-transparent dark:from-transparent dark:via-blue-900/10 dark:to-transparent pointer-events-none"></div>
@@ -997,14 +998,34 @@ export default function LeadsPage() {
             )}
 
             {/* Leads List - CRM-style Grid */}
-            {!loading && !error && leads.filter(l => getLeadLifecycleStatus(l) !== 'completed').length > 0 && (
+            {!loading && !error && sortedLeads.length > 0 && (
               (() => {
-                const activeLeads = sortedLeads.filter(l => getLeadLifecycleStatus(l) !== 'completed')
-                const singleLead = activeLeads.length === 1
+                const filteredLeads = statusFilter === 'all' 
+                  ? sortedLeads 
+                  : sortedLeads.filter(l => getLeadLifecycleStatus(l) === statusFilter)
+                
+                if (filteredLeads.length === 0) {
+                  // No leads match the current filter
+                  return (
+                    <div className="text-center py-16 px-4">
+                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 mb-4">
+                        <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-foreground mb-2">No {statusFilter} leads</h3>
+                      <p className="text-muted-foreground text-sm mb-4">
+                        Try changing the status filter to see other leads
+                      </p>
+                    </div>
+                  )
+                }
+                
+                const singleLead = filteredLeads.length === 1
 
                 if (singleLead) {
                   // Single lead: centered with supportive text
-                  const lead = activeLeads[0]
+                  const lead = filteredLeads[0]
                   const latestMessage = lead.messages && lead.messages.length > 0
                     ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]     
                     : null
@@ -1021,7 +1042,12 @@ export default function LeadsPage() {
 
                   return (
                     <div className="flex flex-col items-center">
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-3.5">1 active lead</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-3.5">
+                        {statusFilter === 'all' 
+                          ? `${filteredLeads.length} ${filteredLeads.length === 1 ? 'lead' : 'leads'}`
+                          : `${filteredLeads.length} ${statusFilter} ${filteredLeads.length === 1 ? 'lead' : 'leads'}`
+                        }
+                      </p>
                       <Link
                         key={lead.id}
                         href={`/dashboard/leads/${lead.id}`}
@@ -1153,7 +1179,7 @@ export default function LeadsPage() {
                   // Multiple leads: grid layout
                   return (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                      {activeLeads.map((lead, index) => {
+                      {filteredLeads.map((lead: any, index: number) => {
                         const latestMessage = lead.messages && lead.messages.length > 0
                           ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]     
                           : null
