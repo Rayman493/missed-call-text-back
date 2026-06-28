@@ -822,8 +822,10 @@ export default function DashboardContent() {
   // CENTRAL DASHBOARD GUARD: Prevent incomplete users from accessing full dashboard
   // Uses deriveSetupState to determine if setup is complete and route accordingly
   // Admin/protected accounts are exempt from this guard
+  // CRITICAL: If onboarding_status is 'completed', respect it regardless of deriveSetupState
   const setupState = deriveSetupState(business)
-  const isSetupComplete = setupState === 'complete'
+  const isOnboardingCompleted = business?.onboarding_status === 'completed'
+  const isSetupComplete = setupState === 'complete' || isOnboardingCompleted
   
   // Check for manual/lifetime access
   const manualAccessActive = (business as any)?.manual_access === true && 

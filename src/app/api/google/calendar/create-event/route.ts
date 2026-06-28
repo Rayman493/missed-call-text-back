@@ -175,20 +175,20 @@ export async function POST(request: NextRequest) {
         endDateTime: endDateTime.toISOString()
       })
 
-      // Send datetime in ISO format WITH timezone parameter
-      // This tells Google Calendar to interpret the datetime in the specified timezone
+      // Send datetime in ISO format WITHOUT timezone parameter
+      // The ISO string already contains the timezone offset (e.g., -04:00 for EDT)
+      // Google Calendar will interpret the offset correctly
       start = {
-        dateTime: startDateTime.toISOString(),
-        timeZone: businessTimezone
+        dateTime: startDateTime.toISOString()
       }
       end = {
-        dateTime: endDateTime.toISOString(),
-        timeZone: businessTimezone
+        dateTime: endDateTime.toISOString()
       }
 
       console.log('[CALENDAR EVENT CREATE] value sent to Google', {
         start,
-        end
+        end,
+        businessTimezone
       })
     }
 

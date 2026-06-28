@@ -79,12 +79,16 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
 
         const leadIds = businessLeads?.map((l: any) => l.id) || []
 
-        // Then fetch messages for those leads
-        const { data: messages } = await supabase
-          .from('messages')
-          .select('*')
-          .in('lead_id', leadIds)
-          .gte('created_at', thirtyDaysAgo)
+        // Then fetch messages for those leads - only if there are leads
+        let messages = []
+        if (leadIds.length > 0) {
+          const { data: messagesData } = await supabase
+            .from('messages')
+            .select('*')
+            .in('lead_id', leadIds)
+            .gte('created_at', thirtyDaysAgo)
+          messages = messagesData || []
+        }
 
         // Filter outbound messages more robustly
         const outboundMessages = messages?.filter((m: any) => {
@@ -102,11 +106,15 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
 
         const leadIdsToday = businessLeadsToday?.map((l: any) => l.id) || []
 
-        const { data: messagesToday } = await supabase
-          .from('messages')
-          .select('direction, created_at, from_phone')
-          .in('lead_id', leadIdsToday)
-          .gte('created_at', todayStartISO)
+        let messagesToday = []
+        if (leadIdsToday.length > 0) {
+          const { data: messagesTodayData } = await supabase
+            .from('messages')
+            .select('direction, created_at, from_phone')
+            .in('lead_id', leadIdsToday)
+            .gte('created_at', todayStartISO)
+          messagesToday = messagesTodayData || []
+        }
 
         // Fetch active conversations (leads with recent activity)
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()

@@ -152,8 +152,11 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete }: 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="event-title">
       <div className="bg-slate-900 rounded-xl border border-slate-700/60 shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
+        {/* Visually hidden title for accessibility */}
+        <h2 id="event-title" className="sr-only">{event.summary}</h2>
+        
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/60">
           <div className="flex items-center gap-2.5">
