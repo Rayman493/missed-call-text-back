@@ -166,12 +166,22 @@ export class TwilioStreamHandler {
               const openAiWs = (this as any).openAiWs;
               const greetingSent = (this as any).greetingSent || false;
               const callState = (this as any).callState || 'active';
-              const assistantSpeaking = (this as any).assistantSpeaking || false;
+              // CRITICAL FIX: Read assistantSpeaking from shared callSessionState, not local property
+              const callSessionState = (this as any).callSessionState || {};
+              const assistantSpeaking = callSessionState.assistantSpeaking || false;
               const terminalClosingResponseStarted = (this as any).terminalClosingResponseStarted || false;
               const confirmationState = (this as any).confirmationState || 'collecting_info';
 
               // V1 TURN-BASED FLOW: Block caller audio while assistant is speaking
               // This ensures reliable turn-taking: AI asks -> AI finishes -> caller answers
+              
+              // LOG: Every caller audio packet for debugging
+              console.log('[CALLER AUDIO PACKET RECEIVED] =========================================');
+              console.log('[CALLER AUDIO PACKET RECEIVED] assistantSpeaking:', assistantSpeaking);
+              console.log('[CALLER AUDIO PACKET RECEIVED] callState:', callState);
+              console.log('[CALLER AUDIO PACKET RECEIVED] callSessionState.assistantSpeaking:', callSessionState.assistantSpeaking);
+              console.log('[CALLER AUDIO PACKET RECEIVED] Timestamp:', new Date().toISOString());
+              console.log('[CALLER AUDIO PACKET RECEIVED] =========================================');
               
               // Hard guard: Do not append caller audio when call is not active
               if (callState !== 'active') {
@@ -190,6 +200,11 @@ export class TwilioStreamHandler {
                     console.log('[INBOUND CALLER AUDIO BLOCKED - CALL STATE]', { callState });
                     this.callerAudioBlockedLogged = true;
                   }
+                  console.log('[CALLER AUDIO BLOCKED - CALL STATE NOT ACTIVE] =========================================');
+                  console.log('[CALLER AUDIO BLOCKED - CALL STATE NOT ACTIVE] Reason: callState is not active');
+                  console.log('[CALLER AUDIO BLOCKED - CALL STATE NOT ACTIVE] callState:', callState);
+                  console.log('[CALLER AUDIO BLOCKED - CALL STATE NOT ACTIVE] Timestamp:', new Date().toISOString());
+                  console.log('[CALLER AUDIO BLOCKED - CALL STATE NOT ACTIVE] =========================================');
                   return;
                 }
               }
@@ -202,8 +217,8 @@ export class TwilioStreamHandler {
               // V1 STRICT BLOCKING: Block caller audio when assistant is speaking
               // This prevents barge-in and ensures turn-based flow
               if (assistantSpeaking) {
-                const activeResponseId = (this as any).activeResponseId || 'unknown';
-                const lastPromptAt = (this as any).lastPromptAt || 0;
+                const activeResponseId = callSessionState.activeResponseId || 'unknown';
+                const lastPromptAt = callSessionState.lastPromptAt || 0;
                 const timeSinceLastPrompt = Date.now() - lastPromptAt;
                 
                 // V1 RELIABILITY: Only reset assistantSpeaking if we're confident the AI is not actually speaking
@@ -220,7 +235,7 @@ export class TwilioStreamHandler {
                   console.log('[AUDIO BLOCKING STATE INVALID] =========================================');
                   
                   // Reset assistantSpeaking to allow caller audio
-                  (this as any).assistantSpeaking = false;
+                  callSessionState.assistantSpeaking = false;
                   
                   // Do NOT return - allow caller audio to proceed
                 } else {
@@ -237,6 +252,13 @@ export class TwilioStreamHandler {
                   return;
                 }
               }
+              
+              // LOG: Caller audio accepted
+              console.log('[CALLER AUDIO ACCEPTED] =========================================');
+              console.log('[CALLER AUDIO ACCEPTED] assistantSpeaking is false, accepting caller audio');
+              console.log('[CALLER AUDIO ACCEPTED] assistantSpeaking:', assistantSpeaking);
+              console.log('[CALLER AUDIO ACCEPTED] Timestamp:', new Date().toISOString());
+              console.log('[CALLER AUDIO ACCEPTED] =========================================');
 
               if (openAiWs) {
                 if (process.env.DEBUG_AI_VOICE === 'true') {
