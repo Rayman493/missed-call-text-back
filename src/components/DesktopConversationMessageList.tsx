@@ -139,7 +139,7 @@ export default function DesktopConversationMessageList({
               >
                 <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : 'px-6 py-3'}`}>
                   {msg.body && (
-                    <p className="text-base leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
+                    <p className="text-base leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full">
                       {msg.body}
                     </p>
                   )}

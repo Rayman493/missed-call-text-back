@@ -186,7 +186,7 @@ export default function MobileConversationMessageList({
               >
                 <div className={`${msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-2.5 py-1 sm:px-2.5 sm:py-1.5'}`}>
                   {msg.body && !isAISummary && (
-                    <p className="text-[11px] sm:text-sm leading-snug sm:leading-snug break-words overflow-wrap-anywhere whitespace-pre-wrap">
+                    <p className="text-[11px] sm:text-sm leading-snug sm:leading-snug break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full">
                       {msg.body}
                     </p>
                   )}

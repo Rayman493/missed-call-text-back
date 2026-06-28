@@ -1754,36 +1754,32 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
             <div className="flex items-center justify-between gap-2">
               {/* Enhanced Lead Info */}
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="flex-1 min-w-0">
-                  {/* Compact single-row header */}
-                  <div className="flex items-center gap-1.5 text-xs">
-                    <h1 className="font-semibold text-slate-900 dark:text-white leading-tight truncate flex-1">
-                      {getLeadDisplayName(leadData || lead)}
-                    </h1>
-                    <span className="text-muted-foreground/50">•</span>
-                    <span className={`inline-flex items-center px-1 py-0.5 rounded-full text-[9px] font-medium flex-shrink-0 ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
-                      {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
-                    </span>
-                    <span className="text-muted-foreground/50">•</span>
-                    <div className="flex items-center gap-0.5 text-slate-600 dark:text-slate-400 flex-shrink-0">
-                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
-                      </svg>
-                      <span className="truncate">{formatPhoneNumber(lead?.caller_phone || '')}</span>
-                    </div>
-                    {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
-                      <>
-                        <span className="text-muted-foreground/50">•</span>
-                        <div className="flex items-center gap-0.5 text-green-600 dark:text-green-400 font-medium flex-shrink-0">
-                          <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span>AI Complete</span>
-                        </div>
-                      </>
-                    )}
+              <div className="flex-1 min-w-0">
+                {/* Row 1: Customer name and status pill */}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <h1 className="font-semibold text-slate-900 dark:text-white text-sm leading-tight truncate">
+                    {getLeadDisplayName(leadData || lead)}
+                  </h1>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 ${getLeadStatusClasses(getLeadLifecycleStatus(leadData))}`}>
+                    {getLeadStatusLabel(getLeadLifecycleStatus(leadData))}
+                  </span>
+                </div>
+                {/* Row 2: Phone number and AI status */}
+                <div className="flex items-center gap-3 text-xs">
+                  <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
+                    </svg>
+                    <span className="truncate">{formatPhoneNumber(lead?.caller_phone || '')}</span>
                   </div>
+                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
+                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span>AI Complete</span>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -2190,7 +2186,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               )}
               <button
                 onClick={() => {
-                  const composer = document.querySelector('textarea')
+                  const composer = document.querySelector('textarea[name="message"]') as HTMLTextAreaElement
                   if (composer) composer.focus()
                 }}
                 className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium rounded-lg transition-colors border border-blue-200 dark:border-blue-800 flex-shrink-0"
