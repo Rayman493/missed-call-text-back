@@ -158,20 +158,20 @@ export default function CalendarGrid({
         <div className="flex items-center justify-between gap-2">
           <button
             onClick={onPreviousMonth}
-            className="w-5 h-5 sm:w-8 sm:h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
+            className="w-8 h-8 sm:w-8 sm:h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
             aria-label="Previous month"
           >
-            <ChevronLeft className="w-3 h-3 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
           </button>
           <h2 className="text-xs sm:text-xl md:text-2xl font-semibold text-slate-900 dark:text-foreground">
             {month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </h2>
           <button
             onClick={onNextMonth}
-            className="w-5 h-5 sm:w-8 sm:h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
+            className="w-8 h-8 sm:w-8 sm:h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
             aria-label="Next month"
           >
-            <ChevronRight className="w-3 h-3 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
           </button>
           <div className="flex items-center gap-2 ml-auto">
             {onToday && (

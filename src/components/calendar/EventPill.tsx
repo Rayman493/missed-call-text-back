@@ -3,13 +3,14 @@ import { Clock } from 'lucide-react'
 interface EventPillProps {
   title: string
   time?: string
+  endTime?: string
   onClick?: () => void
   isHoliday?: boolean
   eventType?: 'holiday' | 'client' | 'personal' | 'task'
   source?: 'primary' | 'holiday' | 'replyflow'
 }
 
-export default function EventPill({ title, time, onClick, isHoliday = false, eventType = 'client', source }: EventPillProps) {
+export default function EventPill({ title, time, endTime, onClick, isHoliday = false, eventType = 'client', source }: EventPillProps) {
   const getEventColors = () => {
     if (isHoliday || eventType === 'holiday') {
       return {
@@ -99,7 +100,9 @@ export default function EventPill({ title, time, onClick, isHoliday = false, eve
             ${colors.timeText}
           `}>
             <Clock className="w-1.5 h-1.5 sm:w-2 sm:h-2 flex-shrink-0" />
-            <span className="truncate">{time}</span>
+            <span className="truncate">
+              {endTime ? `${time} – ${endTime}` : time}
+            </span>
           </div>
         )}
       </div>

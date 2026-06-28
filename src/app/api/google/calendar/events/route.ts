@@ -180,10 +180,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const timeMin = searchParams.get('timeMin')
     const timeMax = searchParams.get('timeMax')
+    const timeZone = searchParams.get('timeZone') || Intl.DateTimeFormat().resolvedOptions().timeZone
 
-    console.log('[Google Calendar Events] Date range:', { timeMin, timeMax })
+    console.log('[Google Calendar Events] Date range:', { timeMin, timeMax, timeZone })
 
-    // Build Google Calendar API URL with date range
+    // Build Google Calendar API URL with date range and timezone
     let apiUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?'
     
     if (timeMin) {
@@ -197,7 +198,9 @@ export async function GET(request: NextRequest) {
       apiUrl += `timeMax=${encodeURIComponent(timeMax)}&`
     }
     
-    apiUrl += 'maxResults=50&orderBy=startTime&singleEvents=true'
+    // Add timeZone parameter to ensure times are returned in the user's local timezone
+    apiUrl += `timeZone=${encodeURIComponent(timeZone)}&`
+    apiUrl += 'maxResults=250&orderBy=startTime&singleEvents=true'
 
     // Fetch events from Google Calendar
     console.log('[Google Calendar Events] Fetching events from Google Calendar API')
@@ -243,7 +246,8 @@ export async function GET(request: NextRequest) {
         `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(holidayCalendarId)}/events?` +
         (timeMin ? `timeMin=${encodeURIComponent(timeMin)}&` : `timeMin=${new Date().toISOString()}&`) +
         (timeMax ? `timeMax=${encodeURIComponent(timeMax)}&` : '') +
-        'maxResults=50&orderBy=startTime&singleEvents=true',
+        `timeZone=${encodeURIComponent(timeZone)}&` +
+        'maxResults=250&orderBy=startTime&singleEvents=true',
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,

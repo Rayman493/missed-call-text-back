@@ -17,6 +17,7 @@ import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventComposer from '@/components/calendar/EventComposer'
 import DayDetailModal from '@/components/calendar/DayDetailModal'
+import EventDetailsModal from '@/components/calendar/EventDetailsModal'
 import UpcomingAgenda from '@/components/calendar/UpcomingAgenda'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { HelpContext } from '@/components/HelpAssistant'
@@ -53,6 +54,8 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [isEventComposerOpen, setIsEventComposerOpen] = useState(false)
   const [isDayDetailOpen, setIsDayDetailOpen] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
+  const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month')
 
@@ -215,6 +218,7 @@ export default function CalendarPage() {
 
       if (!token) {
         setCalendarConnected(false)
+        setIsLoading(false)
         return
       }
 
@@ -227,6 +231,7 @@ export default function CalendarPage() {
       if (!response.ok) {
         if (response.status === 401) {
           setCalendarConnected(false)
+          setIsLoading(false)
           return
         }
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
@@ -241,13 +246,14 @@ export default function CalendarPage() {
         setLastSyncTime(new Date(data.connectedAt))
       }
 
+      setIsLoading(false)
+
       if (data.connected) {
         await fetchEvents()
       }
     } catch (error) {
       console.error('[GOOGLE CALENDAR SYNC ERROR] Error fetching calendar status:', error)
       setCalendarConnected(false)
-    } finally {
       setIsLoading(false)
     }
   }
@@ -279,8 +285,11 @@ export default function CalendarPage() {
       const gridEnd = new Date(year, monthIndex + 1, remainingDays)
       gridEnd.setHours(23, 59, 59, 999)
 
+      // Get user's timezone
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+
       const response = await fetch(
-        `/api/google/calendar/events?timeMin=${gridStart.toISOString()}&timeMax=${gridEnd.toISOString()}`,
+        `/api/google/calendar/events?timeMin=${gridStart.toISOString()}&timeMax=${gridEnd.toISOString()}&timeZone=${encodeURIComponent(userTimeZone)}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -635,7 +644,7 @@ export default function CalendarPage() {
                       </div>
 
                       {/* Mobile: View Mode Toggle - Simplified */}
-                      <div className="md:hidden mb-3">
+                      <div className="md:hidden mb-4 mt-2">
                         <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
                           <button
                             onClick={() => setViewMode('month')}
@@ -677,12 +686,12 @@ export default function CalendarPage() {
                                 <EventPill
                                   title={event.summary}
                                   time={isAllDay(event.start) ? undefined : formatDate(event.start.dateTime)}
+                                  endTime={isAllDay(event.start) ? undefined : formatDate(event.end.dateTime)}
                                   isHoliday={event.isHoliday}
                                   source={event.source === 'holiday' ? 'holiday' : 'primary'}
                                   onClick={() => {
-                                    if (event.htmlLink) {
-                                      window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
-                                    }
+                                    setSelectedEvent(event)
+                                    setIsEventDetailsOpen(true)
                                   }}
                                 />
                               )}
@@ -769,10 +778,10 @@ export default function CalendarPage() {
                         </div>
                       </div>
 
-                      {/* Floating Add Event button for mobile - Improved positioning */}
+                      {/* Floating Add Event button for mobile - Improved positioning to avoid overlap */}
                       <button
                         onClick={() => handleAddEvent()}
-                        className="md:hidden fixed bottom-20 sm:bottom-24 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40 pb-safe"
+                        className="md:hidden fixed bottom-32 sm:bottom-36 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40 pb-safe"
                         aria-label="Add event"
                       >
                         <Plus className="w-6 h-6" />
@@ -796,6 +805,15 @@ export default function CalendarPage() {
                       date={selectedDay}
                       events={getEventsForDay(selectedDay)}
                       onAddEvent={handleAddEvent}
+                    />
+                  )}
+
+                  {/* Event Details Modal */}
+                  {selectedEvent && (
+                    <EventDetailsModal
+                      isOpen={isEventDetailsOpen}
+                      onClose={() => setIsEventDetailsOpen(false)}
+                      event={selectedEvent}
                     />
                   )}
                 </>
