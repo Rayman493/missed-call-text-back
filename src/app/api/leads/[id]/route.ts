@@ -38,8 +38,32 @@ export async function PATCH(
 
     const leadId = params.id;
     const body = await request.json();
-    const { status } = body;
+    const { status, deleted_at, deleted_by, deletion_reason } = body;
 
+    // Handle restore operation (when deleted_at is explicitly set to null)
+    if (deleted_at === null) {
+      const { data: updatedLead, error: updateError } = await supabase
+        .from('leads')
+        .update({
+          deleted_at: null,
+          deleted_by: null,
+          deletion_reason: null
+        })
+        .eq('id', leadId)
+        .eq('business_id', business.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error restoring lead:', updateError);
+        return NextResponse.json({ error: 'Failed to restore lead' }, { status: 500 });
+      }
+
+      console.log('[LEAD RESTORE] Lead restored successfully:', { leadId, businessId: business.id, userId: user.id });
+      return NextResponse.json({ lead: updatedLead });
+    }
+
+    // Handle status update
     if (!status) {
       return NextResponse.json({ error: 'Status is required' }, { status: 400 });
     }

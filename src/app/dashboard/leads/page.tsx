@@ -503,32 +503,32 @@ export default function LeadsPage() {
 
   // Filter leads
   const filteredLeads = leads.filter(lead => {
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       lead.caller_phone.includes(searchQuery) ||
       lead.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       normalizePhoneNumberForSearch(lead.caller_phone).includes(normalizePhoneNumberForSearch(searchQuery)) ||
-      (lead.messages && lead.messages.some((m: any) => 
+      (lead.messages && lead.messages.some((m: any) =>
         m.body.toLowerCase().includes(searchQuery.toLowerCase())
       ))
-    
+
     const leadStatus = getLeadLifecycleStatus(lead)
     const isDeleted = !!lead.deleted_at
-    
+
     // Handle Deleted filter specifically
     if (statusFilter === 'deleted') {
       return matchesSearch && isDeleted
     }
-    
+
     const matchesStatus = statusFilter === 'all' || leadStatus === statusFilter
-    
+
     // Hide ignored leads from default view (when filter is 'all')
     const isIgnored = leadStatus === 'ignored'
     const showIgnored = statusFilter === 'ignored'
     const shouldShowIgnored = showIgnored || statusFilter !== 'all'
-    
+
     // Hide deleted leads from default view (when filter is not 'deleted')
     const shouldShowDeleted = !isDeleted
-    
+
     return matchesSearch && matchesStatus && (shouldShowIgnored || !isIgnored) && shouldShowDeleted
   })
 
@@ -817,11 +817,11 @@ export default function LeadsPage() {
             {/* Lifecycle Summary Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-4 sm:mb-6">
               <StatCard
-                value={leads.filter(l => getLeadLifecycleStatus(l) === 'new').length}
+                value={leads.filter(l => getLeadLifecycleStatus(l) === 'new' && !l.deleted_at).length}
                 label="New Leads"
                 description={
-                  leads.filter(l => getLeadLifecycleStatus(l) === 'new').length === 0 
-                    ? 'Awaiting Contact' 
+                  leads.filter(l => getLeadLifecycleStatus(l) === 'new' && !l.deleted_at).length === 0
+                    ? 'Awaiting Contact'
                     : 'Waiting For Reply'
                 }
                 icon="👥"
@@ -829,11 +829,11 @@ export default function LeadsPage() {
                 isInteractive={false}
               />
               <StatCard
-                value={leads.filter(l => getLeadLifecycleStatus(l) === 'active').length}
+                value={leads.filter(l => getLeadLifecycleStatus(l) === 'active' && !l.deleted_at && l.payment_status !== 'paid').length}
                 label="Active Leads"
                 description={
-                  leads.filter(l => getLeadLifecycleStatus(l) === 'active').length === 0 
-                    ? 'No active leads' 
+                  leads.filter(l => getLeadLifecycleStatus(l) === 'active' && !l.deleted_at && l.payment_status !== 'paid').length === 0
+                    ? 'No active leads'
                     : 'Leads being worked on'
                 }
                 icon="💬"
@@ -841,11 +841,11 @@ export default function LeadsPage() {
                 isInteractive={false}
               />
               <StatCard
-                value={leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length}
+                value={leads.filter(l => getLeadLifecycleStatus(l) === 'completed' && !l.deleted_at).length}
                 label="Completed Leads"
                 description={
-                  leads.filter(l => getLeadLifecycleStatus(l) === 'completed').length === 0 
-                    ? 'No completed leads yet' 
+                  leads.filter(l => getLeadLifecycleStatus(l) === 'completed' && !l.deleted_at).length === 0
+                    ? 'No completed leads yet'
                     : 'Successfully completed'
                 }
                 icon="📅"
@@ -856,8 +856,8 @@ export default function LeadsPage() {
                 value={ignoredContactsCount}
                 label="Ignored Contacts"
                 description={
-                  ignoredContactsCount === 0 
-                    ? 'No Blocked Contacts' 
+                  ignoredContactsCount === 0
+                    ? 'No Blocked Contacts'
                     : 'Blocked From Automation'
                 }
                 icon="🚫"
