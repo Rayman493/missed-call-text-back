@@ -1786,7 +1786,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
               
               {/* Action Buttons */}
-              <div className="flex items-center gap-0.5 flex-shrink-0 relative">
+              <div className="flex items-center gap-1 flex-shrink-0 relative">
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
