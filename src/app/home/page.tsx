@@ -144,6 +144,8 @@ export default function PublicHome() {
   const [activeTab, setActiveTab] = useState('ai')
   const { user } = useAuth()
   console.log('[PUBLIC HOME ROUTE RENDER] Rendering public homepage at /home - NO AUTH CHECK')
+
+  const isLoggedIn = !!user
   
   // Render public homepage for all users (no auth check)
   return (
@@ -162,152 +164,216 @@ export default function PublicHome() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="flex flex-col items-center text-center"
           >
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.15] text-slate-900 dark:text-foreground">
-              Turn Missed Calls Into Paying Customers
-            </h1>
-            <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-3xl leading-relaxed mt-5 sm:mt-6">
-              Built for service businesses with a dedicated business phone number. Automatically text back missed callers, capture leads, and recover lost revenue. Fast setup.
-            </p>
-
-            {/* Benefit Bullets - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
-            <div className="mt-8">
-              <div className="flex flex-col items-center space-y-3">
-                <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
-                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-base">Automatic text-back</span>
-                </div>
-                <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
-                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-base">Instant lead capture</span>
-                </div>
-                <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
-                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-base">Your existing business number</span>
-                </div>
-                <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
-                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-base">Fast setup</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Pricing Information */}
-            <div id="pricing-section" className="flex flex-col items-center gap-2 mt-4">
-              <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
-              <span className="text-slate-700 dark:text-foreground text-lg">$59/month after trial</span>
-            </div>
-
-            {/* Trust Copy */}
-            <div className="flex flex-col items-center gap-2 mt-3">
-              <span className="text-slate-500 dark:text-muted-foreground text-sm">No contracts. Cancel anytime.</span>
-              <span className="text-slate-500 dark:text-muted-foreground text-sm">Keep using the business number you already advertise everywhere.</span>
-            </div>
-
-            {/* Business Number Note */}
-            <div className="mt-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-md">
-                <p className="text-sm text-blue-800 dark:text-blue-200 font-semibold mb-1">Best experience: Dedicated business number</p>
-                <p className="text-xs text-blue-700 dark:text-blue-300">
-                  ReplyFlow is designed for service businesses with a dedicated business phone number. Businesses using one phone for both business and personal calls are still fully supported, though a dedicated business number provides the most seamless experience.
+            {isLoggedIn ? (
+              <>
+                {/* Logged-in Hero */}
+                <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.15] text-slate-900 dark:text-foreground">
+                  Never Miss a Lead Again
+                </h1>
+                <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-3xl leading-relaxed mt-5 sm:mt-6">
+                  AI Voice answers your missed calls, collects customer information, and automatically follows up while you're busy.
                 </p>
-              </div>
-            </div>
 
-            {/* Trust Indicators */}
-            <div className="mt-6">
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-3 text-center">
-                Works with your existing business number
-              </p>
-              <div className="flex flex-wrap justify-center gap-2">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-                  <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Verizon</span>
+                {/* Trust Bullets for Logged-in Users */}
+                <div className="mt-10">
+                  <div className="flex flex-col items-center space-y-3">
+                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-base">14-Day Free Trial</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-base">$59/month after trial</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-base">Keep Your Existing Number</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-base">Setup In Under 5 Minutes</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-base">No Contracts</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-                  <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">AT&T</span>
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-                  <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">T-Mobile</span>
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-                  <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Google Voice</span>
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-                  <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">RingCentral</span>
-                </div>
-              </div>
-            </div>
 
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-              {/* Primary CTA */}
-              <Link
-                href={user ? "/dashboard" : "/signup"}
-                className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
-              >
-                {user ? "Go to Dashboard" : "Start Free Trial"}
-              </Link>
-            </div>
+                {/* Subtle Dashboard Link */}
+                <div className="mt-8">
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground text-sm font-medium transition-colors"
+                  >
+                    Open Dashboard
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Logged-out Hero - Keep existing */}
+                <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.15] text-slate-900 dark:text-foreground">
+                  Turn Missed Calls Into Paying Customers
+                </h1>
+                <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-3xl leading-relaxed mt-5 sm:mt-6">
+                  Built for service businesses with a dedicated business phone number. Automatically text back missed callers, capture leads, and recover lost revenue. Fast setup.
+                </p>
 
-            {/* Works For Section - Mobile Conversion */}
-            <div className="mt-6 sm:mt-8">
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3 text-center">
-                Works for:
-              </p>
-              <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Plumbers</span>
+                {/* Benefit Bullets - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
+                <div className="mt-8">
+                  <div className="flex flex-col items-center space-y-3">
+                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-base">Automatic text-back</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-base">Instant lead capture</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-base">Your existing business number</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-base">Fast setup</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">HVAC</span>
+
+                {/* Pricing Information */}
+                <div id="pricing-section" className="flex flex-col items-center gap-2 mt-4">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
+                  <span className="text-slate-700 dark:text-foreground text-lg">$59/month after trial</span>
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Electricians</span>
+
+                {/* Trust Copy */}
+                <div className="flex flex-col items-center gap-2 mt-3">
+                  <span className="text-slate-500 dark:text-muted-foreground text-sm">No contracts. Cancel anytime.</span>
+                  <span className="text-slate-500 dark:text-muted-foreground text-sm">Keep using the business number you already advertise everywhere.</span>
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Landscapers</span>
+
+                {/* Business Number Note */}
+                <div className="mt-4">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-md">
+                    <p className="text-sm text-blue-800 dark:text-blue-200 font-semibold mb-1">Best experience: Dedicated business number</p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      ReplyFlow is designed for service businesses with a dedicated business phone number. Businesses using one phone for both business and personal calls are still fully supported, though a dedicated business number provides the most seamless experience.
+                    </p>
+                  </div>
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Contractors</span>
+
+                {/* Trust Indicators */}
+                <div className="mt-6">
+                  <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-3 text-center">
+                    Works with your existing business number
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                      <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Verizon</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                      <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">AT&T</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                      <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">T-Mobile</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                      <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Google Voice</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                      <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">RingCentral</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+                  {/* Primary CTA */}
+                  <Link
+                    href="/signup"
+                    className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
+                  >
+                    Start Free Trial
+                  </Link>
+                </div>
+
+                {/* Works For Section - Mobile Conversion */}
+                <div className="mt-6 sm:mt-8">
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3 text-center">
+                    Works for:
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                      <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Plumbers</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                      <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">HVAC</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                      <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Electricians</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                      <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Landscapers</span>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                      <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Contractors</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* UI Mockup */}
             <motion.div
