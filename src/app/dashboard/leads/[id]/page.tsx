@@ -1952,9 +1952,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         
         {/* Desktop Layout */}
         <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] gap-8 items-start">
-          {/* Desktop Conversation Section - Simplified */}
-          <section className="flex flex-col min-h-0">
-            {/* Desktop Message Thread - Reduced Borders */}
+          {/* Desktop Conversation Section - Independent Scroll */}
+          <section className="flex flex-col min-h-0 h-[calc(100vh-280px)]">
+            {/* Desktop Message Thread - Scrollable */}
             <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth p-0 min-h-0" style={{ minHeight: '200px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
@@ -1982,7 +1982,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               )}
             </div>
 
-            {/* Desktop Message Composer - Reduced Border */}
+            {/* Desktop Message Composer - Fixed to Bottom */}
             <div className="shrink-0 border-t border-border/40 pt-4">
               <ConversationComposer
                 message={message}
@@ -1999,13 +1999,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Sidebar - Simplified */}
           <aside className="sticky top-6 overflow-y-auto max-h-[calc(100vh-230px)]" data-sidebar>
             <div className="space-y-6">
-              {/* Consolidated Information Panel */}
-              <div className="bg-card rounded-xl border border-border/30 shadow-sm p-5">
+              {/* Consolidated Information Panel - Simplified */}
+              <div className="bg-card rounded-lg border border-border/30 p-5">
                 <div className="space-y-5">
                   {/* AI Intake Summary */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
                     <div>
-                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">AI Intake</h3>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-3">AI Intake</h3>
                       <AICallDetails
                         leadId={params.id}
                         businessId={business.id}
@@ -2022,12 +2022,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <VoicemailSummary leadData={leadData} />
                   )}
 
-                  {/* Lead Health */}
+                  {/* Lead Health - Simplified */}
                   <div>
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Lead Health</h3>
-                    <div className="space-y-2.5">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-3">Lead Health</h3>
+                    <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">AI Intake</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">AI Intake</span>
                         <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
                           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 ? (() => {
                             const latestAiRecord = leadData.aiCallRecords[0];
@@ -2048,7 +2048,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             );
                           })() : (
                             <>
-                              <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                               </svg>
                               Not Started
@@ -2057,7 +2057,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Customer Replied</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">Customer Replied</span>
                         <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
                           {leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied') ? (
                             <>
@@ -2068,7 +2068,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             </>
                           ) : (
                             <>
-                              <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                               </svg>
                               No
@@ -2077,24 +2077,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Corrections</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">Corrections</span>
                         <span className="text-sm font-medium text-foreground">
                           {leadData?.raw_metadata?.corrected_fields ? Object.keys(leadData.raw_metadata.corrected_fields).length : 0}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Follow-Ups</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">Follow-Ups</span>
                         <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
                           {!followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0 ? (
                             <>
-                              <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                               </svg>
                               Not Configured
                             </>
                           ) : !followUpSettings.enabled ? (
                             <>
-                              <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                               </svg>
                               Disabled
@@ -2126,10 +2126,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </div>
                   </div>
 
-                  {/* Photos Received */}
+                  {/* Photos Received - Simplified */}
                   {Object.keys(messageMedia).length > 0 && (
                     <div>
-                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Photos</h3>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-3">Photos</h3>
                       <div className="grid grid-cols-2 gap-2">
                         {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (
                           media.urls.slice(0, 1).map((url: string, idx: number) => (
@@ -2144,7 +2144,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               <img
                                 src={url}
                                 alt="Customer photo"
-                                className="w-full h-24 object-cover rounded-lg border border-slate-200 dark:border-slate-700 hover:opacity-90 transition-opacity"
+                                className="w-full h-24 object-cover rounded-lg border border-slate-200/50 dark:border-slate-700/50 hover:opacity-90 transition-opacity"
                                 loading="lazy"
                               />
                             </div>
@@ -2168,17 +2168,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
         
         {/* Mobile Layout */}
-        <div className="lg:hidden space-y-0">
-          {/* Mobile Quick Actions */}
-          <div className="bg-card border border-border/50 rounded-xl p-2 shadow-sm">
-            <div className="flex items-center gap-1.5 overflow-x-auto">
+        <div className="lg:hidden space-y-3">
+          {/* Mobile Quick Actions - Improved touch targets */}
+          <div className="bg-card border border-border/50 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center gap-2 overflow-x-auto">
               {(leadData?.phone_number || lead?.phone) && (leadData?.phone_number || lead?.phone) !== '+10000000000' && (
                 <a
                   href={`tel:${leadData?.phone_number || lead?.phone}`}
-                  className="flex items-center gap-1 px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors flex-shrink-0"
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
                   title="Call customer"
                 >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
                   </svg>
                   <span>Call</span>
@@ -2189,10 +2189,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   const composer = document.querySelector('textarea')
                   if (composer) composer.focus()
                 }}
-                className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full transition-colors border border-blue-200 dark:border-blue-800 flex-shrink-0"
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium rounded-lg transition-colors border border-blue-200 dark:border-blue-800 flex-shrink-0"
                 title="Send text message"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
                 <span>Text</span>
@@ -2200,20 +2200,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 onClick={() => setShowPaymentModal(true)}
                 disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
-                className="flex items-center gap-1 px-2.5 py-1.5 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium rounded-full transition-colors border border-purple-200 dark:border-purple-800 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-medium rounded-lg transition-colors border border-purple-200 dark:border-purple-800 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                 title={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' ? 'Connect Stripe in Settings to request payments' : 'Request payment'}
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
                 <span>Pay</span>
               </button>
               <button
                 onClick={() => setShowLeadInfo(!showLeadInfo)}
-                className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900/20 hover:bg-slate-100 dark:hover:bg-slate-900/30 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-full transition-colors border border-slate-200 dark:border-slate-800 flex-shrink-0"
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/20 hover:bg-slate-100 dark:hover:bg-slate-900/30 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg transition-colors border border-slate-200 dark:border-slate-800 flex-shrink-0"
                 title="More actions"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                 </svg>
                 <span>More</span>
@@ -2221,40 +2221,40 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
           
-          {/* Lead Overview Card - Unified AI Intake + Lead Status */}
+          {/* Lead Overview Card - Unified AI Intake + Lead Status - Mobile optimized */}
           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id ? (
-            <div className="bg-card border border-border/50 rounded-xl p-1.5">
-              <div className="flex items-center justify-between mb-1">
+            <div className="bg-card border border-border/50 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-2">
                 <button
                   onClick={() => setCollapsedSections((prev: any) => ({ ...prev, aiIntake: !prev.aiIntake }))}
                   className="flex items-center gap-1.5"
                 >
-                  <svg className="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <h3 className="text-xs font-semibold text-foreground">Lead Overview</h3>
-                  <svg className={`w-3 h-3 text-muted-foreground transition-transform duration-200 ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <h3 className="text-sm font-medium text-foreground">Lead Overview</h3>
+                  <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
                 {(followUpSettings?.enabled || (followUpJobs && followUpJobs.length > 0)) && (
                   <button
                     onClick={() => router.push('/dashboard/settings/follow-ups')}
-                    className="px-2 py-1 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-500 text-[10px] font-medium rounded-lg transition-colors duration-200 border border-slate-200 dark:border-slate-700/50"
+                    className="px-2.5 py-1 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-500 text-xs font-medium rounded-lg transition-colors duration-200 border border-slate-200 dark:border-slate-700/50"
                   >
                     Configure
                   </button>
                 )}
               </div>
               {collapsedSections.aiIntake && (
-                <div className="mt-1 text-[10px] text-muted-foreground transition-all duration-200">
+                <div className="mt-1 text-xs text-muted-foreground transition-all duration-200">
                   <span className="font-medium text-foreground">{leadData?.raw_metadata?.extracted_info?.callerName || leadData?.caller_name || 'Customer'}</span>
                   {' • '}
                   {leadData?.raw_metadata?.extracted_info?.reasonForCalling || leadData?.raw_metadata?.extracted_info?.reason || leadData?.reason || 'Service request'}
                 </div>
               )}
               {!collapsedSections.aiIntake && (
-                <div className="mt-1.5 transition-all duration-200">
+                <div className="mt-2 transition-all duration-200">
                   <AICallDetails
                     leadId={params.id}
                     businessId={business.id}
@@ -2264,11 +2264,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   />
                 </div>
               )}
-              <div className="flex flex-wrap gap-1 mt-2">
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all duration-200 ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
                   {leadData?.status || lead?.status || 'New'}
                 </span>
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all duration-200 ${
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${
                   leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
                     ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
                     : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
@@ -2281,10 +2281,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       ? 'Voicemail Complete'
                       : 'Intake Incomplete'}
                 </span>
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all duration-200 ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50'}`}>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50'}`}>
                   {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Replied' : 'No Reply'}
                 </span>
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all duration-200 ${
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${
                   followUpJobs && followUpJobs.length > 0
                     ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
                       ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
@@ -2308,23 +2308,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             </div>
           ) : (
-            <div className="bg-card border border-border/50 rounded-xl p-1.5">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-xs font-semibold text-foreground">Lead Overview</h3>
+            <div className="bg-card border border-border/50 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-foreground">Lead Overview</h3>
                 {(followUpSettings?.enabled || (followUpJobs && followUpJobs.length > 0)) && (
                   <button
                     onClick={() => router.push('/dashboard/settings/follow-ups')}
-                    className="px-2 py-1 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-500 text-[10px] font-medium rounded-lg transition-colors duration-200 border border-slate-200 dark:border-slate-700/50"
+                    className="px-2.5 py-1 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-500 text-xs font-medium rounded-lg transition-colors duration-200 border border-slate-200 dark:border-slate-700/50"
                   >
                     Configure
                   </button>
                 )}
               </div>
-              <div className="flex flex-wrap gap-1">
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all duration-200 ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
+              <div className="flex flex-wrap gap-1.5">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
                   {leadData?.status || lead?.status || 'New'}
                 </span>
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all duration-200 ${
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${
                   leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
                     ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
                     : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
@@ -2337,10 +2337,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       ? 'Voicemail Complete'
                       : 'Intake Incomplete'}
                 </span>
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all duration-200 ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50'}`}>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50'}`}>
                   {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Replied' : 'No Reply'}
                 </span>
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium transition-all duration-200 ${
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${
                   followUpJobs && followUpJobs.length > 0
                     ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
                       ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
@@ -2365,12 +2365,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
-          {/* Conversation Section - Self-contained messaging experience */}
-          <div className="bg-card border border-border/50 rounded-xl lg:hidden flex flex-col overflow-hidden" style={{ height: 'min(580px, 65vh)' }}>
-            <div className="px-3 py-2 flex-shrink-0 flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-foreground">Conversation</h3>
+          {/* Conversation Section - Self-contained messaging experience - Mobile optimized */}
+          <div className="bg-card border border-border/50 rounded-xl lg:hidden flex flex-col overflow-hidden" style={{ height: 'min(600px, 70vh)' }}>
+            <div className="px-4 py-3 flex-shrink-0 flex items-center justify-between border-b border-border/20">
+              <h3 className="text-sm font-medium text-foreground">Conversation</h3>
               {!loading && conversationTimeline.length > 0 && (
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {conversationTimeline.length === 1 ? '1 message' : `${conversationTimeline.length} messages`}
                 </p>
               )}
@@ -2407,8 +2407,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
             {/* Divider - Softer for natural integration */}
             <div className="border-t border-border/20 flex-shrink-0"></div>
-            {/* Composer - Integrated at bottom of card with breathing room */}
-            <div className="px-3 py-2.5 flex-shrink-0">
+            {/* Composer - Integrated at bottom with better mobile spacing */}
+            <div className="px-3 py-3 flex-shrink-0">
               {/* Image Previews */}
               {mobileImages.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
@@ -2417,7 +2417,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <img
                         src={URL.createObjectURL(file)}
                         alt="Preview"
-                        className="w-16 h-16 object-cover rounded-lg border border-slate-200 dark:border-slate-700 transition-opacity duration-200"
+                        className="w-16 h-16 object-cover rounded-lg border border-slate-700 transition-opacity duration-200"
                       />
                       <button
                         onClick={() => removeMobileImage(index)}
@@ -2436,10 +2436,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   type="button"
                   onClick={() => mobileFileInputRef.current?.click()}
-                  className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors duration-200 flex-shrink-0 h-10 flex items-center justify-center"
+                  className="p-2.5 text-slate-400 hover:text-slate-200 transition-colors duration-200 flex-shrink-0 h-11 flex items-center justify-center"
                   disabled={sending}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </button>
@@ -2456,13 +2456,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleMobileKeyDown}
                   placeholder="Type a message..."
-                  className="flex-1 min-h-[40px] max-h-[96px] px-3 py-2 bg-background border border-slate-200 dark:border-slate-700 rounded-xl text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="flex-1 min-h-[44px] max-h-[100px] px-3.5 py-2.5 bg-background border border-slate-700 rounded-xl text-base text-white placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   rows={1}
                 />
                 <button
                   onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
                   disabled={(!message.trim() && mobileImages.length === 0) || sending}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2 flex-shrink-0 h-10"
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2 flex-shrink-0 h-11"
                 >
                   {sending ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -2479,13 +2479,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* Internal Notes Card - Lightweight utility */}
-          <div className="bg-card border border-border/50 rounded-xl p-1.5">
-            <h3 className="text-[10px] font-semibold text-foreground mb-0.5">Internal Notes</h3>
+          {/* Internal Notes Card - Mobile optimized */}
+          <div className="bg-card border border-border/50 rounded-xl p-3">
+            <h3 className="text-sm font-medium text-foreground mb-2">Internal Notes</h3>
             {!internalNotesExpanded && !internalNotes ? (
               <button
                 onClick={() => setInternalNotesExpanded(true)}
-                className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 No internal notes yet. Tap to add.
               </button>
@@ -2495,7 +2495,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 onChange={(e) => setInternalNotes(e.target.value)}
                 onBlur={handleSaveNotes}
                 placeholder="Add internal notes..."
-                className="w-full min-h-[32px] max-h-[72px] px-2 py-1.5 bg-background border border-border rounded-lg text-[11px] text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full min-h-[40px] max-h-[80px] px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 rows={1}
               />
             )}

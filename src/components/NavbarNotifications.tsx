@@ -352,34 +352,34 @@ export default function NavbarNotifications() {
         )}
       </button>
 
-      {/* Dropdown - Rendered via Portal to document.body */}
+      {/* Dropdown - Rendered via Portal to document.body - Improved mobile */}
       {isOpen && buttonPosition && createPortal(
         <>
           {/* Mobile backdrop */}
           {isMobile && (
-            <div 
+            <div
               className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 animate-in fade-in duration-200"
               onClick={() => setIsOpen(false)}
             />
           )}
-          <div 
+          <div
             ref={dropdownRef}
             className={`${
-            isMobile 
-              ? 'fixed left-4 right-4 top-16 max-w-sm mx-auto bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-[1000] max-h-[calc(100vh-120px)] overflow-hidden animate-in slide-in-from-top-2 duration-200'
+            isMobile
+              ? 'fixed left-3 right-3 sm:left-4 sm:right-4 top-16 sm:top-20 max-w-sm mx-auto bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-[1000] max-h-[calc(100vh-140px)] sm:max-h-[calc(100vh-160px)] overflow-hidden animate-in slide-in-from-top-2 duration-200'
               : 'fixed bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-[1000] animate-in fade-in slide-in-from-top-2 duration-200'
           }`}
           style={!isMobile ? { top: `${buttonPosition.top + 8}px`, right: `${buttonPosition.right}px`, width: '400px' } : undefined}
           >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+          {/* Header - Improved mobile padding */}
+          <div className="flex items-center justify-between px-4 py-3 sm:px-4 sm:py-3 border-b border-slate-200 dark:border-slate-700">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Notifications</h3>
-            
+
             <div className="flex items-center gap-1">
               {notifications.length > 0 && (
                 <button
                   onClick={handleClearAll}
-                  className="px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  className="px-2.5 py-1.5 sm:px-2.5 sm:py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                   title="Clear all notifications"
                 >
                   Clear all
@@ -388,7 +388,7 @@ export default function NavbarNotifications() {
               {notificationCount.unread > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
-                  className="px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  className="px-2.5 py-1.5 sm:px-2.5 sm:py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                 >
                   Mark all as read
                 </button>
@@ -396,8 +396,8 @@ export default function NavbarNotifications() {
             </div>
           </div>
 
-          {/* Notifications List */}
-          <div className="max-h-96 overflow-y-auto p-3">
+          {/* Notifications List - Improved mobile spacing */}
+          <div className="max-h-96 overflow-y-auto p-2 sm:p-3">
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
@@ -437,9 +437,9 @@ export default function NavbarNotifications() {
                                 key={notification.id}
                                 className={`group relative rounded-lg border transition-all duration-200 cursor-pointer ${
                                   notification.read 
-                                    ? 'bg-white dark:bg-card border-slate-200 dark:border-slate-700 opacity-75' 
-                                    : 'bg-slate-50 dark:bg-slate-800/50 border-slate-300 dark:border-slate-600 shadow-sm'
-                                } hover:border-slate-400 dark:hover:border-slate-500 hover:shadow-md ${getNotificationAccent(notification.type)}`}
+                                    ? 'bg-card border-slate-700 opacity-75' 
+                                    : 'bg-slate-800/50 border-slate-600 shadow-sm'
+                                } hover:border-slate-500 hover:shadow-md ${getNotificationAccent(notification.type)}`}
                                 onClick={() => {
                                   if (notification.action_url) {
                                     if (!notification.read) {
@@ -449,10 +449,10 @@ export default function NavbarNotifications() {
                                   }
                                 }}
                               >
-                                <div className="flex items-start gap-3 p-4">
+                                <div className="flex items-start gap-3 p-3 sm:p-4">
                                   {/* Icon */}
                                   <div className="flex-shrink-0 mt-0.5">
-                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${notification.read ? 'bg-slate-100 dark:bg-slate-800' : 'bg-white dark:bg-slate-700'}`}>
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${notification.read ? 'bg-slate-800' : 'bg-slate-700'}`}>
                                       {getNotificationIcon(notification.type)}
                                     </div>
                                   </div>
@@ -460,23 +460,23 @@ export default function NavbarNotifications() {
                                   <div className="flex-1 min-w-0">
                                     {/* Title with timestamp */}
                                     <div className="flex items-start justify-between mb-1">
-                                      <h4 className={`text-base ${notification.read ? 'font-medium text-slate-600 dark:text-slate-400' : 'font-semibold text-slate-900 dark:text-foreground'}`}>
+                                      <h4 className={`text-sm sm:text-base ${notification.read ? 'font-medium text-slate-400' : 'font-semibold text-foreground'}`}>
                                         {notification.title}
                                       </h4>
-                                      <span className="text-xs text-slate-400 dark:text-slate-500 flex-shrink-0 ml-2 whitespace-nowrap">
+                                      <span className="text-xs text-slate-500 flex-shrink-0 ml-2 whitespace-nowrap">
                                         {formatTime(notification.created_at)}
                                       </span>
                                     </div>
                                     
                                     {/* Customer name or phone number */}
                                     {displayName && (
-                                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                      <p className="text-xs sm:text-sm font-medium text-slate-300 mb-1">
                                         {displayName}
                                       </p>
                                     )}
                                     
                                     {/* Message preview - single line truncated */}
-                                    <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
+                                    <p className="text-xs sm:text-sm text-slate-400 truncate">
                                       {notification.message}
                                     </p>
                                   </div>
@@ -497,7 +497,7 @@ export default function NavbarNotifications() {
                                         e.stopPropagation()
                                         handleMarkAsRead(notification.id)
                                       }}
-                                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+                                      className="p-1.5 text-slate-400 hover:text-slate-300 hover:bg-slate-800 rounded-md transition-colors"
                                       title="Mark as read"
                                     >
                                       <Check className="w-3.5 h-3.5" />
@@ -505,7 +505,7 @@ export default function NavbarNotifications() {
                                   )}
                                   <button
                                     onClick={(e) => handleDeleteNotification(notification.id, e)}
-                                    className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+                                    className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-md transition-colors"
                                     title="Delete notification"
                                   >
                                     <X className="w-3.5 h-3.5" />
@@ -525,11 +525,11 @@ export default function NavbarNotifications() {
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div className="p-3 border-t border-slate-200 dark:border-slate-700">
+            <div className="p-3 border-t border-slate-700">
               <Link
                 href="/dashboard/notifications"
                 onClick={() => setIsOpen(false)}
-                className="block w-full px-4 py-2.5 text-center text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                className="block w-full px-4 py-2.5 text-center text-sm font-medium text-slate-400 hover:text-foreground hover:bg-slate-800 rounded-lg transition-colors"
               >
                 View all notifications →
               </Link>

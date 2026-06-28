@@ -923,13 +923,13 @@ export default function DashboardContent() {
     <DashboardErrorBoundary debugInfo={debugInfo}>
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-[#f5f7fb] dark:bg-background flex flex-col relative">
+          <div className="min-h-screen bg-background flex flex-col relative">
             {/* App Header */}
             <AppHeader showNavigation={true} />
 
-            {/* Main Content */}
-            <div className="flex-1 pt-2 sm:pt-3 lg:pt-4 px-3 sm:px-4 lg:px-6 pb-8 relative z-10">
-              <div className="max-w-[1400px] mx-auto space-y-1.5 sm:space-y-2 lg:space-y-3">
+            {/* Main Content - Improved mobile spacing */}
+            <div className="flex-1 pt-3 sm:pt-4 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-20 sm:pb-8 relative z-10">
+              <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-4 lg:space-y-6">
 
                 {/* Single Collapsible Setup/Status Card - Consolidates all onboarding/health/status banners */}
                 <SectionErrorBoundary sectionName="SetupStatusCard">
@@ -940,17 +940,17 @@ export default function DashboardContent() {
                   />
                 </SectionErrorBoundary>
 
-                {/* Out of Office Mode Banner */}
+                {/* Out of Office Mode Banner - Simplified with mobile padding */}
                 {business && isBusinessOutOfOffice(business) && (
                   <SectionErrorBoundary sectionName="OutOfOfficeBanner">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl p-4 shadow-sm">
-                      <div className="flex items-start gap-3">
-                        <CalendarOff className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div className="bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200/60 dark:border-blue-800/40 rounded-lg p-3 sm:p-4">
+                      <div className="flex items-start gap-2 sm:gap-3">
+                        <CalendarOff className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
-                          <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                            Out of Office Mode is currently active
+                          <h3 className="text-xs sm:text-sm font-semibold text-blue-900 dark:text-blue-100 mb-0.5 sm:mb-1">
+                            Out of Office Mode is active
                           </h3>
-                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                          <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-300">
                             Customers are being informed that responses may be delayed.
                           </p>
                           {(() => {
@@ -958,7 +958,7 @@ export default function DashboardContent() {
                             if (status.status === 'active' && status.endDate) {
                               const daysRemaining = status.daysRemaining
                               return (
-                                <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-1">
+                                <p className="text-[10px] sm:text-[10px] text-blue-600 dark:text-blue-400 mt-0.5 sm:mt-1">
                                   Returning {status.endDate.toLocaleDateString()}{daysRemaining !== undefined ? ` (${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining)` : ''}
                                 </p>
                               )
@@ -968,7 +968,7 @@ export default function DashboardContent() {
                         </div>
                         <Link
                           href="/dashboard/settings#out-of-office"
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium flex-shrink-0"
+                          className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium flex-shrink-0"
                         >
                           Settings
                         </Link>
@@ -995,14 +995,14 @@ export default function DashboardContent() {
 
                     {/* Dashboard Metrics - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="DashboardMetrics">
-                      <div className={`mb-4 transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                      <div className={`transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
                         <DashboardMetrics business={business} />
                       </div>
                     </SectionErrorBoundary>
 
                     {/* Latest Lead Section - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
-                      <div className={`transition-opacity duration-300 mb-4 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                      <div className={`transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
                         {business?.id && (
                           <RecentLeadsSection
                             businessId={business.id}
@@ -1017,7 +1017,7 @@ export default function DashboardContent() {
 
                     {/* Recent Activity Card - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="RecentActivityCard">
-                      <div className={`mb-4 transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                      <div className={`transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
                         <RecentActivityCard business={business} />
                       </div>
                     </SectionErrorBoundary>
@@ -1029,21 +1029,21 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Beta Feedback Card */}
+                    {/* Beta Feedback Card - Simplified with mobile padding */}
                     <SectionErrorBoundary sectionName="BetaFeedbackCard">
-                      <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-700/40 rounded-lg p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                           <div className="flex-1">
-                            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                            <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2">
                               💬 Beta Feedback
                             </h3>
-                            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                              Found a bug or have an idea? We'd love to hear your feedback as we improve ReplyFlow.
+                            <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 sm:mt-1">
+                              Found a bug or have an idea? We'd love to hear your feedback.
                             </p>
                           </div>
                           <button
                             onClick={() => setShowBetaFeedbackModal(true)}
-                            className="inline-flex items-center justify-center px-4 py-2 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all border border-slate-200 dark:border-slate-600"
+                            className="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 text-xs font-medium rounded-lg transition-colors border border-slate-200 dark:border-slate-600"
                           >
                             Share Feedback
                           </button>
@@ -1051,23 +1051,23 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Payments Shortcut Card */}
+                    {/* Payments Shortcut Card - Simplified with mobile padding */}
                     <SectionErrorBoundary sectionName="PaymentsShortcutCard">
                       <Link href="/dashboard/payments" className="block">
-                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer">
-                          <div className="flex items-center justify-between gap-4">
+                        <div className="bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-700/40 rounded-lg p-3 sm:p-4 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer">
+                          <div className="flex items-center justify-between gap-3 sm:gap-4">
                             <div className="flex-1">
-                              <h3 className="text-base font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                                 </svg>
                                 Payments
                               </h3>
-                              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                              <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 sm:mt-1">
                                 Manage payment requests and view transaction history
                               </p>
                             </div>
-                            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                           </div>

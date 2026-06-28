@@ -1087,65 +1087,65 @@ export default function SettingsContent() {
                 </p>
               </div>
 
-              {/* Settings Navigation Tabs */}
+              {/* Settings Navigation Tabs - Improved mobile touch targets */}
               <div className="py-2 sm:py-2.5">
-                <nav className="flex items-center gap-1.5 sm:gap-2">
+                <nav className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-hide">
                   <button
                     onClick={() => handleSectionClick('general')}
-                    className={`px-2.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
+                    className={`px-3 sm:px-4 py-2.5 sm:py-2.5 text-xs sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                       activeSection === 'general'
                         ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                        : 'text-slate-400 hover:text-foreground hover:bg-slate-800/50'
                     }`}
                   >
                     General
                   </button>
                   <button
                     onClick={() => handleSectionClick('automation')}
-                    className={`px-2.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
+                    className={`px-3 sm:px-4 py-2.5 sm:py-2.5 text-xs sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                       activeSection === 'automation'
                         ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                        : 'text-slate-400 hover:text-foreground hover:bg-slate-800/50'
                     }`}
                   >
                     Automation
                   </button>
                   <button
                     onClick={() => handleSectionClick('integrations')}
-                    className={`px-2.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
+                    className={`px-3 sm:px-4 py-2.5 sm:py-2.5 text-xs sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                       activeSection === 'integrations'
                         ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                        : 'text-slate-400 hover:text-foreground hover:bg-slate-800/50'
                     }`}
                   >
                     Integrations
                   </button>
                   <button
                     onClick={() => handleSectionClick('payments')}
-                    className={`px-2.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
+                    className={`px-3 sm:px-4 py-2.5 sm:py-2.5 text-xs sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                       activeSection === 'payments'
                         ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                        : 'text-slate-400 hover:text-foreground hover:bg-slate-800/50'
                     }`}
                   >
                     Payments
                   </button>
                   <button
                     onClick={() => handleSectionClick('contacts')}
-                    className={`px-2.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
+                    className={`px-3 sm:px-4 py-2.5 sm:py-2.5 text-xs sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                       activeSection === 'contacts'
                         ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                        : 'text-slate-400 hover:text-foreground hover:bg-slate-800/50'
                     }`}
                   >
                     Contacts
                   </button>
                   <button
                     onClick={() => handleSectionClick('account')}
-                    className={`px-2.5 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-1 sm:flex-none ${
+                    className={`px-3 sm:px-4 py-2.5 sm:py-2.5 text-xs sm:text-sm font-medium rounded-md sm:rounded-xl transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                       activeSection === 'account'
                         ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-600/20'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                        : 'text-slate-400 hover:text-foreground hover:bg-slate-800/50'
                     }`}
                   >
                     Account
@@ -1159,25 +1159,25 @@ export default function SettingsContent() {
             {/* Settings Sections */}
             <div className="space-y-6 sm:space-y-8 pb-40">
               {/* Business Info Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-5 sm:p-8 scroll-mt-[220px]">
+              <div id="general" className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-5 sm:p-8 scroll-mt-[220px]">
                 <div className="mb-8">
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-foreground mb-2">Business Info</h2>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Your business identity and contact information.</p>
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">Business Info</h2>
+                  <p className="text-sm text-slate-400">Your business identity and contact information.</p>
                 </div>
                 <div className="space-y-4 sm:space-y-6">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-900 dark:text-foreground mb-2">
+                    <label className="block text-sm font-semibold text-foreground mb-2">
                       Business Name
                     </label>
                     <input
                       type="text"
                       value={formBusiness.name || ''}
                       onChange={(e) => updateBusiness({ name: e.target.value })}
-                      className="w-full px-4 py-3 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                      className="w-full px-4 py-3 border border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all text-sm hover:border-slate-600/50"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Business Phone Number
                     </label>
                     <div className="space-y-3">
@@ -1188,7 +1188,7 @@ export default function SettingsContent() {
                           onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
                           placeholder="(555) 123-4567"
                           disabled={phoneCooldown?.inCooldown}
-                          className="flex-1 px-4 py-3 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-1 px-4 py-3 border border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all text-sm hover:border-slate-600/50 disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                         <button
                           onClick={() => {

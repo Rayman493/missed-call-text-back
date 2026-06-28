@@ -511,17 +511,17 @@ export default function CalendarPage() {
                       {/* Token Expired Warning Banner - show first if needed */}
                       {tokenExpired && (
                         <div className="mb-4">
-                          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 sm:p-4">
+                          <div className="bg-amber-900/20 border border-amber-800 rounded-xl p-3 sm:p-4">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                               <div className="flex items-start gap-2">
-                                <div className="w-6 h-6 bg-amber-100 dark:bg-amber-900/40 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                                <div className="w-6 h-6 bg-amber-900/40 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
                                 </div>
                                 <div>
-                                  <h3 className="text-xs sm:text-sm font-semibold text-amber-900 dark:text-amber-100 mb-0.5">
+                                  <h3 className="text-xs sm:text-sm font-semibold text-amber-100 mb-0.5">
                                     Reauthentication required
                                   </h3>
-                                  <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300">
+                                  <p className="text-[10px] sm:text-xs text-amber-300">
                                     Google Calendar access expired. Please reconnect.
                                   </p>
                                 </div>
@@ -548,43 +548,43 @@ export default function CalendarPage() {
                         </div>
                       )}
 
-                      {/* Compact Status Bar - Desktop: combines metrics + calendar status + sync + new appointment */}
-                      <div className="hidden md:flex items-center justify-between gap-4 mb-3 p-4 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
-                        {/* Metrics */}
-                        <div className="flex items-center gap-8">
-                          <div className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <div className="w-2.5 h-2.5 bg-red-500 rounded-full shadow-sm shadow-red-500/30"></div>
+                      {/* Compact Status Bar - Desktop: Simplified */}
+                      <div className="hidden md:flex items-center justify-between gap-4 mb-4 p-4 bg-slate-800/40 border border-slate-700/40 rounded-lg">
+                        {/* Metrics - Simplified */}
+                        <div className="flex items-center gap-6">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                             <div>
-                              <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Today</p>
-                              <p className="text-lg font-bold text-slate-900 dark:text-foreground leading-none">{getTodayEvents()}</p>
+                              <p className="text-[10px] text-slate-400">Today</p>
+                              <p className="text-base font-semibold text-foreground">{getTodayEvents()}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full shadow-sm shadow-green-500/30"></div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                             <div>
-                              <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">This Week</p>
-                              <p className="text-lg font-bold text-slate-900 dark:text-foreground leading-none">{getThisWeekEvents()}</p>
+                              <p className="text-[10px] text-slate-400">This Week</p>
+                              <p className="text-base font-semibold text-foreground">{getThisWeekEvents()}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <div className="w-2.5 h-2.5 bg-purple-500 rounded-full shadow-sm shadow-purple-500/30"></div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                             <div>
-                              <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">This Month</p>
-                              <p className="text-lg font-bold text-slate-900 dark:text-foreground leading-none">{getThisMonthEvents()}</p>
+                              <p className="text-[10px] text-slate-400">This Month</p>
+                              <p className="text-base font-semibold text-foreground">{getThisMonthEvents()}</p>
                             </div>
                           </div>
                         </div>
 
-                        {/* Calendar Status & Actions */}
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                            <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm shadow-green-500/30"></div>
-                            <span className="text-xs font-medium text-green-700 dark:text-green-300">Connected</span>
+                        {/* Calendar Status & Actions - Simplified */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-900/20 rounded-md border border-green-800/40">
+                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                            <span className="text-xs font-medium text-green-300">Connected</span>
                           </div>
                           <button
                             onClick={handleSync}
                             disabled={isSyncing}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-md transition-colors border border-slate-700/40 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {isSyncing ? (
                               <>
@@ -608,12 +608,12 @@ export default function CalendarPage() {
                         </div>
                       </div>
 
-                      {/* View Mode Toggle - Desktop */}
-                      <div className="hidden md:block mb-3">
-                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 shadow-sm w-fit">
+                      {/* View Mode Toggle - Desktop - Simplified */}
+                      <div className="hidden md:block mb-4">
+                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit">
                           <button
                             onClick={() => setViewMode('month')}
-                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                               viewMode === 'month'
                                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
                                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
@@ -623,7 +623,7 @@ export default function CalendarPage() {
                           </button>
                           <button
                             onClick={() => setViewMode('agenda')}
-                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                               viewMode === 'agenda'
                                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
                                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
@@ -634,12 +634,12 @@ export default function CalendarPage() {
                         </div>
                       </div>
 
-                      {/* Mobile: View Mode Toggle immediately after header */}
-                      <div className="md:hidden mb-1.5">
-                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5 shadow-sm">
+                      {/* Mobile: View Mode Toggle - Simplified */}
+                      <div className="md:hidden mb-3">
+                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
                           <button
                             onClick={() => setViewMode('month')}
-                            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
                               viewMode === 'month'
                                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
                                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
@@ -649,7 +649,7 @@ export default function CalendarPage() {
                           </button>
                           <button
                             onClick={() => setViewMode('agenda')}
-                            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
                               viewMode === 'agenda'
                                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
                                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
@@ -710,38 +710,37 @@ export default function CalendarPage() {
                         </div>
                       )}
 
-                      {/* Mobile: Compact Metrics + Google Calendar Controls - below calendar content */}
-                      <div className="md:hidden mt-6 space-y-3">
-                        {/* Compact Metrics Row */}
-                        <div className="flex items-center justify-around p-3 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm">
-                          <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <div className="w-2 h-2 bg-red-500 rounded-full shadow-sm shadow-red-500/30"></div>
+                      {/* Mobile: Compact Metrics - Improved mobile spacing */}
+                      <div className="md:hidden mt-4 sm:mt-6">
+                        <div className="flex items-center justify-around p-3 sm:p-4 bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/40 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                             <div>
-                              <p className="text-[8px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Today</p>
-                              <p className="text-sm font-bold text-slate-900 dark:text-foreground leading-none">{getTodayEvents()}</p>
+                              <p className="text-[10px] sm:text-[8px] text-slate-500 dark:text-slate-400">Today</p>
+                              <p className="text-sm sm:text-sm font-semibold text-slate-900 dark:text-foreground">{getTodayEvents()}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm shadow-green-500/30"></div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                             <div>
-                              <p className="text-[8px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Week</p>
-                              <p className="text-sm font-bold text-slate-900 dark:text-foreground leading-none">{getThisWeekEvents()}</p>
+                              <p className="text-[10px] sm:text-[8px] text-slate-500 dark:text-slate-400">Week</p>
+                              <p className="text-sm sm:text-sm font-semibold text-slate-900 dark:text-foreground">{getThisWeekEvents()}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-                            <div className="w-2 h-2 bg-purple-500 rounded-full shadow-sm shadow-purple-500/30"></div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                             <div>
-                              <p className="text-[8px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Month</p>
-                              <p className="text-sm font-bold text-slate-900 dark:text-foreground leading-none">{getThisMonthEvents()}</p>
+                              <p className="text-[10px] sm:text-[8px] text-slate-500 dark:text-slate-400">Month</p>
+                              <p className="text-sm sm:text-sm font-semibold text-slate-900 dark:text-foreground">{getThisMonthEvents()}</p>
                             </div>
                           </div>
                         </div>
 
-                        {/* Google Calendar Controls */}
-                        <div className="p-4 bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm">
+                        {/* Google Calendar Controls - Improved mobile spacing */}
+                        <div className="p-3 sm:p-4 bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm mt-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2">
-                              <div className="w-2.5 h-2.5 bg-green-500 rounded-full shadow-sm shadow-green-500/30"></div>
+                              <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-green-500 rounded-full"></div>
                               <div>
                                 <p className="text-xs font-semibold text-slate-900 dark:text-foreground">Google Calendar</p>
                                 {calendarEmail && (
@@ -770,10 +769,10 @@ export default function CalendarPage() {
                         </div>
                       </div>
 
-                      {/* Floating Add Event button for mobile */}
+                      {/* Floating Add Event button for mobile - Improved positioning */}
                       <button
                         onClick={() => handleAddEvent()}
-                        className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40 pb-safe"
+                        className="md:hidden fixed bottom-20 sm:bottom-24 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40 pb-safe"
                         aria-label="Add event"
                       >
                         <Plus className="w-6 h-6" />
