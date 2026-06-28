@@ -46,10 +46,11 @@ import MobileMenu from '@/components/MobileMenu'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
-import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel } from '@/lib/lead-lifecycle'
+import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import StatCard from '@/components/StatCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { HelpContext } from '@/components/HelpAssistant'
+import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 
 // Helper to get compact summary for lead card
 function getCompactSummary(lead: any): string {
@@ -271,6 +272,45 @@ export default function LeadsPage() {
       setRefreshing(false)
     }
   }, [business?.id, supabase, loading])
+
+  // Handle lead status change from overview page
+  const handleLeadStatusChange = async (leadId: string, newStatus: LeadLifecycleStatus) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      // Update lead status via API
+      const response = await fetch(`/api/leads/${leadId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: newStatus
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || `Failed to update lead status to ${newStatus}`)
+      }
+
+      // Update local state
+      setLeads(prev => prev.map(lead => 
+        lead.id === leadId 
+          ? { ...lead, status: newStatus, updated_at: new Date().toISOString() }
+          : lead
+      ))
+    } catch (error) {
+      console.error('Error updating lead status:', error)
+      // Optionally show error feedback to user
+    }
+  }
 
   // Realtime updates
   useRealtimeLeads(
@@ -977,8 +1017,6 @@ export default function LeadsPage() {
                   const needsResponse = needsResponseCheck(lead.id)
                   const leadTiming = calculateLeadTiming(lead)
                   const isNewLead = (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
-                  let statusBadge = getLeadStatusLabel(getLeadLifecycleStatus(lead))
-                  const statusClasses = getLeadStatusClasses(getLeadLifecycleStatus(lead))
                   const aiData = getAIData(lead)
 
                   return (
@@ -1010,9 +1048,11 @@ export default function LeadsPage() {
                                 {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                               </p>
                             </div>
-                            <span className={`px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold flex-shrink-0 ml-3 ${statusClasses}`}>
-                              {statusBadge}
-                            </span>
+                            <LeadStatusDropdown
+                              currentStatus={getLeadLifecycleStatus(lead)}
+                              onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
+                              size="sm"
+                            />
                           </div>
 
                           {/* Compact Preview */}
@@ -1131,8 +1171,6 @@ export default function LeadsPage() {
                         // Check if this is the newest lead (within 24 hours)
                         const isNewLead = index === 0 && (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
 
-                        let statusBadge = getLeadStatusLabel(getLeadLifecycleStatus(lead))
-                        const statusClasses = getLeadStatusClasses(getLeadLifecycleStatus(lead))
                         const aiData = getAIData(lead)
 
                         return (
@@ -1162,9 +1200,11 @@ export default function LeadsPage() {
                                     {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                                   </p>
                                 </div>
-                                <span className={`px-2 sm:px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold flex-shrink-0 ml-2 ${statusClasses}`}>
-                                  {statusBadge}
-                                </span>
+                                <LeadStatusDropdown
+                                  currentStatus={getLeadLifecycleStatus(lead)}
+                                  onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
+                                  size="sm"
+                                />
                               </div>
 
                               {/* Compact Preview */}
