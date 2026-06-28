@@ -3144,10 +3144,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-            Delete this lead?
+            Delete lead?
           </h3>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-            This will remove the lead, conversation, messages, AI intake data, notifications, and related follow-up jobs from ReplyFlow. This cannot be undone.
+            This will remove the lead from your active workspace and move it to Deleted.
+          </p>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+            The lead, conversation, messages, payments, and notes will be preserved and can be restored for up to 30 days.
           </p>
           <div className="flex gap-3 justify-end">
             <button
