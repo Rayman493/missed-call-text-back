@@ -8736,17 +8736,32 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   return; // Do not process this response
                 }
                 
-                // Never cancel the final closing response - always authorize it
-                if (isFinalClose) {
-                  console.log('[FINAL CLOSING RESPONSE AUTHORIZED] =========================================');
-                  console.log('[FINAL CLOSING RESPONSE AUTHORIZED] Final closing response detected');
-                  console.log('[FINAL CLOSING RESPONSE AUTHORIZED] Response ID:', actualResponseId);
-                  console.log('[FINAL CLOSING RESPONSE AUTHORIZED] Authorizing response immediately');
-                  console.log('[FINAL CLOSING RESPONSE AUTHORIZED] Timestamp:', new Date().toISOString());
-                  console.log('[FINAL CLOSING RESPONSE AUTHORIZED] =========================================');
-                  
+                // Pre-authorize approved scripted prompts immediately at creation time
+                // For scripted prompts, we already know the exact text before response.create
+                // We should authorize immediately, not wait for transcript text after audio generation
+                if (authorizedResponseCreateSource === 'sendApprovedPrompt' || isFinalClose) {
+                  const expectedPromptText = expectedPrompt || 'unknown';
+                  console.log('[PRE-AUTHORIZATION AT CREATE] =========================================');
+                  console.log('[PRE-AUTHORIZATION AT CREATE] responseId:', actualResponseId);
+                  console.log('[PRE-AUTHORIZATION AT CREATE] expectedPromptText:', expectedPromptText);
+                  console.log('[PRE-AUTHORIZATION AT CREATE] authorizedAtCreate:', true);
+                  console.log('[PRE-AUTHORIZATION AT CREATE] source:', authorizedResponseCreateSource);
+                  console.log('[PRE-AUTHORIZATION AT CREATE] isFinalClose:', isFinalClose);
+                  console.log('[PRE-AUTHORIZATION AT CREATE] Timestamp:', new Date().toISOString());
+                  console.log('[PRE-AUTHORIZATION AT CREATE] =========================================');
+
+                  // Store expected prompt text in twilioHandler for validation
+                  if (twilioHandler) {
+                    (twilioHandler as any).expectedPromptText = expectedPromptText;
+                  }
+
                   if (twilioHandler && typeof (twilioHandler as any).authorizeResponse === 'function') {
                     (twilioHandler as any).authorizeResponse();
+                    console.log('[PRE-AUTHORIZATION SUCCESS] =========================================');
+                    console.log('[PRE-AUTHORIZATION SUCCESS] Response authorized immediately at creation');
+                    console.log('[PRE-AUTHORIZATION SUCCESS] Response ID:', actualResponseId);
+                    console.log('[PRE-AUTHORIZATION SUCCESS] Timestamp:', new Date().toISOString());
+                    console.log('[PRE-AUTHORIZATION SUCCESS] =========================================');
                   }
                 }
 

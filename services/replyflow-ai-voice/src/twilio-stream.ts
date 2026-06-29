@@ -45,6 +45,11 @@ export class TwilioStreamHandler {
   private audioBuffer: Buffer[] = []; // Buffer assistant audio until validation passes
   private currentResponseId: string = ''; // Track response ID for authorization
   private responseAuthorized: boolean = false; // Track if response is authorized
+  private expectedPromptText: string = ''; // Expected prompt text for pre-authorized responses
+  private authorizedAtCreate: boolean = false; // Track if response was pre-authorized at creation
+  private audioBufferedCount: number = 0; // Track total audio chunks buffered
+  private audioFlushedCount: number = 0; // Track total audio chunks flushed
+  private audioDroppedCount: number = 0; // Track total audio chunks dropped
 
   constructor(config: StreamConfig, openAiClient?: OpenAIRealtimeClient) {
     this.config = config;
@@ -413,6 +418,9 @@ export class TwilioStreamHandler {
       console.log('[AUDIO TO TWILIO] source:', source);
       console.log('[AUDIO TO TWILIO] route:', route);
 
+      // Increment flush counter for direct sends (buffered flushes are counted in authorizeResponse)
+      this.audioFlushedCount++;
+
       const message = {
         event: 'media',
         media: {
@@ -429,12 +437,15 @@ export class TwilioStreamHandler {
   sendAudio(audioData: Buffer) {
     // Buffer audio if response is not yet authorized
     if (!this.responseAuthorized && this.currentResponseId) {
-      console.log('[TWILIO VALIDATION] =========================================');
-      console.log('[TWILIO VALIDATION] Buffering audio - response not yet authorized');
-      console.log('[TWILIO VALIDATION] Response ID:', this.currentResponseId);
-      console.log('[TWILIO VALIDATION] Audio length:', audioData.length);
-      console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
-      console.log('[TWILIO VALIDATION] =========================================');
+      this.audioBufferedCount++;
+      console.log('[AUDIO BUFFERED] =========================================');
+      console.log('[AUDIO BUFFERED] responseId:', this.currentResponseId);
+      console.log('[AUDIO BUFFERED] expectedPromptText:', this.expectedPromptText);
+      console.log('[AUDIO BUFFERED] authorizedAtCreate:', this.authorizedAtCreate);
+      console.log('[AUDIO BUFFERED] audioBuffered:', this.audioBufferedCount);
+      console.log('[AUDIO BUFFERED] audioLength:', audioData.length);
+      console.log('[AUDIO BUFFERED] Timestamp:', new Date().toISOString());
+      console.log('[AUDIO BUFFERED] =========================================');
       
       this.audioBuffer.push(audioData);
       return;
@@ -442,13 +453,18 @@ export class TwilioStreamHandler {
     
     // Validate transcript before forwarding audio
     if (!this.validateTranscript()) {
-      console.log('[TWILIO VALIDATION] =========================================');
-      console.log('[TWILIO VALIDATION] Audio BLOCKED - transcript validation failed');
-      console.log('[TWILIO VALIDATION] Current stage:', this.currentStage);
-      console.log('[TWILIO VALIDATION] Current transcript:', this.currentTranscript);
-      console.log('[TWILIO VALIDATION] Audio length:', audioData.length);
-      console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
-      console.log('[TWILIO VALIDATION] =========================================');
+      this.audioDroppedCount++;
+      console.log('[AUDIO DROPPED] =========================================');
+      console.log('[AUDIO DROPPED] responseId:', this.currentResponseId);
+      console.log('[AUDIO DROPPED] expectedPromptText:', this.expectedPromptText);
+      console.log('[AUDIO DROPPED] authorizedAtCreate:', this.authorizedAtCreate);
+      console.log('[AUDIO DROPPED] audioDropped:', this.audioDroppedCount);
+      console.log('[AUDIO DROPPED] reason:', 'transcript validation failed');
+      console.log('[AUDIO DROPPED] currentStage:', this.currentStage);
+      console.log('[AUDIO DROPPED] currentTranscript:', this.currentTranscript);
+      console.log('[AUDIO DROPPED] audioLength:', audioData.length);
+      console.log('[AUDIO DROPPED] Timestamp:', new Date().toISOString());
+      console.log('[AUDIO DROPPED] =========================================');
       
       this.audioForwardingBlocked = true;
       return;
@@ -470,6 +486,8 @@ export class TwilioStreamHandler {
     this.currentResponseId = responseId;
     this.responseAuthorized = false;
     this.audioBuffer = []; // Clear buffer for new response
+    this.expectedPromptText = ''; // Reset expected prompt text
+    this.authorizedAtCreate = false; // Reset pre-authorization flag
   }
 
   /**
@@ -484,16 +502,21 @@ export class TwilioStreamHandler {
     console.log('[TWILIO VALIDATION] =========================================');
     
     this.responseAuthorized = true;
+    this.authorizedAtCreate = true; // Mark as pre-authorized at creation time
     
     // Flush buffered audio
     if (this.audioBuffer.length > 0) {
-      console.log('[TWILIO VALIDATION] =========================================');
-      console.log('[TWILIO VALIDATION] Flushing authorized audio');
-      console.log('[TWILIO VALIDATION] Buffer length:', this.audioBuffer.length);
-      console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
-      console.log('[TWILIO VALIDATION] =========================================');
+      console.log('[AUDIO FLUSHED] =========================================');
+      console.log('[AUDIO FLUSHED] responseId:', this.currentResponseId);
+      console.log('[AUDIO FLUSHED] expectedPromptText:', this.expectedPromptText);
+      console.log('[AUDIO FLUSHED] authorizedAtCreate:', this.authorizedAtCreate);
+      console.log('[AUDIO FLUSHED] audioFlushed:', this.audioBuffer.length);
+      console.log('[AUDIO FLUSHED] audioBuffered:', this.audioBufferedCount);
+      console.log('[AUDIO FLUSHED] Timestamp:', new Date().toISOString());
+      console.log('[AUDIO FLUSHED] =========================================');
       
       for (const audioData of this.audioBuffer) {
+        this.audioFlushedCount++;
         this.sendAudioInternal(audioData);
       }
       this.audioBuffer = [];
