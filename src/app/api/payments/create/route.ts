@@ -298,6 +298,7 @@ export async function POST(request: Request) {
 
     console.log('[PAYMENT REQUEST] Payment request record created successfully:', paymentRequest.id)
     console.log('[PAYMENT REQUEST] Payment request token:', paymentRequest.token)
+    console.log('[PAYMENT REQUEST] Token persisted to database:', !!paymentRequest.token)
 
     // Update Stripe Payment Intent metadata with payment_request_id
     if (checkoutSession.payment_intent) {
@@ -340,11 +341,25 @@ export async function POST(request: Request) {
       .update(leadStatusUpdate)
       .eq('id', lead_id)
 
-    // Send SMS with branded ReplyFlow payment link
-    console.log('[PAYMENT REQUEST] Preparing SMS with branded ReplyFlow URL...')
+    // Send SMS with branded ReplyFlow payment link only if token was persisted
+    console.log('[PAYMENT REQUEST] Preparing SMS...')
     const businessName = business.name || 'our business'
     const amount = (amount_cents / 100).toFixed(2)
-    const paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/pay/${token}`
+    
+    // Only use branded link if token was actually persisted to database
+    const tokenPersisted = !!paymentRequest.token
+    const paymentUrl = tokenPersisted 
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/pay/${paymentRequest.token}`
+      : checkoutSession.url
+    
+    console.log('[PAYMENT REQUEST SMS LINK LOGIC] =========================================')
+    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Payment request ID:', paymentRequest.id)
+    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Token persisted to database:', tokenPersisted)
+    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Token from database:', paymentRequest.token)
+    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Link mode:', tokenPersisted ? 'branded' : 'stripe_fallback')
+    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Final payment link:', paymentUrl)
+    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Timestamp:', new Date().toISOString())
+    console.log('[PAYMENT REQUEST SMS LINK LOGIC] =========================================')
     
     const smsMessage = `Thanks for choosing ${businessName}!
 
