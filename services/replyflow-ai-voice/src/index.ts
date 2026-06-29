@@ -5151,6 +5151,13 @@ The assistant is only a text-to-speech engine for the supplied prompt.`;
 
     console.log('[SIMPLE MODE] =========================================');
     console.log('[SIMPLE MODE] event: response_create_send');
+    console.log('[SIMPLE MODE] simple_mode_selected:', true);
+    console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_hardcoded');
+    console.log('[SIMPLE MODE] business_id:', state.businessId);
+    console.log('[SIMPLE MODE] currentStage:', stage);
+    console.log('[SIMPLE MODE] promptKey:', stage);
+    console.log('[SIMPLE MODE] promptText:', prompt);
+    console.log('[SIMPLE MODE] reasonForResponseCreate:', 'sendPromptForStage');
     console.log('[SIMPLE MODE] payload:', JSON.stringify(message, null, 2));
     console.log('[SIMPLE MODE] =========================================');
 
@@ -5204,7 +5211,7 @@ The assistant is only a text-to-speech engine for the supplied prompt.`;
             type: "session.update",
             session: {
               type: "realtime",
-              instructions: "You are a helpful AI assistant for ReplyFlow. Keep responses concise and professional.\n\nIMPORTANT - NEVER GENERATE FOLLOW-UP QUESTIONS:\n- Only speak the exact scripted prompt provided in response.create instructions.\n- Do NOT ask any follow-up questions.\n- Do NOT generate additional questions beyond the scripted prompt.\n- Do NOT improvise or add questions.\n- The conversation flow is controlled by the system, not by you.\n\nLANGUAGE LOCK - ENGLISH ONLY:\n- Always speak English only.\n- Never translate.\n- Never respond in French, Spanish, or any non-English language.\n- Ignore caller language for assistant output.\n- The caller may have accent/noise/transcription mistakes; still respond only in English.\n- Do not imitate accents.\n- Do not switch languages.",
+              instructions: "You are a helpful AI assistant for ReplyFlow. Keep responses concise and professional.\n\nCRITICAL - NEVER RESPOND TO CALLER CONTENT:\n- Do NOT acknowledge, summarize, or react to what the caller says.\n- Do NOT mention caller details back to the caller.\n- Do NOT use filler like 'thanks for explaining', 'that sounds', 'great', etc.\n- Do NOT comment on caller answers or details.\n- Only speak the exact scripted prompt provided in response.create instructions.\n- Do NOT ask any follow-up questions.\n- Do NOT generate additional questions beyond the scripted prompt.\n- Do NOT improvise or add questions.\n- The conversation flow is controlled by the system, not by you.\n- You are a text-to-speech engine for scripted prompts only.\n\nIMPORTANT - NEVER GENERATE FOLLOW-UP QUESTIONS:\n- Only speak the exact scripted prompt provided in response.create instructions.\n- Do NOT ask any follow-up questions.\n- Do NOT generate additional questions beyond the scripted prompt.\n- Do NOT improvise or add questions.\n- The conversation flow is controlled by the system, not by you.\n\nLANGUAGE LOCK - ENGLISH ONLY:\n- Always speak English only.\n- Never translate.\n- Never respond in French, Spanish, or any non-English language.\n- Ignore caller language for assistant output.\n- The caller may have accent/noise/transcription mistakes; still respond only in English.\n- Do not imitate accents.\n- Do not switch languages.",
               audio: {
                 input: {
                   format: {
