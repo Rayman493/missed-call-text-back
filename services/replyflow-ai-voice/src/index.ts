@@ -5023,6 +5023,228 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
   }
 }
 
+// Simple mode handler - isolated V1 AI intake flow
+function handleSimpleModeConnection(ws: WebSocket, req: any) {
+  console.log('[SIMPLE MODE] =========================================');
+  console.log('[SIMPLE MODE] event: connection_start');
+  console.log('[SIMPLE MODE] Timestamp:', new Date().toISOString());
+  console.log('[SIMPLE MODE] =========================================');
+
+  // Simple state - minimal complexity
+  const state = {
+    sessionId: '',
+    businessId: '',
+    callSid: '',
+    callerPhone: '',
+    businessName: '',
+    streamSid: '',
+    currentStage: 'ask_name_reason' as any,
+    assistantSpeaking: false,
+    transcript: '',
+    intakeData: {} as any,
+    openAiWs: null as WebSocket | null,
+    activeResponseId: null as string | null,
+    timeoutId: null as NodeJS.Timeout | null
+  };
+
+  // Hardcoded prompts for each stage
+  const prompts: Record<string, string> = {
+    ask_name_reason: "Hello! This is ReplyFlow AI. Who am I speaking with and how can I help you today?",
+    ask_details: "Thank you. Can you tell me more details about what you need help with?",
+    ask_location: "What is your location or address?",
+    ask_completion_time: "When would you like this service completed?",
+    ask_callback_time: "What time would be best for a callback?",
+    complete: "Thank you for your information. We'll be in touch shortly. Goodbye!"
+  };
+
+  // Extract parameters from URL
+  const url = new URL(req.url || '', `http://${req.headers.host}`);
+  state.sessionId = url.searchParams.get('sessionId') || '';
+  state.businessId = url.searchParams.get('businessId') || '';
+  state.callSid = url.searchParams.get('callSid') || '';
+
+  // Set up Twilio stream handler for media send
+  const twilioHandler = new TwilioStreamHandler({
+    sessionId: state.sessionId,
+    businessId: state.businessId,
+    callSid: state.callSid
+  });
+
+  // Helper to log simple mode events
+  const logSimple = (event: string, extra: Record<string, any> = {}) => {
+    console.log('[SIMPLE MODE] =========================================');
+    console.log('[SIMPLE MODE] event:', event);
+    console.log('[SIMPLE MODE] stage:', state.currentStage);
+    console.log('[SIMPLE MODE] responseId:', state.activeResponseId || 'none');
+    console.log('[SIMPLE MODE] speaking:', state.assistantSpeaking);
+    console.log('[SIMPLE MODE] streamSid:', state.streamSid || 'none');
+    Object.entries(extra).forEach(([key, value]) => {
+      console.log(`[SIMPLE MODE] ${key}:`, value);
+    });
+    console.log('[SIMPLE MODE] Timestamp:', new Date().toISOString());
+    console.log('[SIMPLE MODE] =========================================');
+  };
+
+  // Helper to send prompt to OpenAI
+  const sendPrompt = (stage: string) => {
+    const prompt = prompts[stage];
+    if (!prompt) {
+      console.log('[SIMPLE MODE] No prompt for stage:', stage);
+      return;
+    }
+
+    const responseId = Math.random().toString(36).substring(2, 10);
+    state.activeResponseId = responseId;
+    state.assistantSpeaking = true;
+
+    logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
+
+    const message = {
+      type: 'response.create',
+      response: {
+        instructions: prompt
+      }
+    };
+
+    if (state.openAiWs && state.openAiWs.readyState === WebSocket.OPEN) {
+      state.openAiWs.send(JSON.stringify(message));
+    }
+
+    // 10-second timeout for OpenAI response
+    if (state.timeoutId) clearTimeout(state.timeoutId);
+    state.timeoutId = setTimeout(() => {
+      if (state.assistantSpeaking) {
+        console.log('[SIMPLE MODE] Timeout - OpenAI did not respond');
+        state.assistantSpeaking = false;
+        // Could reprompt or end incomplete
+      }
+    }, 10000);
+  };
+
+  // Handle Twilio media events
+  twilioHandler.handleConnection(ws, req);
+
+  // Override handleMessage to use simple audio gating
+  const originalHandleMessage = (twilioHandler as any).handleMessage;
+  (twilioHandler as any).handleMessage = (data: any) => {
+    try {
+      const message = JSON.parse(data.toString());
+
+      if (message.event === 'start') {
+        state.streamSid = message.streamSid;
+        logSimple('twilio_start', { streamSid: state.streamSid });
+
+        // Connect to OpenAI Realtime
+        const openAiUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview`;
+        state.openAiWs = new WebSocket(openAiUrl, {
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            'OpenAI-Beta': 'realtime=v1'
+          }
+        });
+
+        state.openAiWs.on('open', () => {
+          logSimple('openai_connected');
+
+          // Configure session
+          const sessionUpdate = {
+            type: 'session.update',
+            session: {
+              instructions: 'You are a helpful AI assistant for ReplyFlow. Keep responses concise and professional.',
+              voice: 'alloy',
+              input_audio_format: 'pcm16',
+              output_audio_format: 'pcm16',
+              input_audio_transcription: {
+                model: 'whisper-1'
+              }
+            }
+          };
+          state.openAiWs?.send(JSON.stringify(sessionUpdate));
+
+          // Send opening prompt
+          sendPrompt(state.currentStage);
+        });
+
+        state.openAiWs.on('message', (data) => {
+          const message = JSON.parse(data.toString());
+
+          if (message.type === 'response.output_audio.delta') {
+            // Send audio directly to Twilio
+            if (state.streamSid && ws.readyState === WebSocket.OPEN) {
+              const mediaMessage = {
+                event: 'media',
+                streamSid: state.streamSid,
+                media: {
+                  payload: message.delta
+                }
+              };
+              ws.send(JSON.stringify(mediaMessage));
+            }
+          } else if (message.type === 'response.audio.done') {
+            state.assistantSpeaking = false;
+            if (state.timeoutId) clearTimeout(state.timeoutId);
+            logSimple('audio_done', { stage: state.currentStage });
+          } else if (message.type === 'conversation.item.input_audio_transcription.completed') {
+            // User transcription completed
+            const transcript = message.transcript || '';
+            state.transcript += ' ' + transcript;
+            logSimple('user_transcription', { transcript: transcript.substring(0, 50) });
+
+            // Move to next stage
+            const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
+            const currentIndex = stages.indexOf(state.currentStage);
+
+            if (currentIndex < stages.length - 1) {
+              state.currentStage = stages[currentIndex + 1];
+              sendPrompt(state.currentStage);
+            } else {
+              // Complete - say goodbye
+              state.currentStage = 'complete';
+              sendPrompt('complete');
+
+              // Close call after 8 seconds
+              setTimeout(() => {
+                logSimple('call_complete');
+                ws.close();
+              }, 8000);
+            }
+          }
+        });
+
+        state.openAiWs.on('error', (error) => {
+          console.log('[SIMPLE MODE] OpenAI error:', error);
+        });
+
+        state.openAiWs.on('close', () => {
+          console.log('[SIMPLE MODE] OpenAI closed');
+        });
+
+      } else if (message.event === 'media') {
+        // Caller audio - only accept if assistant is not speaking
+        if (!state.assistantSpeaking && state.openAiWs && state.openAiWs.readyState === WebSocket.OPEN) {
+          const audioMessage = {
+            type: 'input_audio_buffer.append',
+            audio: message.media.payload
+          };
+          state.openAiWs.send(JSON.stringify(audioMessage));
+        }
+      }
+    } catch (error) {
+      console.log('[SIMPLE MODE] Error handling message:', error);
+    }
+  };
+
+  ws.on('close', () => {
+    console.log('[SIMPLE MODE] WebSocket closed');
+    if (state.timeoutId) clearTimeout(state.timeoutId);
+    if (state.openAiWs) state.openAiWs.close();
+  });
+
+  ws.on('error', (error) => {
+    console.log('[SIMPLE MODE] WebSocket error:', error);
+  });
+}
+
 // Create WebSocket server for Twilio Media Streams
 const wss = new WebSocketServer({ server, path: '/stream' });
 
@@ -5035,6 +5257,19 @@ wss.on('connection', (ws, req) => {
   log(LogLevel.INFO, '[WS ENTRY] websocket upgrade started');
   log(LogLevel.INFO, '[WS ENTRY] websocket accepted');
   log(LogLevel.INFO, '[AI POC] websocket accepted');
+
+  // Check for simple mode feature flag
+  const simpleModeEnabled = process.env.AI_VOICE_SIMPLE_MODE === 'true';
+  console.log('[SIMPLE MODE] =========================================');
+  console.log('[SIMPLE MODE] feature flag AI_VOICE_SIMPLE_MODE:', simpleModeEnabled);
+  console.log('[SIMPLE MODE] Timestamp:', new Date().toISOString());
+  console.log('[SIMPLE MODE] =========================================');
+
+  if (simpleModeEnabled) {
+    // Route to simple mode handler
+    handleSimpleModeConnection(ws, req);
+    return;
+  }
 
   try {
     // Extract parameters from URL (fallback - not required)
