@@ -201,7 +201,7 @@ export class TwilioStreamHandler {
               // VERSION PROOF: Log that we're using shared state
               console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] =========================================');
               console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] callSessionState present:', !!callSessionState);
-              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] Reading assistantSpeaking from callSessionState:', assistantSpeaking);
+              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] Reading assistantSpeaking from callSessionState:', callSessionState.assistantSpeaking);
               console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] Timestamp:', new Date().toISOString());
               console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] =========================================');
 

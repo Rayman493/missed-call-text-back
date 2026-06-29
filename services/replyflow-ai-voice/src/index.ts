@@ -1750,8 +1750,9 @@ function sendStagePrompt(
     console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] =========================================');
 
     callSessionState.assistantSpeaking = true;
+    assistantSpeaking = true; // Sync local variable
     callSessionState.lastPromptAt = Date.now();
-    
+
     // Sync to twilioHandler for twilio-stream.ts access (single source of truth: callSessionState)
     (twilioHandler as any).assistantSpeaking = true;
     (twilioHandler as any).lastPromptAt = callSessionState.lastPromptAt;
@@ -4897,7 +4898,7 @@ wss.on('connection', (ws, req) => {
     let confirmationState: ConfirmationState = 'collecting_info';
     let hardStopExecuted = false;
     let postCallSmsSent = false;
-    let assistantSpeaking = false;
+    let assistantSpeaking = false; // Local variable - must sync with callSessionState.assistantSpeaking
     let finalGoodbyeMarkReceived = false; // Track when final-goodbye-complete mark is received
     let finalGoodbyeMarkSent = false; // Track when final-goodbye-complete mark is sent
     
@@ -4946,8 +4947,6 @@ wss.on('connection', (ws, req) => {
     console.log('[STATE OBJECT PASSING] =========================================');
     console.log('[STATE OBJECT PASSING] callSessionState ID:', Math.random().toString(36).substring(7));
     console.log('[STATE OBJECT PASSING] callSessionState assistantSpeaking:', callSessionState.assistantSpeaking);
-    console.log('[STATE OBJECT PASSING] local assistantSpeaking:', assistantSpeaking);
-    console.log('[STATE OBJECT PASSING] Same object:', callSessionState.assistantSpeaking === assistantSpeaking);
     console.log('[STATE OBJECT PASSING] Timestamp:', new Date().toISOString());
     console.log('[STATE OBJECT PASSING] =========================================');
 
@@ -5100,6 +5099,7 @@ wss.on('connection', (ws, req) => {
           console.log('[SILENCE TIMER STARTED (MARK-BASED)] =========================================');
 
           callSessionState.assistantSpeaking = false;
+          assistantSpeaking = false; // Sync local variable
         }
       }
     });
@@ -7944,6 +7944,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] =========================================');
                 
                 callSessionState.assistantSpeaking = true;
+                assistantSpeaking = true; // Sync local variable
                 callSessionState.activeResponseId = responseId;
                 callSessionState.lastPromptAt = Date.now();
                 
@@ -8282,6 +8283,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] =========================================');
                 
                 callSessionState.assistantSpeaking = false;
+                assistantSpeaking = false; // Sync local variable
                 callSessionState.promptCompletedAt = Date.now();
                 
                 // Sync to twilioHandler for twilio-stream.ts access
@@ -8791,17 +8793,15 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[ASSISTANT SPEAKING TRUE] reason:', 'pre-authorization before audio flush');
                     console.log('[ASSISTANT SPEAKING TRUE] responseId:', actualResponseId);
                     console.log('[ASSISTANT SPEAKING TRUE] Before write - callSessionState.assistantSpeaking:', callSessionState.assistantSpeaking);
-                    console.log('[ASSISTANT SPEAKING TRUE] Before write - local assistantSpeaking:', assistantSpeaking);
                     console.log('[ASSISTANT SPEAKING TRUE] Timestamp:', new Date().toISOString());
                     console.log('[ASSISTANT SPEAKING TRUE] =========================================');
 
                     callSessionState.assistantSpeaking = true;
-                    assistantSpeaking = true;
+                    assistantSpeaking = true; // Sync local variable
                     (twilioHandler as any).assistantSpeaking = true;
 
                     console.log('[ASSISTANT SPEAKING TRUE AFTER WRITE] =========================================');
                     console.log('[ASSISTANT SPEAKING TRUE AFTER WRITE] After write - callSessionState.assistantSpeaking:', callSessionState.assistantSpeaking);
-                    console.log('[ASSISTANT SPEAKING TRUE AFTER WRITE] After write - local assistantSpeaking:', assistantSpeaking);
                     console.log('[ASSISTANT SPEAKING TRUE AFTER WRITE] After write - twilioHandler.assistantSpeaking:', (twilioHandler as any).assistantSpeaking);
                     console.log('[ASSISTANT SPEAKING TRUE AFTER WRITE] Timestamp:', new Date().toISOString());
                     console.log('[ASSISTANT SPEAKING TRUE AFTER WRITE] =========================================');
