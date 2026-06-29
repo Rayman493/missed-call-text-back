@@ -5050,7 +5050,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     assistantSpeaking: false,
     transcript: '',
     intakeData: {} as any,
-    openAiWs: null as WebSocket | null
+    openAiWs: null as WebSocket | null,
+    queuedTranscript: null as string | null,
+    ttsCompleteTime: 0 as number
   };
 
   // Hardcoded prompts for each stage
@@ -5118,7 +5120,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       const message = {
         type: 'response.create',
         response: {
-          instructions: `Speak exactly this sentence and nothing else: "${prompt}"`
+          instructions: prompt // Use exact prompt text only
         }
       };
 
@@ -5254,12 +5256,45 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
             console.log('[SIMPLE MODE] event: response.done');
             console.log('[SIMPLE MODE] =========================================');
             state.assistantSpeaking = false;
+            state.ttsCompleteTime = Date.now();
+
+            // Process queued transcript if exists
+            if (state.queuedTranscript) {
+              console.log('[SIMPLE MODE] =========================================');
+              console.log('[SIMPLE MODE] event: processing_queued_transcript');
+              console.log('[SIMPLE MODE] queuedTranscript:', state.queuedTranscript);
+              console.log('[SIMPLE MODE] =========================================');
+
+              const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
+              const currentIndex = stages.indexOf(state.currentStage);
+              const isValidStage = currentIndex !== -1;
+              const isFinalStage = currentIndex === stages.length - 1;
+
+              if (isValidStage) {
+                if (currentIndex < stages.length - 1) {
+                  // Normal stage advancement
+                  state.currentStage = stages[currentIndex + 1];
+                  sendPrompt(state.currentStage);
+                } else if (isFinalStage) {
+                  // Final stage (ask_callback_time) completed - advance to complete
+                  console.log('[SIMPLE MODE] =========================================');
+                  console.log('[SIMPLE MODE] event: final_callback_answer_accepted');
+                  console.log('[SIMPLE MODE] previousStage:', state.currentStage);
+                  console.log('[SIMPLE MODE] transcript:', state.queuedTranscript);
+                  console.log('[SIMPLE MODE] advancingTo:', 'complete');
+                  console.log('[SIMPLE MODE] =========================================');
+                  state.currentStage = 'complete';
+                  sendPrompt('complete');
+                }
+              }
+              state.queuedTranscript = null;
+            }
             
             // Handle final complete stage close
             if (state.currentStage === 'complete') {
               console.log('[SIMPLE MODE] =========================================');
               console.log('[SIMPLE MODE] event: final_response_done_close_scheduled');
-              console.log('[SIMPLE MODE] delayMs:', 5000);
+              console.log('[SIMPLE MODE] delayMs:', 2000);
               console.log('[SIMPLE MODE] =========================================');
               setTimeout(() => {
                 logSimple('call_complete');
@@ -5267,7 +5302,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
                 if (state.openAiWs) {
                   state.openAiWs.close();
                 }
-              }, 5000);
+              }, 2000);
             }
           }
 
@@ -5282,7 +5317,20 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
             const currentIndex = stages.indexOf(state.currentStage);
             const isValidStage = currentIndex !== -1;
             const isFinalStage = currentIndex === stages.length - 1;
-            const accepted = !state.assistantSpeaking && isValidStage;
+            const timeSinceTtsCompleteMs = state.ttsCompleteTime ? Date.now() - state.ttsCompleteTime : -1;
+
+            let accepted = !state.assistantSpeaking && isValidStage;
+            let ignoredReason = '';
+
+            if (state.assistantSpeaking) {
+              // Queue transcript for processing after tts_complete
+              state.queuedTranscript = transcript;
+              accepted = false;
+              ignoredReason = 'assistant_speaking_queued';
+            } else if (!isValidStage) {
+              accepted = false;
+              ignoredReason = 'invalid_stage';
+            }
 
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: transcription_decision');
@@ -5290,13 +5338,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
             console.log('[SIMPLE MODE] transcript:', transcript);
             console.log('[SIMPLE MODE] assistantSpeaking:', state.assistantSpeaking);
             console.log('[SIMPLE MODE] accepted:', accepted);
-            console.log('[SIMPLE MODE] ignoredReason:', accepted ? 'none' : (state.assistantSpeaking ? 'assistant_speaking' : 'invalid_stage'));
+            console.log('[SIMPLE MODE] ignoredReason:', ignoredReason);
+            console.log('[SIMPLE MODE] timeSinceTtsCompleteMs:', timeSinceTtsCompleteMs);
             console.log('[SIMPLE MODE] =========================================');
 
             logSimple('user_transcription', { transcript: transcript.substring(0, 50), stage: state.currentStage });
 
-            // Only advance if assistant is not speaking and stage is valid
-            if (accepted) {
+            // Only advance immediately if assistant is not speaking and stage is valid
+            if (accepted && !state.assistantSpeaking) {
               if (currentIndex < stages.length - 1) {
                 // Normal stage advancement
                 state.currentStage = stages[currentIndex + 1];
@@ -5313,12 +5362,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
                 sendPrompt('complete');
               }
             } else if (isFinalStage && state.assistantSpeaking) {
-              // Final stage but assistant still speaking - wait for tts_complete
+              // Final stage but assistant still speaking - transcript queued, will be processed after tts_complete
               console.log('[SIMPLE MODE] =========================================');
-              console.log('[SIMPLE MODE] event: final_stage_waiting_for_tts_complete');
+              console.log('[SIMPLE MODE] event: final_stage_transcript_queued');
               console.log('[SIMPLE MODE] currentStage:', state.currentStage);
               console.log('[SIMPLE MODE] transcript:', transcript);
-              console.log('[SIMPLE MODE] reason:', 'assistant_still_speaking');
+              console.log('[SIMPLE MODE] reason:', 'assistant_still_speaking_queued_for_processing');
               console.log('[SIMPLE MODE] =========================================');
             }
           }
