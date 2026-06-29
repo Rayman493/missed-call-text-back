@@ -5141,8 +5141,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Helper function to parse caller name and service from name/reason answer
     const parseNameAndService = (text: string) => {
       const lower = text.toLowerCase();
-      let callerName = text;
-      let service = 'General inquiry';
+      let customerName = text;
+      let serviceRequested = 'General inquiry';
       
       // Common patterns for "My name is X and I need Y"
       const namePatterns = [
@@ -5155,26 +5155,26 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       for (const pattern of namePatterns) {
         const match = text.match(pattern);
         if (match) {
-          callerName = match[1].trim();
+          customerName = match[1].trim();
           // Extract service from the rest of the text
           const servicePart = text.replace(match[0], '').replace(/^(?: and|,)\s*/i, '').trim();
           if (servicePart) {
-            service = servicePart;
+            serviceRequested = servicePart;
           }
           break;
         }
       }
       
       // If no pattern matched, try to split on "and" or ","
-      if (callerName === text) {
+      if (customerName === text) {
         const parts = text.split(/\s+(?:and|,)\s+/i);
         if (parts.length > 1) {
-          callerName = parts[0].trim();
-          service = parts.slice(1).join(', ').trim();
+          customerName = parts[0].trim();
+          serviceRequested = parts.slice(1).join(', ').trim();
         }
       }
       
-      return { callerName, service };
+      return { customerName, serviceRequested };
     };
 
     // Helper function to normalize time phrases
@@ -5214,13 +5214,13 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[SIMPLE MODE] =========================================');
 
       // Parse caller name and service from the name/reason answer
-      const { callerName, service } = parseNameAndService(state.intakeData.caller_name || '');
-      state.intakeData.caller_name = callerName;
-      state.intakeData.service_requested = service;
+      const { customerName, serviceRequested } = parseNameAndService(state.intakeData.customerName || '');
+      state.intakeData.customerName = customerName;
+      state.intakeData.serviceRequested = serviceRequested;
       
       // Normalize completion and callback times
-      state.intakeData.completion_time = normalizeTime(state.intakeData.completion_time || '');
-      state.intakeData.callback_time = normalizeTime(state.intakeData.callback_time || '');
+      state.intakeData.desiredCompletionTime = normalizeTime(state.intakeData.desiredCompletionTime || '');
+      state.intakeData.callbackTime = normalizeTime(state.intakeData.callbackTime || '');
 
       // Create lead and conversation using caller phone (not callSid)
       const { data: lead, error: leadError } = await supabase
@@ -5270,13 +5270,22 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
               conversation_id: conversation.id,
               business_id: state.businessId,
               call_sid: state.callSid,
+              caller_phone: state.callerPhone,
               transcript: state.transcript,
               extracted_info: state.intakeData,
+              summary: state.intakeData.issueDescription || '',
+              outcome: 'completed',
               status: 'completed',
             });
 
           if (callRecordError) {
-            console.log('[SIMPLE MODE] ai_call_record creation failed:', callRecordError);
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: simple_mode_ai_call_record_insert_failed');
+            console.log('[SIMPLE MODE] errorCode:', callRecordError.code);
+            console.log('[SIMPLE MODE] errorMessage:', callRecordError.message);
+            console.log('[SIMPLE MODE] errorDetails:', callRecordError.details);
+            console.log('[SIMPLE MODE] callSid:', state.callSid);
+            console.log('[SIMPLE MODE] =========================================');
           } else {
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: simple_mode_ai_call_record_created');
@@ -5284,26 +5293,44 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
             console.log('[SIMPLE MODE] =========================================');
           }
 
+          // Log final structured intake data before sending SMS
+          const finalIntakeData = {
+            customerName: state.intakeData.customerName,
+            serviceRequested: state.intakeData.serviceRequested,
+            issueDescription: state.intakeData.issueDescription,
+            serviceAddress: state.intakeData.serviceAddress,
+            desiredCompletionTime: state.intakeData.desiredCompletionTime,
+            callbackTime: state.intakeData.callbackTime,
+            callerPhone: state.callerPhone,
+            callSid: state.callSid,
+            businessId: state.businessId
+          };
+          
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: simple_mode_final_intake_data');
+          console.log('[SIMPLE MODE] finalIntakeData:', finalIntakeData);
+          console.log('[SIMPLE MODE] =========================================');
+
           // Generate SMS summary
           const smsBody = `New customer request
 
-👤 ${state.intakeData.caller_name || 'Unknown'}
+👤 ${state.intakeData.customerName || 'Unknown'}
 📞 ${state.callerPhone || 'Unknown'}
 
 Service
-${state.intakeData.service_requested || 'General inquiry'}
+${state.intakeData.serviceRequested || 'General inquiry'}
 
 Address
-${state.intakeData.address || 'Not provided'}
+${state.intakeData.serviceAddress || 'Not provided'}
 
 Desired completion
-${state.intakeData.completion_time || 'Not specified'}
+${state.intakeData.desiredCompletionTime || 'Not specified'}
 
 Best callback time
-${state.intakeData.callback_time || 'Not specified'}
+${state.intakeData.callbackTime || 'Not specified'}
 
 Details
-${state.intakeData.details || 'No additional details'}`;
+${state.intakeData.issueDescription || 'No additional details'}`;
 
           console.log('[SIMPLE MODE] =========================================');
           console.log('[SIMPLE MODE] event: simple_mode_summary_generated');
@@ -5741,11 +5768,11 @@ ${state.intakeData.details || 'No additional details'}`;
 
             // Store transcript answer in intakeData based on current stage
             const stageToFieldMap: Record<string, string> = {
-              ask_name_reason: 'caller_name',
-              ask_details: 'details',
-              ask_location: 'address',
-              ask_completion_time: 'completion_time',
-              ask_callback_time: 'callback_time'
+              ask_name_reason: 'customerName',
+              ask_details: 'issueDescription',
+              ask_location: 'serviceAddress',
+              ask_completion_time: 'desiredCompletionTime',
+              ask_callback_time: 'callbackTime'
             };
             
             const fieldName = stageToFieldMap[state.currentStage];
