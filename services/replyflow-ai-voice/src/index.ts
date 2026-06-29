@@ -5044,7 +5044,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     intakeData: {} as any,
     openAiWs: null as WebSocket | null,
     activeResponseId: null as string | null,
-    timeoutId: null as NodeJS.Timeout | null
+    timeoutId: null as NodeJS.Timeout | null,
+    audioReceived: false
   };
 
   // Hardcoded prompts for each stage
@@ -5096,6 +5097,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     const responseId = Math.random().toString(36).substring(2, 10);
     state.activeResponseId = responseId;
     state.assistantSpeaking = true;
+    state.audioReceived = false;
 
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
@@ -5125,13 +5127,16 @@ Never respond in French, Spanish, or any non-English language.`;
       state.openAiWs.send(JSON.stringify(message));
     }
 
-    // 10-second timeout for OpenAI response
+    // 10-second timeout for OpenAI response - only triggers if no audio received
     if (state.timeoutId) clearTimeout(state.timeoutId);
     state.timeoutId = setTimeout(() => {
-      if (state.assistantSpeaking) {
-        console.log('[SIMPLE MODE] Timeout - OpenAI did not respond');
+      if (state.assistantSpeaking && !state.audioReceived) {
+        console.log('[SIMPLE MODE] Timeout - No audio delta received from OpenAI');
         state.assistantSpeaking = false;
-        // Could reprompt or end incomplete
+      } else if (state.assistantSpeaking && state.audioReceived) {
+        // Audio was received but audio.done not emitted - force speaking=false
+        console.log('[SIMPLE MODE] Timeout - Audio received but no audio.done, forcing speaking=false');
+        state.assistantSpeaking = false;
       }
     }, 10000);
   };
@@ -5209,6 +5214,15 @@ Never respond in French, Spanish, or any non-English language.`;
         state.openAiWs.on('message', (data) => {
           const message = JSON.parse(data.toString());
 
+          // Log key OpenAI events
+          if (['response.created', 'response.output_audio.delta', 'response.output_audio.done', 'response.audio.done', 'response.done', 'input_audio_buffer.speech_stopped', 'conversation.item.input_audio_transcription.completed'].includes(message.type)) {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: openai_event');
+            console.log('[SIMPLE MODE] type:', message.type);
+            console.log('[SIMPLE MODE] responseId:', state.activeResponseId || 'none');
+            console.log('[SIMPLE MODE] =========================================');
+          }
+
           if (message.type === 'response.output_audio.delta') {
             // Send audio directly to Twilio
             if (state.streamSid && ws.readyState === WebSocket.OPEN) {
@@ -5221,10 +5235,14 @@ Never respond in French, Spanish, or any non-English language.`;
               };
               ws.send(JSON.stringify(mediaMessage));
             }
-          } else if (message.type === 'response.audio.done') {
+            // Audio received - mark it
+            state.audioReceived = true;
+            // Audio started - clear timeout since we received audio
+            if (state.timeoutId) clearTimeout(state.timeoutId);
+          } else if (message.type === 'response.output_audio.done' || message.type === 'response.audio.done' || message.type === 'response.done') {
             state.assistantSpeaking = false;
             if (state.timeoutId) clearTimeout(state.timeoutId);
-            logSimple('audio_done', { stage: state.currentStage });
+            logSimple('audio_done', { stage: state.currentStage, eventType: message.type });
           } else if (message.type === 'conversation.item.input_audio_transcription.completed') {
             // User transcription completed
             const transcript = message.transcript || '';
