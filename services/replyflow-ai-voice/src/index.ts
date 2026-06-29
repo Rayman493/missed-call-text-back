@@ -8787,10 +8787,11 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 // Clear the authorized source flag after verification
                 authorizedResponseCreateSource = null;
 
-                // Reset validation state for new response
-                if (twilioHandler && typeof (twilioHandler as any).resetValidationState === 'function') {
-                  (twilioHandler as any).resetValidationState();
-                }
+                // DO NOT reset validation state here - it would reset responseAuthorized while audio is still streaming
+                // Validation state should only be reset when a NEW response is created (setCurrentResponseId)
+                // if (twilioHandler && typeof (twilioHandler as any).resetValidationState === 'function') {
+                //   (twilioHandler as any).resetValidationState();
+                // }
 
                 // CRITICAL FIX: Set assistantSpeaking to TRUE immediately when response.created is received
                 // This ensures caller audio is blocked BEFORE any audio starts streaming
@@ -9281,12 +9282,21 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 }
               }
               if (message.type === 'response.output_audio.delta' && message.delta) {
+                // Track chunk count for debugging
+                const responseId = message.response_id || (twilioHandler as any).currentResponseId || 'unknown';
+                const chunkKey = `chunks_${responseId}`;
+                if (!(twilioHandler as any)[chunkKey]) {
+                  (twilioHandler as any)[chunkKey] = { received: 0, sent: 0, responseId };
+                }
+                (twilioHandler as any)[chunkKey].received++;
+
                 // Log first prompt audio delta reception for debugging
                 if (intakeData?.stage === 'ask_name_reason') {
                   console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] =========================================');
                   console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] Stage:', intakeData?.stage);
-                  console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] responseId:', message.response_id);
+                  console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] responseId:', responseId);
                   console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] deltaLength:', message.delta.length);
+                  console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] chunkReceived:', (twilioHandler as any)[chunkKey].received);
                   console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] Timestamp:', new Date().toISOString());
                   console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] =========================================');
                 }
@@ -9323,7 +9333,6 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 }
 
                 // Route through validated/buffered gate. Never direct for assistant audio.
-                const responseId = message.response_id || (twilioHandler as any).currentResponseId || 'unknown';
                 const authorized = !!(twilioHandler as any).responseAuthorized;
                 console.log('[AUDIO TO TWILIO]');
                 console.log('[AUDIO TO TWILIO] responseId:', responseId);

@@ -399,12 +399,25 @@ export class TwilioStreamHandler {
       const callState = (this as any).callState || 'active';
       const finalClosingStarted = (this as any).finalClosingStarted || false;
       const currentStage = (this as any)._currentStage || 'unknown';
+      const assistantSpeaking = (this as any).assistantSpeaking || false;
+      
+      // Track chunk count sent
+      const responseId = this.currentResponseId || 'unknown';
+      const chunkKey = `chunks_${responseId}`;
+      if (!(this as any)[chunkKey]) {
+        (this as any)[chunkKey] = { received: 0, sent: 0, responseId };
+      }
+      (this as any)[chunkKey].sent++;
       
       // Log streamSid and ws readyState for debugging
       console.log('[SEND AUDIO INTERNAL DEBUG] =========================================');
       console.log('[SEND AUDIO INTERNAL DEBUG] streamSid:', this.streamSid);
       console.log('[SEND AUDIO INTERNAL DEBUG] ws readyState:', this.ws.readyState);
       console.log('[SEND AUDIO INTERNAL DEBUG] ws readyState value:', this.ws.readyState === WebSocket.OPEN ? 'OPEN' : 'NOT OPEN');
+      console.log('[SEND AUDIO INTERNAL DEBUG] responseId:', responseId);
+      console.log('[SEND AUDIO INTERNAL DEBUG] chunkSent:', (this as any)[chunkKey].sent);
+      console.log('[SEND AUDIO INTERNAL DEBUG] chunkReceived:', (this as any)[chunkKey].received);
+      console.log('[SEND AUDIO INTERNAL DEBUG] assistantSpeaking:', assistantSpeaking);
       console.log('[SEND AUDIO INTERNAL DEBUG] Timestamp:', new Date().toISOString());
       console.log('[SEND AUDIO INTERNAL DEBUG] =========================================');
       
@@ -417,7 +430,6 @@ export class TwilioStreamHandler {
       }
 
       // Comprehensive AUDIO TO TWILIO log before every media send
-      const responseId = this.currentResponseId || 'unknown';
       const authorized = !!this.responseAuthorized;
       const source = (this as any)._lastAudioSource || 'sendAudioInternal';
       const route = (this as any).responseAuthorized ? 'buffered' : 'direct';
@@ -536,7 +548,7 @@ export class TwilioStreamHandler {
     console.log('[TWILIO VALIDATION] =========================================');
     console.log('[TWILIO VALIDATION] authorizeResponse called');
     console.log('[TWILIO VALIDATION] Response ID:', this.currentResponseId);
-    console.log('[TWILIO VALIDATION] Buffer length:', this.audioBuffer.length);
+    console.log('[TWILIO VALIDATION] Buffer length BEFORE flush:', this.audioBuffer.length);
     console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
     console.log('[TWILIO VALIDATION] =========================================');
     
@@ -546,11 +558,12 @@ export class TwilioStreamHandler {
     // Flush buffered audio
     if (this.audioBuffer.length > 0) {
       const currentStage = (this as any)._currentStage || 'unknown';
+      const bufferLength = this.audioBuffer.length;
       console.log('[AUDIO FLUSHED] =========================================');
       console.log('[AUDIO FLUSHED] responseId:', this.currentResponseId);
       console.log('[AUDIO FLUSHED] expectedPromptText:', this.expectedPromptText);
       console.log('[AUDIO FLUSHED] authorizedAtCreate:', this.authorizedAtCreate);
-      console.log('[AUDIO FLUSHED] audioFlushed:', this.audioBuffer.length);
+      console.log('[AUDIO FLUSHED] audioFlushed:', bufferLength);
       console.log('[AUDIO FLUSHED] audioBuffered:', this.audioBufferedCount);
       console.log('[AUDIO FLUSHED] Timestamp:', new Date().toISOString());
       console.log('[AUDIO FLUSHED] =========================================');
@@ -560,7 +573,7 @@ export class TwilioStreamHandler {
         console.log('[FIRST PROMPT AUDIO FLUSHED] =========================================');
         console.log('[FIRST PROMPT AUDIO FLUSHED] Stage:', currentStage);
         console.log('[FIRST PROMPT AUDIO FLUSHED] responseId:', this.currentResponseId);
-        console.log('[FIRST PROMPT AUDIO FLUSHED] audioBufferLength:', this.audioBuffer.length);
+        console.log('[FIRST PROMPT AUDIO FLUSHED] audioBufferLength:', bufferLength);
         console.log('[FIRST PROMPT AUDIO FLUSHED] Timestamp:', new Date().toISOString());
         console.log('[FIRST PROMPT AUDIO FLUSHED] =========================================');
       }
@@ -570,6 +583,11 @@ export class TwilioStreamHandler {
         this.sendAudioInternal(audioData);
       }
       this.audioBuffer = [];
+      
+      console.log('[TWILIO VALIDATION] =========================================');
+      console.log('[TWILIO VALIDATION] Buffer length AFTER flush:', this.audioBuffer.length);
+      console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
+      console.log('[TWILIO VALIDATION] =========================================');
     }
   }
 
