@@ -8346,6 +8346,13 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] Timestamp:', new Date().toISOString());
                 console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] =========================================');
                 
+                console.log('[ASSISTANT SPEAKING WRITE] =========================================');
+                console.log('[ASSISTANT SPEAKING WRITE] value: false');
+                console.log('[ASSISTANT SPEAKING WRITE] function: OpenAI message handler (response.audio.done)');
+                console.log('[ASSISTANT SPEAKING WRITE] stage:', intakeData?.stage || 'unknown');
+                console.log('[ASSISTANT SPEAKING WRITE] responseId:', message.response_id || 'unknown');
+                console.log('[ASSISTANT SPEAKING WRITE] timestamp:', new Date().toISOString());
+                console.log('[ASSISTANT SPEAKING WRITE] =========================================');
                 callSessionState.assistantSpeaking = false;
                 assistantSpeaking = false; // Sync local variable
                 callSessionState.promptCompletedAt = Date.now();
@@ -11215,6 +11222,20 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   log(LogLevel.INFO, 'SIGINT received, shutting down gracefully');
+  wss.close(() => {
+    server.close(() => {
+      log(LogLevel.INFO, 'Server closed');
+      process.exit(0);
+    });
+  });
+});
+  wss.close(() => {
+    server.close(() => {
+      log(LogLevel.INFO, 'Server closed');
+      process.exit(0);
+    });
+  });
+});
   wss.close(() => {
     server.close(() => {
       log(LogLevel.INFO, 'Server closed');

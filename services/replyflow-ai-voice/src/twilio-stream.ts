@@ -270,6 +270,13 @@ export class TwilioStreamHandler {
                   console.log('[AUDIO BLOCKING STATE INVALID] =========================================');
                   
                   // Reset assistantSpeaking to allow caller audio
+                  console.log('[ASSISTANT SPEAKING WRITE] =========================================');
+                  console.log('[ASSISTANT SPEAKING WRITE] value: false');
+                  console.log('[ASSISTANT SPEAKING WRITE] function: handleMessage (media event handler)');
+                  console.log('[ASSISTANT SPEAKING WRITE] stage:', callSessionState.currentStage || 'unknown');
+                  console.log('[ASSISTANT SPEAKING WRITE] responseId:', activeResponseId || 'unknown');
+                  console.log('[ASSISTANT SPEAKING WRITE] timestamp:', new Date().toISOString());
+                  console.log('[ASSISTANT SPEAKING WRITE] =========================================');
                   callSessionState.assistantSpeaking = false;
                   
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] =========================================');
