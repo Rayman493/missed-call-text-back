@@ -5029,7 +5029,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   // Extract parameters from URL
   const url = new URL(req.url || '', `http://${req.headers.host}`);
 
-  // Helper to convert PCM to mu-law (standard μ-law with bias and inversion)
+  // Helper to convert PCM to mu-law (standard G.711 μ-law)
   const pcmToMulaw = (pcmData: Float32Array): Buffer => {
     const MULAW_BIAS = 0x84;
     const MULAW_CLIP = 32635;
@@ -5039,7 +5039,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       let sample = Math.max(-1, Math.min(1, pcmData[i]));
       let linear = Math.floor(sample * 32767);
 
-      // μ-law encoding with bias and inversion
+      // Standard G.711 μ-law encoding
       let sign = (linear >> 8) & 0x80;
       if (sign !== 0) linear = -linear;
       if (linear > MULAW_CLIP) linear = MULAW_CLIP;
@@ -5065,6 +5065,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       pcm[i] = Math.sin(2 * Math.PI * frequency * t) * 0.5; // 50% volume
     }
 
+    return pcmToMulaw(pcm);
+  };
+
+  // Generate silence (all zeros should encode to 0xFF in μ-law)
+  const generateSilence = (durationSeconds: number, sampleRate: number = 8000): Buffer => {
+    const numSamples = durationSeconds * sampleRate;
+    const pcm = new Float32Array(numSamples);
+    // All zeros - should encode to 0xFF in μ-law
     return pcmToMulaw(pcm);
   };
 
@@ -5212,7 +5220,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[SIMPLE MODE] event: stage_prompt_mapping');
     console.log('[SIMPLE MODE] simple_mode_selected:', true);
     console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_hardcoded');
-    console.log('[SIMPLE MODE] sourceOfSpeech:', 'test_tone_440hz'); // TEMP: Using test tone
+    console.log('[SIMPLE MODE] sourceOfSpeech:', 'test_silence_first'); // TEMP: Testing silence first
     console.log('[SIMPLE MODE] business_id:', state.businessId);
     console.log('[SIMPLE MODE] currentStage:', stage);
     console.log('[SIMPLE MODE] promptKey:', stage);
@@ -5222,14 +5230,16 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
     try {
-      // TEMP: Use test tone instead of OpenAI TTS to verify pipeline
-      const mulawBuffer = generateTestTone(2.0, 440, 8000); // 2-second 440Hz tone
+      // TEMP: Test silence first to verify μ-law encoding (silence should encode to 0xFF)
+      const mulawBuffer = generateSilence(1.0, 8000); // 1-second silence
 
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: tts_audio_generated');
       console.log('[SIMPLE MODE] audioSize:', mulawBuffer.length);
       console.log('[SIMPLE MODE] format:', 'pcm_mulaw_8kHz');
       console.log('[SIMPLE MODE] first_20_raw_bytes_hex:', mulawBuffer.slice(0, 20).toString('hex'));
+      console.log('[SIMPLE MODE] silence_test_first_20_mulaw_hex:', mulawBuffer.slice(0, 20).toString('hex'));
+      console.log('[SIMPLE MODE] expected_silence_hex:', 'ff'.repeat(20));
       console.log('[SIMPLE MODE] =========================================');
 
       // Send mu-law audio to Twilio via WebSocket
@@ -5346,12 +5356,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
                   transcription: {
                     model: "whisper-1"
                   }
-                },
-                output: {
-                  format: {
-                    type: "audio/pcmu"
-                  },
-                  voice: "alloy"
                 }
               }
             }
