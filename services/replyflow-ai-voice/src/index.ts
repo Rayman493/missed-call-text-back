@@ -38,6 +38,20 @@ import {
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
 
+// Prompt playback state - authoritative source of truth for scripted prompt playback
+type PromptPlaybackStatus = 'idle' | 'starting' | 'streaming' | 'waiting_for_mark' | 'done';
+type PromptPlaybackState = {
+  id: string;
+  stage: string;
+  status: PromptPlaybackStatus;
+  startedAt: number;
+  firstAudioAt?: number;
+  lastAudioAt?: number;
+  markName?: string;
+  responseId?: string;
+  timeoutId?: NodeJS.Timeout | null;
+};
+
 // Timeout helper for Supabase queries
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   const timeoutPromise = new Promise<T>((_, reject) => {
@@ -1538,6 +1552,62 @@ Speak ONLY the exact text in quotes above.`;
     callSessionState.currentStage = stage;
     callSessionState.activeResponseId = tempResponseId;
     callSessionState.lastPromptAt = Date.now();
+
+    // Create new prompt playback state - authoritative source of truth
+    const promptPlaybackId = Math.random().toString(36).substring(2, 10);
+    const promptPlayback: PromptPlaybackState = {
+      id: promptPlaybackId,
+      stage: stage,
+      status: 'starting',
+      startedAt: Date.now(),
+      responseId: tempResponseId
+    };
+
+    // Clear any existing prompt playback timeout
+    if (callSessionState.promptPlayback?.timeoutId) {
+      clearTimeout(callSessionState.promptPlayback.timeoutId);
+    }
+
+    // Set new prompt playback state
+    callSessionState.promptPlayback = promptPlayback;
+
+    // Start 12-second safety timeout
+    const PROMPT_PLAYBACK_TIMEOUT_MS = 12000;
+    promptPlayback.timeoutId = setTimeout(() => {
+      if (callSessionState.promptPlayback?.id === promptPlaybackId && callSessionState.promptPlayback.status !== 'done') {
+        console.log('[PROMPT PLAYBACK TIMEOUT] =========================================');
+        console.log('[PROMPT PLAYBACK TIMEOUT] Prompt playback stuck, forcing done');
+        console.log('[PROMPT PLAYBACK TIMEOUT] id:', promptPlaybackId);
+        console.log('[PROMPT PLAYBACK TIMEOUT] stage:', stage);
+        console.log('[PROMPT PLAYBACK TIMEOUT] status:', callSessionState.promptPlayback.status);
+        console.log('[PROMPT PLAYBACK TIMEOUT] elapsedMs:', Date.now() - callSessionState.promptPlayback.startedAt);
+        console.log('[PROMPT PLAYBACK TIMEOUT] Timestamp:', new Date().toISOString());
+        console.log('[PROMPT PLAYBACK TIMEOUT] =========================================');
+
+        // Force done status and unblock caller audio
+        callSessionState.promptPlayback.status = 'done';
+        callSessionState.assistantSpeaking = false;
+        callSessionState.promptCompletedAt = Date.now();
+
+        console.log('[PROMPT PLAYBACK] =========================================');
+        console.log('[PROMPT PLAYBACK] event: timeout');
+        console.log('[PROMPT PLAYBACK] id:', promptPlaybackId);
+        console.log('[PROMPT PLAYBACK] stage:', stage);
+        console.log('[PROMPT PLAYBACK] status: done');
+        console.log('[PROMPT PLAYBACK] responseId:', tempResponseId);
+        console.log('[PROMPT PLAYBACK] elapsedMs:', Date.now() - callSessionState.promptPlayback.startedAt);
+        console.log('[PROMPT PLAYBACK] =========================================');
+      }
+    }, PROMPT_PLAYBACK_TIMEOUT_MS);
+
+    console.log('[PROMPT PLAYBACK] =========================================');
+    console.log('[PROMPT PLAYBACK] event: created');
+    console.log('[PROMPT PLAYBACK] id:', promptPlaybackId);
+    console.log('[PROMPT PLAYBACK] stage:', stage);
+    console.log('[PROMPT PLAYBACK] status: starting');
+    console.log('[PROMPT PLAYBACK] responseId:', tempResponseId);
+    console.log('[PROMPT PLAYBACK] elapsedMs: 0');
+    console.log('[PROMPT PLAYBACK] =========================================');
 
     // Greeting timeline: activeResponseId transition
     if (stage === 'ask_name_reason') {
@@ -5072,8 +5142,20 @@ wss.on('connection', (ws, req) => {
       // Silence timeout state
       repromptCount: 0,
       silenceTimerStartedAt: null as number | null,
-      silenceTimeoutId: null as NodeJS.Timeout | null
+      silenceTimeoutId: null as NodeJS.Timeout | null,
+      // Prompt playback state - authoritative source of truth
+      promptPlayback: null as PromptPlaybackState | null
     };
+
+    // Add debug ID for state identity tracking
+    (callSessionState as any).__debugId = Math.random().toString(36).substring(2, 8);
+
+    console.log('[STATE ID] =========================================');
+    console.log('[STATE ID] event: created');
+    console.log('[STATE ID] debugId:', (callSessionState as any).__debugId);
+    console.log('[STATE ID] objectKeys:', Object.keys(callSessionState).join(', '));
+    console.log('[STATE ID] timestamp:', new Date().toISOString());
+    console.log('[STATE ID] =========================================');
 
     console.log('[CALL_SESSION_STATE_INIT] Shared call session state object created');
     console.log('[CALL_SESSION_STATE_INIT] Object ID:', Math.random().toString(36).substring(7));
@@ -5328,6 +5410,21 @@ wss.on('connection', (ws, req) => {
           const beforeMarkAssistantSpeaking = callSessionState.assistantSpeaking;
           callSessionState.assistantSpeaking = false;
           assistantSpeaking = false; // Sync local variable
+
+          // Prompt playback: set done status on mark received
+          if (callSessionState.promptPlayback && callSessionState.promptPlayback.status === 'waiting_for_mark') {
+            callSessionState.promptPlayback.status = 'done';
+            callSessionState.promptCompletedAt = Date.now();
+
+            console.log('[PROMPT PLAYBACK] =========================================');
+            console.log('[PROMPT PLAYBACK] event: twilio_mark_received');
+            console.log('[PROMPT PLAYBACK] id:', callSessionState.promptPlayback.id);
+            console.log('[PROMPT PLAYBACK] stage:', callSessionState.promptPlayback.stage);
+            console.log('[PROMPT PLAYBACK] status: done');
+            console.log('[PROMPT PLAYBACK] responseId:', callSessionState.promptPlayback.responseId);
+            console.log('[PROMPT PLAYBACK] elapsedMs:', Date.now() - callSessionState.promptPlayback.startedAt);
+            console.log('[PROMPT PLAYBACK] =========================================');
+          }
 
           // Greeting timeline: assistantSpeaking transition in mark callback
           if (callSessionState.currentStage === 'ask_name_reason' && beforeMarkAssistantSpeaking) {
@@ -9457,6 +9554,25 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[OPENAI RECV] response.output_audio.delta');
                   console.log('[AI AUDIO DELTA] Assistant audio delta received');
                 }
+
+                // Prompt playback: set streaming status on first audio delta
+                if (callSessionState.promptPlayback && callSessionState.promptPlayback.status === 'starting') {
+                  const responseId = message.response_id || 'unknown';
+                  callSessionState.promptPlayback.status = 'streaming';
+                  callSessionState.promptPlayback.firstAudioAt = Date.now();
+                  if (responseId) {
+                    callSessionState.promptPlayback.responseId = responseId;
+                  }
+
+                  console.log('[PROMPT PLAYBACK] =========================================');
+                  console.log('[PROMPT PLAYBACK] event: first_audio_delta');
+                  console.log('[PROMPT PLAYBACK] id:', callSessionState.promptPlayback.id);
+                  console.log('[PROMPT PLAYBACK] stage:', callSessionState.promptPlayback.stage);
+                  console.log('[PROMPT PLAYBACK] status: streaming');
+                  console.log('[PROMPT PLAYBACK] responseId:', responseId);
+                  console.log('[PROMPT PLAYBACK] elapsedMs:', Date.now() - callSessionState.promptPlayback.startedAt);
+                  console.log('[PROMPT PLAYBACK] =========================================');
+                }
               }
               if (message.type === 'response.output_audio_transcript.delta') {
                 console.log('[OPENAI RECV] response.output_audio_transcript.delta');
@@ -9545,6 +9661,38 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[AUDIO PLAYBACK COMPLETE] Response ID:', message.response_id || 'unknown');
                 console.log('[AUDIO PLAYBACK COMPLETE] Timestamp:', new Date().toISOString());
                 console.log('[AUDIO PLAYBACK COMPLETE] =========================================');
+
+                // Prompt playback: set waiting_for_mark status on audio done
+                if (callSessionState.promptPlayback && callSessionState.promptPlayback.status === 'streaming') {
+                  const responseId = message.response_id || 'unknown';
+                  callSessionState.promptPlayback.status = 'waiting_for_mark';
+                  callSessionState.promptPlayback.lastAudioAt = Date.now();
+
+                  console.log('[PROMPT PLAYBACK] =========================================');
+                  console.log('[PROMPT PLAYBACK] event: audio_done');
+                  console.log('[PROMPT PLAYBACK] id:', callSessionState.promptPlayback.id);
+                  console.log('[PROMPT PLAYBACK] stage:', callSessionState.promptPlayback.stage);
+                  console.log('[PROMPT PLAYBACK] status: waiting_for_mark');
+                  console.log('[PROMPT PLAYBACK] responseId:', responseId);
+                  console.log('[PROMPT PLAYBACK] elapsedMs:', Date.now() - callSessionState.promptPlayback.startedAt);
+                  console.log('[PROMPT PLAYBACK] =========================================');
+
+                  // Send a Twilio mark for this prompt if not already sent
+                  if (twilioHandler && typeof (twilioHandler as any).sendMark === 'function') {
+                    const markName = `prompt-complete-${callSessionState.promptPlayback.id}`;
+                    callSessionState.promptPlayback.markName = markName;
+                    (twilioHandler as any).sendMark(markName);
+
+                    console.log('[PROMPT PLAYBACK] =========================================');
+                    console.log('[PROMPT PLAYBACK] event: twilio_mark_sent');
+                    console.log('[PROMPT PLAYBACK] id:', callSessionState.promptPlayback.id);
+                    console.log('[PROMPT PLAYBACK] stage:', callSessionState.promptPlayback.stage);
+                    console.log('[PROMPT PLAYBACK] status: waiting_for_mark');
+                    console.log('[PROMPT PLAYBACK] markName:', markName);
+                    console.log('[PROMPT PLAYBACK] elapsedMs:', Date.now() - callSessionState.promptPlayback.startedAt);
+                    console.log('[PROMPT PLAYBACK] =========================================');
+                  }
+                }
 
                 // CRITICAL FIX: Reset assistantSpeaking when audio playback completes
                 // This ensures caller audio is only accepted after AI has finished speaking

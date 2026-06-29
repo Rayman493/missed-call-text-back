@@ -129,6 +129,27 @@ export class TwilioStreamHandler {
   }
 
   /**
+   * Send a mark to Twilio to track when audio playback completes
+   */
+  sendMark(markName: string) {
+    if (this.ws && this.streamSid) {
+      const message = {
+        event: 'mark',
+        streamSid: this.streamSid,
+        mark: {
+          name: markName
+        }
+      };
+      try {
+        this.ws.send(JSON.stringify(message));
+        console.log('[TWILIO MARK SENT]', { markName });
+      } catch (error) {
+        console.log('[TWILIO MARK SEND ERROR]', error);
+      }
+    }
+  }
+
+  /**
    * Handle incoming WebSocket connection from Twilio
    */
   handleConnection(ws: WebSocket, req: any) {
@@ -189,37 +210,43 @@ export class TwilioStreamHandler {
               const openAiWs = (this as any).openAiWs;
               const greetingSent = (this as any).greetingSent || false;
               const callState = (this as any).callState || 'active';
-              // CRITICAL FIX: Read assistantSpeaking from shared callSessionState, not local property
+              // CRITICAL FIX: Read promptPlayback.status from shared callSessionState for authoritative gating
               const callSessionState = (this as any).callSessionState || {};
-              const assistantSpeaking = callSessionState.assistantSpeaking || false;
+              const promptPlayback = callSessionState.promptPlayback || null;
+              const promptPlaybackStatus = promptPlayback?.status || 'idle';
+              const isPromptPlaying = promptPlaybackStatus === 'starting' || promptPlaybackStatus === 'streaming' || promptPlaybackStatus === 'waiting_for_mark';
 
               // Instrument read for media gating
-              console.log('[ASSISTANT SPEAKING READ] =========================================');
-              console.log('[ASSISTANT SPEAKING READ] value:', assistantSpeaking);
-              console.log('[ASSISTANT SPEAKING READ] function: handleMessage (media event handler)');
-              console.log('[ASSISTANT SPEAKING READ] line: 194');
-              console.log('[ASSISTANT SPEAKING READ] responseId:', callSessionState.activeResponseId || 'unknown');
-              console.log('[ASSISTANT SPEAKING READ] stage:', callSessionState.currentStage || 'unknown');
-              console.log('[ASSISTANT SPEAKING READ] timestamp:', new Date().toISOString());
-              console.log('[ASSISTANT SPEAKING READ] =========================================');
+              console.log('[PROMPT PLAYBACK READ] =========================================');
+              console.log('[PROMPT PLAYBACK READ] value:', promptPlaybackStatus);
+              console.log('[PROMPT PLAYBACK READ] isPromptPlaying:', isPromptPlaying);
+              console.log('[PROMPT PLAYBACK READ] function: handleMessage (media event handler)');
+              console.log('[PROMPT PLAYBACK READ] line: 194');
+              console.log('[PROMPT PLAYBACK READ] responseId:', callSessionState.activeResponseId || 'unknown');
+              console.log('[PROMPT PLAYBACK READ] stage:', callSessionState.currentStage || 'unknown');
+              console.log('[PROMPT PLAYBACK READ] timestamp:', new Date().toISOString());
+              console.log('[PROMPT PLAYBACK READ] =========================================');
               const terminalClosingResponseStarted = (this as any).terminalClosingResponseStarted || false;
               const confirmationState = (this as any).confirmationState || 'collecting_info';
 
-              // V1 TURN-BASED FLOW: Block caller audio while assistant is speaking
+              // V1 TURN-BASED FLOW: Block caller audio while prompt is playing
               // This ensures reliable turn-taking: AI asks -> AI finishes -> caller answers
+              // Using promptPlayback.status as authoritative source of truth
 
-              // VERSION PROOF: Log that we're using shared state
-              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] =========================================');
-              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] callSessionState present:', !!callSessionState);
-              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] Reading assistantSpeaking from callSessionState:', callSessionState.assistantSpeaking);
-              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] Timestamp:', new Date().toISOString());
-              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING SHARED STATE] =========================================');
+              // VERSION PROOF: Log that we're using promptPlayback state
+              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING PROMPT PLAYBACK STATE] =========================================');
+              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING PROMPT PLAYBACK STATE] callSessionState present:', !!callSessionState);
+              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING PROMPT PLAYBACK STATE] promptPlayback present:', !!promptPlayback);
+              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING PROMPT PLAYBACK STATE] promptPlaybackStatus:', promptPlaybackStatus);
+              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING PROMPT PLAYBACK STATE] isPromptPlaying:', isPromptPlaying);
+              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING PROMPT PLAYBACK STATE] Timestamp:', new Date().toISOString());
+              console.log('[VERSION PROOF - TWILIO MEDIA HANDLER USING PROMPT PLAYBACK STATE] =========================================');
 
               // LOG: Every caller audio packet for debugging
               console.log('[CALLER AUDIO PACKET RECEIVED] =========================================');
-              console.log('[CALLER AUDIO PACKET RECEIVED] assistantSpeaking:', assistantSpeaking);
+              console.log('[CALLER AUDIO PACKET RECEIVED] promptPlaybackStatus:', promptPlaybackStatus);
+              console.log('[CALLER AUDIO PACKET RECEIVED] isPromptPlaying:', isPromptPlaying);
               console.log('[CALLER AUDIO PACKET RECEIVED] callState:', callState);
-              console.log('[CALLER AUDIO PACKET RECEIVED] callSessionState.assistantSpeaking:', callSessionState.assistantSpeaking);
               console.log('[CALLER AUDIO PACKET RECEIVED] Timestamp:', new Date().toISOString());
               console.log('[CALLER AUDIO PACKET RECEIVED] =========================================');
               
@@ -254,111 +281,88 @@ export class TwilioStreamHandler {
                 this.callerAudioBlockedLogged = false;
               }
 
-              // V1 STRICT BLOCKING: Block caller audio when assistant is speaking
+              // V1 STRICT BLOCKING: Block caller audio when prompt is playing
               // This prevents barge-in and ensures turn-based flow
-              if (assistantSpeaking) {
+              // Using promptPlayback.status as authoritative source of truth
+              if (isPromptPlaying) {
                 const activeResponseId = callSessionState.activeResponseId || 'unknown';
                 const lastPromptAt = callSessionState.lastPromptAt || 0;
                 const timeSinceLastPrompt = Date.now() - lastPromptAt;
-                
-                // V1 RELIABILITY: Only reset assistantSpeaking if we're confident the AI is not actually speaking
-                // Increased timeout from 10s to 30s to match the timeout protection in index.ts
-                // This prevents premature reset during long responses
-                if (activeResponseId === 'unknown' || activeResponseId === null || activeResponseId === undefined || timeSinceLastPrompt > 30000) {
-                  const beforeAssistantSpeaking = callSessionState.assistantSpeaking;
+
+                // V1 RELIABILITY: Safety timeout for stuck prompt playback
+                // If prompt is stuck for more than 30 seconds, allow caller audio
+                if (timeSinceLastPrompt > 30000) {
+                  const beforeStatus = promptPlaybackStatus;
                   const stackTrace = new Error().stack?.split('\n').slice(1, 4).join('\n') || 'unknown';
-                  
-                  console.log('[AUDIO BLOCKING STATE INVALID] =========================================');
-                  console.log('[AUDIO BLOCKING STATE INVALID] BEFORE callSessionState.assistantSpeaking:', beforeAssistantSpeaking);
-                  console.log('[AUDIO BLOCKING STATE INVALID] assistantSpeaking is true but activeResponseId is unknown/null or timeout');
-                  console.log('[AUDIO BLOCKING STATE INVALID] assistantSpeaking:', assistantSpeaking);
-                  console.log('[AUDIO BLOCKING STATE INVALID] activeResponseId:', activeResponseId);
-                  console.log('[AUDIO BLOCKING STATE INVALID] timeSinceLastPrompt:', timeSinceLastPrompt);
-                  console.log('[AUDIO BLOCKING STATE INVALID] Resetting assistantSpeaking to false');
-                  console.log('[AUDIO BLOCKING STATE INVALID] Stack trace:', stackTrace);
-                  console.log('[AUDIO BLOCKING STATE INVALID] Timestamp:', new Date().toISOString());
-                  console.log('[AUDIO BLOCKING STATE INVALID] =========================================');
-                  
-                  // Reset assistantSpeaking to allow caller audio
-                  console.log('[ASSISTANT SPEAKING WRITE] =========================================');
-                  console.log('[ASSISTANT SPEAKING WRITE] oldValue:', beforeAssistantSpeaking);
-                  console.log('[ASSISTANT SPEAKING WRITE] newValue: false');
-                  console.log('[ASSISTANT SPEAKING WRITE] function: handleMessage (media event handler)');
-                  console.log('[ASSISTANT SPEAKING WRITE] line: 280');
-                  console.log('[ASSISTANT SPEAKING WRITE] reason: Audio blocking state invalid (activeResponseId unknown/null or timeout)');
-                  console.log('[ASSISTANT SPEAKING WRITE] responseId:', activeResponseId || 'unknown');
-                  console.log('[ASSISTANT SPEAKING WRITE] stage:', callSessionState.currentStage || 'unknown');
-                  console.log('[ASSISTANT SPEAKING WRITE] stack:', new Error().stack?.split('\n').slice(1, 5).join('\n') || 'unknown');
-                  console.log('[ASSISTANT SPEAKING WRITE] timestamp:', new Date().toISOString());
-                  console.log('[ASSISTANT SPEAKING WRITE] =========================================');
-                  callSessionState.assistantSpeaking = false;
 
-                  // Greeting timeline: assistantSpeaking transition in twilio-stream.ts
-                  if (callSessionState.currentStage === 'ask_name_reason' && beforeAssistantSpeaking) {
-                    const now = Date.now();
-                    const elapsed = (this as any).greetingTimelineStartTime ? now - (this as any).greetingTimelineStartTime : 0;
-                    const responseId = (this as any).greetingCurrentResponseId || activeResponseId || 'unknown';
-                    const activeResponseIdFinal = callSessionState.activeResponseId || 'unknown';
-                    const assistantSpeaking = callSessionState.assistantSpeaking;
-                    const currentStage = callSessionState.currentStage || 'unknown';
-                    const callState = callSessionState.callState || 'unknown';
+                  console.log('[PROMPT PLAYBACK TIMEOUT] =========================================');
+                  console.log('[PROMPT PLAYBACK TIMEOUT] Prompt playback stuck for >30s, forcing done');
+                  console.log('[PROMPT PLAYBACK TIMEOUT] BEFORE promptPlayback.status:', beforeStatus);
+                  console.log('[PROMPT PLAYBACK TIMEOUT] promptPlaybackStatus is stuck');
+                  console.log('[PROMPT PLAYBACK TIMEOUT] activeResponseId:', activeResponseId);
+                  console.log('[PROMPT PLAYBACK TIMEOUT] timeSinceLastPrompt:', timeSinceLastPrompt);
+                  console.log('[PROMPT PLAYBACK TIMEOUT] Forcing promptPlayback.status to done');
+                  console.log('[PROMPT PLAYBACK TIMEOUT] Stack trace:', stackTrace);
+                  console.log('[PROMPT PLAYBACK TIMEOUT] Timestamp:', new Date().toISOString());
+                  console.log('[PROMPT PLAYBACK TIMEOUT] =========================================');
 
-                    console.log('[GREETING TIMELINE] =========================================');
-                    console.log('[GREETING TIMELINE] event: assistantSpeaking');
-                    console.log('[GREETING TIMELINE] oldValue: true');
-                    console.log('[GREETING TIMELINE] newValue: false');
-                    console.log('[GREETING TIMELINE] reason: twilio-stream.ts invalid state timeout');
-                    console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
-                    console.log('[GREETING TIMELINE] timestamp_ms:', now);
-                    console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
-                    console.log('[GREETING TIMELINE] responseId:', responseId);
-                    console.log('[GREETING TIMELINE] activeResponseId:', activeResponseIdFinal);
-                    console.log('[GREETING TIMELINE] assistantSpeaking:', assistantSpeaking);
-                    console.log('[GREETING TIMELINE] currentStage:', currentStage);
-                    console.log('[GREETING TIMELINE] callState:', callState);
-                    console.log('[GREETING TIMELINE] =========================================');
+                  // Force done status and unblock caller audio
+                  if (callSessionState.promptPlayback) {
+                    callSessionState.promptPlayback.status = 'done';
+                    callSessionState.assistantSpeaking = false;
                   }
-                  
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] =========================================');
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] BEFORE callSessionState.assistantSpeaking:', beforeAssistantSpeaking);
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] AFTER callSessionState.assistantSpeaking:', callSessionState.assistantSpeaking);
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] Source: twilio-stream.ts audio blocking state invalid handler');
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] activeResponseId:', activeResponseId);
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] timeSinceLastPrompt:', timeSinceLastPrompt);
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] Stack trace:', stackTrace);
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] Timestamp:', new Date().toISOString());
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] =========================================');
-                  
-                  // Do NOT return - allow caller audio to proceed
+
+                  console.log('[PROMPT PLAYBACK] =========================================');
+                  console.log('[PROMPT PLAYBACK] event: timeout');
+                  console.log('[PROMPT PLAYBACK] id:', callSessionState.promptPlayback?.id || 'unknown');
+                  console.log('[PROMPT PLAYBACK] stage:', callSessionState.promptPlayback?.stage || 'unknown');
+                  console.log('[PROMPT PLAYBACK] status: done');
+                  console.log('[PROMPT PLAYBACK] responseId:', activeResponseId);
+                  console.log('[PROMPT PLAYBACK] elapsedMs:', Date.now() - (callSessionState.promptPlayback?.startedAt || 0));
+                  console.log('[PROMPT PLAYBACK] =========================================');
                 } else {
-                  // Valid blocking state - assistant is actually speaking
-                  // Mark that blocked audio was received during prompt for answer gating
-                  callSessionState.blockedAudioDuringPrompt = true;
-                  
-                  // V1 STRICT: Always block caller audio when assistantSpeaking is true
-                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] =========================================');
-                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] V1 TURN-BASED FLOW ACTIVE');
-                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] Caller audio blocked while AI is speaking');
-                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] assistantSpeaking:', assistantSpeaking);
-                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] activeResponseId:', activeResponseId);
-                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] blockedAudioDuringPrompt set to TRUE');
-                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] Timestamp:', new Date().toISOString());
-                  console.log('[INBOUND CALLER AUDIO BLOCKED - AI SPEAKING] =========================================');
-                  
+                  // Valid blocking state - prompt is actually playing
+                  // Log that caller audio was blocked
+                  console.log('[PROMPT PLAYBACK] =========================================');
+                  console.log('[PROMPT PLAYBACK] event: caller_audio_blocked');
+                  console.log('[PROMPT PLAYBACK] id:', callSessionState.promptPlayback?.id || 'unknown');
+                  console.log('[PROMPT PLAYBACK] stage:', callSessionState.promptPlayback?.stage || 'unknown');
+                  console.log('[PROMPT PLAYBACK] status:', promptPlaybackStatus);
+                  console.log('[PROMPT PLAYBACK] responseId:', activeResponseId);
+                  console.log('[PROMPT PLAYBACK] elapsedMs:', Date.now() - (callSessionState.promptPlayback?.startedAt || 0));
+                  console.log('[PROMPT PLAYBACK] =========================================');
+
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - PROMPT PLAYING] =========================================');
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - PROMPT PLAYING] V1 TURN-BASED FLOW ACTIVE');
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - PROMPT PLAYING] Caller audio blocked while prompt is playing');
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - PROMPT PLAYING] promptPlaybackStatus:', promptPlaybackStatus);
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - PROMPT PLAYING] activeResponseId:', activeResponseId);
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - PROMPT PLAYING] Timestamp:', new Date().toISOString());
+                  console.log('[INBOUND CALLER AUDIO BLOCKED - PROMPT PLAYING] =========================================');
+
                   return;
                 }
+              } else {
+                // Prompt is not playing - accept caller audio
+                console.log('[PROMPT PLAYBACK] =========================================');
+                console.log('[PROMPT PLAYBACK] event: caller_audio_accepted');
+                console.log('[PROMPT PLAYBACK] id:', callSessionState.promptPlayback?.id || 'none');
+                console.log('[PROMPT PLAYBACK] stage:', callSessionState.promptPlayback?.stage || 'none');
+                console.log('[PROMPT PLAYBACK] status:', promptPlaybackStatus);
+                console.log('[PROMPT PLAYBACK] responseId:', callSessionState.activeResponseId || 'none');
+                console.log('[PROMPT PLAYBACK] =========================================');
               }
-              
+
               // LOG: Caller audio accepted
               console.log('[CALLER AUDIO ACCEPTED] =========================================');
-              console.log('[CALLER AUDIO ACCEPTED] assistantSpeaking is false, accepting caller audio');
-              console.log('[CALLER AUDIO ACCEPTED] assistantSpeaking:', assistantSpeaking);
+              console.log('[CALLER AUDIO ACCEPTED] promptPlaybackStatus:', promptPlaybackStatus);
+              console.log('[CALLER AUDIO ACCEPTED] isPromptPlaying:', isPromptPlaying);
               console.log('[CALLER AUDIO ACCEPTED] Timestamp:', new Date().toISOString());
               console.log('[CALLER AUDIO ACCEPTED] =========================================');
 
               if (openAiWs) {
                 if (process.env.DEBUG_AI_VOICE === 'true') {
-                  console.log('[OPENAI INPUT AUDIO APPEND START]', { callState, assistantSpeaking });
+                  console.log('[OPENAI INPUT AUDIO APPEND START]', { callState, promptPlaybackStatus });
                 }
                 const audioMessage = {
                   type: 'input_audio_buffer.append',
@@ -372,40 +376,6 @@ export class TwilioStreamHandler {
                 } catch (error) {
                   console.log('[OPENAI INPUT AUDIO APPEND ERROR]', error);
                 }
-                
-                // DISABLED FOR AUDIO FORMAT DEBUGGING
-                // Manual turn detection fallback after greeting
-                /*
-                if (greetingSent) {
-                  log(LogLevel.INFO, '[TURN] caller audio received after greeting');
-                  
-                  // Clear existing timer
-                  if (this.turnDetectionTimer) {
-                    clearTimeout(this.turnDetectionTimer);
-                  }
-                  
-                  // Set timer to commit after 2 seconds
-                  this.turnDetectionTimer = setTimeout(() => {
-                    if (openAiWs) {
-                      const commitMessage = {
-                        type: 'input_audio_buffer.commit',
-                      };
-                      openAiWs.send(JSON.stringify(commitMessage));
-                      log(LogLevel.INFO, '[TURN] manual commit sent');
-                      
-                      // Send response.create
-                      const responseMessage = {
-                        type: 'response.create',
-                        response: {
-                          instructions: 'Always respond in English only.',
-                        },
-                      };
-                      openAiWs.send(JSON.stringify(responseMessage));
-                      log(LogLevel.INFO, '[TURN] response.create sent');
-                    }
-                  }, 2000);
-                }
-                */
               }
             } else {
               // Buffer if OpenAI is not ready, cap at 100 packets
@@ -728,22 +698,6 @@ export class TwilioStreamHandler {
     this.responseAuthorized = false;
     this.audioBuffer = []; // Drop buffered audio
     this.currentResponseId = '';
-  }
-
-  /**
-   * Send a mark to Twilio to track audio playback completion
-   */
-  sendMark(markName: string) {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      const message = {
-        event: 'mark',
-        mark: {
-          name: markName,
-        },
-      };
-      this.ws.send(JSON.stringify(message));
-      console.log('[TWILIO MARK SENT]', { markName });
-    }
   }
 
   /**
