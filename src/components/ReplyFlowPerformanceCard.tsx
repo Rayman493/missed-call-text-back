@@ -42,10 +42,10 @@ export default function ReplyFlowPerformanceCard() {
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
-        // Fetch follow-ups
+        // Fetch follow-ups from follow_up_jobs table (not follow_ups)
         const { data: followUps } = await supabase
-          .from('follow_ups')
-          .select('id, status, created_at')
+          .from('follow_up_jobs')
+          .select('id, status, cancelled_reason, created_at')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 

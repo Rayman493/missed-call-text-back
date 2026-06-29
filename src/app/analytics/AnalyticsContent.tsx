@@ -33,7 +33,7 @@ interface AnalyticsMetrics {
   voicemailsCaptured: number
   aiCompletionRate: number
   followUpsSent: number
-  followUpsCanceled: number
+  followUpsCancelled: number
   followUpResponseRate: number
   totalConversations: number
   customerReplyRate: number
@@ -97,10 +97,10 @@ export default function AnalyticsContent() {
           console.error('[Analytics] Failed to fetch AI call records:', aiCallsError.message)
         }
 
-        // Fetch follow-ups
+        // Fetch follow-ups from follow_up_jobs table (not follow_ups)
         const { data: followUps, error: followUpsError } = await supabase
-          .from('follow_ups')
-          .select('id, status, created_at, lead_id')
+          .from('follow_up_jobs')
+          .select('id, status, cancelled_reason, created_at, lead_id')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
@@ -134,11 +134,12 @@ export default function AnalyticsContent() {
         const aiCompletionRate = totalAiCalls > 0 ? (aiIntakesCompleted / totalAiCalls) * 100 : 0
 
         const followUpsSent = followUps?.filter((f: any) => f.status === 'sent').length || 0
-        const followUpsCanceled = followUps?.filter((f: any) => f.status === 'canceled').length || 0
+        const followUpsCancelled = followUps?.filter((f: any) => f.status === 'cancelled' && f.cancelled_reason === 'customer_replied').length || 0
 
-        // Calculate follow-up response rate (leads that replied after follow-up)
-        // This is a simplified calculation - in production you'd track actual follow-up conversations
-        const followUpResponseRate = followUpsSent > 0 ? Math.min((inboundMessages / followUpsSent) * 100, 100) : 0
+        // Calculate follow-up response rate: customer replies / (sent + customer replies)
+        const followUpResponseRate = (followUpsSent + followUpsCancelled) > 0 
+          ? Math.round((followUpsCancelled / (followUpsSent + followUpsCancelled)) * 100) 
+          : 0
 
         const totalConversations = conversations?.length || 0
         const customerReplyRate = totalMessages > 0 ? (inboundMessages / totalMessages) * 100 : 0
@@ -200,7 +201,7 @@ export default function AnalyticsContent() {
           voicemailsCaptured: aiCalls?.filter((c: any) => c.outcome === 'no_speech').length || 0,
           aiCompletionRate,
           followUpsSent,
-          followUpsCanceled,
+          followUpsCancelled,
           followUpResponseRate,
           totalConversations,
           customerReplyRate,
@@ -375,7 +376,7 @@ export default function AnalyticsContent() {
                       />
                       <MetricCard
                         label="Follow-Ups Canceled"
-                        value={metrics.followUpsCanceled}
+                        value={metrics.followUpsCancelled}
                         icon={Clock}
                       />
                       <PercentageCard
