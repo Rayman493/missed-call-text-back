@@ -5066,15 +5066,19 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   };
 
   // Cached PCMU audio for each prompt (to be populated with pre-generated audio)
-  // For now, this is empty - will fall back to Realtime response.create
+  // Run: npx ts-node scripts/generate-cached-audio.ts (requires OPENAI_API_KEY)
+  // Or extract base64 PCMU audio from test call logs
   const cachedPromptAudio: Record<string, string | null> = {
-    ask_name_reason: null,
-    ask_details: null,
-    ask_location: null,
-    ask_completion_time: null,
-    ask_callback_time: null,
-    complete: null
+    ask_name_reason: null, // TODO: Populate with base64 PCMU audio
+    ask_details: null, // TODO: Populate with base64 PCMU audio
+    ask_location: null, // TODO: Populate with base64 PCMU audio
+    ask_completion_time: null, // TODO: Populate with base64 PCMU audio
+    ask_callback_time: null, // TODO: Populate with base64 PCMU audio
+    complete: null // TODO: Populate with base64 PCMU audio
   };
+
+  // Debug flag to allow fallback to Realtime response.create when cached audio is missing
+  const ALLOW_REALTIME_FALLBACK = process.env.SIMPLE_MODE_ALLOW_REALTIME_FALLBACK === 'true';
   state.sessionId = url.searchParams.get('sessionId') || '';
   state.businessId = url.searchParams.get('businessId') || '';
   state.callSid = url.searchParams.get('callSid') || '';
@@ -5189,11 +5193,27 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       }
 
     } else {
-      // Fall back to Realtime response.create
+      // Cached audio missing - fail loudly unless debug flag is set
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: cached_prompt_audio_missing');
       console.log('[SIMPLE MODE] cached_prompt_key:', stage);
       console.log('[SIMPLE MODE] cached_prompt_audio_found:', false);
+      console.log('[SIMPLE MODE] =========================================');
+
+      if (!ALLOW_REALTIME_FALLBACK) {
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] ERROR: Cached prompt audio is required but missing!');
+        console.log('[SIMPLE MODE] ERROR: Please populate cachedPromptAudio with base64 PCMU audio');
+        console.log('[SIMPLE MODE] ERROR: Run: npx ts-node scripts/generate-cached-audio.ts');
+        console.log('[SIMPLE MODE] ERROR: Or set SIMPLE_MODE_ALLOW_REALTIME_FALLBACK=true to use Realtime fallback');
+        console.log('[SIMPLE MODE] =========================================');
+        state.assistantSpeaking = false;
+        return;
+      }
+
+      // Fall back to Realtime response.create (debug mode only)
+      console.log('[SIMPLE MODE] =========================================');
+      console.log('[SIMPLE MODE] WARNING: Using Realtime fallback (debug mode only)');
       console.log('[SIMPLE MODE] fallback:', 'realtime_response_create');
       console.log('[SIMPLE MODE] =========================================');
 
