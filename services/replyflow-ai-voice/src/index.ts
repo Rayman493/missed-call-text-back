@@ -2205,6 +2205,13 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
 
       // Extract name if not already captured
+      console.log('[CUSTOMER NAME EXTRACTION START] =========================================');
+      console.log('[CUSTOMER NAME EXTRACTION START] stage:', intake.stage);
+      console.log('[CUSTOMER NAME EXTRACTION START] raw transcript:', transcript);
+      console.log('[CUSTOMER NAME EXTRACTION START] customerName before extraction:', intake.customerName);
+      console.log('[CUSTOMER NAME EXTRACTION START] Timestamp:', new Date().toISOString());
+      console.log('[CUSTOMER NAME EXTRACTION START] =========================================');
+      
       if (!intake.customerName) {
         const oldName = intake.customerName;
         const name = extractName(transcript);
@@ -2244,6 +2251,11 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
         console.log('[CUSTOMER NAME PRESERVED] Timestamp:', new Date().toISOString());
         console.log('[CUSTOMER NAME PRESERVED] =========================================');
       }
+      
+      console.log('[CUSTOMER NAME EXTRACTION END] =========================================');
+      console.log('[CUSTOMER NAME EXTRACTION END] customerName after extraction:', intake.customerName);
+      console.log('[CUSTOMER NAME EXTRACTION END] Timestamp:', new Date().toISOString());
+      console.log('[CUSTOMER NAME EXTRACTION END] =========================================');
 
       // Extract service requested with heuristic fallback
       if (!intake.serviceRequested) {
@@ -4026,6 +4038,11 @@ function recordAIFailure(tracker: AISessionStateTracker, failureStage: string, f
 }
 
 function generateLeadSummary(intake: IntakeData): LeadSummary {
+  console.log('[CUSTOMER NAME BEFORE SMS GENERATION] =========================================');
+  console.log('[CUSTOMER NAME BEFORE SMS GENERATION] intake.customerName:', intake.customerName);
+  console.log('[CUSTOMER NAME BEFORE SMS GENERATION] Timestamp:', new Date().toISOString());
+  console.log('[CUSTOMER NAME BEFORE SMS GENERATION] =========================================');
+  
   const summary = `${intake.customerName || 'Caller'} called about ${intake.serviceRequested || 'general inquiry'}. Issue: ${intake.issueDescription || 'not specified'}. Location: ${intake.serviceAddress || 'not specified'}. Desired completion time: ${intake.desiredCompletionTime || 'not specified'}. Callback requested at ${intake.callbackTime || 'anytime'}.`;
 
   return {
@@ -5463,6 +5480,11 @@ Return only JSON, no other text.`;
           callerPhone: sessionCallerPhone,
           operation: 'lead upsert for ai_call_records linking'
         });
+        console.log('[CUSTOMER NAME BEFORE LEAD UPDATE] =========================================');
+        console.log('[CUSTOMER NAME BEFORE LEAD UPDATE] extractedFields.callerName:', extractedFields.callerName);
+        console.log('[CUSTOMER NAME BEFORE LEAD UPDATE] Timestamp:', new Date().toISOString());
+        console.log('[CUSTOMER NAME BEFORE LEAD UPDATE] =========================================');
+        
         const { data: lead, error: leadError } = await supabase
           .from('leads')
           .upsert({
@@ -5575,6 +5597,12 @@ Return only JSON, no other text.`;
         
         // Normalize extracted field names to session intake field names
         const normalizedFields = normalizeExtractedFields(extractedFields);
+        
+        console.log('[CUSTOMER NAME BEFORE PERSISTENCE] =========================================');
+        console.log('[CUSTOMER NAME BEFORE PERSISTENCE] extractedFields.callerName:', extractedFields.callerName);
+        console.log('[CUSTOMER NAME BEFORE PERSISTENCE] normalizedFields.customerName:', normalizedFields.customerName);
+        console.log('[CUSTOMER NAME BEFORE PERSISTENCE] Timestamp:', new Date().toISOString());
+        console.log('[CUSTOMER NAME BEFORE PERSISTENCE] =========================================');
         
         // Determine outcome based on whether all required fields are present
         const intakeComplete = isAIIntakeComplete(normalizedFields);
