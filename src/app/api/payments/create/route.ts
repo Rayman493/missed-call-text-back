@@ -261,8 +261,15 @@ export async function POST(request: Request) {
     }
 
     // If insert failed due to missing token column, retry without token
-    if (paymentRequestError && (paymentRequestError as any).code === '42703') {
-      console.log('[PAYMENT REQUEST] Token column does not exist, retrying insert without token')
+    const errorCode = (paymentRequestError as any).code
+    const errorMessage = (paymentRequestError as any).message || ''
+    const isMissingTokenColumnError = errorCode === '42703' || 
+                                     (errorCode === 'PGRST204' && errorMessage.includes('token') && errorMessage.includes('payment_requests'))
+    
+    if (paymentRequestError && isMissingTokenColumnError) {
+      console.log('[PAYMENT REQUEST] Token column missing from schema/cache, retrying insert without token')
+      console.log('[PAYMENT REQUEST] Error code:', errorCode)
+      console.log('[PAYMENT REQUEST] Error message:', errorMessage)
       const insertPayloadWithoutToken = { ...insertPayload }
       delete (insertPayloadWithoutToken as any).token
       
