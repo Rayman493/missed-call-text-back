@@ -5106,6 +5106,11 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       }
     };
 
+    console.log('[SIMPLE MODE] =========================================');
+    console.log('[SIMPLE MODE] event: response_create_send');
+    console.log('[SIMPLE MODE] payload:', JSON.stringify(message, null, 2));
+    console.log('[SIMPLE MODE] =========================================');
+
     if (state.openAiWs && state.openAiWs.readyState === WebSocket.OPEN) {
       state.openAiWs.send(JSON.stringify(message));
     }
@@ -5159,6 +5164,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
               }
             }
           };
+
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: session_update_send');
+          console.log('[SIMPLE MODE] payload:', JSON.stringify(sessionUpdate, null, 2));
+          console.log('[SIMPLE MODE] =========================================');
+
           state.openAiWs?.send(JSON.stringify(sessionUpdate));
 
           // Send opening prompt
@@ -5212,11 +5223,18 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         });
 
         state.openAiWs.on('error', (error) => {
-          console.log('[SIMPLE MODE] OpenAI error:', error);
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: openai_error');
+          console.log('[SIMPLE MODE] error:', error instanceof Error ? error.message : String(error));
+          console.log('[SIMPLE MODE] =========================================');
         });
 
-        state.openAiWs.on('close', () => {
-          console.log('[SIMPLE MODE] OpenAI closed');
+        state.openAiWs.on('close', (code: number, reason: Buffer) => {
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: openai_close');
+          console.log('[SIMPLE MODE] closeCode:', code);
+          console.log('[SIMPLE MODE] closeReason:', reason.toString());
+          console.log('[SIMPLE MODE] =========================================');
         });
 
       } else if (message.event === 'media') {
