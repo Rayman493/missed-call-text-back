@@ -5099,10 +5099,20 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
+    const strictInstruction = `SAY EXACTLY THIS TEXT IN ENGLISH AND NOTHING ELSE: "${prompt}"
+
+Do NOT paraphrase.
+Do NOT translate.
+Do NOT add words.
+Do NOT answer the caller's question directly.
+Only speak the scripted prompt.
+Always speak English only.
+Never respond in French, Spanish, or any non-English language.`;
+
     const message = {
       type: 'response.create',
       response: {
-        instructions: prompt
+        instructions: strictInstruction
       }
     };
 
@@ -5149,13 +5159,16 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
         state.openAiWs.on('open', () => {
           logSimple('openai_connected');
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: language_lock_active');
+          console.log('[SIMPLE MODE] =========================================');
 
           // Configure session - use same structure as legacy
           const sessionUpdate = {
             type: "session.update",
             session: {
               type: "realtime",
-              instructions: "You are a helpful AI assistant for ReplyFlow. Keep responses concise and professional.",
+              instructions: "You are a helpful AI assistant for ReplyFlow. Keep responses concise and professional.\n\nLANGUAGE LOCK - ENGLISH ONLY:\n- Always speak English only.\n- Never translate.\n- Never respond in French, Spanish, or any non-English language.\n- Ignore caller language for assistant output.\n- The caller may have accent/noise/transcription mistakes; still respond only in English.\n- Do not imitate accents.\n- Do not switch languages.",
               audio: {
                 input: {
                   format: {
