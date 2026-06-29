@@ -5123,20 +5123,62 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     const targetSampleRate = 8000;
     const sourceSampleRate = audioBuffer.sampleRate;
     let resampledPcm = pcmData;
+    let resamplerMethod = 'none';
     if (sourceSampleRate !== targetSampleRate) {
       const ratio = sourceSampleRate / targetSampleRate;
       const newLength = Math.floor(pcmData.length / ratio);
       resampledPcm = new Float32Array(newLength);
+      resamplerMethod = 'linear_interpolation';
+
+      // Linear interpolation for better quality than nearest neighbor
       for (let i = 0; i < newLength; i++) {
-        const srcIndex = Math.floor(i * ratio);
-        resampledPcm[i] = pcmData[srcIndex];
+        const srcIndex = i * ratio;
+        const srcIndexFloor = Math.floor(srcIndex);
+        const srcIndexCeil = Math.min(srcIndexFloor + 1, pcmData.length - 1);
+        const frac = srcIndex - srcIndexFloor;
+        resampledPcm[i] = pcmData[srcIndexFloor] * (1 - frac) + pcmData[srcIndexCeil] * frac;
       }
+
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: resampled_audio_info');
       console.log('[SIMPLE MODE] resampled_sample_rate:', targetSampleRate);
       console.log('[SIMPLE MODE] resampled_sample_count:', resampledPcm.length);
+      console.log('[SIMPLE MODE] resampler_method:', resamplerMethod);
       console.log('[SIMPLE MODE] =========================================');
     }
+
+    // Apply gain reduction before μ-law conversion to prevent clipping
+    const gain = 0.7; // Reduce gain to prevent clipping
+    let pcmMinBefore = Infinity;
+    let pcmMaxBefore = -Infinity;
+    for (let i = 0; i < resampledPcm.length; i++) {
+      if (resampledPcm[i] < pcmMinBefore) pcmMinBefore = resampledPcm[i];
+      if (resampledPcm[i] > pcmMaxBefore) pcmMaxBefore = resampledPcm[i];
+    }
+
+    // Apply gain
+    for (let i = 0; i < resampledPcm.length; i++) {
+      resampledPcm[i] = resampledPcm[i] * gain;
+    }
+
+    let pcmMinAfter = Infinity;
+    let pcmMaxAfter = -Infinity;
+    let clippedSampleCount = 0;
+    for (let i = 0; i < resampledPcm.length; i++) {
+      if (resampledPcm[i] < pcmMinAfter) pcmMinAfter = resampledPcm[i];
+      if (resampledPcm[i] > pcmMaxAfter) pcmMaxAfter = resampledPcm[i];
+      if (Math.abs(resampledPcm[i]) > 1.0) clippedSampleCount++;
+    }
+
+    console.log('[SIMPLE MODE] =========================================');
+    console.log('[SIMPLE MODE] event: gain_reduction_info');
+    console.log('[SIMPLE MODE] pcm_min_before_gain:', pcmMinBefore.toFixed(6));
+    console.log('[SIMPLE MODE] pcm_max_before_gain:', pcmMaxBefore.toFixed(6));
+    console.log('[SIMPLE MODE] gain_applied:', gain);
+    console.log('[SIMPLE MODE] pcm_min_after_gain:', pcmMinAfter.toFixed(6));
+    console.log('[SIMPLE MODE] pcm_max_after_gain:', pcmMaxAfter.toFixed(6));
+    console.log('[SIMPLE MODE] clipped_sample_count:', clippedSampleCount);
+    console.log('[SIMPLE MODE] =========================================');
 
     // Convert PCM to mu-law
     const mulawBuffer = pcmToMulaw(resampledPcm);
