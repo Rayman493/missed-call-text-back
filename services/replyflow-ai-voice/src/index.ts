@@ -1513,7 +1513,30 @@ Speak ONLY the exact text in quotes above.`;
     console.log('[OPENING ORDER TRACE] responseAuthorized:', (ws?.twilioHandler as any)?.responseAuthorized || false);
     console.log('[OPENING ORDER TRACE] timestamp:', new Date().toISOString());
     console.log('[OPENING ORDER TRACE] =========================================');
-    
+
+    // CRITICAL: Set assistantSpeaking = TRUE BEFORE sending response.create
+    // This ensures caller audio is blocked immediately when we initiate the prompt
+    // Since response.created may not be sent by OpenAI in all cases, we set it here
+    const tempResponseId = 'pending_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+    console.log('[ASSISTANT SPEAKING WRITE] =========================================');
+    console.log('[ASSISTANT SPEAKING WRITE] value: true');
+    console.log('[ASSISTANT SPEAKING WRITE] function: sendApprovedPrompt (before response.create)');
+    console.log('[ASSISTANT SPEAKING WRITE] stage:', stage);
+    console.log('[ASSISTANT SPEAKING WRITE] responseId:', tempResponseId);
+    console.log('[ASSISTANT SPEAKING WRITE] timestamp:', new Date().toISOString());
+    console.log('[ASSISTANT SPEAKING WRITE] =========================================');
+    callSessionState.assistantSpeaking = true;
+    callSessionState.currentStage = stage;
+    callSessionState.activeResponseId = tempResponseId;
+    callSessionState.lastPromptAt = Date.now();
+
+    // Sync to twilioHandler for twilio-stream.ts access
+    const twilioHandler = (ws as any)?.twilioHandler;
+    if (twilioHandler) {
+      (twilioHandler as any).assistantSpeaking = true;
+      (twilioHandler as any).callSessionState = callSessionState;
+    }
+
     openAiWs.send(JSON.stringify(message));
 
     // ORDER TRACE: After response.create send
@@ -7208,6 +7231,9 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 log(LogLevel.ERROR, '[STREAM OPENAI] JSON parse failed', err);
                 return;
               }
+
+              // Compact log for EVERY OpenAI message type
+              console.log('[OPENAI EVENT TYPE] type=' + message.type + ' responseId=' + (message.response_id || message.response?.id || 'none') + ' timestamp=' + new Date().toISOString());
 
               // ORDER TRACE: OpenAI message handler entry
               console.log('[OPENAI MESSAGE HANDLER ACTIVE] =========================================');
