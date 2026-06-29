@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { sendSms } from '@/lib/twilio'
 import { db } from '@/lib/supabase/admin'
 import { checkCronRateLimit } from '@/lib/rate-limit'
-import { notificationService } from '@/lib/notifications'
+import { NotificationService } from '@/lib/notifications'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { hasBillingAccess } from '@/lib/manual-access'
 
@@ -592,8 +592,23 @@ export async function POST(req: NextRequest) {
         })
         sent++
 
+        // Update lead status from new to active when follow-up is sent
+        if (lead.status === 'new') {
+          const { error: leadStatusError } = await supabase
+            .from('leads')
+            .update({ status: 'active' })
+            .eq('id', lead.id)
+          
+          if (leadStatusError) {
+            console.error('[send-followups] Error updating lead status:', leadStatusError)
+          } else {
+            console.log('[send-followups] Lead status updated from new to active:', lead.id)
+          }
+        }
+
         // Create notification for follow-up sent
         try {
+          const notificationService = new NotificationService(supabase)
           await notificationService.notifyFollowupSent(
             business.id,
             lead.caller_phone || 'Unknown',
@@ -1137,8 +1152,23 @@ export async function GET(req: NextRequest) {
         })
         sent++
 
+        // Update lead status from new to active when follow-up is sent
+        if (lead.status === 'new') {
+          const { error: leadStatusError } = await supabase
+            .from('leads')
+            .update({ status: 'active' })
+            .eq('id', lead.id)
+          
+          if (leadStatusError) {
+            console.error('[send-followups] Error updating lead status:', leadStatusError)
+          } else {
+            console.log('[send-followups] Lead status updated from new to active:', lead.id)
+          }
+        }
+
         // Create notification for follow-up sent
         try {
+          const notificationService = new NotificationService(supabase)
           await notificationService.notifyFollowupSent(
             business.id,
             lead.caller_phone || 'Unknown',

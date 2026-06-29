@@ -1,10 +1,11 @@
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { createClient } from '@supabase/supabase-js'
 import { Business } from '@/lib/types'
 
 export interface Notification {
   id: string
   business_id: string
-  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'followup_sent' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received'
+  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'followup_sent' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'missed_call'
   title: string
   message: string
   data?: any
@@ -82,11 +83,26 @@ export const NOTIFICATION_TEMPLATES = {
     message: `${data.leadName} (${data.leadPhone}) left a voicemail`,
     action_url: `/dashboard/leads/${data.leadId}`,
     action_text: 'Listen'
+  }),
+
+  missed_call: (data: { leadName: string; leadPhone: string; leadId: string }) => ({
+    title: 'Missed Call',
+    message: `${data.leadName} (${data.leadPhone}) called but didn't reach you`,
+    action_url: `/dashboard/leads/${data.leadId}`,
+    action_text: 'View Lead'
   })
 }
 
 export class NotificationService {
   private supabase = createBrowserClient()
+  private isServerSide: boolean = false
+
+  constructor(serverSideClient?: any) {
+    if (serverSideClient) {
+      this.supabase = serverSideClient
+      this.isServerSide = true
+    }
+  }
 
   async getNotifications(businessId: string, limit = 20): Promise<Notification[]> {
     const { data, error } = await this.supabase

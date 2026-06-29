@@ -1415,6 +1415,17 @@ function sendApprovedPrompt(stage: string, openAiWs: any, ws?: any): boolean {
   const templateStage = stageMapping[stage] || 'ask_name_reason';
   const approvedText = getIntakeStageTextSafe(intakeTemplate, templateStage);
 
+  // Log [SCRIPTED PROMPT SELECTED] - explicit logging for AI prompt selection
+  console.log('[SCRIPTED PROMPT SELECTED] =========================================');
+  console.log('[SCRIPTED PROMPT SELECTED] Intake Template:', intakeTemplate);
+  console.log('[SCRIPTED PROMPT SELECTED] Internal Stage:', stage);
+  console.log('[SCRIPTED PROMPT SELECTED] Template Stage:', templateStage);
+  console.log('[SCRIPTED PROMPT SELECTED] Selected Scripted Prompt:', approvedText);
+  console.log('[SCRIPTED PROMPT SELECTED] Source: intake-templates.ts - AI_INTAKE_TEMPLATES');
+  console.log('[SCRIPTED PROMPT SELECTED] Type: Predefined scripted text (no conversational generation)');
+  console.log('[SCRIPTED PROMPT SELECTED] Timestamp:', new Date().toISOString());
+  console.log('[SCRIPTED PROMPT SELECTED] =========================================');
+
   // Log [VOICE OUTBOUND] with stage name and template info
   console.log('[VOICE OUTBOUND] =========================================');
   console.log('[VOICE OUTBOUND] Stage:', stage);
