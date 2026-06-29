@@ -1732,35 +1732,27 @@ function sendStagePrompt(
     callSessionState.listeningStartedAt = null;
     callSessionState.validUserAnswerReceivedAt = null;
 
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - BEFORE] =========================================');
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - BEFORE] callSessionState.assistantSpeaking:', callSessionState.assistantSpeaking);
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - BEFORE] assistantSpeaking (local):', assistantSpeaking);
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - BEFORE] (twilioHandler as any).assistantSpeaking:', (twilioHandler as any).assistantSpeaking);
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - BEFORE] Source: sendStagePrompt (before OpenAI send)');
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - BEFORE] Stack: sendStagePrompt -> assistantSpeaking = true');
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - BEFORE] Timestamp:', new Date().toISOString());
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - BEFORE] =========================================');
+    console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] =========================================');
+    console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Setting assistantSpeaking to TRUE');
+    console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Previous state:', callSessionState.assistantSpeaking);
+    console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Stage:', stage);
+    console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Source: sendStagePrompt (before OpenAI send)');
+    console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Timestamp:', new Date().toISOString());
+    console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] =========================================');
 
     callSessionState.assistantSpeaking = true;
-    assistantSpeaking = true; // Sync individual variable for backward compatibility
+    callSessionState.lastPromptAt = Date.now();
+    
+    // Sync to twilioHandler for twilio-stream.ts access (single source of truth: callSessionState)
     (twilioHandler as any).assistantSpeaking = true;
+    (twilioHandler as any).lastPromptAt = callSessionState.lastPromptAt;
+    (twilioHandler as any).lastPromptStage = stage;
 
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - AFTER] =========================================');
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - AFTER] callSessionState.assistantSpeaking:', callSessionState.assistantSpeaking);
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - AFTER] assistantSpeaking (local):', assistantSpeaking);
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - AFTER] (twilioHandler as any).assistantSpeaking:', (twilioHandler as any).assistantSpeaking);
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - AFTER] Source: sendStagePrompt (before OpenAI send)');
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - AFTER] Stack: sendStagePrompt -> assistantSpeaking = true');
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - AFTER] Timestamp:', new Date().toISOString());
-    console.log('[ASSISTANT SPEAKING ASSIGNMENT - AFTER] =========================================');
-
-    console.log('[VERSION PROOF - ASSISTANT SPEAKING SET TRUE BEFORE PROMPT] =========================================');
-    console.log('[VERSION PROOF - ASSISTANT SPEAKING SET TRUE BEFORE PROMPT] AI_VOICE_DEPLOY_VERSION:', AI_VOICE_DEPLOY_VERSION);
-    console.log('[VERSION PROOF - ASSISTANT SPEAKING SET TRUE BEFORE PROMPT] AI_VOICE_EXPECTED_COMMIT:', AI_VOICE_EXPECTED_COMMIT);
-    console.log('[VERSION PROOF - ASSISTANT SPEAKING SET TRUE BEFORE PROMPT] Stage:', stage);
-    console.log('[VERSION PROOF - ASSISTANT SPEAKING SET TRUE BEFORE PROMPT] assistantSpeaking set to TRUE before sending to OpenAI');
-    console.log('[VERSION PROOF - ASSISTANT SPEAKING SET TRUE BEFORE PROMPT] Timestamp:', new Date().toISOString());
-    console.log('[VERSION PROOF - ASSISTANT SPEAKING SET TRUE BEFORE PROMPT] =========================================');
+    console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] =========================================');
+    console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] Caller audio blocked - AI is about to send prompt');
+    console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] Stage:', stage);
+    console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] Timestamp:', new Date().toISOString());
+    console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] =========================================');
 
     console.log('[PROMPT START - ANSWER GATING INITIALIZED] =========================================');
     console.log('[PROMPT START - ANSWER GATING INITIALIZED] Stage:', stage);
@@ -1775,6 +1767,13 @@ function sendStagePrompt(
   const sent = sendApprovedPrompt(stage, openAiWs, ws);
   responseSent = sent;
   clearTimeout(watchdogTimer);
+
+  console.log('[SCRIPTED PROMPT SELECTED] =========================================');
+  console.log('[SCRIPTED PROMPT SELECTED] Stage:', stage);
+  console.log('[SCRIPTED PROMPT SELECTED] Prompt:', prompt);
+  console.log('[SCRIPTED PROMPT SELECTED] Source: getIntakeStageTextSafe()');
+  console.log('[SCRIPTED PROMPT SELECTED] Timestamp:', new Date().toISOString());
+  console.log('[SCRIPTED PROMPT SELECTED] =========================================');
 
   // Add [SCRIPTED FLOW] log for final goodbye
   if (stage === 'complete' || stage === 'final_goodbye') {
@@ -5022,8 +5021,6 @@ wss.on('connection', (ws, req) => {
           console.log('[SILENCE TIMER STARTED (MARK-BASED)] =========================================');
 
           callSessionState.assistantSpeaking = false;
-          assistantSpeaking = false; // Sync individual variable for backward compatibility
-          (twilioHandler as any).assistantSpeaking = false;
         }
       }
     });
@@ -7794,6 +7791,35 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[AI RESPONSE CREATE] Timestamp:', new Date().toISOString());
                 console.log('[AI RESPONSE CREATE] =========================================');
                 
+                // CRITICAL: Set assistantSpeaking to TRUE in response.created BEFORE OpenAI generates audio
+                // This ensures caller audio is blocked immediately when OpenAI starts generating the response
+                const callSessionState = (ws as any).callSessionState || {};
+                const previousAssistantSpeaking = callSessionState.assistantSpeaking || false;
+                
+                console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] =========================================');
+                console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Setting assistantSpeaking to TRUE');
+                console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Previous state:', previousAssistantSpeaking);
+                console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Response ID:', responseId);
+                console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Stage:', intakeData?.stage || 'unknown');
+                console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Timestamp:', new Date().toISOString());
+                console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] =========================================');
+                
+                callSessionState.assistantSpeaking = true;
+                callSessionState.activeResponseId = responseId;
+                callSessionState.lastPromptAt = Date.now();
+                
+                // Sync to twilioHandler for twilio-stream.ts access
+                (twilioHandler as any).assistantSpeaking = true;
+                (twilioHandler as any).activeResponseId = responseId;
+                (twilioHandler as any).lastPromptAt = callSessionState.lastPromptAt;
+                
+                console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] =========================================');
+                console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] Caller audio blocked - AI is generating response');
+                console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] Response ID:', responseId);
+                console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] Stage:', intakeData?.stage || 'unknown');
+                console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] Timestamp:', new Date().toISOString());
+                console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] =========================================');
+                
                 // Guard: Only one active assistant response per stage
                 if (activeResponseId && activeResponseId !== responseId) {
                   console.log('[DUPLICATE RESPONSE BLOCKED] =========================================');
@@ -7817,10 +7843,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 
                 // Set activeResponseId to track the current response
                 activeResponseId = responseId;
-                (twilioHandler as any).activeResponseId = activeResponseId;
                 console.log('[AI RESPONSE CREATE] Set activeResponseId to:', responseId);
-                console.log('[AI RESPONSE CREATE] Synced activeResponseId to twilioHandler:', (twilioHandler as any).activeResponseId);
-                console.log('[AI RESPONSE CREATE] lastPromptStage on twilioHandler:', (twilioHandler as any).lastPromptStage);
                 console.log('[AI RESPONSE CREATE] Stage:', intakeData?.stage || 'unknown');
                 
                 // Check if this is the final closing response
@@ -8075,26 +8098,31 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[FINAL_AUDIO_DONE] hangupScheduled:', hangupScheduled);
                 console.log('[FINAL_AUDIO_DONE] finalGoodbyeMarkSent:', finalGoodbyeMarkSent);
                 
-                // Reset assistantSpeaking when audio generation is complete
-                const previousAssistantSpeaking = assistantSpeaking;
-                if (assistantSpeaking) {
-                  assistantSpeaking = false;
-                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
-                  console.log('[ASSISTANT SPEAKING STATE] State: FALSE');
-                  console.log('[ASSISTANT SPEAKING STATE] Source: response.audio.done');
-                  console.log('[ASSISTANT SPEAKING STATE] Response ID:', message.response_id || 'unknown');
-                  console.log('[ASSISTANT SPEAKING STATE] Item ID:', message.item_id || 'unknown');
-                  console.log('[ASSISTANT SPEAKING STATE] Stage:', intakeData?.stage || 'unknown');
-                  console.log('[ASSISTANT SPEAKING STATE] Previous state:', previousAssistantSpeaking);
-                  console.log('[ASSISTANT SPEAKING STATE] Timestamp:', new Date().toISOString());
-                  console.log('[ASSISTANT SPEAKING STATE] =========================================');
-                  (twilioHandler as any).assistantSpeaking = assistantSpeaking;
-                  
-                  // Clear timeout protection
-                  if (assistantSpeakingTimeout) {
-                    clearTimeout(assistantSpeakingTimeout);
-                    assistantSpeakingTimeout = null;
-                  }
+                // CRITICAL: Reset assistantSpeaking when audio generation is complete
+                // This allows caller audio to be accepted after playback finishes
+                const callSessionState = (ws as any).callSessionState || {};
+                const previousAssistantSpeaking = callSessionState.assistantSpeaking || false;
+                
+                console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] =========================================');
+                console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] Setting assistantSpeaking to FALSE');
+                console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] Previous state:', previousAssistantSpeaking);
+                console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] Response ID:', message.response_id || 'unknown');
+                console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] Item ID:', message.item_id || 'unknown');
+                console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] Stage:', intakeData?.stage || 'unknown');
+                console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] Timestamp:', new Date().toISOString());
+                console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] =========================================');
+                
+                callSessionState.assistantSpeaking = false;
+                callSessionState.promptCompletedAt = Date.now();
+                
+                // Sync to twilioHandler for twilio-stream.ts access
+                (twilioHandler as any).assistantSpeaking = false;
+                (twilioHandler as any).promptCompletedAt = callSessionState.promptCompletedAt;
+                
+                // Clear timeout protection
+                if (assistantSpeakingTimeout) {
+                  clearTimeout(assistantSpeakingTimeout);
+                  assistantSpeakingTimeout = null;
                 }
                 
                 console.log('[AUTHORIZED_FINAL_RESPONSE_AUDIO_DONE] =========================================');
