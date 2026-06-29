@@ -175,73 +175,122 @@ export async function POST(request: Request) {
       paymentDescription = serviceRequested || 'Service payment'
     }
 
-    // Create Stripe Checkout Session with destination charge
-    const checkoutSession = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: paymentDescription,
-              description: `Payment from ${business.twilio_phone_number}`,
-            },
-            unit_amount: amount_cents,
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/cancelled`,
-      payment_intent_data: {
-        metadata: {
-          payment_request_id: '', // Will be filled after creating payment_request record
-          business_id: business_id,
-          lead_id: lead_id,
-          conversation_id: conversation_id,
-        },
-      },
-      customer_email: undefined, // Don't require email for payments
-    }, {
-      stripeAccount: business.stripe_connect_account_id, // Destination charge
-    })
+    console.log('[PAYMENT REQUEST] Payment description:', paymentDescription)
+    console.log('[PAYMENT REQUEST] Creating Stripe Checkout Session...')
 
-    console.log('[PAYMENT REQUEST] Created Checkout Session:', checkoutSession.id)
+    // Create Stripe Checkout Session with destination charge
+    let checkoutSession
+    try {
+      checkoutSession = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: paymentDescription,
+                description: `Payment from ${business.twilio_phone_number}`,
+              },
+              unit_amount: amount_cents,
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/cancelled`,
+        payment_intent_data: {
+          metadata: {
+            payment_request_id: '', // Will be filled after creating payment_request record
+            business_id: business_id,
+            lead_id: lead_id,
+            conversation_id: conversation_id,
+          },
+        },
+        customer_email: undefined, // Don't require email for payments
+      }, {
+        stripeAccount: business.stripe_connect_account_id, // Destination charge
+      })
+      console.log('[PAYMENT REQUEST] Stripe Checkout Session created successfully:', checkoutSession.id)
+      console.log('[PAYMENT REQUEST] Checkout Session URL:', checkoutSession.url)
+    } catch (stripeError) {
+      console.error('[PAYMENT REQUEST] Stripe Checkout Session creation failed:', stripeError)
+      console.error('[PAYMENT REQUEST] Stripe error details:', JSON.stringify(stripeError, null, 2))
+      throw stripeError
+    }
 
     // Generate secure token for branded payment link
+    console.log('[PAYMENT REQUEST] Generating secure token...')
     const token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('')
+    console.log('[PAYMENT REQUEST] Token generated:', token)
 
     // Create payment_request record
-    const { data: paymentRequest, error: paymentRequestError } = await supabase
-      .from('payment_requests')
-      .insert({
-        business_id: business_id,
-        lead_id: lead_id,
-        conversation_id: conversation_id,
-        amount_cents: amount_cents,
-        currency: 'usd',
-        description: paymentDescription,
-        status: 'pending',
-        stripe_checkout_session_id: checkoutSession.id,
-        stripe_payment_intent_id: checkoutSession.payment_intent as string,
-        stripe_connect_account_id: business.stripe_connect_account_id,
-        checkout_url: checkoutSession.url,
-        token: token,
-        requested_by: user.id,
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-      })
-      .select()
-      .single()
+    console.log('[PAYMENT REQUEST] Inserting payment_request record with token...')
+    const insertPayload = {
+      business_id: business_id,
+      lead_id: lead_id,
+      conversation_id: conversation_id,
+      amount_cents: amount_cents,
+      currency: 'usd',
+      description: paymentDescription,
+      status: 'pending',
+      stripe_checkout_session_id: checkoutSession.id,
+      stripe_payment_intent_id: checkoutSession.payment_intent as string,
+      stripe_connect_account_id: business.stripe_connect_account_id,
+      checkout_url: checkoutSession.url,
+      token: token,
+      requested_by: user.id,
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+    }
+    console.log('[PAYMENT REQUEST] Insert payload:', JSON.stringify(insertPayload, null, 2))
 
-    if (paymentRequestError || !paymentRequest) {
-      console.error('[PAYMENT REQUEST] Failed to create payment_request record:', paymentRequestError)
+    let paymentRequest, paymentRequestError
+    try {
+      const result = await supabase
+        .from('payment_requests')
+        .insert(insertPayload)
+        .select()
+        .single()
+      paymentRequest = result.data
+      paymentRequestError = result.error
+    } catch (insertException) {
+      console.error('[PAYMENT REQUEST] Insert threw exception:', insertException)
+      paymentRequestError = insertException
+    }
+
+    // If insert failed due to missing token column, retry without token
+    if (paymentRequestError && (paymentRequestError as any).code === '42703') {
+      console.log('[PAYMENT REQUEST] Token column does not exist, retrying insert without token')
+      const insertPayloadWithoutToken = { ...insertPayload }
+      delete (insertPayloadWithoutToken as any).token
+      
+      const result = await supabase
+        .from('payment_requests')
+        .insert(insertPayloadWithoutToken)
+        .select()
+        .single()
+      paymentRequest = result.data
+      paymentRequestError = result.error
+    }
+
+    if (paymentRequestError) {
+      console.error('[PAYMENT REQUEST] Database insert error:', paymentRequestError)
+      console.error('[PAYMENT REQUEST] Error code:', (paymentRequestError as any).code)
+      console.error('[PAYMENT REQUEST] Error message:', (paymentRequestError as any).message)
+      console.error('[PAYMENT REQUEST] Error details:', (paymentRequestError as any).details)
+      console.error('[PAYMENT REQUEST] Error hint:', (paymentRequestError as any).hint)
       return NextResponse.json({ error: 'Failed to create payment request' }, { status: 500 })
     }
 
-    console.log('[PAYMENT REQUEST] Created payment_request record:', paymentRequest.id)
+    if (!paymentRequest) {
+      console.error('[PAYMENT REQUEST] Database insert returned no data')
+      return NextResponse.json({ error: 'Failed to create payment request' }, { status: 500 })
+    }
+
+    console.log('[PAYMENT REQUEST] Payment request record created successfully:', paymentRequest.id)
+    console.log('[PAYMENT REQUEST] Payment request token:', paymentRequest.token)
 
     // Update Stripe Payment Intent metadata with payment_request_id
     if (checkoutSession.payment_intent) {
@@ -285,6 +334,7 @@ export async function POST(request: Request) {
       .eq('id', lead_id)
 
     // Send SMS with branded ReplyFlow payment link
+    console.log('[PAYMENT REQUEST] Preparing SMS with branded ReplyFlow URL...')
     const businessName = business.name || 'our business'
     const amount = (amount_cents / 100).toFixed(2)
     const paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/pay/${token}`
@@ -300,16 +350,20 @@ ${paymentUrl}
 
 Thank you! If you have any questions, simply reply to this message.`
 
-    console.log('[PAYMENT REQUEST] Sending payment link SMS using Twilio helper')
+    console.log('[PAYMENT REQUEST] SMS message prepared:', smsMessage)
+    console.log('[PAYMENT REQUEST] Sending SMS to:', lead.caller_phone)
 
-    const smsResult = await sendSms(business, lead.caller_phone, smsMessage, {
-      lead_id: lead_id,
-      conversation_id: conversation_id,
-      source: 'payment_request',
-    })
-
-    if (!smsResult.sid) {
-      console.error('[PAYMENT REQUEST] Failed to send SMS payment link')
+    let smsResult
+    try {
+      smsResult = await sendSms(business, lead.caller_phone, smsMessage, {
+        lead_id: lead_id,
+        conversation_id: conversation_id,
+        source: 'payment_request',
+      })
+      console.log('[PAYMENT REQUEST] SMS result:', JSON.stringify(smsResult, null, 2))
+    } catch (smsError) {
+      console.error('[PAYMENT REQUEST] SMS sending failed with exception:', smsError)
+      console.error('[PAYMENT REQUEST] SMS error stack:', smsError instanceof Error ? smsError.stack : 'No stack trace')
       // Payment request was created but SMS failed - return partial success
       return NextResponse.json({
         payment_request_id: paymentRequest.id,
@@ -318,11 +372,22 @@ Thank you! If you have any questions, simply reply to this message.`
         sms_sent: false,
         warning: 'Payment request created, but SMS failed to send. The customer can still pay using the checkout URL.',
       })
-    } else {
-      console.log('[PAYMENT REQUEST] SMS sent successfully:', smsResult.sid)
     }
 
-    console.log('[PAYMENT REQUEST] Payment request created successfully')
+    if (!smsResult.sid) {
+      console.error('[PAYMENT REQUEST] SMS sent but no SID returned')
+      // Payment request was created but SMS failed - return partial success
+      return NextResponse.json({
+        payment_request_id: paymentRequest.id,
+        checkout_url: checkoutSession.url,
+        status: 'pending',
+        sms_sent: false,
+        warning: 'Payment request created, but SMS failed to send. The customer can still pay using the checkout URL.',
+      })
+    }
+
+    console.log('[PAYMENT REQUEST] SMS sent successfully, SID:', smsResult.sid)
+    console.log('[PAYMENT REQUEST] Payment request creation flow completed successfully')
 
     return NextResponse.json({
       payment_request_id: paymentRequest.id,
@@ -331,7 +396,11 @@ Thank you! If you have any questions, simply reply to this message.`
       sms_sent: true,
     })
   } catch (error) {
+    console.error('[PAYMENT REQUEST] UNHANDLED EXCEPTION IN PAYMENT CREATION')
     console.error('[PAYMENT REQUEST] Error:', error)
+    console.error('[PAYMENT REQUEST] Error message:', error instanceof Error ? error.message : 'Unknown error')
+    console.error('[PAYMENT REQUEST] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('[PAYMENT REQUEST] Error details:', JSON.stringify(error, null, 2))
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to create payment request' },
       { status: 500 }
