@@ -5025,8 +5025,15 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
 
 // Simple mode handler - isolated V1 AI intake flow
 function handleSimpleModeConnection(ws: WebSocket, req: any) {
+  // Extract parameters from URL
+  const url = new URL(req.url || '', `http://${req.headers.host}`);
+
   console.log('[SIMPLE MODE] =========================================');
   console.log('[SIMPLE MODE] event: connection_start');
+  console.log('[SIMPLE MODE] simple_mode_selected:', true);
+  console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_hardcoded');
+  console.log('[SIMPLE MODE] business_id:', url.searchParams.get('businessId') || 'none');
+  console.log('[SIMPLE MODE] call_sid:', url.searchParams.get('callSid') || 'none');
   console.log('[SIMPLE MODE] Timestamp:', new Date().toISOString());
   console.log('[SIMPLE MODE] =========================================');
 
@@ -5059,9 +5066,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     ask_callback_time: "What is the best time for the business to call you back?",
     complete: "Thank you for your information. We'll be in touch shortly. Goodbye!"
   };
-
-  // Extract parameters from URL
-  const url = new URL(req.url || '', `http://${req.headers.host}`);
   state.sessionId = url.searchParams.get('sessionId') || '';
   state.businessId = url.searchParams.get('businessId') || '';
   state.callSid = url.searchParams.get('callSid') || '';
@@ -5104,9 +5108,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
     console.log('[SIMPLE MODE] =========================================');
     console.log('[SIMPLE MODE] event: stage_prompt_mapping');
+    console.log('[SIMPLE MODE] simple_mode_selected:', true);
+    console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_hardcoded');
+    console.log('[SIMPLE MODE] business_id:', state.businessId);
     console.log('[SIMPLE MODE] currentStage:', stage);
-    console.log('[SIMPLE MODE] businessType:', 'none (simple mode)');
-    console.log('[SIMPLE MODE] template:', 'none (simple mode)');
     console.log('[SIMPLE MODE] promptKey:', stage);
     console.log('[SIMPLE MODE] promptText:', prompt);
     console.log('[SIMPLE MODE] =========================================');
@@ -5295,20 +5300,32 @@ The assistant is only a text-to-speech engine for the supplied prompt.`;
             // User transcription completed
             const transcript = message.transcript || '';
             state.transcript += ' ' + transcript;
-            logSimple('user_transcription', { transcript: transcript.substring(0, 50) });
+            logSimple('user_transcription', { transcript: transcript.substring(0, 50), stage: state.currentStage });
 
-            // Move to next stage - do NOT advance from final complete stage
+            // Move to next stage - only advance from non-complete stages
             const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
             const currentIndex = stages.indexOf(state.currentStage);
 
-            if (currentIndex < stages.length - 1) {
+            // Only advance if current stage is in the stages array
+            if (currentIndex !== -1 && currentIndex < stages.length - 1) {
               state.currentStage = stages[currentIndex + 1];
               sendPrompt(state.currentStage);
-            } else {
-              // Complete - say goodbye
-              // Close logic now handled in audio_done handler for proper timing
+            } else if (currentIndex === stages.length - 1) {
+              // Final stage (ask_callback_time) completed - advance to complete
+              console.log('[SIMPLE MODE] =========================================');
+              console.log('[SIMPLE MODE] event: final_stage_complete');
+              console.log('[SIMPLE MODE] previousStage:', state.currentStage);
+              console.log('[SIMPLE MODE] advancingTo:', 'complete');
+              console.log('[SIMPLE MODE] =========================================');
               state.currentStage = 'complete';
               sendPrompt('complete');
+            } else {
+              // Already at complete stage or invalid stage - do nothing
+              console.log('[SIMPLE MODE] =========================================');
+              console.log('[SIMPLE MODE] event: stage_advancement_skipped');
+              console.log('[SIMPLE MODE] currentStage:', state.currentStage);
+              console.log('[SIMPLE MODE] reason:', 'already_complete_or_invalid');
+              console.log('[SIMPLE MODE] =========================================');
             }
           }
         });
