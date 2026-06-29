@@ -5029,29 +5029,43 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   // Extract parameters from URL
   const url = new URL(req.url || '', `http://${req.headers.host}`);
 
-  // Helper to convert PCM to mu-law
+  // Helper to convert PCM to mu-law (standard μ-law with bias and inversion)
   const pcmToMulaw = (pcmData: Float32Array): Buffer => {
+    const MULAW_BIAS = 0x84;
+    const MULAW_CLIP = 32635;
     const muLawData = new Uint8Array(pcmData.length);
     for (let i = 0; i < pcmData.length; i++) {
       // Convert float32 to 16-bit integer
       let sample = Math.max(-1, Math.min(1, pcmData[i]));
-      sample = sample < 0 ? sample * 32768 : sample * 32767;
-      const intSample = Math.floor(sample);
+      let linear = Math.floor(sample * 32767);
 
-      // Convert to mu-law
-      const sign = (intSample >> 8) & 0x80;
+      // μ-law encoding with bias and inversion
+      let sign = (linear >> 8) & 0x80;
+      if (sign !== 0) linear = -linear;
+      if (linear > MULAW_CLIP) linear = MULAW_CLIP;
+      linear = linear + MULAW_BIAS;
+
       let exponent = 7;
-      let magnitude = Math.abs(intSample);
-      if (magnitude > 0) {
-        while (magnitude < 128 && exponent > 0) {
-          magnitude <<= 1;
-          exponent--;
-        }
+      for (let expMask = 0x4000; !(linear & expMask) && exponent > 0; exponent--, expMask >>= 1) {
       }
-      const mantissa = (magnitude >> 4) & 0x0F;
-      muLawData[i] = sign | (exponent << 4) | mantissa;
+      let mantissa = (linear >> (exponent + 3)) & 0x0F;
+      let mulawByte = ~(sign | (exponent << 4) | mantissa);
+      muLawData[i] = mulawByte;
     }
     return Buffer.from(muLawData);
+  };
+
+  // Generate test tone (440Hz sine wave at 8kHz)
+  const generateTestTone = (durationSeconds: number, frequency: number = 440, sampleRate: number = 8000): Buffer => {
+    const numSamples = durationSeconds * sampleRate;
+    const pcm = new Float32Array(numSamples);
+
+    for (let i = 0; i < numSamples; i++) {
+      const t = i / sampleRate;
+      pcm[i] = Math.sin(2 * Math.PI * frequency * t) * 0.5; // 50% volume
+    }
+
+    return pcmToMulaw(pcm);
   };
 
   // Helper to generate speech using OpenAI TTS API (deterministic)
@@ -5198,7 +5212,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[SIMPLE MODE] event: stage_prompt_mapping');
     console.log('[SIMPLE MODE] simple_mode_selected:', true);
     console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_hardcoded');
-    console.log('[SIMPLE MODE] sourceOfSpeech:', 'openai_tts_deterministic');
+    console.log('[SIMPLE MODE] sourceOfSpeech:', 'test_tone_440hz'); // TEMP: Using test tone
     console.log('[SIMPLE MODE] business_id:', state.businessId);
     console.log('[SIMPLE MODE] currentStage:', stage);
     console.log('[SIMPLE MODE] promptKey:', stage);
@@ -5208,12 +5222,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
     try {
-      // Generate TTS audio (MP3 -> PCM mu-law conversion)
-      const mulawBuffer = await generateTTSAudio(prompt);
+      // TEMP: Use test tone instead of OpenAI TTS to verify pipeline
+      const mulawBuffer = generateTestTone(2.0, 440, 8000); // 2-second 440Hz tone
+
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: tts_audio_generated');
       console.log('[SIMPLE MODE] audioSize:', mulawBuffer.length);
       console.log('[SIMPLE MODE] format:', 'pcm_mulaw_8kHz');
+      console.log('[SIMPLE MODE] first_20_raw_bytes_hex:', mulawBuffer.slice(0, 20).toString('hex'));
       console.log('[SIMPLE MODE] =========================================');
 
       // Send mu-law audio to Twilio via WebSocket
@@ -5221,6 +5237,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       const chunkSize = 160; // 20ms at 8kHz mu-law (160 bytes)
       let totalChunks = 0;
       let totalPayloadBytes = 0;
+      const startTime = Date.now();
 
       for (let i = 0; i < base64Audio.length; i += chunkSize) {
         const chunk = base64Audio.substring(i, i + chunkSize);
@@ -5238,10 +5255,17 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         await new Promise(resolve => setTimeout(resolve, 20));
       }
 
+      const endTime = Date.now();
+      const sendIntervalMs = (endTime - startTime) / totalChunks;
+
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: tts_audio_sent');
       console.log('[SIMPLE MODE] chunk_count:', totalChunks);
       console.log('[SIMPLE MODE] avg_chunk_size:', Math.round(totalPayloadBytes / totalChunks));
+      console.log('[SIMPLE MODE] payload_base64_length_first_chunk:', base64Audio.slice(0, chunkSize).length);
+      console.log('[SIMPLE MODE] first_chunk_raw_len:', chunkSize);
+      console.log('[SIMPLE MODE] first_chunk_decoded_len_after_base64:', Buffer.from(base64Audio.slice(0, chunkSize), 'base64').length);
+      console.log('[SIMPLE MODE] send_interval_ms_sample:', sendIntervalMs.toFixed(2));
       console.log('[SIMPLE MODE] =========================================');
 
       // Mark speaking as false after audio is sent
