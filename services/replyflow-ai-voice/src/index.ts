@@ -5055,14 +5055,16 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     return Buffer.from(muLawData);
   };
 
-  // Generate test tone (440Hz sine wave at 8kHz)
-  const generateTestTone = (durationSeconds: number, frequency: number = 440, sampleRate: number = 8000): Buffer => {
+  // Generate test tone (440Hz sine wave at 8kHz with proper PCM16 scaling)
+  const generateTestTone = (durationSeconds: number, frequency: number = 440, sampleRate: number = 8000, amplitude: number = 0.15): Buffer => {
     const numSamples = durationSeconds * sampleRate;
     const pcm = new Float32Array(numSamples);
+    const maxInt16 = 32767;
+    const amplitudeScaled = amplitude * maxInt16;
 
     for (let i = 0; i < numSamples; i++) {
       const t = i / sampleRate;
-      pcm[i] = Math.sin(2 * Math.PI * frequency * t) * 0.5; // 50% volume
+      pcm[i] = (Math.sin(2 * Math.PI * frequency * t) * amplitudeScaled) / maxInt16;
     }
 
     return pcmToMulaw(pcm);
@@ -5220,7 +5222,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[SIMPLE MODE] event: stage_prompt_mapping');
     console.log('[SIMPLE MODE] simple_mode_selected:', true);
     console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_hardcoded');
-    console.log('[SIMPLE MODE] sourceOfSpeech:', 'test_silence_first'); // TEMP: Testing silence first
+    console.log('[SIMPLE MODE] sourceOfSpeech:', 'test_tone_low_amplitude'); // TEMP: Testing low amplitude tone
     console.log('[SIMPLE MODE] business_id:', state.businessId);
     console.log('[SIMPLE MODE] currentStage:', stage);
     console.log('[SIMPLE MODE] promptKey:', stage);
@@ -5230,16 +5232,55 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
     try {
-      // TEMP: Test silence first to verify μ-law encoding (silence should encode to 0xFF)
-      const mulawBuffer = generateSilence(1.0, 8000); // 1-second silence
+      // Generate PCM for analysis
+      const sampleRate = 8000;
+      const amplitude = 0.15; // 15% of int16 max
+      const frequency = 440;
+      const durationSeconds = 1.0;
+      const numSamples = durationSeconds * sampleRate;
+      const pcm = new Float32Array(numSamples);
+      const maxInt16 = 32767;
+      const amplitudeScaled = amplitude * maxInt16;
+
+      for (let i = 0; i < numSamples; i++) {
+        const t = i / sampleRate;
+        pcm[i] = (Math.sin(2 * Math.PI * frequency * t) * amplitudeScaled) / maxInt16;
+      }
+
+      // Log PCM stats
+      let pcmMin = Infinity;
+      let pcmMax = -Infinity;
+      for (let i = 0; i < pcm.length; i++) {
+        if (pcm[i] < pcmMin) pcmMin = pcm[i];
+        if (pcm[i] > pcmMax) pcmMax = pcm[i];
+      }
+
+      // Convert to μ-law
+      const mulawBuffer = pcmToMulaw(pcm);
+
+      // Test specific mappings
+      const zeroSample = 0.0;
+      const positiveSample = 0.15;
+      const negativeSample = -0.15;
+      const testPcm = new Float32Array([zeroSample, positiveSample, negativeSample]);
+      const testMulaw = pcmToMulaw(testPcm);
+
+      console.log('[SIMPLE MODE] =========================================');
+      console.log('[SIMPLE MODE] event: tone_generation_stats');
+      console.log('[SIMPLE MODE] tone_amplitude:', amplitude);
+      console.log('[SIMPLE MODE] pcm_min:', pcmMin.toFixed(6));
+      console.log('[SIMPLE MODE] pcm_max:', pcmMax.toFixed(6));
+      console.log('[SIMPLE MODE] pcm_first_20_samples:', Array.from(pcm.slice(0, 20)).map(v => v.toFixed(6)).join(','));
+      console.log('[SIMPLE MODE] mulaw_first_20_bytes_hex:', mulawBuffer.slice(0, 20).toString('hex'));
+      console.log('[SIMPLE MODE] zero_maps_to:', testMulaw[0].toString(16).padStart(2, '0'));
+      console.log('[SIMPLE MODE] positive_sample_maps_to:', testMulaw[1].toString(16).padStart(2, '0'));
+      console.log('[SIMPLE MODE] negative_sample_maps_to:', testMulaw[2].toString(16).padStart(2, '0'));
+      console.log('[SIMPLE MODE] =========================================');
 
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: tts_audio_generated');
       console.log('[SIMPLE MODE] audioSize:', mulawBuffer.length);
       console.log('[SIMPLE MODE] format:', 'pcm_mulaw_8kHz');
-      console.log('[SIMPLE MODE] first_20_raw_bytes_hex:', mulawBuffer.slice(0, 20).toString('hex'));
-      console.log('[SIMPLE MODE] silence_test_first_20_mulaw_hex:', mulawBuffer.slice(0, 20).toString('hex'));
-      console.log('[SIMPLE MODE] expected_silence_hex:', 'ff'.repeat(20));
       console.log('[SIMPLE MODE] =========================================');
 
       // Send mu-law audio to Twilio via WebSocket
