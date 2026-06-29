@@ -4,6 +4,7 @@ import { sendSms, sendMms } from "@/lib/twilio";
 import { db, supabaseAdmin } from '@/lib/supabase/admin';
 import { sanitizeMessageContent } from '@/lib/security';
 import { checkManualSmsRateLimit } from '@/lib/rate-limit';
+import { promoteLeadToActiveIfNew } from '@/lib/lead-lifecycle';
 
 export const dynamic = 'force-dynamic';
 
@@ -304,6 +305,15 @@ export async function POST(request: Request) {
       clientTempId,
       mediaCount: mediaUrls.length
     })
+
+    // Promote lead from new to active when business manually sends a message
+    try {
+      await promoteLeadToActiveIfNew(leadId, supabaseAdmin)
+      console.log('[Manual SMS] Lead promoted from new to active:', leadId)
+    } catch (promoteError) {
+      console.error('[Manual SMS] Error promoting lead to active:', promoteError)
+      // Don't fail the request - message was sent successfully
+    }
 
     // Store media in message_media table if present
     let mediaItems: any[] = []

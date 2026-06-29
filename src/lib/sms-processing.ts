@@ -7,6 +7,7 @@ import { normalizePunctuation } from '@/lib/utils'
 import { detectCorrection, applyCorrection, generateCorrectionNote, generateMultiFieldAcknowledgement } from '@/lib/ai-correction-engine'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { extractFromSmsBody, safeMergeSmsExtraction } from '@/lib/voicemail-extraction'
+import { promoteLeadToActiveIfNew } from '@/lib/lead-lifecycle'
 
 // Helper function to download MMS media from Twilio and store in Supabase Storage
 async function downloadAndStoreMedia(twilioMediaUrl: string, messageId: string, index: number): Promise<string | null> {
@@ -572,6 +573,28 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       created_at: inboundMessage.created_at,
       body: sanitizedBody.substring(0, 50)
     })
+    
+    // CRITICAL: Promote lead from new to active when customer replies
+    // Any customer reply indicates engagement
+    console.log('[LEAD STATUS PROMOTION TRIGGERED]', {
+      leadId: lead.id,
+      reason: 'customer_replied',
+      messageBody: sanitizedBody.substring(0, 50)
+    })
+    
+    try {
+      await promoteLeadToActiveIfNew(lead.id, supabaseAdmin)
+      console.log('[LEAD STATUS PROMOTED SUCCESSFULLY]', {
+        leadId: lead.id,
+        reason: 'customer_replied'
+      })
+    } catch (promoteError) {
+      console.error('[LEAD STATUS PROMOTION ERROR]', {
+        leadId: lead.id,
+        error: promoteError instanceof Error ? promoteError.message : String(promoteError)
+      })
+      // Don't fail the entire inbound SMS processing if promotion fails
+    }
     
     // CRITICAL: Cancel all pending follow-ups for this lead
     // Any customer reply indicates engagement and should stop automated follow-ups

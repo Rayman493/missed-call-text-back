@@ -150,3 +150,55 @@ export function transitionLeadStatus(currentStatus: LeadLifecycleStatus, targetS
   // Allow all transitions for business-controlled status management
   return true
 }
+
+/**
+ * Promote a lead from 'new' to 'active' status
+ * This is called when engagement events occur (follow-up sent, manual SMS, customer reply)
+ * Only promotes if current status is 'new' - leaves Active, Completed, Ignored unchanged
+ */
+export async function promoteLeadToActiveIfNew(leadId: string, supabaseClient: any): Promise<boolean> {
+  try {
+    // Read current lead status
+    const { data: lead, error: readError } = await supabaseClient
+      .from('leads')
+      .select('status')
+      .eq('id', leadId)
+      .single()
+
+    if (readError) {
+      console.error('[promoteLeadToActiveIfNew] Error reading lead status:', readError)
+      return false
+    }
+
+    if (!lead) {
+      console.error('[promoteLeadToActiveIfNew] Lead not found:', leadId)
+      return false
+    }
+
+    // Only promote if status is 'new'
+    if (lead.status !== 'new') {
+      console.log('[promoteLeadToActiveIfNew] Lead not new, skipping promotion:', {
+        leadId,
+        currentStatus: lead.status
+      })
+      return false
+    }
+
+    // Promote to active
+    const { error: updateError } = await supabaseClient
+      .from('leads')
+      .update({ status: 'active' })
+      .eq('id', leadId)
+
+    if (updateError) {
+      console.error('[promoteLeadToActiveIfNew] Error updating lead status:', updateError)
+      return false
+    }
+
+    console.log('[promoteLeadToActiveIfNew] Lead promoted from new to active:', leadId)
+    return true
+  } catch (error) {
+    console.error('[promoteLeadToActiveIfNew] Unexpected error:', error)
+    return false
+  }
+}

@@ -6,6 +6,7 @@ import { checkCronRateLimit } from '@/lib/rate-limit'
 import { NotificationService } from '@/lib/notifications'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { hasBillingAccess } from '@/lib/manual-access'
+import { promoteLeadToActiveIfNew } from '@/lib/lead-lifecycle'
 
 // Helper function to check if a date is during business hours
 function isDuringBusinessHours(date: Date, timezone: string): boolean {
@@ -592,19 +593,8 @@ export async function POST(req: NextRequest) {
         })
         sent++
 
-        // Update lead status from new to active when follow-up is sent
-        if (lead.status === 'new') {
-          const { error: leadStatusError } = await supabase
-            .from('leads')
-            .update({ status: 'active' })
-            .eq('id', lead.id)
-          
-          if (leadStatusError) {
-            console.error('[send-followups] Error updating lead status:', leadStatusError)
-          } else {
-            console.log('[send-followups] Lead status updated from new to active:', lead.id)
-          }
-        }
+        // Promote lead from new to active when follow-up is sent
+        await promoteLeadToActiveIfNew(lead.id, supabase)
 
         // Create notification for follow-up sent
         try {
@@ -1152,19 +1142,8 @@ export async function GET(req: NextRequest) {
         })
         sent++
 
-        // Update lead status from new to active when follow-up is sent
-        if (lead.status === 'new') {
-          const { error: leadStatusError } = await supabase
-            .from('leads')
-            .update({ status: 'active' })
-            .eq('id', lead.id)
-          
-          if (leadStatusError) {
-            console.error('[send-followups] Error updating lead status:', leadStatusError)
-          } else {
-            console.log('[send-followups] Lead status updated from new to active:', lead.id)
-          }
-        }
+        // Promote lead from new to active when follow-up is sent
+        await promoteLeadToActiveIfNew(lead.id, supabase)
 
         // Create notification for follow-up sent
         try {
