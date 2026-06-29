@@ -8769,6 +8769,20 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[PRE-AUTHORIZATION AT CREATE] Timestamp:', new Date().toISOString());
                   console.log('[PRE-AUTHORIZATION AT CREATE] =========================================');
 
+                  // CRITICAL: Set assistantSpeaking to TRUE BEFORE authorizing and flushing audio
+                  // This ensures caller audio is blocked BEFORE any audio starts streaming to Twilio
+                  if (!callSessionState.assistantSpeaking) {
+                    console.log('[ASSISTANT SPEAKING TRUE] =========================================');
+                    console.log('[ASSISTANT SPEAKING TRUE] reason:', 'pre-authorization before audio flush');
+                    console.log('[ASSISTANT SPEAKING TRUE] responseId:', actualResponseId);
+                    console.log('[ASSISTANT SPEAKING TRUE] Timestamp:', new Date().toISOString());
+                    console.log('[ASSISTANT SPEAKING TRUE] =========================================');
+                    
+                    callSessionState.assistantSpeaking = true;
+                    assistantSpeaking = true;
+                    (twilioHandler as any).assistantSpeaking = true;
+                  }
+
                   // Store expected prompt text in twilioHandler for validation
                   if (twilioHandler) {
                     (twilioHandler as any).expectedPromptText = expectedPromptText;
@@ -8793,63 +8807,8 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 //   (twilioHandler as any).resetValidationState();
                 // }
 
-                // CRITICAL FIX: Set assistantSpeaking to TRUE immediately when response.created is received
-                // This ensures caller audio is blocked BEFORE any audio starts streaming
-                const beforeAssistantSpeaking = callSessionState.assistantSpeaking;
-                const beforeIndividualVar = assistantSpeaking;
-                const beforeTwilioHandler = (twilioHandler as any).assistantSpeaking;
-                const stackTrace = new Error().stack?.split('\n').slice(1, 4).join('\n') || 'unknown';
-                
-                if (!callSessionState.assistantSpeaking) {
-                  callSessionState.assistantSpeaking = true;
-                  assistantSpeaking = true; // Sync individual variable for backward compatibility
-                  (twilioHandler as any).assistantSpeaking = true;
-                  
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] =========================================');
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] BEFORE callSessionState.assistantSpeaking:', beforeAssistantSpeaking);
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] BEFORE individual assistantSpeaking var:', beforeIndividualVar);
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] BEFORE twilioHandler.assistantSpeaking:', beforeTwilioHandler);
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] AFTER callSessionState.assistantSpeaking:', callSessionState.assistantSpeaking);
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] AFTER individual assistantSpeaking var:', assistantSpeaking);
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] AFTER twilioHandler.assistantSpeaking:', (twilioHandler as any).assistantSpeaking);
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] Source: response.created handler (BEFORE audio starts)');
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] Response ID:', actualResponseId);
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] Stage:', callSessionState.currentStage || 'unknown');
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] Stack trace:', stackTrace);
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] Timestamp:', new Date().toISOString());
-                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] =========================================');
-                  
-                  // Start timeout protection (30 seconds)
-                  if (assistantSpeakingTimeout) {
-                    clearTimeout(assistantSpeakingTimeout);
-                  }
-                  assistantSpeakingTimeout = setTimeout(() => {
-                    if (assistantSpeaking) {
-                      const beforeAssistantSpeaking = callSessionState.assistantSpeaking;
-                      const beforeIndividualVar = assistantSpeaking;
-                      const beforeTwilioHandler = (twilioHandler as any).assistantSpeaking;
-                      const stackTrace = new Error().stack?.split('\n').slice(1, 4).join('\n') || 'unknown';
-                      
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] =========================================');
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] BEFORE callSessionState.assistantSpeaking:', beforeAssistantSpeaking);
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] BEFORE individual assistantSpeaking var:', beforeIndividualVar);
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] BEFORE twilioHandler.assistantSpeaking:', beforeTwilioHandler);
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] assistantSpeaking stuck for 30 seconds');
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] Force resetting to false');
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] Stack trace:', stackTrace);
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] Timestamp:', new Date().toISOString());
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] =========================================');
-                      
-                      assistantSpeaking = false;
-                      callSessionState.assistantSpeaking = false;
-                      (twilioHandler as any).assistantSpeaking = false;
-                      
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] AFTER callSessionState.assistantSpeaking:', callSessionState.assistantSpeaking);
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] AFTER individual assistantSpeaking var:', assistantSpeaking);
-                      console.log('[ASSISTANT SPEAKING TIMEOUT] AFTER twilioHandler.assistantSpeaking:', (twilioHandler as any).assistantSpeaking);
-                    }
-                  }, 30000); // 30 second timeout
-                }
+                // Note: assistantSpeaking is now set BEFORE authorization (in pre-authorization block)
+                // to ensure caller audio is blocked before any audio chunks are sent to Twilio
 
                 // If this is the final close response, store the actual OpenAI response ID
                 if ((twilioHandler as any).finalClosingStarted) {
@@ -9256,6 +9215,14 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[PROMPT COMPLETE MARK SENT] Timestamp:', new Date().toISOString());
                   console.log('[PROMPT COMPLETE MARK SENT] =========================================');
 
+                  console.log('[ASSISTANT SPEAKING FALSE] =========================================');
+                  console.log('[ASSISTANT SPEAKING FALSE] reason:', 'response.audio.done - OpenAI audio generation complete');
+                  console.log('[ASSISTANT SPEAKING FALSE] responseId:', message.response_id || 'unknown');
+                  console.log('[ASSISTANT SPEAKING FALSE] chunkReceived:', (twilioHandler as any)[`chunks_${message.response_id}`]?.received || 0);
+                  console.log('[ASSISTANT SPEAKING FALSE] chunkSent:', (twilioHandler as any)[`chunks_${message.response_id}`]?.sent || 0);
+                  console.log('[ASSISTANT SPEAKING FALSE] Timestamp:', new Date().toISOString());
+                  console.log('[ASSISTANT SPEAKING FALSE] =========================================');
+
                   callSessionState.assistantSpeaking = false;
                   assistantSpeaking = false; // Sync individual variable for backward compatibility
                   (twilioHandler as any).assistantSpeaking = false;
@@ -9286,9 +9253,13 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 const responseId = message.response_id || (twilioHandler as any).currentResponseId || 'unknown';
                 const chunkKey = `chunks_${responseId}`;
                 if (!(twilioHandler as any)[chunkKey]) {
-                  (twilioHandler as any)[chunkKey] = { received: 0, sent: 0, responseId };
+                  (twilioHandler as any)[chunkKey] = { received: 0, sent: 0, responseId, firstReceivedAt: null, firstSentAt: null };
                 }
                 (twilioHandler as any)[chunkKey].received++;
+                const isFirstChunkReceived = (twilioHandler as any)[chunkKey].received === 1;
+                if (isFirstChunkReceived) {
+                  (twilioHandler as any)[chunkKey].firstReceivedAt = Date.now();
+                }
 
                 // Log first prompt audio delta reception for debugging
                 if (intakeData?.stage === 'ask_name_reason') {
@@ -9297,6 +9268,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] responseId:', responseId);
                   console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] deltaLength:', message.delta.length);
                   console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] chunkReceived:', (twilioHandler as any)[chunkKey].received);
+                  console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] isFirstChunkReceived:', isFirstChunkReceived);
                   console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] Timestamp:', new Date().toISOString());
                   console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] =========================================');
                 }

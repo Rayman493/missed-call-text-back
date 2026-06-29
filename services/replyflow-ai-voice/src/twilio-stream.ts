@@ -405,9 +405,13 @@ export class TwilioStreamHandler {
       const responseId = this.currentResponseId || 'unknown';
       const chunkKey = `chunks_${responseId}`;
       if (!(this as any)[chunkKey]) {
-        (this as any)[chunkKey] = { received: 0, sent: 0, responseId };
+        (this as any)[chunkKey] = { received: 0, sent: 0, responseId, firstReceivedAt: null, firstSentAt: null };
       }
       (this as any)[chunkKey].sent++;
+      const isFirstChunkSent = (this as any)[chunkKey].sent === 1;
+      if (isFirstChunkSent) {
+        (this as any)[chunkKey].firstSentAt = Date.now();
+      }
       
       // Log streamSid and ws readyState for debugging
       console.log('[SEND AUDIO INTERNAL DEBUG] =========================================');
@@ -417,6 +421,7 @@ export class TwilioStreamHandler {
       console.log('[SEND AUDIO INTERNAL DEBUG] responseId:', responseId);
       console.log('[SEND AUDIO INTERNAL DEBUG] chunkSent:', (this as any)[chunkKey].sent);
       console.log('[SEND AUDIO INTERNAL DEBUG] chunkReceived:', (this as any)[chunkKey].received);
+      console.log('[SEND AUDIO INTERNAL DEBUG] isFirstChunkSent:', isFirstChunkSent);
       console.log('[SEND AUDIO INTERNAL DEBUG] assistantSpeaking:', assistantSpeaking);
       console.log('[SEND AUDIO INTERNAL DEBUG] Timestamp:', new Date().toISOString());
       console.log('[SEND AUDIO INTERNAL DEBUG] =========================================');
@@ -476,14 +481,19 @@ export class TwilioStreamHandler {
    */
   sendAudio(audioData: Buffer) {
     // Buffer audio if response is not yet authorized
-    if (!this.responseAuthorized && this.currentResponseId) {
+    // Buffer ALL chunks when not authorized, regardless of currentResponseId state
+    // This preserves early chunks that arrive before response.created
+    if (!this.responseAuthorized) {
       this.audioBufferedCount++;
       const currentStage = (this as any)._currentStage || 'unknown';
+      const isFirstChunk = this.audioBufferedCount === 1;
+      
       console.log('[AUDIO BUFFERED] =========================================');
-      console.log('[AUDIO BUFFERED] responseId:', this.currentResponseId);
+      console.log('[AUDIO BUFFERED] responseId:', this.currentResponseId || 'pending');
       console.log('[AUDIO BUFFERED] expectedPromptText:', this.expectedPromptText);
       console.log('[AUDIO BUFFERED] authorizedAtCreate:', this.authorizedAtCreate);
       console.log('[AUDIO BUFFERED] audioBuffered:', this.audioBufferedCount);
+      console.log('[AUDIO BUFFERED] isFirstChunk:', isFirstChunk);
       console.log('[AUDIO BUFFERED] audioLength:', audioData.length);
       console.log('[AUDIO BUFFERED] Timestamp:', new Date().toISOString());
       console.log('[AUDIO BUFFERED] =========================================');
@@ -492,8 +502,9 @@ export class TwilioStreamHandler {
       if (currentStage === 'ask_name_reason') {
         console.log('[FIRST PROMPT AUDIO BUFFERED] =========================================');
         console.log('[FIRST PROMPT AUDIO BUFFERED] Stage:', currentStage);
-        console.log('[FIRST PROMPT AUDIO BUFFERED] responseId:', this.currentResponseId);
+        console.log('[FIRST PROMPT AUDIO BUFFERED] responseId:', this.currentResponseId || 'pending');
         console.log('[FIRST PROMPT AUDIO BUFFERED] audioBufferedCount:', this.audioBufferedCount);
+        console.log('[FIRST PROMPT AUDIO BUFFERED] isFirstChunk:', isFirstChunk);
         console.log('[FIRST PROMPT AUDIO BUFFERED] Timestamp:', new Date().toISOString());
         console.log('[FIRST PROMPT AUDIO BUFFERED] =========================================');
       }
