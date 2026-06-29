@@ -2992,34 +2992,27 @@ async function finalizeIncompleteIntake(
   console.log('[FINALIZATION LOCK ACQUIRED] Timestamp:', new Date().toISOString());
   console.log('[FINALIZATION LOCK ACQUIRED] =========================================');
   
-  console.log('[AI INCOMPLETE FINALIZATION STARTED] =========================================');
-  console.log('[AI INCOMPLETE FINALIZATION STARTED] callSid:', callSid);
-  console.log('[AI INCOMPLETE FINALIZATION STARTED] businessId:', businessId);
-  console.log('[AI INCOMPLETE FINALIZATION STARTED] callerPhone:', callerPhone);
-  console.log('[AI INCOMPLETE FINALIZATION STARTED] Timestamp:', new Date().toISOString());
-  console.log('[AI INCOMPLETE FINALIZATION STARTED] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 1 - ENTER] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 1 - ENTER] callSid:', callSid);
+  console.log('[INCOMPLETE FINALIZATION STEP 1 - ENTER] businessId:', businessId);
+  console.log('[INCOMPLETE FINALIZATION STEP 1 - ENTER] callerPhone:', callerPhone);
+  console.log('[INCOMPLETE FINALIZATION STEP 1 - ENTER] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 1 - ENTER] =========================================');
 
-  console.log('[STEP 1] Checking if any useful field was collected');
-  // Check if any useful field was collected
-  const hasUsefulData = hasUsefulCollectedFields(intakeData);
-  console.log('[STEP 1 RETURNED] hasUsefulData:', hasUsefulData);
-
-  if (!hasUsefulData) {
-    console.log('[FINALIZE INCOMPLETE RETURN] =========================================');
-    console.log('[FINALIZE INCOMPLETE RETURN] reason: No useful data collected, skipping finalization');
-    console.log('[FINALIZE INCOMPLETE RETURN] Timestamp:', new Date().toISOString());
-    console.log('[FINALIZE INCOMPLETE RETURN] =========================================');
-    return;
-  }
-  console.log('[STEP 1 PASSED] Useful data check passed');
+  console.log('[INCOMPLETE FINALIZATION STEP 2 - CONTEXT VALIDATED] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 2 - CONTEXT VALIDATED] Minimum required fields present');
+  console.log('[INCOMPLETE FINALIZATION STEP 2 - CONTEXT VALIDATED] businessId:', !!businessId);
+  console.log('[INCOMPLETE FINALIZATION STEP 2 - CONTEXT VALIDATED] callerPhone:', !!callerPhone);
+  console.log('[INCOMPLETE FINALIZATION STEP 2 - CONTEXT VALIDATED] callSid:', !!callSid);
+  console.log('[INCOMPLETE FINALIZATION STEP 2 - CONTEXT VALIDATED] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 2 - CONTEXT VALIDATED] =========================================');
   
-  console.log('[AI INCOMPLETE FINALIZATION] Useful data collected, proceeding with finalization');
-  
-  // Build extracted fields from intake data
-  console.log('[AI INCOMPLETE STEP 1] =========================================');
-  console.log('[AI INCOMPLETE STEP 1] Building extracted fields from intake data');
-  console.log('[AI INCOMPLETE STEP 1] Timestamp:', new Date().toISOString());
-  console.log('[AI INCOMPLETE STEP 1] =========================================');
+  // Build extracted fields from intake data (may be empty)
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD START] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD START] Building extracted fields from intake data');
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD START] intakeData:', JSON.stringify(intakeData || {}, null, 2));
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD START] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD START] =========================================');
   
   const extractedFields = {
     callerName: intakeData?.customerName || null,
@@ -3031,20 +3024,20 @@ async function finalizeIncompleteIntake(
     summary: `Partial intake: ${intakeData?.customerName || 'Unknown'} called about ${intakeData?.serviceRequested || 'unknown issue'}. Some details may be missing.`
   };
   
-  console.log('[AI INCOMPLETE STEP 1 SUCCESS] =========================================');
-  console.log('[AI INCOMPLETE STEP 1 SUCCESS] Extracted fields:', extractedFields);
-  console.log('[AI INCOMPLETE STEP 1 SUCCESS] Timestamp:', new Date().toISOString());
-  console.log('[AI INCOMPLETE STEP 1 SUCCESS] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD RESULT] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD RESULT] Extracted fields:', JSON.stringify(extractedFields, null, 2));
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD RESULT] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD RESULT] =========================================');
   
   // Create or update lead
-  console.log('[STEP 2] =========================================');
-  console.log('[STEP 2] Creating or updating lead');
-  console.log('[STEP 2] businessId:', businessId);
-  console.log('[STEP 2] callerPhone:', callerPhone);
-  console.log('[STEP 2] Timestamp:', new Date().toISOString());
-  console.log('[STEP 2] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD START] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD START] Creating or updating lead');
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD START] businessId:', businessId);
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD START] callerPhone:', callerPhone);
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD START] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD START] =========================================');
 
-  console.log('[STEP 2 CALLING retrySupabaseOperation for lead creation]');
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD CALLING SUPABASE]');
   const { data: lead, error: leadError } = await retrySupabaseOperation(
   async () => {
     const result = await supabase
@@ -3064,31 +3057,37 @@ async function finalizeIncompleteIntake(
   3,
   1000
 );
-  console.log('[STEP 2 RETURNED from retrySupabaseOperation] lead:', !!lead, 'leadError:', !!leadError);
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD RESULT] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD RESULT] lead:', !!lead, 'leadError:', !!leadError);
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD RESULT] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD RESULT] =========================================');
   
   if (leadError) {
-    console.error('[AI INCOMPLETE STEP 2 FAILED] =========================================');
-    console.error('[AI INCOMPLETE STEP 2 FAILED] Lead creation failed');
-    console.error('[AI INCOMPLETE STEP 2 FAILED] error:', leadError);
-    console.error('[AI INCOMPLETE STEP 2 FAILED] stack:', leadError.stack);
-    console.error('[AI INCOMPLETE STEP 2 FAILED] Timestamp:', new Date().toISOString());
-    console.error('[AI INCOMPLETE STEP 2 FAILED] =========================================');
+    console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
+    console.error('[INCOMPLETE FINALIZATION ERROR] Step 3 - Ensure Lead FAILED');
+    console.error('[INCOMPLETE FINALIZATION ERROR] error:', leadError);
+    console.error('[INCOMPLETE FINALIZATION ERROR] stack:', leadError.stack);
+    console.error('[INCOMPLETE FINALIZATION ERROR] callSid:', callSid);
+    console.error('[INCOMPLETE FINALIZATION ERROR] businessId:', businessId);
+    console.error('[INCOMPLETE FINALIZATION ERROR] callerPhone:', callerPhone);
+    console.error('[INCOMPLETE FINALIZATION ERROR] Timestamp:', new Date().toISOString());
+    console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
     return;
   }
   
-  console.log('[AI INCOMPLETE STEP 2 SUCCESS] =========================================');
-  console.log('[AI INCOMPLETE STEP 2 SUCCESS] Lead created/updated:', lead.id);
-  console.log('[AI INCOMPLETE STEP 2 SUCCESS] Timestamp:', new Date().toISOString());
-  console.log('[AI INCOMPLETE STEP 2 SUCCESS] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD RESULT] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD RESULT] Lead created/updated:', lead.id);
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD RESULT] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 3 - ENSURE LEAD RESULT] =========================================');
 
   // Create or update conversation
-  console.log('[STEP 3] =========================================');
-  console.log('[STEP 3] Creating or updating conversation');
-  console.log('[STEP 3] leadId:', lead.id);
-  console.log('[STEP 3] Timestamp:', new Date().toISOString());
-  console.log('[STEP 3] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION START] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION START] Creating or updating conversation');
+  console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION START] leadId:', lead.id);
+  console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION START] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION START] =========================================');
 
-  console.log('[STEP 3 CALLING retrySupabaseOperation for conversation lookup]');
+  console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION CALLING SUPABASE LOOKUP]');
   let conversation;
   const { data: existingConversation } = await retrySupabaseOperation(
     async () => {
@@ -3103,13 +3102,19 @@ async function finalizeIncompleteIntake(
     3,
     1000
   );
-  console.log('[STEP 3 RETURNED from conversation lookup] existingConversation:', !!existingConversation);
+  console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION LOOKUP RESULT] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION LOOKUP RESULT] existingConversation:', !!existingConversation);
+  console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION LOOKUP RESULT] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION LOOKUP RESULT] =========================================');
   
   if (existingConversation) {
     conversation = existingConversation;
-    console.log('[STEP 3] Using existing conversation:', conversation.id);
+    console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION USING EXISTING] =========================================');
+    console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION USING EXISTING] conversation.id:', conversation.id);
+    console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION USING EXISTING] Timestamp:', new Date().toISOString());
+    console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION USING EXISTING] =========================================');
   } else {
-    console.log('[STEP 3 CALLING retrySupabaseOperation for conversation creation]');
+    console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION CALLING SUPABASE CREATE]');
     const result = await retrySupabaseOperation(
       async () => {
         const res = await supabase
@@ -3128,24 +3133,27 @@ async function finalizeIncompleteIntake(
       3,
       1000
     );
-    console.log('[STEP 3 RETURNED from conversation creation] result.data:', !!result.data, 'result.error:', !!result.error);
+    console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION CREATE RESULT] =========================================');
+    console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION CREATE RESULT] result.data:', !!result.data, 'result.error:', !!result.error);
+    console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION CREATE RESULT] Timestamp:', new Date().toISOString());
+    console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION CREATE RESULT] =========================================');
     conversation = result.data;
   }
   
-  console.log('[AI INCOMPLETE STEP 3 SUCCESS] =========================================');
-  console.log('[AI INCOMPLETE STEP 3 SUCCESS] Conversation:', conversation.id);
-  console.log('[AI INCOMPLETE STEP 3 SUCCESS] Timestamp:', new Date().toISOString());
-  console.log('[AI INCOMPLETE STEP 3 SUCCESS] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION RESULT] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION RESULT] Conversation:', conversation.id);
+  console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION RESULT] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 4 - ENSURE CONVERSATION RESULT] =========================================');
 
   // Insert AI call record with incomplete outcome (idempotent)
-  console.log('[STEP 4] =========================================');
-  console.log('[STEP 4] Inserting AI call record with incomplete outcome (idempotent)');
-  console.log('[STEP 4] callSid:', callSid);
-  console.log('[STEP 4] Timestamp:', new Date().toISOString());
-  console.log('[STEP 4] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD START] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD START] Inserting AI call record with incomplete outcome (idempotent)');
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD START] callSid:', callSid);
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD START] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD START] =========================================');
 
   // Check for existing record by call_sid
-  console.log('[STEP 4 CALLING retrySupabaseOperation for existing record check]');
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD CALLING SUPABASE CHECK]');
   const { data: existingRecord, error: checkError } = await retrySupabaseOperation(
     async () => {
       const result = await supabase
@@ -3159,22 +3167,32 @@ async function finalizeIncompleteIntake(
     3,
     1000
   );
-  console.log('[STEP 4 RETURNED from existing record check] existingRecord:', !!existingRecord, 'checkError:', !!checkError);
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD CHECK RESULT] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD CHECK RESULT] existingRecord:', !!existingRecord, 'checkError:', !!checkError);
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD CHECK RESULT] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD CHECK RESULT] =========================================');
   
   if (checkError && checkError.code !== 'PGRST116') {
-    console.error('[AI INCOMPLETE STEP 4 FAILED] =========================================');
-    console.error('[AI INCOMPLETE STEP 4 FAILED] Error checking existing record');
-    console.error('[AI INCOMPLETE STEP 4 FAILED] error:', checkError);
-    console.error('[AI INCOMPLETE STEP 4 FAILED] stack:', checkError.stack);
-    console.error('[AI INCOMPLETE STEP 4 FAILED] Timestamp:', new Date().toISOString());
-    console.error('[AI INCOMPLETE STEP 4 FAILED] =========================================');
+    console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
+    console.error('[INCOMPLETE FINALIZATION ERROR] Step 5 - AI Record Check FAILED');
+    console.error('[INCOMPLETE FINALIZATION ERROR] error:', checkError);
+    console.error('[INCOMPLETE FINALIZATION ERROR] stack:', checkError.stack);
+    console.error('[INCOMPLETE FINALIZATION ERROR] callSid:', callSid);
+    console.error('[INCOMPLETE FINALIZATION ERROR] businessId:', businessId);
+    console.error('[INCOMPLETE FINALIZATION ERROR] callerPhone:', callerPhone);
+    console.error('[INCOMPLETE FINALIZATION ERROR] Timestamp:', new Date().toISOString());
+    console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
     return;
   }
   
   let recordError;
   if (existingRecord) {
-    console.log('[STEP 4] Existing record found, updating instead of inserting');
-    console.log('[STEP 4 CALLING retrySupabaseOperation for record update]');
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD UPDATING] =========================================');
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD UPDATING] Existing record found, updating instead of inserting');
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD UPDATING] existingRecord.id:', existingRecord.id);
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD UPDATING] Timestamp:', new Date().toISOString());
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD UPDATING] =========================================');
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD CALLING SUPABASE UPDATE]');
     // Update existing record
     const { error: updateError } = await retrySupabaseOperation(
       async () => {
@@ -3196,11 +3214,17 @@ async function finalizeIncompleteIntake(
       3,
       1000
     );
-    console.log('[STEP 4 RETURNED from record update] updateError:', !!updateError);
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD UPDATE RESULT] =========================================');
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD UPDATE RESULT] updateError:', !!updateError);
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD UPDATE RESULT] Timestamp:', new Date().toISOString());
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD UPDATE RESULT] =========================================');
     recordError = updateError;
   } else {
-    console.log('[STEP 4] No existing record, inserting new record');
-    console.log('[STEP 4 CALLING retrySupabaseOperation for record insert]');
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD INSERTING] =========================================');
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD INSERTING] No existing record, inserting new record');
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD INSERTING] Timestamp:', new Date().toISOString());
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD INSERTING] =========================================');
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD CALLING SUPABASE INSERT]');
     // Insert new record
     const { error: insertError } = await retrySupabaseOperation(
       async () => {
@@ -3224,38 +3248,46 @@ async function finalizeIncompleteIntake(
       3,
       1000
     );
-    console.log('[STEP 4 RETURNED from record insert] insertError:', !!insertError);
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD INSERT RESULT] =========================================');
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD INSERT RESULT] insertError:', !!insertError);
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD INSERT RESULT] Timestamp:', new Date().toISOString());
+    console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD INSERT RESULT] =========================================');
     recordError = insertError;
   }
   
   if (recordError) {
-    console.error('[AI INCOMPLETE STEP 4 FAILED] =========================================');
-    console.error('[AI INCOMPLETE STEP 4 FAILED] AI call record operation failed');
-    console.error('[AI INCOMPLETE STEP 4 FAILED] existingRecord:', !!existingRecord);
-    console.error('[AI INCOMPLETE STEP 4 FAILED] error:', recordError);
-    console.error('[AI INCOMPLETE STEP 4 FAILED] stack:', recordError.stack);
-    console.error('[AI INCOMPLETE STEP 4 FAILED] Timestamp:', new Date().toISOString());
-    console.error('[AI INCOMPLETE STEP 4 FAILED] =========================================');
+    console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
+    console.error('[INCOMPLETE FINALIZATION ERROR] Step 5 - AI Record Operation FAILED');
+    console.error('[INCOMPLETE FINALIZATION ERROR] existingRecord:', !!existingRecord);
+    console.error('[INCOMPLETE FINALIZATION ERROR] error:', recordError);
+    console.error('[INCOMPLETE FINALIZATION ERROR] stack:', recordError.stack);
+    console.error('[INCOMPLETE FINALIZATION ERROR] callSid:', callSid);
+    console.error('[INCOMPLETE FINALIZATION ERROR] businessId:', businessId);
+    console.error('[INCOMPLETE FINALIZATION ERROR] callerPhone:', callerPhone);
+    console.error('[INCOMPLETE FINALIZATION ERROR] Timestamp:', new Date().toISOString());
+    console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
     return;
   }
   
-  console.log('[AI INCOMPLETE STEP 4 SUCCESS] =========================================');
-  console.log('[AI INCOMPLETE STEP 4 SUCCESS] AI call record operation completed with outcome: incomplete');
-  console.log('[AI INCOMPLETE STEP 4 SUCCESS] existingRecord:', !!existingRecord);
-  console.log('[AI INCOMPLETE STEP 4 SUCCESS] Timestamp:', new Date().toISOString());
-  console.log('[AI INCOMPLETE STEP 4 SUCCESS] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD RESULT] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD RESULT] AI call record operation completed with outcome: incomplete');
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD RESULT] existingRecord:', !!existingRecord);
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD RESULT] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 5 - AI RECORD RESULT] =========================================');
 
-  // Send partial AI summary SMS
-  console.log('[STEP 5] =========================================');
-  console.log('[STEP 5] Sending partial summary SMS');
-  console.log('[STEP 5] businessId:', businessId);
-  console.log('[STEP 5] leadId:', lead.id);
-  console.log('[STEP 5] conversationId:', conversation.id);
-  console.log('[STEP 5] Timestamp:', new Date().toISOString());
-  console.log('[STEP 5] =========================================');
+  // Send fallback SMS (even with minimal data)
+  console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS START] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS START] Sending fallback SMS');
+  console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS START] businessId:', businessId);
+  console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS START] leadId:', lead.id);
+  console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS START] conversationId:', conversation.id);
+  console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS START] callSid:', callSid);
+  console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS START] callerPhone:', callerPhone);
+  console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS START] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS START] =========================================');
 
   try {
-    console.log('[STEP 5 CALLING sendAIConfirmationSMS]');
+    console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS CALLING API]');
     await sendAIConfirmationSMS(
       businessId,
       lead.id,
@@ -3264,29 +3296,36 @@ async function finalizeIncompleteIntake(
       callerPhone,
       extractedFields
     );
-    console.log('[STEP 5 RETURNED from sendAIConfirmationSMS]');
+    console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS API RESPONSE] =========================================');
+    console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS API RESPONSE] SMS sent successfully');
+    console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS API RESPONSE] Timestamp:', new Date().toISOString());
+    console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS API RESPONSE] =========================================');
 
-    console.log('[AI INCOMPLETE STEP 5 SUCCESS] =========================================');
-    console.log('[AI INCOMPLETE STEP 5 SUCCESS] Partial summary SMS sent successfully');
-    console.log('[AI INCOMPLETE STEP 5 SUCCESS] Timestamp:', new Date().toISOString());
-    console.log('[AI INCOMPLETE STEP 5 SUCCESS] =========================================');
+    console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS RESULT] =========================================');
+    console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS RESULT] Fallback SMS sent successfully');
+    console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS RESULT] Timestamp:', new Date().toISOString());
+    console.log('[INCOMPLETE FINALIZATION STEP 6 - FALLBACK SMS RESULT] =========================================');
   } catch (smsError) {
-    console.error('[AI INCOMPLETE STEP 5 FAILED] =========================================');
-    console.error('[AI INCOMPLETE STEP 5 FAILED] SMS send failed');
-    console.error('[AI INCOMPLETE STEP 5 FAILED] error:', smsError);
-    console.error('[AI INCOMPLETE STEP 5 FAILED] stack:', smsError.stack);
-    console.error('[AI INCOMPLETE STEP 5 FAILED] Timestamp:', new Date().toISOString());
-    console.error('[AI INCOMPLETE STEP 5 FAILED] =========================================');
+    console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
+    console.error('[INCOMPLETE FINALIZATION ERROR] Step 6 - Fallback SMS FAILED');
+    console.error('[INCOMPLETE FINALIZATION ERROR] error:', smsError);
+    console.error('[INCOMPLETE FINALIZATION ERROR] stack:', smsError.stack);
+    console.error('[INCOMPLETE FINALIZATION ERROR] callSid:', callSid);
+    console.error('[INCOMPLETE FINALIZATION ERROR] businessId:', businessId);
+    console.error('[INCOMPLETE FINALIZATION ERROR] callerPhone:', callerPhone);
+    console.error('[INCOMPLETE FINALIZATION ERROR] Timestamp:', new Date().toISOString());
+    console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
+    // Do NOT return on SMS failure - continue with follow-ups and notification
   }
   
   // Create follow-up jobs (idempotent via API)
-  console.log('[STEP 6] =========================================');
-  console.log('[STEP 6] Creating follow-up jobs (idempotent)');
-  console.log('[STEP 6] businessId:', businessId);
-  console.log('[STEP 6] leadId:', lead.id);
-  console.log('[STEP 6] conversationId:', conversation.id);
-  console.log('[STEP 6] Timestamp:', new Date().toISOString());
-  console.log('[STEP 6] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS START] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS START] Creating follow-up jobs (idempotent)');
+  console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS START] businessId:', businessId);
+  console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS START] leadId:', lead.id);
+  console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS START] conversationId:', conversation.id);
+  console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS START] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS START] =========================================');
 
   try {
     const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
@@ -3340,47 +3379,137 @@ async function finalizeIncompleteIntake(
     );
     console.log('[STEP 6 RETURNED from follow-up API] response.status:', response.status);
 
-    console.log('[STEP 6] Response status:', response.status);
-    console.log('[STEP 6] Response statusText:', response.statusText);
+    console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS API RESPONSE] =========================================');
+    console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS API RESPONSE] Response status:', response.status);
+    console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS API RESPONSE] Response statusText:', response.statusText);
+    console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS API RESPONSE] Timestamp:', new Date().toISOString());
+    console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS API RESPONSE] =========================================');
 
     const responseBody = await response.text();
-    console.log('[STEP 6] Response body:', responseBody);
+    console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS RESPONSE BODY] =========================================');
+    console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS RESPONSE BODY] Response body:', responseBody);
+    console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS RESPONSE BODY] Timestamp:', new Date().toISOString());
+    console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS RESPONSE BODY] =========================================');
 
     // Parse response body as JSON for better error diagnostics
     let parsedResponseBody;
     try {
       parsedResponseBody = JSON.parse(responseBody);
-      console.log('[STEP 6] Parsed response body:', JSON.stringify(parsedResponseBody, null, 2));
+      console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS PARSED RESPONSE] =========================================');
+      console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS PARSED RESPONSE] Parsed response body:', JSON.stringify(parsedResponseBody, null, 2));
+      console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS PARSED RESPONSE] Timestamp:', new Date().toISOString());
+      console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS PARSED RESPONSE] =========================================');
     } catch (parseError) {
-      console.log('[STEP 6] Response body is not JSON, using raw text');
+      console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS PARSE ERROR] =========================================');
+      console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS PARSE ERROR] Response body is not JSON, using raw text');
+      console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS PARSE ERROR] Timestamp:', new Date().toISOString());
+      console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS PARSE ERROR] =========================================');
       parsedResponseBody = responseBody;
     }
 
     if (!response.ok) {
-      console.error('[AI INCOMPLETE STEP 6 FAILED] =========================================');
-      console.error('[AI INCOMPLETE STEP 6 FAILED] Non-OK status code:', response.status);
-      console.error('[AI INCOMPLETE STEP 6 FAILED] response body:', parsedResponseBody);
-      console.error('[AI INCOMPLETE STEP 6 FAILED] Timestamp:', new Date().toISOString());
-      console.error('[AI INCOMPLETE STEP 6 FAILED] =========================================');
+      console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
+      console.error('[INCOMPLETE FINALIZATION ERROR] Step 7 - Follow-ups Non-OK Status');
+      console.error('[INCOMPLETE FINALIZATION ERROR] status:', response.status);
+      console.error('[INCOMPLETE FINALIZATION ERROR] statusText:', response.statusText);
+      console.error('[INCOMPLETE FINALIZATION ERROR] response body:', parsedResponseBody);
+      console.error('[INCOMPLETE FINALIZATION ERROR] callSid:', callSid);
+      console.error('[INCOMPLETE FINALIZATION ERROR] businessId:', businessId);
+      console.error('[INCOMPLETE FINALIZATION ERROR] callerPhone:', callerPhone);
+      console.error('[INCOMPLETE FINALIZATION ERROR] Timestamp:', new Date().toISOString());
+      console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
     } else {
-      console.log('[AI INCOMPLETE STEP 6 SUCCESS] =========================================');
-      console.log('[AI INCOMPLETE STEP 6 SUCCESS] Follow-up jobs created successfully');
-      console.log('[AI INCOMPLETE STEP 6 SUCCESS] Timestamp:', new Date().toISOString());
-      console.log('[AI INCOMPLETE STEP 6 SUCCESS] =========================================');
+      console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS RESULT] =========================================');
+      console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS RESULT] Follow-up jobs created successfully');
+      console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS RESULT] Timestamp:', new Date().toISOString());
+      console.log('[INCOMPLETE FINALIZATION STEP 7 - FOLLOWUPS RESULT] =========================================');
     }
   } catch (followUpError) {
-    console.error('[AI INCOMPLETE STEP 6 FAILED] =========================================');
-    console.error('[AI INCOMPLETE STEP 6 FAILED] Follow-up creation failed');
-    console.error('[AI INCOMPLETE STEP 6 FAILED] error:', followUpError);
-    console.error('[AI INCOMPLETE STEP 6 FAILED] stack:', followUpError.stack);
-    console.error('[AI INCOMPLETE STEP 6 FAILED] Timestamp:', new Date().toISOString());
-    console.error('[AI INCOMPLETE STEP 6 FAILED] =========================================');
+    console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
+    console.error('[INCOMPLETE FINALIZATION ERROR] Step 7 - Follow-ups FAILED');
+    console.error('[INCOMPLETE FINALIZATION ERROR] error:', followUpError);
+    console.error('[INCOMPLETE FINALIZATION ERROR] stack:', followUpError.stack);
+    console.error('[INCOMPLETE FINALIZATION ERROR] callSid:', callSid);
+    console.error('[INCOMPLETE FINALIZATION ERROR] businessId:', businessId);
+    console.error('[INCOMPLETE FINALIZATION ERROR] callerPhone:', callerPhone);
+    console.error('[INCOMPLETE FINALIZATION ERROR] Timestamp:', new Date().toISOString());
+    console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
+    // Do NOT return on follow-up failure - continue with notification
   }
   
-  console.log('[AI INCOMPLETE FINALIZATION COMPLETE] =========================================');
-  console.log('[AI INCOMPLETE FINALIZATION COMPLETE] callSid:', callSid);
-  console.log('[AI INCOMPLETE FINALIZATION COMPLETE] Timestamp:', new Date().toISOString());
-  console.log('[AI INCOMPLETE FINALIZATION COMPLETE] =========================================');
+  // Create notification
+  console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION START] =========================================');
+  console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION START] Creating notification');
+  console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION START] businessId:', businessId);
+  console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION START] leadId:', lead.id);
+  console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION START] conversationId:', conversation.id);
+  console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION START] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION START] =========================================');
+
+  try {
+    console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION CALLING SUPABASE]');
+    const { error: notificationError } = await retrySupabaseOperation(
+      async () => {
+        const result = await supabase
+          .from('notifications')
+          .insert({
+            business_id: businessId,
+            lead_id: lead.id,
+            conversation_id: conversation.id,
+            type: 'missed_call',
+            title: 'Missed Call - AI Incomplete',
+            message: `Call from ${callerPhone} was incomplete. AI was unable to complete the intake.`,
+            read: false,
+            created_at: new Date().toISOString()
+          });
+        return result;
+      },
+      'Create Notification',
+      3,
+      1000
+    );
+    console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION RESULT] =========================================');
+    console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION RESULT] notificationError:', !!notificationError);
+    console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION RESULT] Timestamp:', new Date().toISOString());
+    console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION RESULT] =========================================');
+    
+    if (notificationError) {
+      console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
+      console.error('[INCOMPLETE FINALIZATION ERROR] Step 8 - Notification FAILED');
+      console.error('[INCOMPLETE FINALIZATION ERROR] error:', notificationError);
+      console.error('[INCOMPLETE FINALIZATION ERROR] stack:', notificationError.stack);
+      console.error('[INCOMPLETE FINALIZATION ERROR] callSid:', callSid);
+      console.error('[INCOMPLETE FINALIZATION ERROR] businessId:', businessId);
+      console.error('[INCOMPLETE FINALIZATION ERROR] callerPhone:', callerPhone);
+      console.error('[INCOMPLETE FINALIZATION ERROR] Timestamp:', new Date().toISOString());
+      console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
+      // Do NOT return on notification failure - proceed to complete
+    } else {
+      console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION RESULT] =========================================');
+      console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION RESULT] Notification created successfully');
+      console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION RESULT] Timestamp:', new Date().toISOString());
+      console.log('[INCOMPLETE FINALIZATION STEP 8 - NOTIFICATION RESULT] =========================================');
+    }
+  } catch (notificationCatchError) {
+    console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
+    console.error('[INCOMPLETE FINALIZATION ERROR] Step 8 - Notification Exception');
+    console.error('[INCOMPLETE FINALIZATION ERROR] error:', notificationCatchError);
+    console.error('[INCOMPLETE FINALIZATION ERROR] stack:', notificationCatchError.stack);
+    console.error('[INCOMPLETE FINALIZATION ERROR] callSid:', callSid);
+    console.error('[INCOMPLETE FINALIZATION ERROR] businessId:', businessId);
+    console.error('[INCOMPLETE FINALIZATION ERROR] callerPhone:', callerPhone);
+    console.error('[INCOMPLETE FINALIZATION ERROR] Timestamp:', new Date().toISOString());
+    console.error('[INCOMPLETE FINALIZATION ERROR] =========================================');
+    // Do NOT return on notification exception - proceed to complete
+  }
+  
+  console.log('[INCOMPLETE FINALIZATION COMPLETE] =========================================');
+  console.log('[INCOMPLETE FINALIZATION COMPLETE] All steps completed');
+  console.log('[INCOMPLETE FINALIZATION COMPLETE] callSid:', callSid);
+  console.log('[INCOMPLETE FINALIZATION COMPLETE] leadId:', lead.id);
+  console.log('[INCOMPLETE FINALIZATION COMPLETE] conversationId:', conversation.id);
+  console.log('[INCOMPLETE FINALIZATION COMPLETE] Timestamp:', new Date().toISOString());
+  console.log('[INCOMPLETE FINALIZATION COMPLETE] =========================================');
   
   // Release finalization lock
   finalizationInProgressByCallSid.delete(callSid);
