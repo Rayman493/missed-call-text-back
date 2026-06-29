@@ -20,7 +20,9 @@
   "license": "MIT",
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
+    "audio-decode": "^3.11.0",
     "dotenv": "^16.4.5",
+    "lamejs": "^1.2.1",
     "openai": "^4.20.0",
     "twilio": "^4.19.0",
     "ws": "^8.21.0"

@@ -26,6 +26,7 @@ import { log, LogLevel } from './logger';
 import { OpenAIRealtimeClient } from './openai-client';
 import { TwilioStreamHandler } from './twilio-stream';
 import { createClient } from '@supabase/supabase-js';
+import audioDecode from 'audio-decode';
 import {
   IntakeTemplate,
   AI_INTAKE_TEMPLATES,
@@ -5028,6 +5029,77 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   // Extract parameters from URL
   const url = new URL(req.url || '', `http://${req.headers.host}`);
 
+  // Helper to convert PCM to mu-law
+  const pcmToMulaw = (pcmData: Float32Array): Buffer => {
+    const muLawData = new Uint8Array(pcmData.length);
+    for (let i = 0; i < pcmData.length; i++) {
+      // Convert float32 to 16-bit integer
+      let sample = Math.max(-1, Math.min(1, pcmData[i]));
+      sample = sample < 0 ? sample * 32768 : sample * 32767;
+      const intSample = Math.floor(sample);
+
+      // Convert to mu-law
+      const sign = (intSample >> 8) & 0x80;
+      let exponent = 7;
+      let magnitude = Math.abs(intSample);
+      if (magnitude > 0) {
+        while (magnitude < 128 && exponent > 0) {
+          magnitude <<= 1;
+          exponent--;
+        }
+      }
+      const mantissa = (magnitude >> 4) & 0x0F;
+      muLawData[i] = sign | (exponent << 4) | mantissa;
+    }
+    return Buffer.from(muLawData);
+  };
+
+  // Helper to generate speech using OpenAI TTS API (deterministic)
+  const generateTTSAudio = async (text: string): Promise<Buffer> => {
+    const openAiUrl = 'https://api.openai.com/v1/audio/speech';
+    const response = await fetch(openAiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'tts-1',
+        input: text,
+        voice: 'alloy',
+        response_format: 'mp3',
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI TTS API error: ${response.status} ${response.statusText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const mp3Buffer = Buffer.from(arrayBuffer);
+
+    // Decode MP3 to PCM
+    const audioBuffer = await audioDecode(mp3Buffer);
+    const pcmData = audioBuffer.channelData[0]; // Get mono channel
+
+    // Resample to 8kHz if needed (Twilio expects 8kHz mu-law)
+    const targetSampleRate = 8000;
+    const sourceSampleRate = audioBuffer.sampleRate;
+    let resampledPcm = pcmData;
+    if (sourceSampleRate !== targetSampleRate) {
+      const ratio = sourceSampleRate / targetSampleRate;
+      const newLength = Math.floor(pcmData.length / ratio);
+      resampledPcm = new Float32Array(newLength);
+      for (let i = 0; i < newLength; i++) {
+        const srcIndex = Math.floor(i * ratio);
+        resampledPcm[i] = pcmData[srcIndex];
+      }
+    }
+
+    // Convert PCM to mu-law
+    return pcmToMulaw(resampledPcm);
+  };
+
   console.log('[SIMPLE MODE] =========================================');
   console.log('[SIMPLE MODE] event: connection_start');
   console.log('[SIMPLE MODE] simple_mode_selected:', true);
@@ -5049,12 +5121,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     assistantSpeaking: false,
     transcript: '',
     intakeData: {} as any,
-    openAiWs: null as WebSocket | null,
-    activeResponseId: null as string | null,
-    currentPromptResponseId: null as string | null,
-    completedAudioResponseIds: new Set<string>(),
-    timeoutId: null as NodeJS.Timeout | null,
-    audioReceived: false
+    openAiWs: null as WebSocket | null
   };
 
   // Hardcoded prompts for each stage
@@ -5082,7 +5149,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[SIMPLE MODE] =========================================');
     console.log('[SIMPLE MODE] event:', event);
     console.log('[SIMPLE MODE] stage:', state.currentStage);
-    console.log('[SIMPLE MODE] responseId:', state.activeResponseId || 'none');
     console.log('[SIMPLE MODE] speaking:', state.assistantSpeaking);
     console.log('[SIMPLE MODE] streamSid:', state.streamSid || 'none');
     Object.entries(extra).forEach(([key, value]) => {
@@ -5092,24 +5158,21 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[SIMPLE MODE] =========================================');
   };
 
-  // Helper to send prompt to OpenAI
-  const sendPrompt = (stage: string) => {
+  // Helper to send prompt using deterministic TTS (async)
+  const sendPrompt = async (stage: string) => {
     const prompt = prompts[stage];
     if (!prompt) {
       console.log('[SIMPLE MODE] No prompt for stage:', stage);
       return;
     }
 
-    const responseId = Math.random().toString(36).substring(2, 10);
-    state.activeResponseId = responseId;
-    state.currentPromptResponseId = responseId;
     state.assistantSpeaking = true;
-    state.audioReceived = false;
 
     console.log('[SIMPLE MODE] =========================================');
     console.log('[SIMPLE MODE] event: stage_prompt_mapping');
     console.log('[SIMPLE MODE] simple_mode_selected:', true);
     console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_hardcoded');
+    console.log('[SIMPLE MODE] sourceOfSpeech:', 'openai_tts_deterministic');
     console.log('[SIMPLE MODE] business_id:', state.businessId);
     console.log('[SIMPLE MODE] currentStage:', stage);
     console.log('[SIMPLE MODE] promptKey:', stage);
@@ -5118,43 +5181,68 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
-    const strictInstruction = `Speak exactly: "${prompt}"`;
+    try {
+      // Generate TTS audio (MP3 -> PCM mu-law conversion)
+      const mulawBuffer = await generateTTSAudio(prompt);
+      console.log('[SIMPLE MODE] =========================================');
+      console.log('[SIMPLE MODE] event: tts_audio_generated');
+      console.log('[SIMPLE MODE] audioSize:', mulawBuffer.length);
+      console.log('[SIMPLE MODE] format:', 'pcm_mulaw_8kHz');
+      console.log('[SIMPLE MODE] =========================================');
 
-    const message = {
-      type: 'response.create',
-      response: {
-        instructions: strictInstruction
+      // Send mu-law audio to Twilio via WebSocket
+      const base64Audio = mulawBuffer.toString('base64');
+      const chunkSize = 160; // 20ms at 8kHz mu-law (160 bytes)
+      let totalChunks = 0;
+
+      for (let i = 0; i < base64Audio.length; i += chunkSize) {
+        const chunk = base64Audio.substring(i, i + chunkSize);
+        const mediaMessage = {
+          event: 'media',
+          streamSid: state.streamSid,
+          media: {
+            payload: chunk
+          }
+        };
+        ws.send(JSON.stringify(mediaMessage));
+        totalChunks++;
+        // Send at real-time rate (20ms chunks)
+        await new Promise(resolve => setTimeout(resolve, 20));
       }
-    };
 
-    console.log('[SIMPLE MODE] =========================================');
-    console.log('[SIMPLE MODE] event: response_create_send');
-    console.log('[SIMPLE MODE] simple_mode_selected:', true);
-    console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_hardcoded');
-    console.log('[SIMPLE MODE] business_id:', state.businessId);
-    console.log('[SIMPLE MODE] currentStage:', stage);
-    console.log('[SIMPLE MODE] promptKey:', stage);
-    console.log('[SIMPLE MODE] promptText:', prompt);
-    console.log('[SIMPLE MODE] reasonForResponseCreate:', 'sendPromptForStage');
-    console.log('[SIMPLE MODE] payload:', JSON.stringify(message, null, 2));
-    console.log('[SIMPLE MODE] =========================================');
+      console.log('[SIMPLE MODE] =========================================');
+      console.log('[SIMPLE MODE] event: tts_audio_sent');
+      console.log('[SIMPLE MODE] chunks:', totalChunks);
+      console.log('[SIMPLE MODE] =========================================');
 
-    if (state.openAiWs && state.openAiWs.readyState === WebSocket.OPEN) {
-      state.openAiWs.send(JSON.stringify(message));
+      // Mark speaking as false after audio is sent
+      setTimeout(() => {
+        state.assistantSpeaking = false;
+        logSimple('tts_complete', { stage });
+
+        // Handle final complete stage close
+        if (stage === 'complete') {
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: final_tts_complete_close_scheduled');
+          console.log('[SIMPLE MODE] delayMs:', 5000);
+          console.log('[SIMPLE MODE] =========================================');
+          setTimeout(() => {
+            logSimple('call_complete');
+            ws.close();
+            if (state.openAiWs) {
+              state.openAiWs.close();
+            }
+          }, 5000);
+        }
+      }, 1000);
+
+    } catch (error) {
+      console.log('[SIMPLE MODE] =========================================');
+      console.log('[SIMPLE MODE] event: tts_error');
+      console.log('[SIMPLE MODE] error:', error instanceof Error ? error.message : String(error));
+      console.log('[SIMPLE MODE] =========================================');
+      state.assistantSpeaking = false;
     }
-
-    // 10-second timeout for OpenAI response - only triggers if no audio received
-    if (state.timeoutId) clearTimeout(state.timeoutId);
-    state.timeoutId = setTimeout(() => {
-      if (state.assistantSpeaking && !state.audioReceived) {
-        console.log('[SIMPLE MODE] Timeout - No audio delta received from OpenAI');
-        state.assistantSpeaking = false;
-      } else if (state.assistantSpeaking && state.audioReceived) {
-        // Audio was received but audio.done not emitted - force speaking=false
-        console.log('[SIMPLE MODE] Timeout - Audio received but no audio.done, forcing speaking=false');
-        state.assistantSpeaking = false;
-      }
-    }, 10000);
   };
 
   // Handle Twilio media events
@@ -5184,12 +5272,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           console.log('[SIMPLE MODE] event: language_lock_active');
           console.log('[SIMPLE MODE] =========================================');
 
-          // Configure session - use same structure as legacy
+          // Configure session - transcription only (no speech generation)
           const sessionUpdate = {
             type: "session.update",
             session: {
               type: "realtime",
-              instructions: "You are a helpful AI assistant for ReplyFlow. Keep responses concise and professional.\n\nCRITICAL - SPEAK ONLY THE SCRIPTED PROMPT:\n- When you receive a response.create instruction, speak ONLY the quoted text provided.\n- Do NOT speak the instructions themselves.\n- Do NOT speak meta-instructions like 'I need to mention the question exactly'.\n- Do NOT paraphrase the prompt.\n- Do NOT add conversational filler.\n- Do NOT acknowledge or react to caller content.\n- Do NOT summarize what the caller said.\n- Do NOT use filler like 'thanks for explaining', 'that sounds', 'great', etc.\n- Do NOT comment on caller answers or details.\n- Do NOT mention caller details back to the caller.\n- Do NOT ask follow-up questions.\n- Do NOT improvise or add questions.\n- The conversation flow is controlled by the system, not by you.\n- You are a text-to-speech engine for scripted prompts only.\n\nLANGUAGE LOCK - ENGLISH ONLY:\n- Always speak English only.\n- Never translate.\n- Never respond in French, Spanish, or any non-English language.\n- Ignore caller language for assistant output.\n- The caller may have accent/noise/transcription mistakes; still respond only in English.\n- Do not imitate accents.\n- Do not switch languages.",
+              instructions: "You are a transcription service for ReplyFlow Simple Mode. Your only job is to transcribe caller audio. Do not generate responses. Do not speak. Only provide transcriptions.",
               audio: {
                 input: {
                   format: {
@@ -5230,58 +5318,16 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         state.openAiWs.on('message', (data) => {
           const message = JSON.parse(data.toString());
 
-          // Log key OpenAI events
-          if (['response.created', 'response.output_audio.delta', 'response.output_audio.done', 'response.audio.done', 'response.done', 'input_audio_buffer.speech_stopped', 'conversation.item.input_audio_transcription.completed'].includes(message.type)) {
+          // Log key OpenAI events - only transcription-related
+          if (['input_audio_buffer.speech_stopped', 'conversation.item.input_audio_transcription.completed'].includes(message.type)) {
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: openai_event');
             console.log('[SIMPLE MODE] type:', message.type);
-            console.log('[SIMPLE MODE] responseId:', state.activeResponseId || 'none');
             console.log('[SIMPLE MODE] =========================================');
           }
 
-          if (message.type === 'response.output_audio.delta') {
-            // Send audio directly to Twilio
-            if (state.streamSid && ws.readyState === WebSocket.OPEN) {
-              const mediaMessage = {
-                event: 'media',
-                streamSid: state.streamSid,
-                media: {
-                  payload: message.delta
-                }
-              };
-              ws.send(JSON.stringify(mediaMessage));
-            }
-            // Audio received - mark it
-            state.audioReceived = true;
-            // Audio started - clear timeout since we received audio
-            if (state.timeoutId) clearTimeout(state.timeoutId);
-          } else if (message.type === 'response.output_audio.done' || message.type === 'response.audio.done' || message.type === 'response.done') {
-            // Make audio_done idempotent - only handle once per responseId
-            const responseId = state.currentPromptResponseId;
-            if (responseId && !state.completedAudioResponseIds.has(responseId)) {
-              state.completedAudioResponseIds.add(responseId);
-              state.assistantSpeaking = false;
-              if (state.timeoutId) clearTimeout(state.timeoutId);
-              logSimple('audio_done', { stage: state.currentStage, eventType: message.type, responseId });
-
-              // Handle final complete stage close
-              if (state.currentStage === 'complete') {
-                const delayMs = 5000;
-                console.log('[SIMPLE MODE] =========================================');
-                console.log('[SIMPLE MODE] event: final_audio_done_close_scheduled');
-                console.log('[SIMPLE MODE] delayMs:', delayMs);
-                console.log('[SIMPLE MODE] responseId:', responseId);
-                console.log('[SIMPLE MODE] =========================================');
-                setTimeout(() => {
-                  logSimple('call_complete');
-                  ws.close();
-                  if (state.openAiWs) {
-                    state.openAiWs.close();
-                  }
-                }, delayMs);
-              }
-            }
-          } else if (message.type === 'conversation.item.input_audio_transcription.completed') {
+          // Only handle transcription - audio output is handled by TTS
+          if (message.type === 'conversation.item.input_audio_transcription.completed') {
             // User transcription completed
             const transcript = message.transcript || '';
             state.transcript += ' ' + transcript;
@@ -5347,7 +5393,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
   ws.on('close', () => {
     console.log('[SIMPLE MODE] WebSocket closed');
-    if (state.timeoutId) clearTimeout(state.timeoutId);
     if (state.openAiWs) state.openAiWs.close();
   });
 
