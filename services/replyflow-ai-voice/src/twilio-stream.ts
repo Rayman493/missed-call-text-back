@@ -398,6 +398,15 @@ export class TwilioStreamHandler {
     if (this.ws?.readyState === WebSocket.OPEN) {
       const callState = (this as any).callState || 'active';
       const finalClosingStarted = (this as any).finalClosingStarted || false;
+      const currentStage = (this as any)._currentStage || 'unknown';
+      
+      // Log streamSid and ws readyState for debugging
+      console.log('[SEND AUDIO INTERNAL DEBUG] =========================================');
+      console.log('[SEND AUDIO INTERNAL DEBUG] streamSid:', this.streamSid);
+      console.log('[SEND AUDIO INTERNAL DEBUG] ws readyState:', this.ws.readyState);
+      console.log('[SEND AUDIO INTERNAL DEBUG] ws readyState value:', this.ws.readyState === WebSocket.OPEN ? 'OPEN' : 'NOT OPEN');
+      console.log('[SEND AUDIO INTERNAL DEBUG] Timestamp:', new Date().toISOString());
+      console.log('[SEND AUDIO INTERNAL DEBUG] =========================================');
       
       // Log when final goodbye audio is sent to Twilio
       if (finalClosingStarted) {
@@ -418,16 +427,35 @@ export class TwilioStreamHandler {
       console.log('[AUDIO TO TWILIO] source:', source);
       console.log('[AUDIO TO TWILIO] route:', route);
 
+      // Log first prompt media sent to Twilio for debugging
+      if (currentStage === 'ask_name_reason') {
+        console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] =========================================');
+        console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] Stage:', currentStage);
+        console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] streamSid:', this.streamSid);
+        console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] ws readyState:', this.ws.readyState);
+        console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] audioLength:', audioData.length);
+        console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] Timestamp:', new Date().toISOString());
+        console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] =========================================');
+      }
+
       // Increment flush counter for direct sends (buffered flushes are counted in authorizeResponse)
       this.audioFlushedCount++;
 
       const message = {
         event: 'media',
+        streamSid: this.streamSid,
         media: {
           payload: audioData.toString('base64'),
         },
       };
       this.ws.send(JSON.stringify(message));
+    } else {
+      console.log('[SEND AUDIO INTERNAL FAILED] =========================================');
+      console.log('[SEND AUDIO INTERNAL FAILED] WebSocket not open');
+      console.log('[SEND AUDIO INTERNAL FAILED] ws readyState:', this.ws?.readyState);
+      console.log('[SEND AUDIO INTERNAL FAILED] streamSid:', this.streamSid);
+      console.log('[SEND AUDIO INTERNAL FAILED] Timestamp:', new Date().toISOString());
+      console.log('[SEND AUDIO INTERNAL FAILED] =========================================');
     }
   }
 
@@ -438,6 +466,7 @@ export class TwilioStreamHandler {
     // Buffer audio if response is not yet authorized
     if (!this.responseAuthorized && this.currentResponseId) {
       this.audioBufferedCount++;
+      const currentStage = (this as any)._currentStage || 'unknown';
       console.log('[AUDIO BUFFERED] =========================================');
       console.log('[AUDIO BUFFERED] responseId:', this.currentResponseId);
       console.log('[AUDIO BUFFERED] expectedPromptText:', this.expectedPromptText);
@@ -446,6 +475,16 @@ export class TwilioStreamHandler {
       console.log('[AUDIO BUFFERED] audioLength:', audioData.length);
       console.log('[AUDIO BUFFERED] Timestamp:', new Date().toISOString());
       console.log('[AUDIO BUFFERED] =========================================');
+
+      // Log first prompt audio buffering for debugging
+      if (currentStage === 'ask_name_reason') {
+        console.log('[FIRST PROMPT AUDIO BUFFERED] =========================================');
+        console.log('[FIRST PROMPT AUDIO BUFFERED] Stage:', currentStage);
+        console.log('[FIRST PROMPT AUDIO BUFFERED] responseId:', this.currentResponseId);
+        console.log('[FIRST PROMPT AUDIO BUFFERED] audioBufferedCount:', this.audioBufferedCount);
+        console.log('[FIRST PROMPT AUDIO BUFFERED] Timestamp:', new Date().toISOString());
+        console.log('[FIRST PROMPT AUDIO BUFFERED] =========================================');
+      }
       
       this.audioBuffer.push(audioData);
       return;
@@ -506,6 +545,7 @@ export class TwilioStreamHandler {
     
     // Flush buffered audio
     if (this.audioBuffer.length > 0) {
+      const currentStage = (this as any)._currentStage || 'unknown';
       console.log('[AUDIO FLUSHED] =========================================');
       console.log('[AUDIO FLUSHED] responseId:', this.currentResponseId);
       console.log('[AUDIO FLUSHED] expectedPromptText:', this.expectedPromptText);
@@ -514,6 +554,16 @@ export class TwilioStreamHandler {
       console.log('[AUDIO FLUSHED] audioBuffered:', this.audioBufferedCount);
       console.log('[AUDIO FLUSHED] Timestamp:', new Date().toISOString());
       console.log('[AUDIO FLUSHED] =========================================');
+
+      // Log first prompt audio flushing for debugging
+      if (currentStage === 'ask_name_reason') {
+        console.log('[FIRST PROMPT AUDIO FLUSHED] =========================================');
+        console.log('[FIRST PROMPT AUDIO FLUSHED] Stage:', currentStage);
+        console.log('[FIRST PROMPT AUDIO FLUSHED] responseId:', this.currentResponseId);
+        console.log('[FIRST PROMPT AUDIO FLUSHED] audioBufferLength:', this.audioBuffer.length);
+        console.log('[FIRST PROMPT AUDIO FLUSHED] Timestamp:', new Date().toISOString());
+        console.log('[FIRST PROMPT AUDIO FLUSHED] =========================================');
+      }
       
       for (const audioData of this.audioBuffer) {
         this.audioFlushedCount++;

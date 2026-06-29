@@ -1451,6 +1451,15 @@ function sendApprovedPrompt(stage: string, openAiWs: any, ws?: any): boolean {
   currentResponseId = null;
   authorizedResponseCreateSource = 'sendApprovedPrompt';
 
+  // Log first prompt creation for debugging
+  if (stage === 'ask_name_reason') {
+    console.log('[FIRST PROMPT CREATE] =========================================');
+    console.log('[FIRST PROMPT CREATE] Stage:', stage);
+    console.log('[FIRST PROMPT CREATE] Text:', approvedText);
+    console.log('[FIRST PROMPT CREATE] Timestamp:', new Date().toISOString());
+    console.log('[FIRST PROMPT CREATE] =========================================');
+  }
+
   // Use strict instruction
   const strictInstruction = `SAY EXACTLY THIS TEXT AND NOTHING ELSE: "${approvedText}"
 
@@ -8692,6 +8701,16 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[RESPONSE CREATE SOURCE] Timestamp:', new Date().toISOString());
                 console.log('[RESPONSE CREATE SOURCE] =========================================');
 
+                // Log first prompt response creation for debugging
+                if (intakeData?.stage === 'ask_name_reason' && authorizedResponseCreateSource === 'sendApprovedPrompt') {
+                  console.log('[FIRST PROMPT RESPONSE CREATED] =========================================');
+                  console.log('[FIRST PROMPT RESPONSE CREATED] Stage:', intakeData?.stage);
+                  console.log('[FIRST PROMPT RESPONSE CREATED] responseId:', actualResponseId);
+                  console.log('[FIRST PROMPT RESPONSE CREATED] expectedPrompt:', expectedPrompt);
+                  console.log('[FIRST PROMPT RESPONSE CREATED] Timestamp:', new Date().toISOString());
+                  console.log('[FIRST PROMPT RESPONSE CREATED] =========================================');
+                }
+
                 console.log('[OPENAI ACTUAL RESPONSE ID] =========================================');
                 console.log('[OPENAI ACTUAL RESPONSE ID] Actual OpenAI response ID:', actualResponseId);
                 console.log('[OPENAI ACTUAL RESPONSE ID] Authorized final response ID:', (twilioHandler as any).authorizedFinalResponseId);
@@ -9262,6 +9281,16 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 }
               }
               if (message.type === 'response.output_audio.delta' && message.delta) {
+                // Log first prompt audio delta reception for debugging
+                if (intakeData?.stage === 'ask_name_reason') {
+                  console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] =========================================');
+                  console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] Stage:', intakeData?.stage);
+                  console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] responseId:', message.response_id);
+                  console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] deltaLength:', message.delta.length);
+                  console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] Timestamp:', new Date().toISOString());
+                  console.log('[FIRST PROMPT AUDIO DELTA RECEIVED] =========================================');
+                }
+
                 if (process.env.DEBUG_AI_VOICE === 'true') {
                   console.log('[GREETING AUDIO DELTA RECEIVED] Audio delta from OpenAI');
                 }
@@ -9304,6 +9333,8 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
 
                 // Mark source for sendAudioInternal log
                 (twilioHandler as any)._lastAudioSource = 'response.output_audio.delta';
+                // Mark stage for first prompt detection in twilioHandler
+                (twilioHandler as any)._currentStage = intakeData?.stage || 'unknown';
 
                 // Convert base64 delta to Buffer and forward via buffered/validation path
                 const audioBuffer = Buffer.from(message.delta, 'base64');
