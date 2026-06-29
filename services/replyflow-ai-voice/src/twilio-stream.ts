@@ -422,7 +422,9 @@ export class TwilioStreamHandler {
       console.log('[SEND AUDIO INTERNAL DEBUG] chunkSent:', (this as any)[chunkKey].sent);
       console.log('[SEND AUDIO INTERNAL DEBUG] chunkReceived:', (this as any)[chunkKey].received);
       console.log('[SEND AUDIO INTERNAL DEBUG] isFirstChunkSent:', isFirstChunkSent);
-      console.log('[SEND AUDIO INTERNAL DEBUG] assistantSpeaking:', assistantSpeaking);
+      console.log('[SEND AUDIO INTERNAL DEBUG] Reading assistantSpeaking from callSessionState:', (this as any).callSessionState?.assistantSpeaking);
+      console.log('[SEND AUDIO INTERNAL DEBUG] Reading assistantSpeaking from local variable:', assistantSpeaking);
+      console.log('[SEND AUDIO INTERNAL DEBUG] callSessionState exists:', !!(this as any).callSessionState);
       console.log('[SEND AUDIO INTERNAL DEBUG] Timestamp:', new Date().toISOString());
       console.log('[SEND AUDIO INTERNAL DEBUG] =========================================');
       

@@ -12,6 +12,16 @@ import { log, LogLevel } from './logger';
 console.log('[OPENAI] ws package version:', require('ws/package.json').version);
 console.log('[OPENAI] import statement:', 'import WebSocket from "ws"');
 
+// Approved assistant utterances per stage - strict allowlist
+const APPROVED_UTTERANCES: Record<string, string> = {
+  ask_name_reason: "Hi, I'm the assistant for the business. Can you please tell me your name and what you're calling about today?",
+  ask_details: "Thanks. Can you share any important details the business should know?",
+  ask_location_or_context: "Thanks. What location should the business know about?",
+  ask_timing: "Got it. When would you like this completed or scheduled?",
+  ask_callback_time: "Thanks. What is the best time for the business to call you back?",
+  complete: "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day."
+};
+
 export interface OpenAIConfig {
   apiKey: string;
   model?: string;
@@ -19,6 +29,8 @@ export interface OpenAIConfig {
   onAudioDelta?: (delta: string) => void;
   onOpen?: () => void;
   onSessionUpdated?: () => void;
+  currentStage?: string; // Current intake stage for validation
+  responseId?: string; // Current response ID for logging
 }
 
 enum ConnectionState {
@@ -36,6 +48,8 @@ export class OpenAIRealtimeClient {
   private timeoutId: NodeJS.Timeout | null = null;
   private sessionUpdateTimeoutId: NodeJS.Timeout | null = null;
   private sessionUpdatedReceived: boolean = false;
+  private currentTranscript: string = ''; // Track assistant transcript for validation
+  private audioForwardingBlocked: boolean = false; // Block audio if validation fails
 
   constructor(config: OpenAIConfig) {
     this.config = {
@@ -371,6 +385,31 @@ export class OpenAIRealtimeClient {
   }
 
   /**
+   * Update current stage for validation
+   */
+  setCurrentStage(stage: string) {
+    this.config.currentStage = stage;
+    console.log('[OPENAI CLIENT] currentStage updated:', stage);
+  }
+
+  /**
+   * Update response ID for logging
+   */
+  setResponseId(responseId: string) {
+    this.config.responseId = responseId;
+    console.log('[OPENAI CLIENT] responseId updated:', responseId);
+  }
+
+  /**
+   * Reset transcript and blocking state for new response
+   */
+  resetValidationState() {
+    this.currentTranscript = '';
+    this.audioForwardingBlocked = false;
+    console.log('[OPENAI CLIENT] validation state reset');
+  }
+
+  /**
    * Handle incoming messages from OpenAI
    */
   private handleMessage(message: any) {
@@ -413,9 +452,22 @@ export class OpenAIRealtimeClient {
       case 'response.created':
         console.log('[OPENAI RESPONSE] response.created received');
         log(LogLevel.INFO, '[AI POC] OpenAI response created');
+        // Reset validation state for new response
+        this.resetValidationState();
         break;
       case 'response.output_audio.delta':
         console.log('[AUDIO OUT] delta received', { length: message.delta?.length, type: typeof message.delta });
+        // Block audio if validation has failed
+        if (this.audioForwardingBlocked) {
+          console.log('[UNAPPROVED ASSISTANT AUDIO BLOCKED] =========================================');
+          console.log('[UNAPPROVED ASSISTANT AUDIO BLOCKED] Audio forwarding blocked - transcript did not match approved utterance');
+          console.log('[UNAPPROVED ASSISTANT AUDIO BLOCKED] currentStage:', this.config.currentStage);
+          console.log('[UNAPPROVED ASSISTANT AUDIO BLOCKED] actualTranscript:', this.currentTranscript);
+          console.log('[UNAPPROVED ASSISTANT AUDIO BLOCKED] responseId:', this.config.responseId);
+          console.log('[UNAPPROVED ASSISTANT AUDIO BLOCKED] Timestamp:', new Date().toISOString());
+          console.log('[UNAPPROVED ASSISTANT AUDIO BLOCKED] =========================================');
+          return;
+        }
         // Forward audio to Twilio via callback
         if (this.config.onAudioDelta && message.delta) {
           console.log('[AUDIO OUT] about to send audio to Twilio');
@@ -429,6 +481,57 @@ export class OpenAIRealtimeClient {
         break;
       case 'response.output_audio_transcript.delta':
         log(LogLevel.INFO, '[AI POC] received OpenAI transcript delta (GA schema)');
+        // Capture transcript for validation
+        if (message.delta) {
+          this.currentTranscript += message.delta;
+          console.log('[TRANSCRIPT CAPTURED] =========================================');
+          console.log('[TRANSCRIPT CAPTURED] delta:', message.delta);
+          console.log('[TRANSCRIPT CAPTURED] currentTranscript:', this.currentTranscript);
+          console.log('[TRANSCRIPT CAPTURED] currentStage:', this.config.currentStage);
+          console.log('[TRANSCRIPT CAPTURED] Timestamp:', new Date().toISOString());
+          console.log('[TRANSCRIPT CAPTURED] =========================================');
+
+          // Validate transcript against approved utterance for current stage
+          if (this.config.currentStage && APPROVED_UTTERANCES[this.config.currentStage]) {
+            const expectedUtterance = APPROVED_UTTERANCES[this.config.currentStage];
+            const normalizedTranscript = this.currentTranscript.trim().toLowerCase();
+            const normalizedExpected = expectedUtterance.trim().toLowerCase();
+
+            // Check if transcript matches or starts with approved utterance
+            const isMatch = normalizedTranscript === normalizedExpected || normalizedExpected.startsWith(normalizedTranscript);
+
+            console.log('[TRANSCRIPT VALIDATION] =========================================');
+            console.log('[TRANSCRIPT VALIDATION] currentStage:', this.config.currentStage);
+            console.log('[TRANSCRIPT VALIDATION] expectedUtterance:', expectedUtterance);
+            console.log('[TRANSCRIPT VALIDATION] actualTranscript:', this.currentTranscript);
+            console.log('[TRANSCRIPT VALIDATION] normalizedExpected:', normalizedExpected);
+            console.log('[TRANSCRIPT VALIDATION] normalizedTranscript:', normalizedTranscript);
+            console.log('[TRANSCRIPT VALIDATION] isMatch:', isMatch);
+            console.log('[TRANSCRIPT VALIDATION] responseId:', this.config.responseId);
+            console.log('[TRANSCRIPT VALIDATION] Timestamp:', new Date().toISOString());
+            console.log('[TRANSCRIPT VALIDATION] =========================================');
+
+            if (!isMatch && normalizedTranscript.length > 0) {
+              // Transcript does not match approved utterance - block audio
+              this.audioForwardingBlocked = true;
+              console.log('[UNAPPROVED ASSISTANT TRANSCRIPT DETECTED] =========================================');
+              console.log('[UNAPPROVED ASSISTANT TRANSCRIPT DETECTED] Assistant transcript does not match approved utterance');
+              console.log('[UNAPPROVED ASSISTANT TRANSCRIPT DETECTED] currentStage:', this.config.currentStage);
+              console.log('[UNAPPROVED ASSISTANT TRANSCRIPT DETECTED] expectedUtterance:', expectedUtterance);
+              console.log('[UNAPPROVED ASSISTANT TRANSCRIPT DETECTED] actualTranscript:', this.currentTranscript);
+              console.log('[UNAPPROVED ASSISTANT TRANSCRIPT DETECTED] responseId:', this.config.responseId);
+              console.log('[UNAPPROVED ASSISTANT TRANSCRIPT DETECTED] Audio forwarding will be blocked');
+              console.log('[UNAPPROVED ASSISTANT TRANSCRIPT DETECTED] Timestamp:', new Date().toISOString());
+              console.log('[UNAPPROVED ASSISTANT TRANSCRIPT DETECTED] =========================================');
+            }
+          } else if (!this.config.currentStage) {
+            console.log('[TRANSCRIPT VALIDATION WARNING] =========================================');
+            console.log('[TRANSCRIPT VALIDATION WARNING] No currentStage set - cannot validate transcript');
+            console.log('[TRANSCRIPT VALIDATION WARNING] actualTranscript:', this.currentTranscript);
+            console.log('[TRANSCRIPT VALIDATION WARNING] Timestamp:', new Date().toISOString());
+            console.log('[TRANSCRIPT VALIDATION WARNING] =========================================');
+          }
+        }
         // Do not send transcript to Twilio
         break;
       case 'response.output_audio.done':

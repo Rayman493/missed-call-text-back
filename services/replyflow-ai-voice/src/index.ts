@@ -14,8 +14,8 @@
  */
 
 // VERSION PROOF CONSTANTS - Hardcoded to prove deployment
-const AI_VOICE_DEPLOY_VERSION = "phase4-silence-gating-v5";
-const AI_VOICE_EXPECTED_COMMIT = "cc9b0632";
+const AI_VOICE_DEPLOY_VERSION = "early-chunk-buffering-v2";
+const AI_VOICE_EXPECTED_COMMIT = "d0290af0";
 const AI_VOICE_BUILD_TIMESTAMP = new Date().toISOString();
 const AI_VOICE_DEPLOY_ENV = process.env.NODE_ENV || "unknown";
 
@@ -4883,6 +4883,7 @@ wss.on('connection', (ws, req) => {
     };
 
     console.log('[CALL_SESSION_STATE_INIT] Shared call session state object created');
+    console.log('[CALL_SESSION_STATE_INIT] Object ID:', Math.random().toString(36).substring(7));
     console.log('[CALL_SESSION_STATE_INIT] Initial state:', JSON.stringify(callSessionState, null, 2));
     console.log('[CALL_SESSION_STATE_INIT] Timestamp:', new Date().toISOString());
 
@@ -4942,6 +4943,13 @@ wss.on('connection', (ws, req) => {
     // Pass shared closing state to twilioHandler for audio append guards
     (twilioHandler as any).closingState = closingState;
     (twilioHandler as any).callSessionState = callSessionState;
+    console.log('[STATE OBJECT PASSING] =========================================');
+    console.log('[STATE OBJECT PASSING] callSessionState ID:', Math.random().toString(36).substring(7));
+    console.log('[STATE OBJECT PASSING] callSessionState assistantSpeaking:', callSessionState.assistantSpeaking);
+    console.log('[STATE OBJECT PASSING] local assistantSpeaking:', assistantSpeaking);
+    console.log('[STATE OBJECT PASSING] Same object:', callSessionState.assistantSpeaking === assistantSpeaking);
+    console.log('[STATE OBJECT PASSING] Timestamp:', new Date().toISOString());
+    console.log('[STATE OBJECT PASSING] =========================================');
 
     // Sync callSessionState with session identifiers
     callSessionState.sessionId = urlSessionId || '';
@@ -6519,6 +6527,13 @@ Return only JSON, no other text.`;
         // Handle start event
         if (message.event === 'start') {
           console.log('[TWILIO START EVENT RECEIVED]');
+          console.log('[CALL USING BUILD] =========================================');
+          console.log('[CALL USING BUILD] commit:', AI_VOICE_EXPECTED_COMMIT);
+          console.log('[CALL USING BUILD] callSid:', message.start?.callSid || 'unknown');
+          console.log('[CALL USING BUILD] streamSid:', message.streamSid || 'unknown');
+          console.log('[CALL USING BUILD] hasEarlyChunkBuffering: true');
+          console.log('[CALL USING BUILD] Timestamp:', new Date().toISOString());
+          console.log('[CALL USING BUILD] =========================================');
           log(LogLevel.INFO, '[AI POC] entered start handler');
 
           if (startEventProcessed) {
@@ -8775,12 +8790,21 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[ASSISTANT SPEAKING TRUE] =========================================');
                     console.log('[ASSISTANT SPEAKING TRUE] reason:', 'pre-authorization before audio flush');
                     console.log('[ASSISTANT SPEAKING TRUE] responseId:', actualResponseId);
+                    console.log('[ASSISTANT SPEAKING TRUE] Before write - callSessionState.assistantSpeaking:', callSessionState.assistantSpeaking);
+                    console.log('[ASSISTANT SPEAKING TRUE] Before write - local assistantSpeaking:', assistantSpeaking);
                     console.log('[ASSISTANT SPEAKING TRUE] Timestamp:', new Date().toISOString());
                     console.log('[ASSISTANT SPEAKING TRUE] =========================================');
-                    
+
                     callSessionState.assistantSpeaking = true;
                     assistantSpeaking = true;
                     (twilioHandler as any).assistantSpeaking = true;
+
+                    console.log('[ASSISTANT SPEAKING TRUE AFTER WRITE] =========================================');
+                    console.log('[ASSISTANT SPEAKING TRUE AFTER WRITE] After write - callSessionState.assistantSpeaking:', callSessionState.assistantSpeaking);
+                    console.log('[ASSISTANT SPEAKING TRUE AFTER WRITE] After write - local assistantSpeaking:', assistantSpeaking);
+                    console.log('[ASSISTANT SPEAKING TRUE AFTER WRITE] After write - twilioHandler.assistantSpeaking:', (twilioHandler as any).assistantSpeaking);
+                    console.log('[ASSISTANT SPEAKING TRUE AFTER WRITE] Timestamp:', new Date().toISOString());
+                    console.log('[ASSISTANT SPEAKING TRUE AFTER WRITE] =========================================');
                   }
 
                   // Store expected prompt text in twilioHandler for validation
@@ -11080,6 +11104,16 @@ async function sendAIConfirmationSMS(
 
 // Start server
 server.listen(PORT, () => {
+  console.log('[RUNTIME VERSION CHECK] =========================================');
+  console.log('[RUNTIME VERSION CHECK] commit:', AI_VOICE_EXPECTED_COMMIT);
+  console.log('[RUNTIME VERSION CHECK] feature:', AI_VOICE_DEPLOY_VERSION);
+  console.log('[RUNTIME VERSION CHECK] expectedDebugLogs:');
+  console.log('[RUNTIME VERSION CHECK] - AUDIO BUFFERED');
+  console.log('[RUNTIME VERSION CHECK] - AUDIO FLUSHED');
+  console.log('[RUNTIME VERSION CHECK] - SEND AUDIO INTERNAL DEBUG');
+  console.log('[RUNTIME VERSION CHECK] - ASSISTANT SPEAKING TRUE/FALSE');
+  console.log('[RUNTIME VERSION CHECK] Timestamp:', AI_VOICE_BUILD_TIMESTAMP);
+  console.log('[RUNTIME VERSION CHECK] =========================================');
   console.log('[AI VOICE SERVICE VERSION] commit=mark-based-hangup-v1 deterministic-closing');
   console.log('[SCHEMA COMPATIBILITY CHECK] conversations table columns: lead_id, business_id, status, created_at, updated_at (NO call_sid)');
   console.log('[SCHEMA COMPATIBILITY CHECK] leads table columns: id, business_id, phone, name, email, status, raw_metadata, created_at, updated_at (NO source)');
