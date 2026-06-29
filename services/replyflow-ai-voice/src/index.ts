@@ -4530,7 +4530,8 @@ function startAuthoritativeFinalClose(
     hardStopExecuted: boolean;
   },
   twilioHandler: any,
-  source: string
+  source: string,
+  activeResponseId: string | null
 ) {
   console.log('[AUTHORITATIVE FINAL CLOSE] Starting authoritative final close sequence');
   console.log('[AUTHORITATIVE FINAL CLOSE] Source:', source);
@@ -4541,6 +4542,18 @@ function startAuthoritativeFinalClose(
     terminalClosingResponseStarted: closingState.terminalClosingResponseStarted,
     confirmationState: closingState.confirmationState
   });
+
+  // Clear stale activeResponseId from previous stage before creating final response
+  console.log('[ACTIVE RESPONSE ID CLEAR - FINAL CLOSE START] =========================================');
+  console.log('[ACTIVE RESPONSE ID CLEAR - FINAL CLOSE START] Clearing activeResponseId before final close');
+  console.log('[ACTIVE RESPONSE ID CLEAR - FINAL CLOSE START] Previous activeResponseId:', activeResponseId);
+  console.log('[ACTIVE RESPONSE ID CLEAR - FINAL CLOSE START] This prevents duplicate blocking of final response');
+  console.log('[ACTIVE RESPONSE ID CLEAR - FINAL CLOSE START] Timestamp:', new Date().toISOString());
+  console.log('[ACTIVE RESPONSE ID CLEAR - FINAL CLOSE START] =========================================');
+  
+  // Clear the activeResponseId in both local variable and twilioHandler
+  (twilioHandler as any).activeResponseId = null;
+  console.log('[ACTIVE RESPONSE ID CLEARED] twilioHandler.activeResponseId set to null');
 
   // Validate preconditions
   if (closingState.confirmationState === 'collecting_info') {
@@ -7923,24 +7936,54 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[CALLER AUDIO BLOCKED - AI SPEAKING] =========================================');
                 
                 // Guard: Only one active assistant response per stage
+                // EXCEPTION: Allow final closing response even if activeResponseId is stale
+                const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
+                const isFinalClosingStarted = (twilioHandler as any).finalClosingStarted;
+                const isTerminalClosingStarted = (twilioHandler as any).terminalClosingResponseStarted;
+                const isAuthorizedFinalResponse = responseId === authorizedFinalResponseId;
+                const isFinalCloseMode = isFinalClosingStarted || isTerminalClosingStarted;
+
                 if (activeResponseId && activeResponseId !== responseId) {
-                  console.log('[DUPLICATE RESPONSE BLOCKED] =========================================');
-                  console.log('[DUPLICATE RESPONSE BLOCKED] Multiple responses detected for same stage');
-                  console.log('[DUPLICATE RESPONSE BLOCKED] Stage:', intakeData?.stage || 'unknown');
-                  console.log('[DUPLICATE RESPONSE BLOCKED] Active response ID:', activeResponseId);
-                  console.log('[DUPLICATE RESPONSE BLOCKED] New response ID:', responseId);
-                  console.log('[DUPLICATE RESPONSE BLOCKED] Canceling new response');
-                  console.log('[DUPLICATE RESPONSE BLOCKED] Timestamp:', new Date().toISOString());
-                  console.log('[DUPLICATE RESPONSE BLOCKED] =========================================');
-                  
-                  // Cancel the duplicate response
-                  if (openAiWs) {
-                    openAiWs.send(JSON.stringify({
-                      type: 'response.cancel',
-                      response_id: responseId
-                    }));
+                  console.log('[DUPLICATE RESPONSE CHECK] =========================================');
+                  console.log('[DUPLICATE RESPONSE CHECK] activeResponseId:', activeResponseId);
+                  console.log('[DUPLICATE RESPONSE CHECK] new responseId:', responseId);
+                  console.log('[DUPLICATE RESPONSE CHECK] authorizedFinalResponseId:', authorizedFinalResponseId);
+                  console.log('[DUPLICATE RESPONSE CHECK] isFinalClosingStarted:', isFinalClosingStarted);
+                  console.log('[DUPLICATE RESPONSE CHECK] isTerminalClosingStarted:', isTerminalClosingStarted);
+                  console.log('[DUPLICATE RESPONSE CHECK] isAuthorizedFinalResponse:', isAuthorizedFinalResponse);
+                  console.log('[DUPLICATE RESPONSE CHECK] isFinalCloseMode:', isFinalCloseMode);
+                  console.log('[DUPLICATE RESPONSE CHECK] Timestamp:', new Date().toISOString());
+                  console.log('[DUPLICATE RESPONSE CHECK] =========================================');
+
+                  // Skip duplicate blocking if this is the authorized final response in final close mode
+                  if (isFinalCloseMode && isAuthorizedFinalResponse) {
+                    console.log('[DUPLICATE BLOCKING SKIPPED - FINAL CLOSE AUTHORIZED] =========================================');
+                    console.log('[DUPLICATE BLOCKING SKIPPED - FINAL CLOSE AUTHORIZED] Allowing final closing response despite stale activeResponseId');
+                    console.log('[DUPLICATE BLOCKING SKIPPED - FINAL CLOSE AUTHORIZED] activeResponseId:', activeResponseId);
+                    console.log('[DUPLICATE BLOCKING SKIPPED - FINAL CLOSE AUTHORIZED] responseId:', responseId);
+                    console.log('[DUPLICATE BLOCKING SKIPPED - FINAL CLOSE AUTHORIZED] authorizedFinalResponseId:', authorizedFinalResponseId);
+                    console.log('[DUPLICATE BLOCKING SKIPPED - FINAL CLOSE AUTHORIZED] Timestamp:', new Date().toISOString());
+                    console.log('[DUPLICATE BLOCKING SKIPPED - FINAL CLOSE AUTHORIZED] =========================================');
+                    // Do not cancel - let the final close response proceed
+                  } else {
+                    console.log('[DUPLICATE RESPONSE BLOCKED] =========================================');
+                    console.log('[DUPLICATE RESPONSE BLOCKED] Multiple responses detected for same stage');
+                    console.log('[DUPLICATE RESPONSE BLOCKED] Stage:', intakeData?.stage || 'unknown');
+                    console.log('[DUPLICATE RESPONSE BLOCKED] Active response ID:', activeResponseId);
+                    console.log('[DUPLICATE RESPONSE BLOCKED] New response ID:', responseId);
+                    console.log('[DUPLICATE RESPONSE BLOCKED] Canceling new response');
+                    console.log('[DUPLICATE RESPONSE BLOCKED] Timestamp:', new Date().toISOString());
+                    console.log('[DUPLICATE RESPONSE BLOCKED] =========================================');
+
+                    // Cancel the duplicate response
+                    if (openAiWs) {
+                      openAiWs.send(JSON.stringify({
+                        type: 'response.cancel',
+                        response_id: responseId
+                      }));
+                    }
+                    return; // Do not process this response
                   }
-                  return; // Do not process this response
                 }
                 
                 // Set activeResponseId to track the current response
@@ -7949,7 +7992,6 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[AI RESPONSE CREATE] Stage:', intakeData?.stage || 'unknown');
                 
                 // Check if this is the final closing response
-                const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
                 if (responseId === authorizedFinalResponseId) {
                   console.log('[FINAL SENTENCE RESPONSE CREATED] =========================================');
                   console.log('[FINAL SENTENCE RESPONSE CREATED] Final closing response created by OpenAI');
@@ -8159,7 +8201,8 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   const recoverySuccess = startAuthoritativeFinalClose(
                     closingState,
                     twilioHandler,
-                    'recovery_from_final_audio_without_closing_state at line 3915'
+                    'recovery_from_final_audio_without_closing_state at line 3915',
+                    activeResponseId
                   );
 
                   if (recoverySuccess) {
