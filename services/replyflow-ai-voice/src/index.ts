@@ -5491,6 +5491,7 @@ Return only JSON, no other text.`;
             business_id: sessionBusinessId,
             caller_phone: sessionCallerPhone,
             status: 'new',
+            name: extractedFields.callerName || null,
           }, {
             onConflict: 'business_id,caller_phone',
           })
