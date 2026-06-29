@@ -53,6 +53,10 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
 console.log('[AUDIO TRACE BUILD VERSION] caller-audio-debug-v1');
 console.log('[AI CONFIRMATION TEMPLATE VERSION] confirmation-v3-your-name-is');
 console.log('[AI VOICE STARTUP] Service initializing');
+console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] =========================================');
+console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] All assistantSpeaking writes are instrumented');
+console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] Timestamp:', new Date().toISOString());
+console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] =========================================');
 console.log('[OPENING ORDER TRACE BUILD ACTIVE] =========================================');
 console.log('[OPENING ORDER TRACE BUILD ACTIVE] Order trace logging is active');
 console.log('[OPENING ORDER TRACE BUILD ACTIVE] Timestamp:', new Date().toISOString());
@@ -5169,6 +5173,17 @@ wss.on('connection', (ws, req) => {
           console.log('[SILENCE TIMER STARTED (MARK-BASED)] Timestamp:', new Date().toISOString());
           console.log('[SILENCE TIMER STARTED (MARK-BASED)] =========================================');
 
+          console.log('[ASSISTANT SPEAKING WRITE] =========================================');
+          console.log('[ASSISTANT SPEAKING WRITE] oldValue:', callSessionState.assistantSpeaking);
+          console.log('[ASSISTANT SPEAKING WRITE] newValue: false');
+          console.log('[ASSISTANT SPEAKING WRITE] function: mark received callback (setOnMarkReceived)');
+          console.log('[ASSISTANT SPEAKING WRITE] line: 5172');
+          console.log('[ASSISTANT SPEAKING WRITE] reason: Prompt-complete mark received, starting silence timer');
+          console.log('[ASSISTANT SPEAKING WRITE] responseId: not available');
+          console.log('[ASSISTANT SPEAKING WRITE] stage:', callSessionState.currentStage || 'unknown');
+          console.log('[ASSISTANT SPEAKING WRITE] stack:', new Error().stack?.split('\n').slice(1, 5).join('\n') || 'unknown');
+          console.log('[ASSISTANT SPEAKING WRITE] timestamp:', new Date().toISOString());
+          console.log('[ASSISTANT SPEAKING WRITE] =========================================');
           callSessionState.assistantSpeaking = false;
           assistantSpeaking = false; // Sync local variable
         }
