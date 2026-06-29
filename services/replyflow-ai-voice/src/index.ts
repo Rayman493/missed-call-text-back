@@ -5236,7 +5236,41 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
       if (message.event === 'start') {
         state.streamSid = message.streamSid;
-        logSimple('twilio_start', { streamSid: state.streamSid });
+        
+        // Extract Twilio call metadata
+        const callSid = message.start?.callSid || message.start?.CallSid || url.searchParams.get('callSid') || '';
+        const from = message.start?.from || message.start?.From || url.searchParams.get('from') || '';
+        const to = message.start?.to || message.start?.To || url.searchParams.get('to') || '';
+        
+        state.callSid = callSid;
+        
+        // Resolve business_id from To/Called number
+        // For now, use the businessId from URL params if available, otherwise try to derive from To number
+        const businessId = url.searchParams.get('businessId') || state.businessId || '';
+        state.businessId = businessId;
+        
+        // Store caller phone (From number)
+        state.callerPhone = from;
+        
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] event: simple_mode_call_sid_set');
+        console.log('[SIMPLE MODE] callSid:', state.callSid);
+        console.log('[SIMPLE MODE] =========================================');
+        
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] event: simple_mode_business_resolved');
+        console.log('[SIMPLE MODE] businessId:', state.businessId);
+        console.log('[SIMPLE MODE] from:', from);
+        console.log('[SIMPLE MODE] to:', to);
+        console.log('[SIMPLE MODE] =========================================');
+        
+        logSimple('twilio_start', { 
+          streamSid: state.streamSid,
+          callSid: state.callSid,
+          from: from,
+          to: to,
+          businessId: state.businessId
+        });
 
         // Connect to OpenAI Realtime - use same URL as legacy
         const openAiUrl = `wss://api.openai.com/v1/realtime?model=gpt-realtime`;
@@ -5550,18 +5584,19 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
             const processSimpleModeCompletion = async () => {
               try {
                 console.log('[SIMPLE MODE] =========================================');
-                console.log('[SIMPLE MODE] event: simple_mode_intake_complete');
+                console.log('[SIMPLE MODE] event: simple_mode_completion_start');
                 console.log('[SIMPLE MODE] businessId:', state.businessId);
                 console.log('[SIMPLE MODE] callSid:', state.callSid);
+                console.log('[SIMPLE MODE] callerPhone:', state.callerPhone);
                 console.log('[SIMPLE MODE] intakeData:', state.intakeData);
                 console.log('[SIMPLE MODE] =========================================');
 
-                // Create lead and conversation
+                // Create lead and conversation using caller phone (not callSid)
                 const { data: lead, error: leadError } = await supabase
                   .from('leads')
                   .upsert({
                     business_id: state.businessId,
-                    caller_phone: state.callSid || '', // Using callSid as placeholder for now
+                    caller_phone: state.callerPhone || '',
                     status: 'new',
                   }, {
                     onConflict: 'business_id,caller_phone',
@@ -5596,7 +5631,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
                     console.log('[SIMPLE MODE] conversationId:', conversation.id);
                     console.log('[SIMPLE MODE] =========================================');
 
-                    // Create ai_call_record
+                    // Create ai_call_record with exact call_sid
                     const { error: callRecordError } = await supabase
                       .from('ai_call_records')
                       .insert({
@@ -5614,6 +5649,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
                     } else {
                       console.log('[SIMPLE MODE] =========================================');
                       console.log('[SIMPLE MODE] event: simple_mode_ai_call_record_created');
+                      console.log('[SIMPLE MODE] callSid:', state.callSid);
                       console.log('[SIMPLE MODE] =========================================');
                     }
 
@@ -5621,7 +5657,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
                     const smsBody = `New customer request
 
 👤 ${state.intakeData.caller_name || 'Unknown'}
-📞 ${state.callSid || 'Unknown'}
+📞 ${state.callerPhone || 'Unknown'}
 
 Service
 ${state.intakeData.caller_name?.split(' ').slice(1).join(' ') || 'General inquiry'}
@@ -5653,7 +5689,7 @@ ${state.intakeData.details || 'No additional details'}`;
                       lead.id,
                       conversation.id,
                       state.callSid || 'unknown',
-                      state.callSid || 'unknown',
+                      state.callerPhone || 'unknown',
                       state.intakeData
                     );
 
