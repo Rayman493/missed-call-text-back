@@ -5064,6 +5064,17 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     ask_callback_time: "What is the best time for the business to call you back?",
     complete: "Thank you for your information. We'll be in touch shortly. Goodbye!"
   };
+
+  // Cached PCMU audio for each prompt (to be populated with pre-generated audio)
+  // For now, this is empty - will fall back to Realtime response.create
+  const cachedPromptAudio: Record<string, string | null> = {
+    ask_name_reason: null,
+    ask_details: null,
+    ask_location: null,
+    ask_completion_time: null,
+    ask_callback_time: null,
+    complete: null
+  };
   state.sessionId = url.searchParams.get('sessionId') || '';
   state.businessId = url.searchParams.get('businessId') || '';
   state.callSid = url.searchParams.get('callSid') || '';
@@ -5089,8 +5100,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[SIMPLE MODE] =========================================');
   };
 
-  // Helper to send prompt using OpenAI Realtime response.create
-  const sendPrompt = (stage: string) => {
+  // Helper to send prompt using cached PCMU audio or Realtime response.create
+  const sendPrompt = async (stage: string) => {
     const prompt = prompts[stage];
     if (!prompt) {
       console.log('[SIMPLE MODE] No prompt for stage:', stage);
@@ -5103,39 +5114,111 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[SIMPLE MODE] event: stage_prompt_mapping');
     console.log('[SIMPLE MODE] simple_mode_selected:', true);
     console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_hardcoded');
-    console.log('[SIMPLE MODE] sourceOfSpeech:', 'realtime_pcmu_native');
     console.log('[SIMPLE MODE] business_id:', state.businessId);
     console.log('[SIMPLE MODE] currentStage:', stage);
     console.log('[SIMPLE MODE] promptKey:', stage);
     console.log('[SIMPLE MODE] promptText:', prompt);
-    console.log('[SIMPLE MODE] response_create_stage:', stage);
-    console.log('[SIMPLE MODE] tts_pipeline_disabled:', true);
-    console.log('[SIMPLE MODE] custom_audio_processing_disabled:', true);
     console.log('[SIMPLE MODE] =========================================');
 
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
-    try {
-      // Send response.create to OpenAI Realtime for PCMU audio generation
-      const message = {
-        type: 'response.create',
-        response: {
-          instructions: `Speak exactly this sentence and nothing else:\n"${prompt}"`
+    const cachedAudio = cachedPromptAudio[stage];
+
+    if (cachedAudio) {
+      // Use cached PCMU audio
+      console.log('[SIMPLE MODE] =========================================');
+      console.log('[SIMPLE MODE] event: cached_prompt_audio_found');
+      console.log('[SIMPLE MODE] sourceOfSpeech:', 'cached_pcmu_prompt');
+      console.log('[SIMPLE MODE] cached_prompt_key:', stage);
+      console.log('[SIMPLE MODE] cached_prompt_audio_found:', true);
+      console.log('[SIMPLE MODE] response_create_live_prompt_disabled:', true);
+      console.log('[SIMPLE MODE] =========================================');
+
+      try {
+        // Send cached PCMU audio to Twilio
+        const chunkSize = 160; // 20ms at 8kHz mu-law (160 bytes)
+        const audioBuffer = Buffer.from(cachedAudio, 'base64');
+        let totalChunks = 0;
+
+        for (let i = 0; i < audioBuffer.length; i += chunkSize) {
+          const rawChunk = audioBuffer.slice(i, i + chunkSize);
+          const base64Chunk = rawChunk.toString('base64');
+          const mediaMessage = {
+            event: 'media',
+            streamSid: state.streamSid,
+            media: {
+              payload: base64Chunk
+            }
+          };
+          ws.send(JSON.stringify(mediaMessage));
+          totalChunks++;
+          // Send at real-time rate (20ms chunks)
+          await new Promise(resolve => setTimeout(resolve, 20));
         }
-      };
 
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] event: cached_prompt_audio_sent');
+        console.log('[SIMPLE MODE] cached_prompt_key:', stage);
+        console.log('[SIMPLE MODE] chunk_count:', totalChunks);
+        console.log('[SIMPLE MODE] =========================================');
+
+        // Mark speaking as false after audio is sent
+        setTimeout(() => {
+          state.assistantSpeaking = false;
+          logSimple('cached_prompt_complete', { stage });
+
+          // Handle final complete stage close
+          if (stage === 'complete') {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: final_cached_prompt_complete_close_scheduled');
+            console.log('[SIMPLE MODE] delayMs:', 2000);
+            console.log('[SIMPLE MODE] =========================================');
+            setTimeout(() => {
+              logSimple('call_complete');
+              ws.close();
+              if (state.openAiWs) {
+                state.openAiWs.close();
+              }
+            }, 2000);
+          }
+        }, 1000);
+
+      } catch (error) {
+        console.log('[SIMPLE MODE] Error sending cached audio:', error);
+        state.assistantSpeaking = false;
+      }
+
+    } else {
+      // Fall back to Realtime response.create
       console.log('[SIMPLE MODE] =========================================');
-      console.log('[SIMPLE MODE] event: response_create_sent');
-      console.log('[SIMPLE MODE] response_create_instruction_mode:', 'strict_exact_sentence');
-      console.log('[SIMPLE MODE] response_create_stage:', stage);
-      console.log('[SIMPLE MODE] promptText:', prompt);
-      console.log('[SIMPLE MODE] instructions:', message.response.instructions);
+      console.log('[SIMPLE MODE] event: cached_prompt_audio_missing');
+      console.log('[SIMPLE MODE] cached_prompt_key:', stage);
+      console.log('[SIMPLE MODE] cached_prompt_audio_found:', false);
+      console.log('[SIMPLE MODE] fallback:', 'realtime_response_create');
       console.log('[SIMPLE MODE] =========================================');
 
-      state.openAiWs?.send(JSON.stringify(message));
-    } catch (error) {
-      console.log('[SIMPLE MODE] Error sending response.create:', error);
-      state.assistantSpeaking = false;
+      try {
+        // Send response.create to OpenAI Realtime for PCMU audio generation
+        const message = {
+          type: 'response.create',
+          response: {
+            instructions: `Speak exactly this sentence and nothing else:\n"${prompt}"`
+          }
+        };
+
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] event: response_create_sent');
+        console.log('[SIMPLE MODE] response_create_instruction_mode:', 'strict_exact_sentence');
+        console.log('[SIMPLE MODE] response_create_stage:', stage);
+        console.log('[SIMPLE MODE] promptText:', prompt);
+        console.log('[SIMPLE MODE] instructions:', message.response.instructions);
+        console.log('[SIMPLE MODE] =========================================');
+
+        state.openAiWs?.send(JSON.stringify(message));
+      } catch (error) {
+        console.log('[SIMPLE MODE] Error sending response.create:', error);
+        state.assistantSpeaking = false;
+      }
     }
   };
 
