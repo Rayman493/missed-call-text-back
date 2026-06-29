@@ -5284,24 +5284,24 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[SIMPLE MODE] =========================================');
 
       // Send mu-law audio to Twilio via WebSocket
-      const base64Audio = mulawBuffer.toString('base64');
       const chunkSize = 160; // 20ms at 8kHz mu-law (160 bytes)
       let totalChunks = 0;
       let totalPayloadBytes = 0;
       const startTime = Date.now();
 
-      for (let i = 0; i < base64Audio.length; i += chunkSize) {
-        const chunk = base64Audio.substring(i, i + chunkSize);
+      for (let i = 0; i < mulawBuffer.length; i += chunkSize) {
+        const rawChunk = mulawBuffer.slice(i, i + chunkSize);
+        const base64Chunk = rawChunk.toString('base64');
         const mediaMessage = {
           event: 'media',
           streamSid: state.streamSid,
           media: {
-            payload: chunk
+            payload: base64Chunk
           }
         };
         ws.send(JSON.stringify(mediaMessage));
         totalChunks++;
-        totalPayloadBytes += chunk.length;
+        totalPayloadBytes += base64Chunk.length;
         // Send at real-time rate (20ms chunks)
         await new Promise(resolve => setTimeout(resolve, 20));
       }
@@ -5309,13 +5309,16 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       const endTime = Date.now();
       const sendIntervalMs = (endTime - startTime) / totalChunks;
 
+      const firstRawChunk = mulawBuffer.slice(0, chunkSize);
+      const firstBase64Chunk = firstRawChunk.toString('base64');
+
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: tts_audio_sent');
       console.log('[SIMPLE MODE] chunk_count:', totalChunks);
       console.log('[SIMPLE MODE] avg_chunk_size:', Math.round(totalPayloadBytes / totalChunks));
-      console.log('[SIMPLE MODE] payload_base64_length_first_chunk:', base64Audio.slice(0, chunkSize).length);
-      console.log('[SIMPLE MODE] first_chunk_raw_len:', chunkSize);
-      console.log('[SIMPLE MODE] first_chunk_decoded_len_after_base64:', Buffer.from(base64Audio.slice(0, chunkSize), 'base64').length);
+      console.log('[SIMPLE MODE] first_chunk_raw_len:', firstRawChunk.length);
+      console.log('[SIMPLE MODE] payload_base64_length_first_chunk:', firstBase64Chunk.length);
+      console.log('[SIMPLE MODE] first_chunk_decoded_len_after_base64:', Buffer.from(firstBase64Chunk, 'base64').length);
       console.log('[SIMPLE MODE] send_interval_ms_sample:', sendIntervalMs.toFixed(2));
       console.log('[SIMPLE MODE] =========================================');
 
