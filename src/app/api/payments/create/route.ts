@@ -261,8 +261,8 @@ export async function POST(request: Request) {
     }
 
     // If insert failed due to missing token column, retry without token
-    const errorCode = (paymentRequestError as any).code
-    const errorMessage = (paymentRequestError as any).message || ''
+    const errorCode = (paymentRequestError as any)?.code
+    const errorMessage = (paymentRequestError as any)?.message || ''
     const isMissingTokenColumnError = errorCode === '42703' || 
                                      (errorCode === 'PGRST204' && errorMessage.includes('token') && errorMessage.includes('payment_requests'))
     
@@ -284,10 +284,10 @@ export async function POST(request: Request) {
 
     if (paymentRequestError) {
       console.error('[PAYMENT REQUEST] Database insert error:', paymentRequestError)
-      console.error('[PAYMENT REQUEST] Error code:', (paymentRequestError as any).code)
-      console.error('[PAYMENT REQUEST] Error message:', (paymentRequestError as any).message)
-      console.error('[PAYMENT REQUEST] Error details:', (paymentRequestError as any).details)
-      console.error('[PAYMENT REQUEST] Error hint:', (paymentRequestError as any).hint)
+      console.error('[PAYMENT REQUEST] Error code:', (paymentRequestError as any)?.code)
+      console.error('[PAYMENT REQUEST] Error message:', (paymentRequestError as any)?.message)
+      console.error('[PAYMENT REQUEST] Error details:', (paymentRequestError as any)?.details)
+      console.error('[PAYMENT REQUEST] Error hint:', (paymentRequestError as any)?.hint)
       return NextResponse.json({ error: 'Failed to create payment request' }, { status: 500 })
     }
 
