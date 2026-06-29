@@ -5113,15 +5113,29 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
-    const strictInstruction = `SAY EXACTLY THIS TEXT IN ENGLISH AND NOTHING ELSE: "${prompt}"
+    const strictInstruction = `SAY EXACTLY THE FOLLOWING TEXT: "${prompt}"
 
-Do NOT paraphrase.
-Do NOT translate.
-Do NOT add words.
-Do NOT answer the caller's question directly.
-Only speak the scripted prompt.
-Always speak English only.
-Never respond in French, Spanish, or any non-English language.`;
+Read it verbatim.
+
+Do NOT:
+- paraphrase
+- summarize
+- acknowledge the caller
+- add conversational filler
+- add transitions
+- add encouragement
+- add greetings beyond the supplied text
+- add follow-up questions
+- modify punctuation
+- modify wording
+- substitute synonyms
+
+Your entire response must be exactly the quoted text and nothing else.
+
+If you cannot comply, output the quoted text exactly.
+
+The stage machine owns the conversation.
+The assistant is only a text-to-speech engine for the supplied prompt.`;
 
     const message = {
       type: 'response.create',
