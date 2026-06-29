@@ -292,6 +292,32 @@ export class TwilioStreamHandler {
                   console.log('[ASSISTANT SPEAKING WRITE] timestamp:', new Date().toISOString());
                   console.log('[ASSISTANT SPEAKING WRITE] =========================================');
                   callSessionState.assistantSpeaking = false;
+
+                  // Greeting timeline: assistantSpeaking transition in twilio-stream.ts
+                  if (callSessionState.currentStage === 'ask_name_reason' && beforeAssistantSpeaking) {
+                    const now = Date.now();
+                    const elapsed = (this as any).greetingTimelineStartTime ? now - (this as any).greetingTimelineStartTime : 0;
+                    const responseId = (this as any).greetingCurrentResponseId || activeResponseId || 'unknown';
+                    const activeResponseIdFinal = callSessionState.activeResponseId || 'unknown';
+                    const assistantSpeaking = callSessionState.assistantSpeaking;
+                    const currentStage = callSessionState.currentStage || 'unknown';
+                    const callState = callSessionState.callState || 'unknown';
+
+                    console.log('[GREETING TIMELINE] =========================================');
+                    console.log('[GREETING TIMELINE] event: assistantSpeaking');
+                    console.log('[GREETING TIMELINE] oldValue: true');
+                    console.log('[GREETING TIMELINE] newValue: false');
+                    console.log('[GREETING TIMELINE] reason: twilio-stream.ts invalid state timeout');
+                    console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+                    console.log('[GREETING TIMELINE] timestamp_ms:', now);
+                    console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+                    console.log('[GREETING TIMELINE] responseId:', responseId);
+                    console.log('[GREETING TIMELINE] activeResponseId:', activeResponseIdFinal);
+                    console.log('[GREETING TIMELINE] assistantSpeaking:', assistantSpeaking);
+                    console.log('[GREETING TIMELINE] currentStage:', currentStage);
+                    console.log('[GREETING TIMELINE] callState:', callState);
+                    console.log('[GREETING TIMELINE] =========================================');
+                  }
                   
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] =========================================');
                   console.log('[ASSISTANT SPEAKING ASSIGNMENT] BEFORE callSessionState.assistantSpeaking:', beforeAssistantSpeaking);
@@ -418,6 +444,12 @@ export class TwilioStreamHandler {
   sendAudioInternal(audioData: Buffer) {
     // ORDER TRACE: sendAudioInternal called
     const currentStage = (this as any)._currentStage || 'unknown';
+
+    // Greeting timeline: first_media_sent and last_media_sent
+    const callSessionState = (this as any).callSessionState || {};
+    const responseId = this.currentResponseId || 'unknown';
+    const isGreetingResponse = responseId === (this as any).greetingCurrentResponseId;
+
     if (currentStage === 'ask_name_reason' && !(this as any).firstPromptSendAudioInternalLogged) {
       (this as any).firstPromptSendAudioInternalLogged = true;
       console.log('[OPENING ORDER TRACE] =========================================');
@@ -494,6 +526,34 @@ export class TwilioStreamHandler {
 
       // Increment flush counter for direct sends (buffered flushes are counted in authorizeResponse)
       this.audioFlushedCount++;
+
+      // Greeting timeline: first_media_sent
+      if (isGreetingResponse && currentStage === 'ask_name_reason') {
+        // Check if this is the first media sent
+        if (!(this as any).greetingFirstMediaSentLogged) {
+          (this as any).greetingFirstMediaSentLogged = true;
+          const now = Date.now();
+          const elapsed = (this as any).greetingTimelineStartTime ? now - (this as any).greetingTimelineStartTime : 0;
+          const activeResponseId = callSessionState.activeResponseId || 'unknown';
+          const assistantSpeaking = callSessionState.assistantSpeaking;
+          const callState = callSessionState.callState || 'unknown';
+
+          console.log('[GREETING TIMELINE] =========================================');
+          console.log('[GREETING TIMELINE] event: first_media_sent');
+          console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+          console.log('[GREETING TIMELINE] timestamp_ms:', now);
+          console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+          console.log('[GREETING TIMELINE] responseId:', responseId);
+          console.log('[GREETING TIMELINE] activeResponseId:', activeResponseId);
+          console.log('[GREETING TIMELINE] assistantSpeaking:', assistantSpeaking);
+          console.log('[GREETING TIMELINE] currentStage:', currentStage);
+          console.log('[GREETING TIMELINE] callState:', callState);
+          console.log('[GREETING TIMELINE] =========================================');
+        }
+
+        // Track media sent count - this will be the last when response.audio.done fires
+        (this as any).greetingMediaSentCount = ((this as any).greetingMediaSentCount || 0) + 1;
+      }
 
       const message = {
         event: 'media',

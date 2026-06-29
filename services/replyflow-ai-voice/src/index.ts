@@ -1534,15 +1534,95 @@ Speak ONLY the exact text in quotes above.`;
     console.log('[ASSISTANT SPEAKING WRITE] timestamp:', new Date().toISOString());
     console.log('[ASSISTANT SPEAKING WRITE] =========================================');
     callSessionState.assistantSpeaking = true;
+    const oldActiveResponseId = callSessionState.activeResponseId;
     callSessionState.currentStage = stage;
     callSessionState.activeResponseId = tempResponseId;
     callSessionState.lastPromptAt = Date.now();
+
+    // Greeting timeline: activeResponseId transition
+    if (stage === 'ask_name_reason') {
+      const now = Date.now();
+      const elapsed = (ws as any).greetingTimelineStartTime ? now - (ws as any).greetingTimelineStartTime : 0;
+      const responseId = tempResponseId || 'unknown';
+      const activeResponseId = callSessionState.activeResponseId || 'unknown';
+      const assistantSpeaking = callSessionState.assistantSpeaking;
+      const currentStage = callSessionState.currentStage || 'unknown';
+      const callState = ws?.callSessionState?.callState || 'unknown';
+
+      console.log('[GREETING TIMELINE] =========================================');
+      console.log('[GREETING TIMELINE] event: activeResponseId');
+      console.log('[GREETING TIMELINE] oldValue:', oldActiveResponseId || 'null');
+      console.log('[GREETING TIMELINE] newValue:', responseId);
+      console.log('[GREETING TIMELINE] reason: sendApprovedPrompt');
+      console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+      console.log('[GREETING TIMELINE] timestamp_ms:', now);
+      console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+      console.log('[GREETING TIMELINE] responseId:', responseId);
+      console.log('[GREETING TIMELINE] activeResponseId:', activeResponseId);
+      console.log('[GREETING TIMELINE] assistantSpeaking:', assistantSpeaking);
+      console.log('[GREETING TIMELINE] currentStage:', currentStage);
+      console.log('[GREETING TIMELINE] callState:', callState);
+      console.log('[GREETING TIMELINE] =========================================');
+    }
+
+    // Greeting timeline: assistantSpeaking transition
+    if (stage === 'ask_name_reason') {
+      const now = Date.now();
+      const elapsed = (ws as any).greetingTimelineStartTime ? now - (ws as any).greetingTimelineStartTime : 0;
+      const responseId = tempResponseId || 'unknown';
+      const activeResponseId = callSessionState.activeResponseId || 'unknown';
+      const assistantSpeaking = callSessionState.assistantSpeaking;
+      const currentStage = callSessionState.currentStage || 'unknown';
+      const callState = ws?.callSessionState?.callState || 'unknown';
+
+      console.log('[GREETING TIMELINE] =========================================');
+      console.log('[GREETING TIMELINE] event: assistantSpeaking');
+      console.log('[GREETING TIMELINE] oldValue: false');
+      console.log('[GREETING TIMELINE] newValue: true');
+      console.log('[GREETING TIMELINE] reason: sendApprovedPrompt before response.create');
+      console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+      console.log('[GREETING TIMELINE] timestamp_ms:', now);
+      console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+      console.log('[GREETING TIMELINE] responseId:', responseId);
+      console.log('[GREETING TIMELINE] activeResponseId:', activeResponseId);
+      console.log('[GREETING TIMELINE] assistantSpeaking:', assistantSpeaking);
+      console.log('[GREETING TIMELINE] currentStage:', currentStage);
+      console.log('[GREETING TIMELINE] callState:', callState);
+      console.log('[GREETING TIMELINE] =========================================');
+    }
 
     // Sync to twilioHandler for twilio-stream.ts access
     const twilioHandler = (ws as any)?.twilioHandler;
     if (twilioHandler) {
       (twilioHandler as any).assistantSpeaking = true;
       (twilioHandler as any).callSessionState = callSessionState;
+    }
+
+    // Greeting timeline: response.create.sent
+    if (stage === 'ask_name_reason' && !(ws as any).greetingTimelineStartTime) {
+      (ws as any).greetingTimelineStartTime = Date.now();
+      (ws as any).greetingCurrentResponseId = tempResponseId;
+    }
+    if (stage === 'ask_name_reason') {
+      const now = Date.now();
+      const elapsed = (ws as any).greetingTimelineStartTime ? now - (ws as any).greetingTimelineStartTime : 0;
+      const responseId = (ws as any).greetingCurrentResponseId || callSessionState.activeResponseId || 'unknown';
+      const activeResponseId = callSessionState.activeResponseId || 'unknown';
+      const assistantSpeaking = callSessionState.assistantSpeaking;
+      const currentStage = callSessionState.currentStage || 'unknown';
+      const callState = ws?.callSessionState?.callState || 'unknown';
+
+      console.log('[GREETING TIMELINE] =========================================');
+      console.log('[GREETING TIMELINE] event: response.create.sent');
+      console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+      console.log('[GREETING TIMELINE] timestamp_ms:', now);
+      console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+      console.log('[GREETING TIMELINE] responseId:', responseId);
+      console.log('[GREETING TIMELINE] activeResponseId:', activeResponseId);
+      console.log('[GREETING TIMELINE] assistantSpeaking:', assistantSpeaking);
+      console.log('[GREETING TIMELINE] currentStage:', currentStage);
+      console.log('[GREETING TIMELINE] callState:', callState);
+      console.log('[GREETING TIMELINE] =========================================');
     }
 
     openAiWs.send(JSON.stringify(message));
@@ -4901,6 +4981,43 @@ wss.on('connection', (ws, req) => {
     let startEventProcessed = false;
     let openAiWs: WebSocket | null = null;
 
+    // Greeting timeline tracking
+    let greetingTimelineStartTime: number | null = null;
+    let greetingFirstAudioDeltaLogged = false;
+    let greetingLastAudioDeltaLogged = false;
+    let greetingCurrentResponseId: string | null = null;
+    let greetingFirstMediaSentLogged = false;
+    let greetingLastMediaSentLogged = false;
+    let greetingMediaSentCount = 0;
+
+    // Helper function to log greeting timeline events
+    const logGreetingTimeline = (eventName: string, extraFields: Record<string, any> = {}) => {
+      const now = Date.now();
+      const elapsed = greetingTimelineStartTime ? now - greetingTimelineStartTime : 0;
+      const responseId = greetingCurrentResponseId || callSessionState.activeResponseId || 'unknown';
+      const activeResponseId = callSessionState.activeResponseId || 'unknown';
+      const assistantSpeaking = callSessionState.assistantSpeaking;
+      const currentStage = callSessionState.currentStage || 'unknown';
+      const callState = closingState.callState || 'unknown';
+
+      console.log('[GREETING TIMELINE] =========================================');
+      console.log('[GREETING TIMELINE] event:', eventName);
+      console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+      console.log('[GREETING TIMELINE] timestamp_ms:', now);
+      console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+      console.log('[GREETING TIMELINE] responseId:', responseId);
+      console.log('[GREETING TIMELINE] activeResponseId:', activeResponseId);
+      console.log('[GREETING TIMELINE] assistantSpeaking:', assistantSpeaking);
+      console.log('[GREETING TIMELINE] currentStage:', currentStage);
+      console.log('[GREETING TIMELINE] callState:', callState);
+      if (Object.keys(extraFields).length > 0) {
+        Object.entries(extraFields).forEach(([key, value]) => {
+          console.log(`[GREETING TIMELINE] ${key}:`, value);
+        });
+      }
+      console.log('[GREETING TIMELINE] =========================================');
+    };
+
     // Transcript capture with structured data
     let transcript: Array<{role: 'user' | 'assistant'; text: string; timestamp: string}> = [];
     const activeAssistantTranscripts = new Map<string, string>(); // Buffer keyed by item_id
@@ -5173,6 +5290,29 @@ wss.on('connection', (ws, req) => {
           console.log('[SILENCE TIMER STARTED (MARK-BASED)] Timestamp:', new Date().toISOString());
           console.log('[SILENCE TIMER STARTED (MARK-BASED)] =========================================');
 
+          // Greeting timeline: twilio_mark_received
+          if (callSessionState.currentStage === 'ask_name_reason') {
+            const now = Date.now();
+            const elapsed = (ws as any).greetingTimelineStartTime ? now - (ws as any).greetingTimelineStartTime : 0;
+            const responseId = (ws as any).greetingCurrentResponseId || callSessionState.activeResponseId || 'unknown';
+            const activeResponseId = callSessionState.activeResponseId || 'unknown';
+            const assistantSpeaking = callSessionState.assistantSpeaking;
+            const currentStage = callSessionState.currentStage || 'unknown';
+            const callState = closingState.callState || 'unknown';
+
+            console.log('[GREETING TIMELINE] =========================================');
+            console.log('[GREETING TIMELINE] event: twilio_mark_received');
+            console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+            console.log('[GREETING TIMELINE] timestamp_ms:', now);
+            console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+            console.log('[GREETING TIMELINE] responseId:', responseId);
+            console.log('[GREETING TIMELINE] activeResponseId:', activeResponseId);
+            console.log('[GREETING TIMELINE] assistantSpeaking:', assistantSpeaking);
+            console.log('[GREETING TIMELINE] currentStage:', currentStage);
+            console.log('[GREETING TIMELINE] callState:', callState);
+            console.log('[GREETING TIMELINE] =========================================');
+          }
+
           console.log('[ASSISTANT SPEAKING WRITE] =========================================');
           console.log('[ASSISTANT SPEAKING WRITE] oldValue:', callSessionState.assistantSpeaking);
           console.log('[ASSISTANT SPEAKING WRITE] newValue: false');
@@ -5184,8 +5324,35 @@ wss.on('connection', (ws, req) => {
           console.log('[ASSISTANT SPEAKING WRITE] stack:', new Error().stack?.split('\n').slice(1, 5).join('\n') || 'unknown');
           console.log('[ASSISTANT SPEAKING WRITE] timestamp:', new Date().toISOString());
           console.log('[ASSISTANT SPEAKING WRITE] =========================================');
+
+          const beforeMarkAssistantSpeaking = callSessionState.assistantSpeaking;
           callSessionState.assistantSpeaking = false;
           assistantSpeaking = false; // Sync local variable
+
+          // Greeting timeline: assistantSpeaking transition in mark callback
+          if (callSessionState.currentStage === 'ask_name_reason' && beforeMarkAssistantSpeaking) {
+            const now = Date.now();
+            const elapsed = (ws as any).greetingTimelineStartTime ? now - (ws as any).greetingTimelineStartTime : 0;
+            const responseId = (ws as any).greetingCurrentResponseId || callSessionState.activeResponseId || 'unknown';
+            const activeResponseId = callSessionState.activeResponseId || 'unknown';
+            const currentStage = callSessionState.currentStage || 'unknown';
+            const callState = closingState.callState || 'unknown';
+
+            console.log('[GREETING TIMELINE] =========================================');
+            console.log('[GREETING TIMELINE] event: assistantSpeaking');
+            console.log('[GREETING TIMELINE] oldValue: true');
+            console.log('[GREETING TIMELINE] newValue: false');
+            console.log('[GREETING TIMELINE] reason: mark received callback');
+            console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+            console.log('[GREETING TIMELINE] timestamp_ms:', now);
+            console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+            console.log('[GREETING TIMELINE] responseId:', responseId);
+            console.log('[GREETING TIMELINE] activeResponseId:', activeResponseId);
+            console.log('[GREETING TIMELINE] assistantSpeaking:', callSessionState.assistantSpeaking);
+            console.log('[GREETING TIMELINE] currentStage:', currentStage);
+            console.log('[GREETING TIMELINE] callState:', callState);
+            console.log('[GREETING TIMELINE] =========================================');
+          }
         }
       }
     });
@@ -7816,8 +7983,36 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[STAGE CHANGE CLEARING ACTIVE RESPONSE] Previous activeResponseId:', activeResponseId);
                     console.log('[STAGE CHANGE CLEARING ACTIVE RESPONSE] Timestamp:', new Date().toISOString());
                     console.log('[STAGE CHANGE CLEARING ACTIVE RESPONSE] =========================================');
+
+                    const oldActiveResponseId = activeResponseId;
                     activeResponseId = null;
                     (twilioHandler as any).activeResponseId = activeResponseId;
+
+                    // Greeting timeline: activeResponseId transition (stage change from ask_name_reason)
+                    if (intakeData!.stage === 'ask_name_reason') {
+                      const now = Date.now();
+                      const elapsed = (ws as any).greetingTimelineStartTime ? now - (ws as any).greetingTimelineStartTime : 0;
+                      const responseId = 'unknown';
+                      const activeResponseIdFinal = callSessionState.activeResponseId || 'unknown';
+                      const assistantSpeaking = callSessionState.assistantSpeaking;
+                      const currentStage = intakeData!.stage || 'unknown';
+                      const callState = closingState.callState || 'unknown';
+
+                      console.log('[GREETING TIMELINE] =========================================');
+                      console.log('[GREETING TIMELINE] event: activeResponseId');
+                      console.log('[GREETING TIMELINE] oldValue:', oldActiveResponseId);
+                      console.log('[GREETING TIMELINE] newValue: null');
+                      console.log('[GREETING TIMELINE] reason: stage change');
+                      console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+                      console.log('[GREETING TIMELINE] timestamp_ms:', now);
+                      console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+                      console.log('[GREETING TIMELINE] responseId:', responseId);
+                      console.log('[GREETING TIMELINE] activeResponseId:', activeResponseIdFinal);
+                      console.log('[GREETING TIMELINE] assistantSpeaking:', assistantSpeaking);
+                      console.log('[GREETING TIMELINE] currentStage:', currentStage);
+                      console.log('[GREETING TIMELINE] callState:', callState);
+                      console.log('[GREETING TIMELINE] =========================================');
+                    }
                   }
 
                   // CRITICAL FIX: Enforce first stage requires valid name/reason before advancing
@@ -8978,6 +9173,30 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               }
               if (message.type === 'response.done') {
                 const responseId = message.response_id || 'unknown';
+                const isGreetingResponse = responseId === (ws as any).greetingCurrentResponseId;
+
+                // Greeting timeline: response.done
+                if (isGreetingResponse) {
+                  const now = Date.now();
+                  const elapsed = (ws as any).greetingTimelineStartTime ? now - (ws as any).greetingTimelineStartTime : 0;
+                  const activeResponseId = callSessionState.activeResponseId || 'unknown';
+                  const assistantSpeaking = callSessionState.assistantSpeaking;
+                  const currentStage = callSessionState.currentStage || 'unknown';
+                  const callState = closingState.callState || 'unknown';
+
+                  console.log('[GREETING TIMELINE] =========================================');
+                  console.log('[GREETING TIMELINE] event: response.done');
+                  console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+                  console.log('[GREETING TIMELINE] timestamp_ms:', now);
+                  console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+                  console.log('[GREETING TIMELINE] responseId:', responseId);
+                  console.log('[GREETING TIMELINE] activeResponseId:', activeResponseId);
+                  console.log('[GREETING TIMELINE] assistantSpeaking:', assistantSpeaking);
+                  console.log('[GREETING TIMELINE] currentStage:', currentStage);
+                  console.log('[GREETING TIMELINE] callState:', callState);
+                  console.log('[GREETING TIMELINE] =========================================');
+                }
+
                 console.log('[OPENAI RECV] response.done');
                 console.log('[FINAL_RESPONSE_DONE] Response completed');
                 console.log('[FINAL_RESPONSE_DONE] response_id:', responseId);
@@ -9205,6 +9424,35 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               
               // Handle audio delta - now PCMU directly from OpenAI
               if (message.type === 'response.output_audio.delta') {
+                // Greeting timeline: first_audio_delta and last_audio_delta
+                const responseId = message.response_id || 'unknown';
+                const isGreetingResponse = responseId === (ws as any).greetingCurrentResponseId;
+
+                if (isGreetingResponse) {
+                  // Check if this is the first delta for this response
+                  if (!(ws as any).greetingFirstAudioDeltaLogged) {
+                    (ws as any).greetingFirstAudioDeltaLogged = true;
+                    const now = Date.now();
+                    const elapsed = (ws as any).greetingTimelineStartTime ? now - (ws as any).greetingTimelineStartTime : 0;
+                    const activeResponseId = callSessionState.activeResponseId || 'unknown';
+                    const assistantSpeaking = callSessionState.assistantSpeaking;
+                    const currentStage = callSessionState.currentStage || 'unknown';
+                    const callState = closingState.callState || 'unknown';
+
+                    console.log('[GREETING TIMELINE] =========================================');
+                    console.log('[GREETING TIMELINE] event: first_audio_delta');
+                    console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+                    console.log('[GREETING TIMELINE] timestamp_ms:', now);
+                    console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+                    console.log('[GREETING TIMELINE] responseId:', responseId);
+                    console.log('[GREETING TIMELINE] activeResponseId:', activeResponseId);
+                    console.log('[GREETING TIMELINE] assistantSpeaking:', assistantSpeaking);
+                    console.log('[GREETING TIMELINE] currentStage:', currentStage);
+                    console.log('[GREETING TIMELINE] callState:', callState);
+                    console.log('[GREETING TIMELINE] =========================================');
+                  }
+                }
+
                 if (process.env.DEBUG_AI_VOICE === 'true') {
                   console.log('[OPENAI RECV] response.output_audio.delta');
                   console.log('[AI AUDIO DELTA] Assistant audio delta received');
@@ -9229,20 +9477,106 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 // This prevents premature hangup before audio has finished generating
               }
               if (message.type === 'response.audio.done') {
+                const responseId = message.response_id || 'unknown';
+                const isGreetingResponse = responseId === (ws as any).greetingCurrentResponseId;
+
+                // Greeting timeline: last_audio_delta and response.audio.done
+                if (isGreetingResponse && !(ws as any).greetingLastAudioDeltaLogged) {
+                  (ws as any).greetingLastAudioDeltaLogged = true;
+                  const now = Date.now();
+                  const elapsed = (ws as any).greetingTimelineStartTime ? now - (ws as any).greetingTimelineStartTime : 0;
+                  const activeResponseId = callSessionState.activeResponseId || 'unknown';
+                  const assistantSpeaking = callSessionState.assistantSpeaking;
+                  const currentStage = callSessionState.currentStage || 'unknown';
+                  const callState = closingState.callState || 'unknown';
+
+                  console.log('[GREETING TIMELINE] =========================================');
+                  console.log('[GREETING TIMELINE] event: last_audio_delta');
+                  console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+                  console.log('[GREETING TIMELINE] timestamp_ms:', now);
+                  console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+                  console.log('[GREETING TIMELINE] responseId:', responseId);
+                  console.log('[GREETING TIMELINE] activeResponseId:', activeResponseId);
+                  console.log('[GREETING TIMELINE] assistantSpeaking:', assistantSpeaking);
+                  console.log('[GREETING TIMELINE] currentStage:', currentStage);
+                  console.log('[GREETING TIMELINE] callState:', callState);
+                  console.log('[GREETING TIMELINE] =========================================');
+                }
+
+                if (isGreetingResponse) {
+                  const now = Date.now();
+                  const elapsed = (ws as any).greetingTimelineStartTime ? now - (ws as any).greetingTimelineStartTime : 0;
+                  const activeResponseId = callSessionState.activeResponseId || 'unknown';
+                  const assistantSpeaking = callSessionState.assistantSpeaking;
+                  const currentStage = callSessionState.currentStage || 'unknown';
+                  const callState = closingState.callState || 'unknown';
+
+                  console.log('[GREETING TIMELINE] =========================================');
+                  console.log('[GREETING TIMELINE] event: response.audio.done');
+                  console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+                  console.log('[GREETING TIMELINE] timestamp_ms:', now);
+                  console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+                  console.log('[GREETING TIMELINE] responseId:', responseId);
+                  console.log('[GREETING TIMELINE] activeResponseId:', activeResponseId);
+                  console.log('[GREETING TIMELINE] assistantSpeaking:', assistantSpeaking);
+                  console.log('[GREETING TIMELINE] currentStage:', currentStage);
+                  console.log('[GREETING TIMELINE] callState:', callState);
+                  console.log('[GREETING TIMELINE] =========================================');
+
+                  // Greeting timeline: last_media_sent (logged when audio done fires)
+                  const mediaSentCount = (twilioHandler as any).greetingMediaSentCount || 0;
+                  console.log('[GREETING TIMELINE] =========================================');
+                  console.log('[GREETING TIMELINE] event: last_media_sent');
+                  console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+                  console.log('[GREETING TIMELINE] timestamp_ms:', now);
+                  console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+                  console.log('[GREETING TIMELINE] responseId:', responseId);
+                  console.log('[GREETING TIMELINE] activeResponseId:', activeResponseId);
+                  console.log('[GREETING TIMELINE] assistantSpeaking:', assistantSpeaking);
+                  console.log('[GREETING TIMELINE] currentStage:', currentStage);
+                  console.log('[GREETING TIMELINE] callState:', callState);
+                  console.log('[GREETING TIMELINE] mediaSentCount:', mediaSentCount);
+                  console.log('[GREETING TIMELINE] =========================================');
+                }
+
                 console.log('[OPENAI RECV] response.audio.done');
                 console.log('[AUDIO PLAYBACK COMPLETE] =========================================');
                 console.log('[AUDIO PLAYBACK COMPLETE] Audio playback has completed');
                 console.log('[AUDIO PLAYBACK COMPLETE] Response ID:', message.response_id || 'unknown');
                 console.log('[AUDIO PLAYBACK COMPLETE] Timestamp:', new Date().toISOString());
                 console.log('[AUDIO PLAYBACK COMPLETE] =========================================');
-                
+
                 // CRITICAL FIX: Reset assistantSpeaking when audio playback completes
                 // This ensures caller audio is only accepted after AI has finished speaking
                 const beforeAssistantSpeaking = callSessionState.assistantSpeaking;
                 const beforeIndividualVar = assistantSpeaking;
                 const beforeTwilioHandler = (twilioHandler as any).assistantSpeaking;
                 const stackTrace = new Error().stack?.split('\n').slice(1, 4).join('\n') || 'unknown';
-                
+
+                // Greeting timeline: assistantSpeaking transition
+                if (isGreetingResponse && beforeAssistantSpeaking) {
+                  const now = Date.now();
+                  const elapsed = (ws as any).greetingTimelineStartTime ? now - (ws as any).greetingTimelineStartTime : 0;
+                  const activeResponseId = callSessionState.activeResponseId || 'unknown';
+                  const currentStage = callSessionState.currentStage || 'unknown';
+                  const callState = closingState.callState || 'unknown';
+
+                  console.log('[GREETING TIMELINE] =========================================');
+                  console.log('[GREETING TIMELINE] event: assistantSpeaking');
+                  console.log('[GREETING TIMELINE] oldValue: true');
+                  console.log('[GREETING TIMELINE] newValue: false');
+                  console.log('[GREETING TIMELINE] reason: response.audio.done handler');
+                  console.log('[GREETING TIMELINE] elapsed_ms:', elapsed);
+                  console.log('[GREETING TIMELINE] timestamp_ms:', now);
+                  console.log('[GREETING TIMELINE] timestamp_iso:', new Date().toISOString());
+                  console.log('[GREETING TIMELINE] responseId:', responseId);
+                  console.log('[GREETING TIMELINE] activeResponseId:', activeResponseId);
+                  console.log('[GREETING TIMELINE] assistantSpeaking:', beforeAssistantSpeaking);
+                  console.log('[GREETING TIMELINE] currentStage:', currentStage);
+                  console.log('[GREETING TIMELINE] callState:', callState);
+                  console.log('[GREETING TIMELINE] =========================================');
+                }
+
                 if (callSessionState.assistantSpeaking) {
                   // Set prompt completion time for answer gating
                   callSessionState.promptCompletedAt = Date.now();
