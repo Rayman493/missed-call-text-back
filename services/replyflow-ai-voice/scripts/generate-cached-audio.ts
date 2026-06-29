@@ -90,11 +90,20 @@ async function generateCachedAudio() {
 
   // Output as JavaScript object
   console.log('\n\n// Cached PCMU audio for Simple Mode prompts');
-  console.log('const cachedPromptAudio = {');
+  console.log('export const cachedPromptAudio = {');
   for (const [key, value] of Object.entries(results)) {
-    console.log(`  ${key}: '${value}',`);
+    console.log(`  ${key}: \`${value}\`,`);
   }
-  console.log('};');
+  console.log('} as const;');
+
+  // Also write to file
+  const fs = require('fs');
+  const output = `// Cached PCMU audio for Simple Mode prompts
+export const cachedPromptAudio = {
+${Object.entries(results).map(([key, value]) => `  ${key}: \`${value}\`,`).join('\n')}
+} as const;`;
+  fs.writeFileSync('src/cached-audio.ts', output);
+  console.log('\n✓ Wrote to src/cached-audio.ts');
 }
 
 async function generateSingleAudio(prompt: string): Promise<string | null> {
