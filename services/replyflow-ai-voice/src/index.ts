@@ -5035,7 +5035,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     const MULAW_CLIP = 32635;
     const muLawData = new Uint8Array(pcmData.length);
     for (let i = 0; i < pcmData.length; i++) {
-      // Convert float32 to 16-bit integer
+      // Convert float32 to 16-bit integer with clipping
       let sample = Math.max(-1, Math.min(1, pcmData[i]));
       let linear = Math.floor(sample * 32767);
 
@@ -5053,6 +5053,23 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       muLawData[i] = mulawByte;
     }
     return Buffer.from(muLawData);
+  };
+
+  // Cubic interpolation for higher-quality resampling
+  const cubicInterpolate = (samples: Float32Array, position: number): number => {
+    const i = Math.floor(position);
+    const frac = position - i;
+    const p0 = samples[Math.max(0, i - 1)];
+    const p1 = samples[i];
+    const p2 = samples[Math.min(samples.length - 1, i + 1)];
+    const p3 = samples[Math.min(samples.length - 1, i + 2)];
+
+    const a0 = p3 - p2 - p0 + p1;
+    const a1 = p0 - p1 - a0;
+    const a2 = p2 - p0;
+    const a3 = p1;
+
+    return a0 * frac * frac * frac + a1 * frac * frac + a2 * frac + a3;
   };
 
   // Generate test tone (440Hz sine wave at 8kHz with proper PCM16 scaling)
@@ -5128,15 +5145,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       const ratio = sourceSampleRate / targetSampleRate;
       const newLength = Math.floor(pcmData.length / ratio);
       resampledPcm = new Float32Array(newLength);
-      resamplerMethod = 'linear_interpolation';
+      resamplerMethod = 'cubic_interpolation';
 
-      // Linear interpolation for better quality than nearest neighbor
+      // Cubic interpolation for higher quality resampling
       for (let i = 0; i < newLength; i++) {
         const srcIndex = i * ratio;
-        const srcIndexFloor = Math.floor(srcIndex);
-        const srcIndexCeil = Math.min(srcIndexFloor + 1, pcmData.length - 1);
-        const frac = srcIndex - srcIndexFloor;
-        resampledPcm[i] = pcmData[srcIndexFloor] * (1 - frac) + pcmData[srcIndexCeil] * frac;
+        resampledPcm[i] = cubicInterpolate(pcmData, srcIndex);
       }
 
       console.log('[SIMPLE MODE] =========================================');
@@ -5147,8 +5161,18 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[SIMPLE MODE] =========================================');
     }
 
+    // Calculate RMS and peak before gain
+    let sumSquares = 0;
+    let peak = 0;
+    for (let i = 0; i < resampledPcm.length; i++) {
+      const sample = resampledPcm[i];
+      sumSquares += sample * sample;
+      if (Math.abs(sample) > peak) peak = Math.abs(sample);
+    }
+    const rms = Math.sqrt(sumSquares / resampledPcm.length);
+
     // Apply gain reduction before μ-law conversion to prevent clipping
-    const gain = 0.7; // Reduce gain to prevent clipping
+    const gain = 0.75; // Moderate headroom
     let pcmMinBefore = Infinity;
     let pcmMaxBefore = -Infinity;
     for (let i = 0; i < resampledPcm.length; i++) {
@@ -5171,13 +5195,17 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     }
 
     console.log('[SIMPLE MODE] =========================================');
-    console.log('[SIMPLE MODE] event: gain_reduction_info');
+    console.log('[SIMPLE MODE] event: audio_quality_diagnostics');
+    console.log('[SIMPLE MODE] resampler_implementation:', resamplerMethod);
+    console.log('[SIMPLE MODE] rms_level_before_gain:', rms.toFixed(6));
+    console.log('[SIMPLE MODE] peak_level_before_gain:', peak.toFixed(6));
     console.log('[SIMPLE MODE] pcm_min_before_gain:', pcmMinBefore.toFixed(6));
     console.log('[SIMPLE MODE] pcm_max_before_gain:', pcmMaxBefore.toFixed(6));
     console.log('[SIMPLE MODE] gain_applied:', gain);
     console.log('[SIMPLE MODE] pcm_min_after_gain:', pcmMinAfter.toFixed(6));
     console.log('[SIMPLE MODE] pcm_max_after_gain:', pcmMaxAfter.toFixed(6));
     console.log('[SIMPLE MODE] clipped_sample_count:', clippedSampleCount);
+    console.log('[SIMPLE MODE] mulaw_encoder_implementation:', 'standard_g711');
     console.log('[SIMPLE MODE] =========================================');
 
     // Convert PCM to mu-law
