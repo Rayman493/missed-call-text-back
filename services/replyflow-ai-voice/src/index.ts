@@ -1491,8 +1491,31 @@ Speak ONLY the exact text in quotes above.`;
     console.log('[APPROVED PROMPT SEND] assistantSpeaking should already be TRUE');
     console.log('[APPROVED PROMPT SEND] Timestamp:', new Date().toISOString());
     console.log('[APPROVED PROMPT SEND] =========================================');
+
+    // ORDER TRACE: Before response.create send
+    const callSessionState = ws?.callSessionState || {};
+    console.log('[OPENING ORDER TRACE] =========================================');
+    console.log('[OPENING ORDER TRACE] event: sendApprovedPrompt_before_response_create');
+    console.log('[OPENING ORDER TRACE] responseId:', currentResponseId || 'pending');
+    console.log('[OPENING ORDER TRACE] stage:', stage);
+    console.log('[OPENING ORDER TRACE] assistantSpeaking:', callSessionState.assistantSpeaking || false);
+    console.log('[OPENING ORDER TRACE] authorizedResponseCreateSource:', authorizedResponseCreateSource || 'none');
+    console.log('[OPENING ORDER TRACE] responseAuthorized:', (ws?.twilioHandler as any)?.responseAuthorized || false);
+    console.log('[OPENING ORDER TRACE] timestamp:', new Date().toISOString());
+    console.log('[OPENING ORDER TRACE] =========================================');
     
     openAiWs.send(JSON.stringify(message));
+
+    // ORDER TRACE: After response.create send
+    console.log('[OPENING ORDER TRACE] =========================================');
+    console.log('[OPENING ORDER TRACE] event: sendApprovedPrompt_after_response_create');
+    console.log('[OPENING ORDER TRACE] responseId:', currentResponseId || 'pending');
+    console.log('[OPENING ORDER TRACE] stage:', stage);
+    console.log('[OPENING ORDER TRACE] assistantSpeaking:', callSessionState.assistantSpeaking || false);
+    console.log('[OPENING ORDER TRACE] authorizedResponseCreateSource:', authorizedResponseCreateSource || 'none');
+    console.log('[OPENING ORDER TRACE] responseAuthorized:', (ws?.twilioHandler as any)?.responseAuthorized || false);
+    console.log('[OPENING ORDER TRACE] timestamp:', new Date().toISOString());
+    console.log('[OPENING ORDER TRACE] =========================================');
     console.log('[APPROVED RESPONSE CREATE SENT] =========================================');
     console.log('[APPROVED RESPONSE CREATE SENT] Response.create sent for stage:', stage);
     console.log('[APPROVED RESPONSE CREATE SENT] Timestamp:', new Date().toISOString());
@@ -1749,8 +1772,19 @@ function sendStagePrompt(
     console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] Timestamp:', new Date().toISOString());
     console.log('[ASSISTANT SPEAKING TRUE - BEFORE RESPONSE CREATE] =========================================');
 
+    const oldValue = callSessionState.assistantSpeaking;
     callSessionState.assistantSpeaking = true;
     assistantSpeaking = true; // Sync local variable
+
+    console.log('[ASSISTANT STATE WRITE] =========================================');
+    console.log('[ASSISTANT STATE WRITE] function: sendStagePrompt');
+    console.log('[ASSISTANT STATE WRITE] location: before OpenAI send');
+    console.log('[ASSISTANT STATE WRITE] oldValue:', oldValue);
+    console.log('[ASSISTANT STATE WRITE] newValue:', callSessionState.assistantSpeaking);
+    console.log('[ASSISTANT STATE WRITE] responseId: pending');
+    console.log('[ASSISTANT STATE WRITE] stage:', stage);
+    console.log('[ASSISTANT STATE WRITE] timestamp:', new Date().toISOString());
+    console.log('[ASSISTANT STATE WRITE] =========================================');
     callSessionState.lastPromptAt = Date.now();
 
     // Sync to twilioHandler for twilio-stream.ts access (single source of truth: callSessionState)
@@ -8083,11 +8117,25 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 if (process.env.DEBUG_AI_VOICE === 'true') {
                   console.log('[OPENAI RECV] response.output_audio.delta');
                 }
-                
+
                 // Check if this is the final closing response audio
                 const authorizedFinalResponseId = (twilioHandler as any).authorizedFinalResponseId;
                 const currentResponseId = message.response_id || 'unknown';
                 const isFinalResponse = currentResponseId === authorizedFinalResponseId;
+
+                // ORDER TRACE: First audio delta for opening prompt
+                if (intakeData?.stage === 'ask_name_reason' && !(twilioHandler as any).firstPromptAudioDeltaLogged) {
+                  (twilioHandler as any).firstPromptAudioDeltaLogged = true;
+                  console.log('[OPENING ORDER TRACE] =========================================');
+                  console.log('[OPENING ORDER TRACE] event: first_response_output_audio_delta');
+                  console.log('[OPENING ORDER TRACE] responseId:', currentResponseId);
+                  console.log('[OPENING ORDER TRACE] stage:', intakeData?.stage || 'unknown');
+                  console.log('[OPENING ORDER TRACE] assistantSpeaking:', callSessionState.assistantSpeaking || false);
+                  console.log('[OPENING ORDER TRACE] authorizedResponseCreateSource:', authorizedResponseCreateSource || 'none');
+                  console.log('[OPENING ORDER TRACE] responseAuthorized:', (twilioHandler as any)?.responseAuthorized || false);
+                  console.log('[OPENING ORDER TRACE] timestamp:', new Date().toISOString());
+                  console.log('[OPENING ORDER TRACE] =========================================');
+                }
                 
                 // Force-allow final close audio if finalClosingStarted is true, regardless of response ID
                 const isFinalClosingStarted = (twilioHandler as any).finalClosingStarted;
@@ -8710,6 +8758,17 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               if (message.type === 'response.created') {
                 console.log('[OPENAI RECV] response.created');
                 const actualResponseId = message.response_id || 'unknown';
+
+                // ORDER TRACE: response.created received
+                console.log('[OPENING ORDER TRACE] =========================================');
+                console.log('[OPENING ORDER TRACE] event: response_created');
+                console.log('[OPENING ORDER TRACE] responseId:', actualResponseId);
+                console.log('[OPENING ORDER TRACE] stage:', intakeData?.stage || 'unknown');
+                console.log('[OPENING ORDER TRACE] assistantSpeaking:', callSessionState.assistantSpeaking || false);
+                console.log('[OPENING ORDER TRACE] authorizedResponseCreateSource:', authorizedResponseCreateSource || 'none');
+                console.log('[OPENING ORDER TRACE] responseAuthorized:', (twilioHandler as any)?.responseAuthorized || false);
+                console.log('[OPENING ORDER TRACE] timestamp:', new Date().toISOString());
+                console.log('[OPENING ORDER TRACE] =========================================');
 
                 console.log('[RESPONSE CREATE SOURCE] =========================================');
                 console.log('[RESPONSE CREATE SOURCE] source:', authorizedResponseCreateSource || 'UNAUTHORIZED');

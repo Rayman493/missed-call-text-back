@@ -395,10 +395,24 @@ export class TwilioStreamHandler {
    * Send audio to Twilio (internal method - bypasses buffering)
    */
   sendAudioInternal(audioData: Buffer) {
+    // ORDER TRACE: sendAudioInternal called
+    const currentStage = (this as any)._currentStage || 'unknown';
+    if (currentStage === 'ask_name_reason' && !(this as any).firstPromptSendAudioInternalLogged) {
+      (this as any).firstPromptSendAudioInternalLogged = true;
+      console.log('[OPENING ORDER TRACE] =========================================');
+      console.log('[OPENING ORDER TRACE] event: sendAudioInternal');
+      console.log('[OPENING ORDER TRACE] responseId:', this.currentResponseId || 'pending');
+      console.log('[OPENING ORDER TRACE] stage:', currentStage);
+      console.log('[OPENING ORDER TRACE] assistantSpeaking:', (this as any).assistantSpeaking || false);
+      console.log('[OPENING ORDER TRACE] authorizedResponseCreateSource:', (this as any).authorizedResponseCreateSource || 'none');
+      console.log('[OPENING ORDER TRACE] responseAuthorized:', this.responseAuthorized || false);
+      console.log('[OPENING ORDER TRACE] timestamp:', new Date().toISOString());
+      console.log('[OPENING ORDER TRACE] =========================================');
+    }
+
     if (this.ws?.readyState === WebSocket.OPEN) {
       const callState = (this as any).callState || 'active';
       const finalClosingStarted = (this as any).finalClosingStarted || false;
-      const currentStage = (this as any)._currentStage || 'unknown';
       const assistantSpeaking = (this as any).assistantSpeaking || false;
       
       // Track chunk count sent
@@ -482,12 +496,26 @@ export class TwilioStreamHandler {
    * Send audio to Twilio with buffering and validation
    */
   sendAudio(audioData: Buffer) {
+    // ORDER TRACE: sendAudio called
+    const currentStage = (this as any)._currentStage || 'unknown';
+    if (currentStage === 'ask_name_reason' && !(this as any).firstPromptSendAudioLogged) {
+      (this as any).firstPromptSendAudioLogged = true;
+      console.log('[OPENING ORDER TRACE] =========================================');
+      console.log('[OPENING ORDER TRACE] event: sendAudio');
+      console.log('[OPENING ORDER TRACE] responseId:', this.currentResponseId || 'pending');
+      console.log('[OPENING ORDER TRACE] stage:', currentStage);
+      console.log('[OPENING ORDER TRACE] assistantSpeaking:', (this as any).assistantSpeaking || false);
+      console.log('[OPENING ORDER TRACE] authorizedResponseCreateSource:', (this as any).authorizedResponseCreateSource || 'none');
+      console.log('[OPENING ORDER TRACE] responseAuthorized:', this.responseAuthorized || false);
+      console.log('[OPENING ORDER TRACE] timestamp:', new Date().toISOString());
+      console.log('[OPENING ORDER TRACE] =========================================');
+    }
+
     // Buffer audio if response is not yet authorized
     // Buffer ALL chunks when not authorized, regardless of currentResponseId state
     // This preserves early chunks that arrive before response.created
     if (!this.responseAuthorized) {
       this.audioBufferedCount++;
-      const currentStage = (this as any)._currentStage || 'unknown';
       const isFirstChunk = this.audioBufferedCount === 1;
       
       console.log('[AUDIO BUFFERED] =========================================');
