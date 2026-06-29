@@ -5067,7 +5067,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         model: 'tts-1',
         input: text,
         voice: 'alloy',
-        response_format: 'mp3',
+        response_format: 'wav',
       }),
     });
 
@@ -5076,11 +5076,24 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    const mp3Buffer = Buffer.from(arrayBuffer);
+    const wavBuffer = Buffer.from(arrayBuffer);
 
-    // Decode MP3 to PCM
-    const audioBuffer = await audioDecode(mp3Buffer);
+    console.log('[SIMPLE MODE] =========================================');
+    console.log('[SIMPLE MODE] event: tts_input_format');
+    console.log('[SIMPLE MODE] format:', 'wav');
+    console.log('[SIMPLE MODE] bufferSize:', wavBuffer.length);
+    console.log('[SIMPLE MODE] =========================================');
+
+    // Decode WAV to PCM
+    const audioBuffer = await audioDecode(wavBuffer);
     const pcmData = audioBuffer.channelData[0]; // Get mono channel
+
+    console.log('[SIMPLE MODE] =========================================');
+    console.log('[SIMPLE MODE] event: decoded_audio_info');
+    console.log('[SIMPLE MODE] decoded_sample_rate:', audioBuffer.sampleRate);
+    console.log('[SIMPLE MODE] decoded_channels:', audioBuffer.channelData.length);
+    console.log('[SIMPLE MODE] pcm_sample_count:', pcmData.length);
+    console.log('[SIMPLE MODE] =========================================');
 
     // Resample to 8kHz if needed (Twilio expects 8kHz mu-law)
     const targetSampleRate = 8000;
@@ -5094,10 +5107,23 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         const srcIndex = Math.floor(i * ratio);
         resampledPcm[i] = pcmData[srcIndex];
       }
+      console.log('[SIMPLE MODE] =========================================');
+      console.log('[SIMPLE MODE] event: resampled_audio_info');
+      console.log('[SIMPLE MODE] resampled_sample_rate:', targetSampleRate);
+      console.log('[SIMPLE MODE] resampled_sample_count:', resampledPcm.length);
+      console.log('[SIMPLE MODE] =========================================');
     }
 
     // Convert PCM to mu-law
-    return pcmToMulaw(resampledPcm);
+    const mulawBuffer = pcmToMulaw(resampledPcm);
+
+    console.log('[SIMPLE MODE] =========================================');
+    console.log('[SIMPLE MODE] event: mulaw_conversion_info');
+    console.log('[SIMPLE MODE] mulaw_byte_count:', mulawBuffer.length);
+    console.log('[SIMPLE MODE] first_20_mulaw_bytes_hex:', mulawBuffer.slice(0, 20).toString('hex'));
+    console.log('[SIMPLE MODE] =========================================');
+
+    return mulawBuffer;
   };
 
   console.log('[SIMPLE MODE] =========================================');
@@ -5194,6 +5220,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       const base64Audio = mulawBuffer.toString('base64');
       const chunkSize = 160; // 20ms at 8kHz mu-law (160 bytes)
       let totalChunks = 0;
+      let totalPayloadBytes = 0;
 
       for (let i = 0; i < base64Audio.length; i += chunkSize) {
         const chunk = base64Audio.substring(i, i + chunkSize);
@@ -5206,13 +5233,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         };
         ws.send(JSON.stringify(mediaMessage));
         totalChunks++;
+        totalPayloadBytes += chunk.length;
         // Send at real-time rate (20ms chunks)
         await new Promise(resolve => setTimeout(resolve, 20));
       }
 
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: tts_audio_sent');
-      console.log('[SIMPLE MODE] chunks:', totalChunks);
+      console.log('[SIMPLE MODE] chunk_count:', totalChunks);
+      console.log('[SIMPLE MODE] avg_chunk_size:', Math.round(totalPayloadBytes / totalChunks));
       console.log('[SIMPLE MODE] =========================================');
 
       // Mark speaking as false after audio is sent
