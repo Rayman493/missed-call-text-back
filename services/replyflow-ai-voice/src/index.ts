@@ -5083,7 +5083,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     intakeData: {} as any,
     openAiWs: null as WebSocket | null,
     queuedTranscript: null as string | null,
-    ttsCompleteTime: 0 as number
+    ttsCompleteTime: 0 as number,
+    simpleModeFinalTimeout: null as NodeJS.Timeout | null
   };
 
   // Hardcoded prompts for each stage
@@ -5253,7 +5254,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         const message = {
           type: 'response.create',
           response: {
-            instructions: `Speak exactly this sentence and nothing else:\n"${prompt}"`
+            instructions: `Read the quoted text verbatim. Do not add, remove, or change any words. Stop after the final word.\n"${prompt}"`
           }
         };
 
@@ -5426,20 +5427,45 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
               state.queuedTranscript = null;
             }
             
-            // Handle final complete stage close
-            if (state.currentStage === 'complete') {
+            // DO NOT hang up on response.done for final goodbye
+            // Wait for response.output_audio.done instead
+          }
+
+          // Handle response.output_audio.done for final goodbye completion
+          if (message.type === 'response.output_audio.done' && state.currentStage === 'complete') {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: final_goodbye_audio_done');
+            console.log('[SIMPLE MODE] =========================================');
+            
+            // Send Twilio mark to track audio playback completion
+            const markName = 'final-goodbye-complete';
+            const markMessage = {
+              event: 'mark',
+              streamSid: state.streamSid,
+              mark: {
+                name: markName
+              }
+            };
+            
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: final_goodbye_mark_sent');
+            console.log('[SIMPLE MODE] markName:', markName);
+            console.log('[SIMPLE MODE] =========================================');
+            
+            ws.send(JSON.stringify(markMessage));
+            
+            // Set fallback timeout if mark is never received (10 seconds)
+            state.simpleModeFinalTimeout = setTimeout(() => {
               console.log('[SIMPLE MODE] =========================================');
-              console.log('[SIMPLE MODE] event: final_response_done_close_scheduled');
-              console.log('[SIMPLE MODE] delayMs:', 2000);
+              console.log('[SIMPLE MODE] event: final_goodbye_fallback_timeout');
+              console.log('[SIMPLE MODE] fallbackMs:', 10000);
               console.log('[SIMPLE MODE] =========================================');
-              setTimeout(() => {
-                logSimple('call_complete');
-                ws.close();
-                if (state.openAiWs) {
-                  state.openAiWs.close();
-                }
-              }, 2000);
-            }
+              logSimple('call_complete');
+              ws.close();
+              if (state.openAiWs) {
+                state.openAiWs.close();
+              }
+            }, 10000);
           }
 
           // Only handle transcription
@@ -5532,6 +5558,38 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
             audio: message.media.payload
           };
           state.openAiWs.send(JSON.stringify(audioMessage));
+        }
+      } else if (message.event === 'mark') {
+        // Handle Twilio mark events
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] event: mark_received');
+        console.log('[SIMPLE MODE] markName:', message.mark?.name);
+        console.log('[SIMPLE MODE] =========================================');
+
+        // Handle final goodbye mark
+        if (message.mark?.name === 'final-goodbye-complete') {
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: final_goodbye_mark_received');
+          console.log('[SIMPLE MODE] =========================================');
+          
+          // Clear fallback timeout since mark was received
+          if (state.simpleModeFinalTimeout) {
+            clearTimeout(state.simpleModeFinalTimeout);
+            state.simpleModeFinalTimeout = null;
+          }
+
+          // Hang up after 2 second buffer
+          setTimeout(() => {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: final_goodbye_hangup');
+            console.log('[SIMPLE MODE] bufferMs:', 2000);
+            console.log('[SIMPLE MODE] =========================================');
+            logSimple('call_complete');
+            ws.close();
+            if (state.openAiWs) {
+              state.openAiWs.close();
+            }
+          }, 2000);
         }
       }
     } catch (error) {
