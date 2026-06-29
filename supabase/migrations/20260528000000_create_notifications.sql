@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS public.notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
-  type TEXT NOT NULL CHECK (type IN ('new_lead', 'customer_reply', 'followup_completed', 'followup_sent', 'forwarding_disconnected', 'sms_failed', 'trial_ending', 'subscription_issue', 'voicemail_received')),
+  type TEXT NOT NULL CHECK (type IN ('new_lead', 'customer_reply', 'followup_completed', 'followup_sent', 'forwarding_disconnected', 'sms_failed', 'trial_ending', 'subscription_issue', 'voicemail_received', 'missed_call')),
   title TEXT NOT NULL,
   message TEXT NOT NULL,
   data JSONB,
