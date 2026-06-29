@@ -1519,10 +1519,14 @@ Speak ONLY the exact text in quotes above.`;
     // Since response.created may not be sent by OpenAI in all cases, we set it here
     const tempResponseId = 'pending_' + Date.now() + '_' + Math.random().toString(36).substring(7);
     console.log('[ASSISTANT SPEAKING WRITE] =========================================');
-    console.log('[ASSISTANT SPEAKING WRITE] value: true');
-    console.log('[ASSISTANT SPEAKING WRITE] function: sendApprovedPrompt (before response.create)');
-    console.log('[ASSISTANT SPEAKING WRITE] stage:', stage);
+    console.log('[ASSISTANT SPEAKING WRITE] oldValue:', callSessionState.assistantSpeaking);
+    console.log('[ASSISTANT SPEAKING WRITE] newValue: true');
+    console.log('[ASSISTANT SPEAKING WRITE] function: sendApprovedPrompt');
+    console.log('[ASSISTANT SPEAKING WRITE] line: 1528');
+    console.log('[ASSISTANT SPEAKING WRITE] reason: Before sending response.create to OpenAI');
     console.log('[ASSISTANT SPEAKING WRITE] responseId:', tempResponseId);
+    console.log('[ASSISTANT SPEAKING WRITE] stage:', stage);
+    console.log('[ASSISTANT SPEAKING WRITE] stack:', new Error().stack?.split('\n').slice(1, 5).join('\n') || 'unknown');
     console.log('[ASSISTANT SPEAKING WRITE] timestamp:', new Date().toISOString());
     console.log('[ASSISTANT SPEAKING WRITE] =========================================');
     callSessionState.assistantSpeaking = true;
@@ -8371,12 +8375,16 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] Stage:', intakeData?.stage || 'unknown');
                 console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] Timestamp:', new Date().toISOString());
                 console.log('[ASSISTANT SPEAKING FALSE - PLAYBACK COMPLETE] =========================================');
-                
+
                 console.log('[ASSISTANT SPEAKING WRITE] =========================================');
-                console.log('[ASSISTANT SPEAKING WRITE] value: false');
+                console.log('[ASSISTANT SPEAKING WRITE] oldValue:', previousAssistantSpeaking);
+                console.log('[ASSISTANT SPEAKING WRITE] newValue: false');
                 console.log('[ASSISTANT SPEAKING WRITE] function: OpenAI message handler (response.audio.done)');
-                console.log('[ASSISTANT SPEAKING WRITE] stage:', intakeData?.stage || 'unknown');
+                console.log('[ASSISTANT SPEAKING WRITE] line: 8382');
+                console.log('[ASSISTANT SPEAKING WRITE] reason: Audio generation complete, allow caller audio');
                 console.log('[ASSISTANT SPEAKING WRITE] responseId:', message.response_id || 'unknown');
+                console.log('[ASSISTANT SPEAKING WRITE] stage:', intakeData?.stage || 'unknown');
+                console.log('[ASSISTANT SPEAKING WRITE] stack:', new Error().stack?.split('\n').slice(1, 5).join('\n') || 'unknown');
                 console.log('[ASSISTANT SPEAKING WRITE] timestamp:', new Date().toISOString());
                 console.log('[ASSISTANT SPEAKING WRITE] =========================================');
                 callSessionState.assistantSpeaking = false;

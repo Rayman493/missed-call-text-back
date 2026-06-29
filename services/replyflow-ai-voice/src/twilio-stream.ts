@@ -192,6 +192,16 @@ export class TwilioStreamHandler {
               // CRITICAL FIX: Read assistantSpeaking from shared callSessionState, not local property
               const callSessionState = (this as any).callSessionState || {};
               const assistantSpeaking = callSessionState.assistantSpeaking || false;
+
+              // Instrument read for media gating
+              console.log('[ASSISTANT SPEAKING READ] =========================================');
+              console.log('[ASSISTANT SPEAKING READ] value:', assistantSpeaking);
+              console.log('[ASSISTANT SPEAKING READ] function: handleMessage (media event handler)');
+              console.log('[ASSISTANT SPEAKING READ] line: 194');
+              console.log('[ASSISTANT SPEAKING READ] responseId:', callSessionState.activeResponseId || 'unknown');
+              console.log('[ASSISTANT SPEAKING READ] stage:', callSessionState.currentStage || 'unknown');
+              console.log('[ASSISTANT SPEAKING READ] timestamp:', new Date().toISOString());
+              console.log('[ASSISTANT SPEAKING READ] =========================================');
               const terminalClosingResponseStarted = (this as any).terminalClosingResponseStarted || false;
               const confirmationState = (this as any).confirmationState || 'collecting_info';
 
@@ -271,10 +281,14 @@ export class TwilioStreamHandler {
                   
                   // Reset assistantSpeaking to allow caller audio
                   console.log('[ASSISTANT SPEAKING WRITE] =========================================');
-                  console.log('[ASSISTANT SPEAKING WRITE] value: false');
+                  console.log('[ASSISTANT SPEAKING WRITE] oldValue:', beforeAssistantSpeaking);
+                  console.log('[ASSISTANT SPEAKING WRITE] newValue: false');
                   console.log('[ASSISTANT SPEAKING WRITE] function: handleMessage (media event handler)');
-                  console.log('[ASSISTANT SPEAKING WRITE] stage:', callSessionState.currentStage || 'unknown');
+                  console.log('[ASSISTANT SPEAKING WRITE] line: 280');
+                  console.log('[ASSISTANT SPEAKING WRITE] reason: Audio blocking state invalid (activeResponseId unknown/null or timeout)');
                   console.log('[ASSISTANT SPEAKING WRITE] responseId:', activeResponseId || 'unknown');
+                  console.log('[ASSISTANT SPEAKING WRITE] stage:', callSessionState.currentStage || 'unknown');
+                  console.log('[ASSISTANT SPEAKING WRITE] stack:', new Error().stack?.split('\n').slice(1, 5).join('\n') || 'unknown');
                   console.log('[ASSISTANT SPEAKING WRITE] timestamp:', new Date().toISOString());
                   console.log('[ASSISTANT SPEAKING WRITE] =========================================');
                   callSessionState.assistantSpeaking = false;
