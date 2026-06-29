@@ -75,15 +75,19 @@ export default function AnalyticsContent() {
           console.error('[Analytics] Failed to fetch leads:', leadsError.message)
         }
 
-        // Fetch messages for reply rate calculation
-        const { data: messages, error: messagesError } = await supabase
-          .from('messages')
-          .select('id, direction, created_at, conversation_id, lead_id')
-          .eq('business_id', business.id)
-          .gte('created_at', thirtyDaysAgo)
-
-        if (messagesError) {
-          console.error('[Analytics] Failed to fetch messages:', messagesError.message)
+        // Fetch messages for reply rate calculation - query by lead_id to match DashboardMetrics
+        const leadIds = leads?.map((l: any) => l.id) || []
+        let messages = []
+        if (leadIds.length > 0) {
+          const { data: messagesData, error: messagesError } = await supabase
+            .from('messages')
+            .select('id, direction, created_at, conversation_id, lead_id')
+            .in('lead_id', leadIds)
+            .gte('created_at', thirtyDaysAgo)
+          messages = messagesData || []
+          if (messagesError) {
+            console.error('[Analytics] Failed to fetch messages:', messagesError.message)
+          }
         }
 
         // Fetch AI call records

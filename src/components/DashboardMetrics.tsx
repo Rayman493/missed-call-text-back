@@ -14,6 +14,7 @@ interface MetricsData {
   leadsGenerated: number
   messagesSent: number
   followUpsSent: number
+  customerReplies: number
   activeConversations: number
   recoveryRate: number
   followUpResponseRate: number
@@ -32,6 +33,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
     leadsGenerated: 0,
     messagesSent: 0,
     followUpsSent: 0,
+    customerReplies: 0,
     activeConversations: 0,
     recoveryRate: 0,
     followUpResponseRate: 0,
@@ -101,6 +103,13 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           return isDirectionOutbound || isFromBusinessPhone
         }) || []
 
+        // Filter inbound messages (customer replies)
+        const inboundMessages = messages?.filter((m: any) => {
+          const isDirectionInbound = m.direction === 'inbound' || m.direction?.startsWith?.('inbound')
+          const isToBusinessPhone = m.to_phone === business.twilio_phone_number
+          return isDirectionInbound || isToBusinessPhone
+        }) || []
+
         // Fetch messages sent - today
         const { data: businessLeadsToday } = await supabase
           .from('leads')
@@ -120,10 +129,10 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           messagesToday = messagesTodayData || []
         }
 
-        // Fetch active conversations (leads with recent activity) - use same 30-day period for accurate recovery rate
+        // Fetch active conversations (leads with recent activity) - filter by status
         const { data: activeConversations } = await supabase
           .from('leads')
-          .select('id')
+          .select('id, status')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
@@ -146,7 +155,8 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         const missedCallsCaptured = leads?.length || 0
         const leadsGenerated = missedCallsCaptured
         const messagesSent = outboundMessages.length
-        const activeConversationsCount = activeConversations?.length || 0
+        const customerReplies = inboundMessages.length
+        const activeConversationsCount = activeConversations?.filter((l: any) => l.status === 'active' || l.status === 'new').length || 0
         // Recovery rate should be recovered leads / captured leads, not messages sent / captured leads
         const recoveryRate = missedCallsCaptured > 0 ? Math.min(100, Math.max(0, Math.round((activeConversationsCount / missedCallsCaptured) * 100))) : 0
 
@@ -164,6 +174,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           leadsGenerated,
           messagesSent,
           followUpsSent,
+          customerReplies,
           activeConversations: activeConversationsCount,
           recoveryRate,
           followUpResponseRate,

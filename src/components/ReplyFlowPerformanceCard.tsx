@@ -35,12 +35,17 @@ export default function ReplyFlowPerformanceCard() {
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
-        // Fetch messages
-        const { data: messages } = await supabase
-          .from('messages')
-          .select('id, direction, created_at')
-          .eq('business_id', business.id)
-          .gte('created_at', thirtyDaysAgo)
+        // Fetch messages - query by lead_id to match DashboardMetrics
+        const leadIds = leads?.map((l: any) => l.id) || []
+        let messages = []
+        if (leadIds.length > 0) {
+          const { data: messagesData } = await supabase
+            .from('messages')
+            .select('id, direction, created_at')
+            .in('lead_id', leadIds)
+            .gte('created_at', thirtyDaysAgo)
+          messages = messagesData || []
+        }
 
         // Fetch follow-ups from follow_up_jobs table (not follow_ups)
         const { data: followUps } = await supabase
