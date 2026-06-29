@@ -5029,264 +5029,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   // Extract parameters from URL
   const url = new URL(req.url || '', `http://${req.headers.host}`);
 
-  // Helper to convert PCM to mu-law (standard G.711 μ-law)
-  const pcmToMulaw = (pcmData: Float32Array): Buffer => {
-    const MULAW_BIAS = 0x84;
-    const MULAW_CLIP = 32635;
-    const muLawData = new Uint8Array(pcmData.length);
-    for (let i = 0; i < pcmData.length; i++) {
-      // Convert float32 to 16-bit integer with clipping
-      let sample = Math.max(-1, Math.min(1, pcmData[i]));
-      let linear = Math.floor(sample * 32767);
-
-      // Standard G.711 μ-law encoding
-      let sign = (linear >> 8) & 0x80;
-      if (sign !== 0) linear = -linear;
-      if (linear > MULAW_CLIP) linear = MULAW_CLIP;
-      linear = linear + MULAW_BIAS;
-
-      let exponent = 7;
-      for (let expMask = 0x4000; !(linear & expMask) && exponent > 0; exponent--, expMask >>= 1) {
-      }
-      let mantissa = (linear >> (exponent + 3)) & 0x0F;
-      let mulawByte = ~(sign | (exponent << 4) | mantissa);
-      muLawData[i] = mulawByte;
-    }
-    return Buffer.from(muLawData);
-  };
-
-  // Cubic interpolation for higher-quality resampling
-  const cubicInterpolate = (samples: Float32Array, position: number): number => {
-    const i = Math.floor(position);
-    const frac = position - i;
-    const p0 = samples[Math.max(0, i - 1)];
-    const p1 = samples[i];
-    const p2 = samples[Math.min(samples.length - 1, i + 1)];
-    const p3 = samples[Math.min(samples.length - 1, i + 2)];
-
-    const a0 = p3 - p2 - p0 + p1;
-    const a1 = p0 - p1 - a0;
-    const a2 = p2 - p0;
-    const a3 = p1;
-
-    return a0 * frac * frac * frac + a1 * frac * frac + a2 * frac + a3;
-  };
-
-  // Simple low-pass filter (IIR) to reduce high-frequency aliasing before downsampling
-  const applyLowPassFilter = (samples: Float32Array, sampleRate: number, cutoffHz: number): Float32Array => {
-    const filtered = new Float32Array(samples.length);
-    const rc = 1.0 / (cutoffHz * 2 * Math.PI);
-    const dt = 1.0 / sampleRate;
-    const alpha = dt / (rc + dt);
-
-    filtered[0] = samples[0];
-    for (let i = 1; i < samples.length; i++) {
-      filtered[i] = alpha * samples[i] + (1 - alpha) * filtered[i - 1];
-    }
-    return filtered;
-  };
-
-  // Simple de-esser to reduce sibilance
-  const applyDeEsser = (samples: Float32Array, sampleRate: number): { samples: Float32Array, reduction: number } => {
-    const filtered = new Float32Array(samples.length);
-    let totalReduction = 0;
-    let reductionCount = 0;
-
-    // Simple high-pass filter to detect sibilance (high frequencies)
-    const sibilanceThreshold = 0.1;
-    const deEssFactor = 0.7;
-
-    // Simple difference-based sibilance detection
-    for (let i = 2; i < samples.length - 2; i++) {
-      const diff = Math.abs(samples[i] - samples[i - 2]);
-      if (diff > sibilanceThreshold) {
-        // Reduce high-frequency energy
-        filtered[i] = samples[i] * deEssFactor;
-        totalReduction += (1 - deEssFactor);
-        reductionCount++;
-      } else {
-        filtered[i] = samples[i];
-      }
-    }
-
-    // Copy edges
-    filtered[0] = samples[0];
-    filtered[1] = samples[1];
-    filtered[samples.length - 2] = samples[samples.length - 2];
-    filtered[samples.length - 1] = samples[samples.length - 1];
-
-    const avgReduction = reductionCount > 0 ? totalReduction / reductionCount : 0;
-    return { samples: filtered, reduction: avgReduction };
-  };
-
-  // Generate test tone (440Hz sine wave at 8kHz with proper PCM16 scaling)
-  const generateTestTone = (durationSeconds: number, frequency: number = 440, sampleRate: number = 8000, amplitude: number = 0.15): Buffer => {
-    const numSamples = durationSeconds * sampleRate;
-    const pcm = new Float32Array(numSamples);
-    const maxInt16 = 32767;
-    const amplitudeScaled = amplitude * maxInt16;
-
-    for (let i = 0; i < numSamples; i++) {
-      const t = i / sampleRate;
-      pcm[i] = (Math.sin(2 * Math.PI * frequency * t) * amplitudeScaled) / maxInt16;
-    }
-
-    return pcmToMulaw(pcm);
-  };
-
-  // Generate silence (all zeros should encode to 0xFF in μ-law)
-  const generateSilence = (durationSeconds: number, sampleRate: number = 8000): Buffer => {
-    const numSamples = durationSeconds * sampleRate;
-    const pcm = new Float32Array(numSamples);
-    // All zeros - should encode to 0xFF in μ-law
-    return pcmToMulaw(pcm);
-  };
-
-  // Helper to generate speech using OpenAI TTS API (deterministic)
-  const generateTTSAudio = async (text: string): Promise<Buffer> => {
-    const openAiUrl = 'https://api.openai.com/v1/audio/speech';
-    const response = await fetch(openAiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'tts-1',
-        input: text,
-        voice: 'alloy',
-        response_format: 'pcm',
-        sample_rate: 24000, // Request 24kHz PCM directly
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI TTS API error: ${response.status} ${response.statusText}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const pcmBuffer = Buffer.from(arrayBuffer);
-
-    console.log('[SIMPLE MODE] =========================================');
-    console.log('[SIMPLE MODE] event: tts_input_format');
-    console.log('[SIMPLE MODE] format:', 'pcm');
-    console.log('[SIMPLE MODE] sample_rate:', 24000);
-    console.log('[SIMPLE MODE] bufferSize:', pcmBuffer.length);
-    console.log('[SIMPLE MODE] =========================================');
-
-    // Convert raw PCM buffer to Float32Array (16-bit signed PCM)
-    const pcmData = new Float32Array(pcmBuffer.length / 2);
-    for (let i = 0; i < pcmData.length; i++) {
-      const sample = pcmBuffer.readInt16LE(i * 2);
-      pcmData[i] = sample / 32768.0;
-    }
-
-    console.log('[SIMPLE MODE] =========================================');
-    console.log('[SIMPLE MODE] event: decoded_audio_info');
-    console.log('[SIMPLE MODE] decoded_sample_rate:', 24000);
-    console.log('[SIMPLE MODE] decoded_channels:', 1);
-    console.log('[SIMPLE MODE] pcm_sample_count:', pcmData.length);
-    console.log('[SIMPLE MODE] =========================================');
-
-    // Apply low-pass filter to reduce high-frequency aliasing before downsampling
-    const lowPassCutoffHz = 3400; // Below 4kHz Nyquist for 8kHz telephony
-    const lowPassFiltered = applyLowPassFilter(pcmData, 24000, lowPassCutoffHz);
-
-    console.log('[SIMPLE MODE] =========================================');
-    console.log('[SIMPLE MODE] event: low_pass_filter_info');
-    console.log('[SIMPLE MODE] low_pass_filter_enabled:', true);
-    console.log('[SIMPLE MODE] low_pass_cutoff_hz:', lowPassCutoffHz);
-    console.log('[SIMPLE MODE] =========================================');
-
-    // Apply de-esser to reduce sibilance
-    const { samples: deEssedPcm, reduction: sibilanceReduction } = applyDeEsser(lowPassFiltered, 24000);
-
-    console.log('[SIMPLE MODE] =========================================');
-    console.log('[SIMPLE MODE] event: de_esser_info');
-    console.log('[SIMPLE MODE] de_esser_enabled:', true);
-    console.log('[SIMPLE MODE] sibilance_reduction_applied:', sibilanceReduction.toFixed(6));
-    console.log('[SIMPLE MODE] =========================================');
-
-    // Resample to 8kHz (Twilio expects 8kHz mu-law)
-    const targetSampleRate = 8000;
-    const sourceSampleRate = 24000;
-    const ratio = sourceSampleRate / targetSampleRate;
-    const newLength = Math.floor(deEssedPcm.length / ratio);
-    const resampledPcm = new Float32Array(newLength);
-    const resamplerMethod = 'cubic_interpolation';
-
-    // Cubic interpolation for higher quality resampling
-    for (let i = 0; i < newLength; i++) {
-      const srcIndex = i * ratio;
-      resampledPcm[i] = cubicInterpolate(deEssedPcm, srcIndex);
-    }
-
-    console.log('[SIMPLE MODE] =========================================');
-    console.log('[SIMPLE MODE] event: resampled_audio_info');
-    console.log('[SIMPLE MODE] resampled_sample_rate:', targetSampleRate);
-    console.log('[SIMPLE MODE] resampled_sample_count:', resampledPcm.length);
-    console.log('[SIMPLE MODE] resampler_method:', resamplerMethod);
-    console.log('[SIMPLE MODE] =========================================');
-
-    // Calculate RMS and peak before gain
-    let sumSquares = 0;
-    let peak = 0;
-    for (let i = 0; i < resampledPcm.length; i++) {
-      const sample = resampledPcm[i];
-      sumSquares += sample * sample;
-      if (Math.abs(sample) > peak) peak = Math.abs(sample);
-    }
-    const rms = Math.sqrt(sumSquares / resampledPcm.length);
-
-    // Apply gain reduction before μ-law conversion to prevent clipping
-    const gain = 0.75; // Moderate headroom
-    let pcmMinBefore = Infinity;
-    let pcmMaxBefore = -Infinity;
-    for (let i = 0; i < resampledPcm.length; i++) {
-      if (resampledPcm[i] < pcmMinBefore) pcmMinBefore = resampledPcm[i];
-      if (resampledPcm[i] > pcmMaxBefore) pcmMaxBefore = resampledPcm[i];
-    }
-
-    // Apply gain
-    for (let i = 0; i < resampledPcm.length; i++) {
-      resampledPcm[i] = resampledPcm[i] * gain;
-    }
-
-    let pcmMinAfter = Infinity;
-    let pcmMaxAfter = -Infinity;
-    let clippedSampleCount = 0;
-    for (let i = 0; i < resampledPcm.length; i++) {
-      if (resampledPcm[i] < pcmMinAfter) pcmMinAfter = resampledPcm[i];
-      if (resampledPcm[i] > pcmMaxAfter) pcmMaxAfter = resampledPcm[i];
-      if (Math.abs(resampledPcm[i]) > 1.0) clippedSampleCount++;
-    }
-
-    console.log('[SIMPLE MODE] =========================================');
-    console.log('[SIMPLE MODE] event: audio_quality_diagnostics');
-    console.log('[SIMPLE MODE] resampler_implementation:', resamplerMethod);
-    console.log('[SIMPLE MODE] rms_level_before_gain:', rms.toFixed(6));
-    console.log('[SIMPLE MODE] peak_level_before_gain:', peak.toFixed(6));
-    console.log('[SIMPLE MODE] pcm_min_before_gain:', pcmMinBefore.toFixed(6));
-    console.log('[SIMPLE MODE] pcm_max_before_gain:', pcmMaxBefore.toFixed(6));
-    console.log('[SIMPLE MODE] gain_applied:', gain);
-    console.log('[SIMPLE MODE] pcm_min_after_gain:', pcmMinAfter.toFixed(6));
-    console.log('[SIMPLE MODE] pcm_max_after_gain:', pcmMaxAfter.toFixed(6));
-    console.log('[SIMPLE MODE] clipped_sample_count:', clippedSampleCount);
-    console.log('[SIMPLE MODE] mulaw_encoder_implementation:', 'standard_g711');
-    console.log('[SIMPLE MODE] =========================================');
-
-    // Convert PCM to mu-law
-    const mulawBuffer = pcmToMulaw(resampledPcm);
-
-    console.log('[SIMPLE MODE] =========================================');
-    console.log('[SIMPLE MODE] event: mulaw_conversion_info');
-    console.log('[SIMPLE MODE] mulaw_byte_count:', mulawBuffer.length);
-    console.log('[SIMPLE MODE] first_20_mulaw_bytes_hex:', mulawBuffer.slice(0, 20).toString('hex'));
-    console.log('[SIMPLE MODE] =========================================');
-
-    return mulawBuffer;
-  };
-
   console.log('[SIMPLE MODE] =========================================');
   console.log('[SIMPLE MODE] event: connection_start');
   console.log('[SIMPLE MODE] simple_mode_selected:', true);
@@ -5345,8 +5087,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[SIMPLE MODE] =========================================');
   };
 
-  // Helper to send prompt using deterministic TTS (async)
-  const sendPrompt = async (stage: string) => {
+  // Helper to send prompt using OpenAI Realtime response.create
+  const sendPrompt = (stage: string) => {
     const prompt = prompts[stage];
     if (!prompt) {
       console.log('[SIMPLE MODE] No prompt for stage:', stage);
@@ -5359,91 +5101,36 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[SIMPLE MODE] event: stage_prompt_mapping');
     console.log('[SIMPLE MODE] simple_mode_selected:', true);
     console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_hardcoded');
-    console.log('[SIMPLE MODE] sourceOfSpeech:', 'openai_tts_deterministic');
+    console.log('[SIMPLE MODE] sourceOfSpeech:', 'realtime_pcmu_native');
     console.log('[SIMPLE MODE] business_id:', state.businessId);
     console.log('[SIMPLE MODE] currentStage:', stage);
     console.log('[SIMPLE MODE] promptKey:', stage);
     console.log('[SIMPLE MODE] promptText:', prompt);
+    console.log('[SIMPLE MODE] response_create_stage:', stage);
+    console.log('[SIMPLE MODE] tts_pipeline_disabled:', true);
+    console.log('[SIMPLE MODE] custom_audio_processing_disabled:', true);
     console.log('[SIMPLE MODE] =========================================');
 
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
     try {
-      // Generate TTS audio using OpenAI TTS API
-      const mulawBuffer = await generateTTSAudio(prompt);
-
-      console.log('[SIMPLE MODE] =========================================');
-      console.log('[SIMPLE MODE] event: tts_audio_generated');
-      console.log('[SIMPLE MODE] audioSize:', mulawBuffer.length);
-      console.log('[SIMPLE MODE] format:', 'pcm_mulaw_8kHz');
-      console.log('[SIMPLE MODE] first_20_raw_bytes_hex:', mulawBuffer.slice(0, 20).toString('hex'));
-      console.log('[SIMPLE MODE] =========================================');
-
-      // Send mu-law audio to Twilio via WebSocket with fixed chunking
-      const chunkSize = 160; // 20ms at 8kHz mu-law (160 bytes)
-      let totalChunks = 0;
-      let totalPayloadBytes = 0;
-      const startTime = Date.now();
-
-      for (let i = 0; i < mulawBuffer.length; i += chunkSize) {
-        const rawChunk = mulawBuffer.slice(i, i + chunkSize);
-        const base64Chunk = rawChunk.toString('base64');
-        const mediaMessage = {
-          event: 'media',
-          streamSid: state.streamSid,
-          media: {
-            payload: base64Chunk
-          }
-        };
-        ws.send(JSON.stringify(mediaMessage));
-        totalChunks++;
-        totalPayloadBytes += base64Chunk.length;
-        // Send at real-time rate (20ms chunks)
-        await new Promise(resolve => setTimeout(resolve, 20));
-      }
-
-      const endTime = Date.now();
-      const sendIntervalMs = (endTime - startTime) / totalChunks;
-
-      const firstRawChunk = mulawBuffer.slice(0, chunkSize);
-      const firstBase64Chunk = firstRawChunk.toString('base64');
-
-      console.log('[SIMPLE MODE] =========================================');
-      console.log('[SIMPLE MODE] event: tts_audio_sent');
-      console.log('[SIMPLE MODE] chunk_count:', totalChunks);
-      console.log('[SIMPLE MODE] avg_chunk_size:', Math.round(totalPayloadBytes / totalChunks));
-      console.log('[SIMPLE MODE] first_chunk_raw_len:', firstRawChunk.length);
-      console.log('[SIMPLE MODE] payload_base64_length_first_chunk:', firstBase64Chunk.length);
-      console.log('[SIMPLE MODE] first_chunk_decoded_len_after_base64:', Buffer.from(firstBase64Chunk, 'base64').length);
-      console.log('[SIMPLE MODE] send_interval_ms_sample:', sendIntervalMs.toFixed(2));
-      console.log('[SIMPLE MODE] =========================================');
-
-      // Mark speaking as false after audio is sent
-      setTimeout(() => {
-        state.assistantSpeaking = false;
-        logSimple('tts_complete', { stage });
-
-        // Handle final complete stage close
-        if (stage === 'complete') {
-          console.log('[SIMPLE MODE] =========================================');
-          console.log('[SIMPLE MODE] event: final_tts_complete_close_scheduled');
-          console.log('[SIMPLE MODE] delayMs:', 5000);
-          console.log('[SIMPLE MODE] =========================================');
-          setTimeout(() => {
-            logSimple('call_complete');
-            ws.close();
-            if (state.openAiWs) {
-              state.openAiWs.close();
-            }
-          }, 5000);
+      // Send response.create to OpenAI Realtime for PCMU audio generation
+      const message = {
+        type: 'response.create',
+        response: {
+          instructions: `Speak exactly this sentence and nothing else: "${prompt}"`
         }
-      }, 1000);
+      };
 
+      console.log('[SIMPLE MODE] =========================================');
+      console.log('[SIMPLE MODE] event: response_create_sent');
+      console.log('[SIMPLE MODE] stage:', stage);
+      console.log('[SIMPLE MODE] instructions:', message.response.instructions);
+      console.log('[SIMPLE MODE] =========================================');
+
+      state.openAiWs?.send(JSON.stringify(message));
     } catch (error) {
-      console.log('[SIMPLE MODE] =========================================');
-      console.log('[SIMPLE MODE] event: tts_error');
-      console.log('[SIMPLE MODE] error:', error instanceof Error ? error.message : String(error));
-      console.log('[SIMPLE MODE] =========================================');
+      console.log('[SIMPLE MODE] Error sending response.create:', error);
       state.assistantSpeaking = false;
     }
   };
@@ -5475,12 +5162,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           console.log('[SIMPLE MODE] event: language_lock_active');
           console.log('[SIMPLE MODE] =========================================');
 
-          // Configure session - transcription only (no speech generation)
+          // Configure session - transcription and PCMU audio output
           const sessionUpdate = {
             type: "session.update",
             session: {
               type: "realtime",
-              instructions: "You are a transcription service for ReplyFlow Simple Mode. Your only job is to transcribe caller audio. Do not generate responses. Do not speak. Only provide transcriptions.",
+              instructions: "You are ReplyFlow Simple Mode. The system controls the conversation. Only speak the exact prompt provided in response.create. Never acknowledge caller content. Never ask unscripted follow-up questions. Never add filler. Speak exactly what is requested and nothing else.",
               audio: {
                 input: {
                   format: {
@@ -5496,6 +5183,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
                   transcription: {
                     model: "whisper-1"
                   }
+                },
+                output: {
+                  format: {
+                    type: "audio/pcmu"
+                  },
+                  voice: "alloy"
                 }
               }
             }
@@ -5515,7 +5208,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         state.openAiWs.on('message', (data) => {
           const message = JSON.parse(data.toString());
 
-          // Log key OpenAI events - only transcription-related
+          // Log key OpenAI events
           if (['input_audio_buffer.speech_stopped', 'conversation.item.input_audio_transcription.completed'].includes(message.type)) {
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: openai_event');
@@ -5523,7 +5216,62 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
             console.log('[SIMPLE MODE] =========================================');
           }
 
-          // Only handle transcription - audio output is handled by TTS
+          // Handle audio delta from OpenAI Realtime (PCMU)
+          if (message.type === 'response.output_audio.delta' && message.delta) {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: response.output_audio.delta_received');
+            console.log('[SIMPLE MODE] delta_length:', message.delta.length);
+            console.log('[SIMPLE MODE] =========================================');
+
+            const streamSid = state.streamSid;
+            
+            if (!streamSid) {
+              console.log('[SIMPLE MODE] SKIPPED - streamSid not available yet');
+              return;
+            }
+
+            // Forward PCMU delta directly to Twilio
+            const mediaMessage = {
+              event: 'media',
+              streamSid: streamSid,
+              media: {
+                payload: message.delta // Direct PCMU from OpenAI
+              }
+            };
+
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: passthrough_audio_delta_to_twilio');
+            console.log('[SIMPLE MODE] streamSid:', mediaMessage.streamSid);
+            console.log('[SIMPLE MODE] payloadLength:', mediaMessage.media?.payload?.length || 0);
+            console.log('[SIMPLE MODE] =========================================');
+
+            ws.send(JSON.stringify(mediaMessage));
+          }
+
+          // Handle response.done to mark speaking as false
+          if (message.type === 'response.done') {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: response.done');
+            console.log('[SIMPLE MODE] =========================================');
+            state.assistantSpeaking = false;
+            
+            // Handle final complete stage close
+            if (state.currentStage === 'complete') {
+              console.log('[SIMPLE MODE] =========================================');
+              console.log('[SIMPLE MODE] event: final_response_done_close_scheduled');
+              console.log('[SIMPLE MODE] delayMs:', 5000);
+              console.log('[SIMPLE MODE] =========================================');
+              setTimeout(() => {
+                logSimple('call_complete');
+                ws.close();
+                if (state.openAiWs) {
+                  state.openAiWs.close();
+                }
+              }, 5000);
+            }
+          }
+
+          // Only handle transcription
           if (message.type === 'conversation.item.input_audio_transcription.completed') {
             // User transcription completed
             const transcript = message.transcript || '';
