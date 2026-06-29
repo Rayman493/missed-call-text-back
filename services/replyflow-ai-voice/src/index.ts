@@ -53,6 +53,10 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
 console.log('[AUDIO TRACE BUILD VERSION] caller-audio-debug-v1');
 console.log('[AI CONFIRMATION TEMPLATE VERSION] confirmation-v3-your-name-is');
 console.log('[AI VOICE STARTUP] Service initializing');
+console.log('[OPENING ORDER TRACE BUILD ACTIVE] =========================================');
+console.log('[OPENING ORDER TRACE BUILD ACTIVE] Order trace logging is active');
+console.log('[OPENING ORDER TRACE BUILD ACTIVE] Timestamp:', new Date().toISOString());
+console.log('[OPENING ORDER TRACE BUILD ACTIVE] =========================================');
 
 // VERSION PROOF STARTUP LOGS
 console.log('====================================================================================================');
@@ -1388,6 +1392,12 @@ const APPROVED_PROMPTS: Record<string, string> = {
  * @returns true if prompt was sent, false if blocked
  */
 function sendApprovedPrompt(stage: string, openAiWs: any, ws?: any): boolean {
+  // ORDER TRACE: sendApprovedPrompt entry
+  console.log('[SEND APPROVED PROMPT ENTERED] =========================================');
+  console.log('[SEND APPROVED PROMPT ENTERED] stage:', stage);
+  console.log('[SEND APPROVED PROMPT ENTERED] Timestamp:', new Date().toISOString());
+  console.log('[SEND APPROVED PROMPT ENTERED] =========================================');
+
   // Block unknown stages
   if (!APPROVED_PROMPTS[stage]) {
     console.log('[VOICE SCOPE VIOLATION BLOCKED] =========================================');
@@ -7198,6 +7208,12 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 log(LogLevel.ERROR, '[STREAM OPENAI] JSON parse failed', err);
                 return;
               }
+
+              // ORDER TRACE: OpenAI message handler entry
+              console.log('[OPENAI MESSAGE HANDLER ACTIVE] =========================================');
+              console.log('[OPENAI MESSAGE HANDLER ACTIVE] type:', message.type);
+              console.log('[OPENAI MESSAGE HANDLER ACTIVE] Timestamp:', new Date().toISOString());
+              console.log('[OPENAI MESSAGE HANDLER ACTIVE] =========================================');
 
               // Log every message type with full details
               console.log('[OPENAI WS] message type', { type: message.type });
