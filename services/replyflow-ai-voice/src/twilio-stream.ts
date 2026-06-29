@@ -401,7 +401,18 @@ export class TwilioStreamHandler {
         console.log('[FINAL GOODBYE AUDIO SENT] callState:', callState);
         console.log('[FINAL GOODBYE AUDIO SENT] audioLength:', audioData.length);
       }
-      
+
+      // Comprehensive AUDIO TO TWILIO log before every media send
+      const responseId = this.currentResponseId || 'unknown';
+      const authorized = !!this.responseAuthorized;
+      const source = (this as any)._lastAudioSource || 'sendAudioInternal';
+      const route = (this as any).responseAuthorized ? 'buffered' : 'direct';
+      console.log('[AUDIO TO TWILIO]');
+      console.log('[AUDIO TO TWILIO] responseId:', responseId);
+      console.log('[AUDIO TO TWILIO] authorized:', authorized);
+      console.log('[AUDIO TO TWILIO] source:', source);
+      console.log('[AUDIO TO TWILIO] route:', route);
+
       const message = {
         event: 'media',
         media: {

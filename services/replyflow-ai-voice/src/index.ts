@@ -9278,20 +9278,26 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   return;
                 }
 
-                if (process.env.DEBUG_AI_VOICE === 'true') {
-                  console.log('[OUTBOUND ASSISTANT AUDIO FORWARDED TO TWILIO]', { bytes: message.delta.length });
+                // Route through validated/buffered gate. Never direct for assistant audio.
+                const responseId = message.response_id || (twilioHandler as any).currentResponseId || 'unknown';
+                const authorized = !!(twilioHandler as any).responseAuthorized;
+                console.log('[AUDIO TO TWILIO]');
+                console.log('[AUDIO TO TWILIO] responseId:', responseId);
+                console.log('[AUDIO TO TWILIO] authorized:', authorized);
+                console.log('[AUDIO TO TWILIO] source:', 'response.output_audio.delta');
+                console.log('[AUDIO TO TWILIO] route:', 'buffered');
+
+                // Mark source for sendAudioInternal log
+                (twilioHandler as any)._lastAudioSource = 'response.output_audio.delta';
+
+                // Convert base64 delta to Buffer and forward via buffered/validation path
+                const audioBuffer = Buffer.from(message.delta, 'base64');
+                if (typeof (twilioHandler as any).sendAudio === 'function') {
+                  (twilioHandler as any).sendAudio(audioBuffer);
+                } else {
+                  // Fallback (should not occur) - do not bypass gate
+                  console.log('[AUDIO TO TWILIO FALLBACK BLOCKED] sendAudio unavailable; dropping to enforce gate');
                 }
-                
-                // Forward PCMU directly to Twilio
-                const mediaMessage = {
-                  event: 'media',
-                  streamSid: streamSid,
-                  media: {
-                    payload: message.delta, // Direct PCMU from OpenAI
-                  },
-                };
-                
-                ws.send(JSON.stringify(mediaMessage));
               }
             });
             console.log('[OPENAI AUDIT] message listener attached');
