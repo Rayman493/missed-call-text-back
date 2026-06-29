@@ -5072,6 +5072,53 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     return a0 * frac * frac * frac + a1 * frac * frac + a2 * frac + a3;
   };
 
+  // Simple low-pass filter (IIR) to reduce high-frequency aliasing before downsampling
+  const applyLowPassFilter = (samples: Float32Array, sampleRate: number, cutoffHz: number): Float32Array => {
+    const filtered = new Float32Array(samples.length);
+    const rc = 1.0 / (cutoffHz * 2 * Math.PI);
+    const dt = 1.0 / sampleRate;
+    const alpha = dt / (rc + dt);
+
+    filtered[0] = samples[0];
+    for (let i = 1; i < samples.length; i++) {
+      filtered[i] = alpha * samples[i] + (1 - alpha) * filtered[i - 1];
+    }
+    return filtered;
+  };
+
+  // Simple de-esser to reduce sibilance
+  const applyDeEsser = (samples: Float32Array, sampleRate: number): { samples: Float32Array, reduction: number } => {
+    const filtered = new Float32Array(samples.length);
+    let totalReduction = 0;
+    let reductionCount = 0;
+
+    // Simple high-pass filter to detect sibilance (high frequencies)
+    const sibilanceThreshold = 0.1;
+    const deEssFactor = 0.7;
+
+    // Simple difference-based sibilance detection
+    for (let i = 2; i < samples.length - 2; i++) {
+      const diff = Math.abs(samples[i] - samples[i - 2]);
+      if (diff > sibilanceThreshold) {
+        // Reduce high-frequency energy
+        filtered[i] = samples[i] * deEssFactor;
+        totalReduction += (1 - deEssFactor);
+        reductionCount++;
+      } else {
+        filtered[i] = samples[i];
+      }
+    }
+
+    // Copy edges
+    filtered[0] = samples[0];
+    filtered[1] = samples[1];
+    filtered[samples.length - 2] = samples[samples.length - 2];
+    filtered[samples.length - 1] = samples[samples.length - 1];
+
+    const avgReduction = reductionCount > 0 ? totalReduction / reductionCount : 0;
+    return { samples: filtered, reduction: avgReduction };
+  };
+
   // Generate test tone (440Hz sine wave at 8kHz with proper PCM16 scaling)
   const generateTestTone = (durationSeconds: number, frequency: number = 440, sampleRate: number = 8000, amplitude: number = 0.15): Buffer => {
     const numSamples = durationSeconds * sampleRate;
@@ -5141,18 +5188,37 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[SIMPLE MODE] pcm_sample_count:', pcmData.length);
     console.log('[SIMPLE MODE] =========================================');
 
+    // Apply low-pass filter to reduce high-frequency aliasing before downsampling
+    const lowPassCutoffHz = 3400; // Below 4kHz Nyquist for 8kHz telephony
+    const lowPassFiltered = applyLowPassFilter(pcmData, 24000, lowPassCutoffHz);
+
+    console.log('[SIMPLE MODE] =========================================');
+    console.log('[SIMPLE MODE] event: low_pass_filter_info');
+    console.log('[SIMPLE MODE] low_pass_filter_enabled:', true);
+    console.log('[SIMPLE MODE] low_pass_cutoff_hz:', lowPassCutoffHz);
+    console.log('[SIMPLE MODE] =========================================');
+
+    // Apply de-esser to reduce sibilance
+    const { samples: deEssedPcm, reduction: sibilanceReduction } = applyDeEsser(lowPassFiltered, 24000);
+
+    console.log('[SIMPLE MODE] =========================================');
+    console.log('[SIMPLE MODE] event: de_esser_info');
+    console.log('[SIMPLE MODE] de_esser_enabled:', true);
+    console.log('[SIMPLE MODE] sibilance_reduction_applied:', sibilanceReduction.toFixed(6));
+    console.log('[SIMPLE MODE] =========================================');
+
     // Resample to 8kHz (Twilio expects 8kHz mu-law)
     const targetSampleRate = 8000;
     const sourceSampleRate = 24000;
     const ratio = sourceSampleRate / targetSampleRate;
-    const newLength = Math.floor(pcmData.length / ratio);
+    const newLength = Math.floor(deEssedPcm.length / ratio);
     const resampledPcm = new Float32Array(newLength);
     const resamplerMethod = 'cubic_interpolation';
 
     // Cubic interpolation for higher quality resampling
     for (let i = 0; i < newLength; i++) {
       const srcIndex = i * ratio;
-      resampledPcm[i] = cubicInterpolate(pcmData, srcIndex);
+      resampledPcm[i] = cubicInterpolate(deEssedPcm, srcIndex);
     }
 
     console.log('[SIMPLE MODE] =========================================');
