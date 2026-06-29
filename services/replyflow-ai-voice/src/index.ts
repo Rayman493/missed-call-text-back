@@ -5237,19 +5237,40 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       if (message.event === 'start') {
         state.streamSid = message.streamSid;
         
+        // Log raw start event keys for debugging
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] event: simple_mode_twilio_start_raw_keys');
+        console.log('[SIMPLE MODE] startKeys:', Object.keys(message.start || {}));
+        console.log('[SIMPLE MODE] =========================================');
+        
+        // Log custom parameters if present
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] event: simple_mode_twilio_start_custom_parameters');
+        console.log('[SIMPLE MODE] customParameters:', message.start?.customParameters || 'none');
+        console.log('[SIMPLE MODE] =========================================');
+        
         // Extract Twilio call metadata
-        const callSid = message.start?.callSid || message.start?.CallSid || url.searchParams.get('callSid') || '';
-        const from = message.start?.from || message.start?.From || url.searchParams.get('from') || '';
-        const to = message.start?.to || message.start?.To || url.searchParams.get('to') || '';
+        // Try multiple possible locations for the data
+        const startData = message.start || {};
+        const customParams = startData.customParameters || {};
+        
+        const callSid = startData.callSid || startData.CallSid || 
+                       customParams.callSid || customParams.CallSid ||
+                       url.searchParams.get('callSid') || '';
+        
+        const from = startData.from || startData.From || 
+                    customParams.from || customParams.From ||
+                    url.searchParams.get('from') || '';
+        
+        const to = startData.to || startData.To || 
+                  customParams.to || customParams.To ||
+                  url.searchParams.get('to') || '';
+        
+        const businessId = customParams.businessId || customParams.business_id ||
+                          url.searchParams.get('businessId') || state.businessId || '';
         
         state.callSid = callSid;
-        
-        // Resolve business_id from To/Called number
-        // For now, use the businessId from URL params if available, otherwise try to derive from To number
-        const businessId = url.searchParams.get('businessId') || state.businessId || '';
         state.businessId = businessId;
-        
-        // Store caller phone (From number)
         state.callerPhone = from;
         
         console.log('[SIMPLE MODE] =========================================');
@@ -5258,10 +5279,18 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         console.log('[SIMPLE MODE] =========================================');
         
         console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] event: simple_mode_from_set');
+        console.log('[SIMPLE MODE] from:', from);
+        console.log('[SIMPLE MODE] =========================================');
+        
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] event: simple_mode_to_set');
+        console.log('[SIMPLE MODE] to:', to);
+        console.log('[SIMPLE MODE] =========================================');
+        
+        console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: simple_mode_business_resolved');
         console.log('[SIMPLE MODE] businessId:', state.businessId);
-        console.log('[SIMPLE MODE] from:', from);
-        console.log('[SIMPLE MODE] to:', to);
         console.log('[SIMPLE MODE] =========================================');
         
         logSimple('twilio_start', { 
@@ -5269,7 +5298,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           callSid: state.callSid,
           from: from,
           to: to,
-          businessId: state.businessId
+          businessId: state.businessId,
+          hasCustomParams: !!customParams && Object.keys(customParams).length > 0
         });
 
         // Connect to OpenAI Realtime - use same URL as legacy
