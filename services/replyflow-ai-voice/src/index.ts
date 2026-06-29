@@ -5108,7 +5108,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         model: 'tts-1',
         input: text,
         voice: 'alloy',
-        response_format: 'wav',
+        response_format: 'pcm',
+        sample_rate: 24000, // Request 24kHz PCM directly
       }),
     });
 
@@ -5117,49 +5118,49 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    const wavBuffer = Buffer.from(arrayBuffer);
+    const pcmBuffer = Buffer.from(arrayBuffer);
 
     console.log('[SIMPLE MODE] =========================================');
     console.log('[SIMPLE MODE] event: tts_input_format');
-    console.log('[SIMPLE MODE] format:', 'wav');
-    console.log('[SIMPLE MODE] bufferSize:', wavBuffer.length);
+    console.log('[SIMPLE MODE] format:', 'pcm');
+    console.log('[SIMPLE MODE] sample_rate:', 24000);
+    console.log('[SIMPLE MODE] bufferSize:', pcmBuffer.length);
     console.log('[SIMPLE MODE] =========================================');
 
-    // Decode WAV to PCM
-    const audioBuffer = await audioDecode(wavBuffer);
-    const pcmData = audioBuffer.channelData[0]; // Get mono channel
+    // Convert raw PCM buffer to Float32Array (16-bit signed PCM)
+    const pcmData = new Float32Array(pcmBuffer.length / 2);
+    for (let i = 0; i < pcmData.length; i++) {
+      const sample = pcmBuffer.readInt16LE(i * 2);
+      pcmData[i] = sample / 32768.0;
+    }
 
     console.log('[SIMPLE MODE] =========================================');
     console.log('[SIMPLE MODE] event: decoded_audio_info');
-    console.log('[SIMPLE MODE] decoded_sample_rate:', audioBuffer.sampleRate);
-    console.log('[SIMPLE MODE] decoded_channels:', audioBuffer.channelData.length);
+    console.log('[SIMPLE MODE] decoded_sample_rate:', 24000);
+    console.log('[SIMPLE MODE] decoded_channels:', 1);
     console.log('[SIMPLE MODE] pcm_sample_count:', pcmData.length);
     console.log('[SIMPLE MODE] =========================================');
 
-    // Resample to 8kHz if needed (Twilio expects 8kHz mu-law)
+    // Resample to 8kHz (Twilio expects 8kHz mu-law)
     const targetSampleRate = 8000;
-    const sourceSampleRate = audioBuffer.sampleRate;
-    let resampledPcm = pcmData;
-    let resamplerMethod = 'none';
-    if (sourceSampleRate !== targetSampleRate) {
-      const ratio = sourceSampleRate / targetSampleRate;
-      const newLength = Math.floor(pcmData.length / ratio);
-      resampledPcm = new Float32Array(newLength);
-      resamplerMethod = 'cubic_interpolation';
+    const sourceSampleRate = 24000;
+    const ratio = sourceSampleRate / targetSampleRate;
+    const newLength = Math.floor(pcmData.length / ratio);
+    const resampledPcm = new Float32Array(newLength);
+    const resamplerMethod = 'cubic_interpolation';
 
-      // Cubic interpolation for higher quality resampling
-      for (let i = 0; i < newLength; i++) {
-        const srcIndex = i * ratio;
-        resampledPcm[i] = cubicInterpolate(pcmData, srcIndex);
-      }
-
-      console.log('[SIMPLE MODE] =========================================');
-      console.log('[SIMPLE MODE] event: resampled_audio_info');
-      console.log('[SIMPLE MODE] resampled_sample_rate:', targetSampleRate);
-      console.log('[SIMPLE MODE] resampled_sample_count:', resampledPcm.length);
-      console.log('[SIMPLE MODE] resampler_method:', resamplerMethod);
-      console.log('[SIMPLE MODE] =========================================');
+    // Cubic interpolation for higher quality resampling
+    for (let i = 0; i < newLength; i++) {
+      const srcIndex = i * ratio;
+      resampledPcm[i] = cubicInterpolate(pcmData, srcIndex);
     }
+
+    console.log('[SIMPLE MODE] =========================================');
+    console.log('[SIMPLE MODE] event: resampled_audio_info');
+    console.log('[SIMPLE MODE] resampled_sample_rate:', targetSampleRate);
+    console.log('[SIMPLE MODE] resampled_sample_count:', resampledPcm.length);
+    console.log('[SIMPLE MODE] resampler_method:', resamplerMethod);
+    console.log('[SIMPLE MODE] =========================================');
 
     // Calculate RMS and peak before gain
     let sumSquares = 0;
