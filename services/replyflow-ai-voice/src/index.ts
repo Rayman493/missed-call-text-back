@@ -7227,7 +7227,8 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   itemId: message.item_id,
                   isEmpty: !userTranscript || userTranscript.trim() === ''
                 });
-                                if (userTranscript && userTranscript.trim() !== '') {
+                
+                if (userTranscript && userTranscript.trim() !== '') {
                   console.log('[USER TRANSCRIPT FOUND]', userTranscript);
                   console.log('[USER TRANSCRIPT APPEND]', { role: 'user', text: userTranscript, timestamp: new Date().toISOString() });
                   console.log('[AI USER TRANSCRIPT FINAL]', userTranscript);
@@ -7270,6 +7271,8 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     transcript: userTranscript,
                     itemId: message.item_id
                   });
+                  console.log('[USER TRANSCRIPT MISSING] Skipping intake processing due to empty transcript');
+                  return; // Skip processing if transcript is empty
                 }
                 
                 // Process intake stage advancement after FINAL transcript
@@ -7277,7 +7280,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[TRACE COMPLETE 1] Checking intake processing conditions');
                 console.log('[TRACE COMPLETE 1] intakeData:', !!intakeData);
                 console.log('[TRACE COMPLETE 1] intakeData.stage:', intakeData?.stage);
-                console.log('[TRACE COMPLETE 1] stage !== complete:', intakeData?.stage !== 'complete');
+                console.log('[TRACE COMPLETE 1] stage !== complete:', (intakeData?.stage as string) !== 'complete');
                 console.log('[TRACE COMPLETE 1] openAiWs:', !!openAiWs);
                 console.log('[TRACE COMPLETE 1] sessionReady:', sessionReady);
                 console.log('[TRACE COMPLETE 1] intakeComplete:', intakeComplete);
@@ -7285,7 +7288,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[TRACE COMPLETE 1] Timestamp:', new Date().toISOString());
                 console.log('[TRACE COMPLETE 1] =========================================');
 
-                if (intakeData && intakeData.stage !== 'complete' && openAiWs && sessionReady && !intakeComplete) {
+                if (intakeData && (intakeData.stage as string) !== 'complete' && openAiWs && sessionReady && !intakeComplete) {
                   console.log('[TRACE COMPLETE 2] =========================================');
                   console.log('[TRACE COMPLETE 2] All conditions passed, entering intake processing');
                   console.log('[TRACE COMPLETE 2] Timestamp:', new Date().toISOString());
@@ -7539,7 +7542,21 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   callSessionState.repromptCount = 0;
 
                   // Get next intake response
+                  console.log('[INTAKE RESPONSE CALCULATION] =========================================');
+                  console.log('[INTAKE RESPONSE CALCULATION] Calling getIntakeResponse');
+                  console.log('[INTAKE RESPONSE CALCULATION] currentStage:', intakeData!.stage);
+                  console.log('[INTAKE RESPONSE CALCULATION] userTranscript:', userTranscript);
+                  console.log('[INTAKE RESPONSE CALCULATION] stagePromptAttempts:', stagePromptAttempts);
+                  console.log('[INTAKE RESPONSE CALCULATION] Timestamp:', new Date().toISOString());
+                  console.log('[INTAKE RESPONSE CALCULATION] =========================================');
+                  
                   const intakeResponse = getIntakeResponse(intakeData!, userTranscript, stagePromptAttempts);
+
+                  console.log('[INTAKE RESPONSE RESULT] =========================================');
+                  console.log('[INTAKE RESPONSE RESULT] response:', intakeResponse.response);
+                  console.log('[INTAKE RESPONSE RESULT] nextStage:', intakeResponse.nextStage);
+                  console.log('[INTAKE RESPONSE RESULT] Timestamp:', new Date().toISOString());
+                  console.log('[INTAKE RESPONSE RESULT] =========================================');
 
                   // Field extraction is now handled by extractMultipleAnswers in getIntakeResponse
                   // No need for manual field updates here
@@ -7577,6 +7594,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   // Send controlled stage prompt instead of relying on VAD
                   console.log('[AI INTAKE] Sending controlled stage prompt');
                   console.log('[AI INTAKE] advancing to stage:', intakeResponse.nextStage);
+                  console.log('[AI INTAKE] scripted prompt text:', intakeResponse.response);
 
                   // Update stage
                   console.log('[CURRENT STAGE SET] =========================================');
