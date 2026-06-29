@@ -14,7 +14,6 @@ import PasswordInput from '@/components/PasswordInput'
 import { useSettingsFormState } from '@/hooks/useSettingsFormState'
 import Link from 'next/link'
 import { formatPhoneNumber } from '@/lib/utils'
-import { validateBusinessTypeOther } from '@/lib/validation'
 import Navigation from '@/components/Navigation'
 import PageBackground from '@/components/PageBackground'
 import UserDropdown from '@/components/UserDropdown'
@@ -38,7 +37,6 @@ import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { HelpContext } from '@/components/HelpAssistant'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
-import { BUSINESS_SERVICE_TYPES } from '@/lib/business-service-types'
 
 export default function SettingsContent() {
   const router = useRouter()
@@ -140,24 +138,10 @@ export default function SettingsContent() {
       // Use automation_settings directly from businessData (already updated via updateBusiness)
       const automationSettings = businessData.automation_settings || {}
 
-      // business_type is stored as a direct column on businesses table
-      const businessType = businessData.business_type
-
-      // Validate business_type_other if "Other" is selected
-      if (businessType === 'Other') {
-        const businessTypeOther = businessData.business_type_other
-        const validation = validateBusinessTypeOther(businessTypeOther)
-        if (!validation.valid) {
-          throw new Error(validation.error || 'Invalid business type')
-        }
-      }
-
       // Only save real business columns that exist in the database schema
       const updatePayload: any = {
         name: businessData.name,
         business_phone_number: businessData.business_phone_number,
-        business_type: businessData.business_type,
-        business_type_other: businessData.business_type_other,
         out_of_office_enabled: businessData.out_of_office_enabled,
         out_of_office_start: businessData.out_of_office_start,
         out_of_office_end: businessData.out_of_office_end,
@@ -1274,45 +1258,6 @@ export default function SettingsContent() {
                       )}
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-2">
-                      Business Type
-                    </label>
-                    <select
-                      value={formBusiness.business_type || ''}
-                      onChange={(e) => {
-                        updateBusiness({ business_type: e.target.value })
-                      }}
-                      className="w-full px-4 py-3 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
-                    >
-                      <option value="">Select your business type</option>
-                      {BUSINESS_SERVICE_TYPES.map((type) => (
-                        <option key={type} value={type}>{type}</option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      This helps AI Voice ask the right questions and capture better information for your business.
-                    </p>
-                  </div>
-                  {formBusiness.business_type === 'Other' && (
-                    <div>
-                      <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-2">
-                        Specify Business Type <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formBusiness.business_type_other || ''}
-                        onChange={(e) => {
-                          updateBusiness({ business_type_other: e.target.value })
-                        }}
-                        placeholder="e.g., Pool Service, Wedding Photographer, Piano Teacher"
-                        className="w-full px-4 py-3 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
-                      />
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        Describe your business type (2-60 characters). Examples: Pool Service, Wedding Photographer, Martial Arts Studio.
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
 

@@ -14,7 +14,6 @@ import Footer from '@/components/Footer'
 import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
-import { BUSINESS_SERVICE_TYPES } from '@/lib/business-service-types'
 
 const supabase = createBrowserClient()
 
@@ -27,8 +26,6 @@ export default function OnboardingPage() {
   const [error, setError] = useState('')
   const [businessName, setBusinessName] = useState('')
   const [businessPhone, setBusinessPhone] = useState('')
-  const [businessType, setBusinessType] = useState('')
-  const [businessTypeOther, setBusinessTypeOther] = useState('')
   const [loading, setLoading] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [provisioningComplete, setProvisioningComplete] = useState(false)
@@ -225,18 +222,6 @@ export default function OnboardingPage() {
         return
       }
 
-      if (!businessType) {
-        console.error('[Onboarding] Missing business type')
-        setError('Please select a business type.')
-        return
-      }
-
-      if (businessType === 'Other' && !businessTypeOther.trim()) {
-        console.error('[Onboarding] Missing custom business type')
-        setError('Please specify your business type.')
-        return
-      }
-
       // Normalize phone number
       const normalizedPhone = normalizePhoneNumber(businessPhone)
       
@@ -256,8 +241,6 @@ export default function OnboardingPage() {
           businessData: {
             name: businessName,
             business_phone_number: normalizedPhone,
-            business_type: businessType,
-            business_type_other: businessType === 'Other' ? businessTypeOther : null,
             auto_reply_message: `Hi, this is ${businessName}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
             sms_type: 'local_a2p',
             messaging_status: 'active',
@@ -425,44 +408,6 @@ export default function OnboardingPage() {
                 The phone number customers call to reach you
               </p>
             </div>
-
-            <div>
-              <label htmlFor="businessType" className="block text-sm font-medium text-slate-300 mb-2">
-                Business Service Type
-              </label>
-              <select
-                id="businessType"
-                value={businessType}
-                onChange={(e) => setBusinessType(e.target.value)}
-                required
-                className="w-full px-3 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white text-sm"
-              >
-                <option value="">Select your service type</option>
-                {BUSINESS_SERVICE_TYPES.map((type) => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-              <p className="mt-2 text-xs text-slate-400">
-                This helps our AI provide better service for your industry
-              </p>
-            </div>
-
-            {businessType === 'Other' && (
-              <div>
-                <label htmlFor="businessTypeOther" className="block text-sm font-medium text-slate-300 mb-2">
-                  Specify Your Business Type
-                </label>
-                <input
-                  id="businessTypeOther"
-                  type="text"
-                  value={businessTypeOther}
-                  onChange={(e) => setBusinessTypeOther(e.target.value)}
-                  required
-                  placeholder="e.g., Pool Service, Wedding Photographer"
-                  className="w-full px-3 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white text-sm"
-                />
-              </div>
-            )}
 
             <button
               type="submit"
