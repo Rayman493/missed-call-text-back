@@ -5138,6 +5138,72 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
     state.completionPersistenceStarted = true;
 
+    // Helper function to parse caller name and service from name/reason answer
+    const parseNameAndService = (text: string) => {
+      const lower = text.toLowerCase();
+      let callerName = text;
+      let service = 'General inquiry';
+      
+      // Common patterns for "My name is X and I need Y"
+      const namePatterns = [
+        /my name is ([^.]+?)(?: and|,|$)/i,
+        /i'm ([^.]+?)(?: and|,|$)/i,
+        /i am ([^.]+?)(?: and|,|$)/i,
+        /this is ([^.]+?)(?: and|,|$)/i,
+      ];
+      
+      for (const pattern of namePatterns) {
+        const match = text.match(pattern);
+        if (match) {
+          callerName = match[1].trim();
+          // Extract service from the rest of the text
+          const servicePart = text.replace(match[0], '').replace(/^(?: and|,)\s*/i, '').trim();
+          if (servicePart) {
+            service = servicePart;
+          }
+          break;
+        }
+      }
+      
+      // If no pattern matched, try to split on "and" or ","
+      if (callerName === text) {
+        const parts = text.split(/\s+(?:and|,)\s+/i);
+        if (parts.length > 1) {
+          callerName = parts[0].trim();
+          service = parts.slice(1).join(', ').trim();
+        }
+      }
+      
+      return { callerName, service };
+    };
+
+    // Helper function to normalize time phrases
+    const normalizeTime = (text: string) => {
+      if (!text) return 'Not specified';
+      
+      let normalized = text.trim();
+      
+      // Remove filler phrases
+      const fillerPatterns = [
+        /^i said\s+/i,
+        /^i need\s+/i,
+        /^probably\s+/i,
+        /^maybe\s+/i,
+        /^um\s+/i,
+        /^uh\s+/i,
+        /^\s+|\s+$/g,
+      ];
+      
+      for (const pattern of fillerPatterns) {
+        normalized = normalized.replace(pattern, '');
+      }
+      
+      // Capitalize first letter
+      normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+      
+      return normalized || text;
+    };
+
     try {
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: simple_mode_completion_start');
@@ -5146,6 +5212,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[SIMPLE MODE] callerPhone:', state.callerPhone);
       console.log('[SIMPLE MODE] intakeData:', state.intakeData);
       console.log('[SIMPLE MODE] =========================================');
+
+      // Parse caller name and service from the name/reason answer
+      const { callerName, service } = parseNameAndService(state.intakeData.caller_name || '');
+      state.intakeData.caller_name = callerName;
+      state.intakeData.service_requested = service;
+      
+      // Normalize completion and callback times
+      state.intakeData.completion_time = normalizeTime(state.intakeData.completion_time || '');
+      state.intakeData.callback_time = normalizeTime(state.intakeData.callback_time || '');
 
       // Create lead and conversation using caller phone (not callSid)
       const { data: lead, error: leadError } = await supabase
@@ -5216,7 +5291,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 📞 ${state.callerPhone || 'Unknown'}
 
 Service
-${state.intakeData.caller_name?.split(' ').slice(1).join(' ') || 'General inquiry'}
+${state.intakeData.service_requested || 'General inquiry'}
 
 Address
 ${state.intakeData.address || 'Not provided'}
@@ -5677,6 +5752,16 @@ ${state.intakeData.details || 'No additional details'}`;
             if (fieldName && accepted) {
               state.intakeData[fieldName] = transcript;
               logSimple('intake_data_stored', { field: fieldName, value: transcript.substring(0, 50) });
+              
+              // Log when final callback transcript is received
+              if (state.currentStage === 'ask_callback_time') {
+                console.log('[SIMPLE MODE] =========================================');
+                console.log('[SIMPLE MODE] event: final_callback_transcript_received');
+                console.log('[SIMPLE MODE] transcript:', transcript);
+                console.log('[SIMPLE MODE] accepted:', accepted);
+                console.log('[SIMPLE MODE] assistantSpeaking:', state.assistantSpeaking);
+                console.log('[SIMPLE MODE] =========================================');
+              }
             }
 
             // Only advance immediately if assistant is not speaking and stage is valid
@@ -5696,18 +5781,24 @@ ${state.intakeData.details || 'No additional details'}`;
                 state.currentStage = 'complete';
                 sendPrompt('complete');
                 
+                console.log('[SIMPLE MODE] =========================================');
+                console.log('[SIMPLE MODE] event: final_callback_stage_advanced_to_complete');
+                console.log('[SIMPLE MODE] currentStage:', state.currentStage);
+                console.log('[SIMPLE MODE] =========================================');
+                
                 // Run completion persistence immediately after setting stage to complete
                 processSimpleModeCompletion().catch(console.error);
               }
-            } else if (isFinalStage && state.assistantSpeaking) {
-              // Final stage but assistant still speaking - transcript queued, will be processed after tts_complete
-              console.log('[SIMPLE MODE] =========================================');
-              console.log('[SIMPLE MODE] event: final_stage_transcript_queued');
-              console.log('[SIMPLE MODE] currentStage:', state.currentStage);
-              console.log('[SIMPLE MODE] transcript:', transcript);
-              console.log('[SIMPLE MODE] reason:', 'assistant_still_speaking_queued_for_processing');
-              console.log('[SIMPLE MODE] =========================================');
-            }
+            } else if (isFinalStage) {
+                // Log when final callback answer is ignored
+                console.log('[SIMPLE MODE] =========================================');
+                console.log('[SIMPLE MODE] event: final_callback_first_answer_ignored');
+                console.log('[SIMPLE MODE] transcript:', transcript);
+                console.log('[SIMPLE MODE] accepted:', accepted);
+                console.log('[SIMPLE MODE] assistantSpeaking:', state.assistantSpeaking);
+                console.log('[SIMPLE MODE] ignoredReason:', ignoredReason);
+                console.log('[SIMPLE MODE] =========================================');
+              }
           }
         });
 
