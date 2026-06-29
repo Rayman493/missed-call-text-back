@@ -10,6 +10,16 @@ import { log, LogLevel } from './logger';
 import { OpenAIRealtimeClient } from './openai-client';
 import Twilio from 'twilio';
 
+// Approved assistant utterances per stage - strict allowlist
+const APPROVED_UTTERANCES: Record<string, string> = {
+  ask_name_reason: "Hi, I'm the assistant for the business. Can you please tell me your name and what you're calling about today?",
+  ask_details: "Thanks. Can you share any important details the business should know?",
+  ask_location_or_context: "Thanks. What location should the business know about?",
+  ask_timing: "Got it. When would you like this completed or scheduled?",
+  ask_callback_time: "Thanks. What is the best time for the business to call you back?",
+  complete: "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day."
+};
+
 export interface StreamConfig {
   sessionId: string;
   businessId: string;
@@ -27,6 +37,14 @@ export class TwilioStreamHandler {
   private lastAudioTime: number = 0;
   private twilioClient: any = null;
   private callerAudioBlockedLogged: boolean = false;
+  
+  // Validation state for deterministic audio blocking
+  private currentStage: string = '';
+  private currentTranscript: string = '';
+  private audioForwardingBlocked: boolean = false;
+  private audioBuffer: Buffer[] = []; // Buffer assistant audio until validation passes
+  private currentResponseId: string = ''; // Track response ID for authorization
+  private responseAuthorized: boolean = false; // Track if response is authorized
 
   constructor(config: StreamConfig, openAiClient?: OpenAIRealtimeClient) {
     this.config = config;
@@ -369,9 +387,9 @@ export class TwilioStreamHandler {
   }
 
   /**
-   * Send audio to Twilio
+   * Send audio to Twilio (internal method - bypasses buffering)
    */
-  sendAudio(audioData: Buffer) {
+  sendAudioInternal(audioData: Buffer) {
     if (this.ws?.readyState === WebSocket.OPEN) {
       const callState = (this as any).callState || 'active';
       const finalClosingStarted = (this as any).finalClosingStarted || false;
@@ -395,6 +413,100 @@ export class TwilioStreamHandler {
   }
 
   /**
+   * Send audio to Twilio with buffering and validation
+   */
+  sendAudio(audioData: Buffer) {
+    // Buffer audio if response is not yet authorized
+    if (!this.responseAuthorized && this.currentResponseId) {
+      console.log('[TWILIO VALIDATION] =========================================');
+      console.log('[TWILIO VALIDATION] Buffering audio - response not yet authorized');
+      console.log('[TWILIO VALIDATION] Response ID:', this.currentResponseId);
+      console.log('[TWILIO VALIDATION] Audio length:', audioData.length);
+      console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
+      console.log('[TWILIO VALIDATION] =========================================');
+      
+      this.audioBuffer.push(audioData);
+      return;
+    }
+    
+    // Validate transcript before forwarding audio
+    if (!this.validateTranscript()) {
+      console.log('[TWILIO VALIDATION] =========================================');
+      console.log('[TWILIO VALIDATION] Audio BLOCKED - transcript validation failed');
+      console.log('[TWILIO VALIDATION] Current stage:', this.currentStage);
+      console.log('[TWILIO VALIDATION] Current transcript:', this.currentTranscript);
+      console.log('[TWILIO VALIDATION] Audio length:', audioData.length);
+      console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
+      console.log('[TWILIO VALIDATION] =========================================');
+      
+      this.audioForwardingBlocked = true;
+      return;
+    }
+
+    // Send audio if authorized and validated
+    this.sendAudioInternal(audioData);
+  }
+
+  /**
+   * Set current response ID for authorization tracking
+   */
+  setCurrentResponseId(responseId: string) {
+    console.log('[TWILIO VALIDATION] =========================================');
+    console.log('[TWILIO VALIDATION] setCurrentResponseId called');
+    console.log('[TWILIO VALIDATION] Response ID:', responseId);
+    console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
+    console.log('[TWILIO VALIDATION] =========================================');
+    this.currentResponseId = responseId;
+    this.responseAuthorized = false;
+    this.audioBuffer = []; // Clear buffer for new response
+  }
+
+  /**
+   * Authorize current response and flush buffered audio
+   */
+  authorizeResponse() {
+    console.log('[TWILIO VALIDATION] =========================================');
+    console.log('[TWILIO VALIDATION] authorizeResponse called');
+    console.log('[TWILIO VALIDATION] Response ID:', this.currentResponseId);
+    console.log('[TWILIO VALIDATION] Buffer length:', this.audioBuffer.length);
+    console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
+    console.log('[TWILIO VALIDATION] =========================================');
+    
+    this.responseAuthorized = true;
+    
+    // Flush buffered audio
+    if (this.audioBuffer.length > 0) {
+      console.log('[TWILIO VALIDATION] =========================================');
+      console.log('[TWILIO VALIDATION] Flushing authorized audio');
+      console.log('[TWILIO VALIDATION] Buffer length:', this.audioBuffer.length);
+      console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
+      console.log('[TWILIO VALIDATION] =========================================');
+      
+      for (const audioData of this.audioBuffer) {
+        this.sendAudioInternal(audioData);
+      }
+      this.audioBuffer = [];
+    }
+  }
+
+  /**
+   * Cancel current response and drop buffered audio
+   */
+  cancelResponse() {
+    console.log('[TWILIO VALIDATION] =========================================');
+    console.log('[TWILIO VALIDATION] cancelResponse called');
+    console.log('[TWILIO VALIDATION] Response ID:', this.currentResponseId);
+    console.log('[TWILIO VALIDATION] Buffer length:', this.audioBuffer.length);
+    console.log('[TWILIO VALIDATION] Audio dropped:', this.audioBuffer.length);
+    console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
+    console.log('[TWILIO VALIDATION] =========================================');
+    
+    this.responseAuthorized = false;
+    this.audioBuffer = []; // Drop buffered audio
+    this.currentResponseId = '';
+  }
+
+  /**
    * Send a mark to Twilio to track audio playback completion
    */
   sendMark(markName: string) {
@@ -408,6 +520,75 @@ export class TwilioStreamHandler {
       this.ws.send(JSON.stringify(message));
       console.log('[TWILIO MARK SENT]', { markName });
     }
+  }
+
+  /**
+   * Set the current conversation stage for validation
+   */
+  setCurrentStage(stage: string) {
+    console.log('[TWILIO VALIDATION] =========================================');
+    console.log('[TWILIO VALIDATION] setCurrentStage called');
+    console.log('[TWILIO VALIDATION] Stage:', stage);
+    console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
+    console.log('[TWILIO VALIDATION] =========================================');
+    this.currentStage = stage;
+  }
+
+  /**
+   * Update the current transcript for validation
+   */
+  updateTranscript(delta: string) {
+    this.currentTranscript += delta;
+    console.log('[TWILIO VALIDATION] =========================================');
+    console.log('[TWILIO VALIDATION] Transcript updated');
+    console.log('[TWILIO VALIDATION] Current transcript:', this.currentTranscript);
+    console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
+    console.log('[TWILIO VALIDATION] =========================================');
+  }
+
+  /**
+   * Reset validation state for new response
+   */
+  resetValidationState() {
+    console.log('[TWILIO VALIDATION] =========================================');
+    console.log('[TWILIO VALIDATION] Resetting validation state');
+    console.log('[TWILIO VALIDATION] Previous transcript:', this.currentTranscript);
+    console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
+    console.log('[TWILIO VALIDATION] =========================================');
+    this.currentTranscript = '';
+    this.audioForwardingBlocked = false;
+  }
+
+  /**
+   * Validate transcript against approved utterance for current stage
+   */
+  private validateTranscript(): boolean {
+    if (!this.currentStage) {
+      console.log('[TWILIO VALIDATION] No current stage set, allowing audio');
+      return true;
+    }
+
+    const approvedUtterance = APPROVED_UTTERANCES[this.currentStage];
+    if (!approvedUtterance) {
+      console.log('[TWILIO VALIDATION] No approved utterance for stage:', this.currentStage);
+      return true;
+    }
+
+    const normalizedTranscript = this.currentTranscript.trim().toLowerCase();
+    const normalizedApproved = approvedUtterance.trim().toLowerCase();
+
+    const isValid = normalizedTranscript === normalizedApproved;
+
+    console.log('[TWILIO VALIDATION] =========================================');
+    console.log('[TWILIO VALIDATION] Transcript validation');
+    console.log('[TWILIO VALIDATION] Current stage:', this.currentStage);
+    console.log('[TWILIO VALIDATION] Approved utterance:', approvedUtterance);
+    console.log('[TWILIO VALIDATION] Current transcript:', this.currentTranscript);
+    console.log('[TWILIO VALIDATION] Is valid:', isValid);
+    console.log('[TWILIO VALIDATION] Timestamp:', new Date().toISOString());
+    console.log('[TWILIO VALIDATION] =========================================');
+
+    return isValid;
   }
 
   /**

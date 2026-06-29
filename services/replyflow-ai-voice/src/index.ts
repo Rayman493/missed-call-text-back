@@ -8389,6 +8389,17 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     assistantText.toLowerCase().includes(pattern)
                   );
                   
+                  // Comprehensive logging for response validation
+                  console.log('[RESPONSE VALIDATION] =========================================');
+                  console.log('[RESPONSE VALIDATION] Response ID:', message.response_id || 'unknown');
+                  console.log('[RESPONSE VALIDATION] Response ID authorized:', textMatchesApproved ? 'yes' : 'no');
+                  console.log('[RESPONSE VALIDATION] Assistant transcript:', assistantText);
+                  console.log('[RESPONSE VALIDATION] Expected script line:', approvedPrompt);
+                  console.log('[RESPONSE VALIDATION] Audio forwarded:', textMatchesApproved ? 'yes' : 'no');
+                  console.log('[RESPONSE VALIDATION] Unauthorized audio dropped:', textMatchesApproved ? 'no' : 'yes');
+                  console.log('[RESPONSE VALIDATION] Timestamp:', new Date().toISOString());
+                  console.log('[RESPONSE VALIDATION] =========================================');
+                  
                   // Block unapproved questions OR responses that don't match approved prompt
                   if (!textMatchesApproved) {
                     console.log('[UNAPPROVED RESPONSE BLOCKED] =========================================');
@@ -8411,6 +8422,11 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       console.log('[UNAPPROVED RESPONSE CANCELED] Response cancel command sent');
                     }
                     
+                    // Cancel audio buffering
+                    if (twilioHandler && typeof (twilioHandler as any).cancelResponse === 'function') {
+                      (twilioHandler as any).cancelResponse();
+                    }
+                    
                     // Replay the approved prompt immediately to self-correct
                     console.log('[APPROVED PROMPT REPLAYED] =========================================');
                     console.log('[APPROVED PROMPT REPLAYED] Replaying approved prompt after blocking unapproved response');
@@ -8420,9 +8436,25 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     console.log('[APPROVED PROMPT REPLAYED] =========================================');
                     
                     sendApprovedPrompt(currentStage, openAiWs, ws);
+                    // Set current stage for validation
+                    if (twilioHandler && typeof (twilioHandler as any).setCurrentStage === 'function') {
+                      (twilioHandler as any).setCurrentStage(currentStage);
+                    }
                     
                     // Do not add to transcript - skip this unapproved content
                     return;
+                  }
+                  
+                  // Authorize response and flush buffered audio if transcript matches
+                  if (textMatchesApproved && twilioHandler && typeof (twilioHandler as any).authorizeResponse === 'function') {
+                    console.log('[RESPONSE AUTHORIZED] =========================================');
+                    console.log('[RESPONSE AUTHORIZED] Transcript matches approved prompt');
+                    console.log('[RESPONSE AUTHORIZED] stage:', currentStage);
+                    console.log('[RESPONSE AUTHORIZED] authorized text:', assistantText);
+                    console.log('[RESPONSE AUTHORIZED] Timestamp:', new Date().toISOString());
+                    console.log('[RESPONSE AUTHORIZED] =========================================');
+                    
+                    (twilioHandler as any).authorizeResponse();
                   }
                   
                   console.log('[AI TRANSCRIPT CAPTURED]', { role: 'assistant', text: message.content, timestamp: new Date().toISOString() });
@@ -8471,6 +8503,10 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   
                   // Use centralized sendApprovedPrompt for greeting
                   sendApprovedPrompt('ask_name_reason', openAiWs, ws);
+                  // Set current stage for validation
+                  if (twilioHandler && typeof (twilioHandler as any).setCurrentStage === 'function') {
+                    (twilioHandler as any).setCurrentStage('ask_name_reason');
+                  }
                   greetingSent = true;
                   updateAISessionState(aiSessionTracker, 'GREETING_SENT', 'Greeting response.create sent');
                   console.log('[GREETING SENT]');
@@ -8556,6 +8592,21 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[TERMINAL_USER_AUDIO_EVENT_IGNORED] =========================================');
                   return; // Do not process this commit
                 }
+                
+                // Comprehensive logging for caller transcript processing
+                const callerTranscript = message.transcript || '';
+                const stageBeforeProcessing = intakeData?.stage || 'ask_name_reason';
+                const intakeTemplate = (ws as any).intakeTemplate || 'on_site';
+                const nextStage = getNextStage(stageBeforeProcessing as any);
+                const expectedNextScriptLine = getIntakeStageTextSafe(intakeTemplate, nextStage as any);
+                
+                console.log('[CALLER TRANSCRIPT PROCESSING] =========================================');
+                console.log('[CALLER TRANSCRIPT PROCESSING] First caller transcript:', callerTranscript);
+                console.log('[CALLER TRANSCRIPT PROCESSING] Stage before processing:', stageBeforeProcessing);
+                console.log('[CALLER TRANSCRIPT PROCESSING] Stage after processing:', nextStage);
+                console.log('[CALLER TRANSCRIPT PROCESSING] Expected next script line:', expectedNextScriptLine);
+                console.log('[CALLER TRANSCRIPT PROCESSING] Timestamp:', new Date().toISOString());
+                console.log('[CALLER TRANSCRIPT PROCESSING] =========================================');
               }
               if (message.type === 'response.created') {
                 console.log('[OPENAI RECV] response.created');
@@ -8574,6 +8625,11 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[OPENAI ACTUAL RESPONSE ID] Final closing started:', (twilioHandler as any).finalClosingStarted);
                 console.log('[OPENAI ACTUAL RESPONSE ID] Timestamp:', new Date().toISOString());
                 console.log('[OPENAI ACTUAL RESPONSE ID] =========================================');
+
+                // Set response ID for audio buffering
+                if (twilioHandler && typeof (twilioHandler as any).setCurrentResponseId === 'function') {
+                  (twilioHandler as any).setCurrentResponseId(actualResponseId);
+                }
 
                 // Scope guard: Check if this response was created by sendApprovedPrompt
                 // All approved responses should have authorizedResponseCreateSource set to 'sendApprovedPrompt'
@@ -8597,11 +8653,22 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     }));
                     console.log('[UNAUTHORIZED RESPONSE CANCELED] Response cancel command sent');
                   }
+                  
+                  // Cancel audio buffering
+                  if (twilioHandler && typeof (twilioHandler as any).cancelResponse === 'function') {
+                    (twilioHandler as any).cancelResponse();
+                  }
+                  
                   return; // Do not process this response
                 }
 
                 // Clear the authorized source flag after verification
                 authorizedResponseCreateSource = null;
+
+                // Reset validation state for new response
+                if (twilioHandler && typeof (twilioHandler as any).resetValidationState === 'function') {
+                  (twilioHandler as any).resetValidationState();
+                }
 
                 // CRITICAL FIX: Set assistantSpeaking to TRUE immediately when response.created is received
                 // This ensures caller audio is blocked BEFORE any audio starts streaming
@@ -8713,6 +8780,11 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   const currentBuffer = activeAssistantTranscripts.get(itemId) || '';
                   const updatedBuffer = currentBuffer + message.delta;
                   activeAssistantTranscripts.set(itemId, updatedBuffer);
+                  
+                  // Update transcript in twilioHandler for validation
+                  if (twilioHandler && typeof (twilioHandler as any).updateTranscript === 'function') {
+                    (twilioHandler as any).updateTranscript(message.delta);
+                  }
                   
                   console.log('[TRANSCRIPT DELTA]', { 
                     item_id: itemId, 
