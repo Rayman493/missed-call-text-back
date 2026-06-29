@@ -2879,20 +2879,22 @@ function isAIIntakeComplete(extractedFields: any): boolean {
   console.log('[AI INTAKE COMPLETENESS CHECK] Input keys:', Object.keys(extractedFields));
   console.log('[AI INTAKE COMPLETENESS CHECK] Input values:', JSON.stringify(extractedFields, null, 2));
   
-  // Check fields using the same logic as areAllRequiredFieldsCollected()
+  // Require ALL 6 fields individually (no OR logic)
   const hasName = !!extractedFields.customerName;
-  const hasJobDescription = !!(extractedFields.serviceRequested || extractedFields.issueDescription);
+  const hasServiceRequested = !!extractedFields.serviceRequested;
+  const hasIssueDescription = !!extractedFields.issueDescription;
   const hasLocation = !!extractedFields.serviceAddress;
-  const hasTiming = !!(extractedFields.desiredCompletionTime || extractedFields.callbackTime);
+  const hasDesiredCompletionTime = !!extractedFields.desiredCompletionTime;
   const hasCallbackTime = !!extractedFields.callbackTime;
   
-  const isComplete = hasName && hasJobDescription && hasLocation && hasTiming && hasCallbackTime;
+  const isComplete = hasName && hasServiceRequested && hasIssueDescription && hasLocation && hasDesiredCompletionTime && hasCallbackTime;
   
   console.log('[AI INTAKE COMPLETENESS CHECK] Field checks:', {
     hasName,
-    hasJobDescription,
+    hasServiceRequested,
+    hasIssueDescription,
     hasLocation,
-    hasTiming,
+    hasDesiredCompletionTime,
     hasCallbackTime,
     isComplete
   });
