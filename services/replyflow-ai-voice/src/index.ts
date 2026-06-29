@@ -5139,28 +5139,45 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         state.streamSid = message.streamSid;
         logSimple('twilio_start', { streamSid: state.streamSid });
 
-        // Connect to OpenAI Realtime
-        const openAiUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview`;
+        // Connect to OpenAI Realtime - use same URL as legacy
+        const openAiUrl = `wss://api.openai.com/v1/realtime?model=gpt-realtime`;
         state.openAiWs = new WebSocket(openAiUrl, {
           headers: {
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            'OpenAI-Beta': 'realtime=v1'
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
           }
         });
 
         state.openAiWs.on('open', () => {
           logSimple('openai_connected');
 
-          // Configure session
+          // Configure session - use same structure as legacy
           const sessionUpdate = {
-            type: 'session.update',
+            type: "session.update",
             session: {
-              instructions: 'You are a helpful AI assistant for ReplyFlow. Keep responses concise and professional.',
-              voice: 'alloy',
-              input_audio_format: 'pcm16',
-              output_audio_format: 'pcm16',
-              input_audio_transcription: {
-                model: 'whisper-1'
+              type: "realtime",
+              instructions: "You are a helpful AI assistant for ReplyFlow. Keep responses concise and professional.",
+              audio: {
+                input: {
+                  format: {
+                    type: "audio/pcmu"
+                  },
+                  turn_detection: {
+                    type: "server_vad",
+                    threshold: 0.5,
+                    prefix_padding_ms: 300,
+                    silence_duration_ms: 800,
+                    create_response: false
+                  },
+                  transcription: {
+                    model: "whisper-1"
+                  }
+                },
+                output: {
+                  format: {
+                    type: "audio/pcmu"
+                  },
+                  voice: "alloy"
+                }
               }
             }
           };
