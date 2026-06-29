@@ -5085,7 +5085,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     openAiWs: null as WebSocket | null,
     queuedTranscript: null as string | null,
     ttsCompleteTime: 0 as number,
-    simpleModeFinalTimeout: null as NodeJS.Timeout | null
+    simpleModeFinalTimeout: null as NodeJS.Timeout | null,
+    completionPersistenceStarted: false,
+    completionPersistenceFinished: false
   };
 
   // Hardcoded prompts for each stage
@@ -5121,6 +5123,144 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log(`[SIMPLE MODE] ${key}:`, value);
     });
     console.log('[SIMPLE MODE] Timestamp:', new Date().toISOString());
+    console.log('[SIMPLE MODE] =========================================');
+  };
+
+  // Completion persistence function - runs exactly once when intake is complete
+  const processSimpleModeCompletion = async () => {
+    if (state.completionPersistenceStarted) {
+      console.log('[SIMPLE MODE] =========================================');
+      console.log('[SIMPLE MODE] event: simple_mode_completion_already_started');
+      console.log('[SIMPLE MODE] skipping duplicate completion');
+      console.log('[SIMPLE MODE] =========================================');
+      return;
+    }
+
+    state.completionPersistenceStarted = true;
+
+    try {
+      console.log('[SIMPLE MODE] =========================================');
+      console.log('[SIMPLE MODE] event: simple_mode_completion_start');
+      console.log('[SIMPLE MODE] businessId:', state.businessId);
+      console.log('[SIMPLE MODE] callSid:', state.callSid);
+      console.log('[SIMPLE MODE] callerPhone:', state.callerPhone);
+      console.log('[SIMPLE MODE] intakeData:', state.intakeData);
+      console.log('[SIMPLE MODE] =========================================');
+
+      // Create lead and conversation using caller phone (not callSid)
+      const { data: lead, error: leadError } = await supabase
+        .from('leads')
+        .upsert({
+          business_id: state.businessId,
+          caller_phone: state.callerPhone || '',
+          status: 'new',
+        }, {
+          onConflict: 'business_id,caller_phone',
+        })
+        .select()
+        .single();
+
+      if (leadError) {
+        console.log('[SIMPLE MODE] lead creation failed:', leadError);
+      } else {
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] event: simple_mode_lead_created_or_updated');
+        console.log('[SIMPLE MODE] leadId:', lead.id);
+        console.log('[SIMPLE MODE] =========================================');
+
+        // Create conversation
+        const { data: conversation, error: conversationError } = await supabase
+          .from('conversations')
+          .insert({
+            lead_id: lead.id,
+            business_id: state.businessId,
+            status: 'active',
+          })
+          .select()
+          .single();
+
+        if (conversationError) {
+          console.log('[SIMPLE MODE] conversation creation failed:', conversationError);
+        } else {
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: simple_mode_conversation_created');
+          console.log('[SIMPLE MODE] conversationId:', conversation.id);
+          console.log('[SIMPLE MODE] =========================================');
+
+          // Create ai_call_record with exact call_sid
+          const { error: callRecordError } = await supabase
+            .from('ai_call_records')
+            .insert({
+              lead_id: lead.id,
+              conversation_id: conversation.id,
+              business_id: state.businessId,
+              call_sid: state.callSid,
+              transcript: state.transcript,
+              extracted_info: state.intakeData,
+              status: 'completed',
+            });
+
+          if (callRecordError) {
+            console.log('[SIMPLE MODE] ai_call_record creation failed:', callRecordError);
+          } else {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: simple_mode_ai_call_record_created');
+            console.log('[SIMPLE MODE] callSid:', state.callSid);
+            console.log('[SIMPLE MODE] =========================================');
+          }
+
+          // Generate SMS summary
+          const smsBody = `New customer request
+
+👤 ${state.intakeData.caller_name || 'Unknown'}
+📞 ${state.callerPhone || 'Unknown'}
+
+Service
+${state.intakeData.caller_name?.split(' ').slice(1).join(' ') || 'General inquiry'}
+
+Address
+${state.intakeData.address || 'Not provided'}
+
+Desired completion
+${state.intakeData.completion_time || 'Not specified'}
+
+Best callback time
+${state.intakeData.callback_time || 'Not specified'}
+
+Details
+${state.intakeData.details || 'No additional details'}`;
+
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: simple_mode_summary_generated');
+          console.log('[SIMPLE MODE] smsBody:', smsBody.substring(0, 200));
+          console.log('[SIMPLE MODE] =========================================');
+
+          // Send SMS using the legacy function
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: simple_mode_summary_sms_send_start');
+          console.log('[SIMPLE MODE] =========================================');
+
+          await sendAIConfirmationSMS(
+            state.businessId,
+            lead.id,
+            conversation.id,
+            state.callSid || 'unknown',
+            state.callerPhone || 'unknown',
+            state.intakeData
+          );
+
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: simple_mode_summary_sms_send_success');
+          console.log('[SIMPLE MODE] =========================================');
+        }
+      }
+    } catch (error) {
+      console.log('[SIMPLE MODE] Error processing completion:', error);
+    }
+
+    state.completionPersistenceFinished = true;
+    console.log('[SIMPLE MODE] =========================================');
+    console.log('[SIMPLE MODE] event: simple_mode_completion_finished');
     console.log('[SIMPLE MODE] =========================================');
   };
 
@@ -5437,6 +5577,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
                   console.log('[SIMPLE MODE] =========================================');
                   state.currentStage = 'complete';
                   sendPrompt('complete');
+                  
+                  // Run completion persistence immediately after setting stage to complete
+                  processSimpleModeCompletion().catch(console.error);
                 }
               }
               state.queuedTranscript = null;
@@ -5552,6 +5695,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
                 console.log('[SIMPLE MODE] =========================================');
                 state.currentStage = 'complete';
                 sendPrompt('complete');
+                
+                // Run completion persistence immediately after setting stage to complete
+                processSimpleModeCompletion().catch(console.error);
               }
             } else if (isFinalStage && state.assistantSpeaking) {
               // Final stage but assistant still speaking - transcript queued, will be processed after tts_complete
@@ -5610,132 +5756,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
           // Hang up after 2 second buffer
           setTimeout(() => {
-            // Process Simple Mode completion with SMS summary
-            const processSimpleModeCompletion = async () => {
-              try {
-                console.log('[SIMPLE MODE] =========================================');
-                console.log('[SIMPLE MODE] event: simple_mode_completion_start');
-                console.log('[SIMPLE MODE] businessId:', state.businessId);
-                console.log('[SIMPLE MODE] callSid:', state.callSid);
-                console.log('[SIMPLE MODE] callerPhone:', state.callerPhone);
-                console.log('[SIMPLE MODE] intakeData:', state.intakeData);
-                console.log('[SIMPLE MODE] =========================================');
-
-                // Create lead and conversation using caller phone (not callSid)
-                const { data: lead, error: leadError } = await supabase
-                  .from('leads')
-                  .upsert({
-                    business_id: state.businessId,
-                    caller_phone: state.callerPhone || '',
-                    status: 'new',
-                  }, {
-                    onConflict: 'business_id,caller_phone',
-                  })
-                  .select()
-                  .single();
-
-                if (leadError) {
-                  console.log('[SIMPLE MODE] lead creation failed:', leadError);
-                } else {
-                  console.log('[SIMPLE MODE] =========================================');
-                  console.log('[SIMPLE MODE] event: simple_mode_lead_created_or_updated');
-                  console.log('[SIMPLE MODE] leadId:', lead.id);
-                  console.log('[SIMPLE MODE] =========================================');
-
-                  // Create conversation
-                  const { data: conversation, error: conversationError } = await supabase
-                    .from('conversations')
-                    .insert({
-                      lead_id: lead.id,
-                      business_id: state.businessId,
-                      status: 'active',
-                    })
-                    .select()
-                    .single();
-
-                  if (conversationError) {
-                    console.log('[SIMPLE MODE] conversation creation failed:', conversationError);
-                  } else {
-                    console.log('[SIMPLE MODE] =========================================');
-                    console.log('[SIMPLE MODE] event: simple_mode_conversation_created');
-                    console.log('[SIMPLE MODE] conversationId:', conversation.id);
-                    console.log('[SIMPLE MODE] =========================================');
-
-                    // Create ai_call_record with exact call_sid
-                    const { error: callRecordError } = await supabase
-                      .from('ai_call_records')
-                      .insert({
-                        lead_id: lead.id,
-                        conversation_id: conversation.id,
-                        business_id: state.businessId,
-                        call_sid: state.callSid,
-                        transcript: state.transcript,
-                        extracted_info: state.intakeData,
-                        status: 'completed',
-                      });
-
-                    if (callRecordError) {
-                      console.log('[SIMPLE MODE] ai_call_record creation failed:', callRecordError);
-                    } else {
-                      console.log('[SIMPLE MODE] =========================================');
-                      console.log('[SIMPLE MODE] event: simple_mode_ai_call_record_created');
-                      console.log('[SIMPLE MODE] callSid:', state.callSid);
-                      console.log('[SIMPLE MODE] =========================================');
-                    }
-
-                    // Generate SMS summary
-                    const smsBody = `New customer request
-
-👤 ${state.intakeData.caller_name || 'Unknown'}
-📞 ${state.callerPhone || 'Unknown'}
-
-Service
-${state.intakeData.caller_name?.split(' ').slice(1).join(' ') || 'General inquiry'}
-
-Address
-${state.intakeData.address || 'Not provided'}
-
-Desired completion
-${state.intakeData.completion_time || 'Not specified'}
-
-Best callback time
-${state.intakeData.callback_time || 'Not specified'}
-
-Details
-${state.intakeData.details || 'No additional details'}`;
-
-                    console.log('[SIMPLE MODE] =========================================');
-                    console.log('[SIMPLE MODE] event: simple_mode_summary_generated');
-                    console.log('[SIMPLE MODE] smsBody:', smsBody.substring(0, 200));
-                    console.log('[SIMPLE MODE] =========================================');
-
-                    // Send SMS using the legacy function
-                    console.log('[SIMPLE MODE] =========================================');
-                    console.log('[SIMPLE MODE] event: simple_mode_summary_sms_send_start');
-                    console.log('[SIMPLE MODE] =========================================');
-
-                    await sendAIConfirmationSMS(
-                      state.businessId,
-                      lead.id,
-                      conversation.id,
-                      state.callSid || 'unknown',
-                      state.callerPhone || 'unknown',
-                      state.intakeData
-                    );
-
-                    console.log('[SIMPLE MODE] =========================================');
-                    console.log('[SIMPLE MODE] event: simple_mode_summary_sms_send_success');
-                    console.log('[SIMPLE MODE] =========================================');
-                  }
-                }
-              } catch (error) {
-                console.log('[SIMPLE MODE] Error processing completion:', error);
-              }
-            };
-
-            // Trigger completion processing
-            processSimpleModeCompletion().catch(console.error);
-
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: final_goodbye_hangup');
             console.log('[SIMPLE MODE] bufferMs:', 2000);
