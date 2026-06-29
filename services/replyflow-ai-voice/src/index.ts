@@ -7835,8 +7835,31 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[AI RESPONSE CREATE] Response ID:', responseId);
                 console.log('[AI RESPONSE CREATE] Stage:', intakeData?.stage || 'unknown');
                 console.log('[AI RESPONSE CREATE] Previous activeResponseId:', activeResponseId);
+                console.log('[AI RESPONSE CREATE] authorizedResponseCreateSource:', authorizedResponseCreateSource);
                 console.log('[AI RESPONSE CREATE] Timestamp:', new Date().toISOString());
                 console.log('[AI RESPONSE CREATE] =========================================');
+                
+                // HARD GUARD: Cancel unauthorized OpenAI responses
+                // Only responses from sendApprovedPrompt or sendControlledAssistantText are allowed
+                if (!authorizedResponseCreateSource) {
+                  console.log('[UNAUTHORIZED RESPONSE BLOCKED] =========================================');
+                  console.log('[UNAUTHORIZED RESPONSE BLOCKED] Response.create without authorized source');
+                  console.log('[UNAUTHORIZED RESPONSE BLOCKED] Response ID:', responseId);
+                  console.log('[UNAUTHORIZED RESPONSE BLOCKED] Stage:', intakeData?.stage || 'unknown');
+                  console.log('[UNAUTHORIZED RESPONSE BLOCKED] authorizedResponseCreateSource:', authorizedResponseCreateSource);
+                  console.log('[UNAUTHORIZED RESPONSE BLOCKED] Canceling unauthorized response');
+                  console.log('[UNAUTHORIZED RESPONSE BLOCKED] Timestamp:', new Date().toISOString());
+                  console.log('[UNAUTHORIZED RESPONSE BLOCKED] =========================================');
+                  
+                  // Cancel the unauthorized response
+                  if (openAiWs) {
+                    openAiWs.send(JSON.stringify({
+                      type: 'response.cancel',
+                      response_id: responseId
+                    }));
+                  }
+                  return; // Do not process this response
+                }
                 
                 // CRITICAL: Set assistantSpeaking to TRUE in response.created BEFORE OpenAI generates audio
                 // This ensures caller audio is blocked immediately when OpenAI starts generating the response
