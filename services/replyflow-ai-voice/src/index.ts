@@ -4409,7 +4409,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Create HTTP server for health checks
-const server = createServer((req, res) => {
+const server = createServer(async (req, res) => {
   // Log ALL incoming HTTP requests
   console.log('[HTTP REQUEST]', {
     method: req.method,
@@ -4738,6 +4738,37 @@ const server = createServer((req, res) => {
     }, 10000);
     
     res.end(JSON.stringify({ status: 'minimal test started', url: wsUrl }));
+    return;
+  }
+
+  // Temporary admin endpoint to generate cached audio for Simple Mode (remove after use)
+  if (req.url === '/admin/generate-cached-audio' && req.method === 'GET') {
+    console.log('[ADMIN] Generating cached audio for Simple Mode prompts');
+    
+    const prompts = {
+      ask_name_reason: "Hello! This is ReplyFlow AI. Who am I speaking with and how can I help you today?",
+      ask_details: "Got it. Can you share any important details the business should know?",
+      ask_location: "What is your location or address?",
+      ask_completion_time: "When would you like this work completed?",
+      ask_callback_time: "What is the best time for the business to call you back?",
+      complete: "Thank you for your information. We'll be in touch shortly. Goodbye!"
+    };
+
+    const results: Record<string, string> = {};
+
+    for (const [key, prompt] of Object.entries(prompts)) {
+      console.log(`[ADMIN] Generating audio for ${key}: ${prompt}`);
+      const audioData = await generateSingleCachedAudio(prompt);
+      if (audioData) {
+        results[key] = audioData;
+        console.log(`[ADMIN] ✓ Generated ${key}: ${audioData.length} bytes`);
+      } else {
+        console.error(`[ADMIN] ✗ Failed to generate ${key}`);
+      }
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(results, null, 2));
     return;
   }
 
@@ -12235,40 +12266,7 @@ async function sendAIConfirmationSMS(
   }
 }
 
-// Temporary admin endpoint to generate cached audio (remove after use)
-server.on('request', async (req, res) => {
-  if (req.url === '/admin/generate-cached-audio' && req.method === 'GET') {
-    console.log('[ADMIN] Generating cached audio for Simple Mode prompts');
-    
-    const prompts = {
-      ask_name_reason: "Hello! This is ReplyFlow AI. Who am I speaking with and how can I help you today?",
-      ask_details: "Got it. Can you share any important details the business should know?",
-      ask_location: "What is your location or address?",
-      ask_completion_time: "When would you like this work completed?",
-      ask_callback_time: "What is the best time for the business to call you back?",
-      complete: "Thank you for your information. We'll be in touch shortly. Goodbye!"
-    };
-
-    const results: Record<string, string> = {};
-
-    for (const [key, prompt] of Object.entries(prompts)) {
-      console.log(`[ADMIN] Generating audio for ${key}: ${prompt}`);
-      const audioData = await generateSingleCachedAudio(prompt);
-      if (audioData) {
-        results[key] = audioData;
-        console.log(`[ADMIN] ✓ Generated ${key}: ${audioData.length} bytes`);
-      } else {
-        console.error(`[ADMIN] ✗ Failed to generate ${key}`);
-      }
-    }
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(results, null, 2));
-    return;
-  }
-});
-
-// Helper function to generate single cached audio (same logic as generate-cached-audio.ts)
+// Helper functions for audio processing (same as generate-cached-audio.ts)
 async function generateSingleCachedAudio(prompt: string): Promise<string | null> {
   try {
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
@@ -12328,7 +12326,6 @@ async function generateSingleCachedAudio(prompt: string): Promise<string | null>
   }
 }
 
-// Helper functions for audio processing (same as generate-cached-audio.ts)
 function pcmToMulaw(pcmData: Float32Array): Buffer {
   const MULAW_BIAS = 0x84;
   const MULAW_CLIP = 32635;
