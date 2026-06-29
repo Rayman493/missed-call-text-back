@@ -87,12 +87,20 @@ export async function POST(req: NextRequest) {
     const MessageSid = formData.get('MessageSid')?.toString() || ''
     const NumMedia = Number(formData.get('NumMedia') || 0)
     
+    // Log ALL Twilio parameters for opt-in event detection
+    console.log('[INBOUND SMS ALL PARAMETERS]', params)
+    
+    // Check for Twilio opt-in event metadata
+    const SmsStatus = formData.get('SmsStatus')?.toString() || ''
+    const SmsDirection = formData.get('SmsDirection')?.toString() || ''
+    
     if (isDevEnvironment) {
       console.log('[MMS DEBUG] From', From)
       console.log('[MMS DEBUG] To', To)
       console.log('[MMS DEBUG] Body', Body)
       console.log('[MMS DEBUG] MessageSid', MessageSid)
       console.log('[MMS DEBUG] NumMedia', NumMedia)
+      console.log('[OPT-IN METADATA]', { SmsStatus, SmsDirection })
     }
     
     // Extract MMS media if present

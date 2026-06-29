@@ -164,8 +164,9 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   const originalBody = body.trim().toUpperCase()
   const isOptOut = optOutKeywords.some(keyword => originalBody === keyword)
   
-  // Check for opt-in keywords (case-insensitive) - START, UNSTOP, YES
-  const optInKeywords = ['START', 'UNSTOP', 'YES']
+  // Check for opt-in keywords (case-insensitive) - START, UNSTOP only (TCPA-compliant)
+  // Note: YES is NOT a valid opt-in keyword per TCPA compliance
+  const optInKeywords = ['START', 'UNSTOP']
   const isOptIn = optInKeywords.some(keyword => originalBody === keyword)
 
   // Handle opt-out and opt-in keywords before normal message processing
@@ -239,11 +240,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         console.log('[OPT-OUT/IN MESSAGE STORED]', { conversationId: conversation.id })
       }
 
-      // Cancel pending follow-up jobs for opted-out contacts
-      if (isOptOut) {
-        await db.cancelPendingFollowUpJobsForLead(lead.id, 'opted_out')
-        console.log('[OPT-OUT FOLLOW-UPS CANCELED]', { leadId: lead.id })
-      }
+      // Cancel pending follow-up jobs for ANY customer reply (opt-out or opt-in)
+      // Any customer engagement indicates the lead is active and follow-ups should stop
+      await db.cancelPendingFollowUpJobsForLead(lead.id, isOptOut ? 'opted_out' : 'customer_replied')
+      console.log('[FOLLOW-UPS CANCELED]', { 
+        leadId: lead.id, 
+        reason: isOptOut ? 'opted_out' : 'customer_replied'
+      })
 
       // Return compliant confirmation message
       const confirmationMessage = isOptOut
@@ -569,6 +572,28 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       created_at: inboundMessage.created_at,
       body: sanitizedBody.substring(0, 50)
     })
+    
+    // CRITICAL: Cancel all pending follow-ups for this lead
+    // Any customer reply indicates engagement and should stop automated follow-ups
+    console.log('[FOLLOW-UP CANCELLATION TRIGGERED]', {
+      leadId: lead.id,
+      reason: 'customer_replied',
+      messageBody: sanitizedBody.substring(0, 50)
+    })
+    
+    try {
+      await db.cancelPendingFollowUpJobsForLead(lead.id, 'customer_replied')
+      console.log('[FOLLOW-UPS CANCELED SUCCESSFULLY]', {
+        leadId: lead.id,
+        reason: 'customer_replied'
+      })
+    } catch (cancelError) {
+      console.error('[FOLLOW-UP CANCELLATION ERROR]', {
+        leadId: lead.id,
+        error: cancelError instanceof Error ? cancelError.message : String(cancelError)
+      })
+      // Don't fail the entire inbound SMS processing if follow-up cancellation fails
+    }
     
     // Store media attachments if present
     if (media && media.length > 0) {
