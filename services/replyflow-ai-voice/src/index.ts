@@ -5044,6 +5044,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     intakeData: {} as any,
     openAiWs: null as WebSocket | null,
     activeResponseId: null as string | null,
+    currentPromptResponseId: null as string | null,
+    completedAudioResponseIds: new Set<string>(),
     timeoutId: null as NodeJS.Timeout | null,
     audioReceived: false
   };
@@ -5096,6 +5098,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
     const responseId = Math.random().toString(36).substring(2, 10);
     state.activeResponseId = responseId;
+    state.currentPromptResponseId = responseId;
     state.assistantSpeaking = true;
     state.audioReceived = false;
 
@@ -5240,16 +5243,33 @@ Never respond in French, Spanish, or any non-English language.`;
             // Audio started - clear timeout since we received audio
             if (state.timeoutId) clearTimeout(state.timeoutId);
           } else if (message.type === 'response.output_audio.done' || message.type === 'response.audio.done' || message.type === 'response.done') {
-            state.assistantSpeaking = false;
-            if (state.timeoutId) clearTimeout(state.timeoutId);
-            logSimple('audio_done', { stage: state.currentStage, eventType: message.type });
+            // Make audio_done idempotent - only handle once per responseId
+            const responseId = state.currentPromptResponseId;
+            if (responseId && !state.completedAudioResponseIds.has(responseId)) {
+              state.completedAudioResponseIds.add(responseId);
+              state.assistantSpeaking = false;
+              if (state.timeoutId) clearTimeout(state.timeoutId);
+              logSimple('audio_done', { stage: state.currentStage, eventType: message.type, responseId });
+
+              // Handle final complete stage close
+              if (state.currentStage === 'complete') {
+                console.log('[SIMPLE MODE] Final audio done, closing in 2 seconds');
+                setTimeout(() => {
+                  logSimple('call_complete');
+                  ws.close();
+                  if (state.openAiWs) {
+                    state.openAiWs.close();
+                  }
+                }, 2000);
+              }
+            }
           } else if (message.type === 'conversation.item.input_audio_transcription.completed') {
             // User transcription completed
             const transcript = message.transcript || '';
             state.transcript += ' ' + transcript;
             logSimple('user_transcription', { transcript: transcript.substring(0, 50) });
 
-            // Move to next stage
+            // Move to next stage - do NOT advance from final complete stage
             const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
             const currentIndex = stages.indexOf(state.currentStage);
 
@@ -5258,14 +5278,9 @@ Never respond in French, Spanish, or any non-English language.`;
               sendPrompt(state.currentStage);
             } else {
               // Complete - say goodbye
+              // Close logic now handled in audio_done handler for proper timing
               state.currentStage = 'complete';
               sendPrompt('complete');
-
-              // Close call after 8 seconds
-              setTimeout(() => {
-                logSimple('call_complete');
-                ws.close();
-              }, 8000);
             }
           }
         });
