@@ -5053,10 +5053,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   // Hardcoded prompts for each stage
   const prompts: Record<string, string> = {
     ask_name_reason: "Hello! This is ReplyFlow AI. Who am I speaking with and how can I help you today?",
-    ask_details: "Thank you. Can you tell me more details about what you need help with?",
+    ask_details: "Got it. Can you share any important details the business should know?",
     ask_location: "What is your location or address?",
-    ask_completion_time: "When would you like this service completed?",
-    ask_callback_time: "What time would be best for a callback?",
+    ask_completion_time: "When would you like this work completed?",
+    ask_callback_time: "What is the best time for the business to call you back?",
     complete: "Thank you for your information. We'll be in touch shortly. Goodbye!"
   };
 
@@ -5101,6 +5101,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     state.currentPromptResponseId = responseId;
     state.assistantSpeaking = true;
     state.audioReceived = false;
+
+    console.log('[SIMPLE MODE] =========================================');
+    console.log('[SIMPLE MODE] event: stage_prompt_mapping');
+    console.log('[SIMPLE MODE] currentStage:', stage);
+    console.log('[SIMPLE MODE] businessType:', 'none (simple mode)');
+    console.log('[SIMPLE MODE] template:', 'none (simple mode)');
+    console.log('[SIMPLE MODE] promptKey:', stage);
+    console.log('[SIMPLE MODE] promptText:', prompt);
+    console.log('[SIMPLE MODE] =========================================');
 
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
@@ -5176,7 +5185,7 @@ Never respond in French, Spanish, or any non-English language.`;
             type: "session.update",
             session: {
               type: "realtime",
-              instructions: "You are a helpful AI assistant for ReplyFlow. Keep responses concise and professional.\n\nLANGUAGE LOCK - ENGLISH ONLY:\n- Always speak English only.\n- Never translate.\n- Never respond in French, Spanish, or any non-English language.\n- Ignore caller language for assistant output.\n- The caller may have accent/noise/transcription mistakes; still respond only in English.\n- Do not imitate accents.\n- Do not switch languages.",
+              instructions: "You are a helpful AI assistant for ReplyFlow. Keep responses concise and professional.\n\nIMPORTANT - NEVER GENERATE FOLLOW-UP QUESTIONS:\n- Only speak the exact scripted prompt provided in response.create instructions.\n- Do NOT ask any follow-up questions.\n- Do NOT generate additional questions beyond the scripted prompt.\n- Do NOT improvise or add questions.\n- The conversation flow is controlled by the system, not by you.\n\nLANGUAGE LOCK - ENGLISH ONLY:\n- Always speak English only.\n- Never translate.\n- Never respond in French, Spanish, or any non-English language.\n- Ignore caller language for assistant output.\n- The caller may have accent/noise/transcription mistakes; still respond only in English.\n- Do not imitate accents.\n- Do not switch languages.",
               audio: {
                 input: {
                   format: {
@@ -5253,14 +5262,19 @@ Never respond in French, Spanish, or any non-English language.`;
 
               // Handle final complete stage close
               if (state.currentStage === 'complete') {
-                console.log('[SIMPLE MODE] Final audio done, closing in 2 seconds');
+                const delayMs = 5000;
+                console.log('[SIMPLE MODE] =========================================');
+                console.log('[SIMPLE MODE] event: final_audio_done_close_scheduled');
+                console.log('[SIMPLE MODE] delayMs:', delayMs);
+                console.log('[SIMPLE MODE] responseId:', responseId);
+                console.log('[SIMPLE MODE] =========================================');
                 setTimeout(() => {
                   logSimple('call_complete');
                   ws.close();
                   if (state.openAiWs) {
                     state.openAiWs.close();
                   }
-                }, 2000);
+                }, delayMs);
               }
             }
           } else if (message.type === 'conversation.item.input_audio_transcription.completed') {
