@@ -11255,17 +11255,3 @@ process.on('SIGINT', () => {
     });
   });
 });
-  wss.close(() => {
-    server.close(() => {
-      log(LogLevel.INFO, 'Server closed');
-      process.exit(0);
-    });
-  });
-});
-  wss.close(() => {
-    server.close(() => {
-      log(LogLevel.INFO, 'Server closed');
-      process.exit(0);
-    });
-  });
-});
