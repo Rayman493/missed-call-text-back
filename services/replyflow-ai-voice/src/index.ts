@@ -5090,12 +5090,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
   // Hardcoded prompts for each stage
   const prompts: Record<string, string> = {
-    ask_name_reason: "Hello! This is ReplyFlow AI. Who am I speaking with and how can I help you today?",
-    ask_details: "Got it. Can you share any important details the business should know?",
-    ask_location: "What is your location or address?",
+    ask_name_reason: "Hi, this is ReplyFlow AI. Who am I speaking with, and what can we help you with today?",
+    ask_details: "Thanks. Can you share any other details the business should know?",
+    ask_location: "What address or location is this for?",
     ask_completion_time: "When would you like this work completed?",
     ask_callback_time: "What is the best time for the business to call you back?",
-    complete: "Thank you for your information. We'll be in touch shortly. Goodbye!"
+    complete: "Perfect. I'll pass this information along, and the business will get back to you soon. Goodbye."
   };
 
   // Cached PCMU audio for each prompt (pre-generated for deterministic speech)
