@@ -5120,13 +5120,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       const message = {
         type: 'response.create',
         response: {
-          instructions: prompt // Use exact prompt text only
+          instructions: `Speak exactly this sentence and nothing else:\n"${prompt}"`
         }
       };
 
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: response_create_sent');
-      console.log('[SIMPLE MODE] stage:', stage);
+      console.log('[SIMPLE MODE] response_create_instruction_mode:', 'strict_exact_sentence');
+      console.log('[SIMPLE MODE] response_create_stage:', stage);
+      console.log('[SIMPLE MODE] promptText:', prompt);
       console.log('[SIMPLE MODE] instructions:', message.response.instructions);
       console.log('[SIMPLE MODE] =========================================');
 
