@@ -209,6 +209,11 @@ export async function POST(request: Request) {
 
     console.log('[PAYMENT REQUEST] Created Checkout Session:', checkoutSession.id)
 
+    // Generate secure token for branded payment link
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+
     // Create payment_request record
     const { data: paymentRequest, error: paymentRequestError } = await supabase
       .from('payment_requests')
@@ -224,6 +229,7 @@ export async function POST(request: Request) {
         stripe_payment_intent_id: checkoutSession.payment_intent as string,
         stripe_connect_account_id: business.stripe_connect_account_id,
         checkout_url: checkoutSession.url,
+        token: token,
         requested_by: user.id,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
       })
@@ -278,13 +284,19 @@ export async function POST(request: Request) {
       .update(leadStatusUpdate)
       .eq('id', lead_id)
 
-    // Send SMS with Checkout link using shared Twilio helper
+    // Send SMS with branded ReplyFlow payment link
     const businessName = business.name || 'our business'
+    const amount = (amount_cents / 100).toFixed(2)
+    const paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/pay/${token}`
+    
     const smsMessage = `Thanks for choosing ${businessName}!
 
-You can securely make your payment here:
+Your payment request of $${amount} is ready.
 
-${checkoutSession.url}
+${paymentDescription || ''}
+
+Pay securely here:
+${paymentUrl}
 
 Thank you! If you have any questions, simply reply to this message.`
 
