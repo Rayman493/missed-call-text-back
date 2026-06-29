@@ -2664,6 +2664,36 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[LIVE EXTRACTION MAPPED] callbackTime:', intake.callbackTime);
         }
+      } else {
+        // Field is already locked - prevent overwriting with trivial farewell utterances
+        const trivialFarewellUtterances = [
+          'bye', 'goodbye', 'thank you', 'thanks', 'okay', 'ok', 'sounds good', 
+          'see you', 'have a good day', 'have a great day', 'alright', 'fine'
+        ];
+        
+        const isTrivialFarewell = trivialFarewellUtterances.some(utterance => 
+          lowerTranscript.trim() === utterance || lowerTranscript.trim() === utterance + '.'
+        );
+        
+        if (isTrivialFarewell) {
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+          console.log('[FIELD LOCK PROTECTION] field: callbackTime');
+          console.log('[FIELD LOCK PROTECTION] current value:', intake.callbackTime);
+          console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
+          console.log('[FIELD LOCK PROTECTION] reason: trivial farewell utterance detected');
+          console.log('[FIELD LOCK PROTECTION] action: field locked, overwrite prevented');
+          console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+        } else if (transcript.trim().length < 5) {
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+          console.log('[FIELD LOCK PROTECTION] field: callbackTime');
+          console.log('[FIELD LOCK PROTECTION] current value:', intake.callbackTime);
+          console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
+          console.log('[FIELD LOCK PROTECTION] reason: short conversational ending');
+          console.log('[FIELD LOCK PROTECTION] action: field locked, overwrite prevented');
+          console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+        }
       }
 
       // Log skipped extractions
@@ -8633,6 +8663,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
 
                 // Scope guard: Check if this response was created by sendApprovedPrompt
                 // All approved responses should have authorizedResponseCreateSource set to 'sendApprovedPrompt'
+                // EXCEPTION: Never cancel the final closing response
                 const isFinalClose = (twilioHandler as any).finalClosingStarted;
                 if (authorizedResponseCreateSource !== 'sendApprovedPrompt' && !isFinalClose) {
                   console.log('[VOICE SCOPE VIOLATION BLOCKED] =========================================');
@@ -8660,6 +8691,20 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   }
                   
                   return; // Do not process this response
+                }
+                
+                // Never cancel the final closing response - always authorize it
+                if (isFinalClose) {
+                  console.log('[FINAL CLOSING RESPONSE AUTHORIZED] =========================================');
+                  console.log('[FINAL CLOSING RESPONSE AUTHORIZED] Final closing response detected');
+                  console.log('[FINAL CLOSING RESPONSE AUTHORIZED] Response ID:', actualResponseId);
+                  console.log('[FINAL CLOSING RESPONSE AUTHORIZED] Authorizing response immediately');
+                  console.log('[FINAL CLOSING RESPONSE AUTHORIZED] Timestamp:', new Date().toISOString());
+                  console.log('[FINAL CLOSING RESPONSE AUTHORIZED] =========================================');
+                  
+                  if (twilioHandler && typeof (twilioHandler as any).authorizeResponse === 'function') {
+                    (twilioHandler as any).authorizeResponse();
+                  }
                 }
 
                 // Clear the authorized source flag after verification
