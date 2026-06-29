@@ -212,12 +212,16 @@ export class TwilioStreamHandler {
               const callState = (this as any).callState || 'active';
               // CRITICAL FIX: Read promptPlayback.status from shared callSessionState for authoritative gating
               const callSessionState = (this as any).callSessionState || {};
+              const callSessionStateDebugId = (callSessionState as any).__debugId || 'no-debug-id';
               const promptPlayback = callSessionState.promptPlayback || null;
               const promptPlaybackStatus = promptPlayback?.status || 'idle';
               const isPromptPlaying = promptPlaybackStatus === 'starting' || promptPlaybackStatus === 'streaming' || promptPlaybackStatus === 'waiting_for_mark';
 
               // Instrument read for media gating
               console.log('[PROMPT PLAYBACK READ] =========================================');
+              console.log('[PROMPT PLAYBACK READ] callSessionState.__debugId:', callSessionStateDebugId);
+              console.log('[PROMPT PLAYBACK READ] promptPlayback present:', !!promptPlayback);
+              console.log('[PROMPT PLAYBACK READ] promptPlayback.id:', promptPlayback?.id || 'none');
               console.log('[PROMPT PLAYBACK READ] value:', promptPlaybackStatus);
               console.log('[PROMPT PLAYBACK READ] isPromptPlaying:', isPromptPlaying);
               console.log('[PROMPT PLAYBACK READ] function: handleMessage (media event handler)');

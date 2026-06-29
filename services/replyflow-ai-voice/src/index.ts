@@ -1571,6 +1571,18 @@ Speak ONLY the exact text in quotes above.`;
     // Set new prompt playback state
     callSessionState.promptPlayback = promptPlayback;
 
+    // CRITICAL: Log immediately after creation to prove it was set
+    console.log('[PROMPT PLAYBACK CREATED] =========================================');
+    console.log('[PROMPT PLAYBACK CREATED] event: created');
+    console.log('[PROMPT PLAYBACK CREATED] id:', promptPlaybackId);
+    console.log('[PROMPT PLAYBACK CREATED] stage:', stage);
+    console.log('[PROMPT PLAYBACK CREATED] status: starting');
+    console.log('[PROMPT PLAYBACK CREATED] responseId:', tempResponseId);
+    console.log('[PROMPT PLAYBACK CREATED] callSessionState.promptPlayback set to:', !!callSessionState.promptPlayback);
+    console.log('[PROMPT PLAYBACK CREATED] Timestamp:', new Date().toISOString());
+    console.log('[PROMPT PLAYBACK CREATED] Stack:', new Error().stack?.split('\n').slice(1, 4).join('\n') || 'unknown');
+    console.log('[PROMPT PLAYBACK CREATED] =========================================');
+
     // Start 12-second safety timeout
     const PROMPT_PLAYBACK_TIMEOUT_MS = 12000;
     promptPlayback.timeoutId = setTimeout(() => {
