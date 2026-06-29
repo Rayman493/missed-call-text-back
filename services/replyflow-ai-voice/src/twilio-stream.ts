@@ -232,17 +232,32 @@ export class TwilioStreamHandler {
                 // Increased timeout from 10s to 30s to match the timeout protection in index.ts
                 // This prevents premature reset during long responses
                 if (activeResponseId === 'unknown' || activeResponseId === null || activeResponseId === undefined || timeSinceLastPrompt > 30000) {
+                  const beforeAssistantSpeaking = callSessionState.assistantSpeaking;
+                  const stackTrace = new Error().stack?.split('\n').slice(1, 4).join('\n') || 'unknown';
+                  
                   console.log('[AUDIO BLOCKING STATE INVALID] =========================================');
+                  console.log('[AUDIO BLOCKING STATE INVALID] BEFORE callSessionState.assistantSpeaking:', beforeAssistantSpeaking);
                   console.log('[AUDIO BLOCKING STATE INVALID] assistantSpeaking is true but activeResponseId is unknown/null or timeout');
                   console.log('[AUDIO BLOCKING STATE INVALID] assistantSpeaking:', assistantSpeaking);
                   console.log('[AUDIO BLOCKING STATE INVALID] activeResponseId:', activeResponseId);
                   console.log('[AUDIO BLOCKING STATE INVALID] timeSinceLastPrompt:', timeSinceLastPrompt);
                   console.log('[AUDIO BLOCKING STATE INVALID] Resetting assistantSpeaking to false');
+                  console.log('[AUDIO BLOCKING STATE INVALID] Stack trace:', stackTrace);
                   console.log('[AUDIO BLOCKING STATE INVALID] Timestamp:', new Date().toISOString());
                   console.log('[AUDIO BLOCKING STATE INVALID] =========================================');
                   
                   // Reset assistantSpeaking to allow caller audio
                   callSessionState.assistantSpeaking = false;
+                  
+                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] =========================================');
+                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] BEFORE callSessionState.assistantSpeaking:', beforeAssistantSpeaking);
+                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] AFTER callSessionState.assistantSpeaking:', callSessionState.assistantSpeaking);
+                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] Source: twilio-stream.ts audio blocking state invalid handler');
+                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] activeResponseId:', activeResponseId);
+                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] timeSinceLastPrompt:', timeSinceLastPrompt);
+                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] Stack trace:', stackTrace);
+                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] Timestamp:', new Date().toISOString());
+                  console.log('[ASSISTANT SPEAKING ASSIGNMENT] =========================================');
                   
                   // Do NOT return - allow caller audio to proceed
                 } else {
