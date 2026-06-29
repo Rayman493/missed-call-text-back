@@ -5433,31 +5433,49 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
             // User transcription completed
             const transcript = message.transcript || '';
             state.transcript += ' ' + transcript;
-            logSimple('user_transcription', { transcript: transcript.substring(0, 50), stage: state.currentStage });
 
-            // Move to next stage - only advance from non-complete stages
+            // Log transcription decision
             const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
             const currentIndex = stages.indexOf(state.currentStage);
+            const isValidStage = currentIndex !== -1;
+            const isFinalStage = currentIndex === stages.length - 1;
+            const accepted = !state.assistantSpeaking && isValidStage;
 
-            // Only advance if current stage is in the stages array
-            if (currentIndex !== -1 && currentIndex < stages.length - 1) {
-              state.currentStage = stages[currentIndex + 1];
-              sendPrompt(state.currentStage);
-            } else if (currentIndex === stages.length - 1) {
-              // Final stage (ask_callback_time) completed - advance to complete
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: transcription_decision');
+            console.log('[SIMPLE MODE] currentStage:', state.currentStage);
+            console.log('[SIMPLE MODE] transcript:', transcript);
+            console.log('[SIMPLE MODE] assistantSpeaking:', state.assistantSpeaking);
+            console.log('[SIMPLE MODE] accepted:', accepted);
+            console.log('[SIMPLE MODE] ignoredReason:', accepted ? 'none' : (state.assistantSpeaking ? 'assistant_speaking' : 'invalid_stage'));
+            console.log('[SIMPLE MODE] =========================================');
+
+            logSimple('user_transcription', { transcript: transcript.substring(0, 50), stage: state.currentStage });
+
+            // Only advance if assistant is not speaking and stage is valid
+            if (accepted) {
+              if (currentIndex < stages.length - 1) {
+                // Normal stage advancement
+                state.currentStage = stages[currentIndex + 1];
+                sendPrompt(state.currentStage);
+              } else if (isFinalStage) {
+                // Final stage (ask_callback_time) completed - advance to complete
+                console.log('[SIMPLE MODE] =========================================');
+                console.log('[SIMPLE MODE] event: final_callback_answer_accepted');
+                console.log('[SIMPLE MODE] previousStage:', state.currentStage);
+                console.log('[SIMPLE MODE] transcript:', transcript);
+                console.log('[SIMPLE MODE] advancingTo:', 'complete');
+                console.log('[SIMPLE MODE] =========================================');
+                state.currentStage = 'complete';
+                sendPrompt('complete');
+              }
+            } else if (isFinalStage && state.assistantSpeaking) {
+              // Final stage but assistant still speaking - wait for tts_complete
               console.log('[SIMPLE MODE] =========================================');
-              console.log('[SIMPLE MODE] event: final_stage_complete');
-              console.log('[SIMPLE MODE] previousStage:', state.currentStage);
-              console.log('[SIMPLE MODE] advancingTo:', 'complete');
-              console.log('[SIMPLE MODE] =========================================');
-              state.currentStage = 'complete';
-              sendPrompt('complete');
-            } else {
-              // Already at complete stage or invalid stage - do nothing
-              console.log('[SIMPLE MODE] =========================================');
-              console.log('[SIMPLE MODE] event: stage_advancement_skipped');
+              console.log('[SIMPLE MODE] event: final_stage_waiting_for_tts_complete');
               console.log('[SIMPLE MODE] currentStage:', state.currentStage);
-              console.log('[SIMPLE MODE] reason:', 'already_complete_or_invalid');
+              console.log('[SIMPLE MODE] transcript:', transcript);
+              console.log('[SIMPLE MODE] reason:', 'assistant_still_speaking');
               console.log('[SIMPLE MODE] =========================================');
             }
           }
