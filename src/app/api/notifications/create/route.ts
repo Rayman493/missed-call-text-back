@@ -87,7 +87,13 @@ export async function POST(request: NextRequest) {
     if (type === 'ai_intake_completed') {
       data = { leadId, customerName, customerPhone, serviceRequested }
       finalTitle = title || 'New AI intake lead'
-      finalMessage = message || `${customerName || customerPhone || 'Customer'} requested help${serviceRequested ? ` with ${serviceRequested}` : ''}`
+      const nameLabel = customerName || null
+      const serviceLabel = serviceRequested || null
+      const preview = nameLabel && serviceLabel
+        ? `${nameLabel} \u2022 ${serviceLabel}`
+        : serviceLabel || nameLabel || 'New customer request'
+      finalMessage = message || preview
+      console.log('[notification_preview_generated]', { nameLabel, serviceLabel, preview })
       finalActionUrl = actionUrl || `/dashboard/leads/${leadId}`
       finalActionText = actionText || 'View Lead'
     } else if (type === 'new_lead') {

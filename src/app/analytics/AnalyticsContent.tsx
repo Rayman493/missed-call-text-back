@@ -132,8 +132,9 @@ export default function AnalyticsContent() {
         const outboundMessages = messages?.filter((m: any) => m.direction === 'outbound').length || 0
         const totalMessages = messages?.length || 0
 
-        const aiIntakesCompleted = aiCalls?.filter((c: any) => c.outcome === 'completed_intake').length || 0
+        const aiIntakesCompleted = aiCalls?.filter((c: any) => c.outcome === 'completed_intake' || c.outcome === 'completed').length || 0
         const aiIntakesIncomplete = aiCalls?.filter((c: any) => c.outcome === 'partial_intake' || c.outcome === 'early_hangup').length || 0
+        console.log('[analytics_ai_intake_count_query]', { totalAiCalls: aiCalls?.length ?? 0, aiIntakesCompleted, outcomes: aiCalls?.map((c: any) => c.outcome) })
         const totalAiCalls = aiCalls?.length || 0
         const aiCompletionRate = totalAiCalls > 0 ? (aiIntakesCompleted / totalAiCalls) * 100 : 0
 

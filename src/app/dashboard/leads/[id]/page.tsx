@@ -1531,8 +1531,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // Refresh lead data
       const updatedLead = await getLeadDetails(params.id)
-      if (updatedLead) {
-        setLeadData(updatedLead)
+      if (updatedLead?.ok && updatedLead.lead) {
+        setLeadData({ ...updatedLead.lead, messages: updatedLead.lead.messages || updatedLead.messages || [] })
       }
 
       setSuccessMessage('Appointment scheduled successfully')
@@ -2186,7 +2186,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
                           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 ? (() => {
                             const latestAiRecord = leadData.aiCallRecords[0];
-                            const isComplete = latestAiRecord.outcome === 'completed';
+                            const isComplete = latestAiRecord.outcome === 'completed' || latestAiRecord.outcome === 'completed_intake';
+                            console.log('[simple_mode_ai_intake_status_read]', { outcome: latestAiRecord.outcome, isComplete });
                             return (
                               <>
                                 {isComplete ? (
@@ -2974,8 +2975,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       setShowCustomerInfoModal(false)
                       // Refresh lead data
                       const updatedData = await getLeadDetails(lead?.id)
-                      if (updatedData) {
-                        setLeadData(updatedData)
+                      if (updatedData?.ok && updatedData.lead) {
+                        setLeadData({ ...updatedData.lead, messages: updatedData.lead.messages || updatedData.messages || [] })
                       }
                     }
                   } catch (error) {

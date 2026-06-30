@@ -59,9 +59,10 @@ function getCompactSummary(lead: any): string {
   const extractedInfo = lead.raw_metadata?.extracted_info
   const name = extractedInfo?.callerName || lead.raw_metadata?.callerName || lead.name
   const service = extractedInfo?.reasonForCalling || extractedInfo?.serviceRequested
-  if (name && service) return truncateText(`${name} — ${service}`, 80)
+  if (name && service) { const p = truncateText(`${name} • ${service}`, 80); console.log('[lead_preview_generated]', { name, service, preview: p }); return p; }
   if (service) return truncateText(service, 80)
   if (name) return truncateText(name, 80)
+
 
   // Try legacy ai_summary key
   const aiSummary = lead.raw_metadata?.ai_summary || lead.raw_metadata?.summary
