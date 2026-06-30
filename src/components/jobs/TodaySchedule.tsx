@@ -285,11 +285,10 @@ export default function TodaySchedule({
                     {cancelled.map(job => (
                       <div
                         key={job.id}
-                        onClick={() => onJobClick(job)}
-                        className="flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-lg border-l-2 border-l-slate-300 bg-slate-50 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors opacity-60"
+                        className="group flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-lg border-l-2 border-l-slate-300 bg-slate-50 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors opacity-60"
                       >
                         <XCircle className="w-4 h-4 flex-shrink-0 text-slate-400" />
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onJobClick(job)}>
                           <div className="flex items-baseline gap-2">
                             {job.scheduled_time && (
                               <span className="text-[11px] font-semibold text-slate-400 tabular-nums flex-shrink-0">
@@ -299,6 +298,13 @@ export default function TodaySchedule({
                             <span className="text-sm font-medium text-slate-500 dark:text-slate-400 truncate line-through">{job.title}</span>
                           </div>
                         </div>
+                        <button
+                          onClick={() => onJobClick(job)}
+                          className="px-2 py-1 text-[10px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
+                          title="View details"
+                        >
+                          View
+                        </button>
                       </div>
                     ))}
                   </div>
