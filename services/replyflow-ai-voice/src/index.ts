@@ -2428,21 +2428,38 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
         // Continue to existing extraction logic for reason
       }
 
-      // If only reason parsed, set reason and let flow continue to ask_name_recovery
+      // If only reason parsed, extract name from text before the service phrase,
+      // then return early. Do NOT fall through to legacy extractName which would
+      // write the entire transcript into customerName.
       if (!parsedName && parsedReason) {
         if (!intake.serviceRequested) {
           intake.serviceRequested = parsedReason;
-          console.log('[FIELD ASSIGNMENT] =========================================');
-          console.log('[FIELD ASSIGNMENT] field: serviceRequested');
-          console.log('[FIELD ASSIGNMENT] oldValue:', intake.serviceRequested);
-          console.log('[FIELD ASSIGNMENT] newValue:', parsedReason);
-          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-          console.log('[FIELD ASSIGNMENT] sourceFunction: deterministic name/reason parse');
-          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
-          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
-          console.log('[FIELD ASSIGNMENT] =========================================');
+          console.log('[FIELD ASSIGNMENT] field: serviceRequested | value:', parsedReason, '| source: reasonPattern');
         }
-        // Continue to existing extraction logic for name
+
+        // Attempt to recover name from text that precedes the service phrase.
+        // Strategy: split on ". " or ", " and take the first segment if it looks
+        // like a name (1–3 words, no service-intent verbs).
+        if (!intake.customerName) {
+          const serviceIdx = transcript.toLowerCase().indexOf(parsedReason.toLowerCase().slice(0, 15));
+          const beforeService = serviceIdx > 0 ? transcript.slice(0, serviceIdx).trim() : '';
+          // Clean trailing punctuation and short filler conjunctions
+          const nameCandidate = beforeService
+            .replace(/[.,;]\s*$/, '')
+            .replace(/\s+(and|but|so|then|also)\s*$/i, '')
+            .trim();
+          const wordCount = nameCandidate.split(/\s+/).length;
+          const hasServiceVerb = /\b(want|need|like|calling|looking|trying|have|get|fix|install|remove|cut)\b/i.test(nameCandidate);
+          if (nameCandidate && wordCount <= 4 && !hasServiceVerb) {
+            intake.customerName = nameCandidate.charAt(0).toUpperCase() + nameCandidate.slice(1);
+            console.log('[FIELD ASSIGNMENT] field: customerName | value:', intake.customerName, '| source: pre-service-phrase extraction');
+          } else {
+            console.log('[NAME RECOVERY SKIPPED] candidate:', JSON.stringify(nameCandidate), '| wordCount:', wordCount, '| hasServiceVerb:', hasServiceVerb, '| reason: not a clean name');
+          }
+        }
+
+        console.log('[EXTRACTION BRANCH] reason-only branch complete | customerName:', intake.customerName, '| serviceRequested:', intake.serviceRequested);
+        return; // Do NOT fall through to legacy extractName
       }
 
       // If neither parsed, use existing GPT/extraction logic as fallback
