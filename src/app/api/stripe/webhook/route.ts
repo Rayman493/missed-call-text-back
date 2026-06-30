@@ -684,88 +684,70 @@ export async function POST(request: Request) {
       }
 
       case 'customer.subscription.updated': {
-        console.log('[STRIPE CANCEL] ========== SUBSCRIPTION.UPDATED START ==========')
-        
         const eventSubscription = event.data.object as Stripe.Subscription
         const subscriptionId = eventSubscription.id
         const customerId = normalizeStripeCustomerId(eventSubscription.customer)
 
         if (!customerId) {
-          console.error('[STRIPE CANCEL] Invalid customer ID in subscription:', eventSubscription.customer)
+          console.error('[stripe-webhook] subscription.updated: invalid customer ID:', eventSubscription.customer)
           return NextResponse.json({ received: true, warning: 'Invalid customer ID' })
         }
 
-        console.log('[STRIPE CANCEL] Subscription ID from event:', subscriptionId)
-        console.log('[STRIPE CANCEL] Customer ID from event:', customerId)
-        
-        // Log raw event data BEFORE retrieve
-        console.log('[STRIPE CANCEL] RAW EVENT DATA:')
-        console.log('[STRIPE CANCEL] event.cancel_at_period_end:', (eventSubscription as any).cancel_at_period_end)
-        console.log('[STRIPE CANCEL] event.cancel_at:', (eventSubscription as any).cancel_at)
-        console.log('[STRIPE CANCEL] event.status:', eventSubscription.status)
+        console.log('[stripe-webhook] subscription.updated:', { subscriptionId, customerId, status: eventSubscription.status })
 
-        // CRITICAL: Retrieve full subscription from Stripe - event data is not fully expanded
-        let subscription: Stripe.Subscription | null = null
+        // Retrieve full subscription from Stripe so all fields are expanded
+        let subscription: Stripe.Subscription
         try {
           subscription = await stripe.subscriptions.retrieve(subscriptionId)
-          console.log('[STRIPE CANCEL] Retrieved full subscription from Stripe:', subscription.id)
         } catch (retrieveError) {
-          console.error('[STRIPE CANCEL] Failed to retrieve subscription from Stripe:', retrieveError)
-          // Continue with event data as fallback
+          console.error('[stripe-webhook] subscription.updated: failed to retrieve subscription, using event data:', retrieveError)
           subscription = eventSubscription
         }
 
-        const status = subscription.status
         const priceId = subscription.items.data[0]?.price.id
-        const periodEnd = (subscription as any).current_period_end
-        const cancelAtPeriodEnd = subscription.cancel_at_period_end
-        const cancelAt = (subscription as any).cancel_at
-        const trialEnd = (subscription as any).trial_end
-        
-        // Log retrieved values
-        console.log('[STRIPE CANCEL] RETRIEVED SUBSCRIPTION DATA:')
-        console.log('[Stripe Webhook] Raw subscription values', {
-          cancel_at_period_end: subscription.cancel_at_period_end,
-          cancel_at: subscription.cancel_at,
-          current_period_end: (subscription as any).current_period_end,
-          status: subscription.status,
-        })
-        console.log('[Stripe Webhook] cancel_at_period_end:', subscription.cancel_at_period_end)
-        console.log('[Stripe Webhook] cancel_at:', subscription.cancel_at)
-        console.log('[Stripe Webhook] current_period_end:', (subscription as any).current_period_end)
-        console.log('[Stripe Webhook] trial_end:', (subscription as any).trial_end)
-        console.log('[Stripe Webhook] subscription_status:', subscription.status)
-        console.log('[STRIPE CANCEL] typeof cancel_at_period_end:', typeof cancelAtPeriodEnd)
-        console.log('[STRIPE CANCEL] cancel_at_period_end value:', cancelAtPeriodEnd)
-        console.log('[STRIPE CANCEL] cancel_at_period_end === true:', cancelAtPeriodEnd === true)
-        console.log('[STRIPE CANCEL] cancel_at_period_end === false:', cancelAtPeriodEnd === false)
-        console.log('[STRIPE CANCEL] Raw cancel_at value:', cancelAt)
-        console.log('[STRIPE CANCEL] Raw status:', status)
 
-        // Find business by stripe_subscription_id
-        const { data: business } = await supabase
+        // --- Business lookup: fallback chain ---
+        // 1. Try stripe_subscription_id (fast path, works after checkout.session.completed has run)
+        let business: { id: string } | null = null
+        let lookupMethod = 'subscription_id'
+
+        const { data: bySubId } = await supabase
           .from('businesses')
           .select('id')
           .eq('stripe_subscription_id', subscription.id)
           .limit(1)
           .single()
 
-        if (business) {
-          console.log('[STRIPE CANCEL] Business found:', business.id)
-          
-          console.log('[STRIPE EVENT]', {
-            eventType: event.type,
-            subscriptionId: subscription?.id,
-            status: subscription?.status,
-            trial_end: (subscription as any).trial_end,
-            current_period_end: (subscription as any).current_period_end,
-            cancel_at: subscription?.cancel_at,
-            cancel_at_period_end: subscription?.cancel_at_period_end,
-          })
+        if (bySubId) {
+          business = bySubId
+        } else {
+          // 2. Fall back to stripe_customer_id (handles race condition where sub ID not yet saved)
+          lookupMethod = 'customer_id'
+          const { data: byCustId } = await supabase
+            .from('businesses')
+            .select('id')
+            .eq('stripe_customer_id', customerId)
+            .limit(1)
+            .single()
 
-          console.log('[Stripe Webhook] Event type:', event.type)
-          
-          // Map subscription timing fields with proper fallback logic
+          if (byCustId) {
+            business = byCustId
+            // Repair missing/stale stripe_subscription_id
+            console.log('[stripe-webhook] subscription.updated: repairing missing stripe_subscription_id for business:', byCustId.id)
+            await supabase
+              .from('businesses')
+              .update({ stripe_subscription_id: subscription.id })
+              .eq('id', byCustId.id)
+          }
+        }
+
+        console.log('[stripe-webhook] subscription.updated: lookup:', {
+          method: lookupMethod,
+          found: !!business,
+          businessId: business?.id ?? null,
+        })
+
+        if (business) {
           const trialEndsAt = (subscription as any).trial_end
             ? new Date((subscription as any).trial_end * 1000).toISOString()
             : null
@@ -774,52 +756,44 @@ export async function POST(request: Request) {
             ? new Date((subscription as any).current_period_end * 1000).toISOString()
             : trialEndsAt
 
-          const cancelAt = subscription.cancel_at
+          const cancelAtIso = subscription.cancel_at
             ? new Date(subscription.cancel_at * 1000).toISOString()
             : null
 
           const updatePayload = {
             subscription_status: subscription.status,
-            stripe_customer_id: typeof subscription.customer === 'string'
-              ? subscription.customer
-              : subscription.customer?.id,
+            stripe_customer_id: customerId,
             stripe_subscription_id: subscription.id,
             subscription_price_id: priceId,
             trial_ends_at: trialEndsAt,
             current_period_end: currentPeriodEnd,
-            cancel_at: cancelAt,
+            cancel_at: cancelAtIso,
             cancel_at_period_end: subscription.cancel_at_period_end ?? false,
           }
 
-          console.log('[DB WRITE]', {
-            eventType: event.type,
+          console.log('[stripe-webhook] subscription.updated: updating business:', {
             businessId: business.id,
-            updatePayload,
+            status: subscription.status,
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            trial_ends_at: trialEndsAt,
           })
-          console.log('[STRIPE CANCEL] Executing Supabase update...')
-          
+
           const { error: updateError } = await supabase
             .from('businesses')
             .update(updatePayload)
             .eq('id', business.id)
 
           if (updateError) {
-            console.error('[STRIPE CANCEL] ========== UPDATE ERROR ==========')
-            console.error('[STRIPE CANCEL] Supabase error:', updateError)
+            console.error('[stripe-webhook] subscription.updated: DB update failed:', updateError)
           } else {
-            console.log('[STRIPE CANCEL] ========== UPDATE SUCCESS ==========')
-            console.log('[STRIPE CANCEL] Updated business:', business.id)
-            console.log('[STRIPE CANCEL] Fields saved:', Object.keys(updatePayload).join(', '))
-            console.log('[STRIPE CANCEL] cancel_at_period_end saved as:', updatePayload.cancel_at_period_end)
+            console.log('[stripe-webhook] subscription.updated: DB update success for business:', business.id)
           }
 
-          // Mark event as processed
           await markEventProcessed(supabase, event.id, event.type, business.id)
         } else {
-          console.error('[STRIPE CANCEL] Business not found for subscription:', subscription.id)
+          console.error('[stripe-webhook] subscription.updated: business not found — subscriptionId:', subscriptionId, 'customerId:', customerId)
         }
-        
-        console.log('[STRIPE CANCEL] ========== SUBSCRIPTION.UPDATED END ==========')
+
         break
       }
 
