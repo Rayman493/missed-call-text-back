@@ -72,6 +72,76 @@ async function markEventProcessed(
   }
 }
 
+/**
+ * Find a business by Stripe subscription ID, falling back to customer ID.
+ * Optionally repairs the missing stripe_subscription_id on the matched business.
+ */
+async function findBusinessForSubscription(
+  supabase: any,
+  subscriptionId: string,
+  customerId: string,
+  opts: { repair?: boolean } = {}
+): Promise<{ business: { id: string } | null; lookupMethod: string }> {
+  let business: { id: string } | null = null
+  let lookupMethod = 'subscription_id'
+
+  const { data: bySubId } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('stripe_subscription_id', subscriptionId)
+    .limit(1)
+    .single()
+
+  if (bySubId) {
+    business = bySubId
+  } else {
+    lookupMethod = 'customer_id'
+    const { data: byCustId } = await supabase
+      .from('businesses')
+      .select('id')
+      .eq('stripe_customer_id', customerId)
+      .limit(1)
+      .single()
+
+    if (byCustId) {
+      business = byCustId
+      if (opts.repair) {
+        console.log('[stripe-webhook] repairing missing stripe_subscription_id for business:', byCustId.id)
+        await supabase
+          .from('businesses')
+          .update({ stripe_subscription_id: subscriptionId })
+          .eq('id', byCustId.id)
+      }
+    }
+  }
+
+  return { business, lookupMethod }
+}
+
+/**
+ * Log a concise warning for orphaned Stripe subscription events.
+ * In development, includes the available metadata to aid debugging.
+ */
+function logOrphanedSubscriptionWarning(
+  subscriptionId: string,
+  customerId: string | null,
+  metadata: Record<string, string> | null
+) {
+  const isDev = process.env.NODE_ENV === 'development'
+  const logPayload: Record<string, any> = {
+    subscriptionId,
+    customerId,
+    reason: 'No matching business found. This is expected for deleted sandbox/test businesses.',
+  }
+  if (isDev && metadata) {
+    logPayload.metadata = {
+      business_id: metadata.business_id || null,
+      user_id: metadata.user_id || null,
+    }
+  }
+  console.warn('[stripe-webhook] Ignoring orphaned Stripe subscription event.', logPayload)
+}
+
 export async function POST(request: Request) {
   try {
     console.log('[SYSTEM] [STRIPE] Webhook received');
@@ -478,10 +548,14 @@ export async function POST(request: Request) {
 
         console.log('[DEBUG] Business lookup result:', business ? 'FOUND' : 'NOT FOUND')
         console.log('[DEBUG] Business lookup error:', lookupError)
-        if (business) {
-          console.log('[DEBUG] Business ID:', business.id)
+        if (!business) {
+          logOrphanedSubscriptionWarning(subscriptionId, customerId, subscription?.metadata ?? null)
+          return NextResponse.json({ received: true, warning: 'No matching business found' }, { status: 200 })
+        }
+
+        console.log('[DEBUG] Business ID:', business.id)
           
-          console.log('[STRIPE EVENT]', {
+        console.log('[STRIPE EVENT]', {
             eventType: event.type,
             subscriptionId: subscription?.id,
             status: subscription?.status,
@@ -675,9 +749,6 @@ export async function POST(request: Request) {
               }
             }
           }
-        } else {
-          console.error('[DEBUG] Business not found for customer:', customerId)
-        }
         
         console.log('[DEBUG] ========== SUBSCRIPTION.CREATED END ==========')
         break
@@ -706,40 +777,13 @@ export async function POST(request: Request) {
 
         const priceId = subscription.items.data[0]?.price.id
 
-        // --- Business lookup: fallback chain ---
-        // 1. Try stripe_subscription_id (fast path, works after checkout.session.completed has run)
-        let business: { id: string } | null = null
-        let lookupMethod = 'subscription_id'
-
-        const { data: bySubId } = await supabase
-          .from('businesses')
-          .select('id')
-          .eq('stripe_subscription_id', subscription.id)
-          .limit(1)
-          .single()
-
-        if (bySubId) {
-          business = bySubId
-        } else {
-          // 2. Fall back to stripe_customer_id (handles race condition where sub ID not yet saved)
-          lookupMethod = 'customer_id'
-          const { data: byCustId } = await supabase
-            .from('businesses')
-            .select('id')
-            .eq('stripe_customer_id', customerId)
-            .limit(1)
-            .single()
-
-          if (byCustId) {
-            business = byCustId
-            // Repair missing/stale stripe_subscription_id
-            console.log('[stripe-webhook] subscription.updated: repairing missing stripe_subscription_id for business:', byCustId.id)
-            await supabase
-              .from('businesses')
-              .update({ stripe_subscription_id: subscription.id })
-              .eq('id', byCustId.id)
-          }
-        }
+        // --- Business lookup: fallback chain with repair ---
+        const { business, lookupMethod } = await findBusinessForSubscription(
+          supabase,
+          subscription.id,
+          customerId,
+          { repair: true }
+        )
 
         console.log('[stripe-webhook] subscription.updated: lookup:', {
           method: lookupMethod,
@@ -791,7 +835,8 @@ export async function POST(request: Request) {
 
           await markEventProcessed(supabase, event.id, event.type, business.id)
         } else {
-          console.error('[stripe-webhook] subscription.updated: business not found — subscriptionId:', subscriptionId, 'customerId:', customerId)
+          logOrphanedSubscriptionWarning(subscription.id, customerId, subscription.metadata)
+          return NextResponse.json({ received: true, warning: 'No matching business found' }, { status: 200 })
         }
 
         break
@@ -801,6 +846,7 @@ export async function POST(request: Request) {
         console.log('[STRIPE CANCEL] ========== SUBSCRIPTION.DELETED START ==========')
         
         const subscription = event.data.object as Stripe.Subscription
+        const customerId = normalizeStripeCustomerId(subscription.customer)
 
         console.log('[STRIPE CANCEL] Subscription ID:', subscription.id)
         console.log('[STRIPE CANCEL] Status:', subscription.status)
@@ -874,7 +920,8 @@ export async function POST(request: Request) {
           // Mark event as processed
           await markEventProcessed(supabase, event.id, event.type, business.id)
         } else {
-          console.error('[STRIPE CANCEL] Business not found for subscription:', subscription.id)
+          logOrphanedSubscriptionWarning(subscription.id, customerId, subscription.metadata)
+          return NextResponse.json({ received: true, warning: 'No matching business found' }, { status: 200 })
         }
         
         console.log('[STRIPE CANCEL] ========== SUBSCRIPTION.DELETED END ==========')
