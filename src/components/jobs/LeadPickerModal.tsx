@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Search, User, Phone, Briefcase, Loader2, ChevronRight } from 'lucide-react'
+import { X, Search, User, Phone, Briefcase, MapPin, Loader2, ChevronRight } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import type { JobPrefill } from './JobComposer'
 
 interface LeadRecord {
@@ -22,32 +23,9 @@ interface LeadPickerModalProps {
   onSelect: (prefill: JobPrefill) => void
 }
 
-// Extract display name from lead — mirrors getLeadDisplayName in utils.ts
-function extractName(lead: LeadRecord): string {
-  if (lead.name?.trim()) return lead.name.trim()
-  const ei = lead.raw_metadata?.extracted_info
-  if (ei?.callerName?.trim()) return ei.callerName.trim()
-  if (ei?.caller_name?.trim()) return ei.caller_name.trim()
-  if (lead.raw_metadata?.callerName?.trim()) return lead.raw_metadata.callerName.trim()
-  if (lead.caller_phone) {
-    const d = lead.caller_phone.replace(/\D/g, '')
-    if (d.length === 11 && d.startsWith('1')) return `+1 (${d.slice(1,4)}) ${d.slice(4,7)}-${d.slice(7)}`
-    if (d.length === 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`
-    return lead.caller_phone
-  }
-  return 'Unknown Caller'
-}
-
-// Extract service/reason from lead
-function extractService(lead: LeadRecord): string | null {
-  const ei = lead.raw_metadata?.extracted_info
-  return ei?.reasonForCalling || ei?.serviceRequested || ei?.reason || null
-}
-
-// Extract address from lead
-function extractAddress(lead: LeadRecord): string | null {
-  const ei = lead.raw_metadata?.extracted_info
-  return ei?.addressOrLocation || ei?.address || ei?.location || null
+// Resolve canonical AI intake fields from the lead record
+function getIntake(lead: LeadRecord) {
+  return getLeadAIIntake(lead)
 }
 
 // Format phone for display
@@ -118,22 +96,38 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
   const filtered = leads.filter(lead => {
     if (!query.trim()) return true
     const q = query.toLowerCase()
-    const name = extractName(lead).toLowerCase()
-    const phone = (lead.caller_phone || '').replace(/\D/g, '')
-    const service = (extractService(lead) || '').toLowerCase()
-    return name.includes(q) || phone.includes(q.replace(/\D/g, '')) || service.includes(q)
+    const intake = getIntake(lead)
+    const name = (intake.customerName || '').toLowerCase()
+    const phone = (intake.customerPhone || '').replace(/\D/g, '')
+    const service = (intake.serviceRequested || '').toLowerCase()
+    const address = (intake.serviceAddress || '').toLowerCase()
+    return (
+      name.includes(q) ||
+      phone.includes(q.replace(/\D/g, '')) ||
+      service.includes(q) ||
+      address.includes(q)
+    )
   })
 
   const handleSelect = (lead: LeadRecord) => {
-    const name = extractName(lead)
-    const service = extractService(lead)
-    const address = extractAddress(lead)
+    const intake = getIntake(lead)
+    const name = intake.customerName
+    const service = intake.serviceRequested
+    const address = intake.serviceAddress
+    const phone = intake.customerPhone
+
+    const noteParts = [
+      intake.additionalDetails,
+      intake.desiredCompletion ? `Desired completion: ${intake.desiredCompletion}` : null,
+      intake.callbackTime ? `Best callback time: ${intake.callbackTime}` : null,
+    ].filter(Boolean)
 
     const prefill: JobPrefill = {
-      customer_name: name !== 'Unknown Caller' ? name : undefined,
-      customer_phone: lead.caller_phone || undefined,
+      customer_name: name || undefined,
+      customer_phone: phone || lead.caller_phone || undefined,
       service_address: address || undefined,
       title: service || undefined,
+      notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
       lead_id: lead.id,
       conversation_id: lead.conversation_id || undefined,
     }
@@ -209,9 +203,10 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filtered.map(lead => {
-                  const name = extractName(lead)
-                  const service = extractService(lead)
-                  const phone = fmtPhone(lead.caller_phone)
+                  const intake = getIntake(lead)
+                  const name = intake.customerName || 'Unknown Caller'
+                  const service = intake.serviceRequested
+                  const phone = fmtPhone(intake.customerPhone || lead.caller_phone)
                   const activity = lead.last_activity_at || lead.created_at
 
                   return (
@@ -242,6 +237,12 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
                             <span className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500 flex-shrink-0">
                               <Phone className="w-2.5 h-2.5 flex-shrink-0" />
                               {phone}
+                            </span>
+                          )}
+                          {intake.serviceAddress && (
+                            <span className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500 truncate">
+                              <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+                              <span className="truncate">{intake.serviceAddress}</span>
                             </span>
                           )}
                         </div>

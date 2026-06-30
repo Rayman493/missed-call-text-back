@@ -157,3 +157,99 @@ export function canonicalizeExtractedInfo(extractedInfo: any): {
 
   return canonical
 }
+
+/**
+ * Canonical AI intake fields resolved from a lead record.
+ * Supports both Simple Mode field names and legacy aliases.
+ */
+export interface LeadAIIntake {
+  customerName: string | null
+  customerPhone: string | null
+  serviceRequested: string | null
+  additionalDetails: string | null
+  serviceAddress: string | null
+  desiredCompletion: string | null
+  callbackTime: string | null
+}
+
+/**
+ * Resolve canonical AI intake fields from a lead.
+ * Reads from ai_call_records, raw_metadata.extracted_info, raw_metadata.ai_extracted_info,
+ * direct raw_metadata fields, and corrected_fields with proper fallback chains.
+ */
+export function getLeadAIIntake(lead: any): LeadAIIntake {
+  const rawMetadata = lead?.raw_metadata || {}
+
+  // Extracted info from ai_call_records (UI-normalized) or raw_metadata
+  const extractedInfoRaw =
+    lead?.aiCallRecords?.[0]?.extracted_info ||
+    lead?.ai_call_records?.[0]?.extracted_info ||
+    rawMetadata.extracted_info ||
+    rawMetadata.ai_extracted_info ||
+    {}
+
+  const normalized = normalizeExtractedInfo(extractedInfoRaw)
+
+  // Customer corrections override extracted info when present
+  const corrected = rawMetadata.corrected_fields || {}
+
+  const pick = (...candidates: (string | null | undefined)[]): string | null => {
+    for (const c of candidates) {
+      if (c && typeof c === 'string' && c.trim()) return c.trim()
+    }
+    return null
+  }
+
+  return {
+    customerName: pick(
+      lead?.name,
+      lead?.contact_name,
+      rawMetadata.callerName,
+      rawMetadata.caller_name,
+      normalized.callerName,
+      rawMetadata.name
+    ),
+    customerPhone: pick(
+      lead?.caller_phone,
+      lead?.phone,
+      rawMetadata.callbackNumber,
+      rawMetadata.phone,
+      rawMetadata.caller_phone,
+      extractedInfoRaw.callbackNumber,
+      extractedInfoRaw.phone,
+      extractedInfoRaw.customerPhone
+    ),
+    serviceRequested: pick(
+      corrected.reason,
+      corrected.serviceRequested,
+      corrected.reasonForCalling,
+      normalized.reasonForCalling
+    ),
+    additionalDetails: pick(
+      corrected.details,
+      corrected.issueDescription,
+      corrected.importantDetails,
+      normalized.importantDetails
+    ),
+    serviceAddress: pick(
+      corrected.address,
+      corrected.serviceAddress,
+      corrected.addressOrLocation,
+      normalized.addressOrLocation,
+      rawMetadata.address
+    ),
+    desiredCompletion: pick(
+      corrected.desiredCompletion,
+      corrected.urgency,
+      corrected.urgencyLevel,
+      corrected.desiredCompletionTime,
+      normalized.desiredCompletionTime
+    ),
+    callbackTime: pick(
+      corrected.callbackTime,
+      corrected.callback_time,
+      corrected.preferredCallbackTime,
+      normalized.preferredCallbackTime
+    ),
+  }
+}

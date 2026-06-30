@@ -7,6 +7,7 @@ import { CreditCard, Copy, ExternalLink, User } from 'lucide-react'
 import AppHeader from '@/components/AppHeader'
 import MobileMenu from '@/components/MobileMenu'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
+import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
 
 interface PaymentRequest {
@@ -279,7 +280,8 @@ export default function PaymentsPage() {
   }
 
   const getCustomerName = (lead: PaymentRequest['leads']) => {
-    return lead.raw_metadata?.extracted_info?.callerName || 'Customer'
+    const intake = getLeadAIIntake(lead)
+    return intake.customerName || 'Customer'
   }
 
   const copyPaymentLink = async (url: string) => {

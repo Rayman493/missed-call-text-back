@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { formatPhoneNumber, getLeadDisplayName } from '@/lib/utils'
+import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardErrorBoundary from './DashboardErrorBoundary'
 import Link from 'next/link'
@@ -241,29 +242,12 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
 
   // Helper to get structured AI data from lead
   const getAIData = (lead: any): { reason: string | null; urgency: string | null; details: string | null } => {
-    // Try to get extracted_info from raw_metadata
-    const extractedInfo = lead.raw_metadata?.extracted_info || lead.raw_metadata?.ai_extracted_info
-    const correctedFields = lead.raw_metadata?.corrected_fields
-
-    // Get reason
-    let reason = extractedInfo?.reasonForCalling || extractedInfo?.reason || null
-    if (correctedFields?.reason) {
-      reason = correctedFields.reason
+    const intake = getLeadAIIntake(lead)
+    return {
+      reason: intake.serviceRequested,
+      urgency: intake.desiredCompletion,
+      details: intake.additionalDetails,
     }
-
-    // Get urgency
-    let urgency = extractedInfo?.urgencyLevel || extractedInfo?.urgency || null
-    if (correctedFields?.urgency) {
-      urgency = correctedFields.urgency
-    }
-
-    // Get details
-    let details = extractedInfo?.importantDetails || extractedInfo?.details || null
-    if (correctedFields?.details) {
-      details = correctedFields.details
-    }
-
-    return { reason, urgency, details }
   }
 
   const getLeadStage = (lead: any) => {

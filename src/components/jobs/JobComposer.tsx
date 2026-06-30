@@ -10,6 +10,7 @@ export interface JobPrefill {
   customer_phone?: string
   service_address?: string
   title?: string
+  notes?: string
   lead_id?: string
   conversation_id?: string
 }
@@ -85,7 +86,7 @@ export default function JobComposer({
       setCustomerName(prefill?.customer_name || '')
       setCustomerPhone(prefill?.customer_phone || '')
       setServiceAddress(prefill?.service_address || '')
-      setNotes('')
+      setNotes(prefill?.notes || '')
       setScheduledDate(defaultDate ? defaultDate.toISOString().split('T')[0] : '')
       setScheduledTime('')
       setStatus('scheduled')

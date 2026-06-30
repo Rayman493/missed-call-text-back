@@ -12,6 +12,7 @@ import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor, getLeadDisplayName } from '@/lib/utils'
+import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import { copyToClipboard } from '@/lib/clipboard'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
@@ -1445,18 +1446,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Generate JobComposer prefill data from lead and AI intake
   const generateJobPrefill = (): JobPrefill => {
-    const aiIntake = leadData?.aiCallRecords?.[0]
-    const extractedInfo = aiIntake?.extracted_info || leadData?.raw_metadata?.extracted_info
-    const leadName = leadData?.contact_name || extractedInfo?.callerName || extractedInfo?.caller_name || leadData?.name || ''
-    const leadPhone = leadData?.caller_phone || leadData?.phone || ''
-    const leadReason = extractedInfo?.reasonForCalling || extractedInfo?.serviceRequested || extractedInfo?.reason || ''
-    const leadAddress = extractedInfo?.addressOrLocation || extractedInfo?.address || leadData?.raw_metadata?.address || ''
+    const intake = getLeadAIIntake(leadData)
+    const leadName = intake.customerName || leadData?.name || ''
+    const leadPhone = intake.customerPhone || leadData?.caller_phone || ''
+    const leadReason = intake.serviceRequested
+    const leadAddress = intake.serviceAddress
+
+    const noteParts = [
+      intake.additionalDetails,
+      intake.desiredCompletion ? `Desired completion: ${intake.desiredCompletion}` : null,
+      intake.callbackTime ? `Best callback time: ${intake.callbackTime}` : null,
+    ].filter(Boolean)
 
     return {
       title: leadReason || `Job for ${leadName || 'Lead'}`,
       customer_name: leadName || undefined,
       customer_phone: leadPhone || undefined,
       service_address: leadAddress || undefined,
+      notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
       lead_id: params.id,
       conversation_id: leadData?.conversation_id || undefined,
     }
@@ -1474,15 +1481,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Generate comprehensive prefill data from lead and AI intake
   const generateAppointmentPrefill = () => {
-    const aiIntake = leadData?.aiCallRecords?.[0]
-    const leadName = leadData?.contact_name || aiIntake?.extractedInfo?.callerName || 'Lead'
-    const leadPhone = formatPhoneNumber(leadData?.caller_phone || '')
-    const leadReason = aiIntake?.extractedInfo?.reasonForCalling || leadData?.company_name || ''
-    const leadDetails = aiIntake?.extractedInfo?.importantDetails || ''
-    const leadUrgency = aiIntake?.extractedInfo?.urgencyLevel || ''
-    const leadLocation = aiIntake?.extractedInfo?.addressOrLocation || ''
-    const leadCallbackTime = aiIntake?.extractedInfo?.preferredCallbackTime || ''
-    const leadCallbackNumber = aiIntake?.extractedInfo?.callbackNumber || leadPhone
+    const intake = getLeadAIIntake(leadData)
+    const leadName = intake.customerName || leadData?.name || 'Lead'
+    const leadPhone = formatPhoneNumber(intake.customerPhone || leadData?.caller_phone || '')
+    const leadReason = intake.serviceRequested || leadData?.company_name || ''
+    const leadDetails = intake.additionalDetails || ''
+    const leadUrgency = intake.desiredCompletion || ''
+    const leadLocation = intake.serviceAddress || ''
+    const leadCallbackTime = intake.callbackTime || ''
+    const leadCallbackNumber = leadPhone
 
     // Generate title
     const title = leadReason 
@@ -1968,7 +1975,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
                     </svg>
-                    <span className="truncate">{formatPhoneNumber(lead?.caller_phone || '')}</span>
+                    <span className="truncate">{formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}</span>
                   </div>
                   <span className="text-slate-400 dark:text-slate-500">{messagesArray.length} msg</span>
                   {lead?.last_message_at && (
@@ -2015,7 +2022,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       {getLeadDisplayName(leadData || lead)}
                     </h1>
                     <p className="text-sm text-muted-foreground mt-0">
-                      {formatPhoneNumber(lead?.caller_phone || '')}
+                      {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                     </p>
                   </div>
 
@@ -2405,9 +2412,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
               {collapsedSections.aiIntake && (
                 <div className="mt-1 text-xs text-muted-foreground transition-all duration-200">
-                  <span className="font-medium text-foreground">{leadData?.raw_metadata?.extracted_info?.callerName || leadData?.caller_name || 'Customer'}</span>
+                  <span className="font-medium text-foreground">{getLeadAIIntake(leadData).customerName || 'Customer'}</span>
                   {' • '}
-                  {leadData?.raw_metadata?.extracted_info?.reasonForCalling || leadData?.raw_metadata?.extracted_info?.reason || leadData?.reason || 'Service request'}
+                  {getLeadAIIntake(leadData).serviceRequested || 'Service request'}
                 </div>
               )}
               {!collapsedSections.aiIntake && (

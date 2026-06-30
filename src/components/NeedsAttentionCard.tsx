@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { isBusinessOutOfOffice, getOutOfOfficeStatus } from '@/lib/out-of-office'
 import { MessageSquare, AlertTriangle, User, Settings, Calendar, Phone, Clock, CreditCard, Check, ChevronRight, CalendarOff } from 'lucide-react'
 import Link from 'next/link'
@@ -156,8 +157,8 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
 
         // 3. Urgent leads - individual items
         leads?.filter((lead: any) => {
-          const extractedInfo = lead.raw_metadata?.extracted_info || lead.raw_metadata?.ai_extracted_info
-          const urgency = extractedInfo?.urgencyLevel || extractedInfo?.urgency
+          const intake = getLeadAIIntake(lead)
+          const urgency = intake.desiredCompletion
           return urgency?.toLowerCase() === 'urgent' || urgency?.toLowerCase() === 'high'
         }).forEach((lead: any) => {
           attentionItems.push({

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import Stripe from 'stripe'
 import getStripe from '@/lib/stripe'
 import { sendSms } from '@/lib/twilio'
+import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 
 export const dynamic = 'force-dynamic'
 
@@ -166,13 +167,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Conversation not found or unauthorized' }, { status: 404 })
     }
 
-    // Prefill description from service requested if not provided
+    // Prefill description from canonical AI intake service if not provided
     let paymentDescription = description
     if (!paymentDescription) {
-      const serviceRequested = lead.raw_metadata?.extracted_info?.reasonForCalling || 
-                              lead.raw_metadata?.extracted_info?.reason || 
-                              lead.raw_metadata?.reason
-      paymentDescription = serviceRequested || 'Service payment'
+      const intake = getLeadAIIntake(lead)
+      paymentDescription = intake.serviceRequested || 'Service payment'
     }
 
     console.log('[PAYMENT REQUEST] Payment description:', paymentDescription)

@@ -24,6 +24,7 @@ import {
   sentenceCase,
   getLeadDisplayName
 } from '@/lib/utils'
+import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { copyToClipboard } from '@/lib/clipboard'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
 import { 
@@ -56,9 +57,9 @@ import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 // [simple_mode_structured_preview_generated]
 function getCompactSummary(lead: any): string {
   // Prefer structured AI intake fields over raw SMS body
-  const extractedInfo = lead.raw_metadata?.extracted_info
-  const name = extractedInfo?.callerName || lead.raw_metadata?.callerName || lead.name
-  const service = extractedInfo?.reasonForCalling || extractedInfo?.serviceRequested
+  const intake = getLeadAIIntake(lead)
+  const name = intake.customerName
+  const service = intake.serviceRequested
   if (name && service) { const p = truncateText(`${name} • ${service}`, 80); console.log('[lead_preview_generated]', { name, service, preview: p }); return p; }
   if (service) return truncateText(service, 80)
   if (name) return truncateText(name, 80)
@@ -85,36 +86,19 @@ function getCompactSummary(lead: any): string {
   return 'New customer request'
 }
 
-// Helper to get structured AI data for lead card
+// Helper to get structured AI data for lead card (legacy shape)
 function getAIData(lead: any): { reason: string | null; urgency: string | null; details: string | null } {
-  // Try to get extracted_info from ai_call_records in raw_metadata
-  const extractedInfo = lead.raw_metadata?.extracted_info || lead.raw_metadata?.ai_extracted_info
-  const correctedFields = lead.raw_metadata?.corrected_fields
-
-  // Get reason — also check Simple Mode field names written directly by Fly service
-  let reason = extractedInfo?.reasonForCalling || extractedInfo?.serviceRequested || extractedInfo?.reason || null
-  if (correctedFields?.reason) {
-    reason = correctedFields.reason
+  const intake = getLeadAIIntake(lead)
+  return {
+    reason: intake.serviceRequested,
+    urgency: intake.desiredCompletion,
+    details: intake.additionalDetails,
   }
-
-  // Get urgency
-  let urgency = extractedInfo?.urgencyLevel || extractedInfo?.urgency || null
-  if (correctedFields?.urgency) {
-    urgency = correctedFields.urgency
-  }
-
-  // Get details — also check Simple Mode field names
-  let details = extractedInfo?.importantDetails || extractedInfo?.issueDescription || extractedInfo?.details || null
-  if (correctedFields?.details) {
-    details = correctedFields.details
-  }
-
-  return { reason, urgency, details }
 }
 
 // Helper to get address from lead
 function getAddress(lead: any): string | null {
-  return lead.raw_metadata?.address || null
+  return getLeadAIIntake(lead).serviceAddress
 }
 
 // Helper to get lead status accent color
@@ -512,9 +496,14 @@ export default function LeadsPage() {
 
   // Filter leads
   const filteredLeads = leads.filter(lead => {
+    const intake = getLeadAIIntake(lead)
+    const q = searchQuery.toLowerCase()
     const matchesSearch = !searchQuery ||
       lead.caller_phone.includes(searchQuery) ||
-      lead.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.name?.toLowerCase().includes(q) ||
+      (intake.customerName?.toLowerCase().includes(q)) ||
+      (intake.serviceRequested?.toLowerCase().includes(q)) ||
+      (intake.serviceAddress?.toLowerCase().includes(q)) ||
       normalizePhoneNumberForSearch(lead.caller_phone).includes(normalizePhoneNumberForSearch(searchQuery)) ||
       (lead.messages && lead.messages.some((m: any) =>
         m.body.toLowerCase().includes(searchQuery.toLowerCase())
@@ -944,7 +933,7 @@ export default function LeadsPage() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search by phone or message..."
+                      placeholder="Search by name, phone, service, or address..."
                       className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-white dark:bg-slate-800 text-foreground placeholder:text-slate-400"
                     />
                   </div>

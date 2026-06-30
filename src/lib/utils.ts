@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { getLeadAIIntake } from './ai-field-mapping'
 
 export function formatDateTime(date: string | null): string {
   if (!date) return 'N/A'
@@ -116,99 +117,26 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 }
 
 /**
- * Get lead display name with graceful fallback
- * Priority: lead.name → lead.raw_metadata?.callerName → lead.raw_metadata?.caller_name → lead.raw_metadata?.extracted_info?.callerName → lead.raw_metadata?.extracted_info?.name → lead.raw_metadata?.extracted_info?.caller_name → ai_call_records extracted info → lead.raw_metadata?.ai_extracted_info?.name → lead.raw_metadata?.name → formatted phone number → "Unknown Caller"
+ * Get lead display name with graceful fallback.
+ * Delegates to getLeadAIIntake for canonical name resolution, then falls back to formatted phone.
  */
 export function getLeadDisplayName(lead: any): string {
-  // Try direct name first (highest priority) - matches database schema
-  if (lead.name && lead.name.trim()) {
-    return lead.name.trim()
+  const aiIntake = getLeadAIIntake(lead)
+  if (aiIntake.customerName) {
+    return aiIntake.customerName
   }
 
-  // Try raw_metadata.callerName (camelCase)
-  if (lead.raw_metadata?.callerName && lead.raw_metadata.callerName.trim()) {
-    return lead.raw_metadata.callerName.trim()
-  }
-
-  // Try raw_metadata.caller_name (snake_case)
-  if (lead.raw_metadata?.caller_name && lead.raw_metadata.caller_name.trim()) {
-    return lead.raw_metadata.caller_name.trim()
-  }
-
-  // Try raw_metadata.extracted_info.callerName (camelCase)
-  if (lead.raw_metadata?.extracted_info?.callerName && lead.raw_metadata.extracted_info.callerName.trim()) {
-    return lead.raw_metadata.extracted_info.callerName.trim()
-  }
-
-  // Try raw_metadata.extracted_info.name
-  if (lead.raw_metadata?.extracted_info?.name && lead.raw_metadata.extracted_info.name.trim()) {
-    return lead.raw_metadata.extracted_info.name.trim()
-  }
-
-  // Try raw_metadata.extracted_info.caller_name
-  if (lead.raw_metadata?.extracted_info?.caller_name && lead.raw_metadata.extracted_info.caller_name.trim()) {
-    return lead.raw_metadata.extracted_info.caller_name.trim()
-  }
-
-  // Try ai_call_records.extracted_info.callerName (camelCase) - PRIORITIZED for AI Intake
-  if (lead.aiCallRecords && lead.aiCallRecords.length > 0) {
-    const aiCall = lead.aiCallRecords[0]
-    if (aiCall.extracted_info?.callerName && aiCall.extracted_info.callerName.trim()) {
-      return aiCall.extracted_info.callerName.trim()
+  // Try formatted phone numbers
+  for (const phoneField of ['phone', 'caller_phone', 'phone_number']) {
+    const phone = lead?.[phoneField]
+    if (phone) {
+      const formatted = formatPhoneNumber(phone)
+      if (formatted !== 'Unknown Caller') {
+        return formatted
+      }
     }
   }
 
-  // Try ai_call_records.extracted_info.name
-  if (lead.aiCallRecords && lead.aiCallRecords.length > 0) {
-    const aiCall = lead.aiCallRecords[0]
-    if (aiCall.extracted_info?.name && aiCall.extracted_info.name.trim()) {
-      return aiCall.extracted_info.name.trim()
-    }
-  }
-
-  // Try ai_call_records.extracted_info.caller_name
-  if (lead.aiCallRecords && lead.aiCallRecords.length > 0) {
-    const aiCall = lead.aiCallRecords[0]
-    if (aiCall.extracted_info?.caller_name && aiCall.extracted_info.caller_name.trim()) {
-      return aiCall.extracted_info.caller_name.trim()
-    }
-  }
-
-  // Try raw_metadata.ai_extracted_info.name
-  if (lead.raw_metadata?.ai_extracted_info?.name && lead.raw_metadata.ai_extracted_info.name.trim()) {
-    return lead.raw_metadata.ai_extracted_info.name.trim()
-  }
-
-  // Try raw_metadata.name
-  if (lead.raw_metadata?.name && lead.raw_metadata.name.trim()) {
-    return lead.raw_metadata.name.trim()
-  }
-
-  // Try formatted phone number
-  if (lead.phone) {
-    const formatted = formatPhoneNumber(lead.phone)
-    if (formatted !== 'Unknown Caller') {
-      return formatted
-    }
-  }
-
-  // Try caller_phone
-  if (lead.caller_phone) {
-    const formatted = formatPhoneNumber(lead.caller_phone)
-    if (formatted !== 'Unknown Caller') {
-      return formatted
-    }
-  }
-
-  // Try phone_number
-  if (lead.phone_number) {
-    const formatted = formatPhoneNumber(lead.phone_number)
-    if (formatted !== 'Unknown Caller') {
-      return formatted
-    }
-  }
-
-  // Fallback to generic text
   return 'Unknown Caller'
 }
 

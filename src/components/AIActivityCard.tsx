@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { Brain, AlertTriangle, FileEdit, Activity } from 'lucide-react'
 
 interface AIActivityCardProps {
@@ -54,8 +55,8 @@ export default function AIActivityCard({ business }: AIActivityCardProps) {
 
         // Count urgent leads
         const urgentLeads = leads?.filter((lead: any) => {
-          const extractedInfo = lead.raw_metadata?.extracted_info || lead.raw_metadata?.ai_extracted_info
-          const urgency = extractedInfo?.urgencyLevel || extractedInfo?.urgency
+          const intake = getLeadAIIntake(lead)
+          const urgency = intake.desiredCompletion
           return urgency?.toLowerCase() === 'urgent' || urgency?.toLowerCase() === 'high'
         })?.length || 0
 

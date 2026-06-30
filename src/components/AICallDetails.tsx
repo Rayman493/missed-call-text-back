@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
 import { Clock, User, Phone, MapPin, AlertCircle, MessageCircle, ChevronDown, ChevronUp, Briefcase, FileText, TriangleAlert } from 'lucide-react'
-import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
+import { normalizeExtractedInfo, getLeadAIIntake } from '@/lib/ai-field-mapping'
 
 interface AICallRecord {
   id: string
@@ -152,7 +152,19 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
     )
   }
 
-  const extractedInfo = normalizeExtractedInfo(aiCallRecord.extracted_info || {})
+  // Prefer canonical lead-level intake fields; fall back to the record's extracted_info
+  const leadIntake = leadData ? getLeadAIIntake(leadData) : null
+  const extractedInfo = leadIntake
+    ? {
+        callerName: leadIntake.customerName || undefined,
+        reasonForCalling: leadIntake.serviceRequested || undefined,
+        importantDetails: leadIntake.additionalDetails || undefined,
+        desiredCompletionTime: leadIntake.desiredCompletion || undefined,
+        addressOrLocation: leadIntake.serviceAddress || undefined,
+        preferredCallbackTime: leadIntake.callbackTime || undefined,
+        summary: normalizeExtractedInfo(aiCallRecord.extracted_info || {}).summary,
+      }
+    : normalizeExtractedInfo(aiCallRecord.extracted_info || {})
   const hasCustomerCorrections = leadData?.raw_metadata?.customer_corrected_info || leadData?.raw_metadata?.corrected_fields
   const correctedFields = leadData?.raw_metadata?.corrected_fields
   const previousValues = leadData?.raw_metadata?.previous_values
