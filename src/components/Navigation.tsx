@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { CreditCard, Calendar as CalendarIcon } from 'lucide-react'
+import { CreditCard } from 'lucide-react'
 
 export default function Navigation() {
   const pathname = usePathname()
@@ -72,7 +72,7 @@ export default function Navigation() {
             : 'text-gray-400 hover:text-white'
         }`}
       >
-        Calendar
+        Schedule
         {isActive('/dashboard/calendar') && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-400 rounded-full"></div>
         )}

@@ -162,7 +162,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                     href="/dashboard/calendar"
                     className="text-base font-semibold text-gray-200 hover:text-white transition-colors hidden sm:block py-1"
                   >
-                    Calendar
+                    Schedule
                   </Link>
                   <Link
                     href="/dashboard/settings"

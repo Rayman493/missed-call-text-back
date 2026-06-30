@@ -33,7 +33,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const navItems = [
     { href: '/dashboard', icon: Home, label: 'Dashboard' },
     { href: '/dashboard/leads', icon: Users, label: 'Leads' },
-    { href: '/dashboard/calendar', icon: Calendar, label: 'Calendar' },
+    { href: '/dashboard/calendar', icon: Calendar, label: 'Schedule' },
   ]
 
   const isActive = (href: string) => {

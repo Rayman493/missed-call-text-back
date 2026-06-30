@@ -1434,7 +1434,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   const handleScheduleClick = () => {
     if (!calendarConnected) {
-      setError('Connect Google Calendar to schedule appointments from ReplyFlow. Go to the Calendar page to connect.')
+      setError('Connect Google Calendar to schedule appointments from ReplyFlow. Go to the Schedule page to connect.')
       return
     }
     setIsAppointmentModalOpen(true)

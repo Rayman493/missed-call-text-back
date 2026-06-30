@@ -12,7 +12,7 @@ import AppHeader from '@/components/AppHeader'
 import Toast, { ToastContainer } from '@/components/Toast'
 import BottomNavigation from '@/components/BottomNavigation'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventComposer from '@/components/calendar/EventComposer'
@@ -22,6 +22,10 @@ import UpcomingAgenda from '@/components/calendar/UpcomingAgenda'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { HelpContext } from '@/components/HelpAssistant'
 import { filterEventsByMonth } from '@/lib/calendar-date-utils'
+import JobComposer from '@/components/jobs/JobComposer'
+import JobPill from '@/components/jobs/JobPill'
+import JobDetailsModal from '@/components/jobs/JobDetailsModal'
+import type { Job, JobStatus } from '@/components/jobs/JobComposer'
 
 interface CalendarEvent {
   id: string
@@ -35,7 +39,7 @@ interface CalendarEvent {
   isHoliday?: boolean
 }
 
-export default function CalendarPage() {
+export default function SchedulePage() {
   const { user } = useAuth()
   const { business } = useBusiness()
   const supabase = createBrowserClient()
@@ -59,16 +63,42 @@ export default function CalendarPage() {
   const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month')
+  const [scheduleTab, setScheduleTab] = useState<'calendar' | 'jobs'>('calendar')
+
+  // Jobs state
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [isLoadingJobs, setIsLoadingJobs] = useState(false)
+  const [isJobComposerOpen, setIsJobComposerOpen] = useState(false)
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [isJobDetailsOpen, setIsJobDetailsOpen] = useState(false)
+  const [editingJob, setEditingJob] = useState<Job | null>(null)
 
   // Check for OAuth success redirect
   useEffect(() => {
     if (searchParams && searchParams.get('calendar') === 'connected') {
       showToast('Google Calendar connected successfully!', 'success')
       setTokenExpired(false)
-      // Clean up the URL
       window.history.replaceState({}, '', '/dashboard/calendar')
     }
   }, [searchParams])
+
+  const fetchJobs = async () => {
+    setIsLoadingJobs(true)
+    try {
+      const response = await fetch('/api/jobs')
+      if (!response.ok) throw new Error('Failed to fetch jobs')
+      const data = await response.json()
+      setJobs(data.jobs || [])
+    } catch (error) {
+      console.error('[Schedule] Failed to fetch jobs:', error)
+    } finally {
+      setIsLoadingJobs(false)
+    }
+  }
+
+  useEffect(() => {
+    if (business) fetchJobs()
+  }, [business])
 
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     const id = Date.now().toString()
@@ -347,6 +377,35 @@ export default function CalendarPage() {
     }
   }
 
+  const handleJobSaved = (job: Job) => {
+    setJobs(prev => {
+      const idx = prev.findIndex(j => j.id === job.id)
+      if (idx >= 0) {
+        const updated = [...prev]
+        updated[idx] = job
+        return updated
+      }
+      return [job, ...prev]
+    })
+    setEditingJob(null)
+    showToast(editingJob ? 'Job updated' : 'Job created', 'success')
+  }
+
+  const handleJobStatusChange = (job: Job, status: JobStatus) => {
+    setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status } : j))
+    setSelectedJob(prev => prev?.id === job.id ? { ...prev, status } : prev)
+  }
+
+  const handleJobDeleted = (job: Job) => {
+    setJobs(prev => prev.filter(j => j.id !== job.id))
+    showToast('Job deleted', 'success')
+  }
+
+  const getJobsForDay = (date: Date): Job[] => {
+    const dayKey = date.toISOString().split('T')[0]
+    return jobs.filter(j => j.scheduled_date === dayKey)
+  }
+
   useEffect(() => {
     if (business) {
       fetchCalendarStatus()
@@ -426,7 +485,7 @@ export default function CalendarPage() {
     currentMonth.getMonth()
   )
 
-  console.log('[Calendar Page] Visible month events:', {
+  console.log('[Schedule Page] Visible month events:', {
     month: currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
     totalEvents: events.length,
     visibleMonthEvents: visibleMonthEvents.length
@@ -437,7 +496,7 @@ export default function CalendarPage() {
       <AuthGuard>
         <BusinessGuard>
           <div className="min-h-screen bg-background dark:bg-background flex flex-col relative">
-            <AppHeader title="Calendar" />
+            <AppHeader title="Schedule" />
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -456,7 +515,7 @@ export default function CalendarPage() {
       <BusinessGuard>
         <div className="min-h-screen bg-background dark:bg-background flex flex-col relative">
           {/* Header */}
-          <AppHeader title="Calendar" />
+          <AppHeader title="Schedule" />
 
           {/* Main Content */}
           <div className="flex-1 pt-0 lg:pt-2 px-1 sm:px-2 lg:px-3 pb-20 md:pb-8">
@@ -495,40 +554,84 @@ export default function CalendarPage() {
                 </div>
               ) : (
                 <>
-                  {/* Disconnected State - only show if not initial load */}
-                  {!calendarConnected && !isInitialLoad && (
-                    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-8 sm:p-12 text-center">
-                      <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <CalendarIcon className="w-8 h-8 text-slate-400" />
-                      </div>
-                      <h2 className="text-2xl font-semibold text-slate-900 dark:text-foreground mb-3">
-                        Connect Google Calendar
-                      </h2>
-                      <p className="text-slate-600 dark:text-muted-foreground mb-8 max-w-md mx-auto">
-                        Connect your Google Calendar to view your schedule from ReplyFlow.
-                      </p>
+                  {/* Schedule Tab Toggle */}
+                  <div className="hidden md:flex mb-4">
+                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit">
                       <button
-                        onClick={handleConnectCalendar}
-                        disabled={isConnecting}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+                        onClick={() => setScheduleTab('calendar')}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                          scheduleTab === 'calendar'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
+                        }`}
                       >
-                        {isConnecting ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span>Connecting...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-4 h-4" />
-                            <span>Connect Calendar</span>
-                          </>
+                        <CalendarIcon className="w-4 h-4" />
+                        Calendar
+                      </button>
+                      <button
+                        onClick={() => setScheduleTab('jobs')}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                          scheduleTab === 'jobs'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
+                        }`}
+                      >
+                        <Briefcase className="w-4 h-4" />
+                        Jobs
+                        {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length > 0 && (
+                          <span className="ml-1 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded-full">
+                            {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length}
+                          </span>
                         )}
                       </button>
                     </div>
+                  </div>
+
+                  {/* Mobile tab toggle */}
+                  <div className="md:hidden mb-4 mt-2">
+                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+                      <button
+                        onClick={() => setScheduleTab('calendar')}
+                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
+                          scheduleTab === 'calendar'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        <CalendarIcon className="w-3.5 h-3.5" />
+                        Calendar
+                      </button>
+                      <button
+                        onClick={() => setScheduleTab('jobs')}
+                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
+                          scheduleTab === 'jobs'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        <Briefcase className="w-3.5 h-3.5" />
+                        Jobs
+                        {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length > 0 && (
+                          <span className="ml-1 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded-full">
+                            {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Jobs Tab */}
+                  {scheduleTab === 'jobs' && (
+                    <JobsTab
+                      jobs={jobs}
+                      isLoading={isLoadingJobs}
+                      onNewJob={() => { setEditingJob(null); setIsJobComposerOpen(true) }}
+                      onJobClick={(job: Job) => { setSelectedJob(job); setIsJobDetailsOpen(true) }}
+                    />
                   )}
 
-                  {/* Connected State */}
-                  {calendarConnected && (
+                  {/* Connected State — Calendar Tab */}
+                  {calendarConnected && scheduleTab === 'calendar' && (
                     <div>
                       {/* Token Expired Warning Banner - show first if needed */}
                       {tokenExpired && (
@@ -734,11 +837,28 @@ export default function CalendarPage() {
                                   source={event.source === 'holiday' ? 'holiday' : 'primary'}
                                   onClick={() => {
                                     setSelectedEvent(event)
-                                    setSelectedDay(null) // Clear selected day to prevent day modal from showing underneath
+                                    setSelectedDay(null)
                                     setIsEventDetailsOpen(true)
                                   }}
                                 />
                               )}
+                              renderExtraContent={(date) => {
+                                const dayJobs = getJobsForDay(date)
+                                return dayJobs.length > 0 ? (
+                                  <div className="mt-0.5 space-y-0.5">
+                                    {dayJobs.slice(0, 2).map(job => (
+                                      <JobPill
+                                        key={job.id}
+                                        job={job}
+                                        onClick={(j) => { setSelectedJob(j); setIsJobDetailsOpen(true) }}
+                                      />
+                                    ))}
+                                    {dayJobs.length > 2 && (
+                                      <p className="text-[9px] text-slate-500 dark:text-slate-400 pl-1">+{dayJobs.length - 2} more</p>
+                                    )}
+                                  </div>
+                                ) : null
+                              }}
                             />
                           </div>
 
@@ -803,7 +923,7 @@ export default function CalendarPage() {
                         </div>
                       </div>
 
-                      {/* Floating Add Event button for mobile - returned to natural bottom-right position */}
+                      {/* Floating Add Event button for mobile */}
                       <button
                         onClick={() => handleAddEvent()}
                         className="md:hidden fixed bottom-20 sm:bottom-24 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40 pb-safe"
@@ -812,6 +932,59 @@ export default function CalendarPage() {
                         <Plus className="w-6 h-6" />
                       </button>
                     </div>
+                  )}
+
+                  {/* Disconnected state but showing Jobs tab is still available */}
+                  {!calendarConnected && !isInitialLoad && scheduleTab === 'calendar' && (
+                    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-8 sm:p-12 text-center">
+                      <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CalendarIcon className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <h2 className="text-2xl font-semibold text-slate-900 dark:text-foreground mb-3">
+                        Connect Google Calendar
+                      </h2>
+                      <p className="text-slate-600 dark:text-muted-foreground mb-8 max-w-md mx-auto">
+                        Connect your Google Calendar to view your schedule from ReplyFlow.
+                      </p>
+                      <button
+                        onClick={handleConnectCalendar}
+                        disabled={isConnecting}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+                      >
+                        {isConnecting ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Connecting...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4" />
+                            <span>Connect Calendar</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Job Composer Modal */}
+                  <JobComposer
+                    isOpen={isJobComposerOpen}
+                    onClose={() => { setIsJobComposerOpen(false); setEditingJob(null) }}
+                    onSave={handleJobSaved}
+                    editJob={editingJob || undefined}
+                    defaultDate={selectedDay}
+                  />
+
+                  {/* Job Details Modal */}
+                  {selectedJob && (
+                    <JobDetailsModal
+                      isOpen={isJobDetailsOpen}
+                      onClose={() => setIsJobDetailsOpen(false)}
+                      job={selectedJob}
+                      onEdit={(job) => { setEditingJob(job); setIsJobComposerOpen(true) }}
+                      onStatusChange={handleJobStatusChange}
+                      onDelete={handleJobDeleted}
+                    />
                   )}
 
                   {/* Event Composer Modal */}
@@ -864,5 +1037,171 @@ export default function CalendarPage() {
       <BottomNavigation />
     </AuthGuard>
     </DashboardErrorBoundary>
+  )
+}
+
+const STATUS_LABELS: Record<JobStatus, string> = {
+  scheduled: 'Scheduled',
+  in_progress: 'In Progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+}
+
+const STATUS_COLORS: Record<JobStatus, string> = {
+  scheduled: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  in_progress: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  completed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  cancelled: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+}
+
+function JobsTab({
+  jobs,
+  isLoading,
+  onNewJob,
+  onJobClick,
+}: {
+  jobs: Job[]
+  isLoading: boolean
+  onNewJob: () => void
+  onJobClick: (job: Job) => void
+}) {
+  const active = jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress')
+  const done = jobs.filter(j => j.status === 'completed' || j.status === 'cancelled')
+
+  const formatScheduled = (job: Job) => {
+    if (!job.scheduled_date) return null
+    const d = new Date(job.scheduled_date + 'T00:00:00')
+    const dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    if (!job.scheduled_time) return dateStr
+    const [h, m] = job.scheduled_time.split(':').map(Number)
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    const hour = h % 12 || 12
+    return `${dateStr} at ${hour}:${String(m).padStart(2, '0')} ${ampm}`
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-20 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">Jobs</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {active.length} active{done.length > 0 ? `, ${done.length} completed` : ''}
+          </p>
+        </div>
+        <button
+          onClick={onNewJob}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-95"
+        >
+          <Briefcase className="w-4 h-4" />
+          New Job
+        </button>
+      </div>
+
+      {jobs.length === 0 ? (
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-10 text-center">
+          <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Briefcase className="w-7 h-7 text-slate-400" />
+          </div>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">No jobs yet</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-xs mx-auto">
+            Create jobs manually or from a ReplyFlow lead to track your upcoming work.
+          </p>
+          <button
+            onClick={onNewJob}
+            className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Create your first job
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Active Jobs */}
+          {active.length > 0 && (
+            <div>
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Active</h3>
+              <div className="space-y-2">
+                {active.map(job => (
+                  <button
+                    key={job.id}
+                    onClick={() => onJobClick(job)}
+                    className="w-full text-left bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-700 transition-all hover:shadow-sm active:scale-[0.99]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-foreground truncate">{job.title}</p>
+                        {job.customer_name && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{job.customer_name}</p>
+                        )}
+                        {formatScheduled(job) && (
+                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{formatScheduled(job)}</p>
+                        )}
+                        {job.service_address && (
+                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">{job.service_address}</p>
+                        )}
+                      </div>
+                      <span className={`flex-shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[job.status]}`}>
+                        {STATUS_LABELS[job.status]}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Completed / Cancelled */}
+          {done.length > 0 && (
+            <div>
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Completed & Cancelled</h3>
+              <div className="space-y-2">
+                {done.map(job => (
+                  <button
+                    key={job.id}
+                    onClick={() => onJobClick(job)}
+                    className="w-full text-left bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-600 transition-all hover:shadow-sm active:scale-[0.99] opacity-70"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{job.title}</p>
+                        {job.customer_name && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{job.customer_name}</p>
+                        )}
+                        {formatScheduled(job) && (
+                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{formatScheduled(job)}</p>
+                        )}
+                      </div>
+                      <span className={`flex-shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[job.status]}`}>
+                        {STATUS_LABELS[job.status]}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mobile FAB for new job when on jobs tab */}
+      <button
+        onClick={onNewJob}
+        className="md:hidden fixed bottom-20 sm:bottom-24 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40 pb-safe"
+        aria-label="New job"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
+    </div>
   )
 }

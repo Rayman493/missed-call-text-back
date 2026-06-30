@@ -11,6 +11,7 @@ interface CalendarGridProps {
     end?: { dateTime?: string; date?: string }
   }>
   renderEvent: (event: any, day: Date) => ReactNode
+  renderExtraContent?: (date: Date) => ReactNode
   onPreviousMonth?: () => void
   onNextMonth?: () => void
   onToday?: () => void
@@ -22,6 +23,7 @@ export default function CalendarGrid({
   month, 
   events, 
   renderEvent,
+  renderExtraContent,
   onPreviousMonth,
   onNextMonth,
   onToday,
@@ -208,6 +210,8 @@ export default function CalendarGrid({
           // Saturday: index % 7 === 6
           const isWeekend = index % 7 === 0 || index % 7 === 6
           
+          const extraContent = dayDate && renderExtraContent ? renderExtraContent(dayDate) : null
+
           return (
             <CalendarDayCell
               key={index}
@@ -216,9 +220,10 @@ export default function CalendarGrid({
               isToday={dayInfo.isToday}
               isWeekend={isWeekend}
               events={
-                dayEvents.length > 0 ? (
+                (dayEvents.length > 0 || extraContent) ? (
                   <>
                     {dayEvents.map((event: any) => renderEvent(event, dayDate!))}
+                    {extraContent}
                   </>
                 ) : null
               }

@@ -1817,7 +1817,7 @@ export default function SettingsContent() {
                         )}
                       </div>
                       <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
-                        Connect Google Calendar so you can manage appointments alongside your leads and schedule customer visits without leaving ReplyFlow.
+                        Connect Google Calendar to view and manage appointments on the Schedule page alongside your ReplyFlow jobs.
                       </p>
                       {calendarConnected && calendarEmail && (
                         <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">
