@@ -570,6 +570,8 @@ export async function POST(request: NextRequest) {
     
     // Footer
     parts.push('Need to change or add anything? Just reply to this message.');
+    parts.push('');
+    parts.push('Formatter: simple-mode-v2');
     
     messageBody = parts.join('\n');
 

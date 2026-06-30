@@ -43,11 +43,15 @@ const FIELD_ALIASES: Record<string, keyof typeof CANONICAL_FIELDS> = {
   'caller_name': 'callerName',
   'callerName': 'callerName',
   'caller name': 'callerName',
+  'customerName': 'callerName',
+  'customer_name': 'callerName',
 
   'reason': 'reasonForCalling',
   'reason_for_call': 'reasonForCalling',
   'reasonForCalling': 'reasonForCalling',
   'reason for calling': 'reasonForCalling',
+  'serviceRequested': 'reasonForCalling',
+  'service_requested': 'reasonForCalling',
 
   'details': 'importantDetails',
   'importantDetails': 'importantDetails',
@@ -70,7 +74,9 @@ const FIELD_ALIASES: Record<string, keyof typeof CANONICAL_FIELDS> = {
   'callbackTime': 'preferredCallbackTime',
   'preferredCallbackTime': 'preferredCallbackTime',
   'preferred callback time': 'preferredCallbackTime',
-  'callback_time': 'preferredCallbackTime'
+  'callback_time': 'preferredCallbackTime',
+  'issueDescription': 'importantDetails',
+  'issue_description': 'importantDetails'
 }
 
 /**
@@ -93,7 +99,7 @@ export function normalizeExtractedInfo(extractedInfo: any): {
   for (const [key, value] of Object.entries(extractedInfo || {})) {
     if (value === null || value === undefined) continue
 
-    const canonicalKey = FIELD_ALIASES[key.toLowerCase()] || key
+    const canonicalKey = FIELD_ALIASES[key] || FIELD_ALIASES[key.toLowerCase()] || key
 
     // Only include if it's a canonical field
     if (Object.values(CANONICAL_FIELDS).includes(canonicalKey as any)) {
