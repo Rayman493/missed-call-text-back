@@ -498,12 +498,6 @@ export default function SchedulePage() {
     currentMonth.getMonth()
   )
 
-  console.log('[Schedule Page] Visible month events:', {
-    month: currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-    totalEvents: events.length,
-    visibleMonthEvents: visibleMonthEvents.length
-  })
-
   if (!business) {
     return (
       <AuthGuard>

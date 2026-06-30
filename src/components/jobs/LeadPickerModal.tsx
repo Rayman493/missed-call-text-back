@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { X, Search, User, Phone, Briefcase, Loader2, ChevronRight } from 'lucide-react'
+import { createBrowserClient } from '@/lib/supabase/browser'
 import type { JobPrefill } from './JobComposer'
 
 interface LeadRecord {
@@ -90,21 +91,23 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
     setIsLoading(true)
     setError('')
     try {
-      // Get session token — use localStorage key that Supabase browser client stores
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-      const storageKey = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`
-      const raw = localStorage.getItem(storageKey)
-      const token = raw ? JSON.parse(raw)?.access_token : null
-
+      const supabase = createBrowserClient()
+      if (!supabase) throw new Error('Client unavailable')
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
       if (!token) throw new Error('Not authenticated')
 
       const res = await fetch('/api/leads', {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (!res.ok) throw new Error('Failed to load leads')
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || `Request failed (${res.status})`)
+      }
       const data = await res.json()
       setLeads(data.leads || [])
     } catch (e) {
+      console.error('[LeadPicker] Failed to load leads:', e)
       setError('Could not load leads. Please try again.')
     } finally {
       setIsLoading(false)
@@ -186,16 +189,21 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
                 </button>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="py-10 text-center">
+              <div className="py-10 text-center px-6">
                 {query ? (
                   <>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">No leads match "{query}"</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">No leads match <span className="font-medium">"{query}"</span></p>
                     <button onClick={() => setQuery('')} className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">
                       Clear search
                     </button>
                   </>
                 ) : (
-                  <p className="text-sm text-slate-500 dark:text-slate-400">No leads found.</p>
+                  <>
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">No leads yet</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 leading-relaxed">
+                      ReplyFlow leads will appear here once customers call or text your business number.
+                    </p>
+                  </>
                 )}
               </div>
             ) : (

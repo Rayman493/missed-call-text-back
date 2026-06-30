@@ -31,7 +31,6 @@ export function createBrowserClient() {
       storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     }
   })
-  console.log('[browser-client] Created singleton Supabase client with persistent session options and localStorage storage')
   isCreating = false
   return browserClient
 }
