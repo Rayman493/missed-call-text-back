@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime } from '@/lib/utils'
-import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
-import { Phone, User, Briefcase, FileText, MapPin, Clock, ChevronDown } from 'lucide-react'
+import { formatAiIntakeSummary } from '@/lib/ai-intake-formatter'
+import { Phone, ChevronDown } from 'lucide-react'
 
 interface AICallRecord {
   id: string
@@ -37,8 +37,7 @@ interface AICallRecord {
 
 interface Business {
   id: string
-  business_type?: string
-  intake_template?: string
+  business_name?: string
 }
 
 interface AICallSummaryCardProps {
@@ -46,61 +45,6 @@ interface AICallSummaryCardProps {
   businessId: string
   conversationId?: string
   callerPhone: string
-}
-
-// Template label config for display only
-const TEMPLATE_LABELS: Record<string, {
-  callerName: string
-  reasonForCalling: string
-  importantDetails: string
-  addressOrLocation: string
-  desiredCompletionTime: string
-  preferredCallbackTime: string
-}> = {
-  on_site: {
-    callerName: 'Name',
-    reasonForCalling: 'Service Requested',
-    importantDetails: 'Important Details',
-    addressOrLocation: 'Service Address / Location',
-    desiredCompletionTime: 'Desired Completion Time',
-    preferredCallbackTime: 'Best Callback Time'
-  },
-  appointment: {
-    callerName: 'Name',
-    reasonForCalling: 'Service Interested In',
-    importantDetails: 'Important Details',
-    addressOrLocation: 'Appointment / Mobile Service',
-    desiredCompletionTime: 'Preferred Appointment Time',
-    preferredCallbackTime: 'Best Callback Time'
-  },
-  lessons: {
-    callerName: 'Name',
-    reasonForCalling: 'Lesson / Coaching Interest',
-    importantDetails: 'Details',
-    addressOrLocation: 'Preferred Format',
-    desiredCompletionTime: 'General Availability',
-    preferredCallbackTime: 'Best Callback Time'
-  },
-  professional: {
-    callerName: 'Name',
-    reasonForCalling: 'Help Requested',
-    importantDetails: 'Situation Details',
-    addressOrLocation: 'Consultation Type',
-    desiredCompletionTime: 'Preferred Meeting Time',
-    preferredCallbackTime: 'Best Callback Time'
-  }
-}
-
-// Helper to get intake template for business type
-const getIntakeTemplateForBusinessType = (businessType?: string): string => {
-  const businessTypeToTemplate: Record<string, string> = {
-    'on_site_service': 'on_site',
-    'appointment_based': 'appointment',
-    'lessons_coaching': 'lessons',
-    'professional_services': 'professional'
-  }
-  
-  return businessTypeToTemplate[businessType || ''] || 'on_site'
 }
 
 export default function AICallSummaryCard({ leadId, businessId, conversationId, callerPhone }: AICallSummaryCardProps) {
@@ -173,7 +117,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
     try {
       const { data: businessData } = await supabase
         .from('businesses')
-        .select('id, business_type, intake_template')
+        .select('id, business_name')
         .eq('id', businessId)
         .maybeSingle()
 
@@ -213,25 +157,6 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
     }
   }
 
-  const isPlaceholderValue = (value: string): boolean => {
-    if (!value) return false
-    const placeholders = [
-      'business location',
-      'location',
-      'address',
-      'service address',
-      'unknown',
-      'not provided',
-      'not specified',
-      'tbd',
-      'to be determined',
-      'n/a'
-    ]
-    return placeholders.some(placeholder => 
-      value.toLowerCase().trim() === placeholder.toLowerCase()
-    )
-  }
-
   if (loading) {
     return (
       <div className="bg-card border border-border rounded-xl p-4">
@@ -253,11 +178,18 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
     return null // Don't show card if no AI call records exist
   }
 
-  const extractedInfo = normalizeExtractedInfo(aiCallRecord.extracted_info || {})
+  // Map extracted_info to the format expected by formatAiIntakeSummary
+  const intakeData = {
+    customerName: aiCallRecord.extracted_info?.callerName,
+    serviceRequested: aiCallRecord.extracted_info?.reasonForCalling,
+    issueDescription: aiCallRecord.extracted_info?.importantDetails,
+    serviceAddress: aiCallRecord.extracted_info?.addressOrLocation,
+    desiredCompletionTime: aiCallRecord.extracted_info?.desiredCompletionTime,
+    callbackTime: aiCallRecord.extracted_info?.preferredCallbackTime
+  }
 
-  // Determine intake template (use business.intake_template if available, otherwise derive from business_type)
-  const template = business?.intake_template || getIntakeTemplateForBusinessType(business?.business_type)
-  const labels = TEMPLATE_LABELS[template] || TEMPLATE_LABELS.on_site
+  // Generate the formatted summary
+  const formattedSummary = formatAiIntakeSummary(intakeData, callerPhone, business?.business_name)
 
   // Check if outcome is early_hangup or no_speech
   const isNoIntakeOutcome = aiCallRecord.outcome === 'early_hangup' || aiCallRecord.outcome === 'no_speech'
@@ -306,101 +238,12 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
           </div>
         )}
 
-        {/* Extracted Information - only show for non-no-intake outcomes */}
-        {!isNoIntakeOutcome && !aiCallRecord.extraction_failed && extractedInfo && (
-          <>
-            {/* Caller Name - only show if not a placeholder */}
-            {extractedInfo.callerName && !isPlaceholderValue(extractedInfo.callerName) && (
-              <div className="flex items-center justify-between py-3 border-b border-border/50">
-                <div className="flex items-center gap-2.5">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">{labels.callerName}</span>
-                </div>
-                <span className="text-sm font-medium text-foreground">
-                  {extractedInfo.callerName}
-                </span>
-              </div>
-            )}
-
-            {/* Reason for Calling - only show if not a placeholder */}
-            {extractedInfo.reasonForCalling && !isPlaceholderValue(extractedInfo.reasonForCalling) && (
-              <div className="py-3 border-b border-border/50">
-                <div className="flex items-center gap-2.5 mb-2">
-                  <Briefcase className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">{labels.reasonForCalling}</span>
-                </div>
-                <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
-                  {extractedInfo.reasonForCalling}
-                </p>
-              </div>
-            )}
-
-            {/* Important Details - only show if not a placeholder */}
-            {extractedInfo.importantDetails && !isPlaceholderValue(extractedInfo.importantDetails) && (
-              <div className="py-3 border-b border-border/50">
-                <div className="flex items-center gap-2.5 mb-2">
-                  <FileText className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">{labels.importantDetails}</span>
-                </div>
-                <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed whitespace-pre-wrap">
-                  {extractedInfo.importantDetails}
-                </p>
-              </div>
-            )}
-
-            {/* Address/Location - full width, only show if not a placeholder */}
-            {extractedInfo.addressOrLocation && !isPlaceholderValue(extractedInfo.addressOrLocation) && (
-              <div className="py-3 border-b border-border/50">
-                <div className="flex items-center gap-2.5 mb-2">
-                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-medium">{labels.addressOrLocation}</span>
-                </div>
-                <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed whitespace-pre-wrap">
-                  {extractedInfo.addressOrLocation}
-                </p>
-              </div>
-            )}
-
-            {/* Desired Completion Time + Preferred Callback Time - two columns */}
-            {(extractedInfo.desiredCompletionTime || extractedInfo.preferredCallbackTime) && (
-              <div className="grid grid-cols-2 gap-4 py-3 border-b border-border/50">
-                {/* Desired Completion Time */}
-                {extractedInfo.desiredCompletionTime && !isPlaceholderValue(extractedInfo.desiredCompletionTime) && (
-                  <div>
-                    <div className="flex items-center gap-2.5 mb-2">
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground font-medium">{labels.desiredCompletionTime}</span>
-                    </div>
-                    <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
-                      {extractedInfo.desiredCompletionTime}
-                    </p>
-                  </div>
-                )}
-
-                {/* Preferred Callback Time */}
-                {extractedInfo.preferredCallbackTime && !isPlaceholderValue(extractedInfo.preferredCallbackTime) && (
-                  <div>
-                    <div className="flex items-center gap-2.5 mb-2">
-                      <Phone className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground font-medium">{labels.preferredCallbackTime}</span>
-                    </div>
-                    <p className="text-sm mt-1 pl-6 text-foreground leading-relaxed">
-                      {extractedInfo.preferredCallbackTime}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* AI-Generated Summary */}
-        {(extractedInfo?.summary || aiCallRecord.summary) && (
-          <div className="pt-2">
-            <span className="text-xs text-muted-foreground font-medium">AI Summary</span>
-            <p className="text-sm text-foreground mt-1.5 line-clamp-3 leading-relaxed">
-              {extractedInfo?.summary || aiCallRecord.summary}
-            </p>
+        {/* Formatted Intake Summary - only show for non-no-intake outcomes */}
+        {!isNoIntakeOutcome && !aiCallRecord.extraction_failed && (
+          <div className="bg-muted/30 rounded-lg p-4">
+            <pre className="text-sm whitespace-pre-wrap font-sans text-foreground leading-relaxed">
+              {formattedSummary}
+            </pre>
           </div>
         )}
 
