@@ -27,6 +27,7 @@ import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
 import { HelpContext } from '@/components/HelpAssistant'
 import EventComposer from '@/components/calendar/EventComposer'
+import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -190,6 +191,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [calendarConnected, setCalendarConnected] = useState(false)
   const [isLoadingCalendarStatus, setIsLoadingCalendarStatus] = useState(false)
   const [followUpSettings, setFollowUpSettings] = useState<any>(null)
+  const [isJobComposerOpen, setIsJobComposerOpen] = useState(false)
+  const [jobPrefill, setJobPrefill] = useState<JobPrefill | undefined>(undefined)
 
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
@@ -1440,6 +1443,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     setIsAppointmentModalOpen(true)
   }
 
+  // Generate JobComposer prefill data from lead and AI intake
+  const generateJobPrefill = (): JobPrefill => {
+    const aiIntake = leadData?.aiCallRecords?.[0]
+    const extractedInfo = aiIntake?.extracted_info || leadData?.raw_metadata?.extracted_info
+    const leadName = leadData?.contact_name || extractedInfo?.callerName || extractedInfo?.caller_name || leadData?.name || ''
+    const leadPhone = leadData?.caller_phone || leadData?.phone || ''
+    const leadReason = extractedInfo?.reasonForCalling || extractedInfo?.serviceRequested || extractedInfo?.reason || ''
+    const leadAddress = extractedInfo?.addressOrLocation || extractedInfo?.address || leadData?.raw_metadata?.address || ''
+
+    return {
+      title: leadReason || `Job for ${leadName || 'Lead'}`,
+      customer_name: leadName || undefined,
+      customer_phone: leadPhone || undefined,
+      service_address: leadAddress || undefined,
+      lead_id: params.id,
+      conversation_id: leadData?.conversation_id || undefined,
+    }
+  }
+
+  const handleCreateJobClick = () => {
+    setJobPrefill(generateJobPrefill())
+    setIsJobComposerOpen(true)
+  }
+
+  const handleJobSave = (job: Job) => {
+    setSuccessMessage('Job created successfully')
+    setIsJobComposerOpen(false)
+  }
+
   // Generate comprehensive prefill data from lead and AI intake
   const generateAppointmentPrefill = () => {
     const aiIntake = leadData?.aiCallRecords?.[0]
@@ -1824,6 +1856,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           )}
                           <button
                             onClick={() => {
+                              handleCreateJobClick()
+                              setShowMobileOverflow(false)
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M12 2a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2V4a2 2 0 012-2z" />
+                            </svg>
+                            Create Job
+                          </button>
+                          <button
+                            onClick={() => {
                               handleScheduleClick()
                               setShowMobileOverflow(false)
                             }}
@@ -2077,6 +2121,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
             {/* Secondary Actions - Simplified */}
             <div className="flex items-center gap-2">
+              <button
+                onClick={handleCreateJobClick}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M12 2a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2V4a2 2 0 012-2z" />
+                </svg>
+                Create Job
+              </button>
               <button
                 onClick={handleScheduleClick}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm font-medium"
@@ -3138,6 +3191,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       onClose={() => setIsAppointmentModalOpen(false)}
       onSave={handleAppointmentSave}
       prefill={generateAppointmentPrefill()}
+    />
+
+    {/* Job Composer Modal */}
+    <JobComposer
+      isOpen={isJobComposerOpen}
+      onClose={() => setIsJobComposerOpen(false)}
+      onSave={handleJobSave}
+      prefill={jobPrefill}
     />
 
     {/* Delete Confirmation Modal */}

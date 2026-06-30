@@ -52,81 +52,82 @@ export async function GET(request: NextRequest) {
     const statusFilter = searchParams.get('status')
     console.log('[API LEADS GET] Query params - statusFilter:', statusFilter)
 
-    // Fetch leads for this business
+    // Fetch leads for this business (only select columns that exist in the schema)
     console.log('[API LEADS GET] Fetching leads for business:', business.id)
-    
     let query = supabase
       .from('leads')
-      .select(`
-        id,
-        business_id,
-        caller_phone,
-        name,
-        status,
-        created_at,
-        first_contact_at,
-        last_message_at,
-        last_activity_at,
-        conversation_id,
-        deleted_at,
-        deleted_by,
-        deletion_reason,
-        raw_metadata
-      `)
+      .select('id, business_id, phone, name, status, created_at, updated_at, raw_metadata')
       .eq('business_id', business.id)
 
-    // Apply status filter if provided (note: deleted is handled separately via deleted_at)
-    if (statusFilter && statusFilter !== 'all' && statusFilter !== 'deleted') {
-      // Map frontend status values to database status values
-      const statusMap: Record<string, string> = {
-        'new': 'new',
-        'active': 'active',
-        'scheduled': 'scheduled',
-        'payment_requested': 'payment_requested',
-        'paid': 'paid',
-        'completed': 'completed',
-        'lost': 'lost',
-        'ignored': 'ignored',
-      }
-      
-      const dbStatus = statusMap[statusFilter]
-      if (dbStatus) {
-        query = query.eq('status', dbStatus)
-        console.log('[API LEADS GET] Applied status filter:', dbStatus)
+    // Apply status filter if provided
+    if (statusFilter && statusFilter !== 'all') {
+      const validStatuses = ['new', 'needs_follow_up', 'in_progress', 'completed', 'archived']
+      if (validStatuses.includes(statusFilter)) {
+        query = query.eq('status', statusFilter)
+        console.log('[API LEADS GET] Applied status filter:', statusFilter)
       }
     }
 
-    // For deleted filter, we need to filter by deleted_at IS NOT NULL
-    if (statusFilter === 'deleted') {
-      query = query.not('deleted_at', 'is', null)
-      console.log('[API LEADS GET] Applied deleted filter (deleted_at IS NOT NULL)')
-    } else {
-      // For all other filters, exclude deleted leads by default
-      query = query.is('deleted_at', null)
-      console.log('[API LEADS GET] Excluding deleted leads (deleted_at IS NULL)')
-    }
-
-    let leads, leadsError
+    let leadsResult
     try {
-      const result = await query
+      leadsResult = await query
         .order('created_at', { ascending: false })
-        .limit(100);
-      leads = result.data
-      leadsError = result.error
+        .limit(100)
     } catch (e) {
-      console.log('[API LEADS GET] Exception during leads fetch:', e)
-      return NextResponse.json({ error: 'Database error during leads fetch', details: String(e) }, { status: 500 });
+      console.error('[API LEADS GET] Exception during leads fetch:', e)
+      return NextResponse.json({ error: 'Database error during leads fetch', details: String(e) }, { status: 500 })
     }
 
-    if (leadsError) {
-      console.log('[API LEADS GET] Leads fetch error:', leadsError)
-      return NextResponse.json({ error: 'Failed to fetch leads', details: leadsError.message }, { status: 500 });
+    if (leadsResult.error) {
+      console.error('[API LEADS GET] Leads fetch error:', leadsResult.error)
+      return NextResponse.json({ error: 'Failed to fetch leads', details: leadsResult.error.message }, { status: 500 })
     }
 
-    console.log('[API LEADS GET] Fetched', leads?.length || 0, 'leads')
+    const rawLeads = leadsResult.data || []
+    const leadIds = rawLeads.map(l => l.id)
+
+    // Fetch conversations for these leads to map conversation_id
+    let conversationMap: Record<string, string> = {}
+    if (leadIds.length > 0) {
+      try {
+        const { data: conversations, error: convError } = await supabase
+          .from('conversations')
+          .select('id, lead_id')
+          .eq('business_id', business.id)
+          .in('lead_id', leadIds)
+
+        if (convError) {
+          console.error('[API LEADS GET] Conversation lookup error:', convError)
+        } else if (conversations) {
+          for (const conv of conversations) {
+            if (conv.lead_id && !conversationMap[conv.lead_id]) {
+              conversationMap[conv.lead_id] = conv.id
+            }
+          }
+        }
+      } catch (e) {
+        console.error('[API LEADS GET] Exception during conversation lookup:', e)
+      }
+    }
+
+    // Normalize to the shape expected by the lead picker and lead list
+    const leads = rawLeads.map(lead => ({
+      id: lead.id,
+      business_id: lead.business_id,
+      caller_phone: lead.phone,
+      name: lead.name,
+      status: lead.status,
+      created_at: lead.created_at,
+      updated_at: lead.updated_at,
+      last_activity_at: lead.updated_at,
+      conversation_id: conversationMap[lead.id] || null,
+      raw_metadata: lead.raw_metadata,
+    }))
+
+    console.log('[API LEADS GET] Fetched', leads.length, 'leads')
     console.log('[API LEADS GET] ========== ROUTE COMPLETE ==========')
     
-    return NextResponse.json({ leads: leads || [] });
+    return NextResponse.json({ leads })
   } catch (error) {
     console.log('[API LEADS GET] Unhandled exception:', error)
     return NextResponse.json({ error: 'Internal server error', details: String(error) }, { status: 500 });
