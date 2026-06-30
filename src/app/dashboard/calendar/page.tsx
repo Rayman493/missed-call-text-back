@@ -25,6 +25,7 @@ import { filterEventsByMonth } from '@/lib/calendar-date-utils'
 import JobComposer from '@/components/jobs/JobComposer'
 import JobPill from '@/components/jobs/JobPill'
 import JobDetailsModal from '@/components/jobs/JobDetailsModal'
+import TodaySchedule from '@/components/jobs/TodaySchedule'
 import type { Job, JobStatus } from '@/components/jobs/JobComposer'
 
 interface CalendarEvent {
@@ -522,38 +523,53 @@ export default function SchedulePage() {
             <div className="max-w-[1400px] mx-auto">
               {/* Loading State */}
               {isLoading ? (
-                <div className="py-8">
-                  {/* Skeleton Calendar Header */}
-                  <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 mb-4">
-                    <div className="animate-pulse">
-                      <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded mb-3 w-1/3"></div>
+                <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[340px_1fr] gap-4 xl:gap-6 items-start py-4">
+                  {/* Skeleton Today's Schedule */}
+                  <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 animate-pulse">
+                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mb-2"></div>
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mb-4"></div>
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="h-14 bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
+                    ))}
+                  </div>
+                  {/* Skeleton Calendar */}
+                  <div>
+                    <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 mb-4 animate-pulse">
                       <div className="flex items-center gap-2">
                         <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-10"></div>
-                        <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-10"></div>
-                        <div className="flex-1"></div>
+                        <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded flex-1 w-1/3"></div>
                         <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-32"></div>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Skeleton Calendar Grid */}
-                  <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
-                    <div className="animate-pulse">
+                    <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 animate-pulse">
                       <div className="grid grid-cols-7 gap-2 mb-4">
-                        {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                          <div key={i} className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                        ))}
+                        {[1,2,3,4,5,6,7].map(i => <div key={i} className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>)}
                       </div>
                       <div className="grid grid-cols-7 gap-2">
-                        {[...Array(35)].map((_, i) => (
-                          <div key={i} className="h-24 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                        ))}
+                        {[...Array(35)].map((_, i) => <div key={i} className="h-20 bg-slate-200 dark:bg-slate-700 rounded"></div>)}
                       </div>
                     </div>
                   </div>
                 </div>
               ) : (
                 <>
+                  {/* Today's Schedule + Main Content: 2-col on lg+, stacked on mobile */}
+                  <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[340px_1fr] gap-4 xl:gap-6 items-start">
+
+                  {/* LEFT: Today's Schedule — sticky on desktop */}
+                  <div className="lg:sticky lg:top-4 order-1">
+                    <TodaySchedule
+                      jobs={jobs}
+                      isLoading={isLoadingJobs}
+                      onJobClick={(job) => { setSelectedJob(job); setIsJobDetailsOpen(true) }}
+                      onNewJob={() => { setEditingJob(null); setIsJobComposerOpen(true) }}
+                      onStatusChange={handleJobStatusChange}
+                    />
+                  </div>
+
+                  {/* RIGHT: Tab toggle + Calendar / Jobs content */}
+                  <div className="order-2 min-w-0">
+
                   {/* Schedule Tab Toggle */}
                   <div className="hidden md:flex mb-4">
                     <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit">
@@ -1025,6 +1041,9 @@ export default function SchedulePage() {
                       }}
                     />
                   )}
+
+                  </div>{/* end right column */}
+                  </div>{/* end 2-col grid */}
                 </>
               )}
             </div>
