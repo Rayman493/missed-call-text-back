@@ -5187,10 +5187,27 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     state.completionPersistenceStarted = true;
 
     // Helper function to parse caller name and service from name/reason answer
-    const parseNameAndService = (text: string) => {
+    const parseNameAndService = (text: string, existingService?: string) => {
       const lower = text.toLowerCase();
       let customerName = text;
-      let serviceRequested = 'General inquiry';
+      let serviceRequested = existingService ?? 'General inquiry';
+
+      // If service was already extracted by extractMultipleAnswers, only extract the name.
+      // The name is whatever appears before the first sentence boundary (period) or
+      // before the service text begins. We do NOT touch serviceRequested.
+      if (existingService) {
+        // Strip the service text from the end of customerName if it appears there
+        const serviceIdx = text.indexOf(existingService);
+        const nameCandidate = serviceIdx > 0
+          ? text.slice(0, serviceIdx).trim()
+          : text;
+        // Clean trailing punctuation/conjunctions left after stripping
+        customerName = nameCandidate
+          .replace(/[.,;]\s*$/, '')
+          .replace(/\s+(and|i'd|i would|i want|i need)\s*$/i, '')
+          .trim() || text;
+        return { customerName, serviceRequested };
+      }
       
       // Common patterns for "My name is X and I need Y"
       const namePatterns = [
@@ -5204,7 +5221,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         const match = text.match(pattern);
         if (match) {
           customerName = match[1].trim();
-          // Extract service from the rest of the text
           const servicePart = text.replace(match[0], '').replace(/^(?: and|,)\s*/i, '').trim();
           if (servicePart) {
             serviceRequested = servicePart;
@@ -5213,12 +5229,20 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         }
       }
       
-      // If no pattern matched, try to split on "and" or ","
+      // If no pattern matched, try to split on period, "and", or ","
       if (customerName === text) {
-        const parts = text.split(/\s+(?:and|,)\s+/i);
-        if (parts.length > 1) {
-          customerName = parts[0].trim();
-          serviceRequested = parts.slice(1).join(', ').trim();
+        // Period separator: "Bartholomew. I'd like to..."
+        const periodParts = text.split(/\.\s+/);
+        if (periodParts.length > 1 && periodParts[0].trim().split(/\s+/).length <= 3) {
+          customerName = periodParts[0].trim();
+          serviceRequested = periodParts.slice(1).join('. ').trim();
+        } else {
+          // Fallback: split on "and" or ","
+          const parts = text.split(/\s+(?:and|,)\s+/i);
+          if (parts.length > 1) {
+            customerName = parts[0].trim();
+            serviceRequested = parts.slice(1).join(', ').trim();
+          }
         }
       }
       
@@ -5457,8 +5481,20 @@ Reply to this message if you'd like to update or add any information.
         issueDescription:    state.intakeData.issueDescription,
       });
 
-      // Parse caller name and service from combined first answer
-      const { customerName, serviceRequested } = parseNameAndService(state.intakeData.customerName || '');
+      // Parse caller name and service from combined first answer.
+      // If extractMultipleAnswers already populated serviceRequested, preserve it and
+      // only clean the name portion out of customerName (strip trailing service text).
+      const alreadyHasService = !!(state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim());
+      console.log('[parseNameAndService input]', {
+        rawCustomerName:  state.intakeData.customerName,
+        rawServiceRequested: state.intakeData.serviceRequested,
+        alreadyHasService,
+      });
+      const { customerName, serviceRequested } = parseNameAndService(
+        state.intakeData.customerName || '',
+        alreadyHasService ? state.intakeData.serviceRequested : undefined
+      );
+      console.log('[parseNameAndService output]', { customerName, serviceRequested });
 
       // Apply per-field CRM normalization
       state.intakeData.customerName        = normalizeCrmField(customerName,                           'name');
