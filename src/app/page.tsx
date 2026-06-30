@@ -192,7 +192,7 @@ export default async function Home() {
                 Never Miss a Lead Again
               </h1>
               <p className="text-sm sm:text-base md:text-xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed mt-1 sm:mt-1.5">
-                AI Voice answers your missed calls, collects customer information, and keeps the conversation going — from first call to booked appointment to payment.
+                AI Voice answers your missed calls, collects customer information, and keeps the opportunity moving — from first response to booked appointment to payment.
               </p>
 
               <div className="mt-2 sm:mt-2.5 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
@@ -839,7 +839,7 @@ export default async function Home() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-6 sm:mb-8 md:mb-10">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">
-                Everything You Need — From First Call to Getting Paid
+                Turn Missed Calls Into Booked Jobs and Paid Invoices
               </h2>
               <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-muted-foreground max-w-2xl mx-auto">
                 One platform to capture leads, continue conversations, schedule appointments, and collect payments
@@ -1122,10 +1122,10 @@ export default async function Home() {
           <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
             <div>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-4 sm:mb-5 md:mb-6">
-                Handle Every Customer — Start to Finish
+                Don't Let Another Missed Call Slip Away
               </h2>
               <p className="text-base sm:text-lg md:text-xl text-slate-700 dark:text-muted-foreground mb-6 sm:mb-8 md:mb-10 leading-relaxed">
-                From the first missed call to a booked appointment and collected payment — ReplyFlow handles it all.
+                When you can't answer, ReplyFlow keeps the opportunity moving — from AI intake through scheduling and payment.
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 md:gap-4">

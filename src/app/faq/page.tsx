@@ -777,7 +777,7 @@ export default function FAQPage() {
             Ready to get started?
           </h3>
           <p className="text-muted-foreground mb-6">
-            Start your 14-day free trial and handle every customer from first call to payment.
+            Start your 14-day free trial and stop losing missed-call customers.
           </p>
           <Link
             href="/auth?mode=signup"
