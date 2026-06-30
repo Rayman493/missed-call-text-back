@@ -69,6 +69,18 @@ function getTodayKey(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
+function getTomorrowKey(): string {
+  const now = new Date()
+  now.setDate(now.getDate() + 1)
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+function getTomorrowLabel(): string {
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  return tomorrow.toLocaleDateString('en-US', { weekday: 'long' })
+}
+
 function getTodayLabel(): string {
   return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 }
@@ -84,7 +96,9 @@ export default function TodaySchedule({
   const [showCancelled, setShowCancelled] = useState(false)
 
   const todayKey = getTodayKey()
+  const tomorrowKey = getTomorrowKey()
   const todayJobs = jobs.filter(j => j.scheduled_date === todayKey)
+  const tomorrowJobs = jobs.filter(j => j.scheduled_date === tomorrowKey)
 
   // Sort by status priority, then by time
   const sorted = [...todayJobs].sort((a, b) => {
@@ -124,14 +138,14 @@ export default function TodaySchedule({
   return (
     <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+      <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-900/10 dark:to-transparent">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground leading-none">Today's Schedule</h2>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{getTodayLabel()}</p>
+          <h2 className="text-base font-semibold text-slate-900 dark:text-foreground leading-tight">Today's Schedule</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{getTodayLabel()}</p>
         </div>
         <button
           onClick={onNewJob}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors active:scale-95"
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors active:scale-95 shadow-sm"
         >
           <Plus className="w-3 h-3" />
           New Job
@@ -140,22 +154,22 @@ export default function TodaySchedule({
 
       {/* Summary chips — only when there are jobs */}
       {todayJobs.length > 0 && (
-        <div className="flex items-center gap-2 px-4 pt-2.5 pb-1 flex-wrap">
+        <div className="flex items-center gap-2 px-4 pt-3 pb-1.5 flex-wrap">
           {inProgress > 0 && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+              <Loader2 className="w-3 h-3 animate-spin" />
               {inProgress} in progress
             </span>
           )}
           {remaining > 0 && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-              <Circle className="w-2.5 h-2.5" />
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+              <Circle className="w-3 h-3" />
               {remaining} upcoming
             </span>
           )}
           {completed > 0 && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
-              <CheckCircle2 className="w-2.5 h-2.5" />
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+              <CheckCircle2 className="w-3 h-3" />
               {completed} done
             </span>
           )}
@@ -171,11 +185,15 @@ export default function TodaySchedule({
             ))}
           </div>
         ) : todayJobs.length === 0 ? (
-          <div className="py-6 text-center">
-            <p className="text-sm text-slate-500 dark:text-slate-400">No jobs scheduled today.</p>
+          <div className="py-7 text-center">
+            <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
+              <CheckCircle2 className="w-5 h-5 text-slate-400 dark:text-slate-500" />
+            </div>
+            <p className="text-sm font-semibold text-slate-900 dark:text-foreground">No jobs scheduled today</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Enjoy your free day, or get ahead by creating one.</p>
             <button
               onClick={onNewJob}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+              className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors active:scale-95 shadow-sm"
             >
               <Plus className="w-3 h-3" />
               Create a job
@@ -191,8 +209,7 @@ export default function TodaySchedule({
               return (
                 <div
                   key={job.id}
-                  onClick={() => onJobClick(job)}
-                  className={`group flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-lg border-l-2 ${cfg.row} bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors`}
+                  className={`group flex items-center gap-3 pl-3 pr-2 py-3 rounded-lg border-l-2 ${cfg.row} bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors`}
                 >
                   {/* Status icon */}
                   <Icon className={`w-4 h-4 flex-shrink-0 ${
@@ -202,7 +219,7 @@ export default function TodaySchedule({
                   }`} />
 
                   {/* Time + info */}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onJobClick(job)}>
                     <div className="flex items-baseline gap-2">
                       {job.scheduled_time && (
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums flex-shrink-0">
@@ -216,32 +233,39 @@ export default function TodaySchedule({
                     )}
                   </div>
 
-                  {/* Quick action button */}
-                  {cfg.nextStatus && (
+                  {/* Quick actions */}
+                  <div className="flex items-center gap-1.5 flex-shrink-0 opacity-90 group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={(e) => handleQuickStatus(e, job, cfg.nextStatus!)}
-                      disabled={isUpdating}
-                      className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-semibold rounded-md transition-all active:scale-95 disabled:opacity-50 ${
-                        cfg.nextStatus === 'in_progress'
-                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50'
-                          : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50'
-                      }`}
-                      title={cfg.nextLabel ?? ''}
+                      onClick={() => onJobClick(job)}
+                      className="px-2 py-1 text-[10px] font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-foreground hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
+                      title="View details"
                     >
-                      {isUpdating ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        cfg.nextLabel
-                      )}
+                      View
                     </button>
-                  )}
-
-                  {/* Completed — just the pill */}
-                  {!cfg.nextStatus && job.status !== 'cancelled' && (
-                    <span className={`flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.pill}`}>
-                      {cfg.label}
-                    </span>
-                  )}
+                    {cfg.nextStatus && (
+                      <button
+                        onClick={(e) => handleQuickStatus(e, job, cfg.nextStatus!)}
+                        disabled={isUpdating}
+                        className={`px-2.5 py-1 text-[10px] font-semibold rounded-md transition-all active:scale-95 disabled:opacity-50 ${
+                          cfg.nextStatus === 'in_progress'
+                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50'
+                            : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50'
+                        }`}
+                        title={cfg.nextLabel ?? ''}
+                      >
+                        {isUpdating ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          cfg.nextLabel
+                        )}
+                      </button>
+                    )}
+                    {!cfg.nextStatus && job.status !== 'cancelled' && (
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.pill}`}>
+                        {cfg.label}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )
             })}
@@ -281,6 +305,35 @@ export default function TodaySchedule({
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Tomorrow preview */}
+        {!isLoading && (
+          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 px-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Tomorrow</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {getTomorrowLabel()}
+                  {tomorrowJobs.length > 0 ? (
+                    <span className="ml-1.5 font-medium text-slate-700 dark:text-slate-300">
+                      {tomorrowJobs.length} {tomorrowJobs.length === 1 ? 'job' : 'jobs'} scheduled
+                    </span>
+                  ) : (
+                    <span className="ml-1.5">— nothing scheduled</span>
+                  )}
+                </p>
+              </div>
+              {tomorrowJobs.length > 0 && (
+                <button
+                  onClick={() => onJobClick(tomorrowJobs[0])}
+                  className="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  View first
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

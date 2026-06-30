@@ -12,7 +12,7 @@ import AppHeader from '@/components/AppHeader'
 import Toast, { ToastContainer } from '@/components/Toast'
 import BottomNavigation from '@/components/BottomNavigation'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventComposer from '@/components/calendar/EventComposer'
@@ -189,23 +189,36 @@ export default function SchedulePage() {
     setIsDayDetailOpen(true)
   }
 
-  const getTodayEvents = () => {
+  const getTodayKey = () => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  }
+
+  const getDateKey = (date: Date) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  }
+
+  const getTodayCounts = () => {
     const now = new Date()
     const startOfDay = new Date(now)
     startOfDay.setHours(0, 0, 0, 0)
-    
     const endOfDay = new Date(now)
     endOfDay.setHours(23, 59, 59, 999)
 
-    return events.filter(event => {
+    const appointments = events.filter(event => {
       const eventDateRaw = event.start?.dateTime || event.start?.date
       if (!eventDateRaw) return false
       const eventDate = new Date(eventDateRaw)
       return eventDate >= startOfDay && eventDate <= endOfDay
     }).length
+
+    const todayKey = getTodayKey()
+    const jobCount = jobs.filter(j => j.scheduled_date === todayKey && j.status !== 'cancelled').length
+
+    return { appointments, jobs: jobCount }
   }
 
-  const getThisWeekEvents = () => {
+  const getThisWeekCounts = () => {
     const now = new Date()
     const startOfWeek = new Date(now)
     startOfWeek.setDate(now.getDate() - now.getDay())
@@ -215,25 +228,43 @@ export default function SchedulePage() {
     endOfWeek.setDate(startOfWeek.getDate() + 6)
     endOfWeek.setHours(23, 59, 59, 999)
 
-    return events.filter(event => {
+    const appointments = events.filter(event => {
       const eventDateRaw = event.start?.dateTime || event.start?.date
       if (!eventDateRaw) return false
       const eventDate = new Date(eventDateRaw)
       return eventDate >= startOfWeek && eventDate <= endOfWeek
     }).length
+
+    const startKey = getDateKey(startOfWeek)
+    const endKey = getDateKey(endOfWeek)
+    const jobCount = jobs.filter(j => {
+      if (!j.scheduled_date || j.status === 'cancelled') return false
+      return j.scheduled_date >= startKey && j.scheduled_date <= endKey
+    }).length
+
+    return { appointments, jobs: jobCount }
   }
 
-  const getThisMonthEvents = () => {
+  const getThisMonthCounts = () => {
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
 
-    return events.filter(event => {
+    const appointments = events.filter(event => {
       const eventDateRaw = event.start?.dateTime || event.start?.date
       if (!eventDateRaw) return false
       const eventDate = new Date(eventDateRaw)
       return eventDate >= startOfMonth && eventDate <= endOfMonth
     }).length
+
+    const startKey = getDateKey(startOfMonth)
+    const endKey = getDateKey(endOfMonth)
+    const jobCount = jobs.filter(j => {
+      if (!j.scheduled_date || j.status === 'cancelled') return false
+      return j.scheduled_date >= startKey && j.scheduled_date <= endKey
+    }).length
+
+    return { appointments, jobs: jobCount }
   }
 
   const getEventsForDay = (date: Date) => {
@@ -525,11 +556,11 @@ export default function SchedulePage() {
           <AppHeader title="Schedule" />
 
           {/* Main Content */}
-          <div className="flex-1 pt-0 lg:pt-2 px-1 sm:px-2 lg:px-3 pb-20 md:pb-8">
+          <div className="flex-1 pt-0 lg:pt-2 px-2 sm:px-3 lg:px-4 pb-20 md:pb-6">
             <div className="max-w-[1400px] mx-auto">
               {/* Loading State */}
               {isLoading ? (
-                <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[340px_1fr] gap-4 xl:gap-6 items-start py-4">
+                <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[340px_1fr] gap-4 xl:gap-5 items-start py-4">
                   {/* Skeleton Today's Schedule */}
                   <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 animate-pulse">
                     <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mb-2"></div>
@@ -560,7 +591,7 @@ export default function SchedulePage() {
               ) : (
                 <>
                   {/* Today's Schedule + Main Content: 2-col on lg+, stacked on mobile */}
-                  <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[340px_1fr] gap-4 xl:gap-6 items-start">
+                  <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[340px_1fr] gap-4 xl:gap-5 items-start">
 
                   {/* LEFT: Today's Schedule — sticky on desktop */}
                   <div className="lg:sticky lg:top-4 order-1">
@@ -581,10 +612,10 @@ export default function SchedulePage() {
                     <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit">
                       <button
                         onClick={() => setScheduleTab('calendar')}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition-all ${
                           scheduleTab === 'calendar'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-[15px]'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground text-sm'
                         }`}
                       >
                         <CalendarIcon className="w-4 h-4" />
@@ -592,10 +623,10 @@ export default function SchedulePage() {
                       </button>
                       <button
                         onClick={() => setScheduleTab('jobs')}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition-all ${
                           scheduleTab === 'jobs'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-[15px]'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground text-sm'
                         }`}
                       >
                         <Briefcase className="w-4 h-4" />
@@ -614,10 +645,10 @@ export default function SchedulePage() {
                     <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
                       <button
                         onClick={() => setScheduleTab('calendar')}
-                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
+                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all ${
                           scheduleTab === 'calendar'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
-                            : 'text-slate-600 dark:text-slate-400'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
+                            : 'text-slate-600 dark:text-slate-400 text-xs'
                         }`}
                       >
                         <CalendarIcon className="w-3.5 h-3.5" />
@@ -625,10 +656,10 @@ export default function SchedulePage() {
                       </button>
                       <button
                         onClick={() => setScheduleTab('jobs')}
-                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
+                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all ${
                           scheduleTab === 'jobs'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
-                            : 'text-slate-600 dark:text-slate-400'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
+                            : 'text-slate-600 dark:text-slate-400 text-xs'
                         }`}
                       >
                         <Briefcase className="w-3.5 h-3.5" />
@@ -697,27 +728,42 @@ export default function SchedulePage() {
 
                       {/* Compact Status Bar - Desktop: Simplified */}
                       <div className="hidden md:flex items-center justify-between gap-4 mb-4 p-4 bg-slate-800/40 border border-slate-700/40 rounded-lg">
-                        {/* Metrics - Simplified */}
+                        {/* Metrics - Appointments + Jobs */}
                         <div className="flex items-center gap-6">
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                             <div>
                               <p className="text-[10px] text-slate-400">Today</p>
-                              <p className="text-base font-semibold text-foreground">{getTodayEvents()}</p>
+                              <p className="text-base font-semibold text-foreground leading-tight">
+                                {getTodayCounts().appointments} <span className="text-xs font-normal text-slate-400">appts</span>
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                {getTodayCounts().jobs} {getTodayCounts().jobs === 1 ? 'job' : 'jobs'}
+                              </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                             <div>
                               <p className="text-[10px] text-slate-400">This Week</p>
-                              <p className="text-base font-semibold text-foreground">{getThisWeekEvents()}</p>
+                              <p className="text-base font-semibold text-foreground leading-tight">
+                                {getThisWeekCounts().appointments} <span className="text-xs font-normal text-slate-400">appts</span>
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                {getThisWeekCounts().jobs} {getThisWeekCounts().jobs === 1 ? 'job' : 'jobs'}
+                              </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                             <div>
                               <p className="text-[10px] text-slate-400">This Month</p>
-                              <p className="text-base font-semibold text-foreground">{getThisMonthEvents()}</p>
+                              <p className="text-base font-semibold text-foreground leading-tight">
+                                {getThisMonthCounts().appointments} <span className="text-xs font-normal text-slate-400">appts</span>
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                {getThisMonthCounts().jobs} {getThisMonthCounts().jobs === 1 ? 'job' : 'jobs'}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -911,22 +957,37 @@ export default function SchedulePage() {
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                             <div>
-                              <p className="text-[10px] sm:text-[8px] text-slate-400">Today</p>
-                              <p className="text-sm sm:text-sm font-semibold text-foreground">{getTodayEvents()}</p>
+                              <p className="text-[10px] text-slate-400">Today</p>
+                              <p className="text-sm font-semibold text-foreground leading-tight">
+                                {getTodayCounts().appointments} <span className="text-[10px] font-normal text-slate-400">appts</span>
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                {getTodayCounts().jobs} {getTodayCounts().jobs === 1 ? 'job' : 'jobs'}
+                              </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                             <div>
-                              <p className="text-[10px] sm:text-[8px] text-slate-400">Week</p>
-                              <p className="text-sm sm:text-sm font-semibold text-foreground">{getThisWeekEvents()}</p>
+                              <p className="text-[10px] text-slate-400">Week</p>
+                              <p className="text-sm font-semibold text-foreground leading-tight">
+                                {getThisWeekCounts().appointments} <span className="text-[10px] font-normal text-slate-400">appts</span>
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                {getThisWeekCounts().jobs} {getThisWeekCounts().jobs === 1 ? 'job' : 'jobs'}
+                              </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                             <div>
-                              <p className="text-[10px] sm:text-[8px] text-slate-400">Month</p>
-                              <p className="text-sm sm:text-sm font-semibold text-foreground">{getThisMonthEvents()}</p>
+                              <p className="text-[10px] text-slate-400">Month</p>
+                              <p className="text-sm font-semibold text-foreground leading-tight">
+                                {getThisMonthCounts().appointments} <span className="text-[10px] font-normal text-slate-400">appts</span>
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                {getThisMonthCounts().jobs} {getThisMonthCounts().jobs === 1 ? 'job' : 'jobs'}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -1114,7 +1175,8 @@ function JobsTab({
   onJobClick: (job: Job) => void
 }) {
   const active = jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress')
-  const done = jobs.filter(j => j.status === 'completed' || j.status === 'cancelled')
+  const completed = jobs.filter(j => j.status === 'completed')
+  const cancelled = jobs.filter(j => j.status === 'cancelled')
 
   const formatScheduled = (job: Job) => {
     if (!job.scheduled_date) return null
@@ -1127,11 +1189,59 @@ function JobsTab({
     return `${dateStr} at ${hour}:${String(m).padStart(2, '0')} ${ampm}`
   }
 
+  const JobCard = ({ job, variant }: { job: Job; variant: 'active' | 'completed' | 'cancelled' }) => {
+    const isActive = variant === 'active'
+    const isCompleted = variant === 'completed'
+    const addressFirstLine = job.service_address?.split(',')[0]
+
+    return (
+      <button
+        key={job.id}
+        onClick={() => onJobClick(job)}
+        className={`w-full text-left rounded-xl p-4 transition-all hover:shadow-sm active:scale-[0.99] ${
+          isActive
+            ? 'bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
+            : isCompleted
+              ? 'bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30 opacity-80'
+              : 'bg-slate-50 dark:bg-slate-800/20 border border-slate-200/50 dark:border-slate-700/20 opacity-60'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className={`truncate ${isActive ? 'text-base font-semibold text-slate-900 dark:text-foreground' : 'text-sm font-medium text-slate-700 dark:text-slate-300'}`}>
+              {job.title}
+            </p>
+            {job.customer_name && (
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">{job.customer_name}</p>
+            )}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-slate-500 dark:text-slate-400">
+              {job.scheduled_date && (
+                <span className="inline-flex items-center gap-1">
+                  <CalendarIcon className="w-3 h-3" />
+                  {formatScheduled(job)}
+                </span>
+              )}
+              {addressFirstLine && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {addressFirstLine}
+                </span>
+              )}
+            </div>
+          </div>
+          <span className={`flex-shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[job.status]}`}>
+            {STATUS_LABELS[job.status]}
+          </span>
+        </div>
+      </button>
+    )
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map(i => (
-          <div key={i} className="h-20 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
+          <div key={i} className="h-24 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
         ))}
       </div>
     )
@@ -1140,16 +1250,16 @@ function JobsTab({
   return (
     <div>
       {/* Toolbar */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-5">
         <div>
           <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">Jobs</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {active.length} active{done.length > 0 ? `, ${done.length} completed` : ''}
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 max-w-sm">
+            Track work created from ReplyFlow or add your own jobs manually.
           </p>
         </div>
         <button
           onClick={onNewJob}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-95"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-95 flex-shrink-0"
         >
           <Briefcase className="w-4 h-4" />
           New Job
@@ -1162,8 +1272,8 @@ function JobsTab({
             <Briefcase className="w-7 h-7 text-slate-400" />
           </div>
           <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">No jobs yet</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-xs mx-auto">
-            Create jobs manually or from a ReplyFlow lead to track your upcoming work.
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-xs mx-auto leading-relaxed">
+            Jobs created from ReplyFlow leads, or jobs you create manually, will appear here.
           </p>
           <button
             onClick={onNewJob}
@@ -1174,68 +1284,48 @@ function JobsTab({
           </button>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Active Jobs */}
           {active.length > 0 && (
             <div>
-              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Active</h3>
-              <div className="space-y-2">
-                {active.map(job => (
-                  <button
-                    key={job.id}
-                    onClick={() => onJobClick(job)}
-                    className="w-full text-left bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-700 transition-all hover:shadow-sm active:scale-[0.99]"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-foreground truncate">{job.title}</p>
-                        {job.customer_name && (
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{job.customer_name}</p>
-                        )}
-                        {formatScheduled(job) && (
-                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{formatScheduled(job)}</p>
-                        )}
-                        {job.service_address && (
-                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">{job.service_address}</p>
-                        )}
-                      </div>
-                      <span className={`flex-shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[job.status]}`}>
-                        {STATUS_LABELS[job.status]}
-                      </span>
-                    </div>
-                  </button>
-                ))}
+              <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+                Active Jobs
+                <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">
+                  {active.length}
+                </span>
+              </h3>
+              <div className="space-y-3">
+                {active.map(job => <JobCard key={job.id} job={job} variant="active" />)}
               </div>
             </div>
           )}
 
-          {/* Completed / Cancelled */}
-          {done.length > 0 && (
+          {/* Completed Jobs */}
+          {completed.length > 0 && (
             <div>
-              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Completed & Cancelled</h3>
-              <div className="space-y-2">
-                {done.map(job => (
-                  <button
-                    key={job.id}
-                    onClick={() => onJobClick(job)}
-                    className="w-full text-left bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-600 transition-all hover:shadow-sm active:scale-[0.99] opacity-70"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{job.title}</p>
-                        {job.customer_name && (
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{job.customer_name}</p>
-                        )}
-                        {formatScheduled(job) && (
-                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{formatScheduled(job)}</p>
-                        )}
-                      </div>
-                      <span className={`flex-shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[job.status]}`}>
-                        {STATUS_LABELS[job.status]}
-                      </span>
-                    </div>
-                  </button>
-                ))}
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                Completed Jobs
+                <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 rounded-full">
+                  {completed.length}
+                </span>
+              </h3>
+              <div className="space-y-3">
+                {completed.map(job => <JobCard key={job.id} job={job} variant="completed" />)}
+              </div>
+            </div>
+          )}
+
+          {/* Cancelled Jobs */}
+          {cancelled.length > 0 && (
+            <div>
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                Cancelled Jobs
+                <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 rounded-full">
+                  {cancelled.length}
+                </span>
+              </h3>
+              <div className="space-y-3">
+                {cancelled.map(job => <JobCard key={job.id} job={job} variant="cancelled" />)}
               </div>
             </div>
           )}

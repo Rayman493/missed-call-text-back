@@ -120,46 +120,77 @@ export default function JobDetailsModal({
           </div>
 
           {/* Details */}
-          <div className="p-5 space-y-3">
-            {(job.scheduled_date || job.scheduled_time) && (
+          <div className="p-5 space-y-5">
+            {/* Customer */}
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Customer</p>
+              <div className="space-y-2">
+                {job.customer_name && (
+                  <div className="flex items-center gap-3 text-sm text-slate-800 dark:text-slate-200">
+                    <User className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    <span className="font-medium">{job.customer_name}</span>
+                  </div>
+                )}
+                {job.customer_phone && (
+                  <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
+                    <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    <a href={`tel:${job.customer_phone}`} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      {job.customer_phone}
+                    </a>
+                  </div>
+                )}
+                {!job.customer_name && !job.customer_phone && (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 italic">No customer information</p>
+                )}
+              </div>
+            </div>
+
+            {/* Schedule */}
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Schedule</p>
               <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
                 <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
                 <span>
-                  {formatDate(job.scheduled_date)}
+                  {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date set'}
                   {job.scheduled_time && ` at ${formatTime(job.scheduled_time)}`}
                 </span>
               </div>
-            )}
-            {job.customer_name && (
-              <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
-                <User className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span>{job.customer_name}</span>
-              </div>
-            )}
-            {job.customer_phone && (
-              <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
-                <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <a href={`tel:${job.customer_phone}`} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  {job.customer_phone}
-                </a>
-              </div>
-            )}
+            </div>
+
+            {/* Address */}
             {job.service_address && (
-              <div className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-300">
-                <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
-                <span>{job.service_address}</span>
-              </div>
-            )}
-            {job.notes && (
-              <div className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-300">
-                <FileText className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
-                <span className="whitespace-pre-line">{job.notes}</span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Address</p>
+                <div className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-300">
+                  <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                  <span>{job.service_address}</span>
+                </div>
               </div>
             )}
 
+            {/* Notes */}
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Notes</p>
+              {job.notes ? (
+                <div className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-300">
+                  <FileText className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                  <span className="whitespace-pre-line">{job.notes}</span>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-400 italic">No notes added</p>
+              )}
+            </div>
+
+            {/* Payment placeholder */}
+            <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Payment</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300">Not requested</p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Payment requests coming soon</p>
+            </div>
+
             {/* Status Change */}
-            <div className="pt-2">
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Update Status</p>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Status</p>
               <div className="flex flex-wrap gap-2">
                 {STATUS_OPTIONS.map(opt => (
                   <button

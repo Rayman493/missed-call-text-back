@@ -49,9 +49,9 @@ export default function NewJobModal({
                 <FileText className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-foreground">Manual Job</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-foreground">Create Manually</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                  Create a brand new job for any customer.
+                  Enter customer and job details from scratch.
                 </p>
               </div>
             </button>
@@ -65,9 +65,9 @@ export default function NewJobModal({
                 <Users className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-foreground">Existing Lead</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-foreground">Use Existing Lead</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                  Create a job from a customer already captured in ReplyFlow.
+                  Prefill a job from a ReplyFlow lead or caller.
                 </p>
               </div>
             </button>
