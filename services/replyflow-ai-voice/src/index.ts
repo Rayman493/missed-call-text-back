@@ -5225,6 +5225,115 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       return { customerName, serviceRequested };
     };
 
+    // ─── CRM normalization helpers ────────────────────────────────────────────
+    // Rule: lightly clean customer responses without changing meaning or intent.
+    // When in doubt, preserve the customer's original wording.
+
+    // Strip leading filler words that carry no meaning
+    const stripLeadingFiller = (s: string): string =>
+      s.replace(/^(um+|uh+|er+|hmm+|you know,?\s*|like,?\s*)+[,.]?\s*/i, '').trim();
+
+    // Normalize AM/PM abbreviations
+    const normalizeAmPm = (s: string): string =>
+      s.replace(/\bp\.?m\.?\b/gi, 'PM').replace(/\ba\.?m\.?\b/gi, 'AM');
+
+    // Remove duplicate adjacent words caused by speech recognition ("the the", "a a")
+    const dedupeWords = (s: string): string =>
+      s.replace(/\b(\w+)\s+\1\b/gi, '$1');
+
+    // Collapse excess whitespace
+    const collapseWhitespace = (s: string): string =>
+      s.replace(/\s{2,}/g, ' ').trim();
+
+    // Strip trailing period when the whole value is a bare address/time phrase
+    const stripTrailingPeriod = (s: string): string =>
+      s.replace(/\.\s*$/, '').trim();
+
+    // Remove conversational address wrappers ONLY — does not touch the address itself
+    const stripAddressWrapper = (s: string): string => {
+      const wrappers = [
+        /^(?:my\s+)?(?:home\s+)?address\s+(?:is|will be)\s+/i,
+        /^the\s+address\s+(?:is|will be)\s+/i,
+        /^it(?:'s|'ll be|\s+is|\s+will be)\s+(?:at\s+)?(?:my\s+(?:house|home|place)\s+at\s+)?/i,
+        /^it(?:'s|'ll be)\s+located\s+at\s+/i,
+        /^(?:located\s+)?at\s+(?:my\s+(?:house|home|place)\s+at\s+)?/i,
+        /^(?:my\s+(?:house|home|place)\s+is\s+(?:at\s+)?)/i,
+      ];
+      let result = s;
+      for (const w of wrappers) {
+        const stripped = result.replace(w, '').trim();
+        // Only accept strip if something remains after removing the wrapper
+        if (stripped.length > 0) {
+          result = stripped;
+          break;
+        }
+      }
+      return result;
+    };
+
+    // Compress long free-form text: collapse repetition, keep all facts.
+    // Only triggers for responses that are clearly multi-sentence (3+ sentences).
+    const compressLongText = (s: string): string => {
+      // Split on sentence boundaries
+      const sentences = s.match(/[^.!?]+[.!?]*/g)?.map(t => t.trim()).filter(Boolean) ?? [s];
+      if (sentences.length < 3) return s; // Short enough — leave as-is
+
+      // Deduplicate sentences that are essentially the same (>80% word overlap)
+      const seen: string[] = [];
+      for (const sent of sentences) {
+        const words = new Set(sent.toLowerCase().match(/\b\w+\b/g) ?? []);
+        const isDuplicate = seen.some(prev => {
+          const prevWords = new Set(prev.toLowerCase().match(/\b\w+\b/g) ?? []);
+          const intersection = [...words].filter(w => prevWords.has(w));
+          return intersection.length / Math.max(words.size, prevWords.size) > 0.8;
+        });
+        if (!isDuplicate) seen.push(sent);
+      }
+      return seen.join(' ').trim();
+    };
+
+    // Apply the full normalization pipeline to a field value
+    const normalizeCrmField = (
+      value: string | undefined,
+      fieldType: 'name' | 'service' | 'address' | 'time' | 'details'
+    ): string => {
+      if (!value || value.trim() === '') return '';
+      let s = value.trim();
+
+      // Universal passes
+      s = dedupeWords(s);
+      s = collapseWhitespace(s);
+
+      if (fieldType === 'address') {
+        s = stripLeadingFiller(s);
+        s = stripAddressWrapper(s);
+        s = stripTrailingPeriod(s);
+        s = collapseWhitespace(s);
+      } else if (fieldType === 'time') {
+        s = stripLeadingFiller(s);
+        s = normalizeAmPm(s);
+        s = stripTrailingPeriod(s);
+        s = collapseWhitespace(s);
+      } else if (fieldType === 'details') {
+        s = stripLeadingFiller(s);
+        s = normalizeAmPm(s);
+        s = compressLongText(s);
+        s = collapseWhitespace(s);
+      } else if (fieldType === 'service') {
+        s = stripLeadingFiller(s);
+        s = normalizeAmPm(s);
+        s = collapseWhitespace(s);
+      } else if (fieldType === 'name') {
+        s = stripLeadingFiller(s);
+        s = collapseWhitespace(s);
+      }
+
+      // Capitalize first letter
+      s = s.charAt(0).toUpperCase() + s.slice(1);
+      return s;
+    };
+    // ─────────────────────────────────────────────────────────────────────────
+
     // Helper function to normalize time phrases
     const normalizeTime = (text: string) => {
       if (!text) return 'Not collected';
@@ -5337,14 +5446,38 @@ Reply to this message if you'd like to update or add any information.
       console.log('[SIMPLE MODE] intakeData:', state.intakeData);
       console.log('[SIMPLE MODE] =========================================');
 
-      // Parse caller name and service from the name/reason answer
+      // ── CRM normalization ──────────────────────────────────────────────────
+      // Log raw values before any transformation (raw transcript already in state.transcript)
+      console.log('[CRM NORMALIZATION INPUT]', {
+        customerName:        state.intakeData.customerName,
+        serviceRequested:    state.intakeData.serviceRequested,
+        serviceAddress:      state.intakeData.serviceAddress,
+        desiredCompletionTime: state.intakeData.desiredCompletionTime,
+        callbackTime:        state.intakeData.callbackTime,
+        issueDescription:    state.intakeData.issueDescription,
+      });
+
+      // Parse caller name and service from combined first answer
       const { customerName, serviceRequested } = parseNameAndService(state.intakeData.customerName || '');
-      state.intakeData.customerName = customerName;
-      state.intakeData.serviceRequested = serviceRequested;
-      
-      // Normalize completion and callback times
-      state.intakeData.desiredCompletionTime = normalizeTime(state.intakeData.desiredCompletionTime || '');
-      state.intakeData.callbackTime = normalizeTime(state.intakeData.callbackTime || '');
+
+      // Apply per-field CRM normalization
+      state.intakeData.customerName        = normalizeCrmField(customerName,                           'name');
+      state.intakeData.serviceRequested    = normalizeCrmField(serviceRequested,                       'service');
+      state.intakeData.serviceAddress      = normalizeCrmField(state.intakeData.serviceAddress,        'address');
+      state.intakeData.desiredCompletionTime = normalizeCrmField(state.intakeData.desiredCompletionTime, 'time');
+      state.intakeData.callbackTime        = normalizeCrmField(state.intakeData.callbackTime,          'time');
+      state.intakeData.issueDescription    = normalizeCrmField(state.intakeData.issueDescription,     'details');
+
+      // Log normalized values for diagnostics
+      console.log('[CRM NORMALIZATION OUTPUT]', {
+        customerName:        state.intakeData.customerName,
+        serviceRequested:    state.intakeData.serviceRequested,
+        serviceAddress:      state.intakeData.serviceAddress,
+        desiredCompletionTime: state.intakeData.desiredCompletionTime,
+        callbackTime:        state.intakeData.callbackTime,
+        issueDescription:    state.intakeData.issueDescription,
+      });
+      // ──────────────────────────────────────────────────────────────────────
 
       // Create lead and conversation using caller phone (not callSid)
       const { data: lead, error: leadError } = await supabase
