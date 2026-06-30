@@ -540,40 +540,10 @@ export async function POST(request: NextRequest) {
       businessHoursEnabled: business.business_hours_enabled
     })
 
-    // Use the centralized SMS summary formatter that always displays all fields with "Not collected" for missing values
-    console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] =========================================');
-    console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] route: /api/ai-confirmation-sms');
-    console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] Timestamp:', new Date().toISOString());
-    console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] =========================================');
-    
-    const summaryBody = generateSummaryFromExtractedInfo(extracted)
+    // Single formatter produces the complete message body (all sections + wrapper)
+    console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] formatAiIntakeSummary via generateSummaryFromExtractedInfo');
 
-    // Build comprehensive confirmation message
-    let messageBody: string;
-
-    // Opening
-    const parts: string[] = [];
-    parts.push(`Thanks for calling ${businessName}!`);
-    parts.push('');
-    
-    // Header
-    if (prefixNotice) {
-      parts.push(prefixNotice);
-      parts.push('');
-    }
-    parts.push('NEW CUSTOMER REQUEST');
-    parts.push('');
-    
-    // Summary body from centralized formatter
-    parts.push(summaryBody);
-    parts.push('');
-    
-    // Footer
-    parts.push('Need to change or add anything? Just reply to this message.');
-    parts.push('');
-    parts.push('Formatter: simple-mode-v2');
-    
-    messageBody = parts.join('\n');
+    const messageBody = generateSummaryFromExtractedInfo(extracted, callerPhone, businessName, prefixNotice);
 
     console.log('[AI SMS FINAL BODY PREVIEW] =========================================');
     console.log('[AI SMS FINAL BODY PREVIEW] First 300 characters:', messageBody.substring(0, 300));

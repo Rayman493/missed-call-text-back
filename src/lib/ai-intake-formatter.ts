@@ -32,25 +32,41 @@ export const normalizeText = (text: string | undefined): string => {
 };
 
 // Helper function to format AI intake summary (used by SMS and dashboard)
+// Accepts both Simple Mode field names and canonical field names interchangeably.
 export const formatAiIntakeSummary = (
   intakeData: any,
   callerPhone: string,
-  businessName?: string
+  businessName?: string,
+  prefixNotice?: string
 ): string => {
-  const customerName = normalizeText(intakeData?.customerName);
-  const serviceRequested = normalizeText(intakeData?.serviceRequested);
-  const serviceAddress = normalizeText(intakeData?.serviceAddress);
-  const desiredCompletionTime = normalizeText(intakeData?.desiredCompletionTime);
-  const callbackTime = normalizeText(intakeData?.callbackTime);
-  const issueDescription = normalizeText(intakeData?.issueDescription);
-  
+  // Read Simple Mode field names first, fall back to canonical aliases
+  const customerName = normalizeText(
+    intakeData?.customerName ?? intakeData?.callerName
+  );
+  const serviceRequested = normalizeText(
+    intakeData?.serviceRequested ?? intakeData?.reasonForCalling
+  );
+  const serviceAddress = normalizeText(
+    intakeData?.serviceAddress ?? intakeData?.addressOrLocation
+  );
+  const desiredCompletionTime = normalizeText(
+    intakeData?.desiredCompletionTime
+  );
+  const callbackTime = normalizeText(
+    intakeData?.callbackTime ?? intakeData?.preferredCallbackTime
+  );
+  const issueDescription = normalizeText(
+    intakeData?.issueDescription ?? intakeData?.importantDetails
+  );
+
   const displayName = businessName || 'us';
-  
+  const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
+
   return `--------------------------------
 
 Thanks for calling ${displayName}!
 
-📋 NEW CUSTOMER REQUEST
+${prefix}📋 NEW CUSTOMER REQUEST
 
 👤 Customer
 ${customerName}

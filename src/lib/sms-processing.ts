@@ -4,6 +4,7 @@ import { sanitizeMessageContent } from '@/lib/security'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizePunctuation } from '@/lib/utils'
+import { formatAiIntakeSummary } from '@/lib/ai-intake-formatter'
 import { detectCorrection, applyCorrection, generateCorrectionNote, generateMultiFieldAcknowledgement } from '@/lib/ai-correction-engine'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { extractFromSmsBody, safeMergeSmsExtraction } from '@/lib/voicemail-extraction'
@@ -93,63 +94,24 @@ export interface ProcessInboundSmsParams {
   }>
 }
 
-// Generate summary from extracted_info fields using canonical keys
-// Clean section-based layout for professional confirmation SMS
-export function generateSummaryFromExtractedInfo(extractedInfo: any): string {
-  const normalized = normalizeExtractedInfo(extractedInfo)
-  const parts: string[] = []
-  
-  console.log('[AI SMS FORMATTER VERSION] =========================================');
-  console.log('[AI SMS FORMATTER VERSION] Using centralized section-based formatter');
-  console.log('[AI SMS FORMATTER VERSION] Timestamp:', new Date().toISOString());
-  console.log('[AI SMS FORMATTER VERSION] =========================================');
-  
-  // Service (was Reason) - inline label
-  parts.push(`Service: ${normalized.reasonForCalling ? normalizePunctuation(normalized.reasonForCalling) : 'Not collected'}`)
-  parts.push('')
-  
-  // Address (was Location) - inline label
-  parts.push(`Address: ${normalized.addressOrLocation ? normalizePunctuation(normalized.addressOrLocation) : 'Not collected'}`)
-  parts.push('')
-  
-  // Desired completion (was Desired Completion Time) - inline label
-  parts.push(`Desired completion: ${normalized.desiredCompletionTime ? normalizePunctuation(normalized.desiredCompletionTime) : 'Not collected'}`)
-  parts.push('')
-  
-  // Best time to call (was Best Callback Time) - inline label
-  parts.push(`Best time to call: ${normalized.preferredCallbackTime ? normalizePunctuation(normalized.preferredCallbackTime) : 'Not collected'}`)
-  parts.push('')
-  
-  // Details - format with bullets if multiple pieces, plain text if single
-  parts.push('Details:')
-  if (normalized.importantDetails) {
-    const details = normalizePunctuation(normalized.importantDetails)
-    // Check if details contain multiple distinct items (separated by periods, newlines, or bullet-like patterns)
-    const multipleItems = details.includes('. ') || details.includes('\n') || details.includes('; ')
-    
-    if (multipleItems) {
-      // Split into bullet points
-      const items = details.split(/[.;\n]+/).filter(item => item.trim())
-      items.forEach(item => {
-        parts.push(`• ${item.trim()}`)
-      })
-    } else {
-      // Single detail, no bullet
-      parts.push(details)
-    }
-  } else {
-    parts.push('Not collected')
-  }
-  parts.push('')
-  
-  const summary = parts.join('\n')
-  
-  console.log('[AI SMS FORMATTER OUTPUT PREVIEW] =========================================');
-  console.log('[AI SMS FORMATTER OUTPUT PREVIEW] First 300 characters:', summary.substring(0, 300));
-  console.log('[AI SMS FORMATTER OUTPUT PREVIEW] Timestamp:', new Date().toISOString());
-  console.log('[AI SMS FORMATTER OUTPUT PREVIEW] =========================================');
-  
-  return summary
+// Generate the complete AI intake SMS body.
+// Delegates to formatAiIntakeSummary (single source of truth for SMS + dashboard).
+// extractedInfo uses canonical keys (callerName, reasonForCalling, etc.)
+// businessName and callerPhone must be passed by the caller.
+// prefixNotice is optional (out-of-office / after-hours message).
+export function generateSummaryFromExtractedInfo(
+  extractedInfo: any,
+  callerPhone: string = '',
+  businessName: string = '',
+  prefixNotice: string = ''
+): string {
+  console.log('[AI SMS FORMATTER VERSION] formatAiIntakeSummary (single formatter)');
+  return formatAiIntakeSummary(
+    extractedInfo,
+    callerPhone,
+    businessName || undefined,
+    prefixNotice || undefined
+  )
 }
 
 export async function processInboundSms(params: ProcessInboundSmsParams) {
