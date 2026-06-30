@@ -19,18 +19,18 @@ export async function GET(request: NextRequest) {
 
     // Get the user's session
     const supabase = createServerSupabaseClient()
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    if (sessionError) {
-      console.error('[Google Calendar Status] Session error:', sessionError)
+    if (userError) {
+      console.error('[Google Calendar Status] Auth error:', userError)
       return NextResponse.json({
         connected: false,
         provider
       })
     }
 
-    if (!session) {
-      console.log('[Google Calendar Status] No session found')
+    if (!user) {
+      console.log('[Google Calendar Status] No user found')
       return NextResponse.json({
         connected: false,
         provider
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('id')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (businessError) {

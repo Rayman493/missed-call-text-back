@@ -10,19 +10,19 @@ export async function GET(request: NextRequest) {
   try {
     // Get the user's session
     const supabase = createServerSupabaseClient()
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    if (sessionError) {
-      console.error('[Google Calendar Events] Session error:', sessionError)
+    if (userError) {
+      console.error('[Google Calendar Events] Auth error:', userError)
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    if (!session) {
+    if (!user) {
       console.error('[GOOGLE CALENDAR AUTH FAILED]');
-      console.log('[Google Calendar Events] No session found')
+      console.log('[Google Calendar Events] No user found')
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -30,16 +30,16 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('[GOOGLE CALENDAR AUTH]', {
-      authenticated: !!session,
-      userId: session.user.id
+      authenticated: !!user,
+      userId: user.id
     });
-    console.log('[Google Calendar Events] Authenticated user:', session.user.id)
+    console.log('[Google Calendar Events] Authenticated user:', user.id)
 
     // Get the user's business
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('id')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (businessError) {
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!business) {
-      console.log('[Google Calendar Events] No business found for user:', session.user.id)
+      console.log('[Google Calendar Events] No business found for user:', user.id)
       return NextResponse.json(
         { error: 'Business not found' },
         { status: 404 }

@@ -7,19 +7,19 @@ export async function POST(request: NextRequest) {
   try {
     // Get the user's session using the same pattern as working routes
     const supabase = createServerSupabaseClient()
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    if (sessionError) {
-      console.error('[Calendar Create] Session error:', sessionError)
+    if (userError) {
+      console.error('[Calendar Create] Auth error:', userError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!session) {
-      console.log('[Calendar Create] No session found')
+    if (!user) {
+      console.log('[Calendar Create] No user found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('[Calendar Create] user found:', session.user.id)
+    console.log('[Calendar Create] user found:', user.id)
 
     const body = await request.json()
     const { title, date, endDate, startTime, endTime, allDay, description, eventType } = body
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('id, business_hours_timezone')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (businessError) {
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!business) {
-      console.log('[Calendar Create] No business found for user:', session.user.id)
+      console.log('[Calendar Create] No business found for user:', user.id)
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 

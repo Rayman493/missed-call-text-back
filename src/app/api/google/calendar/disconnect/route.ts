@@ -5,9 +5,9 @@ export async function POST(request: NextRequest) {
   try {
     // Get the user's session
     const supabase = createServerSupabaseClient()
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    if (sessionError || !session) {
+    if (userError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('id')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (businessError || !business) {

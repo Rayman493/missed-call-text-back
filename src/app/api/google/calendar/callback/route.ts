@@ -84,26 +84,26 @@ export async function GET(request: NextRequest) {
 
     // Get the user's session
     const supabase = createServerSupabaseClient()
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    if (sessionError) {
-      console.error('[Google Calendar Callback] Session error:', sessionError)
+    if (userError) {
+      console.error('[Google Calendar Callback] Auth error:', userError)
       return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
     }
 
-    if (!session) {
-      console.log('[Google Calendar Callback] No session found')
+    if (!user) {
+      console.log('[Google Calendar Callback] No user found')
       return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
     }
 
-    console.log('[Google Calendar Callback] Authenticated user:', session.user.id)
+    console.log('[Google Calendar Callback] Authenticated user:', user.id)
 
     // Verify business ownership
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('id')
       .eq('id', stateData.business_id)
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (businessError) {
