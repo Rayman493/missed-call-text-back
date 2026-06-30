@@ -26,7 +26,9 @@ import JobComposer from '@/components/jobs/JobComposer'
 import JobPill from '@/components/jobs/JobPill'
 import JobDetailsModal from '@/components/jobs/JobDetailsModal'
 import TodaySchedule from '@/components/jobs/TodaySchedule'
-import type { Job, JobStatus } from '@/components/jobs/JobComposer'
+import NewJobModal from '@/components/jobs/NewJobModal'
+import LeadPickerModal from '@/components/jobs/LeadPickerModal'
+import type { Job, JobStatus, JobPrefill } from '@/components/jobs/JobComposer'
 
 interface CalendarEvent {
   id: string
@@ -69,7 +71,10 @@ export default function SchedulePage() {
   // Jobs state
   const [jobs, setJobs] = useState<Job[]>([])
   const [isLoadingJobs, setIsLoadingJobs] = useState(false)
+  const [isNewJobModalOpen, setIsNewJobModalOpen] = useState(false)
+  const [isLeadPickerOpen, setIsLeadPickerOpen] = useState(false)
   const [isJobComposerOpen, setIsJobComposerOpen] = useState(false)
+  const [jobPrefill, setJobPrefill] = useState<JobPrefill | undefined>(undefined)
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isJobDetailsOpen, setIsJobDetailsOpen] = useState(false)
   const [editingJob, setEditingJob] = useState<Job | null>(null)
@@ -378,6 +383,12 @@ export default function SchedulePage() {
     }
   }
 
+  const openNewJob = () => {
+    setEditingJob(null)
+    setJobPrefill(undefined)
+    setIsNewJobModalOpen(true)
+  }
+
   const handleJobSaved = (job: Job) => {
     setJobs(prev => {
       const idx = prev.findIndex(j => j.id === job.id)
@@ -389,6 +400,7 @@ export default function SchedulePage() {
       return [job, ...prev]
     })
     setEditingJob(null)
+    setJobPrefill(undefined)
     showToast(editingJob ? 'Job updated' : 'Job created', 'success')
   }
 
@@ -562,7 +574,7 @@ export default function SchedulePage() {
                       jobs={jobs}
                       isLoading={isLoadingJobs}
                       onJobClick={(job) => { setSelectedJob(job); setIsJobDetailsOpen(true) }}
-                      onNewJob={() => { setEditingJob(null); setIsJobComposerOpen(true) }}
+                      onNewJob={openNewJob}
                       onStatusChange={handleJobStatusChange}
                     />
                   </div>
@@ -641,7 +653,7 @@ export default function SchedulePage() {
                     <JobsTab
                       jobs={jobs}
                       isLoading={isLoadingJobs}
-                      onNewJob={() => { setEditingJob(null); setIsJobComposerOpen(true) }}
+                      onNewJob={openNewJob}
                       onJobClick={(job: Job) => { setSelectedJob(job); setIsJobDetailsOpen(true) }}
                     />
                   )}
@@ -982,12 +994,35 @@ export default function SchedulePage() {
                     </div>
                   )}
 
+                  {/* New Job Selection Modal */}
+                  <NewJobModal
+                    isOpen={isNewJobModalOpen}
+                    onClose={() => setIsNewJobModalOpen(false)}
+                    onSelectManual={() => {
+                      setJobPrefill(undefined)
+                      setIsJobComposerOpen(true)
+                    }}
+                    onSelectLead={() => setIsLeadPickerOpen(true)}
+                  />
+
+                  {/* Lead Picker Modal */}
+                  <LeadPickerModal
+                    isOpen={isLeadPickerOpen}
+                    onClose={() => setIsLeadPickerOpen(false)}
+                    onSelect={(prefill) => {
+                      setJobPrefill(prefill)
+                      setIsLeadPickerOpen(false)
+                      setIsJobComposerOpen(true)
+                    }}
+                  />
+
                   {/* Job Composer Modal */}
                   <JobComposer
                     isOpen={isJobComposerOpen}
-                    onClose={() => { setIsJobComposerOpen(false); setEditingJob(null) }}
+                    onClose={() => { setIsJobComposerOpen(false); setEditingJob(null); setJobPrefill(undefined) }}
                     onSave={handleJobSaved}
                     editJob={editingJob || undefined}
+                    prefill={jobPrefill}
                     defaultDate={selectedDay}
                   />
 
@@ -997,7 +1032,7 @@ export default function SchedulePage() {
                       isOpen={isJobDetailsOpen}
                       onClose={() => setIsJobDetailsOpen(false)}
                       job={selectedJob}
-                      onEdit={(job) => { setEditingJob(job); setIsJobComposerOpen(true) }}
+                      onEdit={(job) => { setEditingJob(job); setJobPrefill(undefined); setIsJobComposerOpen(true) }}
                       onStatusChange={handleJobStatusChange}
                       onDelete={handleJobDeleted}
                     />
