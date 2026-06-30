@@ -62,9 +62,7 @@ export const formatAiIntakeSummary = (
   const displayName = businessName || 'us';
   const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
 
-  return `--------------------------------
-
-Thanks for calling ${displayName}!
+  return `Thanks for calling ${displayName}!
 
 ${prefix}📋 NEW CUSTOMER REQUEST
 
@@ -89,7 +87,5 @@ ${callbackTime}
 📝 Additional Details
 ${issueDescription}
 
-Reply to this message if you'd like to update or add any information.
-
---------------------------------`;
+Reply to this message if you'd like to update or add any information.`;
 };
