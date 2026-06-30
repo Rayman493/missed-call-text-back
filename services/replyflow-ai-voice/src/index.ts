@@ -5087,7 +5087,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     ttsCompleteTime: 0 as number,
     simpleModeFinalTimeout: null as NodeJS.Timeout | null,
     completionPersistenceStarted: false,
-    completionPersistenceFinished: false
+    completionPersistenceFinished: false,
+    // Audio buffering state
+    audioAccumulator: [] as Buffer[],
+    audioAccumulatorBytes: 0,
+    audioChunkCount: 0,
+    audioFlushCount: 0
   };
 
   // Hardcoded prompts for each stage
@@ -5124,6 +5129,49 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     });
     console.log('[SIMPLE MODE] Timestamp:', new Date().toISOString());
     console.log('[SIMPLE MODE] =========================================');
+  };
+
+  // --- Audio buffering constants ---
+  // Minimum payload size before flushing a media packet to Twilio.
+  // 3200 bytes = 400ms of PCMU audio at 8000 samples/s (1 byte/sample).
+  // This smooths bursty micro-deltas from OpenAI into clean 400ms packets
+  // while keeping latency well under 500ms.
+  const AUDIO_FLUSH_THRESHOLD_BYTES = 3200;
+  const DEBUG_AUDIO = process.env.DEBUG_AUDIO === 'true';
+
+  // Flush accumulated audio buffer to Twilio as a single media packet
+  const flushAudioBuffer = (reason: string) => {
+    if (state.audioAccumulatorBytes === 0) return;
+
+    const combined = Buffer.concat(state.audioAccumulator);
+    state.audioAccumulator = [];
+    state.audioAccumulatorBytes = 0;
+    state.audioFlushCount++;
+
+    const streamSid = state.streamSid;
+    if (!streamSid) {
+      if (DEBUG_AUDIO) console.log('[AUDIO FLUSH] SKIPPED - no streamSid');
+      return;
+    }
+
+    const sendStart = Date.now();
+    const mediaMessage = {
+      event: 'media',
+      streamSid,
+      media: { payload: combined.toString('base64') }
+    };
+    ws.send(JSON.stringify(mediaMessage));
+    const sendLatencyMs = Date.now() - sendStart;
+
+    if (DEBUG_AUDIO) {
+      console.log('[AUDIO FLUSH]', {
+        reason,
+        bytes: combined.length,
+        chunks: state.audioChunkCount,
+        flushCount: state.audioFlushCount,
+        sendLatencyMs
+      });
+    }
   };
 
   // Completion persistence function - runs exactly once when intake is complete
@@ -5670,36 +5718,41 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SIMPLE MODE] =========================================');
           }
 
+          // Reset audio accumulator counters at the start of each new response
+          if (message.type === 'response.created') {
+            // Flush any leftover bytes from a previous response (guards against underflow)
+            if (state.audioAccumulatorBytes > 0) {
+              if (DEBUG_AUDIO) console.log('[AUDIO UNDERFLOW] Leftover', state.audioAccumulatorBytes, 'bytes on response.created - flushing');
+              flushAudioBuffer('underflow_on_new_response');
+            }
+            state.audioChunkCount = 0;
+            state.audioFlushCount = 0;
+          }
+
           // Handle audio delta from OpenAI Realtime (PCMU)
           if (message.type === 'response.output_audio.delta' && message.delta) {
-            console.log('[SIMPLE MODE] =========================================');
-            console.log('[SIMPLE MODE] event: response.output_audio.delta_received');
-            console.log('[SIMPLE MODE] delta_length:', message.delta.length);
-            console.log('[SIMPLE MODE] =========================================');
+            // Decode base64 delta into raw bytes and accumulate
+            const deltaBytes = Buffer.from(message.delta, 'base64');
+            state.audioAccumulator.push(deltaBytes);
+            state.audioAccumulatorBytes += deltaBytes.length;
+            state.audioChunkCount++;
 
-            const streamSid = state.streamSid;
-            
-            if (!streamSid) {
-              console.log('[SIMPLE MODE] SKIPPED - streamSid not available yet');
-              return;
+            if (DEBUG_AUDIO) {
+              console.log('[AUDIO BUFFER SIZE]', state.audioAccumulatorBytes, 'bytes | [AUDIO CHUNK COUNT]', state.audioChunkCount);
             }
 
-            // Forward PCMU delta directly to Twilio
-            const mediaMessage = {
-              event: 'media',
-              streamSid: streamSid,
-              media: {
-                payload: message.delta // Direct PCMU from OpenAI
-              }
-            };
+            // Flush when accumulated bytes exceed threshold for smooth ~400ms packets
+            if (state.audioAccumulatorBytes >= AUDIO_FLUSH_THRESHOLD_BYTES) {
+              flushAudioBuffer('threshold');
+            }
+          }
 
-            console.log('[SIMPLE MODE] =========================================');
-            console.log('[SIMPLE MODE] event: passthrough_audio_delta_to_twilio');
-            console.log('[SIMPLE MODE] streamSid:', mediaMessage.streamSid);
-            console.log('[SIMPLE MODE] payloadLength:', mediaMessage.media?.payload?.length || 0);
-            console.log('[SIMPLE MODE] =========================================');
-
-            ws.send(JSON.stringify(mediaMessage));
+          // Flush any remaining buffered audio when OpenAI signals audio stream end
+          if (message.type === 'response.output_audio.done') {
+            if (DEBUG_AUDIO) {
+              console.log('[AUDIO FLUSH] response.output_audio.done - flushing remainder', state.audioAccumulatorBytes, 'bytes');
+            }
+            flushAudioBuffer('audio_done');
           }
 
           // Handle response.done to mark speaking as false
