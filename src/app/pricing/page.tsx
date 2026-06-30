@@ -5,8 +5,8 @@ import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 
 export const metadata: Metadata = {
-  title: 'ReplyFlowHQ Pricing | Simple Pricing for Missed-Call Recovery',
-  description: 'ReplyFlowHQ pricing: $59/month with a 14-day free trial. Automated missed-call text-back automation for local service businesses. Cancel anytime.',
+  title: 'ReplyFlowHQ Pricing | AI Receptionist, Lead Management & Payments',
+  description: 'ReplyFlowHQ pricing: $59/month with a 14-day free trial. AI Voice, missed-call recovery, lead management, appointment scheduling, and payment requests for local businesses. Cancel anytime.',
 }
 
 export default function PricingPage() {
@@ -30,10 +30,10 @@ export default function PricingPage() {
               </svg>
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-4">
-              Simple pricing for missed-call recovery
+              One price. Everything included.
             </h1>
             <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              Everything you need to recover missed calls with AI Voice for one simple monthly price.
+              AI Voice, lead management, appointment scheduling, and payments — for one simple monthly price.
             </p>
           </div>
         </div>
@@ -58,7 +58,7 @@ export default function PricingPage() {
               {/* Card Body */}
               <div className="px-8 py-8">
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Everything you need to recover missed calls:</h3>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Everything included:</h3>
                   
                   {/* Features List */}
                   <div className="space-y-3">
@@ -104,6 +104,20 @@ export default function PricingPage() {
                       <span className="text-slate-700 dark:text-slate-300">Automated follow-ups save you time</span>
                     </div>
                     
+                    <div className="flex items-start">
+                      <svg className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-slate-700 dark:text-slate-300">Appointment scheduling with Google Calendar</span>
+                    </div>
+                    
+                    <div className="flex items-start">
+                      <svg className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-slate-700 dark:text-slate-300">Payment requests via branded ReplyFlow links</span>
+                    </div>
+
                     <div className="flex items-start">
                       <svg className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />

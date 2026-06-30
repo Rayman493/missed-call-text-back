@@ -58,8 +58,7 @@ function HomepageFooter() {
               <span className="text-xl sm:text-2xl font-bold text-foreground">ReplyFlowHQ</span>
             </div>
             <p className="text-muted-foreground mb-3 sm:mb-4 md:mb-6 max-w-md text-sm sm:text-base leading-relaxed">
-              Missed call recovery, AI Voice, lead capture, calendar integration, 
-              and follow-up automation for businesses that can't afford to miss opportunities.
+              AI Voice, missed call recovery, lead management, appointment scheduling, payments, and follow-up automation — built for businesses that can't afford to miss a customer.
             </p>
             <div className="flex items-center gap-4">
               <a
@@ -193,7 +192,7 @@ export default async function Home() {
                 Never Miss a Lead Again
               </h1>
               <p className="text-sm sm:text-base md:text-xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed mt-1 sm:mt-1.5">
-                AI Voice answers your missed calls, collects customer information, and sends instant text responses.
+                AI Voice answers your missed calls, collects customer information, and keeps the conversation going — from first call to booked appointment to payment.
               </p>
 
               <div className="mt-2 sm:mt-2.5 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
@@ -359,7 +358,7 @@ export default async function Home() {
                   </svg>
                 </div>
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Lead Ready in Dashboard</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-400">Everything is organized and ready for follow-up</p>
+                <p className="text-xs text-slate-700 dark:text-slate-400">Reply, schedule appointments, and request payment — all from one place</p>
               </div>
             </div>
             
@@ -454,7 +453,7 @@ export default async function Home() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Lead Ready in Dashboard</h3>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-400">Everything is organized and ready for follow-up</p>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-400">Reply, schedule, and collect payment — all from one place</p>
                 </div>
               </div>
             </div>
@@ -501,7 +500,7 @@ export default async function Home() {
                 Everything In One Dashboard
               </h2>
               <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-                Manage leads, conversations, follow-ups, and call activity from one place.
+                Manage leads, conversations, appointments, follow-ups, and payments from one place.
               </p>
             </div>
             
@@ -840,10 +839,10 @@ export default async function Home() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-6 sm:mb-8 md:mb-10">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">
-                Everything You Need To Capture More Leads
+                Everything You Need — From First Call to Getting Paid
               </h2>
               <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-muted-foreground max-w-2xl mx-auto">
-                Complete lead capture platform with all the tools your business needs
+                One platform to capture leads, continue conversations, schedule appointments, and collect payments
               </p>
             </div>
 
@@ -894,7 +893,7 @@ export default async function Home() {
                 </p>
               </div>
 
-              {/* Google Calendar View */}
+              {/* Appointments & Payments */}
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 md:p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
                 <div className="flex flex-col items-center text-center mb-2 sm:mb-3">
                   <div className="w-11 h-11 sm:w-12 sm:h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
@@ -902,10 +901,10 @@ export default async function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Google Calendar View</h3>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Appointments & Payments</h3>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 mb-2 sm:mb-3 text-center">
-                  Keep your schedule visible alongside your leads and conversations.
+                  Schedule jobs with Google Calendar and send branded payment requests via text.
                 </p>
               </div>
 
@@ -1004,7 +1003,7 @@ export default async function Home() {
                 </div>
               </div>
 
-              {/* Automatic lead capture */}
+              {/* Appointments & Payments */}
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-300">
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -1013,8 +1012,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-sm sm:text-base">Automatic lead capture</h3>
-                    <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-400">Missed calls become organized leads automatically.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-sm sm:text-base">Schedule appointments & request payment</h3>
+                    <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-400">Book jobs with Google Calendar and send branded payment links via text.</p>
                   </div>
                 </div>
               </div>
@@ -1097,7 +1096,7 @@ export default async function Home() {
                 </div>
               </div>
 
-              {/* Automatic lead capture */}
+              {/* Appointments & Payments */}
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 md:p-5 shadow-sm">
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -1106,8 +1105,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-xs sm:text-sm">Automatic lead capture</h3>
-                    <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400">Missed calls become organized leads automatically.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-xs sm:text-sm">Schedule appointments & request payment</h3>
+                    <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400">Book jobs with Google Calendar and send branded payment links via text.</p>
                   </div>
                 </div>
               </div>
@@ -1123,10 +1122,10 @@ export default async function Home() {
           <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
             <div>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-4 sm:mb-5 md:mb-6">
-                Recover Missed Leads Today
+                Handle Every Customer — Start to Finish
               </h2>
               <p className="text-base sm:text-lg md:text-xl text-slate-700 dark:text-muted-foreground mb-6 sm:mb-8 md:mb-10 leading-relaxed">
-                Turn missed calls into opportunities and give every customer a faster response.
+                From the first missed call to a booked appointment and collected payment — ReplyFlow handles it all.
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 md:gap-4">

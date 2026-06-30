@@ -7,8 +7,8 @@ import HelpAssistant, { HelpContext } from '@/components/HelpAssistant'
 import LegalNavigation from '@/components/LegalNavigation'
 
 export const metadata: Metadata = {
-  title: 'ReplyFlowHQ FAQ | AI Voice and Missed Call Recovery',
-  description: 'Learn how ReplyFlowHQ provides AI Voice, automated missed-call text responses, and lead management. Setup, pricing, and compliance questions answered.',
+  title: 'ReplyFlowHQ FAQ | AI Voice, Lead Management, Appointments & Payments',
+  description: 'Learn how ReplyFlowHQ provides AI Voice, missed-call recovery, lead management, appointment scheduling, and payment requests. Setup, pricing, and compliance questions answered.',
 }
 
 export default function FAQPage() {
@@ -66,7 +66,7 @@ export default function FAQPage() {
               Frequently Asked Questions
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Everything you need to know about ReplyFlowHQ's AI Voice, automated missed-call text responses, and lead management
+              Everything you need to know about ReplyFlowHQ's AI Voice, missed-call recovery, lead management, appointment scheduling, and payments
             </p>
           </div>
         </div>
@@ -84,9 +84,7 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  ReplyFlowHQ provides <strong>AI Voice</strong> and <strong>automated missed-call text responses</strong> for businesses.
-                  When a customer calls your business and the call is missed, AI Voice answers the call, collects caller information,
-                  and sends a text message summary. This ensures you never miss lead information.
+                  ReplyFlowHQ is a complete customer management platform for local businesses. When a customer calls and the call is missed, <strong>AI Voice</strong> answers live, collects their information, and sends an instant text summary. From there, you can reply via SMS, schedule an appointment with Google Calendar, and send a branded payment request — all from one dashboard.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
                   This is <strong>not</strong> bulk marketing or cold outreach. Messages are only sent after
@@ -317,7 +315,7 @@ export default function FAQPage() {
                   </div>
                 </div>
                 <p className="text-muted-foreground mt-4">
-                  Continue conversations naturally through the ReplyFlowHQ dashboard interface. Certain supported customer corrections may automatically update lead details.
+                  Continue conversations naturally through the ReplyFlowHQ dashboard. You can also schedule appointments directly from a lead and send payment requests via a branded ReplyFlow link — all within the same conversation view.
                 </p>
               </div>
             </div>
@@ -540,7 +538,7 @@ export default function FAQPage() {
                   When a call goes unanswered and forwards to ReplyFlow, AI Voice answers the call live and converses with the caller to collect information.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  AI Voice can collect the caller's name, reason for calling, urgency level, and preferred callback time through natural conversation. This information is then stored in your ReplyFlow dashboard for easy follow-up.
+                  AI Voice collects the caller's name, reason for calling, urgency level, and preferred callback time through natural conversation. This information is stored in your ReplyFlow dashboard and pre-fills lead details so you can follow up, schedule an appointment, or send a payment request without re-entering anything.
                 </p>
               </div>
             </div>
@@ -779,7 +777,7 @@ export default function FAQPage() {
             Ready to get started?
           </h3>
           <p className="text-muted-foreground mb-6">
-            Start your 14-day free trial and capture more missed calls.
+            Start your 14-day free trial and handle every customer from first call to payment.
           </p>
           <Link
             href="/auth?mode=signup"
