@@ -5548,6 +5548,48 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SIMPLE MODE] event: simple_mode_ai_call_record_created');
             console.log('[SIMPLE MODE] callSid:', state.callSid);
             console.log('[SIMPLE MODE] =========================================');
+
+            // ── A: Update leads.raw_metadata with structured intake data ───────
+            // This enables getLeadDisplayName, getAIData, and lead card preview
+            // to read canonical fields without joining ai_call_records.
+            console.log('[simple_mode_lead_summary_update_start]', { leadId: lead.id });
+            const extractedInfoCanonical = {
+              callerName:           state.intakeData.customerName   || '',
+              reasonForCalling:     state.intakeData.serviceRequested || '',
+              addressOrLocation:    state.intakeData.serviceAddress  || '',
+              desiredCompletionTime: state.intakeData.desiredCompletionTime || '',
+              preferredCallbackTime: state.intakeData.callbackTime   || '',
+              importantDetails:     state.intakeData.issueDescription || '',
+            };
+            const { data: currentLead } = await supabase
+              .from('leads')
+              .select('raw_metadata, name')
+              .eq('id', lead.id)
+              .single();
+            const { error: metaUpdateError } = await supabase
+              .from('leads')
+              .update({
+                // Persist display name into leads.name so getLeadDisplayName picks it up first
+                name: state.intakeData.customerName || currentLead?.name || null,
+                raw_metadata: {
+                  ...(currentLead?.raw_metadata || {}),
+                  extracted_info: extractedInfoCanonical,
+                  callerName:     state.intakeData.customerName || '',
+                  ai_intake_completed: true,
+                  ai_intake_completed_at: new Date().toISOString(),
+                },
+              })
+              .eq('id', lead.id);
+            if (metaUpdateError) {
+              console.log('[simple_mode_lead_summary_update_failed]', { leadId: lead.id, error: metaUpdateError.message });
+            } else {
+              console.log('[simple_mode_lead_summary_update_success]', {
+                leadId: lead.id,
+                callerName:       extractedInfoCanonical.callerName,
+                reasonForCalling: extractedInfoCanonical.reasonForCalling,
+              });
+            }
+            // ──────────────────────────────────────────────────────────────────
           }
 
           // Log final structured intake data before sending SMS
@@ -5593,6 +5635,44 @@ Reply to this message if you'd like to update or add any information.
           console.log('[SIMPLE MODE] =========================================');
           console.log('[SIMPLE MODE] event: simple_mode_summary_sms_send_success');
           console.log('[SIMPLE MODE] =========================================');
+
+          // ── B: Fire notification (ai_intake_completed) ────────────────────
+          if (process.env.MAIN_APP_URL && process.env.INTERNAL_API_SECRET) {
+            console.log('[simple_mode_notification_create_start]', { leadId: lead.id });
+            try {
+              const notifRes = await fetch(`${process.env.MAIN_APP_URL}/api/notifications/create`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${process.env.INTERNAL_API_SECRET}`,
+                },
+                body: JSON.stringify({
+                  businessId:       state.businessId,
+                  leadId:           lead.id,
+                  type:             'ai_intake_completed',
+                  customerName:     state.intakeData.customerName  || '',
+                  customerPhone:    state.callerPhone              || '',
+                  serviceRequested: state.intakeData.serviceRequested || '',
+                }),
+              });
+              if (notifRes.ok) {
+                console.log('[simple_mode_notification_create_success]', { leadId: lead.id });
+              } else {
+                console.log('[simple_mode_notification_create_failed]', { leadId: lead.id, status: notifRes.status });
+              }
+            } catch (notifErr: any) {
+              console.log('[simple_mode_notification_create_error]', { leadId: lead.id, error: notifErr?.message });
+            }
+          }
+
+          // ── C: Lead Health — AI Intake = Completed is already driven by    ──
+          // ai_call_records.outcome === 'completed' (written above). Log confirmation.
+          console.log('[simple_mode_lead_health_updated]', {
+            leadId: lead.id,
+            outcome: 'completed',
+            aiIntakeStatus: 'Completed',
+          });
+          // ──────────────────────────────────────────────────────────────────
         }
       }
     } catch (error) {

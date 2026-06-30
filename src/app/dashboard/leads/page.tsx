@@ -53,27 +53,35 @@ import { HelpContext } from '@/components/HelpAssistant'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 
 // Helper to get compact summary for lead card
+// [simple_mode_structured_preview_generated]
 function getCompactSummary(lead: any): string {
-  // Try to get AI summary from raw_metadata
+  // Prefer structured AI intake fields over raw SMS body
+  const extractedInfo = lead.raw_metadata?.extracted_info
+  const name = extractedInfo?.callerName || lead.raw_metadata?.callerName || lead.name
+  const service = extractedInfo?.reasonForCalling || extractedInfo?.serviceRequested
+  if (name && service) return truncateText(`${name} — ${service}`, 80)
+  if (service) return truncateText(service, 80)
+  if (name) return truncateText(name, 80)
+
+  // Try legacy ai_summary key
   const aiSummary = lead.raw_metadata?.ai_summary || lead.raw_metadata?.summary
   if (aiSummary) {
-    // Extract first line or truncate
     const firstLine = aiSummary.split('\n')[0]
-    return truncateText(firstLine, 80)
-  }
-
-  // Fall back to latest message
-  if (lead.messages && lead.messages.length > 0) {
-    const latestMessage = lead.messages.sort((a: any, b: any) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )[0]
-    if (latestMessage && latestMessage.body) {
-      return truncateText(latestMessage.body, 80)
+    // Skip raw SMS header lines
+    if (!firstLine.startsWith('Thanks for calling') && !firstLine.startsWith('---')) {
+      return truncateText(firstLine, 80)
     }
   }
 
-  // Fall back to "Tap to view full intake"
-  return 'Tap to view full intake'
+  // Fall back to latest inbound message body (not outbound SMS summary)
+  if (lead.messages && lead.messages.length > 0) {
+    const inbound = lead.messages
+      .filter((m: any) => m.direction === 'inbound')
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+    if (inbound?.body) return truncateText(inbound.body, 80)
+  }
+
+  return 'New customer request'
 }
 
 // Helper to get structured AI data for lead card
@@ -82,8 +90,8 @@ function getAIData(lead: any): { reason: string | null; urgency: string | null; 
   const extractedInfo = lead.raw_metadata?.extracted_info || lead.raw_metadata?.ai_extracted_info
   const correctedFields = lead.raw_metadata?.corrected_fields
 
-  // Get reason
-  let reason = extractedInfo?.reasonForCalling || extractedInfo?.reason || null
+  // Get reason — also check Simple Mode field names written directly by Fly service
+  let reason = extractedInfo?.reasonForCalling || extractedInfo?.serviceRequested || extractedInfo?.reason || null
   if (correctedFields?.reason) {
     reason = correctedFields.reason
   }
@@ -94,8 +102,8 @@ function getAIData(lead: any): { reason: string | null; urgency: string | null; 
     urgency = correctedFields.urgency
   }
 
-  // Get details
-  let details = extractedInfo?.importantDetails || extractedInfo?.details || null
+  // Get details — also check Simple Mode field names
+  let details = extractedInfo?.importantDetails || extractedInfo?.issueDescription || extractedInfo?.details || null
   if (correctedFields?.details) {
     details = correctedFields.details
   }
