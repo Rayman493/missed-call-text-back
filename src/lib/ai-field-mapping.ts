@@ -56,12 +56,16 @@ const FIELD_ALIASES: Record<string, keyof typeof CANONICAL_FIELDS> = {
   'details': 'importantDetails',
   'importantDetails': 'importantDetails',
   'important details': 'importantDetails',
+  'additionalDetails': 'importantDetails',
+  'additional_details': 'importantDetails',
 
   'urgency': 'desiredCompletionTime',
   'urgencyLevel': 'desiredCompletionTime',
   'urgency level': 'desiredCompletionTime',
   'desiredCompletionTime': 'desiredCompletionTime',
   'desired completion time': 'desiredCompletionTime',
+  'desiredCompletion': 'desiredCompletionTime',
+  'desired_completion': 'desiredCompletionTime',
 
   'location': 'addressOrLocation',
   'address': 'addressOrLocation',
@@ -208,7 +212,8 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       rawMetadata.callerName,
       rawMetadata.caller_name,
       normalized.callerName,
-      rawMetadata.name
+      rawMetadata.name,
+      extractedInfoRaw.customerName
     ),
     customerPhone: pick(
       lead?.caller_phone,
@@ -225,14 +230,16 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       corrected.reason,
       corrected.reasonForCalling,
       rawMetadata.serviceRequested,
-      normalized.reasonForCalling
+      normalized.reasonForCalling,
+      extractedInfoRaw.serviceRequested
     ),
     additionalDetails: pick(
       corrected.details,
       corrected.issueDescription,
       corrected.importantDetails,
       rawMetadata.additionalDetails,
-      normalized.importantDetails
+      normalized.importantDetails,
+      extractedInfoRaw.additionalDetails
     ),
     serviceAddress: pick(
       corrected.address,
@@ -240,7 +247,8 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       corrected.addressOrLocation,
       rawMetadata.serviceAddress,
       normalized.addressOrLocation,
-      rawMetadata.address
+      rawMetadata.address,
+      extractedInfoRaw.serviceAddress
     ),
     desiredCompletion: pick(
       corrected.desiredCompletion,
@@ -248,14 +256,16 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       corrected.urgencyLevel,
       corrected.desiredCompletionTime,
       rawMetadata.desiredCompletion,
-      normalized.desiredCompletionTime
+      normalized.desiredCompletionTime,
+      extractedInfoRaw.desiredCompletion
     ),
     callbackTime: pick(
       corrected.callbackTime,
       corrected.callback_time,
       corrected.preferredCallbackTime,
       rawMetadata.callbackTime,
-      normalized.preferredCallbackTime
+      normalized.preferredCallbackTime,
+      extractedInfoRaw.callbackTime
     ),
   }
 

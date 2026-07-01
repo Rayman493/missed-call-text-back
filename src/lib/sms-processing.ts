@@ -1002,17 +1002,19 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           correctedFieldsAfter: correctedMetadata.corrected_fields
         })
 
-        // Check if name was corrected and update lead.contact_name
-        const nameCorrection = correctedFields.find(c => c.field === 'name' || c.field === 'callerName')
+        // Check if name was corrected and update lead.name
+        // Support multiple field name variations for name corrections
+        const nameFieldVariations = ['name', 'callerName', 'caller name', 'caller_name', 'customerName', 'customer_name']
+        const nameCorrection = correctedFields.find(c => nameFieldVariations.includes(c.field))
         const leadUpdatePayload: any = {
           raw_metadata: correctedMetadata
         }
 
-        if (nameCorrection && nameCorrection.newValue) {
-          leadUpdatePayload.name = nameCorrection.newValue
+        if (nameCorrection && nameCorrection.newValue && nameCorrection.newValue.trim()) {
+          leadUpdatePayload.name = nameCorrection.newValue.trim()
           console.log('[AI CORRECTION UPDATING LEAD NAME]', {
             leadId: lead.id,
-            field: 'name',
+            field: nameCorrection.field,
             oldValue: lead.name,
             newValue: nameCorrection.newValue
           })
