@@ -2320,52 +2320,83 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       let parsedReason: string | null = null;
       let usedFallbackGpt = false;
 
-      // Detect name patterns
+      // Robust name/service parsing for combined answers like:
+      // "My name is Ryan. I want to get my tree cut down."
+      const stripNamePrefix = (s: string): string =>
+        s.replace(/^(?:my name is|i am|i'm|this is|it is|it's)\s+/i, '').trim();
+      const stripServicePrefix = (s: string): string =>
+        s
+          .replace(/^(?:i want to|i would like to|i'd like to|i need to|i need|i'm looking to|i am looking to|looking to|calling about|i'm calling about|i am calling about)\s+/i, '')
+          .replace(/^[.,;:]\s*/, '')
+          .trim();
+
       const namePatterns = [
-        /my name is (\w+)/i,
-        /this is (\w+)/i,
-        /i'm (\w+)/i,
-        /i am (\w+)/i,
-        /i'm\s+(\w+)/i,
-        /i am\s+(\w+)/i
+        /(?:^|\.\s+|,\s*)my name is\s+(.+?)(?:\.|,|;|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
+        /(?:^|\.\s+|,\s*)i am\s+(.+?)(?:\.|,|;|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
+        /(?:^|\.\s+|,\s*)i'm\s+(.+?)(?:\.|,|;|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
+        /(?:^|\.\s+|,\s*)this is\s+(.+?)(?:\.|,|;|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
       ];
 
+      const servicePatterns = [
+        /(?:i want to|i need to|i'd like to|i would like to|i'm looking to|i am looking to)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /(?:i need|i want)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /(?:i'm calling about|i am calling about|calling about)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /(?:looking for|looking to get|trying to get)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+      ];
+
+      let nameMatch: RegExpMatchArray | null = null;
       for (const pattern of namePatterns) {
-        const match = transcript.match(pattern);
-        if (match && match[1]) {
-          parsedName = match[1].charAt(0).toUpperCase() + match[1].slice(1);
-          console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
-          console.log('[SCRIPTED FLOW] parsedName:', parsedName);
-          console.log('[SCRIPTED FLOW] pattern:', pattern.toString());
-          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-          console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
-          break;
+        nameMatch = transcript.match(pattern);
+        if (nameMatch) break;
+      }
+      let serviceMatch: RegExpMatchArray | null = null;
+      for (const pattern of servicePatterns) {
+        serviceMatch = transcript.match(pattern);
+        if (serviceMatch) break;
+      }
+
+      if (nameMatch) {
+        parsedName = stripNamePrefix(nameMatch[1].trim()).replace(/[.,;]\s*$/, '');
+        parsedName = parsedName.charAt(0).toUpperCase() + parsedName.slice(1);
+      }
+      if (serviceMatch) {
+        parsedReason = stripServicePrefix(serviceMatch[1].trim()).replace(/[.,;]\s*$/, '');
+        parsedReason = parsedReason.charAt(0).toUpperCase() + parsedReason.slice(1);
+      }
+
+      // If only a name was found, try to recover a service from the name candidate
+      if (parsedName && !parsedReason) {
+        const serviceFromName = stripServicePrefix(parsedName.toLowerCase());
+        if (serviceFromName && serviceFromName !== parsedName.toLowerCase()) {
+          parsedReason = serviceFromName.charAt(0).toUpperCase() + serviceFromName.slice(1);
         }
       }
 
-      // Detect reason patterns
-      const reasonPatterns = [
-        /i want to (.+)/i,
-        /i would like to (.+)/i,
-        /i'd like to (.+)/i,
-        /i need (.+)/i,
-        /calling about (.+)/i,
-        /i'm calling about (.+)/i,
-        /i am calling about (.+)/i
-      ];
+      // If only a service was found, recover a name from the text before the service
+      if (!parsedName && parsedReason) {
+        const serviceIdx = transcript.toLowerCase().indexOf(parsedReason.toLowerCase().slice(0, 20));
+        const beforeService = serviceIdx > 0 ? transcript.slice(0, serviceIdx).trim() : '';
+        const nameCandidate = stripNamePrefix(beforeService)
+          .replace(/[.,;]\s*$/, '')
+          .replace(/\s+(and|but|so|then|also)\s*$/i, '')
+          .trim();
+        const wordCount = nameCandidate.split(/\s+/).length;
+        const hasServiceVerb = /\b(want|need|like|calling|looking|trying|have|get|fix|install|remove|cut)\b/i.test(nameCandidate);
+        if (nameCandidate && wordCount <= 4 && !hasServiceVerb) {
+          parsedName = nameCandidate.charAt(0).toUpperCase() + nameCandidate.slice(1);
+        }
+      }
 
-      for (const pattern of reasonPatterns) {
-        const match = transcript.match(pattern);
-        if (match && match[1]) {
-          parsedReason = match[1].trim();
-          // Capitalize first letter
-          parsedReason = parsedReason.charAt(0).toUpperCase() + parsedReason.slice(1);
-          console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
-          console.log('[SCRIPTED FLOW] parsedReason:', parsedReason);
-          console.log('[SCRIPTED FLOW] pattern:', pattern.toString());
-          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-          console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
-          break;
+      // If still nothing, try sentence splitting
+      if (!parsedName && !parsedReason) {
+        const sentences = transcript.split(/\.(?:\s+|$)/).filter(s => s.trim());
+        if (sentences.length > 1) {
+          const first = stripNamePrefix(sentences[0].trim()).replace(/[.,;]\s*$/, '');
+          if (first.split(/\s+/).length <= 4) {
+            parsedName = first.charAt(0).toUpperCase() + first.slice(1);
+            parsedReason = stripServicePrefix(sentences.slice(1).join('. ').trim()).replace(/[.,;]\s*$/, '');
+            parsedReason = parsedReason ? parsedReason.charAt(0).toUpperCase() + parsedReason.slice(1) : '';
+          }
         }
       }
 
@@ -2428,36 +2459,16 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
         // Continue to existing extraction logic for reason
       }
 
-      // If only reason parsed, extract name from text before the service phrase,
-      // then return early. Do NOT fall through to legacy extractName which would
-      // write the entire transcript into customerName.
+      // If only reason parsed, set service and return early.
       if (!parsedName && parsedReason) {
         if (!intake.serviceRequested) {
           intake.serviceRequested = parsedReason;
           console.log('[FIELD ASSIGNMENT] field: serviceRequested | value:', parsedReason, '| source: reasonPattern');
         }
-
-        // Attempt to recover name from text that precedes the service phrase.
-        // Strategy: split on ". " or ", " and take the first segment if it looks
-        // like a name (1–3 words, no service-intent verbs).
-        if (!intake.customerName) {
-          const serviceIdx = transcript.toLowerCase().indexOf(parsedReason.toLowerCase().slice(0, 15));
-          const beforeService = serviceIdx > 0 ? transcript.slice(0, serviceIdx).trim() : '';
-          // Clean trailing punctuation and short filler conjunctions
-          const nameCandidate = beforeService
-            .replace(/[.,;]\s*$/, '')
-            .replace(/\s+(and|but|so|then|also)\s*$/i, '')
-            .trim();
-          const wordCount = nameCandidate.split(/\s+/).length;
-          const hasServiceVerb = /\b(want|need|like|calling|looking|trying|have|get|fix|install|remove|cut)\b/i.test(nameCandidate);
-          if (nameCandidate && wordCount <= 4 && !hasServiceVerb) {
-            intake.customerName = nameCandidate.charAt(0).toUpperCase() + nameCandidate.slice(1);
-            console.log('[FIELD ASSIGNMENT] field: customerName | value:', intake.customerName, '| source: pre-service-phrase extraction');
-          } else {
-            console.log('[NAME RECOVERY SKIPPED] candidate:', JSON.stringify(nameCandidate), '| wordCount:', wordCount, '| hasServiceVerb:', hasServiceVerb, '| reason: not a clean name');
-          }
+        if (!intake.customerName && parsedName) {
+          intake.customerName = parsedName;
+          console.log('[FIELD ASSIGNMENT] field: customerName | value:', parsedName, '| source: pre-service-phrase extraction');
         }
-
         console.log('[EXTRACTION BRANCH] reason-only branch complete | customerName:', intake.customerName, '| serviceRequested:', intake.serviceRequested);
         return; // Do NOT fall through to legacy extractName
       }
@@ -5204,65 +5215,138 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     state.completionPersistenceStarted = true;
 
     // Helper function to parse caller name and service from name/reason answer
-    const parseNameAndService = (text: string, existingService?: string) => {
-      const lower = text.toLowerCase();
-      let customerName = text;
-      let serviceRequested = existingService ?? 'General inquiry';
+    const parseNameAndService = (text: string, existingService?: string): { customerName: string; serviceRequested: string } => {
+      if (!text || typeof text !== 'string') {
+        return { customerName: '', serviceRequested: existingService ?? 'General inquiry' };
+      }
 
-      // If service was already extracted by extractMultipleAnswers, only extract the name.
-      // The name is whatever appears before the first sentence boundary (period) or
-      // before the service text begins. We do NOT touch serviceRequested.
+      const trimmed = text.trim();
+      let customerName = trimmed;
+      let serviceRequested = existingService ?? '';
+
+      // Common prefixes to strip from a name candidate
+      const stripNamePrefix = (s: string): string =>
+        s.replace(/^(?:my name is|i am|i'm|this is|it is|it's)\s+/i, '').trim();
+
+      // Common prefixes to strip from a service candidate
+      const stripServicePrefix = (s: string): string =>
+        s
+          .replace(/^(?:i want to|i would like to|i'd like to|i need to|i need|i'm looking to|i am looking to|looking to|calling about|i'm calling about|i am calling about)\s+/i, '')
+          .replace(/^[.,;:]\s*/, '')
+          .trim();
+
+      // If service was already extracted, only clean the name portion.
       if (existingService) {
-        // Strip the service text from the end of customerName if it appears there
-        const serviceIdx = text.indexOf(existingService);
+        const existingLower = existingService.toLowerCase();
+        const serviceIdx = trimmed.toLowerCase().indexOf(existingLower);
         const nameCandidate = serviceIdx > 0
-          ? text.slice(0, serviceIdx).trim()
-          : text;
-        // Clean trailing punctuation/conjunctions left after stripping
-        customerName = nameCandidate
-          .replace(/[.,;]\s*$/, '')
-          .replace(/\s+(and|i'd|i would|i want|i need)\s*$/i, '')
-          .trim() || text;
+          ? trimmed.slice(0, serviceIdx).trim()
+          : trimmed;
+        customerName = stripNamePrefix(
+          nameCandidate
+            .replace(/[.,;]\s*$/, '')
+            .replace(/\s+(and|i'd|i would|i want|i need)\s*$/i, '')
+            .trim()
+        ) || trimmed;
         return { customerName, serviceRequested };
       }
-      
-      // Common patterns for "My name is X and I need Y"
-      const namePatterns = [
-        /my name is ([^.]+?)(?: and|,|$)/i,
-        /i'm ([^.]+?)(?: and|,|$)/i,
-        /i am ([^.]+?)(?: and|,|$)/i,
-        /this is ([^.]+?)(?: and|,|$)/i,
+
+      // Try explicit "My name is X ... I want Y" combined patterns first
+      const combinedPatterns = [
+        /my name is\s+(.+?)\s*(?:\.|,|;|\band\b|$)\s*(?:i\s+(?:want|need|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
+        /(?:i'm|i am)\s+(.+?)\s*(?:\.|,|;|\band\b|$)\s*(?:i\s+(?:want|need|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
+        /this is\s+(.+?)\s*(?:\.|,|;|\band\b|$)\s*(?:i\s+(?:want|need|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
       ];
-      
-      for (const pattern of namePatterns) {
-        const match = text.match(pattern);
+      for (const pattern of combinedPatterns) {
+        const match = trimmed.match(pattern);
         if (match) {
-          customerName = match[1].trim();
-          const servicePart = text.replace(match[0], '').replace(/^(?: and|,)\s*/i, '').trim();
-          if (servicePart) {
-            serviceRequested = servicePart;
-          }
-          break;
+          const namePart = stripNamePrefix(match[1].trim()).replace(/[.,;]\s*$/, '');
+          const servicePart = stripServicePrefix(match[2].trim()).replace(/[.,;]\s*$/, '');
+          if (namePart) customerName = namePart;
+          if (servicePart) serviceRequested = servicePart;
+          if (namePart && servicePart) return { customerName, serviceRequested };
         }
       }
-      
-      // If no pattern matched, try to split on period, "and", or ","
-      if (customerName === text) {
-        // Period separator: "Bartholomew. I'd like to..."
-        const periodParts = text.split(/\.\s+/);
-        if (periodParts.length > 1 && periodParts[0].trim().split(/\s+/).length <= 3) {
-          customerName = periodParts[0].trim();
-          serviceRequested = periodParts.slice(1).join('. ').trim();
-        } else {
-          // Fallback: split on "and" or ","
-          const parts = text.split(/\s+(?:and|,)\s+/i);
-          if (parts.length > 1) {
-            customerName = parts[0].trim();
-            serviceRequested = parts.slice(1).join(', ').trim();
+
+      // Extract name first
+      const namePatterns = [
+        /^my name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /^i am\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /^i'm\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /^this is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /^it is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+      ];
+      let nameMatch: RegExpMatchArray | null = null;
+      for (const pattern of namePatterns) {
+        nameMatch = trimmed.match(pattern);
+        if (nameMatch) break;
+      }
+
+      // Extract service from the full text
+      const servicePatterns = [
+        /(?:i want to|i need to|i'd like to|i would like to|i'm looking to|i am looking to)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /(?:i need|i want)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /(?:i'm calling about|i am calling about|calling about)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /(?:looking for|looking to get|trying to get)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+      ];
+      let serviceMatch: RegExpMatchArray | null = null;
+      for (const pattern of servicePatterns) {
+        serviceMatch = trimmed.match(pattern);
+        if (serviceMatch) break;
+      }
+
+      // Determine name and service from matches
+      if (nameMatch) {
+        const namePart = stripNamePrefix(nameMatch[1].trim()).replace(/[.,;]\s*$/, '');
+        if (namePart) customerName = namePart;
+      }
+      if (serviceMatch) {
+        const servicePart = stripServicePrefix(serviceMatch[1].trim()).replace(/[.,;]\s*$/, '');
+        if (servicePart) serviceRequested = servicePart;
+      }
+
+      // If we have a name but no service, and the name contains a service phrase, split it.
+      if (customerName && !serviceRequested && customerName !== trimmed) {
+        const serviceFromName = stripServicePrefix(customerName);
+        if (serviceFromName && serviceFromName !== customerName) {
+          serviceRequested = serviceFromName;
+        }
+      }
+
+      // Final fallback: if still no service, try sentence splitting
+      if (!serviceRequested) {
+        const sentences = trimmed.split(/\.(?:\s+|$)/).filter(s => s.trim());
+        if (sentences.length > 1) {
+          // Use the first sentence as name if it's short (<= 4 words) or starts with a name phrase
+          const first = sentences[0].trim();
+          const firstClean = stripNamePrefix(first).replace(/[.,;]\s*$/, '');
+          if (firstClean.split(/\s+/).length <= 4) {
+            customerName = firstClean;
+            serviceRequested = stripServicePrefix(sentences.slice(1).join('. ').trim()).replace(/[.,;]\s*$/, '');
+          } else {
+            // If first sentence is too long, it probably contains both; try to extract service from it
+            const firstServiceMatch = first.match(servicePatterns[0]);
+            if (firstServiceMatch) {
+              serviceRequested = stripServicePrefix(firstServiceMatch[1].trim()).replace(/[.,;]\s*$/, '');
+            }
           }
         }
       }
-      
+
+      // If after all attempts we still have no service, default only if we couldn't find anything
+      if (!serviceRequested) {
+        serviceRequested = 'General inquiry';
+      }
+
+      // If customerName is still the full text and we extracted a service, remove the service portion
+      if (customerName === trimmed && serviceRequested && serviceRequested !== 'General inquiry') {
+        const serviceIdx = trimmed.toLowerCase().indexOf(serviceRequested.toLowerCase());
+        if (serviceIdx > 0) {
+          const nameCandidate = stripNamePrefix(trimmed.slice(0, serviceIdx).trim()).replace(/[.,;]\s*$/, '');
+          if (nameCandidate) customerName = nameCandidate;
+        }
+      }
+
       return { customerName, serviceRequested };
     };
 
@@ -5533,12 +5617,29 @@ Reply to this message if you'd like to update or add any information.
       // ──────────────────────────────────────────────────────────────────────
 
       // Create lead and conversation using caller phone (not callSid)
+      // Include canonical AI intake metadata in the upsert so the lead is useful
+      // even if the ai_call_record insert fails.
+      const canonicalExtractedInfo = {
+        customerName:        state.intakeData.customerName || '',
+        serviceRequested:    state.intakeData.serviceRequested || '',
+        serviceAddress:      state.intakeData.serviceAddress || '',
+        desiredCompletionTime: state.intakeData.desiredCompletionTime || '',
+        callbackTime:        state.intakeData.callbackTime || '',
+        issueDescription:    state.intakeData.issueDescription || '',
+      };
+
       const { data: lead, error: leadError } = await supabase
         .from('leads')
         .upsert({
           business_id: state.businessId,
           caller_phone: state.callerPhone || '',
           status: 'new',
+          name: state.intakeData.customerName || null,
+          raw_metadata: {
+            extracted_info: canonicalExtractedInfo,
+            ai_intake_completed: true,
+            ai_intake_completed_at: new Date().toISOString(),
+          }
         }, {
           onConflict: 'business_id,caller_phone',
         })
@@ -5573,20 +5674,30 @@ Reply to this message if you'd like to update or add any information.
           console.log('[SIMPLE MODE] =========================================');
 
           // Create ai_call_record with exact call_sid
+          // Store canonical field names that match getLeadAIIntake expectations.
+          const aiCallRecordPayload = {
+            lead_id: lead.id,
+            conversation_id: conversation.id,
+            business_id: state.businessId,
+            call_sid: state.callSid,
+            caller_phone: state.callerPhone,
+            transcript: state.transcript,
+            extracted_info: canonicalExtractedInfo,
+            summary: state.intakeData.issueDescription || '',
+            outcome: 'completed',
+            status: 'completed',
+          };
+          console.log('[SIMPLE MODE] ai_call_record insert payload:', {
+            callSid: aiCallRecordPayload.call_sid,
+            leadId: aiCallRecordPayload.lead_id,
+            conversationId: aiCallRecordPayload.conversation_id,
+            businessId: aiCallRecordPayload.business_id,
+            callerPhone: aiCallRecordPayload.caller_phone,
+            extractedInfoKeys: Object.keys(aiCallRecordPayload.extracted_info),
+          });
           const { error: callRecordError } = await supabase
             .from('ai_call_records')
-            .insert({
-              lead_id: lead.id,
-              conversation_id: conversation.id,
-              business_id: state.businessId,
-              call_sid: state.callSid,
-              caller_phone: state.callerPhone,
-              transcript: state.transcript,
-              extracted_info: state.intakeData,
-              summary: state.intakeData.issueDescription || '',
-              outcome: 'completed',
-              status: 'completed',
-            });
+            .insert(aiCallRecordPayload);
 
           if (callRecordError) {
             console.log('[SIMPLE MODE] =========================================');
@@ -5600,20 +5711,14 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: simple_mode_ai_call_record_created');
             console.log('[SIMPLE MODE] callSid:', state.callSid);
+            console.log('[SIMPLE MODE] leadId:', lead.id);
+            console.log('[SIMPLE MODE] conversationId:', conversation.id);
             console.log('[SIMPLE MODE] =========================================');
 
             // ── A: Update leads.raw_metadata with structured intake data ───────
-            // This enables getLeadDisplayName, getAIData, and lead card preview
+            // This enables getLeadDisplayName, getLeadAIIntake, and lead card preview
             // to read canonical fields without joining ai_call_records.
-            console.log('[simple_mode_lead_summary_update_start]', { leadId: lead.id });
-            const extractedInfoCanonical = {
-              callerName:           state.intakeData.customerName   || '',
-              reasonForCalling:     state.intakeData.serviceRequested || '',
-              addressOrLocation:    state.intakeData.serviceAddress  || '',
-              desiredCompletionTime: state.intakeData.desiredCompletionTime || '',
-              preferredCallbackTime: state.intakeData.callbackTime   || '',
-              importantDetails:     state.intakeData.issueDescription || '',
-            };
+            console.log('[simple_mode_lead_summary_update_start]', { leadId: lead.id, callSid: state.callSid });
             const { data: currentLead } = await supabase
               .from('leads')
               .select('raw_metadata, name')
@@ -5626,20 +5731,21 @@ Reply to this message if you'd like to update or add any information.
                 name: state.intakeData.customerName || currentLead?.name || null,
                 raw_metadata: {
                   ...(currentLead?.raw_metadata || {}),
-                  extracted_info: extractedInfoCanonical,
-                  callerName:     state.intakeData.customerName || '',
+                  extracted_info: canonicalExtractedInfo,
                   ai_intake_completed: true,
                   ai_intake_completed_at: new Date().toISOString(),
                 },
               })
               .eq('id', lead.id);
             if (metaUpdateError) {
-              console.log('[simple_mode_lead_summary_update_failed]', { leadId: lead.id, error: metaUpdateError.message });
+              console.log('[simple_mode_lead_summary_update_failed]', { leadId: lead.id, callSid: state.callSid, error: metaUpdateError.message });
             } else {
               console.log('[simple_mode_lead_summary_update_success]', {
                 leadId: lead.id,
-                callerName:       extractedInfoCanonical.callerName,
-                reasonForCalling: extractedInfoCanonical.reasonForCalling,
+                callSid: state.callSid,
+                customerName:       canonicalExtractedInfo.customerName,
+                serviceRequested:   canonicalExtractedInfo.serviceRequested,
+                serviceAddress:     canonicalExtractedInfo.serviceAddress,
               });
             }
             // ──────────────────────────────────────────────────────────────────
@@ -5887,10 +5993,21 @@ Reply to this message if you'd like to update or add any information.
         state.businessId = businessId;
         state.callerPhone = from;
         
+        // Also expose callSid on the websocket so the fallback ingest paths can find it.
+        (ws as any).callSid = callSid;
+        (ws as any).businessId = businessId;
+        (ws as any).callerPhone = from;
+        
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: simple_mode_call_sid_set');
         console.log('[SIMPLE MODE] callSid:', state.callSid);
         console.log('[SIMPLE MODE] =========================================');
+        
+        if (!state.callSid) {
+          console.log('[SIMPLE MODE] WARNING: callSid is empty at start event');
+          console.log('[SIMPLE MODE] startData.callSid:', startData.callSid);
+          console.log('[SIMPLE MODE] customParams.callSid:', customParams.callSid);
+        }
         
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: simple_mode_from_set');

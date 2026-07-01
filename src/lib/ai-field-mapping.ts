@@ -200,10 +200,11 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
     return null
   }
 
-  return {
+  const result = {
     customerName: pick(
       lead?.name,
       lead?.contact_name,
+      rawMetadata.customerName,
       rawMetadata.callerName,
       rawMetadata.caller_name,
       normalized.callerName,
@@ -220,21 +221,24 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       extractedInfoRaw.customerPhone
     ),
     serviceRequested: pick(
-      corrected.reason,
       corrected.serviceRequested,
+      corrected.reason,
       corrected.reasonForCalling,
+      rawMetadata.serviceRequested,
       normalized.reasonForCalling
     ),
     additionalDetails: pick(
       corrected.details,
       corrected.issueDescription,
       corrected.importantDetails,
+      rawMetadata.additionalDetails,
       normalized.importantDetails
     ),
     serviceAddress: pick(
       corrected.address,
       corrected.serviceAddress,
       corrected.addressOrLocation,
+      rawMetadata.serviceAddress,
       normalized.addressOrLocation,
       rawMetadata.address
     ),
@@ -243,13 +247,38 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       corrected.urgency,
       corrected.urgencyLevel,
       corrected.desiredCompletionTime,
+      rawMetadata.desiredCompletion,
       normalized.desiredCompletionTime
     ),
     callbackTime: pick(
       corrected.callbackTime,
       corrected.callback_time,
       corrected.preferredCallbackTime,
+      rawMetadata.callbackTime,
       normalized.preferredCallbackTime
     ),
   }
+
+  // Development-only trace log
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production') {
+    console.log('[getLeadAIIntake debug]', {
+      leadId: lead?.id,
+      leadName: lead?.name,
+      rawMetadataKeys: Object.keys(rawMetadata),
+      extractedInfoSource: lead?.aiCallRecords?.[0]?.extracted_info
+        ? 'aiCallRecords[0].extracted_info'
+        : lead?.ai_call_records?.[0]?.extracted_info
+          ? 'ai_call_records[0].extracted_info'
+          : rawMetadata.extracted_info
+            ? 'raw_metadata.extracted_info'
+            : rawMetadata.ai_extracted_info
+              ? 'raw_metadata.ai_extracted_info'
+              : 'none',
+      extractedInfoRaw,
+      normalized,
+      result,
+    })
+  }
+
+  return result
 }

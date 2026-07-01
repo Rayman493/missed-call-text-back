@@ -92,7 +92,9 @@ async function processVoiceStatusCallback(params: any, method: string) {
   })
 
   let aiCallRecord = null
-  const retryDelays = [0, 1000, 2000, 3000]
+  // Give the AI service more time to finalize the simple-mode completion
+  // (lead upsert, conversation creation, ai_call_record insert, lead metadata update).
+  const retryDelays = [0, 1000, 2000, 3000, 4000, 5000]
 
   for (let i = 0; i < retryDelays.length; i++) {
     const delay = retryDelays[i]
@@ -323,13 +325,18 @@ async function processVoiceStatusCallback(params: any, method: string) {
       console.log('[AI INTAKE FINALIZE] Reusing existing lead for AI intake:', leadId)
     } else {
       // Create new lead with extracted info from AI (may be partial or missing for incomplete intakes)
-      const extracted = aiCallRecord.extracted_info || {}
-      const leadName = extracted.caller_name || null
-      const leadReason = extracted.reason_for_call || null
-      const leadUrgency = extracted.urgency || null
+      // Normalize extracted_info to canonical field names so getLeadAIIntake works downstream.
+      const extractedRaw = aiCallRecord.extracted_info || {}
+      const extracted = normalizeExtractedInfo(extractedRaw)
+      const leadName = extracted.callerName || null
+      const leadReason = extracted.reasonForCalling || null
+      const leadUrgency = extracted.desiredCompletionTime || null
+      const leadAddress = extracted.addressOrLocation || null
+      const leadCallbackTime = extracted.preferredCallbackTime || null
+      const leadDetails = extracted.importantDetails || null
 
       // For incomplete intakes, mark status appropriately
-      const isCompleteIntake = aiCallRecord.outcome === 'completed_intake'
+      const isCompleteIntake = aiCallRecord.outcome === 'completed_intake' || aiCallRecord.outcome === 'completed'
       const leadStatus = isCompleteIntake ? 'new' : 'new' // Keep as 'new' even for incomplete - will be updated by follow-up
 
       const { data: newLead, error: leadCreateError } = await supabase
@@ -346,7 +353,14 @@ async function processVoiceStatusCallback(params: any, method: string) {
             callSid: CallSid,
             ai_call_record_id: aiCallRecord.id,
             ai_outcome: aiCallRecord.outcome,
-            extracted_info: extracted
+            extracted_info: extracted,
+            // Canonical top-level fields for getLeadAIIntake fallback
+            customerName: leadName,
+            serviceRequested: leadReason,
+            serviceAddress: leadAddress,
+            desiredCompletion: leadUrgency,
+            callbackTime: leadCallbackTime,
+            additionalDetails: leadDetails,
           }
         })
         .select()

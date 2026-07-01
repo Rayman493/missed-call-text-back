@@ -1452,6 +1452,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const leadReason = intake.serviceRequested
     const leadAddress = intake.serviceAddress
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[generateJobPrefill debug]', {
+        leadId: params.id,
+        leadName: leadData?.name,
+        callerPhone: leadData?.caller_phone,
+        aiCallRecordsCount: leadData?.aiCallRecords?.length,
+        firstOutcome: leadData?.aiCallRecords?.[0]?.outcome,
+        firstCallSid: leadData?.aiCallRecords?.[0]?.call_sid,
+        intake,
+      })
+    }
+
     const noteParts = [
       intake.additionalDetails,
       intake.desiredCompletion ? `Desired completion: ${intake.desiredCompletion}` : null,
@@ -1490,6 +1502,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const leadLocation = intake.serviceAddress || ''
     const leadCallbackTime = intake.callbackTime || ''
     const leadCallbackNumber = leadPhone
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[generateAppointmentPrefill debug]', {
+        leadId: params.id,
+        leadName,
+        leadReason,
+        leadLocation,
+        intake,
+      })
+    }
 
     // Generate title
     const title = leadReason 
@@ -2247,7 +2269,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 ? (() => {
                             const latestAiRecord = leadData.aiCallRecords[0];
                             const isComplete = latestAiRecord.outcome === 'completed' || latestAiRecord.outcome === 'completed_intake';
-                            console.log('[simple_mode_ai_intake_status_read]', { outcome: latestAiRecord.outcome, isComplete });
+                            console.log('[simple_mode_ai_intake_status_read]', {
+                              outcome: latestAiRecord.outcome,
+                              isComplete,
+                              callSid: latestAiRecord.call_sid,
+                              leadId: params.id,
+                              recordId: latestAiRecord.id,
+                              extractedInfoKeys: latestAiRecord.extracted_info ? Object.keys(latestAiRecord.extracted_info) : []
+                            });
                             return (
                               <>
                                 {isComplete ? (

@@ -130,11 +130,24 @@ export async function GET(request: NextRequest) {
 
     try {
       // First try by lead_id
-      const { data: aiCallRecordsByLead } = await supabase
+      const { data: aiCallRecordsByLead, error: aiByLeadError } = await supabase
         .from("ai_call_records")
         .select("*")
         .eq("lead_id", leadId)
         .order("created_at", { ascending: false })
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[lead-details ai_call_records debug]', {
+          leadId,
+          callerPhone: lead.caller_phone,
+          normalizedLeadPhone,
+          byLeadCount: aiCallRecordsByLead?.length ?? 0,
+          byLeadError: aiByLeadError?.message,
+          firstCallSid: aiCallRecordsByLead?.[0]?.call_sid,
+          firstOutcome: aiCallRecordsByLead?.[0]?.outcome,
+          firstExtractedInfoKeys: aiCallRecordsByLead?.[0]?.extracted_info ? Object.keys(aiCallRecordsByLead[0].extracted_info) : []
+        })
+      }
 
       if (aiCallRecordsByLead && aiCallRecordsByLead.length > 0) {
         aiCallRecords = aiCallRecordsByLead
@@ -151,13 +164,24 @@ export async function GET(request: NextRequest) {
             const normalizedRecordPhone = normalizePhone(record.caller_phone)
             return normalizedRecordPhone === normalizedLeadPhone
           })
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('[lead-details ai_call_records fallback debug]', {
+              businessId: lead.business_id,
+              totalRecords: aiCallRecordsByBusiness.length,
+              matchingRecords: matchingRecords.length,
+              matchingCallSids: matchingRecords.map(r => r.call_sid)
+            })
+          }
           if (matchingRecords.length > 0) {
             aiCallRecords = matchingRecords
           }
         }
       }
-    } catch {
+    } catch (err) {
       // AI call records table may not exist or query failed; continue without
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[lead-details ai_call_records exception]', err)
+      }
     }
 
     // Fetch follow-up jobs for this lead with RLS protection
