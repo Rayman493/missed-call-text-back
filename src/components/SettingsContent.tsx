@@ -34,7 +34,6 @@ import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
-import { HelpContext } from '@/components/HelpAssistant'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
 

@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { MessageCircle, X } from 'lucide-react'
-import HelpAssistant, { HelpContext } from './HelpAssistant'
+import ReplyFlowAssistant, { AssistantContext } from './ReplyFlowAssistant'
 
 interface FloatingHelpButtonProps {
-  context?: HelpContext
+  context?: AssistantContext
 }
 
 export default function FloatingHelpButton({ context }: FloatingHelpButtonProps) {
@@ -83,7 +83,7 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
               </button>
               <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-h-[70vh] overflow-hidden">
                 <div className="overflow-y-auto max-h-[70vh] pb-safe">
-                  <HelpAssistant context={context} />
+                  <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
                 </div>
               </div>
             </div>
@@ -95,7 +95,7 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
               >
                 <X className="w-6 h-6" />
               </button>
-              <HelpAssistant context={context} />
+              <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
             </div>
           </div>
         </div>

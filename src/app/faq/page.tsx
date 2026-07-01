@@ -3,7 +3,7 @@ import Link from 'next/link'
 import AppHeader from '@/components/AppHeader'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
-import HelpAssistant, { HelpContext } from '@/components/HelpAssistant'
+import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 import LegalNavigation from '@/components/LegalNavigation'
 
 export const metadata: Metadata = {
@@ -768,7 +768,7 @@ export default function FAQPage() {
 
         {/* Help Assistant */}
         <div className="mt-16">
-          <HelpAssistant defaultCategory="FAQ" context={{ currentPage: undefined }} />
+          <ReplyFlowAssistant defaultCategory="Overview" context={{ currentPage: undefined }} />
         </div>
 
         {/* CTA Section */}

@@ -26,7 +26,6 @@ import VoicemailSummary from '@/components/VoicemailSummary'
 import { ImageMessage } from '@/components/ImageMessage'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
-import { HelpContext } from '@/components/HelpAssistant'
 import EventComposer from '@/components/calendar/EventComposer'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 

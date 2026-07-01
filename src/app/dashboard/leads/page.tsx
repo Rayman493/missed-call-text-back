@@ -50,7 +50,6 @@ import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import StatCard from '@/components/StatCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
-import { HelpContext } from '@/components/HelpAssistant'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 
 // Helper to get compact summary for lead card
