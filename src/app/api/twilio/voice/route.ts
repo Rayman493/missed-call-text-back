@@ -11,7 +11,7 @@ import { createFollowUpJobs } from '@/lib/follow-ups';
 import { checkTwilioVoiceRateLimit, getClientIp } from '@/lib/rate-limit';
 import { getSpokenBusinessName } from '@/lib/speech';
 import { checkAllGuards } from '@/lib/ai-call-assistant/config';
-import { createAISession } from '@/lib/ai-call-assistant/session';
+import { createAISession, updateAISession } from '@/lib/ai-call-assistant/session';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 import { notificationServiceServer } from '@/lib/notifications-server';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
@@ -900,12 +900,9 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         console.log(`[AI CALL ASSISTANT] Using Phase 1A POC - generating TwiML for ${callPath}`)
         
         try {
-          // CRITICAL FIX: For AI calls, do NOT create lead/conversation early
-          // Lead creation will happen in voice-status callback when AI intake finalizes with extracted_info
-          // This prevents showing placeholder "Unknown Caller" before AI collects actual data
-          
-          const normalizedCallerPhone = From.replace(/^\+1/, '').replace(/\D/g, '')
-          
+          // Create AI session first (lead/conversation will be attached next)
+          const normalizedCallerPhone = normalizePhoneNumberForStorage(From)
+
           logCallTrace({
             route: 'voice',
             action: 'ai_session_create_start',
@@ -915,19 +912,18 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
             forwardedFrom: ForwardedFrom,
             businessId: business.id,
             businessName: business.name,
-            reason: 'Creating AI session WITHOUT early lead creation - lead will be created when AI intake finalizes'
+            reason: 'Creating AI session and baseline lead/conversation before AI asks questions'
           })
-          
-          // Create AI session WITHOUT lead_id - lead will be created when AI intake finalizes
+
           const session = await createAISession({
             business_id: business.id,
-            lead_id: null, // Intentionally null - lead created when AI intake finalizes
+            lead_id: null,
             call_sid: CallSid,
           })
 
           if (!session) {
             console.log('[AI FAILED - VOICEMAIL FALLBACK] Failed to create session, falling back to voicemail')
-            
+
             logCallTrace({
               route: 'voice',
               action: 'ai_session_create_failed',
@@ -939,13 +935,72 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
               businessName: business.name,
               reason: 'Failed to create AI session'
             })
-            
+
             // Fall through to voicemail flow
           } else {
             console.log('[AI POC] session created:', session.id)
             console.log('[AI POC] callSid:', CallSid)
             console.log(`[AI POC] ${callPath.toUpperCase()} - AI answering immediately`)
-            
+
+            // BASELINE MISSED-CALL RECORDS: Create lead/conversation immediately so that even
+            // an immediate hangup after "Hi" has durable records and SMS eligibility.
+            console.log('[AI BASELINE INTAKE RECORDS] Ensuring lead and conversation exist before AI intake', {
+              callSid: CallSid,
+              businessId: business.id,
+              callerPhone: normalizedCallerPhone,
+              callPath
+            });
+
+            const baselineRecords = await db.getOrCreateCallIntakeRecords({
+              callSid: CallSid,
+              businessId: business.id,
+              callerPhone: normalizedCallerPhone,
+              to: To,
+              forwardedFrom: ForwardedFrom,
+              requireValidCall: false // We already created the call_event above
+            });
+
+            let baselineLeadId: string | null = null;
+            let baselineConversationId: string | null = null;
+
+            if (baselineRecords.leadId && baselineRecords.conversationId) {
+              baselineLeadId = baselineRecords.leadId;
+              baselineConversationId = baselineRecords.conversationId;
+
+              console.log('[AI BASELINE INTAKE RECORDS] Reused or created baseline records', {
+                callSid: CallSid,
+                leadId: baselineLeadId,
+                conversationId: baselineConversationId,
+                isNew: baselineRecords.isNew
+              });
+
+              // Attach the lead/conversation to the AI session so status callbacks and
+              // the AI service can find them without recreating.
+              await updateAISession(session.id, {
+                lead_id: baselineLeadId,
+                raw_metadata: {
+                  ...(session.raw_metadata || {}),
+                  conversation_id: baselineConversationId,
+                  call_path: callPath,
+                  baseline_records_created: true,
+                  baseline_records_is_new: baselineRecords.isNew
+                }
+              });
+
+              console.log('[AI SESSION BASELINE ATTACHED] Updated AI session with baseline records', {
+                sessionId: session.id,
+                leadId: baselineLeadId,
+                conversationId: baselineConversationId
+              });
+            } else {
+              console.error('[AI BASELINE INTAKE RECORDS FAILED] Could not ensure baseline records', {
+                callSid: CallSid,
+                businessId: business.id,
+                leadId: baselineRecords.leadId,
+                conversationId: baselineRecords.conversationId
+              });
+            }
+
             logCallTrace({
               route: 'voice',
               action: 'ai_session_create_success',
@@ -956,20 +1011,17 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
               businessId: business.id,
               businessName: business.name,
               aiCallRecordId: session.id,
-              existingOrCreated: 'created',
-              reason: 'Created AI session successfully without early lead creation'
-            })
-
-            console.log('[AI SESSION NO EARLY LEAD]', {
-              sessionId: session.id,
-              callSid: CallSid,
-              businessId: business.id,
-              reason: 'Lead will be created when AI intake finalizes with extracted_info'
+              leadId: baselineLeadId || undefined,
+              conversationId: baselineConversationId || undefined,
+              existingOrCreated: baselineRecords.isNew ? 'created' : 'existing',
+              reason: baselineRecords.leadId
+                ? 'Created AI session and attached baseline lead/conversation'
+                : 'Created AI session but baseline lead/conversation unavailable'
             })
 
             // Get Fly.io WebSocket URL from environment
             const flyWsUrl = process.env.AI_VOICE_FLY_WS_URL || 'wss://replyflow-ai-voice.fly.dev/stream';
-            
+
             console.log('[MAIN TWIML STREAM URL]', flyWsUrl);
 
             // Add comprehensive outbound parameter logging
@@ -982,12 +1034,14 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
               from: From,
               to: To,
               called: Called,
-              forwardedFrom: ForwardedFrom
+              forwardedFrom: ForwardedFrom,
+              leadId: baselineLeadId,
+              conversationId: baselineConversationId
             });
 
             // Return TwiML with Media Stream to Fly.io
             // Parameters are passed as <Parameter> elements, not query params
-            // Note: leadId and conversationId are NOT included - they will be created when AI intake finalizes
+            // leadId and conversationId are now passed so the AI service can update the same records.
             const statusCallbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || 'http://localhost:3000'}/api/twilio/voice-status`;
             const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -1003,6 +1057,8 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       <Parameter name="called" value="${Called}" />
       <Parameter name="forwardedFrom" value="${ForwardedFrom}" />
       <Parameter name="businessTwilioPhoneNumber" value="${business.twilio_phone_number}" />
+      <Parameter name="leadId" value="${baselineLeadId || ''}" />
+      <Parameter name="conversationId" value="${baselineConversationId || ''}" />
     </Stream>
   </Connect>
 </Response>`

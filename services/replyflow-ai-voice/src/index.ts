@@ -3297,7 +3297,9 @@ async function finalizeIncompleteIntake(
   businessName: string,
   forwardedFrom: string,
   supabase: any,
-  closingState?: any
+  closingState?: any,
+  baselineLeadId?: string | null,
+  baselineConversationId?: string | null
 ): Promise<void> {
   console.log('[FINALIZE INCOMPLETE ENTER] =========================================');
   console.log('[FINALIZE INCOMPLETE ENTER] Function entry');
@@ -3403,76 +3405,159 @@ async function finalizeIncompleteIntake(
   };
   const canonicalInfo = buildCanonicalExtractedInfo(extractedFields, callerPhone || '');
   
-  console.log('[INCOMPLETE FINALIZATION] Creating/updating lead for callerPhone:', callerPhone);
-  const { data: lead, error: leadError } = await retrySupabaseOperation(
-  async () => {
-    const result = await supabase
-      .from('leads')
-      .upsert({
-        business_id: businessId,
-        caller_phone: callerPhone,
-        status: 'new',
-                raw_metadata: {
-          ...canonicalInfo,
-          extracted_info: canonicalInfo,
-          ai_intake_completed: false,
-        },
-      }, {
-        onConflict: 'business_id,caller_phone',
-      })
-      .select()
-      .single();
-    return result;
-  },
-  'Create/Update Lead',
-  3,
-  1000
-);
-  if (leadError) {
-    console.error('[INCOMPLETE FINALIZATION] Lead creation failed:', leadError, 'callSid:', callSid);
-    return;
-  }
-  console.log('[INCOMPLETE FINALIZATION] Lead created/updated:', lead.id);
+  // Prefer the lead/conversation IDs pre-created by the voice route. If they are not
+  // available (e.g., direct stream reconnect without custom parameters), fall back to
+  // upserting/creating from the caller phone number.
+  let lead: any;
+  let conversation: any;
 
-  // Create or update conversation
-  console.log('[INCOMPLETE FINALIZATION] Creating/updating conversation for leadId:', lead.id);
-  let conversation;
-  const { data: existingConversation } = await retrySupabaseOperation(
-    async () => {
-      const result = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('lead_id', lead.id)
-        .maybeSingle();
-      return result;
-    },
-    'Lookup Existing Conversation',
-    3,
-    1000
-  );
-  if (existingConversation) {
-    conversation = existingConversation;
-    console.log('[INCOMPLETE FINALIZATION] Using existing conversation:', conversation.id);
-  } else {
-    const result = await retrySupabaseOperation(
+  if (baselineLeadId) {
+    console.log('[INCOMPLETE FINALIZATION] Using baseline lead from voice route:', baselineLeadId);
+    const { data: existingLead, error: leadLookupError } = await retrySupabaseOperation(
       async () => {
-        const res = await supabase
-          .from('conversations')
-          .insert({
-            business_id: businessId,
-            lead_id: lead.id,
-            status: 'open',
-            last_activity_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-        return res;
+        return await supabase
+          .from('leads')
+          .select('*')
+          .eq('id', baselineLeadId)
+          .maybeSingle();
       },
-      'Create Conversation',
+      'Lookup Baseline Lead',
       3,
       1000
     );
-    conversation = result.data;
+
+    if (leadLookupError) {
+      console.error('[INCOMPLETE FINALIZATION] Baseline lead lookup failed:', leadLookupError, 'callSid:', callSid);
+    }
+
+    if (existingLead) {
+      lead = existingLead;
+      // Enrich the baseline lead with whatever partial info we have
+      const { error: leadUpdateError } = await retrySupabaseOperation(
+        async () => {
+          return await supabase
+            .from('leads')
+            .update({
+              raw_metadata: {
+                ...(lead.raw_metadata || {}),
+                ...canonicalInfo,
+                extracted_info: canonicalInfo,
+                ai_intake_completed: false,
+                ai_intake_outcome: incompleteOutcome,
+              }
+            })
+            .eq('id', lead.id);
+        },
+        'Update Baseline Lead',
+        3,
+        1000
+      );
+      if (leadUpdateError) {
+        console.error('[INCOMPLETE FINALIZATION] Baseline lead update failed:', leadUpdateError, 'callSid:', callSid);
+      } else {
+        console.log('[INCOMPLETE FINALIZATION] Baseline lead enriched with partial info:', lead.id);
+      }
+    }
+  }
+
+  if (!lead) {
+    console.log('[INCOMPLETE FINALIZATION] No baseline lead available, creating/updating lead for callerPhone:', callerPhone);
+    const { data: upsertedLead, error: leadError } = await retrySupabaseOperation(
+      async () => {
+        const result = await supabase
+          .from('leads')
+          .upsert({
+            business_id: businessId,
+            caller_phone: callerPhone,
+            status: 'new',
+            raw_metadata: {
+              ...canonicalInfo,
+              extracted_info: canonicalInfo,
+              ai_intake_completed: false,
+            },
+          }, {
+            onConflict: 'business_id,caller_phone',
+          })
+          .select()
+          .single();
+        return result;
+      },
+      'Create/Update Lead',
+      3,
+      1000
+    );
+    if (leadError) {
+      console.error('[INCOMPLETE FINALIZATION] Lead creation failed:', leadError, 'callSid:', callSid);
+      return;
+    }
+    lead = upsertedLead;
+    console.log('[INCOMPLETE FINALIZATION] Lead created/updated:', lead.id);
+  }
+
+  if (baselineConversationId) {
+    console.log('[INCOMPLETE FINALIZATION] Using baseline conversation from voice route:', baselineConversationId);
+    const { data: existingConversation, error: conversationLookupError } = await retrySupabaseOperation(
+      async () => {
+        return await supabase
+          .from('conversations')
+          .select('*')
+          .eq('id', baselineConversationId)
+          .maybeSingle();
+      },
+      'Lookup Baseline Conversation',
+      3,
+      1000
+    );
+
+    if (conversationLookupError) {
+      console.error('[INCOMPLETE FINALIZATION] Baseline conversation lookup failed:', conversationLookupError, 'callSid:', callSid);
+    }
+
+    if (existingConversation) {
+      conversation = existingConversation;
+      console.log('[INCOMPLETE FINALIZATION] Using baseline conversation:', conversation.id);
+    }
+  }
+
+  if (!conversation) {
+    console.log('[INCOMPLETE FINALIZATION] Creating/updating conversation for leadId:', lead.id);
+    const { data: existingConversation } = await retrySupabaseOperation(
+      async () => {
+        const result = await supabase
+          .from('conversations')
+          .select('*')
+          .eq('lead_id', lead.id)
+          .maybeSingle();
+        return result;
+      },
+      'Lookup Existing Conversation',
+      3,
+      1000
+    );
+    if (existingConversation) {
+      conversation = existingConversation;
+      console.log('[INCOMPLETE FINALIZATION] Using existing conversation:', conversation.id);
+    } else {
+      const result = await retrySupabaseOperation(
+        async () => {
+          const res = await supabase
+            .from('conversations')
+            .insert({
+              business_id: businessId,
+              lead_id: lead.id,
+              status: 'open',
+              last_activity_at: new Date().toISOString(),
+            })
+            .select()
+            .single();
+          return res;
+        },
+        'Create Conversation',
+        3,
+        1000
+      );
+      conversation = result.data;
+    }
   }
   console.log('[INCOMPLETE FINALIZATION] Conversation ready:', conversation.id);
 
@@ -7376,45 +7461,78 @@ Return only JSON, no other text.`;
         console.log('[CUSTOMER NAME BEFORE LEAD UPDATE] =========================================');
         
         const canonicalExtractedInfo = buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone);
-        const { data: lead, error: leadError } = await supabase
-          .from('leads')
-          .upsert({
-            business_id: sessionBusinessId,
-            caller_phone: sessionCallerPhone,
-            status: 'new',
-                        raw_metadata: {
-              ...canonicalExtractedInfo,
-              extracted_info: canonicalExtractedInfo,
-              ai_intake_completed: false,
-            },
-          }, {
-            onConflict: 'business_id,caller_phone',
-          })
-          .select()
-          .single();
 
-        console.log('[AI LEAD LOOKUP RESULT]', { 
-          leadId: lead?.id || 'null',
-          leadError: leadError?.message || 'none',
-          callerPhone: sessionCallerPhone
-        });
+        // Prefer the lead/conversation IDs pre-created by the voice route.
+        const baselineLeadId = (ws as any).leadId || null;
+        const baselineConversationId = (ws as any).conversationId || null;
 
-        if (leadError) {
-          console.log('[COMPLETE FINALIZATION STEP 4 FAILED] =========================================');
-          console.log('[COMPLETE FINALIZATION STEP 4 FAILED] Lead creation failed');
-          console.log('[COMPLETE FINALIZATION STEP 4 FAILED] Error:', leadError.message);
-          console.log('[COMPLETE FINALIZATION STEP 4 FAILED] Timestamp:', new Date().toISOString());
-          console.log('[COMPLETE FINALIZATION STEP 4 FAILED] =========================================');
-          
-          console.log('[AI LEAD UPSERT FAILED]', { businessId: sessionBusinessId, callerPhone: sessionCallerPhone, error: leadError.message });
-          throw leadError;
+        let lead: any;
+        let conversation: any;
+
+        if (baselineLeadId) {
+          console.log('[COMPLETE FINALIZATION STEP 4] Using baseline lead from voice route:', baselineLeadId);
+          const { data: existingLead, error: leadLookupError } = await supabase
+            .from('leads')
+            .select('*')
+            .eq('id', baselineLeadId)
+            .maybeSingle();
+
+          if (leadLookupError) {
+            console.log('[COMPLETE FINALIZATION STEP 4 FAILED] Baseline lead lookup failed:', leadLookupError.message);
+          } else if (existingLead) {
+            lead = existingLead;
+            // Enrich baseline lead with extracted info
+            await supabase
+              .from('leads')
+              .update({
+                raw_metadata: {
+                  ...(lead.raw_metadata || {}),
+                  ...canonicalExtractedInfo,
+                  extracted_info: canonicalExtractedInfo,
+                  ai_intake_completed: true,
+                }
+              })
+              .eq('id', lead.id);
+            console.log('[COMPLETE FINALIZATION STEP 4] Baseline lead enriched with complete info:', lead.id);
+          }
         }
 
-        console.log('[LEAD CREATE SUCCESS] Lead created successfully');
-        console.log('[AI LEAD UPSERT RESULT]', { leadId: lead.id, businessId: sessionBusinessId, callerPhone: sessionCallerPhone });
+        if (!lead) {
+          console.log('[COMPLETE FINALIZATION STEP 4] No baseline lead, creating/updating lead by callerPhone');
+          const { data: upsertedLead, error: leadError } = await supabase
+            .from('leads')
+            .upsert({
+              business_id: sessionBusinessId,
+              caller_phone: sessionCallerPhone,
+              status: 'new',
+              raw_metadata: {
+                ...canonicalExtractedInfo,
+                extracted_info: canonicalExtractedInfo,
+                ai_intake_completed: false,
+              },
+            }, {
+              onConflict: 'business_id,caller_phone',
+            })
+            .select()
+            .single();
+
+          if (leadError) {
+            console.log('[COMPLETE FINALIZATION STEP 4 FAILED] =========================================');
+            console.log('[COMPLETE FINALIZATION STEP 4 FAILED] Lead creation failed');
+            console.log('[COMPLETE FINALIZATION STEP 4 FAILED] Error:', leadError.message);
+            console.log('[COMPLETE FINALIZATION STEP 4 FAILED] Timestamp:', new Date().toISOString());
+            console.log('[COMPLETE FINALIZATION STEP 4 FAILED] =========================================');
+            console.log('[AI LEAD UPSERT FAILED]', { businessId: sessionBusinessId, callerPhone: sessionCallerPhone, error: leadError.message });
+            throw leadError;
+          }
+
+          lead = upsertedLead;
+          console.log('[LEAD CREATE SUCCESS] Lead created successfully');
+          console.log('[AI LEAD UPSERT RESULT]', { leadId: lead.id, businessId: sessionBusinessId, callerPhone: sessionCallerPhone });
+        }
 
         console.log('[COMPLETE FINALIZATION STEP 4 SUCCESS] =========================================');
-        console.log('[COMPLETE FINALIZATION STEP 4 SUCCESS] Lead record created successfully');
+        console.log('[COMPLETE FINALIZATION STEP 4 SUCCESS] Lead record ready');
         console.log('[COMPLETE FINALIZATION STEP 4 SUCCESS] Lead ID:', lead.id);
         console.log('[COMPLETE FINALIZATION STEP 4 SUCCESS] Timestamp:', new Date().toISOString());
         console.log('[COMPLETE FINALIZATION STEP 4 SUCCESS] =========================================');
@@ -7424,55 +7542,71 @@ Return only JSON, no other text.`;
         console.log('[COMPLETE FINALIZATION STEP 5] Creating conversation record');
         console.log('[COMPLETE FINALIZATION STEP 5] Timestamp:', new Date().toISOString());
         console.log('[COMPLETE FINALIZATION STEP 5] =========================================');
-        
-        console.log('[AI CONVERSATION LOOKUP START]', { 
-          businessId: sessionBusinessId,
-          leadId: lead.id,
-          operation: 'conversation upsert for ai_call_records linking'
-        });
-        // Lookup existing conversation by lead_id
-        const { data: existingConversation, error: conversationLookupError } = await supabase
-          .from('conversations')
-          .select('*')
-          .eq('lead_id', lead.id)
-          .maybeSingle();
 
-        let conversation;
-        let conversationError;
-
-        if (existingConversation) {
-          conversation = existingConversation;
-          console.log('[AI CONVERSATION FOUND]', { conversationId: conversation.id });
-        } else {
-          const result = await supabase
+        if (baselineConversationId) {
+          console.log('[COMPLETE FINALIZATION STEP 5] Using baseline conversation from voice route:', baselineConversationId);
+          const { data: existingBaselineConversation, error: baselineConversationError } = await supabase
             .from('conversations')
-            .insert({
-              business_id: sessionBusinessId,
-              lead_id: lead.id,
-              status: 'open',
-              last_activity_at: new Date().toISOString(),
-            })
-            .select()
-            .single();
-          conversation = result.data;
-          conversationError = result.error;
+            .select('*')
+            .eq('id', baselineConversationId)
+            .maybeSingle();
+
+          if (baselineConversationError) {
+            console.log('[COMPLETE FINALIZATION STEP 5] Baseline conversation lookup failed:', baselineConversationError.message);
+          } else if (existingBaselineConversation) {
+            conversation = existingBaselineConversation;
+            console.log('[AI CONVERSATION FOUND]', { conversationId: conversation.id });
+          }
         }
 
-        console.log('[AI CONVERSATION LOOKUP RESULT]', { 
-          conversationId: conversation?.id || 'null',
-          conversationError: conversationError?.message || 'none',
-          leadId: lead.id
-        });
+        if (!conversation) {
+          console.log('[AI CONVERSATION LOOKUP START]', { 
+            businessId: sessionBusinessId,
+            leadId: lead.id,
+            operation: 'conversation upsert for ai_call_records linking'
+          });
+          // Lookup existing conversation by lead_id
+          const { data: existingConversation, error: conversationLookupError } = await supabase
+            .from('conversations')
+            .select('*')
+            .eq('lead_id', lead.id)
+            .maybeSingle();
 
-        if (conversationError) {
-          console.log('[COMPLETE FINALIZATION STEP 5 FAILED] =========================================');
-          console.log('[COMPLETE FINALIZATION STEP 5 FAILED] Conversation creation failed');
-          console.log('[COMPLETE FINALIZATION STEP 5 FAILED] Error:', conversationError.message);
-          console.log('[COMPLETE FINALIZATION STEP 5 FAILED] Timestamp:', new Date().toISOString());
-          console.log('[COMPLETE FINALIZATION STEP 5 FAILED] =========================================');
-          
-          console.log('[AI CONVERSATION UPSERT FAILED]', conversationError);
-          throw conversationError;
+          let conversationError;
+
+          if (existingConversation) {
+            conversation = existingConversation;
+            console.log('[AI CONVERSATION FOUND]', { conversationId: conversation.id });
+          } else {
+            const result = await supabase
+              .from('conversations')
+              .insert({
+                business_id: sessionBusinessId,
+                lead_id: lead.id,
+                status: 'open',
+                last_activity_at: new Date().toISOString(),
+              })
+              .select()
+              .single();
+            conversation = result.data;
+            conversationError = result.error;
+          }
+
+          console.log('[AI CONVERSATION LOOKUP RESULT]', { 
+            conversationId: conversation?.id || 'null',
+            conversationError: conversationError?.message || 'none',
+            leadId: lead.id
+          });
+
+          if (conversationError) {
+            console.log('[COMPLETE FINALIZATION STEP 5 FAILED] =========================================');
+            console.log('[COMPLETE FINALIZATION STEP 5 FAILED] Conversation creation failed');
+            console.log('[COMPLETE FINALIZATION STEP 5 FAILED] Error:', conversationError.message);
+            console.log('[COMPLETE FINALIZATION STEP 5 FAILED] Timestamp:', new Date().toISOString());
+            console.log('[COMPLETE FINALIZATION STEP 5 FAILED] =========================================');
+            console.log('[AI CONVERSATION UPSERT FAILED]', conversationError);
+            throw conversationError;
+          }
         }
 
         console.log('[AI CONVERSATION UPSERT RESULT]', { conversationId: conversation.id, leadId: lead.id });
@@ -12849,7 +12983,9 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
           businessName || '',
           forwardedFrom || '',
           supabase,
-          closingState
+          closingState,
+          (ws as any).leadId || null,
+          (ws as any).conversationId || null
         ).catch(error => {
           console.log('[TWILIO WEBSOCKET CLOSE] Incomplete finalization failed:', error);
         });

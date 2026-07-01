@@ -48,6 +48,7 @@ export interface CreateSessionParams {
 
 export interface UpdateSessionParams {
   status?: AICallSession['status']
+  lead_id?: string | null
   outcome?: AICallSession['outcome']
   fallback_stage?: string
   connected_at?: string
