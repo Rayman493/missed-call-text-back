@@ -1014,6 +1014,19 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           raw_metadata: correctedMetadata
         }
 
+        const correctedName = nameCorrection?.newValue?.trim() || null
+
+        console.log('[NAME CORRECTION DEBUG] =========================================');
+        console.log('[NAME CORRECTION DEBUG] leadId:', lead.id);
+        console.log('[NAME CORRECTION DEBUG] messageBody:', body);
+        console.log('[NAME CORRECTION DEBUG] detected:', !!nameCorrection);
+        console.log('[NAME CORRECTION DEBUG] correctedName:', correctedName);
+        console.log('[NAME CORRECTION DEBUG] updatePayload:', {
+          raw_metadata: correctedMetadata,
+          name: correctedName || '(unchanged)'
+        });
+        console.log('[NAME CORRECTION DEBUG] =========================================');
+
         if (nameCorrection && nameCorrection.newValue && nameCorrection.newValue.trim()) {
           leadUpdatePayload.name = nameCorrection.newValue.trim()
           console.log('[AI CORRECTION UPDATING LEAD NAME]', {
@@ -1025,6 +1038,12 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         }
 
         const leadWithCorrection = await db.updateLead(lead.id, leadUpdatePayload)
+
+        console.log('[NAME CORRECTION DEBUG] =========================================');
+        console.log('[NAME CORRECTION DEBUG] leadId:', lead.id);
+        console.log('[NAME CORRECTION DEBUG] updateSuccess:', !!leadWithCorrection);
+        console.log('[NAME CORRECTION DEBUG] error:', leadWithCorrection ? null : 'Failed to update lead');
+        console.log('[NAME CORRECTION DEBUG] =========================================');
 
         if (leadWithCorrection) {
           console.log('[AI CORRECTION LEAD METADATA PERSIST SUCCESS]', {

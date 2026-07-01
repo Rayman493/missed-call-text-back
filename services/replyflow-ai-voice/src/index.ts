@@ -5750,6 +5750,17 @@ Reply to this message if you'd like to update or add any information.
             .from('ai_call_records')
             .insert(aiCallRecordPayload);
 
+          console.log('[AI RECORD WRITE DEBUG] =========================================');
+          console.log('[AI RECORD WRITE DEBUG] callSid:', aiCallRecordPayload.call_sid);
+          console.log('[AI RECORD WRITE DEBUG] businessId:', aiCallRecordPayload.business_id);
+          console.log('[AI RECORD WRITE DEBUG] leadId:', aiCallRecordPayload.lead_id);
+          console.log('[AI RECORD WRITE DEBUG] conversationId:', aiCallRecordPayload.conversation_id);
+          console.log('[AI RECORD WRITE DEBUG] outcome:', aiCallRecordPayload.outcome);
+          console.log('[AI RECORD WRITE DEBUG] extractedInfoKeys:', Object.keys(aiCallRecordPayload.extracted_info));
+          console.log('[AI RECORD WRITE DEBUG] success:', !callRecordError);
+          console.log('[AI RECORD WRITE DEBUG] error:', callRecordError || null);
+          console.log('[AI RECORD WRITE DEBUG] =========================================');
+
           if (callRecordError) {
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: simple_mode_ai_call_record_insert_failed');
