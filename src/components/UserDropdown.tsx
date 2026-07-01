@@ -8,7 +8,8 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { handleBillingAction } from '@/lib/billing'
 // import ThemeSelector from '@/components/ThemeSelector' // Temporarily disabled for mobile crash fix
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { HelpCircle, ExternalLink, LogOut, Settings, CreditCard, ChevronDown, User, Layout, CreditCard as BillingIcon, Home } from 'lucide-react'
+import { ChevronDown, User } from 'lucide-react'
+import { accountMenuItems } from '@/lib/navigation-config'
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false)
@@ -150,47 +151,50 @@ export default function UserDropdown() {
 
                 {/* Navigation Items */}
                 <div className="py-1">
-                  {/* Account Settings */}
-                  <Link
-                    href="/dashboard/settings"
-                    onClick={() => setIsOpen(false)}
-                    className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
-                  >
-                    <Settings className="w-4 h-4 text-muted-foreground" />
-                    Account Settings
-                  </Link>
-
-                  {/* Billing */}
-                  <button
-                    onClick={handleManageBilling}
-                    className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
-                  >
-                    <BillingIcon className="w-4 h-4 text-muted-foreground" />
-                    Billing
-                  </button>
-
-                  {/* View Homepage */}
-                  <Link
-                    href="/"
-                    onClick={() => setIsOpen(false)}
-                    className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
-                  >
-                    <Home className="w-4 h-4 text-muted-foreground" />
-                    View Homepage
-                  </Link>
+                  {accountMenuItems.map((item) => {
+                    const Icon = item.icon
+                    const isDanger = item.variant === 'danger'
+                    const isBilling = item.action === 'billing'
+                    
+                    const handleClick = async () => {
+                      setIsOpen(false)
+                      if (isBilling) {
+                        await handleManageBilling()
+                      } else if (item.action === 'signout') {
+                        await handleSignOut()
+                      }
+                    }
+                    
+                    if (item.href && !isBilling) {
+                      return (
+                        <Link
+                          key={item.label}
+                          href={item.href}
+                          onClick={() => setIsOpen(false)}
+                          className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
+                        >
+                          <Icon className="w-4 h-4 text-muted-foreground" />
+                          {item.label}
+                        </Link>
+                      )
+                    }
+                    
+                    return (
+                      <button
+                        key={item.label}
+                        onClick={handleClick}
+                        className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-3 ${
+                          isDanger
+                            ? 'text-red-400/90 hover:text-red-400 hover:bg-muted'
+                            : 'text-foreground hover:bg-muted'
+                        }`}
+                      >
+                        <Icon className={`w-4 h-4 ${isDanger ? '' : 'text-muted-foreground'}`} />
+                        {item.label}
+                      </button>
+                    )
+                  })}
                 </div>
-
-                {/* Divider before Sign Out */}
-                <div className="border-t border-border my-1"></div>
-
-                {/* Sign Out */}
-                <button
-                  onClick={handleSignOut}
-                  className="w-full px-4 py-2.5 text-left text-sm text-red-400/90 hover:text-red-400 hover:bg-muted transition-colors flex items-center gap-3"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign Out
-                </button>
             </div>
           )}
         </>

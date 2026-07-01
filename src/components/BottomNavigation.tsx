@@ -4,7 +4,9 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { Home, Users, Calendar, Settings, User, ExternalLink, LogOut, X } from 'lucide-react'
+import { Home, Users, Calendar, CreditCard, Settings, ExternalLink, LogOut, X } from 'lucide-react'
+import { primaryNavItems, accountMenuItems } from '@/lib/navigation-config'
+import { handleBillingAction } from '@/lib/billing'
 
 interface BottomNavigationProps {
   onLogout?: () => void
@@ -30,12 +32,6 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     return null
   }
 
-  const navItems = [
-    { href: '/dashboard', icon: Home, label: 'Dashboard' },
-    { href: '/dashboard/leads', icon: Users, label: 'Leads' },
-    { href: '/dashboard/calendar', icon: Calendar, label: 'Schedule' },
-  ]
-
   const isActive = (href: string) => {
     if (href === '/dashboard') {
       return pathname === '/dashboard'
@@ -59,7 +55,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 z-50 pb-safe md:hidden">
         <div className="max-w-7xl mx-auto px-2 sm:px-4">
           <div className="flex items-center justify-around h-16 sm:h-16">
-            {navItems.map((item) => {
+            {primaryNavItems.map((item) => {
               const Icon = item.icon
               return (
                 <Link
@@ -120,48 +116,79 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
               </div>
 
               <div className="space-y-1">
-                <Link
-                  href="/dashboard/settings"
-                  onClick={() => setIsMoreMenuOpen(false)}
-                  className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"
-                >
-                  <div className="w-11 h-11 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Settings className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-900 dark:text-foreground">Settings</div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">Configure your account</div>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/"
-                  onClick={() => setIsMoreMenuOpen(false)}
-                  className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"
-                >
-                  <div className="w-11 h-11 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <ExternalLink className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-slate-900 dark:text-foreground">View Public Site</div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">Go to homepage</div>
-                  </div>
-                </Link>
-
-                <div className="h-px bg-slate-200 dark:bg-slate-700 my-2" />
-
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-4 p-4 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors w-full active:scale-[0.98]"
-                >
-                  <div className="w-11 h-11 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="font-medium text-red-600 dark:text-red-400">Logout</div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400">Sign out of your account</div>
-                  </div>
-                </button>
+                {accountMenuItems.map((item) => {
+                  const Icon = item.icon
+                  const isDanger = item.variant === 'danger'
+                  const isBilling = item.action === 'billing'
+                  const isSignOut = item.action === 'signout'
+                  
+                  const handleClick = async () => {
+                    setIsMoreMenuOpen(false)
+                    if (isBilling) {
+                      try {
+                        const result = await handleBillingAction()
+                        if (result.success && result.url && typeof window !== 'undefined') {
+                          window.location.href = result.url
+                        }
+                      } catch (error) {
+                        console.error('Billing action error:', error)
+                      }
+                    } else if (isSignOut) {
+                      await handleLogout()
+                    }
+                  }
+                  
+                  const content = (
+                    <div className="flex items-center gap-4">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        isDanger
+                          ? 'bg-red-100 dark:bg-red-900/30'
+                          : isBilling
+                          ? 'bg-purple-100 dark:bg-purple-900/30'
+                          : 'bg-blue-100 dark:bg-blue-900/30'
+                      }`}>
+                        <Icon className={`w-5 h-5 ${
+                          isDanger
+                            ? 'text-red-600 dark:text-red-400'
+                            : isBilling
+                            ? 'text-purple-600 dark:text-purple-400'
+                            : 'text-blue-600 dark:text-blue-400'
+                        }`} />
+                      </div>
+                      <div className="flex-1">
+                        <div className={`font-medium ${isDanger ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-foreground'}`}>
+                          {item.label}
+                        </div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400">
+                          {isDanger ? 'Sign out of your account' : isBilling ? 'Manage your subscription' : item.label === 'View Homepage' ? 'Go to homepage' : 'Configure your account'}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                  
+                  if (item.href && !isBilling) {
+                    return (
+                      <Link
+                        key={item.label}
+                        href={item.href}
+                        onClick={() => setIsMoreMenuOpen(false)}
+                        className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"
+                      >
+                        {content}
+                      </Link>
+                    )
+                  }
+                  
+                  return (
+                    <button
+                      key={item.label}
+                      onClick={handleClick}
+                      className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors w-full active:scale-[0.98]"
+                    >
+                      {content}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </div>

@@ -8,6 +8,7 @@ import { useBusinessSafe } from '@/contexts/BusinessContext'
 import { Home } from 'lucide-react'
 import UserDropdown from '@/components/UserDropdown'
 import BrandIcon from '@/components/BrandIcon'
+import { primaryNavItems } from '@/lib/navigation-config'
 
 interface NavbarProps {
   forceDark?: boolean
@@ -144,32 +145,25 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                   )}
                 </>
               ) : (
-                // App pages: show full app navigation
+                // App pages: show full app navigation from shared config
                 <>
-                  <Link
-                    href="/dashboard"
-                    className="text-base font-semibold text-gray-200 hover:text-white transition-colors hidden sm:block py-1"
-                  >
-                    Dashboard
-                  </Link>
-                  <Link
-                    href="/dashboard/leads"
-                    className="text-base font-semibold text-gray-200 hover:text-white transition-colors hidden sm:block py-1"
-                  >
-                    Leads
-                  </Link>
-                  <Link
-                    href="/dashboard/calendar"
-                    className="text-base font-semibold text-gray-200 hover:text-white transition-colors hidden sm:block py-1"
-                  >
-                    Schedule
-                  </Link>
-                  <Link
-                    href="/dashboard/settings"
-                    className="text-base font-semibold text-gray-200 hover:text-white transition-colors hidden sm:block py-1"
-                  >
-                    Settings
-                  </Link>
+                  {primaryNavItems.map((item) => {
+                    const currentPath = pathname || ''
+                    const isActive = item.isActive ? item.isActive(currentPath) : currentPath === item.href || currentPath.startsWith(item.href + '/')
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`text-base font-semibold transition-colors hidden sm:block py-1 ${
+                          isActive
+                            ? 'text-white'
+                            : 'text-gray-200 hover:text-white'
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    )
+                  })}
                 </>
               )}
               
