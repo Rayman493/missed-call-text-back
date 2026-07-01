@@ -498,7 +498,12 @@ function StepContent({ step }: { step: number }) {
   }
 }
 
-export default function InteractiveDemoWalkthrough() {
+interface InteractiveDemoWalkthroughProps {
+  compact?: boolean
+  showHeader?: boolean
+}
+
+export default function InteractiveDemoWalkthrough({ compact = false, showHeader = true }: InteractiveDemoWalkthroughProps) {
   const [step, setStep] = useState(0)
   const [autoPlay, setAutoPlay] = useState(false)
   const [direction, setDirection] = useState(1)
@@ -535,9 +540,9 @@ export default function InteractiveDemoWalkthrough() {
     }
     const timer = setTimeout(() => {
       next()
-    }, 4500)
+    }, compact ? 3500 : 4500)
     return () => clearTimeout(timer)
-  }, [autoPlay, step, next])
+  }, [autoPlay, step, next, compact])
 
   const isFirst = step === 0
   const isLast = step === steps.length - 1
@@ -545,7 +550,7 @@ export default function InteractiveDemoWalkthrough() {
   return (
     <div className="w-full">
       {/* Progress bar */}
-      <div className="mb-6 sm:mb-8">
+      <div className={`${compact ? 'mb-4' : 'mb-6 sm:mb-8'}`}>
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Step {step + 1} of {steps.length}
@@ -565,7 +570,7 @@ export default function InteractiveDemoWalkthrough() {
       </div>
 
       {/* Step content */}
-      <div className="relative min-h-[360px] sm:min-h-[400px]">
+      <div className={`relative ${compact ? 'min-h-[300px] sm:min-h-[320px]' : 'min-h-[360px] sm:min-h-[400px]'}`}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={step}
@@ -575,13 +580,15 @@ export default function InteractiveDemoWalkthrough() {
             transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
             className="w-full"
           >
-            <Card className="p-5 sm:p-8 min-h-[360px] sm:min-h-[400px] flex flex-col">
-              <div className="flex items-center gap-3 mb-5 sm:mb-6">
-                <StepBadge number={step + 1} color={step === 8 ? 'green' : 'blue'} />
-                <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">
-                  {steps[step].label}
-                </h2>
-              </div>
+            <Card className={`${compact ? 'p-4 sm:p-5 min-h-[300px] sm:min-h-[320px]' : 'p-5 sm:p-8 min-h-[360px] sm:min-h-[400px]'} flex flex-col`}>
+              {showHeader && (
+                <div className={`flex items-center gap-3 ${compact ? 'mb-3' : 'mb-5 sm:mb-6'}`}>
+                  <StepBadge number={step + 1} color={step === 8 ? 'green' : 'blue'} />
+                  <h2 className={`font-semibold text-slate-900 dark:text-white ${compact ? 'text-base sm:text-lg' : 'text-lg sm:text-xl'}`}>
+                    {steps[step].label}
+                  </h2>
+                </div>
+              )}
               <div className="flex-1 flex items-center justify-center">
                 <StepContent step={step} />
               </div>
@@ -591,12 +598,12 @@ export default function InteractiveDemoWalkthrough() {
       </div>
 
       {/* Controls */}
-      <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${compact ? 'mt-4 sm:mt-5' : 'mt-6 sm:mt-8'}`}>
         <div className="flex items-center gap-2">
           <button
             onClick={previous}
             disabled={isFirst}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className={`inline-flex items-center gap-1.5 rounded-lg font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors ${compact ? 'px-3 py-2 text-xs' : 'px-4 py-2.5 text-sm'}`}
             aria-label="Previous step"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -604,7 +611,7 @@ export default function InteractiveDemoWalkthrough() {
           </button>
           <button
             onClick={restart}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            className={`inline-flex items-center gap-1.5 rounded-lg font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${compact ? 'px-3 py-2 text-xs' : 'px-4 py-2.5 text-sm'}`}
             aria-label="Restart demo"
           >
             <RefreshCcw className="w-4 h-4" />
@@ -615,11 +622,11 @@ export default function InteractiveDemoWalkthrough() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setAutoPlay(!autoPlay)}
-            className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors border ${
+            className={`inline-flex items-center gap-1.5 rounded-lg font-medium transition-colors border ${
               autoPlay
                 ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800 dark:hover:bg-amber-900/30'
                 : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-            }`}
+            } ${compact ? 'px-3 py-2 text-xs' : 'px-4 py-2.5 text-sm'}`}
             aria-label={autoPlay ? 'Pause autoplay' : 'Start autoplay'}
           >
             {autoPlay ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -628,7 +635,7 @@ export default function InteractiveDemoWalkthrough() {
           <button
             onClick={next}
             disabled={isLast}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+            className={`inline-flex items-center gap-1.5 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm ${compact ? 'px-4 py-2 text-xs' : 'px-5 py-2.5 text-sm'}`}
             aria-label="Next step"
           >
             {isLast ? 'Done' : 'Next'}
