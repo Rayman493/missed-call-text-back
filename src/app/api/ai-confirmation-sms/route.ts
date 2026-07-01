@@ -540,11 +540,15 @@ export async function POST(request: NextRequest) {
     // Choose SMS template based on AI outcome
     // completed_intake/completed -> AI summary (existing behavior)
     // partial_intake -> brief partial info SMS
-    // early_hangup/no_speech with no info -> intake-oriented guided message
-    // early_hangup/no_speech with some info -> standard missed-call SMS
+    // incomplete/early_hangup/no_speech with no info -> intake-oriented guided message
+    // incomplete/early_hangup/no_speech with some info -> standard missed-call SMS
     const isCompletedIntake = aiOutcome === 'completed_intake' || aiOutcome === 'completed' || aiOutcome === 'ai_completed';
     const isPartialIntake = aiOutcome === 'partial_intake';
-    const isEarlyHangup = aiOutcome === 'early_hangup' || aiOutcome === 'no_speech' || aiOutcome === 'ai_connection_failed';
+    const isIncompleteOrEarlyHangup = aiOutcome === 'incomplete' ||
+                                      aiOutcome === 'early_hangup' ||
+                                      aiOutcome === 'no_speech' ||
+                                      aiOutcome === 'ai_connection_failed' ||
+                                      aiOutcome === 'caller_hung_up';
 
     // Check if any intake information was collected
     const hasAnyIntakeInfo = extracted.callerName?.trim() ||
@@ -556,13 +560,16 @@ export async function POST(request: NextRequest) {
 
     let messageBody: string;
     let selectedTemplate: string;
+    let selectionReason: string;
 
     if (isCompletedIntake) {
       selectedTemplate = 'ai_summary';
+      selectionReason = 'ai_intake_completed';
       console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] formatAiIntakeSummary via generateSummaryFromExtractedInfo');
       messageBody = generateSummaryFromExtractedInfo(extracted, callerPhone, businessName, prefixNotice);
     } else if (isPartialIntake) {
       selectedTemplate = 'partial_intake';
+      selectionReason = 'partial_intake';
       const collectedParts: string[] = [];
       if (extracted.callerName?.trim()) collectedParts.push(`Name: ${extracted.callerName.trim()}`);
       if (extracted.reasonForCalling?.trim()) collectedParts.push(`Service: ${extracted.reasonForCalling.trim()}`);
@@ -574,9 +581,10 @@ export async function POST(request: NextRequest) {
       const partialInfo = collectedParts.length > 0 ? `\n\nWe got: ${collectedParts.join('; ')}` : '';
       const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
       messageBody = `${prefix}Hi, this is ${businessName}. We just missed your call.${partialInfo} Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`;
-    } else if (isEarlyHangup && !hasAnyIntakeInfo) {
-      // Early hangup with no information collected - use intake-oriented guided message
+    } else if (isIncompleteOrEarlyHangup && !hasAnyIntakeInfo) {
+      // Incomplete or early hangup with no information collected - use intake-oriented guided message
       selectedTemplate = 'early_hangup_no_info';
+      selectionReason = 'incomplete_no_info';
       const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
       messageBody = `${prefix}Hi, this is ${businessName}. We noticed the call ended before we could collect your information.
 
@@ -586,20 +594,33 @@ Please reply with:
 • What you need help with
 • Service address (if applicable)
 • When you'd like the work completed
-• The best time for us to call you back
+• Best time for us to call you back
 
-We'll pass everything to the business and they'll get back to you soon.
+We'll pass this to the business and they'll get back to you soon.
 
 Reply STOP to opt out.`;
     } else {
       // Standard missed-call fallback for no useful info or unknown outcome
       selectedTemplate = 'missed_call';
+      selectionReason = isIncompleteOrEarlyHangup ? 'incomplete_with_info' : 'standard_missed_call';
       const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
       const autoReplyMessage = business.auto_reply_message && business.auto_reply_message.trim()
         ? business.auto_reply_message.replace(/\{\{business_name\}\}/gi, businessName)
         : `Hi, this is ${businessName}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`;
       messageBody = `${prefix}${autoReplyMessage}`;
     }
+
+    // Temporary debug logs for decision logic
+    console.log('[AI SMS TEMPLATE DECISION]', {
+      callSid,
+      outcome: aiOutcome,
+      hasAnyIntakeInfo,
+      selectedTemplate,
+      reason: selectionReason,
+      isIncompleteOrEarlyHangup,
+      isPartialIntake,
+      isCompletedIntake
+    });
 
     console.log('[AI SMS FINAL BODY PREVIEW] =========================================');
     console.log('[AI SMS FINAL BODY PREVIEW] Template:', selectedTemplate);
