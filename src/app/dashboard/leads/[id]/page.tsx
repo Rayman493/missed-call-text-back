@@ -1029,13 +1029,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           conversation: result.conversation || result.lead.conversation
         }
 
-        console.log('[LEAD DETAIL INITIAL LOAD]', {
-          leadId: leadWithMergedData.id,
-          leadName: leadWithMergedData.name,
-          messageCount: messages.length,
-          customerName: getLeadAIIntake(leadWithMergedData).customerName
-        })
-
+        
         setLeadData(leadWithMergedData)
         setLoading(false)
         return

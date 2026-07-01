@@ -609,7 +609,7 @@ export default function SettingsContent() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to change phone number')
+        throw new Error(error.error || 'We couldn\'t change your phone number. Please try again.')
       }
 
       const data = await response.json()
@@ -622,11 +622,11 @@ export default function SettingsContent() {
         // Check cooldown again
         checkPhoneCooldown()
       } else {
-        throw new Error(data.error || 'Failed to change phone number')
+        throw new Error(data.error || 'We couldn\'t change your phone number. Please try again.')
       }
     } catch (error) {
       console.error('[Settings] Error changing phone number:', error)
-      setPhoneChangeError(error instanceof Error ? error.message : 'Failed to change phone number')
+      setPhoneChangeError(error instanceof Error ? error.message : 'We couldn\'t change your phone number. Please try again.')
     } finally {
       setIsChangingPhone(false)
     }
@@ -661,7 +661,7 @@ export default function SettingsContent() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to start Stripe onboarding')
+        throw new Error(error.error || 'We couldn\'t start the Stripe connection. Please try again.')
       }
 
       const data = await response.json()
@@ -676,7 +676,7 @@ export default function SettingsContent() {
       }
     } catch (error) {
       console.error('[Settings] Error connecting Stripe:', error)
-      showToast(error instanceof Error ? error.message : 'Failed to connect Stripe', 'error')
+      showToast(error instanceof Error ? error.message : 'We couldn\'t connect Stripe. Please try again.', 'error')
     } finally {
       setIsConnectingStripe(false)
     }

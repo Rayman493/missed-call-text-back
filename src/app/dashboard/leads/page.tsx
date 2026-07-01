@@ -59,7 +59,7 @@ function getCompactSummary(lead: any): string {
   const intake = getLeadAIIntake(lead)
   const name = intake.customerName
   const service = intake.serviceRequested
-  if (name && service) { const p = truncateText(`${name} • ${service}`, 80); console.log('[lead_preview_generated]', { name, service, preview: p }); return p; }
+  if (name && service) { return truncateText(`${name} • ${service}`, 80); }
   if (service) return truncateText(service, 80)
   if (name) return truncateText(name, 80)
 
