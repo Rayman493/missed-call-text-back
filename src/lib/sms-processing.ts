@@ -1043,9 +1043,14 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         console.log('[NAME CORRECTION DEBUG] leadId:', lead.id);
         console.log('[NAME CORRECTION DEBUG] updateSuccess:', !!leadWithCorrection);
         console.log('[NAME CORRECTION DEBUG] error:', leadWithCorrection ? null : 'Failed to update lead');
+        if (leadWithCorrection) {
+          console.log('[NAME CORRECTION DEBUG] updatedLeadName:', leadWithCorrection.name);
+        }
         console.log('[NAME CORRECTION DEBUG] =========================================');
 
         if (leadWithCorrection) {
+          // CRITICAL: Update local lead variable so subsequent updates use corrected metadata
+          lead = leadWithCorrection
           console.log('[AI CORRECTION LEAD METADATA PERSIST SUCCESS]', {
             leadId: leadWithCorrection.id,
             corrections_count: correctedMetadata.corrections_count,
@@ -1161,12 +1166,14 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.log('[LEAD RAW METADATA UPDATE AFTER]', {
       leadId: lead.id,
       success: !!leadWithReplyFlag,
+      updatedName: leadWithReplyFlag?.name,
       updatedRawMetadata: leadWithReplyFlag?.raw_metadata
     })
 
     if (leadWithReplyFlag) {
       console.log('[LEAD CUSTOMER REPLIED FLAG UPDATED]', {
         leadId: leadWithReplyFlag.id,
+        leadName: leadWithReplyFlag.name,
         last_customer_reply_at: updatedMetadata.last_customer_reply_at,
         replied_after_ai_call: updatedMetadata.replied_after_ai_call
       })

@@ -196,6 +196,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
+  const currentLeadIdRef = useRef<string | null>(null)
   const supabase = createBrowserClient()
 
   // ALL hooks must must be declared here before any conditional returns
@@ -1028,6 +1029,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           conversation: result.conversation || result.lead.conversation
         }
 
+        console.log('[LEAD DETAIL INITIAL LOAD]', {
+          leadId: leadWithMergedData.id,
+          leadName: leadWithMergedData.name,
+          messageCount: messages.length,
+          customerName: getLeadAIIntake(leadWithMergedData).customerName
+        })
+
         setLeadData(leadWithMergedData)
         setLoading(false)
         return
@@ -1061,9 +1069,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }, [])
 
   // Realtime subscription for messages, leads, and payment requests
-  // Use ref to track lead ID to prevent churn when leadData updates
-  const currentLeadIdRef = useRef<string | null>(null)
-  
   useEffect(() => {
     const leadId = leadData?.id
     if (!leadId || !supabase) return
@@ -1091,16 +1096,34 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           filter: `lead_id=eq.${leadId}`
         },
         (payload: any) => {
+          console.log('[REALTIME MESSAGE EVENT]', {
+            leadId,
+            eventType: payload.eventType,
+            messageId: payload.new?.id,
+            messageBody: payload.new?.body?.substring(0, 50)
+          })
           if (payload.eventType === 'INSERT') {
             const newMessage = payload.new
             setLeadData((prev: any) => {
-              if (!prev) return prev
+              if (!prev) {
+                console.log('[REALTIME MESSAGE INSERT] No prev leadData, skipping')
+                return prev
+              }
               
               const existingMessage = prev.messages?.find((msg: any) => msg.id === newMessage.id)
-              if (existingMessage) return prev
+              if (existingMessage) {
+                console.log('[REALTIME MESSAGE INSERT] Message already exists, skipping:', newMessage.id)
+                return prev
+              }
               
               const updatedMessages = [...(prev.messages || []), newMessage]
                 .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+              
+              console.log('[REALTIME MESSAGE INSERT] Adding message to state:', {
+                messageId: newMessage.id,
+                previousCount: prev.messages?.length || 0,
+                newCount: updatedMessages.length
+              })
               
               setTimeout(() => scrollToBottom('smooth'), 100)
               
@@ -1113,11 +1136,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           } else if (payload.eventType === 'UPDATE') {
             const updatedMessage = payload.new
             setLeadData((prev: any) => {
-              if (!prev) return prev
+              if (!prev) {
+                console.log('[REALTIME MESSAGE UPDATE] No prev leadData, skipping')
+                return prev
+              }
               
               const updatedMessages = prev.messages?.map((msg: any) => 
                 msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
               )
+              
+              console.log('[REALTIME MESSAGE UPDATE] Updating message in state:', {
+                messageId: updatedMessage.id,
+                found: prev.messages?.some((msg: any) => msg.id === updatedMessage.id)
+              })
               
               return { ...prev, messages: updatedMessages }
             })
@@ -1133,10 +1164,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           filter: `id=eq.${leadId}`
         },
         (payload: any) => {
+          console.log('[REALTIME LEAD EVENT]', {
+            leadId,
+            eventType: payload.eventType,
+            updatedLeadId: payload.new?.id,
+            updatedName: payload.new?.name,
+            updatedRawMetadata: payload.new?.raw_metadata
+          })
           const updatedLead = payload.new
           setLeadData((prev: any) => {
-            if (!prev) return prev
-            return { ...prev, ...updatedLead, raw_metadata: { ...prev.raw_metadata, ...updatedLead.raw_metadata } }
+            if (!prev) {
+              console.log('[REALTIME LEAD UPDATE] No prev leadData, skipping')
+              return prev
+            }
+            const merged = { ...prev, ...updatedLead, raw_metadata: { ...prev.raw_metadata, ...updatedLead.raw_metadata } }
+            console.log('[REALTIME LEAD UPDATE] Merging lead update:', {
+              previousName: prev.name,
+              newName: merged.name,
+              previousCustomerName: getLeadAIIntake(prev).customerName,
+              newCustomerName: getLeadAIIntake(merged).customerName
+            })
+            return merged
           })
         }
       )
