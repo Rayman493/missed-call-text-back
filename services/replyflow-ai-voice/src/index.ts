@@ -7694,11 +7694,44 @@ Return only JSON, no other text.`;
           callerPhone: sessionCallerPhone
         });
 
-        const { data: newRecord, error: newRecordError } = await supabase
+        // Upsert ai_call_records: update existing if created by voice route, otherwise insert new
+        const { data: existingRecord } = await supabase
           .from('ai_call_records')
-          .insert(mainInsertPayload)
-          .select()
-          .single();
+          .select('id')
+          .eq('call_sid', sessionCallSid)
+          .maybeSingle();
+
+        let newRecord;
+        let newRecordError;
+
+        if (existingRecord) {
+          console.log('[AI CALL RECORD UPSERT] Updating existing record from voice route:', existingRecord.id);
+          const result = await supabase
+            .from('ai_call_records')
+            .update({
+              lead_id: lead.id,
+              conversation_id: conversation.id,
+              outcome: outcome,
+              extracted_info: canonicalCallRecordInfo,
+              summary: extractedFields.summary,
+              transcript: Array.isArray(transcript) ? transcript : [],
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingRecord.id)
+            .select()
+            .single();
+          newRecord = result.data;
+          newRecordError = result.error;
+        } else {
+          console.log('[AI CALL RECORD UPSERT] No existing record, creating new');
+          const result = await supabase
+            .from('ai_call_records')
+            .insert(mainInsertPayload)
+            .select()
+            .single();
+          newRecord = result.data;
+          newRecordError = result.error;
+        }
 
         if (newRecordError) {
           console.log('[COMPLETE FINALIZATION STEP 6 FAILED] =========================================');

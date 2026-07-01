@@ -2127,4 +2127,103 @@ export const db = {
     
     return createdBusiness
   },
+
+  // AI call record operations
+  async createOrUpdateAICallRecord(params: {
+    call_sid: string;
+    business_id: string;
+    lead_id: string | null;
+    conversation_id: string | null;
+    caller_phone: string;
+    ai_session_id?: string | null;
+    outcome?: 'completed' | 'caller_hung_up' | 'ai_failed' | 'voicemail_fallback' | 'incomplete';
+    extracted_info?: any;
+    summary?: string | null;
+    transcript?: Array<{role: string, text: string}> | null;
+  }): Promise<any> {
+    const {
+      call_sid,
+      business_id,
+      lead_id,
+      conversation_id,
+      caller_phone,
+      ai_session_id,
+      outcome = 'incomplete',
+      extracted_info = null,
+      summary = null,
+      transcript = []
+    } = params;
+
+    console.log('[AI CALL RECORD UPSERT] Creating or updating ai_call_records', {
+      call_sid,
+      business_id,
+      lead_id,
+      conversation_id,
+      outcome
+    });
+
+    // Try to update existing record first
+    const { data: existingRecord, error: lookupError } = await supabaseAdmin
+      .from('ai_call_records')
+      .select('id')
+      .eq('call_sid', call_sid)
+      .maybeSingle();
+
+    if (lookupError && lookupError.code !== 'PGRST116') {
+      console.error('[AI CALL RECORD UPSERT] Error looking up existing record:', lookupError);
+    }
+
+    if (existingRecord) {
+      console.log('[AI CALL RECORD UPSERT] Updating existing record:', existingRecord.id);
+      const { data: updatedRecord, error: updateError } = await supabaseAdmin
+        .from('ai_call_records')
+        .update({
+          lead_id,
+          conversation_id,
+          outcome,
+          extracted_info: extracted_info || (existingRecord as any).extracted_info,
+          summary: summary || (existingRecord as any).summary,
+          transcript: transcript && transcript.length > 0 ? transcript : (existingRecord as any).transcript,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingRecord.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('[AI CALL RECORD UPSERT] Update failed:', updateError);
+        return null;
+      }
+
+      console.log('[AI CALL RECORD UPSERT] Update successful:', updatedRecord.id);
+      return updatedRecord;
+    }
+
+    console.log('[AI CALL RECORD UPSERT] No existing record, creating new');
+    const { data: newRecord, error: insertError } = await supabaseAdmin
+      .from('ai_call_records')
+      .insert({
+        call_sid,
+        business_id,
+        lead_id,
+        conversation_id,
+        caller_phone,
+        ai_session_id,
+        outcome,
+        extracted_info,
+        summary,
+        transcript,
+        extraction_failed: false,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('[AI CALL RECORD UPSERT] Insert failed:', insertError);
+      return null;
+    }
+
+    console.log('[AI CALL RECORD UPSERT] Insert successful:', newRecord.id);
+    return newRecord;
+  },
 }

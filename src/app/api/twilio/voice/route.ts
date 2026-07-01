@@ -992,6 +992,40 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
                 leadId: baselineLeadId,
                 conversationId: baselineConversationId
               });
+
+              // Create ai_call_records row immediately with pending status
+              // This ensures voice-status can find the record even if caller hangs up immediately
+              if (baselineLeadId && baselineConversationId) {
+                console.log('[AI BASELINE AI CALL RECORD] Creating ai_call_records with in_progress status', {
+                  callSid: CallSid,
+                  businessId: business.id,
+                  leadId: baselineLeadId,
+                  conversationId: baselineConversationId
+                });
+
+                const aiCallRecord = await db.createOrUpdateAICallRecord({
+                  call_sid: CallSid,
+                  business_id: business.id,
+                  lead_id: baselineLeadId,
+                  conversation_id: baselineConversationId,
+                  caller_phone: normalizedCallerPhone,
+                  ai_session_id: session.id,
+                  outcome: 'incomplete',
+                  extracted_info: null,
+                  summary: null,
+                  transcript: []
+                });
+
+                if (aiCallRecord) {
+                  console.log('[AI BASELINE AI CALL RECORD SUCCESS] Created ai_call_records:', aiCallRecord.id);
+                } else {
+                  console.error('[AI BASELINE AI CALL RECORD FAILED] Could not create ai_call_records', {
+                    callSid: CallSid,
+                    businessId: business.id,
+                    leadId: baselineLeadId
+                  });
+                }
+              }
             } else {
               console.error('[AI BASELINE INTAKE RECORDS FAILED] Could not ensure baseline records', {
                 callSid: CallSid,
