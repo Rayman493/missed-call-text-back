@@ -87,6 +87,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const checkoutParam = searchParams?.get('checkout')
   const sessionId = searchParams?.get('session_id')
   const billingReturnParam = searchParams?.get('billing_return')
+  const billingReturnedParam = searchParams?.get('billing')
   const setupParam = searchParams?.get('setup')
   const isCheckoutRecovery = 
     !stripeParamsCleared && (
@@ -101,6 +102,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     !stripeParamsCleared &&
     !isBillingSuccessPage &&
     (billingReturnParam === 'success' ||
+    billingReturnedParam === 'returned' ||
     Boolean(sessionId?.startsWith('cs_')))
 
   // Check if we're returning from Stripe to setup (grace mode for session restoration)
@@ -125,6 +127,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         url.searchParams.has('checkout') ||
         url.searchParams.has('session_id') ||
         url.searchParams.has('billing_return') ||
+        url.searchParams.has('billing') ||
         url.searchParams.has('setup')
       
       if (hasStripeParams) {
@@ -133,6 +136,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         url.searchParams.delete('checkout')
         url.searchParams.delete('session_id')
         url.searchParams.delete('billing_return')
+        url.searchParams.delete('billing')
         url.searchParams.delete('setup')
         
         // Replace URL without parameters

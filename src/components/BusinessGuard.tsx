@@ -7,7 +7,9 @@ import { useAuth } from '@/contexts/AuthContext'
 import { isActiveSubscription } from '@/lib/subscription'
 import { hasBillingAccess } from '@/lib/manual-access'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
+import StripeReturnLoadingScreen from '@/components/StripeReturnLoadingScreen'
 import { logRouteFlashDebug } from '@/lib/route-flash-debug'
+import { isStripeReturnUrl } from '@/lib/stripe-return'
 
 export default function BusinessGuard({ children }: { children: React.ReactNode }) {
   const { business, loading, fetchComplete, error: businessError, businessMissingConfirmed } = useBusiness()
@@ -161,9 +163,30 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
     }
   }, [business, loading, router, pathname, checkoutStatus, initialized, user, session, fetchComplete, businessMissingConfirmed, businessError])
 
+  // STRIPE RETURN LOADING GATE: After returning from Stripe Checkout or Billing Portal,
+  // keep showing a neutral loading screen until business state is fully rehydrated.
+  // This prevents a flash of onboarding/setup while business is temporarily null/loading.
+  const isStripeReturn = typeof window !== 'undefined' && isStripeReturnUrl(window.location.href)
+  if (isStripeReturn && (loading || !fetchComplete || !business)) {
+    logRouteFlashDebug({
+      source: 'BusinessGuard',
+      pathname,
+      previousPathname: previousPathnameRef.current,
+      authLoading: false,
+      userId: user?.id ?? null,
+      businessId: business?.id ?? null,
+      onboardingStatus: business?.onboarding_status,
+      subscriptionStatus: business?.subscription_status,
+      renderBranch: 'loading',
+      reason: 'Stripe return detected; business still loading or transiently missing; showing StripeReturnLoadingScreen',
+    })
+    return <StripeReturnLoadingScreen />
+  }
+
   // Show loading state while business is loading or not yet initialized
-  // Skip loading if business is already verified and business exists (normal navigation)
-  // FORBID AppLoadingScreen during normal_dashboard_navigation
+  // Skip loading ONLY if business is already verified AND business data is actually present.
+  // During Stripe return rehydration, business can be temporarily null while businessVerified
+  // is cached. Showing children without business data causes the onboarding/setup flash.
   if (showLoading || !initialized) {
     if (businessVerified && business) {
       // Render children immediately, don't wait for loading to complete
@@ -180,37 +203,22 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         reason: 'businessVerified + business present; skip loading overlay',
       })
       return <>{children}</>
-    } else {
-      // Explicit guard: never show full-page loader during normal navigation
-      if (pathname?.startsWith('/dashboard') && businessVerified) {
-        logRouteFlashDebug({
-          source: 'BusinessGuard',
-          pathname,
-          previousPathname: previousPathnameRef.current,
-          authLoading: !initialized,
-          userId: user?.id ?? null,
-          businessId: business?.id ?? null,
-          onboardingStatus: business?.onboarding_status,
-          subscriptionStatus: business?.subscription_status,
-          renderBranch: 'dashboard-content',
-          reason: 'pathname is dashboard and businessVerified; skip loading overlay',
-        })
-        return <>{children}</>
-      }
-      logRouteFlashDebug({
-        source: 'BusinessGuard',
-        pathname,
-        previousPathname: previousPathnameRef.current,
-        authLoading: !initialized,
-        userId: user?.id ?? null,
-        businessId: business?.id ?? null,
-        onboardingStatus: business?.onboarding_status,
-        subscriptionStatus: business?.subscription_status,
-        renderBranch: 'loading',
-        reason: 'business still loading or not initialized; rendering AppLoadingScreen',
-      })
-      return <AppLoadingScreen />
     }
+
+    // If business is still loading or transiently missing, show loading (not onboarding/setup).
+    logRouteFlashDebug({
+      source: 'BusinessGuard',
+      pathname,
+      previousPathname: previousPathnameRef.current,
+      authLoading: !initialized,
+      userId: user?.id ?? null,
+      businessId: business?.id ?? null,
+      onboardingStatus: business?.onboarding_status,
+      subscriptionStatus: business?.subscription_status,
+      renderBranch: 'loading',
+      reason: 'business still loading or not initialized; rendering AppLoadingScreen',
+    })
+    return <AppLoadingScreen />
   }
 
   if (!business) {

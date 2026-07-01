@@ -220,7 +220,6 @@ export function getBusinessOnboardingState(
   }
   
   if (hasNumber && isMessagingReady && forwardingEnabled && phoneSetupComplete && !forwardingVerified) {
-    console.log('[getBusinessOnboardingState] Forwarding enabled but not verified - returning VERIFICATION_PENDING')
     logResult('VERIFICATION_PENDING', 'forwarding enabled but not verified and no successful missed call/SMS/lead')
     return {
       state: 'VERIFICATION_PENDING',
@@ -257,7 +256,6 @@ export function getBusinessOnboardingState(
   // This handles the case where a test call marked onboarding as complete
   // but there may not be leads/conversations/successful SMS yet
   if (hasNumber && isMessagingReady && forwardingVerified && business.onboarding_status === 'completed') {
-    console.log('[getBusinessOnboardingState] Onboarding marked as completed - returning LIVE')
     logResult('LIVE', 'onboarding_status is completed')
     return {
       state: 'LIVE',

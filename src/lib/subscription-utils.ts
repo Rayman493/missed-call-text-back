@@ -149,24 +149,8 @@ export function isReadyForForwardingSetup(business: Business | null | undefined)
  * @param leadCount - Optional: number of leads captured (used to verify test call completion)
  */
 export function deriveSetupState(business: Business | null | undefined, leadCount: number = 0): SetupState {
-  console.log('[deriveSetupState] Calculating setup state:', {
-    businessId: business?.stripe_customer_id,
-    subscription_status: business?.subscription_status,
-    twilio_phone_number: business?.twilio_phone_number,
-    forwarding_verified: business?.forwarding_verified,
-    provisioning_status: business?.provisioning_status,
-    messaging_status: business?.messaging_status,
-    a2p_status: business?.a2p_status,
-    manual_access_enabled: business?.manual_access_enabled,
-    manual_access_expires_at: business?.manual_access_expires_at,
-    leadCount,
-    first_test_call_completed_at: business?.first_test_call_completed_at,
-    phone_setup_completed_at: business?.phone_setup_completed_at
-  })
-
   // If no business data, assume loading
   if (!business) {
-    console.log('[deriveSetupState] No business data - returning loading')
     logRouteFlashDebug({
       source: 'deriveSetupState',
       derivedSetupState: 'loading',
@@ -176,17 +160,23 @@ export function deriveSetupState(business: Business | null | undefined, leadCoun
     return 'loading'
   }
 
-  const hasManualAccess = hasActiveManualAccess(business)
-  if (hasManualAccess) {
-    console.log('[MANUAL ACCESS] Setup eligible - manual access is active', {
-      manualAccessEnabled: business.manual_access_enabled,
-      manualAccessExpiresAt: business.manual_access_expires_at
+  // If onboarding is explicitly marked as completed, trust it and avoid
+  // flashing setup states during Stripe return rehydration.
+  if ((business as any)?.onboarding_status === 'completed') {
+    logRouteFlashDebug({
+      source: 'deriveSetupState',
+      subscriptionStatus: business?.subscription_status,
+      derivedSetupState: 'complete',
+      renderBranch: 'dashboard-content',
+      reason: 'onboarding_status is explicitly completed',
     })
+    return 'complete'
   }
+
+  const hasManualAccess = hasActiveManualAccess(business)
 
   // Check if subscription is active - this is the FIRST check
   if (!hasActiveAccess(business)) {
-    console.log('[deriveSetupState] No active subscription - returning needs_trial')
     logRouteFlashDebug({
       source: 'deriveSetupState',
       subscriptionStatus: business?.subscription_status,
@@ -199,12 +189,10 @@ export function deriveSetupState(business: Business | null | undefined, leadCoun
 
   // Check if provisioning is in progress or number not ready
   const isProvisioning = business.provisioning_status === 'pending' || business.provisioning_status === 'provisioning'
-  const isProvisioned = business.provisioning_status === 'ready' || business.provisioning_status === 'purchased'
   const hasNumber = Boolean(business.twilio_phone_number)
   const isMessagingReady = business.messaging_status === 'active' || business.a2p_status === 'verified' || business.a2p_status === 'approved'
 
   if (isProvisioning || !hasNumber) {
-    console.log('[deriveSetupState] Provisioning or number pending - returning provisioning_or_number_pending')
     logRouteFlashDebug({
       source: 'deriveSetupState',
       subscriptionStatus: business?.subscription_status,
@@ -215,10 +203,6 @@ export function deriveSetupState(business: Business | null | undefined, leadCoun
     return 'provisioning_or_number_pending'
   }
 
-  if (isProvisioned) {
-    console.log('[deriveSetupState] Number provisioned - checking forwarding status')
-  }
-
   // CRITICAL: forwarding_verified is the definitive source of truth.
   // If forwarding has been verified, forwarding IS complete regardless of
   // transient call_forwarding_enabled or phone_setup_completed_at values.
@@ -227,15 +211,7 @@ export function deriveSetupState(business: Business | null | undefined, leadCoun
     business.call_forwarding_enabled === true ||
     Boolean(business.phone_setup_completed_at);
 
-  console.log('[deriveSetupState] Forwarding check:', {
-    forwardingComplete,
-    forwarding_verified: business.forwarding_verified,
-    call_forwarding_enabled: business.call_forwarding_enabled,
-    phone_setup_completed_at: business.phone_setup_completed_at
-  })
-
   if (!forwardingComplete) {
-    console.log('[deriveSetupState] Forwarding not enabled - returning needs_forwarding')
     logRouteFlashDebug({
       source: 'deriveSetupState',
       subscriptionStatus: business?.subscription_status,
@@ -252,16 +228,8 @@ export function deriveSetupState(business: Business | null | undefined, leadCoun
   const hasLeadsCaptured = leadCount > 0
   const hasActualActivity = hasTestCallCompleted || hasLeadsCaptured
 
-  console.log('[deriveSetupState] Test call completion check:', {
-    hasTestCallCompleted,
-    hasLeadsCaptured,
-    hasActualActivity,
-    leadCount
-  })
-
   // If forwarding is verified but no actual test call has happened, needs final test
   if (!hasActualActivity) {
-    console.log('[deriveSetupState] Forwarding verified but no test call completed - returning needs_final_test')
     logRouteFlashDebug({
       source: 'deriveSetupState',
       subscriptionStatus: business?.subscription_status,
@@ -274,8 +242,6 @@ export function deriveSetupState(business: Business | null | undefined, leadCoun
   }
 
   // Forwarding is verified AND test call completed - setup is complete
-  console.log('[deriveSetupState] All checks passed - returning complete')
-
   logRouteFlashDebug({
     source: 'deriveSetupState',
     subscriptionStatus: business?.subscription_status,

@@ -76,6 +76,8 @@ import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/l
 import { getBusinessSetupCompletionState } from '@/lib/setup-completion-state'
 import { isBusinessOutOfOffice, getOutOfOfficeStatus } from '@/lib/out-of-office'
 import { logRouteFlashDebug } from '@/lib/route-flash-debug'
+import { isStripeReturnUrl } from '@/lib/stripe-return'
+import StripeReturnLoadingScreen from '@/components/StripeReturnLoadingScreen'
 
 const DEBUG = process.env.NODE_ENV === 'development'
 const dlog = (...args: any[]) => { if (DEBUG) console.log(...args) }
@@ -821,6 +823,29 @@ export default function DashboardContent() {
   const setupState = isOnboardingCompleted ? 'complete' : deriveSetupState(business)
   const isSetupComplete = setupState === 'complete' || isOnboardingCompleted
 
+  // STRIPE RETURN LOADING GATE: After returning from Stripe, keep showing a neutral
+  // loading screen until the business state is fully rehydrated. This prevents the
+  // onboarding/setup flash caused by business being temporarily null or incomplete
+  // before the final resolved state is known.
+  const isStripeReturn = typeof window !== 'undefined' && isStripeReturnUrl(window.location.href)
+  if (isStripeReturn && (authLoading || businessLoading || !businessFetchComplete || !business)) {
+    logRouteFlashDebug({
+      source: 'DashboardContent',
+      pathname,
+      authLoading,
+      userId: user?.id ?? null,
+      businessId: business?.id ?? null,
+      onboardingStatus: business?.onboarding_status,
+      subscriptionStatus: business?.subscription_status,
+      firstTestCallCompletedAt: business?.first_test_call_completed_at,
+      missedCallCount,
+      derivedSetupState: setupState,
+      renderBranch: 'loading',
+      reason: `Stripe return; authLoading=${authLoading}, businessLoading=${businessLoading}, businessFetchComplete=${businessFetchComplete}, businessPresent=${!!business}; showing StripeReturnLoadingScreen`,
+    })
+    return <StripeReturnLoadingScreen />
+  }
+
   // FULL-SCREEN LOADING GATE: Prevent any UI from rendering until state is resolved
   // This prevents flash of previous setup/onboarding screens during dashboard load
   // Release loading gate when: auth resolved, business fetch resolved, AND (business exists OR no business profile)
@@ -950,13 +975,6 @@ export default function DashboardContent() {
   }
 
   // missedCalls is now tracked in state
-  console.log('[DASHBOARD] rendering main content')
-  console.log('[DASHBOARD] business:', business)
-  console.log('[DASHBOARD] subscription_status:', business?.subscription_status)
-  console.log('[DASHBOARD] isOnboardingComplete:', isOnboardingComplete)
-
-  console.log('[DASHBOARD] rendering AuthGuard and BusinessGuard')
-  console.log('[DASHBOARD RENDER BRANCH] final: main dashboard content')
 
   // TEMPORARY: Binary search - reintroducing sections one by one
   // Step 1: Header section ✓
@@ -1334,7 +1352,6 @@ export default function DashboardContent() {
             {/* Footer */}
             <SectionErrorBoundary sectionName="Footer">
               {(() => {
-                console.log('[Render Child] Footer')
                 return null
               })()}
               <footer className="border-t border-border/50 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/40 mt-6">
