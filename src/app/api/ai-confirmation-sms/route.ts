@@ -540,10 +540,19 @@ export async function POST(request: NextRequest) {
     // Choose SMS template based on AI outcome
     // completed_intake/completed -> AI summary (existing behavior)
     // partial_intake -> brief partial info SMS
-    // early_hangup/no_speech/fallback -> standard missed-call SMS
+    // early_hangup/no_speech with no info -> intake-oriented guided message
+    // early_hangup/no_speech with some info -> standard missed-call SMS
     const isCompletedIntake = aiOutcome === 'completed_intake' || aiOutcome === 'completed' || aiOutcome === 'ai_completed';
     const isPartialIntake = aiOutcome === 'partial_intake';
     const isEarlyHangup = aiOutcome === 'early_hangup' || aiOutcome === 'no_speech' || aiOutcome === 'ai_connection_failed';
+
+    // Check if any intake information was collected
+    const hasAnyIntakeInfo = extracted.callerName?.trim() ||
+                            extracted.reasonForCalling?.trim() ||
+                            extracted.addressOrLocation?.trim() ||
+                            extracted.desiredCompletionTime?.trim() ||
+                            extracted.preferredCallbackTime?.trim() ||
+                            extracted.importantDetails?.trim();
 
     let messageBody: string;
     let selectedTemplate: string;
@@ -565,6 +574,23 @@ export async function POST(request: NextRequest) {
       const partialInfo = collectedParts.length > 0 ? `\n\nWe got: ${collectedParts.join('; ')}` : '';
       const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
       messageBody = `${prefix}Hi, this is ${businessName}. We just missed your call.${partialInfo} Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`;
+    } else if (isEarlyHangup && !hasAnyIntakeInfo) {
+      // Early hangup with no information collected - use intake-oriented guided message
+      selectedTemplate = 'early_hangup_no_info';
+      const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
+      messageBody = `${prefix}Hi, this is ${businessName}. We noticed the call ended before we could collect your information.
+
+Please reply with:
+
+• Your name
+• What you need help with
+• Service address (if applicable)
+• When you'd like the work completed
+• The best time for us to call you back
+
+We'll pass everything to the business and they'll get back to you soon.
+
+Reply STOP to opt out.`;
     } else {
       // Standard missed-call fallback for no useful info or unknown outcome
       selectedTemplate = 'missed_call';

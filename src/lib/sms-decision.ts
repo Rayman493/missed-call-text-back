@@ -51,7 +51,7 @@ function isWithinBusinessHours(business: any): boolean {
 /**
  * SMS Decision Types
  */
-export type SmsTemplate = 'ai_summary' | 'partial_intake' | 'missed_call' | 'after_hours' | 'out_of_office' | 'none'
+export type SmsTemplate = 'ai_summary' | 'partial_intake' | 'missed_call' | 'after_hours' | 'out_of_office' | 'early_hangup_no_info' | 'none'
 
 export interface SmsDecisionResult {
   template: SmsTemplate
