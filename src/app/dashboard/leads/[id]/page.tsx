@@ -1060,11 +1060,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     fetchFollowUpSettings()
   }, [])
 
-  // Realtime subscription for messages
+  // Realtime subscription for messages, leads, and payment requests
   useEffect(() => {
     if (!leadData?.id || !supabase) return
-
-    // Quiet setup - only log errors
 
     // Clean up existing subscription
     if (realtimeChannelRef.current) {
@@ -1073,7 +1071,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     // Set up new subscription
     const channel = supabase
-      .channel(`messages:${leadData.id}`)
+      .channel(`lead-detail:${leadData.id}`)
       .on(
         'postgres_changes',
         {
@@ -1083,30 +1081,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           filter: `lead_id=eq.${leadData.id}`
         },
         (payload: any) => {
-          // Quiet message handling
-          
           if (payload.eventType === 'INSERT') {
-            // New message inserted
             const newMessage = payload.new
             setLeadData((prev: any) => {
               if (!prev) return prev
               
-              // Check if message already exists to prevent duplicates
               const existingMessage = prev.messages?.find((msg: any) => msg.id === newMessage.id)
-              if (existingMessage) {
-                // Quiet duplicate handling
-                return prev
-              }
+              if (existingMessage) return prev
               
               const updatedMessages = [...(prev.messages || []), newMessage]
                 .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
               
-              // Quiet message count update
-              
-              // Auto-scroll if user is near bottom
-              setTimeout(() => {
-                scrollToBottom('smooth')
-              }, 100)
+              setTimeout(() => scrollToBottom('smooth'), 100)
               
               return {
                 ...prev,
@@ -1115,7 +1101,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               }
             })
           } else if (payload.eventType === 'UPDATE') {
-            // Message status updated
             const updatedMessage = payload.new
             setLeadData((prev: any) => {
               if (!prev) return prev
@@ -1124,21 +1109,58 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
               )
               
-              // Quiet status update
-              
-              return {
-                ...prev,
-                messages: updatedMessages
-              }
+              return { ...prev, messages: updatedMessages }
             })
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'leads',
+          filter: `id=eq.${leadData.id}`
+        },
+        (payload: any) => {
+          const updatedLead = payload.new
+          setLeadData((prev: any) => {
+            if (!prev) return prev
+            return { ...prev, ...updatedLead, raw_metadata: { ...prev.raw_metadata, ...updatedLead.raw_metadata } }
+          })
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payment_requests',
+          filter: `lead_id=eq.${leadData.id}`
+        },
+        (payload: any) => {
+          setLeadData((prev: any) => {
+            if (!prev) return prev
+            
+            const paymentRequests = prev.paymentRequests || []
+            if (payload.eventType === 'INSERT') {
+              return { ...prev, paymentRequests: [...paymentRequests, payload.new] }
+            } else if (payload.eventType === 'UPDATE') {
+              return { 
+                ...prev, 
+                paymentRequests: paymentRequests.map((pr: any) => 
+                  pr.id === payload.new.id ? { ...pr, ...payload.new } : pr
+                )
+              }
+            }
+            return prev
+          })
         }
       )
       .subscribe((status: any) => {
         if (status === 'CHANNEL_ERROR') {
           console.error('[Realtime] Channel error for lead:', leadData.id)
         }
-        // Quiet SUBSCRIBED status - no need to log
       })
 
     realtimeChannelRef.current = channel
@@ -1146,7 +1168,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Cleanup on unmount
     return () => {
       if (realtimeChannelRef.current) {
-        console.log('[Realtime] Cleaning up message subscription')
         supabase.removeChannel(realtimeChannelRef.current)
         realtimeChannelRef.current = null
       }

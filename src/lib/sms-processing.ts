@@ -1005,7 +1005,11 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         // Check if name was corrected and update lead.name
         // Support multiple field name variations for name corrections
         const nameFieldVariations = ['name', 'callerName', 'caller name', 'caller_name', 'customerName', 'customer_name']
-        const nameCorrection = correctedFields.find(c => nameFieldVariations.includes(c.field))
+        const nameCorrection = correctedFields.find(c => {
+          const originalField = c.field
+          const mappedField = fieldKeyMap[originalField] || originalField
+          return nameFieldVariations.includes(originalField) || nameFieldVariations.includes(mappedField)
+        })
         const leadUpdatePayload: any = {
           raw_metadata: correctedMetadata
         }

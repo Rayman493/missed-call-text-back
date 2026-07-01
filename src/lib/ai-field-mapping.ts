@@ -206,6 +206,10 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
 
   const result = {
     customerName: pick(
+      corrected.name,
+      corrected.callerName,
+      corrected.customerName,
+      corrected.caller_name,
       lead?.name,
       lead?.contact_name,
       rawMetadata.customerName,
