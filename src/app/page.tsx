@@ -195,15 +195,17 @@ export default async function Home() {
                 AI Voice answers your missed calls, collects customer information, and keeps the opportunity moving — from first response to booked appointment to payment.
               </p>
 
-              <div className="mt-2 sm:mt-2.5 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
-                {/* Primary CTA */}
-                <Link
-                  href={session?.user ? "/dashboard" : "/auth?mode=signup"}
-                  className="inline-flex items-center justify-center h-11 sm:h-12 px-5 sm:px-8 w-[260px] sm:w-auto sm:min-w-[240px] bg-blue-600 text-white font-bold text-sm sm:text-base rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 hover:scale-105"
-                >
-                  {session?.user ? "Go to Dashboard" : "Start Your 14-Day Free Trial"}
-                </Link>
-              </div>
+              {/* Primary CTA - Only shown for non-authenticated users */}
+              {!session?.user && (
+                <div className="mt-2 sm:mt-2.5 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+                  <Link
+                    href="/auth?mode=signup"
+                    className="inline-flex items-center justify-center h-11 sm:h-12 px-5 sm:px-8 w-[260px] sm:w-auto sm:min-w-[240px] bg-blue-600 text-white font-bold text-sm sm:text-base rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 hover:scale-105"
+                  >
+                    Start Your 14-Day Free Trial
+                  </Link>
+                </div>
+              )}
 
               {/* Pricing Information - Desktop and Mobile */}
               <div className="mt-1.5 sm:mt-2 flex flex-col items-center gap-0.5">
