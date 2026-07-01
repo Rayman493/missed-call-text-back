@@ -3372,6 +3372,26 @@ async function finalizeIncompleteIntake(
   
   console.log('[INCOMPLETE FINALIZATION] Starting for callSid:', callSid, 'businessId:', businessId, 'callerPhone:', callerPhone);
   
+  const hasUsefulFields = hasUsefulCollectedFields(intakeData);
+  const hasUserSpeech = transcript && transcript.some(entry => entry.role === 'user' && entry.text && entry.text.trim().length > 0);
+
+  // Classify the incomplete outcome so the main app can choose the right SMS template
+  let incompleteOutcome: 'early_hangup' | 'partial_intake' | 'no_speech';
+  if (!hasUserSpeech) {
+    incompleteOutcome = 'no_speech';
+  } else if (hasUsefulFields) {
+    incompleteOutcome = 'partial_intake';
+  } else {
+    incompleteOutcome = 'early_hangup';
+  }
+
+  console.log('[INCOMPLETE FINALIZATION] Outcome classification:', {
+    callSid,
+    hasUsefulFields,
+    hasUserSpeech,
+    incompleteOutcome
+  });
+
   const extractedFields = {
     callerName: intakeData?.customerName || null,
     reasonForCalling: intakeData?.serviceRequested || null,
@@ -3485,7 +3505,7 @@ async function finalizeIncompleteIntake(
         const result = await supabase
           .from('ai_call_records')
           .update({
-            outcome: 'incomplete',
+            outcome: incompleteOutcome,
             extracted_info: canonicalInfo,
             summary: extractedFields.summary,
             extraction_failed: false,
@@ -3515,7 +3535,7 @@ async function finalizeIncompleteIntake(
             caller_phone: callerPhone,
             call_sid: callSid,
             transcript: transcript,
-            outcome: 'incomplete',
+            outcome: incompleteOutcome,
             extracted_info: canonicalInfo,
             summary: extractedFields.summary,
             extraction_failed: false
@@ -7200,7 +7220,7 @@ Return only JSON, no other text.`;
             caller_phone: sessionCallerPhone || 'unknown',
             call_sid: sessionCallSid || 'unknown',
             transcript: [],
-            outcome: 'incomplete',
+            outcome: 'no_speech',
             extracted_info: null,
             summary: 'AI call completed (no transcript)',
             extraction_failed: true
@@ -7482,7 +7502,25 @@ Return only JSON, no other text.`;
         
         // Determine outcome based on whether all required fields are present
         const intakeComplete = isAIIntakeComplete(normalizedFields);
-        const outcome = intakeComplete ? 'completed' : 'incomplete';
+        const hasUserSpeech = transcript.some((entry: any) => entry.role === 'user' && entry.text && entry.text.trim().length > 0);
+        const hasUsefulFields = !!(
+          normalizedFields.customerName ||
+          normalizedFields.serviceRequested ||
+          normalizedFields.issueDescription ||
+          normalizedFields.serviceAddress ||
+          normalizedFields.desiredCompletionTime ||
+          normalizedFields.callbackTime
+        );
+        let outcome: 'completed' | 'partial_intake' | 'early_hangup' | 'no_speech';
+        if (intakeComplete) {
+          outcome = 'completed';
+        } else if (!hasUserSpeech) {
+          outcome = 'no_speech';
+        } else if (hasUsefulFields) {
+          outcome = 'partial_intake';
+        } else {
+          outcome = 'early_hangup';
+        }
         
         const canonicalCallRecordInfo = buildCanonicalExtractedInfo(normalizedFields, sessionCallerPhone);
         const mainInsertPayload = {
@@ -7928,6 +7966,25 @@ Return only JSON, no other text.`;
           console.log('[INCOMPLETE FINALIZATION ENTER] =========================================');
 
           console.log('[FALLBACK INSERT START] inserting AI call record with transcript only');
+          const intakeData = (ws as any).intakeData;
+          const fallbackHasUserSpeech = transcript && transcript.some((entry: any) => entry.role === 'user' && entry.text && entry.text.trim().length > 0);
+          const fallbackHasUsefulFields = !!intakeData && (
+            intakeData.customerName ||
+            intakeData.serviceRequested ||
+            intakeData.issueDescription ||
+            intakeData.serviceAddress ||
+            intakeData.desiredCompletionTime ||
+            intakeData.callbackTime
+          );
+          let fallbackOutcome: 'partial_intake' | 'early_hangup' | 'no_speech';
+          if (!fallbackHasUserSpeech) {
+            fallbackOutcome = 'no_speech';
+          } else if (fallbackHasUsefulFields) {
+            fallbackOutcome = 'partial_intake';
+          } else {
+            fallbackOutcome = 'early_hangup';
+          }
+
           const fallbackInsertPayload = {
             business_id: sessionBusinessId,
             lead_id: fallbackLead.id,
@@ -7935,7 +7992,7 @@ Return only JSON, no other text.`;
             caller_phone: sessionCallerPhone || 'unknown',
             call_sid: sessionCallSid || 'unknown',
             transcript: transcript,
-            outcome: 'incomplete',
+            outcome: fallbackOutcome,
             extracted_info: null,
             summary: 'AI call completed (extraction failed)'
           };
@@ -7974,7 +8031,6 @@ Return only JSON, no other text.`;
           console.log('[INCOMPLETE MESSAGE INSERT START] Timestamp:', new Date().toISOString());
           console.log('[INCOMPLETE MESSAGE INSERT START] =========================================');
 
-          const intakeData = (ws as any).intakeData;
           let partialSummary = intakeData ?
             `Partial AI intake information:\n` +
             `Name: ${intakeData.customerName || 'Not provided'}\n` +
@@ -8007,180 +8063,37 @@ Return only JSON, no other text.`;
             console.log('[INCOMPLETE MESSAGE INSERT SUCCESS] =========================================');
           }
 
-          // Send partial summary SMS
-          console.log('[INCOMPLETE SMS BUILD] =========================================');
-          console.log('[INCOMPLETE SMS BUILD] to:', sessionCallerPhone);
-          console.log('[INCOMPLETE SMS BUILD] businessId:', sessionBusinessId);
-          console.log('[INCOMPLETE SMS BUILD] leadId:', fallbackLead.id);
-          console.log('[INCOMPLETE SMS BUILD] conversationId:', fallbackConversationId);
-          console.log('[INCOMPLETE SMS BUILD] smsBody:', partialSummary.substring(0, 100) + '...');
-          console.log('[INCOMPLETE SMS BUILD] Timestamp:', new Date().toISOString());
-          console.log('[INCOMPLETE SMS BUILD] =========================================');
-
-          // Fetch business OOO settings for incomplete SMS
-          let businessForOoo: any = null;
-
-          if (supabase && sessionBusinessId) {
-            try {
-              console.log('[INCOMPLETE SMS BUSINESS OOO LOOKUP]', { businessId: sessionBusinessId });
-              const { data: businessOoo, error: businessOooError } = await supabase
-                .from('businesses')
-                .select('name, out_of_office_enabled, out_of_office_start, out_of_office_end')
-                .eq('id', sessionBusinessId)
-                .single();
-
-              if (businessOoo) {
-                businessForOoo = businessOoo;
-                console.log('[INCOMPLETE SMS BUSINESS OOO RESULT]', {
-                  businessName: businessForOoo.name,
-                  outOfOfficeEnabled: businessForOoo.out_of_office_enabled,
-                  outOfOfficeStart: businessForOoo.out_of_office_start,
-                  outOfOfficeEnd: businessForOoo.out_of_office_end
-                });
-              }
-
-              if (businessOooError) {
-                console.log('[INCOMPLETE SMS BUSINESS OOO ERROR]', businessOooError);
-              }
-            } catch (error) {
-              console.log('[INCOMPLETE SMS BUSINESS OOO FETCH ERROR]', error);
-            }
-          }
-
-          // Check if business is currently Out of Office and append notice using helper
-          const outOfOfficeNotice = businessForOoo ? (() => {
-            if (!businessForOoo.out_of_office_enabled || !businessForOoo.out_of_office_start || !businessForOoo.out_of_office_end) {
-              return null;
-            }
-            const now = new Date();
-            const start = new Date(businessForOoo.out_of_office_start);
-            const end = new Date(businessForOoo.out_of_office_end);
-            if (now < start || now > end) return null;
-
-            const businessName = businessForOoo.name || 'the business';
-            let notice = `\n\nOut of Office Notice:\n${businessName} is currently out of office, so responses may be delayed.`;
-
-            if (businessForOoo.out_of_office_end) {
-              const endDate = new Date(businessForOoo.out_of_office_end);
-              const formattedDate = endDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-              notice += ` Expected return: ${formattedDate}.`;
-            }
-
-            return notice;
-          })() : null;
-
-          const outOfOfficeActive = outOfOfficeNotice !== null;
-          let appendedNotice = false;
-
-          console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
-          console.log('[OUT OF OFFICE NOTICE APPLIED] businessId:', sessionBusinessId);
-          console.log('[OUT OF OFFICE NOTICE APPLIED] smsType:', 'ai_summary_incomplete');
-          console.log('[OUT OF OFFICE NOTICE APPLIED] outOfOfficeActive:', outOfOfficeActive);
-          console.log('[OUT OF OFFICE NOTICE APPLIED] returnDate:', businessForOoo?.out_of_office_end || null);
-          console.log('[OUT OF OFFICE NOTICE APPLIED] Timestamp:', new Date().toISOString());
-          console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
-
-          if (outOfOfficeActive) {
-            partialSummary += outOfOfficeNotice;
-            appendedNotice = true;
-            console.log('[OUT OF OFFICE NOTICE APPLIED] Notice appended successfully');
-          }
-
+          // Send customer-facing SMS via centralized AI confirmation endpoint
+          // The endpoint will use the ai_call_record outcome to choose between standard missed-call,
+          // partial-intake, or AI-summary templates and applies business-hours/OOO/duplicate rules.
           console.log('[INCOMPLETE SMS SEND START] =========================================');
           console.log('[INCOMPLETE SMS SEND START] to:', sessionCallerPhone);
-          console.log('[INCOMPLETE SMS SEND START] bodyLength:', partialSummary.length);
+          console.log('[INCOMPLETE SMS SEND START] businessId:', sessionBusinessId);
+          console.log('[INCOMPLETE SMS SEND START] leadId:', fallbackLead.id);
+          console.log('[INCOMPLETE SMS SEND START] conversationId:', fallbackConversationId);
+          console.log('[INCOMPLETE SMS SEND START] outcome:', fallbackOutcome);
           console.log('[INCOMPLETE SMS SEND START] Timestamp:', new Date().toISOString());
           console.log('[INCOMPLETE SMS SEND START] =========================================');
 
-          // Resolve business-specific phone number from session (same logic as complete path)
-          let fromNumber: string | null = null;
-          const sessionBusinessTwilioPhoneNumber = (ws as any).businessTwilioPhoneNumber;
-
-          console.log('[INCOMPLETE SMS SENDER] =========================================');
-          console.log('[INCOMPLETE SMS SENDER] sessionBusinessTwilioPhoneNumber:', sessionBusinessTwilioPhoneNumber);
-          console.log('[INCOMPLETE SMS SENDER] Timestamp:', new Date().toISOString());
-          console.log('[INCOMPLETE SMS SENDER] =========================================');
-
-          if (sessionBusinessTwilioPhoneNumber) {
-            fromNumber = sessionBusinessTwilioPhoneNumber;
-            console.log('[INCOMPLETE SMS SENDER] Using session business phone number:', fromNumber);
-          } else {
-            fromNumber = process.env.TWILIO_PHONE_NUMBER || null;
-            console.log('[INCOMPLETE SMS SENDER] Using fallback global phone number:', fromNumber);
-          }
-
-          if (!fromNumber) {
-            console.log('[INCOMPLETE SMS SENDER ERROR] No phone number available, skipping SMS');
-          } else {
-            try {
-              const twilioClient = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-              const smsResult = await twilioClient.messages.create({
-                from: fromNumber,
-                to: sessionCallerPhone,
-                body: partialSummary
-              });
-
-              console.log('[INCOMPLETE SMS SEND SUCCESS] =========================================');
-              console.log('[INCOMPLETE SMS SEND SUCCESS] messageSid:', smsResult.sid);
-              console.log('[INCOMPLETE SMS SEND SUCCESS] fromNumber:', fromNumber);
-              console.log('[INCOMPLETE SMS SEND SUCCESS] Timestamp:', new Date().toISOString());
-              console.log('[INCOMPLETE SMS SEND SUCCESS] =========================================');
-
-              // Persist SMS to database using summary-message API
-              if (fallbackLead.id && fallbackConversationId) {
-                console.log('[INCOMPLETE SMS DB PERSIST START] =========================================');
-                console.log('[INCOMPLETE SMS DB PERSIST START] Persisting SMS to database');
-                console.log('[INCOMPLETE SMS DB PERSIST START] Timestamp:', new Date().toISOString());
-                console.log('[INCOMPLETE SMS DB PERSIST START] =========================================');
-
-                try {
-                  const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
-                  const internalApiSecret = process.env.INTERNAL_API_SECRET;
-
-                  if (internalApiSecret) {
-                    const apiResponse = await fetch(`${appBaseUrl}/api/ai-voice/summary-message`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${internalApiSecret}`
-                      },
-                      body: JSON.stringify({
-                        businessId: sessionBusinessId,
-                        leadId: fallbackLead.id,
-                        conversationId: fallbackConversationId,
-                        smsBody: partialSummary,
-                        fromPhone: fromNumber,
-                        toPhone: sessionCallerPhone,
-                        twilioMessageSid: smsResult.sid,
-                        status: smsResult.status
-                      })
-                    });
-
-                    if (apiResponse.ok) {
-                      console.log('[INCOMPLETE SMS DB PERSIST SUCCESS] =========================================');
-                      console.log('[INCOMPLETE SMS DB PERSIST SUCCESS] SMS persisted to database');
-                      console.log('[INCOMPLETE SMS DB PERSIST SUCCESS] Timestamp:', new Date().toISOString());
-                      console.log('[INCOMPLETE SMS DB PERSIST SUCCESS] =========================================');
-                    } else {
-                      console.log('[INCOMPLETE SMS DB PERSIST FAILED] =========================================');
-                      console.log('[INCOMPLETE SMS DB PERSIST FAILED] status:', apiResponse.status);
-                      console.log('[INCOMPLETE SMS DB PERSIST FAILED] Timestamp:', new Date().toISOString());
-                      console.log('[INCOMPLETE SMS DB PERSIST FAILED] =========================================');
-                    }
-                  }
-                } catch (apiError) {
-                  console.log('[INCOMPLETE SMS DB PERSIST ERROR] =========================================');
-                  console.log('[INCOMPLETE SMS DB PERSIST ERROR] error:', String(apiError));
-                  console.log('[INCOMPLETE SMS DB PERSIST ERROR] Timestamp:', new Date().toISOString());
-                  console.log('[INCOMPLETE SMS DB PERSIST ERROR] =========================================');
-                }
-              }
-            } catch (smsError) {
-              console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
-              console.log('[INCOMPLETE SMS SEND FAILED] error:', String(smsError));
-              console.log('[INCOMPLETE SMS SEND FAILED] Timestamp:', new Date().toISOString());
-              console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
-            }
+          try {
+            await sendAIConfirmationSMS(
+              sessionBusinessId,
+              fallbackLead.id,
+              fallbackConversationId,
+              sessionCallSid || 'unknown',
+              sessionCallerPhone || 'unknown',
+              intakeData || undefined
+            );
+            console.log('[INCOMPLETE SMS SEND SUCCESS] =========================================');
+            console.log('[INCOMPLETE SMS SEND SUCCESS] Centralized SMS sent via /api/ai-confirmation-sms');
+            console.log('[INCOMPLETE SMS SEND SUCCESS] outcome:', fallbackOutcome);
+            console.log('[INCOMPLETE SMS SEND SUCCESS] Timestamp:', new Date().toISOString());
+            console.log('[INCOMPLETE SMS SEND SUCCESS] =========================================');
+          } catch (smsError) {
+            console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
+            console.log('[INCOMPLETE SMS SEND FAILED] error:', String(smsError));
+            console.log('[INCOMPLETE SMS SEND FAILED] Timestamp:', new Date().toISOString());
+            console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
           }
 
           // Create follow-up jobs using the proper API

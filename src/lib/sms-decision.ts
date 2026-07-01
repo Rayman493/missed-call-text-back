@@ -253,66 +253,66 @@ export async function determineSmsTemplate(params: {
       fallbackSmsType: 'none'
     }
   } else if (outcome === 'partial_intake') {
-    // Partial intake - send partial recovery SMS
-    console.log('[AUTO SMS DECISION] Partial intake detected - send partial recovery SMS', {
+    // Partial intake - AI service sends the partial recovery SMS via /api/ai-confirmation-sms
+    console.log('[AUTO SMS DECISION] Partial intake detected - AI service is authoritative sender', {
       callSid,
       leadId,
       aiCallRecordId: aiCallRecord?.id,
       outcome,
       fieldsCollectedCount,
-      reason: 'partial_intake'
+      reason: 'ai_partial_intake_sms_authoritative'
     })
 
     result = {
-      template: 'partial_intake',
-      shouldSend: true,
-      reason: 'partial_intake',
+      template: 'none',
+      shouldSend: false,
+      reason: 'ai_partial_intake_sms_authoritative',
       aiCompleted: false,
       voicemailCompleted: false,
       aiCallRecordId: aiCallRecord?.id,
       aiOutcome: outcome,
-      fallbackSmsType: 'partial_recovery'
+      fallbackSmsType: 'none'
     }
   } else if (outcome === 'early_hangup' || outcome === 'no_speech') {
-    // Early hangup or no speech - send generic missed-call recovery SMS
-    console.log('[AUTO SMS DECISION] Early hangup or no speech - send generic missed-call SMS', {
+    // Early hangup or no speech - AI service sends the standard missed-call SMS via /api/ai-confirmation-sms
+    console.log('[AUTO SMS DECISION] Early hangup or no speech - AI service is authoritative sender', {
       callSid,
       leadId,
       aiCallRecordId: aiCallRecord?.id,
       outcome,
       hadUserSpeech,
-      reason: outcome
+      reason: `ai_${outcome}_sms_authoritative`
     })
 
     result = {
-      template: 'missed_call',
-      shouldSend: true,
-      reason: outcome,
+      template: 'none',
+      shouldSend: false,
+      reason: `ai_${outcome}_sms_authoritative`,
       aiCompleted: false,
       voicemailCompleted: false,
       aiCallRecordId: aiCallRecord?.id,
       aiOutcome: outcome,
-      fallbackSmsType: 'generic_recovery'
+      fallbackSmsType: 'none'
     }
   } else if (outcome === 'ai_connection_failed') {
-    // AI connection failed - send generic missed-call recovery SMS
-    console.log('[AUTO SMS DECISION] AI connection failed - send generic missed-call SMS', {
+    // AI connection failed - AI service sends the standard missed-call SMS via /api/ai-confirmation-sms
+    console.log('[AUTO SMS DECISION] AI connection failed - AI service is authoritative sender', {
       callSid,
       leadId,
       aiCallRecordId: aiCallRecord?.id,
       outcome,
-      reason: 'ai_connection_failed'
+      reason: 'ai_connection_failed_sms_authoritative'
     })
 
     result = {
-      template: 'missed_call',
-      shouldSend: true,
-      reason: 'ai_connection_failed',
+      template: 'none',
+      shouldSend: false,
+      reason: 'ai_connection_failed_sms_authoritative',
       aiCompleted: false,
       voicemailCompleted: false,
       aiCallRecordId: aiCallRecord?.id,
       aiOutcome: outcome,
-      fallbackSmsType: 'generic_recovery'
+      fallbackSmsType: 'none'
     }
   } else if (hasExtractedInfo || hasSummary || fieldsCollectedCount > 0) {
     // Legacy fallback: if AI has some data but no outcome recorded, treat as partial intake

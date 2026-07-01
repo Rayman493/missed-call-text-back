@@ -412,7 +412,7 @@ export async function POST(request: NextRequest) {
     console.log('[AI CONFIRMATION SMS BUSINESS LOOKUP]', { businessId })
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
-      .select('id, name, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, out_of_office_enabled, out_of_office_start, out_of_office_end, out_of_office_message, business_hours_enabled, business_hours_start, business_hours_end, business_hours_timezone, after_hours_message')
+      .select('id, name, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, out_of_office_enabled, out_of_office_start, out_of_office_end, out_of_office_message, business_hours_enabled, business_hours_start, business_hours_end, business_hours_timezone, after_hours_message, auto_reply_message')
       .eq('id', businessId)
       .single()
 
@@ -449,18 +449,21 @@ export async function POST(request: NextRequest) {
 
     const { data: latestAiCallRecord, error: aiRecordError } = await supabaseAdmin
       .from('ai_call_records')
-      .select('id, extracted_info, call_sid')
+      .select('id, outcome, extracted_info, call_sid')
       .eq('lead_id', leadId)
       .eq('call_sid', callSid)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
 
+    const aiOutcome = latestAiCallRecord?.outcome || null
+
     if (aiRecordError) {
       console.error('[AI CONFIRMATION SMS ERROR] Failed to fetch AI call record:', aiRecordError)
     } else if (latestAiCallRecord && latestAiCallRecord.extracted_info) {
       console.log('[AI CONFIRMATION SMS USING DATABASE EXTRACTED_INFO]', {
         aiCallRecordId: latestAiCallRecord.id,
+        aiOutcome,
         hasExtractedInfo: !!latestAiCallRecord.extracted_info,
         extractedInfoKeys: latestAiCallRecord.extracted_info ? Object.keys(latestAiCallRecord.extracted_info) : []
       })
@@ -468,7 +471,8 @@ export async function POST(request: NextRequest) {
       extractedInfo = latestAiCallRecord.extracted_info
     } else {
       console.log('[AI CONFIRMATION SMS USING PASSED EXTRACTED_INFO]', {
-        reason: !latestAiCallRecord ? 'no_ai_record_found' : 'no_extracted_info_in_record'
+        reason: !latestAiCallRecord ? 'no_ai_record_found' : 'no_extracted_info_in_record',
+        aiOutcome
       })
     }
 
@@ -479,6 +483,7 @@ export async function POST(request: NextRequest) {
       leadId,
       conversationId,
       callSid,
+      aiOutcome,
       extractedInfo,
       source: 'external_ai_voice_service'
     })
@@ -488,7 +493,8 @@ export async function POST(request: NextRequest) {
 
     console.log('[AI SMS NORMALIZED RECORD]', {
       route: '/api/ai-confirmation-sms',
-      normalized: extracted
+      normalized: extracted,
+      aiOutcome
     })
 
     // Check if all required fields are present
@@ -531,21 +537,46 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('[AI SUMMARY PREFIX]', {
-      messageType,
-      usingDefaultMessage,
-      businessId,
-      outOfOfficeActive,
-      withinBusinessHours: isWithinBusinessHours(business),
-      businessHoursEnabled: business.business_hours_enabled
-    })
+    // Choose SMS template based on AI outcome
+    // completed_intake/completed -> AI summary (existing behavior)
+    // partial_intake -> brief partial info SMS
+    // early_hangup/no_speech/fallback -> standard missed-call SMS
+    const isCompletedIntake = aiOutcome === 'completed_intake' || aiOutcome === 'completed' || aiOutcome === 'ai_completed';
+    const isPartialIntake = aiOutcome === 'partial_intake';
+    const isEarlyHangup = aiOutcome === 'early_hangup' || aiOutcome === 'no_speech' || aiOutcome === 'ai_connection_failed';
 
-    // Single formatter produces the complete message body (all sections + wrapper)
-    console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] formatAiIntakeSummary via generateSummaryFromExtractedInfo');
+    let messageBody: string;
+    let selectedTemplate: string;
 
-    const messageBody = generateSummaryFromExtractedInfo(extracted, callerPhone, businessName, prefixNotice);
+    if (isCompletedIntake) {
+      selectedTemplate = 'ai_summary';
+      console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] formatAiIntakeSummary via generateSummaryFromExtractedInfo');
+      messageBody = generateSummaryFromExtractedInfo(extracted, callerPhone, businessName, prefixNotice);
+    } else if (isPartialIntake) {
+      selectedTemplate = 'partial_intake';
+      const collectedParts: string[] = [];
+      if (extracted.callerName?.trim()) collectedParts.push(`Name: ${extracted.callerName.trim()}`);
+      if (extracted.reasonForCalling?.trim()) collectedParts.push(`Service: ${extracted.reasonForCalling.trim()}`);
+      if (extracted.addressOrLocation?.trim()) collectedParts.push(`Address: ${extracted.addressOrLocation.trim()}`);
+      if (extracted.desiredCompletionTime?.trim()) collectedParts.push(`When: ${extracted.desiredCompletionTime.trim()}`);
+      if (extracted.preferredCallbackTime?.trim()) collectedParts.push(`Best callback: ${extracted.preferredCallbackTime.trim()}`);
+      if (extracted.importantDetails?.trim()) collectedParts.push(`Details: ${extracted.importantDetails.trim()}`);
+
+      const partialInfo = collectedParts.length > 0 ? `\n\nWe got: ${collectedParts.join('; ')}` : '';
+      const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
+      messageBody = `${prefix}Hi, this is ${businessName}. We just missed your call.${partialInfo} Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`;
+    } else {
+      // Standard missed-call fallback for no useful info or unknown outcome
+      selectedTemplate = 'missed_call';
+      const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
+      const autoReplyMessage = business.auto_reply_message && business.auto_reply_message.trim()
+        ? business.auto_reply_message.replace(/\{\{business_name\}\}/gi, businessName)
+        : `Hi, this is ${businessName}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`;
+      messageBody = `${prefix}${autoReplyMessage}`;
+    }
 
     console.log('[AI SMS FINAL BODY PREVIEW] =========================================');
+    console.log('[AI SMS FINAL BODY PREVIEW] Template:', selectedTemplate);
     console.log('[AI SMS FINAL BODY PREVIEW] First 300 characters:', messageBody.substring(0, 300));
     console.log('[AI SMS FINAL BODY PREVIEW] Total length:', messageBody.length);
     console.log('[AI SMS FINAL BODY PREVIEW] Timestamp:', new Date().toISOString());
@@ -554,6 +585,8 @@ export async function POST(request: NextRequest) {
     console.log('[AI SMS FINAL BODY]', {
       route: '/api/ai-confirmation-sms',
       businessName,
+      template: selectedTemplate,
+      aiOutcome,
       messageBodyLength: messageBody.length,
       isComplete,
       missingFields
@@ -563,7 +596,9 @@ export async function POST(request: NextRequest) {
     console.log('[AI CONFIRMATION SMS TWILIO SEND START]', {
       to: callerPhone,
       from: business.twilio_phone_number,
-      messagingServiceSid: business.twilio_messaging_service_sid
+      messagingServiceSid: business.twilio_messaging_service_sid,
+      template: selectedTemplate,
+      aiOutcome
     })
 
     // Log explicit SMS decision before sending
@@ -572,11 +607,12 @@ export async function POST(request: NextRequest) {
       leadId,
       conversationId,
       businessId,
-      template: 'ai_summary',
-      reason: 'ai_intake_completed',
-      aiCompleted: true,
+      template: selectedTemplate,
+      aiOutcome,
+      reason: isCompletedIntake ? 'ai_intake_completed' : isPartialIntake ? 'partial_intake' : 'early_hangup_fallback',
+      aiCompleted: isCompletedIntake,
       voicemailCompleted: false,
-      generic_sms_suppressed: true,
+      generic_sms_suppressed: isCompletedIntake,
       messageBody: messageBody.substring(0, 100),
       source: 'external_ai_voice_service'
     })
