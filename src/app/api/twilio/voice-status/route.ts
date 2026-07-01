@@ -440,29 +440,125 @@ async function processVoiceStatusCallback(params: any, method: string) {
   // Store canonical conversationId from helper
   let canonicalConversationId: string | null = null
 
-  // First try to find existing lead with safe error handling
-  let existingLead = null
-  try {
-    logCallTrace({
-      route: 'voice-status',
-      action: 'lead_lookup_start',
+  let lead = null
+
+  // CRITICAL FIX: If AI call record has lead_id, use it as the authoritative source
+  // This prevents the phone-based lookup from failing for newly created leads
+  if (aiCallRecord && aiCallRecord.lead_id) {
+    console.log('[VOICE STATUS USING AI CALL RECORD LEAD]', {
       callSid: CallSid,
-      from: From,
-      to: To,
-      businessId: business.id,
-      businessName: business.name,
-      reason: 'Looking up existing lead by caller phone'
+      aiCallRecordId: aiCallRecord.id,
+      aiLeadId: aiCallRecord.lead_id,
+      aiConversationId: aiCallRecord.conversation_id,
+      outcome: aiCallRecord.outcome,
+      reason: 'Using ai_call_records as authoritative source'
     })
 
-    const { data: leadData, error: leadError } = await supabase
+    // Fetch the lead from ai_call_records
+    const { data: leadFromAiRecord, error: aiLeadError } = await supabase
       .from("leads")
       .select("id, status")
-      .eq("business_id", business.id)
-      .eq("caller_phone", normalizedCallerPhone)
-      .maybeSingle()
+      .eq("id", aiCallRecord.lead_id)
+      .single()
 
-    if (leadError && leadError.code !== 'PGRST116') { // Not found error
-      console.error('[Twilio Voice Status Webhook] Error finding existing lead:', leadError)
+    if (aiLeadError || !leadFromAiRecord) {
+      console.error('[VOICE STATUS AI LEAD LOOKUP FAILED]', {
+        aiCallRecordId: aiCallRecord.id,
+        aiLeadId: aiCallRecord.lead_id,
+        error: aiLeadError
+      })
+      // Fall through to phone-based lookup
+    } else {
+      lead = leadFromAiRecord
+      console.log('[VOICE STATUS AI LEAD LOOKUP SUCCESS]', {
+        leadId: lead.id,
+        status: lead.status,
+        source: 'ai_call_records'
+      })
+
+      logCallTrace({
+        route: 'voice-status',
+        action: 'lead_lookup_success',
+        callSid: CallSid,
+        from: From,
+        to: To,
+        businessId: business.id,
+        businessName: business.name,
+        leadId: lead.id,
+        existingOrCreated: 'existing',
+        reason: 'Used ai_call_records lead_id as authoritative source'
+      })
+    }
+  }
+
+  // Only do phone-based lookup if we don't have a lead from ai_call_records
+  if (!lead) {
+    // First try to find existing lead with safe error handling
+    let existingLead = null
+    try {
+      logCallTrace({
+        route: 'voice-status',
+        action: 'lead_lookup_start',
+        callSid: CallSid,
+        from: From,
+        to: To,
+        businessId: business.id,
+        businessName: business.name,
+        reason: 'Looking up existing lead by caller phone (fallback)'
+      })
+
+      const { data: leadData, error: leadError } = await supabase
+        .from("leads")
+        .select("id, status")
+        .eq("business_id", business.id)
+        .eq("caller_phone", normalizedCallerPhone)
+        .maybeSingle()
+
+      if (leadError && leadError.code !== 'PGRST116') { // Not found error
+        console.error('[Twilio Voice Status Webhook] Error finding existing lead:', leadError)
+
+        logCallTrace({
+          route: 'voice-status',
+          action: 'lead_lookup_failed',
+          callSid: CallSid,
+          from: From,
+          to: To,
+          businessId: business.id,
+          businessName: business.name,
+          reason: `Error finding existing lead: ${leadError}`
+        })
+      } else {
+        existingLead = leadData
+        console.log('[Twilio Voice Status Webhook] Existing lead lookup result:', existingLead ? {
+          id: existingLead.id,
+          status: existingLead.status,
+          found: true
+        } : {
+          found: false
+        })
+
+        console.log('[VOICE STATUS LEAD LOOKUP]', {
+          leadId: existingLead?.id || null,
+          existingOrCreated: existingLead ? 'existing' : 'created'
+        })
+
+        if (existingLead) {
+          logCallTrace({
+            route: 'voice-status',
+            action: 'lead_lookup_success',
+            callSid: CallSid,
+            from: From,
+            to: To,
+            businessId: business.id,
+            businessName: business.name,
+            leadId: existingLead.id,
+            existingOrCreated: 'existing',
+            reason: 'Found existing lead by phone'
+          })
+        }
+      }
+    } catch (leadLookupError) {
+      console.error('[Twilio Voice Status Webhook] Exception during lead lookup:', leadLookupError)
 
       logCallTrace({
         route: 'voice-status',
@@ -472,92 +568,48 @@ async function processVoiceStatusCallback(params: any, method: string) {
         to: To,
         businessId: business.id,
         businessName: business.name,
-        reason: `Error finding existing lead: ${leadError}`
+        reason: `Exception during lead lookup: ${leadLookupError}`
       })
-    } else {
-      existingLead = leadData
-      console.log('[Twilio Voice Status Webhook] Existing lead lookup result:', existingLead ? {
-        id: existingLead.id,
-        status: existingLead.status,
-        found: true
-      } : {
-        found: false
-      })
-
-      console.log('[VOICE STATUS LEAD LOOKUP]', {
-        leadId: existingLead?.id || null,
-        existingOrCreated: existingLead ? 'existing' : 'created'
-      })
-
-      if (existingLead) {
-        logCallTrace({
-          route: 'voice-status',
-          action: 'lead_lookup_success',
-          callSid: CallSid,
-          from: From,
-          to: To,
-          businessId: business.id,
-          businessName: business.name,
-          leadId: existingLead.id,
-          existingOrCreated: 'existing',
-          reason: 'Found existing lead'
-        })
-      }
     }
-  } catch (leadLookupError) {
-    console.error('[Twilio Voice Status Webhook] Exception during lead lookup:', leadLookupError)
 
-    logCallTrace({
-      route: 'voice-status',
-      action: 'lead_lookup_failed',
-      callSid: CallSid,
-      from: From,
-      to: To,
-      businessId: business.id,
-      businessName: business.name,
-      reason: `Exception during lead lookup: ${leadLookupError}`
-    })
-  }
+    if (existingLead) {
+      // Use existing lead
+      lead = existingLead
+      console.log("[Twilio Voice Status Webhook] Using existing lead:", lead.id)
+    } else {
+      // CRITICAL FIX: Do NOT create leads from status callbacks
+      // Status callbacks are for updating existing call events, not creating new leads
+      // Only the voice webhook should create leads when a call actually arrives
+      console.error('[PHANTOM LEAD PREVENTED] voice-status webhook attempting to create lead without existing lead')
+      console.error('[PHANTOM LEAD PREVENTED]', {
+        callSid: CallSid,
+        businessId: business.id,
+        callerPhone: normalizedCallerPhone,
+        callStatus: CallStatus,
+        reason: 'voice-status webhook cannot create leads - only the voice webhook can create leads for actual calls'
+      })
 
-  let lead = null
+      console.log('[VOICE STATUS EARLY RETURN] =========================================');
+      console.log('[VOICE STATUS EARLY RETURN] reason: phantom lead prevention');
+      console.log('[VOICE STATUS EARLY RETURN] callSid:', CallSid);
+      console.log('[VOICE STATUS EARLY RETURN] businessId:', business.id);
+      console.log('[VOICE STATUS EARLY RETURN] Timestamp:', new Date().toISOString());
+      console.log('[VOICE STATUS EARLY RETURN] =========================================');
 
-  if (existingLead) {
-    // Use existing lead
-    lead = existingLead
-    console.log("[Twilio Voice Status Webhook] Using existing lead:", lead.id)
-  } else {
-    // CRITICAL FIX: Do NOT create leads from status callbacks
-    // Status callbacks are for updating existing call events, not creating new leads
-    // Only the voice webhook should create leads when a call actually arrives
-    console.error('[PHANTOM LEAD PREVENTED] voice-status webhook attempting to create lead without existing lead')
-    console.error('[PHANTOM LEAD PREVENTED]', {
-      callSid: CallSid,
-      businessId: business.id,
-      callerPhone: normalizedCallerPhone,
-      callStatus: CallStatus,
-      reason: 'voice-status webhook cannot create leads - only the voice webhook can create leads for actual calls'
-    })
+      logCallTrace({
+        route: 'voice-status',
+        action: 'lead_creation_blocked',
+        callSid: CallSid,
+        from: From,
+        to: To,
+        businessId: business.id,
+        businessName: business.name,
+        reason: 'voice-status webhook blocked from creating new lead - status callbacks cannot create leads'
+      })
 
-    console.log('[VOICE STATUS EARLY RETURN] =========================================');
-    console.log('[VOICE STATUS EARLY RETURN] reason: phantom lead prevention');
-    console.log('[VOICE STATUS EARLY RETURN] callSid:', CallSid);
-    console.log('[VOICE STATUS EARLY RETURN] businessId:', business.id);
-    console.log('[VOICE STATUS EARLY RETURN] Timestamp:', new Date().toISOString());
-    console.log('[VOICE STATUS EARLY RETURN] =========================================');
-
-    logCallTrace({
-      route: 'voice-status',
-      action: 'lead_creation_blocked',
-      callSid: CallSid,
-      from: From,
-      to: To,
-      businessId: business.id,
-      businessName: business.name,
-      reason: 'voice-status webhook blocked from creating new lead - status callbacks cannot create leads'
-    })
-
-    // Return early without creating lead - this prevents phantom leads
-    return { success: false, reason: 'phantom_lead_prevention' };
+      // Return early without creating lead - this prevents phantom leads
+      return { success: false, reason: 'phantom_lead_prevention' };
+    }
   }
 
   // If we still don't have a lead, continue with processing but log the issue
