@@ -1463,18 +1463,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       })
     }
 
-    const noteParts = [
-      intake.additionalDetails,
-      intake.desiredCompletion ? `Desired completion: ${intake.desiredCompletion}` : null,
-      intake.callbackTime ? `Best callback time: ${intake.callbackTime}` : null,
-    ].filter(Boolean)
+    const noteSections = []
+    
+    if (intake.additionalDetails) {
+      noteSections.push(`Additional Details\n• ${intake.additionalDetails}`)
+    }
+    
+    if (intake.desiredCompletion) {
+      noteSections.push(`Desired Completion\n• ${intake.desiredCompletion}`)
+    }
+    
+    if (intake.callbackTime) {
+      noteSections.push(`Best Callback Time\n• ${intake.callbackTime}`)
+    }
 
     return {
       title: leadReason || `Job for ${leadName || 'Lead'}`,
       customer_name: leadName || undefined,
       customer_phone: leadPhone || undefined,
       service_address: leadAddress || undefined,
-      notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
+      notes: noteSections.length > 0 ? noteSections.join('\n\n') : undefined,
       lead_id: params.id,
       conversation_id: leadData?.conversation_id || undefined,
     }
@@ -2265,20 +2273,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-slate-600 dark:text-slate-400">AI Intake</span>
                         <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                          {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 ? (() => {
-                            const latestAiRecord = leadData.aiCallRecords[0];
-                            const isComplete = latestAiRecord.outcome === 'completed' || latestAiRecord.outcome === 'completed_intake';
-                            console.log('[simple_mode_ai_intake_status_read]', {
-                              outcome: latestAiRecord.outcome,
-                              isComplete,
-                              callSid: latestAiRecord.call_sid,
-                              leadId: params.id,
-                              recordId: latestAiRecord.id,
-                              extractedInfoKeys: latestAiRecord.extracted_info ? Object.keys(latestAiRecord.extracted_info) : []
-                            });
+                          {(() => {
+                            const intake = getLeadAIIntake(leadData);
+                            const hasRequiredFields = intake.customerName && intake.serviceRequested && intake.serviceAddress && intake.desiredCompletion && intake.callbackTime;
+                            const hasAiCall = leadData?.aiCallRecords && leadData.aiCallRecords.length > 0;
+                            
+                            if (!hasAiCall) {
+                              return (
+                                <>
+                                  <svg className="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                  </svg>
+                                  Not Started
+                                </>
+                              );
+                            }
+                            
                             return (
                               <>
-                                {isComplete ? (
+                                {hasRequiredFields ? (
                                   <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                   </svg>
@@ -2287,17 +2300,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                   </svg>
                                 )}
-                                {isComplete ? 'Complete' : 'Incomplete'}
+                                {hasRequiredFields ? 'Complete' : 'Incomplete'}
                               </>
                             );
-                          })() : (
-                            <>
-                              <svg className="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                              </svg>
-                              Not Started
-                            </>
-                          )}
+                          })()}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">

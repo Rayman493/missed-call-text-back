@@ -41,8 +41,8 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
 
         // Helper to get lead display name
         const getLeadDisplayName = (lead: any) => {
-          if (lead.raw_metadata?.name) return lead.raw_metadata.name
-          if (lead.raw_metadata?.caller_name) return lead.raw_metadata.caller_name
+          const intake = getLeadAIIntake(lead)
+          if (intake.customerName) return intake.customerName
           if (lead.phone) return lead.phone
           return 'Unknown Caller'
         }
