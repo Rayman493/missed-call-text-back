@@ -3178,6 +3178,53 @@ function normalizeExtractedFields(extractedFields: any): any {
   return normalized;
 }
 
+// Build canonical extracted_info for leads.raw_metadata and ai_call_records.
+// Keeps field names aligned with getLeadAIIntake expectations.
+function buildCanonicalExtractedInfo(
+  fields: any,
+  callerPhone?: string
+): {
+  customerName: string
+  customerPhone: string
+  serviceRequested: string
+  additionalDetails: string
+  serviceAddress: string
+  desiredCompletion: string
+  callbackTime: string
+} {
+  if (!fields) {
+    return {
+      customerName: '',
+      customerPhone: callerPhone || '',
+      serviceRequested: '',
+      additionalDetails: '',
+      serviceAddress: '',
+      desiredCompletion: '',
+      callbackTime: '',
+    }
+  }
+
+  return {
+    customerName: (fields.customerName || fields.callerName || '').trim(),
+    customerPhone: (callerPhone || fields.customerPhone || fields.phone || '').trim(),
+    serviceRequested: (fields.serviceRequested || fields.reasonForCalling || '').trim(),
+    additionalDetails: (
+      fields.additionalDetails ||
+      fields.issueDescription ||
+      fields.importantDetails ||
+      ''
+    ).trim(),
+    serviceAddress: (fields.serviceAddress || fields.addressOrLocation || '').trim(),
+    desiredCompletion: (
+      fields.desiredCompletion ||
+      fields.desiredCompletionTime ||
+      fields.urgency ||
+      ''
+    ).trim(),
+    callbackTime: (fields.callbackTime || fields.preferredCallbackTime || '').trim(),
+  }
+}
+
 // Helper function to check if all required AI intake fields are present
 function isAIIntakeComplete(extractedFields: any): boolean {
   if (!extractedFields) return false;
@@ -3334,6 +3381,7 @@ async function finalizeIncompleteIntake(
     preferredCallbackTime: intakeData?.callbackTime || null,
     summary: `Partial intake: ${intakeData?.customerName || 'Unknown'} called about ${intakeData?.serviceRequested || 'unknown issue'}. Some details may be missing.`
   };
+  const canonicalInfo = buildCanonicalExtractedInfo(extractedFields, callerPhone || '');
   
   console.log('[INCOMPLETE FINALIZATION] Creating/updating lead for callerPhone:', callerPhone);
   const { data: lead, error: leadError } = await retrySupabaseOperation(
@@ -3344,6 +3392,11 @@ async function finalizeIncompleteIntake(
         business_id: businessId,
         caller_phone: callerPhone,
         status: 'new',
+                raw_metadata: {
+          ...canonicalInfo,
+          extracted_info: canonicalInfo,
+          ai_intake_completed: false,
+        },
       }, {
         onConflict: 'business_id,caller_phone',
       })
@@ -3433,7 +3486,7 @@ async function finalizeIncompleteIntake(
           .from('ai_call_records')
           .update({
             outcome: 'incomplete',
-            extracted_info: extractedFields,
+            extracted_info: canonicalInfo,
             summary: extractedFields.summary,
             extraction_failed: false,
             lead_id: lead.id,
@@ -3463,7 +3516,7 @@ async function finalizeIncompleteIntake(
             call_sid: callSid,
             transcript: transcript,
             outcome: 'incomplete',
-            extracted_info: extractedFields,
+            extracted_info: canonicalInfo,
             summary: extractedFields.summary,
             extraction_failed: false
           });
@@ -3944,20 +3997,23 @@ async function createFallbackLead(
 
   try {
     // Create lead
+    const canonicalInfo = buildCanonicalExtractedInfo({ customerPhone: callerPhone }, callerPhone || '');
     const leadInsertPayload = {
       business_id: businessId,
       caller_phone: callerPhone,
       status: 'new',
+            raw_metadata: {
+        ...canonicalInfo,
+        extracted_info: canonicalInfo,
+        ai_intake_completed: false,
+        failure_reason: failureReason,
+      },
     };
     console.log('[LEAD INSERT PAYLOAD]', leadInsertPayload);
     
     const { data: lead, error: leadError } = await supabase
       .from('leads')
-      .upsert({
-        business_id: businessId,
-        caller_phone: callerPhone,
-        status: 'new',
-      }, {
+      .upsert(leadInsertPayload, {
         onConflict: 'business_id,caller_phone',
       })
       .select()
@@ -4180,19 +4236,21 @@ async function createSmsFallbackLead(
 
   try {
     // Create lead
+    const canonicalInfo = buildCanonicalExtractedInfo({ customerPhone: callerPhone }, callerPhone || '');
     const leadInsertPayload = {
       business_id: businessId,
       caller_phone: callerPhone,
       status: 'new',
+            raw_metadata: {
+        ...canonicalInfo,
+        extracted_info: canonicalInfo,
+        ai_intake_completed: false,
+      },
     };
     
     const { data: lead, error: leadError } = await supabase
       .from('leads')
-      .upsert({
-        business_id: businessId,
-        caller_phone: callerPhone,
-        status: 'new',
-      }, {
+      .upsert(leadInsertPayload, {
         onConflict: 'business_id,caller_phone',
       })
       .select()
@@ -5619,14 +5677,7 @@ Reply to this message if you'd like to update or add any information.
       // Create lead and conversation using caller phone (not callSid)
       // Include canonical AI intake metadata in the upsert so the lead is useful
       // even if the ai_call_record insert fails.
-      const canonicalExtractedInfo = {
-        customerName:        state.intakeData.customerName || '',
-        serviceRequested:    state.intakeData.serviceRequested || '',
-        serviceAddress:      state.intakeData.serviceAddress || '',
-        desiredCompletionTime: state.intakeData.desiredCompletionTime || '',
-        callbackTime:        state.intakeData.callbackTime || '',
-        issueDescription:    state.intakeData.issueDescription || '',
-      };
+      const canonicalExtractedInfo = buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '');
 
       const { data: lead, error: leadError } = await supabase
         .from('leads')
@@ -5634,8 +5685,8 @@ Reply to this message if you'd like to update or add any information.
           business_id: state.businessId,
           caller_phone: state.callerPhone || '',
           status: 'new',
-          name: state.intakeData.customerName || null,
           raw_metadata: {
+            ...canonicalExtractedInfo,
             extracted_info: canonicalExtractedInfo,
             ai_intake_completed: true,
             ai_intake_completed_at: new Date().toISOString(),
@@ -5721,16 +5772,15 @@ Reply to this message if you'd like to update or add any information.
             console.log('[simple_mode_lead_summary_update_start]', { leadId: lead.id, callSid: state.callSid });
             const { data: currentLead } = await supabase
               .from('leads')
-              .select('raw_metadata, name')
+              .select('raw_metadata')
               .eq('id', lead.id)
               .single();
             const { error: metaUpdateError } = await supabase
               .from('leads')
               .update({
-                // Persist display name into leads.name so getLeadDisplayName picks it up first
-                name: state.intakeData.customerName || currentLead?.name || null,
                 raw_metadata: {
                   ...(currentLead?.raw_metadata || {}),
+                  ...canonicalExtractedInfo,
                   extracted_info: canonicalExtractedInfo,
                   ai_intake_completed: true,
                   ai_intake_completed_at: new Date().toISOString(),
@@ -7294,13 +7344,18 @@ Return only JSON, no other text.`;
         console.log('[CUSTOMER NAME BEFORE LEAD UPDATE] Timestamp:', new Date().toISOString());
         console.log('[CUSTOMER NAME BEFORE LEAD UPDATE] =========================================');
         
+        const canonicalExtractedInfo = buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone);
         const { data: lead, error: leadError } = await supabase
           .from('leads')
           .upsert({
             business_id: sessionBusinessId,
             caller_phone: sessionCallerPhone,
             status: 'new',
-            name: extractedFields.callerName || null,
+                        raw_metadata: {
+              ...canonicalExtractedInfo,
+              extracted_info: canonicalExtractedInfo,
+              ai_intake_completed: false,
+            },
           }, {
             onConflict: 'business_id,caller_phone',
           })
@@ -7418,6 +7473,7 @@ Return only JSON, no other text.`;
         const intakeComplete = isAIIntakeComplete(normalizedFields);
         const outcome = intakeComplete ? 'completed' : 'incomplete';
         
+        const canonicalCallRecordInfo = buildCanonicalExtractedInfo(normalizedFields, sessionCallerPhone);
         const mainInsertPayload = {
             business_id: sessionBusinessId,
             lead_id: lead.id,
@@ -7428,7 +7484,7 @@ Return only JSON, no other text.`;
             transcript: Array.isArray(transcript) ? transcript : [],
             outcome: outcome,
             extraction_failed: false,
-            extracted_info: extractedFields,
+            extracted_info: canonicalCallRecordInfo,
             summary: extractedFields.summary
           };
         console.log('[AI CALL RECORD OUTCOME]', {
@@ -7490,6 +7546,23 @@ Return only JSON, no other text.`;
         console.log('[COMPLETE FINALIZATION STEP 6 SUCCESS] Record ID:', newRecord.id);
         console.log('[COMPLETE FINALIZATION STEP 6 SUCCESS] Timestamp:', new Date().toISOString());
         console.log('[COMPLETE FINALIZATION STEP 6 SUCCESS] =========================================');
+
+        // Write normalized canonical fields back to the lead so getLeadAIIntake sees clean values.
+        const { error: leadMetaUpdateError } = await supabase
+          .from('leads')
+          .update({
+            raw_metadata: {
+              ...canonicalCallRecordInfo,
+              extracted_info: canonicalCallRecordInfo,
+              ai_intake_completed: outcome === 'completed',
+            },
+          })
+          .eq('id', lead.id);
+        if (leadMetaUpdateError) {
+          console.log('[LEAD META UPDATE ERROR] Failed to update lead raw_metadata with normalized fields:', leadMetaUpdateError);
+        } else {
+          console.log('[LEAD META UPDATE SUCCESS] Updated lead raw_metadata with normalized fields');
+        }
 
         console.log('[COMPLETE PATH] AI call record inserted');
 
@@ -7739,12 +7812,18 @@ Return only JSON, no other text.`;
           callerPhone: sessionCallerPhone,
           operation: 'lead upsert for fallback ai_call_records linking'
         });
+        const fallbackCanonicalInfo = buildCanonicalExtractedInfo({ customerPhone: sessionCallerPhone }, sessionCallerPhone || '');
         const { data: fallbackLead, error: fallbackLeadError } = await supabase
           .from('leads')
           .upsert({
             business_id: sessionBusinessId,
             caller_phone: sessionCallerPhone,
             status: 'new',
+                        raw_metadata: {
+              ...fallbackCanonicalInfo,
+              extracted_info: fallbackCanonicalInfo,
+              ai_intake_completed: false,
+            },
           }, {
             onConflict: 'business_id,caller_phone',
           })
@@ -11519,7 +11598,7 @@ Return only JSON, no other text.`;
                   // Update existing AI call record
                   const updatePayload = {
                       transcript: transcript,
-                      extracted_info: extractedFields,
+                      extracted_info: buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone),
                       summary: extractedFields.summary,
                       extraction_failed: false,
                       updated_at: new Date().toISOString()
@@ -11662,7 +11741,7 @@ Return only JSON, no other text.`;
                     ai_session_id: sessionSessionId,
                     transcript: Array.isArray(transcript) ? transcript : [],
                     outcome: 'ai_completed',
-                    extracted_info: extractedFields,
+                    extracted_info: buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone),
                     summary: extractedFields.summary,
                     extraction_failed: false
                   };
@@ -11825,10 +11904,16 @@ Return only JSON, no other text.`;
                   return;
                 }
                 
+                const canonicalInfo = buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone);
                 const leadInsertPayload = {
                   business_id: sessionBusinessId,
                   caller_phone: sessionCallerPhone,
                   status: 'new',
+                                    raw_metadata: {
+                    ...canonicalInfo,
+                    extracted_info: canonicalInfo,
+                    ai_intake_completed: true,
+                  },
                 };
                 console.log('[LEAD CREATE START]', { payload: leadInsertPayload });
                 
@@ -12268,12 +12353,18 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                 
                 try {
                   console.log('[AI INGEST] creating lead and conversation for fallback case...');
+                  const fallbackCanonicalInfo = buildCanonicalExtractedInfo({ customerPhone: sessionCallerPhone }, sessionCallerPhone || '');
                   const { data: fallbackLead, error: fallbackLeadError } = await supabase
                     .from('leads')
                     .upsert({
                       business_id: sessionBusinessId,
                       caller_phone: sessionCallerPhone,
                       status: 'new',
+                                            raw_metadata: {
+                        ...fallbackCanonicalInfo,
+                        extracted_info: fallbackCanonicalInfo,
+                        ai_intake_completed: false,
+                      },
                     }, {
                       onConflict: 'business_id,caller_phone',
                     })
@@ -12558,12 +12649,18 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                   callerPhone
                 });
                 
+                const emergencyCanonicalInfo = buildCanonicalExtractedInfo({ customerPhone: callerPhone }, callerPhone || '');
                 const { data: emergencyLead, error: emergencyLeadError } = await supabase
                   .from('leads')
                   .upsert({
                     business_id: businessId,
                     caller_phone: callerPhone,
                     status: 'new',
+                                        raw_metadata: {
+                      ...emergencyCanonicalInfo,
+                      extracted_info: emergencyCanonicalInfo,
+                      ai_intake_completed: false,
+                    },
                   }, {
                     onConflict: 'business_id,caller_phone',
                   })
@@ -13238,7 +13335,7 @@ server.listen(PORT, () => {
   console.log('[RUNTIME VERSION CHECK] =========================================');
   console.log('[AI VOICE SERVICE VERSION] commit=mark-based-hangup-v1 deterministic-closing');
   console.log('[SCHEMA COMPATIBILITY CHECK] conversations table columns: lead_id, business_id, status, created_at, updated_at (NO call_sid)');
-  console.log('[SCHEMA COMPATIBILITY CHECK] leads table columns: id, business_id, phone, name, email, status, raw_metadata, created_at, updated_at (NO source)');
+  console.log('[SCHEMA COMPATIBILITY CHECK] leads table columns: id, business_id, phone, caller_phone, name, email, source, status, raw_metadata, created_at, updated_at (AI service writes only business_id, caller_phone, status, source, raw_metadata)');
   console.log('[SCHEMA COMPATIBILITY CHECK] ai_call_records table columns: id, business_id, lead_id, conversation_id, caller_phone, call_sid, ai_session_id, transcript, outcome, extracted_info, summary, extraction_failed, created_at, updated_at');
   console.log('[AI VOICE SERVICE VERSION] commit=473dfc1 language-lock-enabled=true');
   console.log('[AI VOICE SERVICE VERSION] Mark-based hangup: uses Twilio marks to track audio playback completion');
