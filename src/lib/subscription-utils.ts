@@ -4,6 +4,7 @@
  */
 
 import { hasActiveManualAccess } from './manual-access';
+import { logRouteFlashDebug } from './route-flash-debug';
 
 // BETA/COMPED ACCESS: All statuses that unlock full app access
 const ACTIVE_ACCESS_STATUSES = ['active', 'trialing', 'beta', 'comped'];
@@ -166,6 +167,12 @@ export function deriveSetupState(business: Business | null | undefined, leadCoun
   // If no business data, assume loading
   if (!business) {
     console.log('[deriveSetupState] No business data - returning loading')
+    logRouteFlashDebug({
+      source: 'deriveSetupState',
+      derivedSetupState: 'loading',
+      renderBranch: 'loading',
+      reason: 'no business data provided',
+    })
     return 'loading'
   }
 
@@ -180,6 +187,13 @@ export function deriveSetupState(business: Business | null | undefined, leadCoun
   // Check if subscription is active - this is the FIRST check
   if (!hasActiveAccess(business)) {
     console.log('[deriveSetupState] No active subscription - returning needs_trial')
+    logRouteFlashDebug({
+      source: 'deriveSetupState',
+      subscriptionStatus: business?.subscription_status,
+      derivedSetupState: 'needs_trial',
+      renderBranch: 'setup',
+      reason: 'no active subscription/manual access',
+    })
     return 'needs_trial'
   }
 
@@ -191,6 +205,13 @@ export function deriveSetupState(business: Business | null | undefined, leadCoun
 
   if (isProvisioning || !hasNumber) {
     console.log('[deriveSetupState] Provisioning or number pending - returning provisioning_or_number_pending')
+    logRouteFlashDebug({
+      source: 'deriveSetupState',
+      subscriptionStatus: business?.subscription_status,
+      derivedSetupState: 'provisioning_or_number_pending',
+      renderBranch: 'setup',
+      reason: `isProvisioning=${isProvisioning}, hasNumber=${hasNumber}`,
+    })
     return 'provisioning_or_number_pending'
   }
 
@@ -215,6 +236,13 @@ export function deriveSetupState(business: Business | null | undefined, leadCoun
 
   if (!forwardingComplete) {
     console.log('[deriveSetupState] Forwarding not enabled - returning needs_forwarding')
+    logRouteFlashDebug({
+      source: 'deriveSetupState',
+      subscriptionStatus: business?.subscription_status,
+      derivedSetupState: 'needs_forwarding',
+      renderBranch: 'setup',
+      reason: 'forwarding not complete',
+    })
     return 'needs_forwarding'
   }
 
@@ -234,10 +262,28 @@ export function deriveSetupState(business: Business | null | undefined, leadCoun
   // If forwarding is verified but no actual test call has happened, needs final test
   if (!hasActualActivity) {
     console.log('[deriveSetupState] Forwarding verified but no test call completed - returning needs_final_test')
+    logRouteFlashDebug({
+      source: 'deriveSetupState',
+      subscriptionStatus: business?.subscription_status,
+      firstTestCallCompletedAt: business?.first_test_call_completed_at,
+      derivedSetupState: 'needs_final_test',
+      renderBranch: 'setup',
+      reason: 'forwarding verified but no actual test call/leads/SMS activity',
+    })
     return 'needs_final_test'
   }
 
   // Forwarding is verified AND test call completed - setup is complete
   console.log('[deriveSetupState] All checks passed - returning complete')
+
+  logRouteFlashDebug({
+    source: 'deriveSetupState',
+    subscriptionStatus: business?.subscription_status,
+    firstTestCallCompletedAt: business?.first_test_call_completed_at,
+    derivedSetupState: 'complete',
+    renderBranch: 'dashboard-content',
+    reason: 'all checks passed (active access, number, messaging, forwarding, test call/activity)',
+  })
+
   return 'complete'
 }

@@ -75,6 +75,7 @@ import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
 import { getBusinessSetupCompletionState } from '@/lib/setup-completion-state'
 import { isBusinessOutOfOffice, getOutOfOfficeStatus } from '@/lib/out-of-office'
+import { logRouteFlashDebug } from '@/lib/route-flash-debug'
 
 const DEBUG = process.env.NODE_ENV === 'development'
 const dlog = (...args: any[]) => { if (DEBUG) console.log(...args) }
@@ -812,13 +813,6 @@ export default function DashboardContent() {
     return () => clearTimeout(timeout)
   }, [businessLoading, webhookConfirming])
 
-  // FULL-SCREEN LOADING GATE: Prevent any UI from rendering until state is resolved
-  // This prevents flash of previous setup/onboarding screens during dashboard load
-  // Release loading gate when: auth resolved, business fetch resolved, AND (business exists OR no business profile)
-  if (authLoading || businessLoading || webhookConfirming || !businessFetchComplete) {
-    return <AppLoadingScreen />
-  }
-
   // CENTRAL DASHBOARD GUARD: Prevent incomplete users from accessing full dashboard
   // Uses deriveSetupState to determine if setup is complete and route accordingly
   // Admin/protected accounts are exempt from this guard
@@ -826,6 +820,27 @@ export default function DashboardContent() {
   const isOnboardingCompleted = business?.onboarding_status === 'completed'
   const setupState = isOnboardingCompleted ? 'complete' : deriveSetupState(business)
   const isSetupComplete = setupState === 'complete' || isOnboardingCompleted
+
+  // FULL-SCREEN LOADING GATE: Prevent any UI from rendering until state is resolved
+  // This prevents flash of previous setup/onboarding screens during dashboard load
+  // Release loading gate when: auth resolved, business fetch resolved, AND (business exists OR no business profile)
+  if (authLoading || businessLoading || webhookConfirming || !businessFetchComplete) {
+    logRouteFlashDebug({
+      source: 'DashboardContent',
+      pathname,
+      authLoading,
+      userId: user?.id ?? null,
+      businessId: business?.id ?? null,
+      onboardingStatus: business?.onboarding_status,
+      subscriptionStatus: business?.subscription_status,
+      firstTestCallCompletedAt: business?.first_test_call_completed_at,
+      missedCallCount,
+      derivedSetupState: setupState,
+      renderBranch: 'loading',
+      reason: `authLoading=${authLoading}, businessLoading=${businessLoading}, webhookConfirming=${webhookConfirming}, businessFetchComplete=${businessFetchComplete}; rendering AppLoadingScreen`,
+    })
+    return <AppLoadingScreen />
+  }
   
   // Check for manual/lifetime access
   const manualAccessActive = (business as any)?.manual_access === true && 
@@ -843,6 +858,20 @@ export default function DashboardContent() {
     // If setup is incomplete, stay on dashboard and show Setup Gate
     // All onboarding now lives in the dashboard - no redirects to separate setup pages
     if (!isSetupComplete) {
+      logRouteFlashDebug({
+        source: 'DashboardContent',
+        pathname,
+        authLoading: false,
+        userId: user?.id ?? null,
+        businessId: business?.id ?? null,
+        onboardingStatus: business?.onboarding_status,
+        subscriptionStatus: business?.subscription_status,
+        firstTestCallCompletedAt: business?.first_test_call_completed_at,
+        missedCallCount,
+        derivedSetupState: setupState,
+        renderBranch: 'setup',
+        reason: `isSetupComplete=false, setupState=${setupState}; setup gate shown on dashboard`,
+      })
       const targetRoute = (() => {
         switch (setupState) {
           case 'needs_trial':
@@ -870,6 +899,17 @@ export default function DashboardContent() {
   if (businessFetchComplete && !businessLoading) {
     // User has no business at all - redirect to onboarding/profile
     if (!business) {
+      logRouteFlashDebug({
+        source: 'DashboardContent',
+        pathname,
+        authLoading: false,
+        userId: user?.id ?? null,
+        businessId: null,
+        onboardingStatus: null,
+        subscriptionStatus: null,
+        renderBranch: 'onboarding',
+        reason: 'businessFetchComplete but no business; redirecting to /onboarding',
+      })
       router.push('/onboarding')
       return <AppLoadingScreen />
     }
@@ -880,6 +920,17 @@ export default function DashboardContent() {
     // User has business but missing required fields - ONLY redirect if NO active subscription
     if (!business.name || !business.business_phone_number) {
       if (!hasActiveSubscription) {
+        logRouteFlashDebug({
+          source: 'DashboardContent',
+          pathname,
+          authLoading: false,
+          userId: user?.id ?? null,
+          businessId: business?.id ?? null,
+          onboardingStatus: business?.onboarding_status,
+          subscriptionStatus: business?.subscription_status,
+          renderBranch: 'onboarding',
+          reason: 'business exists but missing required fields and no active subscription; redirecting to /onboarding',
+        })
         router.push('/onboarding')
         return <AppLoadingScreen />
       }
@@ -921,6 +972,20 @@ export default function DashboardContent() {
   // Step 12: ConversationsSection ✓
   // Step 13: GettingStartedBottom ✓
   // Step 14: Footer (final section)
+  logRouteFlashDebug({
+    source: 'DashboardContent',
+    pathname,
+    authLoading: false,
+    userId: user?.id ?? null,
+    businessId: business?.id ?? null,
+    onboardingStatus: business?.onboarding_status,
+    subscriptionStatus: business?.subscription_status,
+    firstTestCallCompletedAt: business?.first_test_call_completed_at,
+    missedCallCount,
+    derivedSetupState: setupState,
+    renderBranch: 'dashboard-content',
+    reason: 'all guards passed; rendering dashboard content',
+  })
   return (
     <DashboardErrorBoundary debugInfo={debugInfo}>
       <AuthGuard>

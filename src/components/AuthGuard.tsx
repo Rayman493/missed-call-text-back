@@ -3,10 +3,11 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import SetupError from '@/components/SetupError'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { logRouteFlashDebug } from '@/lib/route-flash-debug'
 
 const supabase = createBrowserClient()
 
@@ -24,6 +25,18 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       return sessionStorage.getItem('replyflow_auth_verified') === 'true'
     }
     return false
+  })
+
+  // Track current and previous pathname for route flash debugging
+  const pathnameRef = useRef<string | null>(typeof window !== 'undefined' ? window.location.pathname : null)
+  const previousPathnameRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const current = window.location.pathname
+    if (current !== pathnameRef.current) {
+      previousPathnameRef.current = pathnameRef.current
+      pathnameRef.current = current
+    }
   })
 
   // Mobile detection
@@ -221,6 +234,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // RECOVERY MODE: When checkout=success, suppress all redirects initially
   // After timeout, route to recovery page if session still unavailable
   if (isCheckoutRecovery) {
+    logRouteFlashDebug({
+      source: 'AuthGuard',
+      pathname: pathnameRef.current,
+      previousPathname: previousPathnameRef.current,
+      authLoading: loading,
+      userId: user?.id ?? null,
+      renderBranch: recoveryTimeoutElapsed ? 'loading' : 'loading',
+      reason: recoveryTimeoutElapsed ? 'checkout recovery timeout elapsed; redirecting to recovery' : 'checkout recovery; showing recovery loading',
+    })
     if (recoveryTimeoutElapsed) {
       // Redirect is handled by timeout callback, don't show loading
       return null
@@ -230,6 +252,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // BILLING RETURN GRACE MODE: When billing_return=success, show recovery loading with extended timeout
   if (isBillingReturn) {
+    logRouteFlashDebug({
+      source: 'AuthGuard',
+      pathname: pathnameRef.current,
+      previousPathname: previousPathnameRef.current,
+      authLoading: loading,
+      userId: user?.id ?? null,
+      renderBranch: billingGraceTimeoutElapsed ? 'loading' : 'loading',
+      reason: billingGraceTimeoutElapsed ? 'billing return grace timeout elapsed; redirecting to signin' : 'billing return grace; showing custom loading',
+    })
     if (billingGraceTimeoutElapsed) {
       // Redirect is handled by timeout callback, don't show loading
       return null
@@ -249,6 +280,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   // STRIPE SETUP RETURN GRACE MODE: When setup=1 on dashboard/forwarding, wait for session restoration
   if (isStripeSetupReturn) {
+    logRouteFlashDebug({
+      source: 'AuthGuard',
+      pathname: pathnameRef.current,
+      previousPathname: previousPathnameRef.current,
+      authLoading: loading,
+      userId: user?.id ?? null,
+      renderBranch: !user ? 'loading' : 'dashboard-content',
+      reason: !user ? 'stripe setup return; waiting for session restoration' : 'stripe setup return; session restored',
+    })
     if (!user && !loading) {
       const returnTo = encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/dashboard?setup=1')
       router.push(`/auth/signin?returnTo=${returnTo}`)
@@ -275,14 +315,50 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   if (loading && !(authVerified && user)) {
     // Explicit guard: never show full-page loader during normal navigation
     if (flowType === 'normal_dashboard_navigation' && authVerified) {
+      logRouteFlashDebug({
+        source: 'AuthGuard',
+        pathname: pathnameRef.current,
+        previousPathname: previousPathnameRef.current,
+        authLoading: loading,
+        userId: user?.id ?? null,
+        renderBranch: 'dashboard-content',
+        reason: 'auth loading but authVerified + normal navigation; rendering children',
+      })
       return <>{children}</>
     }
+    logRouteFlashDebug({
+      source: 'AuthGuard',
+      pathname: pathnameRef.current,
+      previousPathname: previousPathnameRef.current,
+      authLoading: loading,
+      userId: user?.id ?? null,
+      renderBranch: 'loading',
+      reason: 'auth loading and not verified; rendering AppLoadingScreen',
+    })
     return <AppLoadingScreen />
   }
 
   if (!user) {
+    logRouteFlashDebug({
+      source: 'AuthGuard',
+      pathname: pathnameRef.current,
+      previousPathname: previousPathnameRef.current,
+      authLoading: loading,
+      userId: null,
+      renderBranch: 'loading',
+      reason: 'no user after loading; relying on AuthProvider redirect',
+    })
     return null // Will redirect via AuthProvider
   }
 
+  logRouteFlashDebug({
+    source: 'AuthGuard',
+    pathname: pathnameRef.current,
+    previousPathname: previousPathnameRef.current,
+    authLoading: loading,
+    userId: user?.id ?? null,
+    renderBranch: 'dashboard-content',
+    reason: 'authenticated; rendering children',
+  })
   return <>{children}</>
 }

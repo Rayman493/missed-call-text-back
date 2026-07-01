@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { isActiveSubscription } from '@/lib/subscription'
 import { hasBillingAccess } from '@/lib/manual-access'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
+import { logRouteFlashDebug } from '@/lib/route-flash-debug'
 
 export default function BusinessGuard({ children }: { children: React.ReactNode }) {
   const { business, loading, fetchComplete, error: businessError, businessMissingConfirmed } = useBusiness()
@@ -28,6 +29,16 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   const [showLoading, setShowLoading] = useState(false)
   const hasRedirectedRef = useRef<string | null>(null)
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Track current and previous pathname for route flash debugging
+  const previousPathnameRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const current = window.location.pathname
+    if (current !== pathname) {
+      previousPathnameRef.current = pathname
+    }
+  }, [pathname])
 
   useEffect(() => {
     // Mark as initialized once loading is complete and fetch is complete
@@ -156,17 +167,65 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   if (showLoading || !initialized) {
     if (businessVerified && business) {
       // Render children immediately, don't wait for loading to complete
+      logRouteFlashDebug({
+        source: 'BusinessGuard',
+        pathname,
+        previousPathname: previousPathnameRef.current,
+        authLoading: !initialized,
+        userId: user?.id ?? null,
+        businessId: business?.id ?? null,
+        onboardingStatus: business?.onboarding_status,
+        subscriptionStatus: business?.subscription_status,
+        renderBranch: 'dashboard-content',
+        reason: 'businessVerified + business present; skip loading overlay',
+      })
       return <>{children}</>
     } else {
       // Explicit guard: never show full-page loader during normal navigation
       if (pathname?.startsWith('/dashboard') && businessVerified) {
+        logRouteFlashDebug({
+          source: 'BusinessGuard',
+          pathname,
+          previousPathname: previousPathnameRef.current,
+          authLoading: !initialized,
+          userId: user?.id ?? null,
+          businessId: business?.id ?? null,
+          onboardingStatus: business?.onboarding_status,
+          subscriptionStatus: business?.subscription_status,
+          renderBranch: 'dashboard-content',
+          reason: 'pathname is dashboard and businessVerified; skip loading overlay',
+        })
         return <>{children}</>
       }
+      logRouteFlashDebug({
+        source: 'BusinessGuard',
+        pathname,
+        previousPathname: previousPathnameRef.current,
+        authLoading: !initialized,
+        userId: user?.id ?? null,
+        businessId: business?.id ?? null,
+        onboardingStatus: business?.onboarding_status,
+        subscriptionStatus: business?.subscription_status,
+        renderBranch: 'loading',
+        reason: 'business still loading or not initialized; rendering AppLoadingScreen',
+      })
       return <AppLoadingScreen />
     }
   }
 
   if (!business) {
+    logRouteFlashDebug({
+      source: 'BusinessGuard',
+      pathname,
+      previousPathname: previousPathnameRef.current,
+      authLoading: !initialized,
+      userId: user?.id ?? null,
+      businessId: null,
+      onboardingStatus: null,
+      subscriptionStatus: null,
+      renderBranch: 'onboarding',
+      reason: 'no business after fetch complete; rendering error / redirect to onboarding',
+    })
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
@@ -201,6 +260,18 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   // Only show the "finish setup" message if user has no basic profile AND is on main dashboard
   // Users with a profile but no subscription should see the dashboard with Start Free Trial state
   if (!hasBasicProfile && !hasActiveSubscription && isMainDashboardPage) {
+    logRouteFlashDebug({
+      source: 'BusinessGuard',
+      pathname,
+      previousPathname: previousPathnameRef.current,
+      authLoading: false,
+      userId: user?.id ?? null,
+      businessId: business?.id ?? null,
+      onboardingStatus: business?.onboarding_status,
+      subscriptionStatus: business?.subscription_status,
+      renderBranch: 'setup',
+      reason: 'main dashboard, no basic profile, no active subscription; showing finish setup screen',
+    })
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
@@ -226,5 +297,17 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
     )
   }
 
+  logRouteFlashDebug({
+    source: 'BusinessGuard',
+    pathname,
+    previousPathname: previousPathnameRef.current,
+    authLoading: false,
+    userId: user?.id ?? null,
+    businessId: business?.id ?? null,
+    onboardingStatus: business?.onboarding_status,
+    subscriptionStatus: business?.subscription_status,
+    renderBranch: 'dashboard-content',
+    reason: 'business loaded and guard passed; rendering children',
+  })
   return <>{children}</>
 }
