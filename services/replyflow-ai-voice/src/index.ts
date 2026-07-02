@@ -5377,74 +5377,26 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
     state.completionPersistenceStarted = true;
 
-    // Conversational phrases to reject in name extraction
-    const conversationalNamePhrases = [
-      'i', "i'm", "i am", "i'd", "i'd like", "i need", "i want",
-      'can you', 'can someone', 'need', 'looking', 'calling',
-      'this is', "it's", 'it will', "it'll", 'we need', 'my house'
-    ];
-
-    // Check if candidate name contains conversational phrases
-    const isConversationalName = (candidate: string): boolean => {
-      const lower = candidate.toLowerCase();
-      return conversationalNamePhrases.some(phrase => lower.includes(phrase)) ||
-             /\b(want|need|like|call|looking|get|install|fix|repair|check|help)\b/i.test(lower);
+    // Minimal name cleanup: split on comma, keep first part only
+    const cleanNameMinimal = (candidate: string): string => {
+      if (!candidate) return '';
+      const trimmed = candidate.trim();
+      // If name contains a comma followed by request phrase, keep only text before comma
+      const commaIndex = trimmed.indexOf(',');
+      if (commaIndex > 0) {
+        return trimmed.substring(0, commaIndex).trim();
+      }
+      return trimmed;
     };
 
-    // Clean address by removing conversational prefixes
-    const cleanAddress = (candidate: string): string => {
+    // Minimal address cleanup: remove obvious conversational prefixes only
+    const cleanAddressMinimal = (candidate: string): string => {
       if (!candidate) return '';
       let cleaned = candidate.trim();
-      // Remove common conversational prefixes
-      cleaned = cleaned.replace(/^(?:it'?ll be|it'?s at|uh|umm|well|the address is|the location is|at)\s*/i, '');
+      // Remove only the most obvious conversational prefixes
+      cleaned = cleaned.replace(/^(?:it'?ll be|it'?s at)\s*/i, '');
       cleaned = cleaned.replace(/^[.,;:\s]+/, '');
       return cleaned.trim();
-    };
-
-    // Conservative field update with confidence tracking
-    const conservativeUpdate = (
-      field: string,
-      existingValue: string,
-      candidate: string,
-      existingConfidence: 'high' | 'low' | null = null
-    ): { value: string; confidence: 'high' | 'low'; accepted: boolean; reason?: string } => {
-      if (!candidate || candidate.trim() === '') {
-        return { value: existingValue, confidence: existingConfidence || 'low', accepted: false, reason: 'empty_candidate' };
-      }
-
-      const trimmed = candidate.trim();
-      
-      // Name-specific validation
-      if (field === 'name') {
-        if (isConversationalName(trimmed)) {
-          console.log('[FIELD EXTRACTION] field=name candidate="' + trimmed.substring(0, 30) + '" confidence=low accepted=false reason=contains_conversational_phrase');
-          return { value: existingValue, confidence: existingConfidence || 'low', accepted: false, reason: 'contains_conversational_phrase' };
-        }
-        // Prefer shorter candidates for names
-        if (existingValue && trimmed.length > existingValue.length * 1.5 && existingConfidence === 'high') {
-          console.log('[FIELD EXTRACTION] field=name candidate="' + trimmed.substring(0, 30) + '" confidence=low accepted=false reason=prefer_shorter_high_confidence');
-          return { value: existingValue, confidence: 'high', accepted: false, reason: 'prefer_shorter_high_confidence' };
-        }
-      }
-
-      // Address-specific validation
-      if (field === 'address') {
-        const cleaned = cleanAddress(trimmed);
-        if (cleaned === trimmed && conversationalNamePhrases.some(p => trimmed.toLowerCase().startsWith(p))) {
-          console.log('[FIELD EXTRACTION] field=address candidate="' + trimmed.substring(0, 30) + '" confidence=low accepted=false reason=conversational_prefix');
-          return { value: existingValue, confidence: existingConfidence || 'low', accepted: false, reason: 'conversational_prefix' };
-        }
-      }
-
-      // Conservative overwrite: don't replace high-confidence with low-confidence
-      if (existingConfidence === 'high' && existingValue && existingValue !== trimmed) {
-        console.log('[FIELD EXTRACTION] field=' + field + ' candidate="' + trimmed.substring(0, 30) + '" confidence=low accepted=false reason=high_confidence_existing');
-        return { value: existingValue, confidence: 'high', accepted: false, reason: 'high_confidence_existing' };
-      }
-
-      const confidence = trimmed.length > 2 ? 'high' : 'low';
-      console.log('[FIELD EXTRACTION] field=' + field + ' candidate="' + trimmed.substring(0, 30) + '" confidence=' + confidence + ' accepted=true');
-      return { value: trimmed, confidence, accepted: true };
     };
 
     // Helper function to parse caller name and service from name/reason answer
@@ -5830,50 +5782,18 @@ Reply to this message if you'd like to update or add any information.
       );
       console.log('[parseNameAndService output]', { customerName, serviceRequested });
 
-      // Track field confidence for conservative updates
-      const fieldConfidence: Record<string, 'high' | 'low' | null> = {
-        customerName: null,
-        serviceRequested: null,
-        serviceAddress: null,
-        desiredCompletionTime: null,
-        callbackTime: null,
-        issueDescription: null,
-      };
+      // Apply minimal cleanup to name only (split on comma)
+      state.intakeData.customerName = cleanNameMinimal(customerName);
 
-      // Apply conservative update to customer name (highest priority)
-      const nameUpdate = conservativeUpdate('name', state.intakeData.customerName, customerName, fieldConfidence.customerName);
-      state.intakeData.customerName = nameUpdate.value;
-      fieldConfidence.customerName = nameUpdate.confidence;
+      // Apply minimal cleanup to address only
+      state.intakeData.serviceAddress = cleanAddressMinimal(state.intakeData.serviceAddress);
 
-      // Apply conservative update to service requested
-      const serviceUpdate = conservativeUpdate('service', state.intakeData.serviceRequested, serviceRequested, fieldConfidence.serviceRequested);
-      state.intakeData.serviceRequested = serviceUpdate.value;
-      fieldConfidence.serviceRequested = serviceUpdate.confidence;
+      // Do NOT apply aggressive filtering to callbackTime or serviceRequested
+      // Preserve natural callback answers and service descriptions
 
-      // Apply conservative update to service address with cleaning
-      const cleanedAddress = cleanAddress(state.intakeData.serviceAddress);
-      const addressUpdate = conservativeUpdate('address', state.intakeData.serviceAddress, cleanedAddress, fieldConfidence.serviceAddress);
-      state.intakeData.serviceAddress = addressUpdate.value;
-      fieldConfidence.serviceAddress = addressUpdate.confidence;
-
-      // Apply conservative update to desired completion time
-      const timeUpdate1 = conservativeUpdate('time', state.intakeData.desiredCompletionTime, state.intakeData.desiredCompletionTime, fieldConfidence.desiredCompletionTime);
-      state.intakeData.desiredCompletionTime = timeUpdate1.value;
-      fieldConfidence.desiredCompletionTime = timeUpdate1.confidence;
-
-      // Apply conservative update to callback time (preserve natural phrases)
-      const timeUpdate2 = conservativeUpdate('time', state.intakeData.callbackTime, state.intakeData.callbackTime, fieldConfidence.callbackTime);
-      state.intakeData.callbackTime = timeUpdate2.value;
-      fieldConfidence.callbackTime = timeUpdate2.confidence;
-
-      // Apply conservative update to issue description
-      const detailsUpdate = conservativeUpdate('details', state.intakeData.issueDescription, state.intakeData.issueDescription, fieldConfidence.issueDescription);
-      state.intakeData.issueDescription = detailsUpdate.value;
-      fieldConfidence.issueDescription = detailsUpdate.confidence;
-
-      // Apply per-field CRM normalization after conservative updates
+      // Apply per-field CRM normalization after minimal cleanup
       state.intakeData.customerName        = normalizeCrmField(state.intakeData.customerName,                           'name');
-      state.intakeData.serviceRequested    = normalizeCrmField(state.intakeData.serviceRequested,                       'service');
+      state.intakeData.serviceRequested    = normalizeCrmField(serviceRequested,                       'service');
       state.intakeData.serviceAddress      = normalizeCrmField(state.intakeData.serviceAddress,        'address');
       state.intakeData.desiredCompletionTime = normalizeCrmField(state.intakeData.desiredCompletionTime, 'time');
       state.intakeData.callbackTime        = normalizeCrmField(state.intakeData.callbackTime,          'time');
