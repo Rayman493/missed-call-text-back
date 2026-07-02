@@ -233,35 +233,41 @@ export async function sendSms(
     const isSystemSms = !options?.lead_id;
     
     if (isSystemSms) {
-      // Insert into system_sms table for account-level messages
-      const { data: insertedSystemSms, error: insertError } = await supabase
-        .from('system_sms')
-        .insert({
-          business_id: business.id,
-          to_phone: to,
-          from_phone: business.twilio_phone_number,
-          body: message,
-          twilio_message_sid: `SIM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          status: 'simulated',
-          message_type: 'offboarding',
-          created_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
+      // Insert into system_sms table for account-level messages (optional logging)
+      try {
+        const { data: insertedSystemSms, error: insertError } = await supabase
+          .from('system_sms')
+          .insert({
+            business_id: business.id,
+            to_phone: to,
+            from_phone: business.twilio_phone_number,
+            body: message,
+            twilio_message_sid: `SIM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            status: 'simulated',
+            message_type: 'offboarding',
+            created_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
 
-      if (insertError) {
-        console.error('[SMS] Failed to insert simulated system SMS record:', insertError);
-      } else {
-        console.log('[SYSTEM SMS INSERTED] Simulated system SMS record inserted successfully', {
-          system_sms_id: insertedSystemSms.id,
-          business_id: business.id,
-          message_body: message.substring(0, 50),
-          to: maskPhone(to),
-          message_type: 'simulated'
-        });
+        if (insertError) {
+          console.error('[SMS] Failed to insert simulated system SMS record:', insertError);
+        } else {
+          console.log('[SYSTEM SMS INSERTED] Simulated system SMS record inserted successfully', {
+            system_sms_id: insertedSystemSms.id,
+            business_id: business.id,
+            message_body: message.substring(0, 50),
+            to: maskPhone(to),
+            message_type: 'simulated'
+          });
+        }
+
+        return { sid: `SIM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, messageId: insertedSystemSms?.id || null };
+      } catch (error) {
+        // If system_sms table doesn't exist, log warning but don't fail
+        console.warn('[SMS] system_sms table not found - skipping optional logging for simulated system SMS');
+        return { sid: `SIM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, messageId: null };
       }
-
-      return { sid: `SIM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, messageId: insertedSystemSms?.id || null };
     } else {
       // Insert into messages table for lead/conversation messages
       const { data: insertedMessage, error: insertError } = await supabase
