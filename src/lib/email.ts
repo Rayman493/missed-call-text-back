@@ -577,102 +577,118 @@ export async function sendOffboardingReminderEmail(params: OffboardingReminderEm
 function generateJourneyEmailHTML(params: JourneyEmailParams): string {
   const { userEmail, businessName, analytics } = params
 
-  // Build metric cards using table layout for Gmail compatibility
+  // Build stacked metric cards using table layout for Gmail compatibility
   const metricCards = []
   
   if (analytics.totalDays !== undefined) {
     metricCards.push(`
-      <td style="width: 50%; padding: 8px; vertical-align: top;">
-        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center;">
-          <div style="font-size: 36px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.totalDays}</div>
-          <div style="font-size: 13px; color: #64748b; font-weight: 500;">${analytics.totalDays === 1 ? 'Day' : 'Days'}</div>
-          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Using ReplyFlow</div>
-        </div>
-      </td>
+      <tr>
+        <td style="padding: 16px 0;">
+          <div style="background: #f8fafc; border-radius: 12px; padding: 28px 24px; text-align: center;">
+            <div style="font-size: 40px; font-weight: 700; color: #2563eb; margin-bottom: 8px;">${analytics.totalDays}</div>
+            <div style="font-size: 15px; font-weight: 600; color: #475569; margin-bottom: 4px;">Days Using ReplyFlow</div>
+            <div style="font-size: 13px; color: #94a3b8; font-weight: 400;">Time with your account</div>
+          </div>
+        </td>
+      </tr>
     `)
   }
   
   if (analytics.leadsCaptured !== undefined) {
     metricCards.push(`
-      <td style="width: 50%; padding: 8px; vertical-align: top;">
-        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center;">
-          <div style="font-size: 36px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.leadsCaptured}</div>
-          <div style="font-size: 13px; color: #64748b; font-weight: 500;">Leads</div>
-          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Captured</div>
-        </div>
-      </td>
+      <tr>
+        <td style="padding: 16px 0;">
+          <div style="background: #f8fafc; border-radius: 12px; padding: 28px 24px; text-align: center;">
+            <div style="font-size: 40px; font-weight: 700; color: #2563eb; margin-bottom: 8px;">${analytics.leadsCaptured}</div>
+            <div style="font-size: 15px; font-weight: 600; color: #475569; margin-bottom: 4px;">Leads Captured</div>
+            <div style="font-size: 13px; color: #94a3b8; font-weight: 400;">New opportunities recovered</div>
+          </div>
+        </td>
+      </tr>
     `)
   }
   
   if (analytics.conversations !== undefined) {
     metricCards.push(`
-      <td style="width: 50%; padding: 8px; vertical-align: top;">
-        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center;">
-          <div style="font-size: 36px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.conversations}</div>
-          <div style="font-size: 13px; color: #64748b; font-weight: 500;">Conversations</div>
-          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">With Customers</div>
-        </div>
-      </td>
+      <tr>
+        <td style="padding: 16px 0;">
+          <div style="background: #f8fafc; border-radius: 12px; padding: 28px 24px; text-align: center;">
+            <div style="font-size: 40px; font-weight: 700; color: #2563eb; margin-bottom: 8px;">${analytics.conversations}</div>
+            <div style="font-size: 15px; font-weight: 600; color: #475569; margin-bottom: 4px;">Customer Conversations</div>
+            <div style="font-size: 13px; color: #94a3b8; font-weight: 400;">Meaningful interactions</div>
+          </div>
+        </td>
+      </tr>
     `)
   }
   
   if (analytics.aiCallsHandled !== undefined) {
     metricCards.push(`
-      <td style="width: 50%; padding: 8px; vertical-align: top;">
-        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center;">
-          <div style="font-size: 36px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.aiCallsHandled}</div>
-          <div style="font-size: 13px; color: #64748b; font-weight: 500;">AI Calls</div>
-          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Handled</div>
-        </div>
-      </td>
+      <tr>
+        <td style="padding: 16px 0;">
+          <div style="background: #f8fafc; border-radius: 12px; padding: 28px 24px; text-align: center;">
+            <div style="font-size: 40px; font-weight: 700; color: #2563eb; margin-bottom: 8px;">${analytics.aiCallsHandled}</div>
+            <div style="font-size: 15px; font-weight: 600; color: #475569; margin-bottom: 4px;">AI Calls Handled</div>
+            <div style="font-size: 13px; color: #94a3b8; font-weight: 400;">Automated responses</div>
+          </div>
+        </td>
+      </tr>
     `)
   }
   
   if (analytics.messagesExchanged !== undefined) {
     metricCards.push(`
-      <td style="width: 50%; padding: 8px; vertical-align: top;">
-        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center;">
-          <div style="font-size: 36px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.messagesExchanged}</div>
-          <div style="font-size: 13px; color: #64748b; font-weight: 500;">Messages</div>
-          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Exchanged</div>
-        </div>
-      </td>
+      <tr>
+        <td style="padding: 16px 0;">
+          <div style="background: #f8fafc; border-radius: 12px; padding: 28px 24px; text-align: center;">
+            <div style="font-size: 40px; font-weight: 700; color: #2563eb; margin-bottom: 8px;">${analytics.messagesExchanged}</div>
+            <div style="font-size: 15px; font-weight: 600; color: #475569; margin-bottom: 4px;">Messages Exchanged</div>
+            <div style="font-size: 13px; color: #94a3b8; font-weight: 400;">Text conversations</div>
+          </div>
+        </td>
+      </tr>
     `)
   }
   
   if (analytics.appointmentsScheduled !== undefined) {
     metricCards.push(`
-      <td style="width: 50%; padding: 8px; vertical-align: top;">
-        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center;">
-          <div style="font-size: 36px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.appointmentsScheduled}</div>
-          <div style="font-size: 13px; color: #64748b; font-weight: 500;">Appointments</div>
-          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Scheduled</div>
-        </div>
-      </td>
+      <tr>
+        <td style="padding: 16px 0;">
+          <div style="background: #f8fafc; border-radius: 12px; padding: 28px 24px; text-align: center;">
+            <div style="font-size: 40px; font-weight: 700; color: #2563eb; margin-bottom: 8px;">${analytics.appointmentsScheduled}</div>
+            <div style="font-size: 15px; font-weight: 600; color: #475569; margin-bottom: 4px;">Appointments Scheduled</div>
+            <div style="font-size: 13px; color: #94a3b8; font-weight: 400;">Booked meetings</div>
+          </div>
+        </td>
+      </tr>
     `)
   }
   
   if (analytics.paymentRequestsSent !== undefined) {
     metricCards.push(`
-      <td style="width: 50%; padding: 8px; vertical-align: top;">
-        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center;">
-          <div style="font-size: 36px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.paymentRequestsSent}</div>
-          <div style="font-size: 13px; color: #64748b; font-weight: 500;">Payments</div>
-          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Requested</div>
-        </div>
-      </td>
+      <tr>
+        <td style="padding: 16px 0;">
+          <div style="background: #f8fafc; border-radius: 12px; padding: 28px 24px; text-align: center;">
+            <div style="font-size: 40px; font-weight: 700; color: #2563eb; margin-bottom: 8px;">${analytics.paymentRequestsSent}</div>
+            <div style="font-size: 15px; font-weight: 600; color: #475569; margin-bottom: 4px;">Payment Requests Sent</div>
+            <div style="font-size: 13px; color: #94a3b8; font-weight: 400;">Payment links shared</div>
+          </div>
+        </td>
+      </tr>
     `)
   }
 
   const metricsSection = metricCards.length > 0 ? `
-    <div style="background: white; border-radius: 12px; padding: 24px; margin-top: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-      <h3 style="margin: 0 0 20px 0; font-size: 14px; font-weight: 600; color: #1f2937; text-transform: uppercase; letter-spacing: 0.5px;">Your ReplyFlow Journey</h3>
-      <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
-        <tr>
-          ${metricCards.join('')}
-        </tr>
-      </table>
-    </div>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 48px;">
+      <tr>
+        <td style="text-align: center; padding: 0 0 24px 0;">
+          <p style="margin: 0; font-size: 14px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">━━━━━━━━━━━━━━━━</p>
+          <p style="margin: 16px 0 0 0; font-size: 18px; font-weight: 600; color: #1f2937;">Your ReplyFlow Journey</p>
+          <p style="margin: 0 0 24px 0; font-size: 14px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">━━━━━━━━━━━━━━━━</p>
+        </td>
+      </tr>
+      ${metricCards.join('')}
+    </table>
   ` : ''
 
   return `
@@ -683,41 +699,78 @@ function generateJourneyEmailHTML(params: JourneyEmailParams): string {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Thanks for using ReplyFlow</title>
       </head>
-      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1f2937; background-color: #f3f4f6;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: white;">
+      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.7; color: #374151; background-color: #f9fafb;">
+        <table style="max-width: 600px; margin: 0 auto; background-color: white; width: 100%;" cellpadding="0" cellspacing="0">
           <!-- Header -->
-          <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 40px 24px; text-align: center;">
-            <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: white; letter-spacing: -0.5px;">Your ReplyFlow Journey</h1>
-          </div>
+          <tr>
+            <td style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 56px 32px; text-align: center;">
+              <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: white; letter-spacing: -0.5px; line-height: 1.2;">Your ReplyFlow Journey</h1>
+            </td>
+          </tr>
           
           <!-- Content -->
-          <div style="padding: 40px 24px;">
-            <!-- Greeting -->
-            <p style="margin: 0 0 24px 0; font-size: 16px; color: #374151;">
-              Thank you for trusting ReplyFlow with your business. Here's a quick look at what ReplyFlow helped you manage.
-            </p>
-            
-            ${metricsSection}
-            
-            <!-- Closing -->
-            <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
-              <p style="margin: 0 0 12px 0; font-size: 16px; color: #374151;">
-                We're sorry to see you go, but we appreciate the opportunity to support your business. We wish you the very best.
+          <tr>
+            <td style="padding: 48px 32px;">
+              <!-- Greeting -->
+              <p style="margin: 0 0 32px 0; font-size: 17px; color: #374151; line-height: 1.7;">
+                Thank you for trusting ReplyFlow with your business.
               </p>
-              <p style="margin: 0; font-size: 14px; color: #6b7280;">
-                Thank you for using ReplyFlow.<br>
-                The ReplyFlow Team
+              
+              <p style="margin: 0 0 40px 0; font-size: 17px; color: #374151; line-height: 1.7;">
+                Every customer conversation matters, and we're grateful we had the opportunity to help you recover missed opportunities along the way.
               </p>
-            </div>
-          </div>
+              
+              ${metricsSection}
+              
+              <!-- Closing -->
+              <table style="width: 100%; margin-top: 56px; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 32px 0 0 0; border-top: 1px solid #e5e7eb;">
+                    <p style="margin: 0 0 20px 0; font-size: 17px; color: #374151; line-height: 1.7;">
+                      We're genuinely sorry to see you go.
+                    </p>
+                    
+                    <p style="margin: 0 0 20px 0; font-size: 17px; color: #374151; line-height: 1.7;">
+                      Thank you for giving ReplyFlow the opportunity to support your business.
+                    </p>
+                    
+                    <p style="margin: 0 0 24px 0; font-size: 17px; color: #374151; line-height: 1.7;">
+                      We wish you continued success and hope your business keeps growing.
+                    </p>
+                    
+                    <p style="margin: 0; font-size: 15px; color: #6b7280; line-height: 1.6;">
+                      — The ReplyFlow Team
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- CTA -->
+              <table style="width: 100%; margin-top: 48px; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 32px 0 0 0; border-top: 1px solid #e5e7eb; text-align: center;">
+                    <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #1f2937;">Need anything?</p>
+                    <p style="margin: 0 0 16px 0; font-size: 14px; color: #6b7280;">
+                      <a href="mailto:support@replyflowhq.com" style="color: #2563eb; text-decoration: none;">support@replyflowhq.com</a>
+                    </p>
+                    <p style="margin: 0; font-size: 14px; color: #9ca3af; font-style: italic;">
+                      If you ever decide to come back, we'd love to have you again.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
           
           <!-- Footer -->
-          <div style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #e5e7eb;">
-            <p style="margin: 0; font-size: 12px; color: #9ca3af;">
-              You're receiving this email because your ReplyFlow account was deleted.
-            </p>
-          </div>
-        </div>
+          <tr>
+            <td style="background-color: #f9fafb; padding: 32px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="margin: 0; font-size: 13px; color: #9ca3af; line-height: 1.5;">
+                You're receiving this email because your ReplyFlow account was deleted.
+              </p>
+            </td>
+          </tr>
+        </table>
       </body>
     </html>
   `
