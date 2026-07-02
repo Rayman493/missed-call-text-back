@@ -1,46 +1,35 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/supabase/admin'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/settings/follow-ups - Retrieve follow-up settings
 export async function GET() {
   try {
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          },
-        },
-      }
-    )
-
-    // Get the user from the session
+    // Use server client pattern for proper RLS enforcement
+    const supabase = createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
+      console.error('[Follow-ups Settings GET] Auth failed:', authError?.message)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get the user's business
-    const lookupResult = await db.getBusinessByUserId(user.id)
+    console.log('[Follow-ups Settings GET] Authenticated user:', user.id)
+
+    // Get the user's business using server client with RLS
+    const { data: business, error: businessError } = await supabase
+      .from('businesses')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
     
-    if (!lookupResult.found || lookupResult.reason !== 'found' || !lookupResult.business) {
+    if (businessError || !business) {
+      console.error('[Follow-ups Settings GET] Business lookup failed:', businessError?.message)
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    const business = lookupResult.business
+    console.log('[Follow-ups Settings GET] Found business:', business.id)
 
     // Get current follow-up settings or return defaults
     const automationSettings = business.automation_settings || {}
@@ -73,7 +62,7 @@ export async function GET() {
 
     return NextResponse.json(followUpSettings)
   } catch (error) {
-    console.error('Error fetching follow-up settings:', error)
+    console.error('[Follow-ups Settings GET] Unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -81,46 +70,38 @@ export async function GET() {
 // PUT /api/settings/follow-ups - Update follow-up settings
 export async function PUT(request: NextRequest) {
   try {
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          },
-        },
-      }
-    )
-
-    // Get the user from the session
+    // Use server client pattern for proper RLS enforcement
+    const supabase = createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
+      console.error('[Follow-ups Settings PUT] Auth failed:', authError?.message)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    console.log('[Follow-ups Settings PUT] Authenticated user:', user.id)
 
     const settings = await request.json()
 
     // Validate the settings structure
     if (!settings || typeof settings !== 'object') {
+      console.error('[Follow-ups Settings PUT] Invalid settings format')
       return NextResponse.json({ error: 'Invalid settings format' }, { status: 400 })
     }
 
-    // Get the user's business
-    const lookupResult = await db.getBusinessByUserId(user.id)
-
-    if (!lookupResult.found || lookupResult.reason !== 'found' || !lookupResult.business) {
+    // Get the user's business using server client with RLS
+    const { data: business, error: businessError } = await supabase
+      .from('businesses')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+    
+    if (businessError || !business) {
+      console.error('[Follow-ups Settings PUT] Business lookup failed:', businessError?.message)
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    const business = lookupResult.business
+    console.log('[Follow-ups Settings PUT] Found business:', business.id)
 
     // Merge with existing automation settings
     const existingAutomationSettings = business.automation_settings || {}
@@ -129,19 +110,29 @@ export async function PUT(request: NextRequest) {
       followUps: settings
     }
 
-    // Update the business record
-    const updatedBusiness = await db.updateBusiness(business.id, {
-      automation_settings: updatedAutomationSettings
-    })
+    // Update the business record using server client with RLS
+    const { error: updateError } = await supabase
+      .from('businesses')
+      .update({
+        automation_settings: updatedAutomationSettings
+      })
+      .eq('id', business.id)
+      .select()
+      .single()
 
-    if (!updatedBusiness) {
-      console.error('Error updating follow-up settings')
+    if (updateError) {
+      console.error('[Follow-ups Settings PUT] Update failed:', {
+        businessId: business.id,
+        errorCode: updateError.code,
+        errorMessage: updateError.message
+      })
       return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })
     }
 
+    console.log('[Follow-ups Settings PUT] Settings updated successfully for business:', business.id)
     return NextResponse.json(settings)
   } catch (error) {
-    console.error('Error updating follow-up settings:', error)
+    console.error('[Follow-ups Settings PUT] Unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
