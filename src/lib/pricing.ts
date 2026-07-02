@@ -9,7 +9,7 @@ export const PRICING_CONFIG = {
   TRIAL_DAYS: 14,
 
   // Stripe configuration
-  STRIPE_PRICE_ID: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID || "price_1TRgO3M0bWUzmEVNCde4Rvr",
+  STRIPE_PRICE_ID: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID,
 
   // Display text
   PLAN_DISPLAY_NAME: "ReplyFlow",

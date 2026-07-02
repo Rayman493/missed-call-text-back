@@ -173,21 +173,87 @@ export async function POST(request: Request) {
     }
 
     const priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID
-    
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+
     logUrlResolution('stripe-checkout-site-url', siteUrl, user.id, business.id)
-    
+
     console.log('[stripe-checkout] Environment check:', {
       origin,
       siteUrl,
       priceId: !!priceId,
       priceIdValue: priceId,
       nodeEnv: process.env.NODE_ENV,
-      hasStripeSecretKey: !!process.env.STRIPE_SECRET_KEY
+      hasStripeSecretKey: !!stripeSecretKey,
+      stripeSecretKeyPrefix: stripeSecretKey ? stripeSecretKey.substring(0, 8) : null,
+      stripeSecretKeyMode: stripeSecretKey?.startsWith('sk_live_') ? 'live' : stripeSecretKey?.startsWith('sk_test_') ? 'test' : 'unknown'
     });
 
     if (!priceId) {
       console.error('[stripe-checkout] NEXT_PUBLIC_STRIPE_PRICE_ID not configured');
       return NextResponse.json({ error: 'Price ID not configured - NEXT_PUBLIC_STRIPE_PRICE_ID missing' }, { status: 500 })
+    }
+
+    if (!stripeSecretKey) {
+      console.error('[stripe-checkout] STRIPE_SECRET_KEY not configured');
+      return NextResponse.json({ error: 'Stripe secret key not configured' }, { status: 500 })
+    }
+
+    // Verify price exists in Stripe before creating checkout session
+    console.log('[stripe-checkout] Retrieving price from Stripe to verify it exists:', priceId);
+    let price;
+    try {
+      price = await stripe.prices.retrieve(priceId);
+      console.log('[stripe-checkout] Price retrieved successfully:', {
+        id: price.id,
+        active: price.active,
+        currency: price.currency,
+        unit_amount: price.unit_amount,
+        type: price.type,
+        product: price.product,
+        livemode: price.livemode
+      });
+    } catch (priceError: any) {
+      console.error('[stripe-checkout] Failed to retrieve price from Stripe:', {
+        priceId,
+        error: priceError.message,
+        type: priceError.type,
+        code: priceError.code,
+        statusCode: priceError.statusCode,
+        stripeSecretKeyMode: stripeSecretKey?.startsWith('sk_live_') ? 'live' : stripeSecretKey?.startsWith('sk_test_') ? 'test' : 'unknown'
+      });
+      return NextResponse.json({ 
+        error: `Price ID ${priceId} not found in Stripe account. Please verify NEXT_PUBLIC_STRIPE_PRICE_ID matches a live price in your Stripe account.`,
+        priceId,
+        stripeError: priceError.message,
+        stripeErrorCode: priceError.code
+      }, { status: 500 })
+    }
+
+    if (!price.active) {
+      console.error('[stripe-checkout] Price is not active:', priceId);
+      return NextResponse.json({ 
+        error: `Price ID ${priceId} exists but is not active. Please activate the price in Stripe.`, 
+        priceId 
+      }, { status: 500 })
+    }
+
+    // Check if price livemode matches secret key mode
+    const priceLivemode = price.livemode;
+    const secretKeyLivemode = stripeSecretKey.startsWith('sk_live_');
+    if (priceLivemode !== secretKeyLivemode) {
+      console.error('[stripe-checkout] Price and secret key mode mismatch:', {
+        priceId,
+        priceLivemode,
+        secretKeyLivemode,
+        priceLivemodeStr: priceLivemode ? 'live' : 'test',
+        secretKeyLivemodeStr: secretKeyLivemode ? 'live' : 'test'
+      });
+      return NextResponse.json({ 
+        error: `Price mode mismatch: Price is ${priceLivemode ? 'live' : 'test'} mode but secret key is ${secretKeyLivemode ? 'live' : 'test'} mode. Please ensure NEXT_PUBLIC_STRIPE_PRICE_ID matches the mode of STRIPE_SECRET_KEY.`,
+        priceId,
+        priceLivemode,
+        secretKeyLivemode
+      }, { status: 500 })
     }
 
     console.log('[STRIPE CHECKOUT] Creating checkout session with:', {
