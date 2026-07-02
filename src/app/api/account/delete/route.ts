@@ -278,6 +278,7 @@ export async function POST(request: NextRequest) {
 
     // Send offboarding email before deletion (with idempotency check)
     let confirmationToken = null
+    console.log('[OFFBOARDING SMS ORDER] trackingCreationStarted')
     if (!dryRun && businesses && businesses.length > 0) {
       const business = businesses[0] // Use first business for email
       const userEmail = user.email
@@ -299,11 +300,14 @@ export async function POST(request: NextRequest) {
         const offboardingData = await offboardingResponse.json()
         if (offboardingData.success) {
           confirmationToken = offboardingData.confirmationToken
+          console.log('[OFFBOARDING SMS ORDER] trackingCreated=true')
           console.log('[delete-account] Offboarding tracking record created:', offboardingData.trackingId)
         } else {
+          console.log('[OFFBOARDING SMS ORDER] trackingCreated=false')
           console.warn('[delete-account] Failed to create offboarding tracking record:', offboardingData.error)
         }
       } catch (offboardingError) {
+        console.log('[OFFBOARDING SMS ORDER] trackingCreated=false')
         console.warn('[delete-account] Failed to create offboarding tracking record:', offboardingError)
       }
       
@@ -312,6 +316,7 @@ export async function POST(request: NextRequest) {
       // This is acceptable as account deletion is a destructive, one-time operation
       
       if (userEmail) {
+        console.log('[OFFBOARDING SMS ORDER] emailSendStarted')
         console.log('[delete-account] Sending offboarding email', {
           businessId: business.id,
           businessName: business.name,
@@ -327,6 +332,7 @@ export async function POST(request: NextRequest) {
         })
         
         if (emailResult.success) {
+          console.log('[OFFBOARDING SMS ORDER] emailSent=true')
           console.log('[delete-account] Offboarding email sent successfully', {
             messageId: emailResult.messageId,
           })
@@ -334,6 +340,7 @@ export async function POST(request: NextRequest) {
           summary.offboardingEmailSent = true
           summary.offboardingEmailMessageId = emailResult.messageId
         } else {
+          console.log('[OFFBOARDING SMS ORDER] emailSent=false')
           console.warn('[delete-account] Failed to send offboarding email (continuing deletion)', {
             error: emailResult.error,
           })
@@ -649,6 +656,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Step 17: Send SMS offboarding notification before releasing Twilio number
+      console.log('[OFFBOARDING SMS ORDER] smsSendStarted')
       console.log('[delete-account] Step 17: send SMS offboarding notification before number release')
 
       if (!dryRun && businesses && businesses.length > 0) {
@@ -693,6 +701,9 @@ ${confirmationUrl}
 
 If forwarding does not stop immediately, restart your phone or contact your carrier.`
 
+          let smsTwilioStatus = 'unknown'
+          let smsSid = null
+
           try {
             // Pass the full business object, not a partial one
             const messageSid = await sendSms(
@@ -707,6 +718,9 @@ If forwarding does not stop immediately, restart your phone or contact your carr
 
             // Only log success if Twilio returned a real SID
             if (messageSid && messageSid.sid) {
+              console.log('[OFFBOARDING SMS ORDER] smsTwilioStatus=accepted')
+              smsTwilioStatus = 'accepted'
+              smsSid = messageSid.sid
               console.log('[ACCOUNT OFFBOARDING SMS RESULT]', {
                 business_id: business.id,
                 business_phone: businessPhone,
@@ -718,7 +732,15 @@ If forwarding does not stop immediately, restart your phone or contact your carr
 
               summary.offboardingSmsSent = true
               summary.offboardingSmsMessageSid = messageSid.sid
+
+              // Add delay to allow SMS to be delivered before reserving the number
+              // This prevents Twilio error 30024: Numeric Sender ID Not Provisioned on Carrier
+              console.log('[OFFBOARDING SMS ORDER] Waiting 5 seconds for SMS delivery before number reservation')
+              await new Promise(resolve => setTimeout(resolve, 5000))
+              console.log('[OFFBOARDING SMS ORDER] Delay completed, proceeding with number reservation')
             } else {
+              console.log('[OFFBOARDING SMS ORDER] smsTwilioStatus=no_sid')
+              smsTwilioStatus = 'no_sid'
               console.error('[ACCOUNT OFFBOARDING SMS RESULT]', {
                 business_id: business.id,
                 business_phone: businessPhone,
@@ -732,6 +754,8 @@ If forwarding does not stop immediately, restart your phone or contact your carr
               summary.offboardingSmsError = 'Twilio did not return a valid SID'
             }
           } catch (smsError: any) {
+            console.log('[OFFBOARDING SMS ORDER] smsTwilioStatus=error')
+            smsTwilioStatus = 'error'
             console.error('[ACCOUNT OFFBOARDING SMS RESULT]', {
               business_id: business.id,
               business_phone: businessPhone,
@@ -746,6 +770,11 @@ If forwarding does not stop immediately, restart your phone or contact your carr
             // SMS failure should NOT block account deletion - continue with flow
             console.log('[delete-account] SMS offboarding failed, continuing with deletion (best-effort)')
           }
+
+          console.log('[OFFBOARDING SMS ORDER]', {
+            smsTwilioStatus,
+            smsSid,
+          })
         } else {
           console.warn('[ACCOUNT OFFBOARDING SMS SKIPPED]', {
             business_id: business.id,
@@ -761,6 +790,7 @@ If forwarding does not stop immediately, restart your phone or contact your carr
       }
 
       // Step 18: Reserve Twilio numbers for 30-day grace period
+      console.log('[OFFBOARDING SMS ORDER] numberReservationStarted')
       console.log('[delete-account] Step 17: reserve twilio_numbers for 30-day grace period')
 
       const thirtyDaysFromNow = new Date()
@@ -839,6 +869,7 @@ If forwarding does not stop immediately, restart your phone or contact your carr
         }
       }
       summary.tablesDeleted.twilio_numbers_released = businesses.filter((b: any) => b.twilio_phone_number_sid).length
+      console.log('[OFFBOARDING SMS ORDER] numberReservationCompleted')
       console.log('[delete-account] Step 17 completed: reserved twilio_numbers for 30-day grace period')
 
       // Step 18: Delete leads linked to businesses

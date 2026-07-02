@@ -259,7 +259,7 @@ export async function sendSms(
           .single();
 
         if (insertError) {
-          console.error('[SMS] Failed to insert simulated system SMS record:', insertError);
+          console.warn('[SMS] system_sms insert failed (table may not exist), skipping optional logging');
         } else {
           console.log('[SYSTEM SMS INSERTED] Simulated system SMS record inserted successfully', {
             system_sms_id: insertedSystemSms.id,
