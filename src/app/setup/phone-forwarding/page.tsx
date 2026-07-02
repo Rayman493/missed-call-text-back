@@ -237,9 +237,10 @@ export default function PhoneForwardingPage() {
         // Invalidate Next.js cache to ensure fresh data
         router.refresh()
         
-        // Redirect to test setup after showing success confirmation
+        // Redirect to dashboard after showing success confirmation
+        // Using setTimeout to allow success state to be shown briefly
         setTimeout(() => {
-          router.push('/dashboard/test-setup')
+          router.push('/dashboard')
         }, 1500)
       }
     } catch (error) {
