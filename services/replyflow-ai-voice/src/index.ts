@@ -3205,23 +3205,21 @@ function buildCanonicalExtractedInfo(
   }
 
   return {
-    customerName: (fields.customerName || fields.callerName || '').trim(),
-    customerPhone: (callerPhone || fields.customerPhone || fields.phone || '').trim(),
-    serviceRequested: (fields.serviceRequested || fields.reasonForCalling || '').trim(),
+    customerName: (fields.customerName || '').trim(),
+    customerPhone: (callerPhone || fields.customerPhone || '').trim(),
+    serviceRequested: (fields.serviceRequested || '').trim(),
     additionalDetails: (
       fields.additionalDetails ||
       fields.issueDescription ||
-      fields.importantDetails ||
       ''
     ).trim(),
-    serviceAddress: (fields.serviceAddress || fields.addressOrLocation || '').trim(),
+    serviceAddress: (fields.serviceAddress || '').trim(),
     desiredCompletion: (
       fields.desiredCompletion ||
       fields.desiredCompletionTime ||
-      fields.urgency ||
       ''
     ).trim(),
-    callbackTime: (fields.callbackTime || fields.preferredCallbackTime || '').trim(),
+    callbackTime: (fields.callbackTime || '').trim(),
   }
 }
 
@@ -8993,6 +8991,30 @@ EXTRACTION FIELDS TO COLLECT:
 - Location
 - When work should be completed
 - Best callback time
+
+EXTRACTION NORMALIZATION RULES:
+When extracting information from caller responses, return ONLY the normalized value:
+
+Customer Name:
+- Return ONLY the person's name
+- Remove conversational prefixes: "My name is", "Name is", "This is", "I'm", "I am"
+- Never include the beginning of the next sentence or request text
+- Example: "My name is Ryan." → "Ryan"
+
+Service Address:
+- Return ONLY the address
+- Remove conversational prefixes: "At", "It's at", "It'll be at", "Located at", "The address is"
+- Example: "It'll be at 1632 South Pine Drive" → "1632 South Pine Drive"
+
+Issue Details:
+- Return ONLY the details
+- Remove conversational framing: "We need", "I need", "I'd like", "Can you", "It is going to be"
+- Example: "We need 10 outlets throughout the house." → "10 outlets throughout the house."
+
+Service Requested:
+- Return only the service itself
+- Remove conversational framing: "I need", "I'd like", "I want"
+- Example: "I need some outlets installed." → "Outlets installed"
 
 CRITICAL: The app controls ALL spoken responses.
 You will receive exact text to speak via response.create instructions.
