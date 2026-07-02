@@ -1,4 +1,5 @@
 import { db } from '@/lib/supabase/admin'
+import { timelineEvents } from '@/lib/event-timeline'
 
 // Helper function to check if a date is during business hours
 function isDuringBusinessHours(date: Date, timezone: string): boolean {
@@ -297,6 +298,15 @@ export async function createFollowUpJobs(params: {
         console.log('[FOLLOWUP JOBS INSERTED] jobId:', job.id);
         console.log('[FOLLOWUP JOBS INSERTED] step:', followUp.step);
         console.log('[FOLLOWUP JOBS INSERTED] scheduledFor:', scheduledFor.toISOString());
+
+        // Create timeline event for job creation
+        try {
+          await timelineEvents.jobCreated(businessId, leadId, job.id, followUp.step, scheduledFor.toISOString())
+          console.log('[FOLLOWUP JOBS INSERTED] Timeline event created successfully')
+        } catch (timelineError) {
+          console.error('[FOLLOWUP JOBS INSERTED] Failed to create timeline event:', timelineError)
+          // Non-critical error, continue
+        }
         console.log('[FOLLOWUP JOBS INSERTED] Timestamp:', new Date().toISOString());
         console.log('[FOLLOWUP JOBS INSERTED] =========================================');
       } else {

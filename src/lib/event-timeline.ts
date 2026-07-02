@@ -12,7 +12,7 @@ export interface TimelineEvent {
   lead_id?: string
   message_id?: string
   message_sid?: string
-  event_type: 'call_received' | 'lead_created' | 'auto_reply_queued' | 'message_sent' | 'message_delivered' | 'message_failed' | 'conversation_created' | 'payment_requested' | 'payment_completed' | 'payment_expired' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted'
+  event_type: 'call_received' | 'lead_created' | 'auto_reply_queued' | 'message_sent' | 'message_delivered' | 'message_failed' | 'conversation_created' | 'payment_requested' | 'payment_completed' | 'payment_expired' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted' | 'job_created'
   event_data?: Record<string, any>
   created_at?: string
 }
@@ -168,5 +168,13 @@ export const timelineEvents = {
       business_id: businessId,
       event_type: 'appointment_deleted',
       event_data: { event_id: eventId, title }
+    }),
+
+  jobCreated: (businessId: string, leadId: string, jobId: string, step: number, scheduledFor: string) =>
+    logTimelineEvent({
+      business_id: businessId,
+      lead_id: leadId,
+      event_type: 'job_created',
+      event_data: { job_id: jobId, step, scheduled_for: scheduledFor }
     })
 }
