@@ -144,7 +144,7 @@ export function isReadyForForwardingSetup(business: Business | null | undefined)
  * Authoritative derived setup state function
  * This is the single source of truth for determining setup routing
  * Always check subscription status first before allowing any setup routing
- * 
+ *
  * @param business - The business object
  * @param leadCount - Optional: number of leads captured (used to verify test call completion)
  */
@@ -160,18 +160,9 @@ export function deriveSetupState(business: Business | null | undefined, leadCoun
     return 'loading'
   }
 
-  // If onboarding is explicitly marked as completed, trust it and avoid
-  // flashing setup states during Stripe return rehydration.
-  if ((business as any)?.onboarding_status === 'completed') {
-    logRouteFlashDebug({
-      source: 'deriveSetupState',
-      subscriptionStatus: business?.subscription_status,
-      derivedSetupState: 'complete',
-      renderBranch: 'dashboard-content',
-      reason: 'onboarding_status is explicitly completed',
-    })
-    return 'complete'
-  }
+  // REMOVED: Do not trust onboarding_status === 'completed' as the sole indicator
+  // This was causing issues where accounts with active subscription but no actual
+  // setup completion were being marked as complete. Always verify actual operational state.
 
   const hasManualAccess = hasActiveManualAccess(business)
 
