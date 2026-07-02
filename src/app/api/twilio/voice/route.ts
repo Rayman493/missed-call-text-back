@@ -459,10 +459,12 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       .single();
     
     if (offboardingRecord && !offboardingError) {
-      console.log('[OFFBOARDING CHECK] Business has been deleted, playing fallback voicemail', {
-        businessId: business.id,
-        businessPhone: business.business_phone_number,
-      });
+      console.log('[OFFBOARDING FALLBACK]');
+      console.log(`toPhone=${To}`);
+      console.log(`fromPhone=${From}`);
+      console.log(`matchedDeletedBusiness=${business.id}`);
+      console.log(`reason=Business deleted but call forwarding may still be enabled`);
+      console.log(`action=fallback_voicemail`);
       
       const fallbackTwiml = `
 <Response>
