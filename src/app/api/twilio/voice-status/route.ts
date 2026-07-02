@@ -93,8 +93,9 @@ async function processVoiceStatusCallback(params: any, method: string) {
 
   let aiCallRecord = null
   // Give the AI service more time to finalize the simple-mode completion
-  // (lead upsert, conversation creation, ai_call_record insert, lead metadata update).
-  const retryDelays = [0, 1000, 2000, 3000, 4000, 5000]
+  // (lead upsert, conversation creation, ai_call_record insert, lead metadata update, SMS send).
+  // Increased delays to total 29 seconds to account for AI completion + SMS sending.
+  const retryDelays = [0, 1000, 2000, 3000, 5000, 8000, 10000]
 
   for (let i = 0; i < retryDelays.length; i++) {
     const delay = retryDelays[i]
