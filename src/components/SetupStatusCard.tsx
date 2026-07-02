@@ -21,6 +21,7 @@ interface SetupStatusCardProps {
 
 type CardState = 
   | 'billing-blocker'
+  | 'subscription-active'
   | 'critical-issue'
   | 'needs-forwarding'
   | 'needs-verification'
@@ -140,7 +141,19 @@ export default function SetupStatusCard({
       return 'billing-blocker'
     }
     
-    // Priority 2: Critical operational issues
+    // Priority 2: Subscription active but setup not complete - show subscription-active state
+    // This is the state immediately after Stripe checkout before any setup is done
+    const hasNumber = Boolean(business?.twilio_phone_number)
+    const forwardingActuallyVerified = business?.forwarding_verified === true
+    const smsActuallyActive = business?.messaging_status === 'active'
+    const hasActualOperationalState = forwardingActuallyVerified && smsActuallyActive && hasNumber
+    
+    // If subscription is active but setup is not actually complete, show subscription-active
+    if (hasSubscription && !hasActualOperationalState) {
+      return 'subscription-active'
+    }
+    
+    // Priority 3: Critical operational issues
     if (business?.provisioning_status === 'failed') {
       return 'critical-issue'
     }
@@ -149,27 +162,27 @@ export default function SetupStatusCard({
       return 'critical-issue'
     }
     
-    // Priority 3: Needs call forwarding setup
+    // Priority 4: Needs call forwarding setup
     if (setupState === 'needs_forwarding') {
       return 'needs-forwarding'
     }
     
-    // Priority 4: Needs verification test
+    // Priority 5: Needs verification test
     if (setupState === 'needs_final_test') {
       return 'needs-verification'
     }
     
-    // Priority 5: Setup complete success (first lead captured, not yet dismissed)
+    // Priority 6: Setup complete success (first lead captured, not yet dismissed)
     if (setupHealth?.forwardingVerified && missedCallCount > 0 && !successDismissed) {
       return 'setup-complete-success'
     }
     
-    // Priority 6: Setup complete but no leads yet
+    // Priority 7: Setup complete but no leads yet
     if (setupHealth?.forwardingVerified && missedCallCount === 0) {
       return 'setup-complete'
     }
     
-    // Priority 7: Healthy active account
+    // Priority 8: Healthy active account
     return 'healthy'
   }
   
@@ -181,7 +194,8 @@ export default function SetupStatusCard({
     cardState === 'needs-verification' ||
     cardState === 'billing-blocker' ||
     cardState === 'critical-issue' ||
-    cardState === 'setup-complete-success'
+    cardState === 'setup-complete-success' ||
+    cardState === 'subscription-active'
   
   React.useEffect(() => {
     if (shouldAutoExpand) {
@@ -278,7 +292,129 @@ export default function SetupStatusCard({
       </div>
     )
   }
-  
+
+  // Render subscription-active state (after payment but before setup)
+  if (cardState === 'subscription-active') {
+    const hasNumber = Boolean(business?.twilio_phone_number)
+    const forwardingActuallyVerified = business?.forwarding_verified === true
+    const smsActuallyActive = business?.messaging_status === 'active'
+    const isProvisioning = business?.provisioning_status === 'pending' || business?.provisioning_status === 'provisioning'
+
+    return (
+      <div className="bg-gradient-to-br from-green-600 to-emerald-700 dark:from-green-700 dark:to-emerald-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-green-500/30">
+        <div className="flex flex-col gap-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-7 h-7 text-white" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Subscription Active</h1>
+              <p className="text-green-100 text-base sm:text-lg">
+                Your ReplyFlow subscription is active. Complete the remaining setup below before ReplyFlow begins handling missed calls.
+              </p>
+            </div>
+          </div>
+
+          {/* Setup Progress - Show actual state */}
+          <div className="space-y-3">
+            {/* Dedicated Number */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${hasNumber ? 'bg-green-500' : isProvisioning ? 'bg-yellow-500' : 'bg-gray-500'}`}>
+                    {hasNumber ? (
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    ) : isProvisioning ? (
+                      <Loader2 className="w-3 h-3 text-white animate-spin" />
+                    ) : (
+                      <div className="w-2 h-2 bg-white/50 rounded-full" />
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-white text-sm font-medium">Dedicated Number</span>
+                    <span className={`text-xs block ${hasNumber ? 'text-green-200' : isProvisioning ? 'text-yellow-200' : 'text-gray-300'}`}>
+                      {hasNumber ? 'Ready' : isProvisioning ? 'Provisioning' : 'Pending'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Call Forwarding */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${forwardingActuallyVerified ? 'bg-green-500' : 'bg-gray-500'}`}>
+                    {forwardingActuallyVerified ? (
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <div className="w-2 h-2 bg-white/50 rounded-full" />
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-white text-sm font-medium">Call Forwarding</span>
+                    <span className={`text-xs block ${forwardingActuallyVerified ? 'text-green-200' : 'text-gray-300'}`}>
+                      {forwardingActuallyVerified ? 'Verified' : 'Configure'}
+                    </span>
+                  </div>
+                </div>
+                {!forwardingActuallyVerified && hasNumber && (
+                  <Link
+                    href="/setup/phone-forwarding"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-green-50 text-green-600 text-xs font-medium rounded-lg transition-colors"
+                  >
+                    Setup
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            {/* Test Call */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${hasCompletedTestCall ? 'bg-green-500' : 'bg-gray-500'}`}>
+                    {hasCompletedTestCall ? (
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <div className="w-2 h-2 bg-white/50 rounded-full" />
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-white text-sm font-medium">Verify Test Call</span>
+                    <span className={`text-xs block ${hasCompletedTestCall ? 'text-green-200' : 'text-gray-300'}`}>
+                      {hasCompletedTestCall ? 'Verified' : 'Pending'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          {hasNumber && !forwardingActuallyVerified && (
+            <Link
+              href="/setup/phone-forwarding"
+              className="inline-flex items-center justify-center px-6 py-3 bg-white hover:bg-green-50 text-green-600 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+            >
+              Continue Setup
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Link>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   // Render critical issue state
   if (cardState === 'critical-issue') {
     return (
@@ -547,37 +683,60 @@ export default function SetupStatusCard({
         {(cardState === 'setup-complete' || cardState === 'healthy') && (
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Call Forwarding - Check actual state */}
               <div className="flex items-center gap-3">
-                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${business?.forwarding_verified === true ? 'bg-green-500' : 'bg-gray-500'}`}>
+                  {business?.forwarding_verified === true ? (
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <div className="w-2 h-2 bg-white/50 rounded-full" />
+                  )}
                 </div>
                 <div>
                   <span className="text-white text-sm font-medium">Call Forwarding</span>
-                  <span className="text-green-200 text-xs block">Verified</span>
+                  <span className={`text-xs block ${business?.forwarding_verified === true ? 'text-green-200' : 'text-gray-300'}`}>
+                    {business?.forwarding_verified === true ? 'Verified' : 'Not Verified'}
+                  </span>
                 </div>
               </div>
+
+              {/* AI Receptionist - Check actual state */}
               <div className="flex items-center gap-3">
-                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${business?.twilio_phone_number ? 'bg-green-500' : 'bg-gray-500'}`}>
+                  {business?.twilio_phone_number ? (
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <div className="w-2 h-2 bg-white/50 rounded-full" />
+                  )}
                 </div>
                 <div>
                   <span className="text-white text-sm font-medium">AI Receptionist</span>
-                  <span className="text-green-200 text-xs block">Active</span>
+                  <span className={`text-xs block ${business?.twilio_phone_number ? 'text-green-200' : 'text-gray-300'}`}>
+                    {business?.twilio_phone_number ? 'Active' : 'Not Configured'}
+                  </span>
                 </div>
               </div>
+
+              {/* SMS Replies - Check actual state */}
               <div className="flex items-center gap-3">
-                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${business?.messaging_status === 'active' ? 'bg-green-500' : 'bg-gray-500'}`}>
+                  {business?.messaging_status === 'active' ? (
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <div className="w-2 h-2 bg-white/50 rounded-full" />
+                  )}
                 </div>
                 <div>
                   <span className="text-white text-sm font-medium">SMS Replies</span>
-                  <span className="text-green-200 text-xs block">Active</span>
+                  <span className={`text-xs block ${business?.messaging_status === 'active' ? 'text-green-200' : 'text-gray-300'}`}>
+                    {business?.messaging_status === 'active' ? 'Active' : 'Not Active'}
+                  </span>
                 </div>
               </div>
             </div>
