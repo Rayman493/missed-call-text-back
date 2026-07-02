@@ -41,42 +41,39 @@ interface SuggestedPrompt {
 
 const suggestedPrompts: SuggestedPrompt[] = [
   {
-    category: 'Customers',
-    icon: <Users className="w-4 h-4" />,
+    category: 'Getting Started',
+    icon: <BookOpen className="w-4 h-4" />,
     prompts: [
-      'Show my newest leads',
-      'Summarize today\'s customer conversations',
-      'Which customers requested a callback?'
+      'How do I set up call forwarding?',
+      'How to add a new customer',
+      'Connect Google Calendar'
     ]
   },
   {
-    category: 'Schedule',
-    icon: <CalendarIcon className="w-4 h-4" />,
-    prompts: [
-      'Show today\'s appointments',
-      'What\'s on my schedule tomorrow?'
-    ]
-  },
-  {
-    category: 'Payments',
-    icon: <CreditCard className="w-4 h-4" />,
-    prompts: [
-      'Show pending payment requests'
-    ]
-  },
-  {
-    category: 'AI Receptionist',
+    category: 'Troubleshooting',
     icon: <Bot className="w-4 h-4" />,
     prompts: [
-      'Summarize today\'s AI calls',
-      'Show incomplete AI intakes'
+      'SMS messages not sending',
+      'Fix call forwarding issues',
+      'AI receptionist not working'
     ]
   },
   {
-    category: 'Business',
+    category: 'Account',
+    icon: <Users className="w-4 h-4" />,
+    prompts: [
+      'Manage my subscription',
+      'Update payment method',
+      'Change business settings'
+    ]
+  },
+  {
+    category: 'Features',
     icon: <TrendingUp className="w-4 h-4" />,
     prompts: [
-      'Give me today\'s business summary'
+      'How payment requests work',
+      'AI receptionist overview',
+      'Follow-up messages'
     ]
   }
 ]
@@ -94,6 +91,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
   const [hasSearched, setHasSearched] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [relatedQuestions, setRelatedQuestions] = useState<AssistantArticle[]>([])
+  const [isSearching, setIsSearching] = useState(false)
 
   const suggestedArticles = useMemo(
     () => documentationProvider.getSuggestedArticles(defaultCategory, context, 4),
@@ -122,24 +120,30 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
     const trimmed = searchQuery.trim()
     if (!trimmed) return
 
-    const searchResults = engine.search(trimmed, context ?? {}, { limit: 5 })
-    const isAccount = searchResults.length === 0 && documentationProvider.canAnswer(trimmed, context ?? {})
-
-    setHasSearched(true)
-    setIsAccountSpecific(!isAccount)
-    setResults(searchResults)
-    setSelectedArticle(searchResults[0]?.article ?? null)
-    setSelectedIndex(searchResults.length > 0 ? 0 : -1)
-
-    if (searchResults.length > 0) {
-      setRelatedQuestions(
-        documentationProvider.getRelatedArticles(searchResults[0].article.id, 3)
-      )
-    } else {
-      setRelatedQuestions(suggestedArticles)
-    }
-
+    setIsSearching(true)
     setShowResults(true)
+
+    // Small delay to show loading state for better UX
+    setTimeout(() => {
+      const searchResults = engine.search(trimmed, context ?? {}, { limit: 5 })
+      const isAccount = searchResults.length === 0 && documentationProvider.canAnswer(trimmed, context ?? {})
+
+      setHasSearched(true)
+      setIsAccountSpecific(!isAccount)
+      setResults(searchResults)
+      setSelectedArticle(searchResults[0]?.article ?? null)
+      setSelectedIndex(searchResults.length > 0 ? 0 : -1)
+
+      if (searchResults.length > 0) {
+        setRelatedQuestions(
+          documentationProvider.getRelatedArticles(searchResults[0].article.id, 3)
+        )
+      } else {
+        setRelatedQuestions(suggestedArticles)
+      }
+
+      setIsSearching(false)
+    }, 300)
   }, [context, suggestedArticles])
 
   const handleSearch = () => performSearch(query)
@@ -233,7 +237,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white leading-tight">ReplyFlow Assistant</h3>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5 leading-snug">
-              Ask questions about your customers, appointments, conversations, and business.
+              Search ReplyFlow documentation for answers about customers, appointments, payments, and more.
             </p>
           </div>
           {onClose && (
@@ -282,8 +286,18 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
         {/* Results */}
         {showResults && (
           <div className="mb-4 space-y-4" ref={resultsRef}>
+            {/* Loading State */}
+            {isSearching && (
+              <div className="flex items-center justify-center py-8">
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm">Searching documentation...</span>
+                </div>
+              </div>
+            )}
+
             {/* Account-specific fallback */}
-            {isAccountSpecific && (
+            {!isSearching && isAccountSpecific && (
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
                 <p className="text-amber-800 dark:text-amber-200 text-sm mb-3">
                   This may require account-specific support. Here are some related troubleshooting steps:
@@ -314,12 +328,19 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
             )}
 
             {/* No results fallback */}
-            {!isAccountSpecific && results.length === 0 && (
+            {!isSearching && !isAccountSpecific && results.length === 0 && (
               <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-5">
-                <p className="text-slate-900 dark:text-white font-medium mb-1">No matching documentation found.</p>
-                <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
-                  Try a different phrase, browse the knowledge base, or contact support.
-                </p>
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-8 h-8 bg-slate-200 dark:bg-slate-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Search className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                  </div>
+                  <div>
+                    <p className="text-slate-900 dark:text-white font-medium mb-1">No results found</p>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">
+                      We couldn't find documentation matching your search. Try different keywords or browse our knowledge base.
+                    </p>
+                  </div>
+                </div>
                 <div className="flex flex-wrap gap-2 mb-4">
                   <button
                     onClick={() => router.push('/faq')}
@@ -340,16 +361,16 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
                 </div>
                 {suggestedArticles.length > 0 && (
                   <div>
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Suggested articles:</p>
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Try these instead:</p>
                     <div className="space-y-2">
                       {suggestedArticles.map(article => (
                         <button
                           key={article.id}
                           onClick={() => handleSuggestedQuestion(article.question)}
-                          className="w-full text-left p-2 bg-white dark:bg-slate-600 hover:bg-slate-100 dark:hover:bg-slate-500 rounded-lg transition-colors flex items-center gap-2 group"
+                          className="w-full text-left p-2.5 bg-white dark:bg-slate-600 hover:bg-slate-100 dark:hover:bg-slate-500 rounded-lg transition-colors flex items-center gap-2 group"
                         >
-                          <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" />
-                          <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" />
+                          <span className="text-xs text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
                             {article.question}
                           </span>
                         </button>
@@ -361,8 +382,8 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
             )}
 
             {/* Result list */}
-            {results.length > 0 && (
-              <div className="space-y-3">
+            {!isSearching && results.length > 0 && (
+              <div className="space-y-2">
                 {results.map((result, index) => {
                   const isSelected = selectedArticle?.id === result.article.id
                   const isHighlighted = selectedIndex === index
@@ -371,25 +392,24 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
                       key={result.article.id}
                       data-selected={isHighlighted}
                       onClick={() => handleResultClick(result.article, index)}
-                      className={`w-full text-left rounded-xl border transition-colors p-4 ${
+                      className={`w-full text-left rounded-lg border transition-all duration-200 p-3.5 ${
                         isSelected || isHighlighted
-                          ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                          : 'bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600'
+                          ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 shadow-sm'
+                          : 'bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded">
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">
                           {result.article.category}
                         </span>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                           {readingTimeLabel(result.article.readingTime)}
-                          {lastUpdatedLabel(result.article.lastUpdated)}
                         </div>
                       </div>
-                      <h4 className="font-semibold text-slate-900 dark:text-white mb-1">
+                      <h4 className="font-semibold text-slate-900 dark:text-white mb-1 text-sm leading-snug">
                         {highlightText(result.article.question, result.matchedTerms)}
                       </h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
                         {highlightText(result.article.summary, result.matchedTerms)}
                       </p>
                     </button>
@@ -399,16 +419,23 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
             )}
 
             {/* Selected article detail */}
-            {selectedArticle && results.length > 0 && (
+            {!isSearching && selectedArticle && results.length > 0 && (
               <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 border border-slate-200 dark:border-slate-600">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded">
+                <button
+                  onClick={() => setSelectedArticle(null)}
+                  className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-3 font-medium transition-colors"
+                >
+                  <ChevronRight className="w-3.5 h-3.5 rotate-180" />
+                  Back to results
+                </button>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">
                     {selectedArticle.category}
                   </span>
                   <span className="text-xs text-slate-500 dark:text-slate-400">Source: {selectedArticle.source}</span>
                 </div>
-                <h4 className="font-semibold text-slate-900 dark:text-white mb-2">{selectedArticle.question}</h4>
-                <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-base leading-snug">{selectedArticle.question}</h4>
+                <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line space-y-3">
                   {selectedArticle.answer}
                 </div>
 
@@ -421,10 +448,10 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
                         <button
                           key={i}
                           onClick={() => handleSuggestedQuestion(question)}
-                          className="w-full text-left p-2 bg-white dark:bg-slate-600 hover:bg-slate-100 dark:hover:bg-slate-500 rounded-lg transition-colors flex items-center gap-2 group"
+                          className="w-full text-left p-2.5 bg-white dark:bg-slate-600 hover:bg-slate-100 dark:hover:bg-slate-500 rounded-lg transition-colors flex items-center gap-2 group"
                         >
-                          <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" />
-                          <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
+                          <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" />
+                          <span className="text-xs text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
                             {question}
                           </span>
                         </button>
@@ -444,7 +471,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/30">
               <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">Welcome to ReplyFlow Assistant</h4>
               <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                I can help you quickly understand what's happening in your business. Ask about customers, appointments, conversations, payments, or AI receptionist activity.
+                Search our documentation for quick answers about your ReplyFlow account, features, and troubleshooting.
               </p>
             </div>
 
