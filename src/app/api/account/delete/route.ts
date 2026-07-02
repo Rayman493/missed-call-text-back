@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import getStripe from '@/lib/stripe'
 import { twilioClient } from '@/lib/twilio'
 import { sendOffboardingEmail, sendAccountDeletionConfirmationEmail, sendJourneyEmail } from '@/lib/email'
-import { sendSms } from '@/lib/twilio'
+import { sendSms, sendSystemSms } from '@/lib/twilio'
 
 const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
 
@@ -675,7 +675,7 @@ export async function POST(request: NextRequest) {
         })
 
         // Safety checks
-        if (businessPhone && replyFlowNumber) {
+        if (businessPhone) {
           console.log('[ACCOUNT OFFBOARDING SMS START]', {
             business_id: business.id,
             business_phone: businessPhone,
@@ -705,48 +705,46 @@ If forwarding does not stop immediately, restart your phone or contact your carr
           let smsSid = null
 
           try {
-            // Pass the full business object, not a partial one
-            const messageSid = await sendSms(
-              business,
+            // Send from dedicated system sender to avoid race condition with number reservation
+            console.log('[OFFBOARDING SMS ORDER] Using system SMS sender for offboarding')
+            const messageResult = await sendSystemSms(
               businessPhone,
               offboardingSmsMessage,
               {
-                lead_id: undefined, // Not a lead, it's an offboarding message
-                isOffboarding: true, // Bypass number readiness check for offboarding SMS
+                businessId: business.id,
+                businessPhoneNumber: replyFlowNumber,
+                messageType: 'offboarding',
+                confirmationUrl: confirmationUrl || undefined,
               }
             )
 
             // Only log success if Twilio returned a real SID
-            if (messageSid && messageSid.sid) {
+            if (messageResult && messageResult.sid) {
               console.log('[OFFBOARDING SMS ORDER] smsTwilioStatus=accepted')
               smsTwilioStatus = 'accepted'
-              smsSid = messageSid.sid
+              smsSid = messageResult.sid
               console.log('[ACCOUNT OFFBOARDING SMS RESULT]', {
                 business_id: business.id,
                 business_phone: businessPhone,
-                replyflow_number: replyFlowNumber,
+                from: 'system_sender',
                 success: true,
-                twilio_message_sid: messageSid.sid,
-                message_id: messageSid.messageId
+                twilio_message_sid: messageResult.sid,
               })
 
               summary.offboardingSmsSent = true
-              summary.offboardingSmsMessageSid = messageSid.sid
+              summary.offboardingSmsMessageSid = messageResult.sid
 
-              // Add delay to allow SMS to be delivered before reserving the number
-              // This prevents Twilio error 30024: Numeric Sender ID Not Provisioned on Carrier
-              console.log('[OFFBOARDING SMS ORDER] Waiting 5 seconds for SMS delivery before number reservation')
-              await new Promise(resolve => setTimeout(resolve, 5000))
-              console.log('[OFFBOARDING SMS ORDER] Delay completed, proceeding with number reservation')
+              // No delay needed when using system sender - the number won't be reserved yet
+              console.log('[OFFBOARDING SMS ORDER] No delay needed with system sender - proceeding with number reservation')
             } else {
               console.log('[OFFBOARDING SMS ORDER] smsTwilioStatus=no_sid')
               smsTwilioStatus = 'no_sid'
               console.error('[ACCOUNT OFFBOARDING SMS RESULT]', {
                 business_id: business.id,
                 business_phone: businessPhone,
-                replyflow_number: replyFlowNumber,
+                from: 'system_sender',
                 success: false,
-                twilio_message_sid: messageSid?.sid,
+                twilio_message_sid: messageResult?.sid,
                 error: 'Twilio did not return a valid SID'
               })
 
@@ -759,7 +757,7 @@ If forwarding does not stop immediately, restart your phone or contact your carr
             console.error('[ACCOUNT OFFBOARDING SMS RESULT]', {
               business_id: business.id,
               business_phone: businessPhone,
-              replyflow_number: replyFlowNumber,
+              from: 'system_sender',
               success: false,
               error: smsError?.message || String(smsError),
             })
@@ -774,6 +772,7 @@ If forwarding does not stop immediately, restart your phone or contact your carr
           console.log('[OFFBOARDING SMS ORDER]', {
             smsTwilioStatus,
             smsSid,
+            from: 'system_sender',
           })
         } else {
           console.warn('[ACCOUNT OFFBOARDING SMS SKIPPED]', {

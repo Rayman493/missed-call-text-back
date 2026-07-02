@@ -1654,3 +1654,100 @@ export async function repairProvisioningForBusiness(businessId: string): Promise
     return false
   }
 }
+
+/**
+ * Send system SMS from a dedicated ReplyFlow system sender
+ * This is used for offboarding/account-level SMS to avoid race conditions
+ * where the business's ReplyFlow number is being reserved/released
+ */
+export async function sendSystemSms(
+  to: string,
+  message: string,
+  options?: {
+    businessId?: string;
+    businessPhoneNumber?: string;
+    messageType?: string;
+    confirmationUrl?: string;
+  }
+): Promise<{ sid: string | null; messageId: string | null }> {
+  console.log('[SYSTEM SMS] Sending system SMS', {
+    to,
+    messageType: options?.messageType,
+    confirmationUrlPresent: !!options?.confirmationUrl,
+    businessId: options?.businessId,
+  });
+
+  // Validate environment variables
+  const systemNumber = process.env.REPLYFLOW_SYSTEM_SMS_NUMBER;
+  const systemMessagingServiceSid = process.env.REPLYFLOW_SYSTEM_MESSAGING_SERVICE_SID;
+
+  if (!systemNumber && !systemMessagingServiceSid) {
+    const error = 'REPLYFLOW_SYSTEM_SMS_NUMBER or REPLYFLOW_SYSTEM_MESSAGING_SERVICE_SID is required for system SMS';
+    
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[SYSTEM SMS] Missing required environment variable:', error);
+      throw new Error(error);
+    } else {
+      console.warn('[SYSTEM SMS] Missing required environment variable in development:', error);
+      // In development, allow fallback to business number for testing
+      console.warn('[SYSTEM SMS] Falling back to business number for development testing');
+      return { sid: null, messageId: null };
+    }
+  }
+
+  // Validate Twilio client
+  if (!twilioClient) {
+    console.error('[SYSTEM SMS] Twilio client not initialized');
+    throw new Error('Twilio client not initialized');
+  }
+
+  try {
+    const twilioParams: any = {
+      to,
+      body: message,
+    };
+
+    // Prefer messaging service over specific number
+    if (systemMessagingServiceSid) {
+      twilioParams.messagingServiceSid = systemMessagingServiceSid;
+      console.log('[SYSTEM SMS] Using system messaging service:', systemMessagingServiceSid);
+    } else if (systemNumber) {
+      twilioParams.from = systemNumber;
+      console.log('[SYSTEM SMS] Using system phone number:', systemNumber);
+    }
+
+    const twilioMessage = await twilioClient.messages.create(twilioParams);
+
+    console.log('[SYSTEM SMS] Twilio message sent successfully', {
+      sid: twilioMessage.sid,
+      to,
+      status: twilioMessage.status,
+    });
+
+    // Optionally log to system_sms table (graceful if table doesn't exist)
+    if (options?.businessId) {
+      try {
+        await supabase
+          .from('system_sms')
+          .insert({
+            business_id: options.businessId,
+            to_phone: to,
+            from_phone: systemNumber || systemMessagingServiceSid,
+            body: message,
+            twilio_message_sid: twilioMessage.sid,
+            status: twilioMessage.status,
+            message_type: options.messageType || 'system',
+            created_at: new Date().toISOString(),
+          });
+        console.log('[SYSTEM SMS] Logged to system_sms table');
+      } catch (error) {
+        console.warn('[SYSTEM SMS] system_sms table not found or insert failed - skipping optional logging');
+      }
+    }
+
+    return { sid: twilioMessage.sid, messageId: null };
+  } catch (error) {
+    console.error('[SYSTEM SMS] Failed to send system SMS:', error);
+    throw error;
+  }
+}
