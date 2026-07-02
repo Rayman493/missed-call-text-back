@@ -2306,10 +2306,10 @@ export default function SettingsContent() {
                   </div>
                   <div className="flex-1">
                     <h2 className="text-xl font-bold text-slate-900 dark:text-foreground mb-2">
-                      Delete your account permanently?
+                      Permanently delete your ReplyFlow account
                     </h2>
                     <p className="text-sm text-slate-600 dark:text-muted-foreground">
-                      This action cannot be undone. Please review what will happen before proceeding.
+                      This permanently removes your ReplyFlow account and business data. Please review what happens before continuing.
                     </p>
                   </div>
                 </div>
@@ -2324,7 +2324,7 @@ export default function SettingsContent() {
                     <ul className="text-sm text-slate-600 dark:text-muted-foreground space-y-2">
                       <li className="flex items-start gap-2">
                         <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <span>Automatic Stripe subscription cancellation (if applicable)</span>
+                        <span>We'll automatically cancel your active subscription (if one exists).</span>
                       </li>
                     </ul>
                   </div>
@@ -2341,15 +2341,15 @@ export default function SettingsContent() {
                       </li>
                       <li className="flex items-start gap-2">
                         <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <span>ReplyFlow Journey summary email with your analytics</span>
+                        <span>Receive a ReplyFlow Journey summary with your business statistics and usage history.</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                        <span>Short reminder process (max 2 reminders over 6 days) to confirm call forwarding disabled</span>
+                        <span>We'll send call forwarding instructions by both email and text. If needed, we'll send up to two additional reminder rounds, for a maximum of 3 emails and 3 text messages. Once you confirm call forwarding has been disabled, all reminders stop immediately.</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <span>Temporary offboarding records deleted after confirmation or reminder completion</span>
+                        <span>Temporary offboarding records are automatically removed once the offboarding process is complete.</span>
                       </li>
                     </ul>
                   </div>
@@ -2362,7 +2362,7 @@ export default function SettingsContent() {
                     <ul className="text-sm text-slate-600 dark:text-muted-foreground space-y-2">
                       <li className="flex items-start gap-2">
                         <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <span>Permanent deletion of business data, leads, messages, and conversations</span>
+                        <span>Permanent deletion of your business, customers, conversations, messages, appointments, settings, and related ReplyFlow data.</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
@@ -2381,7 +2381,7 @@ export default function SettingsContent() {
                         Important: Call Forwarding
                       </p>
                       <p className="text-xs text-amber-800 dark:text-amber-200">
-                        If you have call forwarding enabled, you'll receive instructions to disable it. Until confirmed, we may send reminders to ensure your missed calls return to normal voicemail.
+                        If call forwarding is still enabled after deleting your account, new callers may continue reaching your ReplyFlow number instead of your normal voicemail. We'll email and text simple instructions to help you disable forwarding, and reminders stop immediately once you confirm forwarding has been disabled.
                       </p>
                     </div>
                   </div>
