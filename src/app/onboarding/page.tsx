@@ -103,14 +103,6 @@ export default function OnboardingPage() {
         .limit(1)
         .single()
 
-      // Debug logging
-      console.log('[Onboarding] Business query result:', {
-        existingBusiness,
-        existingError,
-        hasBusiness: !!existingBusiness,
-        hasError: !!existingError
-      })
-
       if (existingBusiness && !existingError) {
         // CRITICAL: Users with existing business rows should NEVER be on /onboarding (Welcome to ReplyFlow)
         // /onboarding is only for users with NO business row
@@ -127,17 +119,6 @@ export default function OnboardingPage() {
         const forwardingComplete = existingBusiness.forwarding_verified === true ||
                                  existingBusiness.phone_setup_completed_at !== null
 
-        // Debug logging
-        console.log('[Onboarding] Business state:', {
-          onboarding_status: existingBusiness.onboarding_status,
-          subscription_status: existingBusiness.subscription_status,
-          hasActiveSub,
-          hasNumber,
-          forwardingComplete,
-          forwarding_verified: existingBusiness.forwarding_verified,
-          phone_setup_completed_at: existingBusiness.phone_setup_completed_at
-        })
-
         // If onboarding is completed, go to dashboard
         if (existingBusiness.onboarding_status === 'completed') {
           redirectTarget = '/dashboard'
@@ -150,7 +131,6 @@ export default function OnboardingPage() {
         }
         // If has number but no active subscription, resume at payment (trigger checkout)
         else if (hasNumber && !hasActiveSub) {
-          console.log('[Onboarding] Triggering checkout - has number but no active subscription')
           // Trigger checkout session to resume at Step 2 (payment)
           const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
             method: 'POST',
@@ -164,7 +144,6 @@ export default function OnboardingPage() {
 
           if (checkoutResponse.ok) {
             const checkoutData = await checkoutResponse.json()
-            console.log('[Onboarding] Checkout response:', checkoutData)
             if (checkoutData.url) {
               window.location.href = checkoutData.url
               return
@@ -176,7 +155,6 @@ export default function OnboardingPage() {
         }
         // If has business but no number and no active subscription, resume at payment (trigger checkout)
         else if (!hasNumber && !hasActiveSub) {
-          console.log('[Onboarding] Triggering checkout - has business but no number and no active subscription')
           // Trigger checkout session to resume at Step 2 (payment)
           const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
             method: 'POST',
@@ -190,7 +168,6 @@ export default function OnboardingPage() {
 
           if (checkoutResponse.ok) {
             const checkoutData = await checkoutResponse.json()
-            console.log('[Onboarding] Checkout response:', checkoutData)
             if (checkoutData.url) {
               window.location.href = checkoutData.url
               return
@@ -206,7 +183,6 @@ export default function OnboardingPage() {
           redirectReason = 'Business exists, allow dashboard access'
         }
 
-        console.log('[Onboarding] Redirecting to:', redirectTarget, 'Reason:', redirectReason)
         router.push(redirectTarget)
         return
       } else if (existingError) {
@@ -405,7 +381,7 @@ export default function OnboardingPage() {
               <div className="h-1 flex-1 bg-blue-600 rounded-full"></div>
               <div className="h-1 flex-1 bg-slate-600 rounded-full"></div>
             </div>
-            <p className="text-xs text-slate-400 text-right">Step 1 of 2</p>
+            <p className="text-xs text-slate-400 text-right">Step 1 of 2: Business Information</p>
           </div>
           
           <div className="flex items-center justify-between mb-2">
