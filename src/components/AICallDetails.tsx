@@ -5,6 +5,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
 import { Clock, User, Phone, MapPin, AlertCircle, MessageCircle, ChevronDown, ChevronUp, Briefcase, FileText, TriangleAlert } from 'lucide-react'
 import { normalizeExtractedInfo, getLeadAIIntake } from '@/lib/ai-field-mapping'
+import { isCompleteAIIntake, determineAIOutcomeFromExtractedInfo } from '@/lib/ai-intake-completion'
 
 interface AICallRecord {
   id: string
@@ -171,6 +172,10 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const correctionsCount = leadData?.raw_metadata?.corrections_count || 0
   const lastCorrectionField = leadData?.raw_metadata?.last_correction_field
 
+  // Use canonical helper to determine effective outcome
+  const isComplete = isCompleteAIIntake(extractedInfo as any)
+  const effectiveOutcome = determineAIOutcomeFromExtractedInfo(extractedInfo as any, aiCallRecord?.outcome)
+
   // Get last correction field name for display
   const getFieldName = (field: string) => {
     const fieldNames: Record<string, string> = {
@@ -333,8 +338,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             <div className="px-4 pb-4 pt-2">
               {/* AI Status Badge */}
               <div className="flex items-center justify-between mb-4">
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getOutcomeColor(aiCallRecord.outcome)}`}>
-                  {aiCallRecord.outcome.replace('_', ' ').toUpperCase()}
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getOutcomeColor(effectiveOutcome)}`}>
+                  {effectiveOutcome.replace('_', ' ').toUpperCase()}
                 </span>
                 <button
                   onClick={() => setSummaryExpanded(false)}
@@ -443,8 +448,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         <div className="space-y-4">
           {/* AI Status Badge */}
           <div className="flex items-center justify-between mb-4">
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getOutcomeColor(aiCallRecord.outcome)}`}>
-              {aiCallRecord.outcome.replace('_', ' ').toUpperCase()}
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getOutcomeColor(effectiveOutcome)}`}>
+              {effectiveOutcome.replace('_', ' ').toUpperCase()}
             </span>
           </div>
 
