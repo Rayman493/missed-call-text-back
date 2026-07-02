@@ -7635,7 +7635,15 @@ Return only JSON, no other text.`;
         console.log('[CUSTOMER NAME BEFORE PERSISTENCE] =========================================');
         
         // Determine outcome based on whether all required fields are present
-        const intakeComplete = isAIIntakeComplete(normalizedFields);
+        // Using canonical helper logic from main app (src/lib/ai-intake-completion.ts)
+        const hasCustomerName = Boolean(normalizedFields.customerName || normalizedFields.callerName);
+        const hasServiceRequested = Boolean(normalizedFields.serviceRequested || normalizedFields.reasonForCalling);
+        const hasIssueDescription = Boolean(normalizedFields.issueDescription || normalizedFields.importantDetails);
+        const hasServiceAddress = Boolean(normalizedFields.serviceAddress || normalizedFields.addressOrLocation);
+        const hasDesiredCompletionTime = Boolean(normalizedFields.desiredCompletionTime);
+        const hasCallbackTime = Boolean(normalizedFields.callbackTime || normalizedFields.preferredCallbackTime);
+        const intakeComplete = hasCustomerName && hasServiceRequested && hasIssueDescription && hasServiceAddress && hasDesiredCompletionTime && hasCallbackTime;
+        
         const hasUserSpeech = transcript.some((entry: any) => entry.role === 'user' && entry.text && entry.text.trim().length > 0);
         const hasUsefulFields = !!(
           normalizedFields.customerName ||
@@ -8990,7 +8998,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                         type: "server_vad",
                         threshold: 0.5,
                         prefix_padding_ms: 300,
-                        silence_duration_ms: 800,
+                        silence_duration_ms: 1150,
                         create_response: false
                       },
                       transcription: {
