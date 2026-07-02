@@ -90,6 +90,16 @@ export async function sendSms(
 
   console.log('[FOLLOWUP TWILIO SEND RESULT] Idempotency check passed, proceeding with send');
 
+  // Compact SMS trace log
+  console.log('[SMS TRACE] =========================================');
+  console.log('[SMS TRACE] callSid: N/A (sendSms function)');
+  console.log('[SMS TRACE] sender: sendSms-function');
+  console.log('[SMS TRACE] reason:', options?.source || 'general_sms');
+  console.log('[SMS TRACE] template selected: N/A (sendSms function)');
+  console.log('[SMS TRACE] why summary skipped: N/A (sendSms function)');
+  console.log('[SMS TRACE] why generic sent: N/A (sendSms function)');
+  console.log('[SMS TRACE] =========================================');
+
   // Check if lead has opted out - block automated messages to opted-out numbers
   if (options?.lead_id && !options.isManual) {
     const { data: lead, error: leadError } = await supabase

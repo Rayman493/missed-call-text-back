@@ -762,6 +762,16 @@ async function processVoiceStatusCallback(params: any, method: string) {
       aiCompleted: smsDecision.aiCompleted
     })
 
+    // Compact SMS trace log
+    console.log('[SMS TRACE] =========================================');
+    console.log('[SMS TRACE] callSid:', CallSid);
+    console.log('[SMS TRACE] sender: voice-status-callback');
+    console.log('[SMS TRACE] reason:', smsDecision.reason);
+    console.log('[SMS TRACE] template selected:', smsDecision.template);
+    console.log('[SMS TRACE] why summary skipped:', smsDecision.aiCompleted ? 'ai_completed_true' : 'ai_completed_false');
+    console.log('[SMS TRACE] why generic sent:', smsDecision.template !== 'none' ? 'template_not_none' : 'template_is_none');
+    console.log('[SMS TRACE] =========================================');
+
     // Business hours check
     const businessHoursEnabled = business.business_hours_enabled || false
     const businessHoursStart = business.business_hours_start || '09:00'

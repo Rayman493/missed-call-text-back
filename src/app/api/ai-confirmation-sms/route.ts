@@ -664,6 +664,16 @@ Reply STOP to opt out.`;
       source: 'external_ai_voice_service'
     })
 
+    // Compact SMS trace log
+    console.log('[SMS TRACE] =========================================');
+    console.log('[SMS TRACE] callSid:', callSid);
+    console.log('[SMS TRACE] sender: ai-confirmation-sms');
+    console.log('[SMS TRACE] reason:', selectionReason);
+    console.log('[SMS TRACE] template selected:', selectedTemplate);
+    console.log('[SMS TRACE] why summary skipped: N/A (this is the summary sender)');
+    console.log('[SMS TRACE] why generic sent: N/A (this sends summary, not generic)');
+    console.log('[SMS TRACE] =========================================');
+
     try {
       const sendResult = await sendSms(
         business,
