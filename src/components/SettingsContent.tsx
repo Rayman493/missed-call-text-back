@@ -36,6 +36,7 @@ import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
+import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle } from 'lucide-react'
 
 export default function SettingsContent() {
   const router = useRouter()
@@ -2298,29 +2299,96 @@ export default function SettingsContent() {
           {/* Delete Account Modal */}
           {showDeleteModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-card rounded-lg p-6 max-w-md w-full mx-4">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-foreground mb-4">
-                  Delete your account?
-                </h2>
-                <p className="text-sm text-slate-600 dark:text-muted-foreground mb-3">
-                  Before you continue:
-                </p>
-                <ul className="text-sm text-slate-600 dark:text-muted-foreground mb-4 list-disc pl-5 space-y-1">
-                  <li>We recommend canceling your subscription from the Stripe Customer Portal first for immediate confirmation that billing has ended.</li>
-                  <li>ReplyFlow will also automatically attempt to cancel any active Stripe subscription during account deletion as an additional safeguard.</li>
-                </ul>
-                <p className="text-sm text-slate-600 dark:text-muted-foreground mb-3">
-                  Deleting your account will:
-                </p>
-                <ul className="text-sm text-slate-600 dark:text-muted-foreground mb-4 list-disc pl-5 space-y-1">
-                  <li>Cancel your active Stripe subscription (if one exists)</li>
-                  <li>Permanently delete your business, leads, messages, conversations, and related data</li>
-                  <li>Sign you out and remove your ReplyFlow account</li>
-                </ul>
-                <p className="text-sm font-medium text-red-600 dark:text-red-400 mb-4">
-                  This action cannot be undone.
-                </p>
-                <div className="mb-4">
+              <div className="bg-card rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl">
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="flex-shrink-0 w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                    <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-foreground mb-2">
+                      Delete your account permanently?
+                    </h2>
+                    <p className="text-sm text-slate-600 dark:text-muted-foreground">
+                      This action cannot be undone. Please review what will happen before proceeding.
+                    </p>
+                  </div>
+                </div>
+
+                {/* What happens on deletion */}
+                <div className="space-y-4 mb-6">
+                  <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
+                      <CreditCard className="w-4 h-4" />
+                      Billing & Subscription
+                    </h3>
+                    <ul className="text-sm text-slate-600 dark:text-muted-foreground space-y-2">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                        <span>Automatic Stripe subscription cancellation (if applicable)</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Offboarding Communications
+                    </h3>
+                    <ul className="text-sm text-slate-600 dark:text-muted-foreground space-y-2">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                        <span>Call forwarding instructions via email and SMS</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                        <span>ReplyFlow Journey summary email with your analytics</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                        <span>Short reminder process (max 2 reminders over 6 days) to confirm call forwarding disabled</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                        <span>Temporary offboarding records deleted after confirmation or reminder completion</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Data Deletion
+                    </h3>
+                    <ul className="text-sm text-slate-600 dark:text-muted-foreground space-y-2">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                        <span>Permanent deletion of business data, leads, messages, and conversations</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                        <span>Account removal and sign-out from ReplyFlow</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Warning callout */}
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                        Important: Call Forwarding
+                      </p>
+                      <p className="text-xs text-amber-800 dark:text-amber-200">
+                        If you have call forwarding enabled, you'll receive instructions to disable it. Until confirmed, we may send reminders to ensure your missed calls return to normal voicemail.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Confirmation input */}
+                <div className="mb-6">
                   <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
                     Type <span className="font-mono font-bold">DELETE</span> to confirm
                   </label>
@@ -2329,9 +2397,11 @@ export default function SettingsContent() {
                     value={deleteConfirmText}
                     onChange={(e) => setDeleteConfirmText(e.target.value)}
                     placeholder="Type DELETE"
-                    className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-background text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground"
                   />
                 </div>
+
+                {/* Action buttons */}
                 <div className="flex justify-end gap-3">
                   <button
                     onClick={() => {
@@ -2339,16 +2409,26 @@ export default function SettingsContent() {
                       setDeleteConfirmText('')
                     }}
                     disabled={isDeleting}
-                    className="px-4 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                    className="px-4 py-2.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleDeleteAccount}
                     disabled={deleteConfirmText !== 'DELETE' || isDeleting}
-                    className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
-                    {isDeleting ? 'Cancelling subscription and deleting account...' : 'Permanently Delete Account'}
+                    {isDeleting ? (
+                      <>
+                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block"></div>
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4" />
+                        Delete Account Permanently
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
