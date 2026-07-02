@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { timelineEvents } from '@/lib/event-timeline'
+import { notificationServiceServer } from '@/lib/notifications-server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,6 +43,24 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to disconnect calendar' },
         { status: 500 }
       )
+    }
+
+    // Create timeline event for calendar disconnection
+    try {
+      await timelineEvents.calendarDisconnected(business.id)
+      console.log('[CALENDAR DISCONNECT] Timeline event created successfully')
+    } catch (timelineError) {
+      console.error('[CALENDAR DISCONNECT] Failed to create timeline event:', timelineError)
+      // Non-critical error, continue
+    }
+
+    // Create notification for calendar disconnection
+    try {
+      await notificationServiceServer.notifyCalendarDisconnected(business.id)
+      console.log('[CALENDAR DISCONNECT] Notification created successfully')
+    } catch (notificationError) {
+      console.error('[CALENDAR DISCONNECT] Failed to create notification:', notificationError)
+      // Non-critical error, continue
     }
 
     return NextResponse.json({ success: true })

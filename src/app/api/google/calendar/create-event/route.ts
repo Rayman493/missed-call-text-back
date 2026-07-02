@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { timelineEvents } from '@/lib/event-timeline'
+import { notificationServiceServer } from '@/lib/notifications-server'
 
 export async function POST(request: NextRequest) {
   console.log('[Calendar Create] auth check start')
@@ -259,6 +261,37 @@ export async function POST(request: NextRequest) {
       end: createdEvent.end
     })
     console.log('[Calendar Create] event create success:', createdEvent.id)
+
+    // Create timeline event for appointment creation
+    try {
+      const startStr = createdEvent.start?.dateTime || createdEvent.start?.date || ''
+      const endStr = createdEvent.end?.dateTime || createdEvent.end?.date || ''
+      await timelineEvents.appointmentCreated(
+        business.id,
+        createdEvent.id,
+        createdEvent.summary || 'Appointment',
+        startStr,
+        endStr
+      )
+      console.log('[Calendar Create] Timeline event created successfully')
+    } catch (timelineError) {
+      console.error('[Calendar Create] Failed to create timeline event:', timelineError)
+      // Non-critical error, continue
+    }
+
+    // Create notification for appointment creation
+    try {
+      const startStr = createdEvent.start?.dateTime || createdEvent.start?.date || ''
+      await notificationServiceServer.notifyAppointmentCreated(
+        business.id,
+        createdEvent.summary || 'Appointment',
+        startStr
+      )
+      console.log('[Calendar Create] Notification created successfully')
+    } catch (notificationError) {
+      console.error('[Calendar Create] Failed to create notification:', notificationError)
+      // Non-critical error, continue
+    }
 
     return NextResponse.json({
       event: {

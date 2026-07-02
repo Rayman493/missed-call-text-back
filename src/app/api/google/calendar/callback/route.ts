@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { timelineEvents } from '@/lib/event-timeline'
+import { notificationServiceServer } from '@/lib/notifications-server'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
@@ -144,6 +146,33 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('[CALENDAR IMPORT SUCCESS] Integration saved successfully')
+
+    // Get the calendar integration to retrieve calendar_email
+    const { data: savedIntegration } = await supabase
+      .from('calendar_integrations')
+      .select('calendar_email')
+      .eq('business_id', business.id)
+      .eq('provider', 'google')
+      .single()
+
+    // Create timeline event for calendar connection
+    try {
+      await timelineEvents.calendarConnected(business.id, savedIntegration?.calendar_email)
+      console.log('[CALENDAR CALLBACK] Timeline event created successfully')
+    } catch (timelineError) {
+      console.error('[CALENDAR CALLBACK] Failed to create timeline event:', timelineError)
+      // Non-critical error, continue
+    }
+
+    // Create notification for calendar connection
+    try {
+      await notificationServiceServer.notifyCalendarConnected(business.id, savedIntegration?.calendar_email)
+      console.log('[CALENDAR CALLBACK] Notification created successfully')
+    } catch (notificationError) {
+      console.error('[CALENDAR CALLBACK] Failed to create notification:', notificationError)
+      // Non-critical error, continue
+    }
+
     console.log('[GOOGLE CALENDAR FETCH] Calendar integration ready for event fetching')
     return NextResponse.redirect(new URL('/dashboard/calendar?calendar=connected', request.url))
   } catch (error) {

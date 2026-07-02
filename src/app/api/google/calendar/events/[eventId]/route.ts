@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { timelineEvents } from '@/lib/event-timeline'
+import { notificationServiceServer } from '@/lib/notifications-server'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -112,6 +114,24 @@ export async function DELETE(
     }
 
     console.log('[Google Calendar Delete] Successfully deleted event:', eventId)
+
+    // Create timeline event for appointment deletion
+    try {
+      await timelineEvents.appointmentDeleted(business.id, eventId, 'Appointment')
+      console.log('[Google Calendar Delete] Timeline event created successfully')
+    } catch (timelineError) {
+      console.error('[Google Calendar Delete] Failed to create timeline event:', timelineError)
+      // Non-critical error, continue
+    }
+
+    // Create notification for appointment deletion
+    try {
+      await notificationServiceServer.notifyAppointmentDeleted(business.id, 'Appointment')
+      console.log('[Google Calendar Delete] Notification created successfully')
+    } catch (notificationError) {
+      console.error('[Google Calendar Delete] Failed to create notification:', notificationError)
+      // Non-critical error, continue
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

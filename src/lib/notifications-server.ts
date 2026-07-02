@@ -4,7 +4,7 @@ import { normalizePunctuation } from '@/lib/utils'
 export interface Notification {
   id: string
   business_id: string
-  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'ai_intake_completed' | 'payment_requested' | 'payment_completed'
+  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'ai_intake_completed' | 'payment_requested' | 'payment_completed' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted'
   title: string
   message: string
   data?: any
@@ -96,6 +96,34 @@ export const NOTIFICATION_TEMPLATES = {
     message: `$${(data.amountCents / 100).toFixed(2)} payment received from ${data.leadName || data.leadPhone}`,
     action_url: `/dashboard/leads/${data.leadId}`,
     action_text: 'View Lead'
+  }),
+
+  calendar_connected: (data: { calendarEmail?: string }) => ({
+    title: 'Google Calendar Connected',
+    message: data.calendarEmail ? `Connected to ${data.calendarEmail}` : 'Google Calendar connected successfully',
+    action_url: '/dashboard/calendar',
+    action_text: 'View Calendar'
+  }),
+
+  calendar_disconnected: () => ({
+    title: 'Google Calendar Disconnected',
+    message: 'Google Calendar has been disconnected',
+    action_url: '/dashboard/calendar',
+    action_text: 'View Calendar'
+  }),
+
+  appointment_created: (data: { title: string, date: string }) => ({
+    title: 'Appointment Created',
+    message: `${data.title} scheduled for ${new Date(data.date).toLocaleDateString()}`,
+    action_url: '/dashboard/calendar',
+    action_text: 'View Calendar'
+  }),
+
+  appointment_deleted: (data: { title: string }) => ({
+    title: 'Appointment Deleted',
+    message: `${data.title} has been deleted`,
+    action_url: '/dashboard/calendar',
+    action_text: 'View Calendar'
   })
 }
 
@@ -316,6 +344,42 @@ export class NotificationServiceServer {
       'payment_completed',
       '',
       { leadName: leadPhone, leadPhone, leadId, amountCents }
+    )
+  }
+
+  async notifyCalendarConnected(businessId: string, calendarEmail?: string): Promise<boolean> {
+    return await this.createNotification(
+      businessId,
+      'calendar_connected',
+      '',
+      { calendarEmail }
+    )
+  }
+
+  async notifyCalendarDisconnected(businessId: string): Promise<boolean> {
+    return await this.createNotification(
+      businessId,
+      'calendar_disconnected',
+      '',
+      {}
+    )
+  }
+
+  async notifyAppointmentCreated(businessId: string, title: string, date: string): Promise<boolean> {
+    return await this.createNotification(
+      businessId,
+      'appointment_created',
+      '',
+      { title, date }
+    )
+  }
+
+  async notifyAppointmentDeleted(businessId: string, title: string): Promise<boolean> {
+    return await this.createNotification(
+      businessId,
+      'appointment_deleted',
+      '',
+      { title }
     )
   }
 }

@@ -12,7 +12,7 @@ export interface TimelineEvent {
   lead_id?: string
   message_id?: string
   message_sid?: string
-  event_type: 'call_received' | 'lead_created' | 'auto_reply_queued' | 'message_sent' | 'message_delivered' | 'message_failed' | 'conversation_created' | 'payment_requested' | 'payment_completed' | 'payment_expired'
+  event_type: 'call_received' | 'lead_created' | 'auto_reply_queued' | 'message_sent' | 'message_delivered' | 'message_failed' | 'conversation_created' | 'payment_requested' | 'payment_completed' | 'payment_expired' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted'
   event_data?: Record<string, any>
   created_at?: string
 }
@@ -140,5 +140,33 @@ export const timelineEvents = {
       lead_id: leadId,
       event_type: 'payment_expired',
       event_data: { payment_request_id: paymentRequestId }
+    }),
+
+  calendarConnected: (businessId: string, calendarEmail?: string) =>
+    logTimelineEvent({
+      business_id: businessId,
+      event_type: 'calendar_connected',
+      event_data: { calendar_email: calendarEmail }
+    }),
+
+  calendarDisconnected: (businessId: string) =>
+    logTimelineEvent({
+      business_id: businessId,
+      event_type: 'calendar_disconnected',
+      event_data: {}
+    }),
+
+  appointmentCreated: (businessId: string, eventId: string, title: string, start: string, end: string) =>
+    logTimelineEvent({
+      business_id: businessId,
+      event_type: 'appointment_created',
+      event_data: { event_id: eventId, title, start, end }
+    }),
+
+  appointmentDeleted: (businessId: string, eventId: string, title: string) =>
+    logTimelineEvent({
+      business_id: businessId,
+      event_type: 'appointment_deleted',
+      event_data: { event_id: eventId, title }
     })
 }
