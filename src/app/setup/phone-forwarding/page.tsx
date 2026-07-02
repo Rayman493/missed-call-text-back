@@ -200,6 +200,7 @@ export default function PhoneForwardingPage() {
           id: business.id,
           call_forwarding_enabled: true,
           call_forwarding_status: "enabled",
+          forwarding_verified: true,
           business_phone_carrier: selectedCarrier,
           phone_setup_completed_at: new Date().toISOString(),
           onboarding_status: "pending_test",
