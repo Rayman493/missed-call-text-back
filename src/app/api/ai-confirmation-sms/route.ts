@@ -6,6 +6,7 @@ import { normalizePunctuation } from '@/lib/utils'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { getOutOfOfficeNotice } from '@/lib/out-of-office'
 import { generateSummaryFromExtractedInfo } from '@/lib/sms-processing'
+import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 
 /**
  * Check if current time is within business hours for a business
@@ -542,7 +543,8 @@ export async function POST(request: NextRequest) {
     // partial_intake -> brief partial info SMS
     // incomplete/early_hangup/no_speech with no info -> intake-oriented guided message
     // incomplete/early_hangup/no_speech with some info -> standard missed-call SMS
-    const isCompletedIntake = aiOutcome === 'completed_intake' || aiOutcome === 'completed' || aiOutcome === 'ai_completed';
+    // Use canonical completion as single source of truth
+  const intakeComplete = isCompleteAIIntake(extracted);
     const isPartialIntake = aiOutcome === 'partial_intake';
     const isIncompleteOrEarlyHangup = aiOutcome === 'incomplete' ||
                                       aiOutcome === 'early_hangup' ||
@@ -562,9 +564,15 @@ export async function POST(request: NextRequest) {
     let selectedTemplate: string;
     let selectionReason: string;
 
-    if (isCompletedIntake) {
+    if (intakeComplete) {
       selectedTemplate = 'ai_summary';
-      selectionReason = 'ai_intake_completed';
+      selectionReason = 'canonical_completion_check';
+    console.log('[AI SMS TEMPLATE DECISION CANONICAL]', {
+      callSid,
+      aiOutcome,
+      intakeComplete,
+      overrideReason: 'canonical_completion_true_overrides_aiOutcome'
+    });
       console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] formatAiIntakeSummary via generateSummaryFromExtractedInfo');
       messageBody = generateSummaryFromExtractedInfo(extracted, callerPhone, businessName, prefixNotice);
     } else if (isPartialIntake) {
@@ -619,7 +627,7 @@ Reply STOP to opt out.`;
       reason: selectionReason,
       isIncompleteOrEarlyHangup,
       isPartialIntake,
-      isCompletedIntake
+      intakeComplete
     });
 
     console.log('[AI SMS FINAL BODY PREVIEW] =========================================');
@@ -656,10 +664,10 @@ Reply STOP to opt out.`;
       businessId,
       template: selectedTemplate,
       aiOutcome,
-      reason: isCompletedIntake ? 'ai_intake_completed' : isPartialIntake ? 'partial_intake' : 'early_hangup_fallback',
-      aiCompleted: isCompletedIntake,
+      reason: intakeComplete ? 'ai_intake_completed' : isPartialIntake ? 'partial_intake' : 'early_hangup_fallback',
+      aiCompleted: intakeComplete,
       voicemailCompleted: false,
-      generic_sms_suppressed: isCompletedIntake,
+      generic_sms_suppressed: intakeComplete,
       messageBody: messageBody.substring(0, 100),
       source: 'external_ai_voice_service'
     })
