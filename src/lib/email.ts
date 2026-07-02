@@ -11,6 +11,7 @@ interface OffboardingEmailParams {
   businessPhone?: string
   replyFlowNumber?: string
   userEmail: string
+  confirmationToken?: string
 }
 
 interface AccountDeletionConfirmationParams {
@@ -20,11 +21,32 @@ interface AccountDeletionConfirmationParams {
   twilioNumber?: string
 }
 
+interface OffboardingReminderEmailParams {
+  businessEmail: string
+  confirmationToken: string
+  reminderNumber: number
+  businessPhone?: string
+}
+
+interface JourneyEmailParams {
+  userEmail: string
+  businessName?: string
+  analytics: {
+    totalDays?: number
+    leadsCaptured?: number
+    conversations?: number
+    aiCallsHandled?: number
+    appointmentsScheduled?: number
+    paymentRequestsSent?: number
+    messagesExchanged?: number
+  }
+}
+
 /**
  * Generate offboarding email HTML content
  */
 function generateOffboardingEmailHTML(params: OffboardingEmailParams): string {
-  const { businessName, businessPhone, replyFlowNumber } = params
+  const { businessName, businessPhone, replyFlowNumber, confirmationToken } = params
 
   const businessPhoneSection = businessPhone 
     ? `<p><strong>Your business number:</strong><br>${businessPhone}</p>`
@@ -32,6 +54,15 @@ function generateOffboardingEmailHTML(params: OffboardingEmailParams): string {
 
   const replyFlowNumberSection = replyFlowNumber
     ? `<p><strong>Your ReplyFlow number:</strong><br>${replyFlowNumber}</p>`
+    : ''
+
+  const confirmationSection = confirmationToken
+    ? `
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${process.env.NEXT_PUBLIC_APP_URL}/api/offboarding/confirm?token=${confirmationToken}" style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600;">I've disabled call forwarding</a>
+      <p style="margin-top: 10px; font-size: 14px; color: #6b7280;">Click to confirm and stop receiving reminders</p>
+    </div>
+    `
     : ''
 
   return `
@@ -71,6 +102,8 @@ function generateOffboardingEmailHTML(params: OffboardingEmailParams): string {
               ${replyFlowNumberSection}
             </div>
             
+            ${confirmationSection}
+            
             <div class="section">
               <h2 style="margin-top: 0; color: #1f2937;">Turn off call forwarding:</h2>
               
@@ -81,12 +114,12 @@ function generateOffboardingEmailHTML(params: OffboardingEmailParams): string {
               
               <div class="carrier">
                 <div class="carrier-name">AT&T</div>
-                <p>Dial <span class="carrier-code">*93</span> from your business phone, then press Call/Send.</p>
+                <p>Dial <span class="carrier-code">##004#</span> from your business phone, then press Call/Send.</p>
               </div>
               
               <div class="carrier">
                 <div class="carrier-name">T-Mobile</div>
-                <p>Dial <span class="carrier-code">##61#</span> from your business phone, then press Call/Send.</p>
+                <p>Dial <span class="carrier-code">##004#</span> from your business phone, then press Call/Send.</p>
               </div>
               
               <div class="carrier">
@@ -336,6 +369,393 @@ export async function sendAccountDeletionConfirmationEmail(params: AccountDeleti
     const errorStatusCode = error?.statusCode
 
     console.error('[email] Failed to send account deletion confirmation email', {
+      to: userEmail,
+      error: errorMessage,
+      errorName,
+      statusCode: errorStatusCode,
+      fullError: process.env.NODE_ENV === 'development' ? JSON.stringify(error) : undefined,
+    })
+
+    // Log specific error types
+    if (errorMessage.includes('API key')) {
+      console.error('[email] Missing or invalid RESEND_API_KEY')
+    } else if (errorMessage.includes('from') || errorMessage.includes('domain')) {
+      console.error('[email] Invalid from address or domain not verified')
+    } else if (errorMessage.includes('to') || errorMessage.includes('recipient')) {
+      console.error('[email] Rejected recipient')
+    } else if (errorMessage.includes('sandbox') || errorMessage.includes('test')) {
+      console.error('[email] Account in sandbox/test mode')
+    }
+
+    return { success: false, error: errorMessage }
+  }
+}
+
+/**
+ * Generate offboarding reminder email HTML content
+ */
+function generateOffboardingReminderEmailHTML(params: OffboardingReminderEmailParams): string {
+  const { businessPhone, confirmationToken, reminderNumber } = params
+  const confirmationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/offboarding/confirm?token=${confirmationToken}`
+
+  const businessPhoneSection = businessPhone 
+    ? `<p><strong>Your business number:</strong><br>${businessPhone}</p>`
+    : ''
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reminder: Disable Call Forwarding - ReplyFlow</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+          .section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e5e7eb; }
+          .carrier { margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb; }
+          .carrier:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+          .carrier-name { font-weight: 600; color: #1f2937; margin-bottom: 5px; }
+          .carrier-code { background: #f3f4f6; padding: 8px 12px; border-radius: 4px; font-family: monospace; font-size: 14px; }
+          .button { display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0; font-size: 24px;">⚠️ Reminder: Disable Call Forwarding</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">Reminder #${reminderNumber} of 2</p>
+          </div>
+          <div class="content">
+            <p>Hi there,</p>
+            
+            <p><strong>This is a reminder to disable call forwarding</strong> so your missed calls return to your normal voicemail.</p>
+            
+            <div class="section">
+              ${businessPhoneSection}
+            </div>
+            
+            <p>If you've already disabled call forwarding, please confirm below to stop receiving these reminders:</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${confirmationUrl}" class="button">I've disabled call forwarding</a>
+            </div>
+            
+            <div class="section">
+              <h2 style="margin-top: 0; color: #1f2937;">How to disable call forwarding:</h2>
+              
+              <div class="carrier">
+                <div class="carrier-name">Verizon</div>
+                <p>Dial <span class="carrier-code">*73</span> from your business phone, then press Call/Send.</p>
+              </div>
+              
+              <div class="carrier">
+                <div class="carrier-name">AT&T</div>
+                <p>Dial <span class="carrier-code">##004#</span> from your business phone, then press Call/Send.</p>
+              </div>
+              
+              <div class="carrier">
+                <div class="carrier-name">T-Mobile</div>
+                <p>Dial <span class="carrier-code">##004#</span> from your business phone, then press Call/Send.</p>
+              </div>
+              
+              <div class="carrier">
+                <div class="carrier-name">Other carriers</div>
+                <p>Check your carrier's call forwarding settings or contact your carrier and ask them to disable conditional call forwarding.</p>
+              </div>
+            </div>
+            
+            <p>After dialing the code, wait for the carrier confirmation tone or message. If forwarding still appears active, restart your phone and try again.</p>
+            
+            <p>If you need help, contact <a href="mailto:support@replyflowhq.com" style="color: #2563eb;">support@replyflowhq.com</a>.</p>
+            
+            <p>Thanks,<br>ReplyFlow</p>
+          </div>
+          <div class="footer">
+            <p>You're receiving this email because you deleted your ReplyFlow account but haven't confirmed that call forwarding has been disabled.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `
+}
+
+/**
+ * Send offboarding reminder email
+ * @returns { success: boolean, error?: string, messageId?: string }
+ */
+export async function sendOffboardingReminderEmail(params: OffboardingReminderEmailParams): Promise<{
+  success: boolean
+  error?: string
+  messageId?: string
+}> {
+  if (!resendClient) {
+    console.error('[email] Resend client not initialized - RESEND_API_KEY not set')
+    return { success: false, error: 'Email service not configured' }
+  }
+
+  const { businessEmail, reminderNumber } = params
+
+  try {
+    const html = generateOffboardingReminderEmailHTML(params)
+
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'ReplyFlow <noreply@replyflowhq.com>'
+    console.log('[email] Sending offboarding reminder email', {
+      to: businessEmail,
+      from: fromEmail,
+      reminderNumber,
+      hasApiKey: !!process.env.RESEND_API_KEY,
+    })
+
+    const result = await resendClient.emails.send({
+      from: fromEmail,
+      to: businessEmail,
+      subject: `Reminder: Disable Call Forwarding (#${reminderNumber} of 2) - ReplyFlow`,
+      html,
+    })
+
+    // Log full provider response in debug mode
+    if (process.env.NODE_ENV === 'development' || process.env.DEBUG_EMAIL === 'true') {
+      console.log('[email] Resend provider response', {
+        to: businessEmail,
+        result: JSON.stringify(result),
+      })
+    }
+
+    // Validate that provider confirmed delivery acceptance
+    if (!result.data?.id) {
+      console.warn('[email] Provider returned no message id - email may not have been accepted', {
+        to: businessEmail,
+        result: JSON.stringify(result),
+      })
+      return { success: false, error: 'Provider did not return message id' }
+    }
+
+    console.log('[email] Offboarding reminder email sent successfully', {
+      to: businessEmail,
+      messageId: result.data.id,
+      reminderNumber,
+    })
+
+    return { success: true, messageId: result.data.id }
+  } catch (error: any) {
+    // Explicit error logging for provider errors
+    const errorMessage = error?.message || String(error)
+    const errorName = error?.name || 'UnknownError'
+    const errorStatusCode = error?.statusCode
+
+    console.error('[email] Failed to send offboarding reminder email', {
+      to: businessEmail,
+      error: errorMessage,
+      errorName,
+      statusCode: errorStatusCode,
+      fullError: process.env.NODE_ENV === 'development' ? JSON.stringify(error) : undefined,
+    })
+
+    // Log specific error types
+    if (errorMessage.includes('API key')) {
+      console.error('[email] Missing or invalid RESEND_API_KEY')
+    } else if (errorMessage.includes('from') || errorMessage.includes('domain')) {
+      console.error('[email] Invalid from address or domain not verified')
+    } else if (errorMessage.includes('to') || errorMessage.includes('recipient')) {
+      console.error('[email] Rejected recipient')
+    } else if (errorMessage.includes('sandbox') || errorMessage.includes('test')) {
+      console.error('[email] Account in sandbox/test mode')
+    }
+
+    return { success: false, error: errorMessage }
+  }
+}
+
+/**
+ * Generate journey email HTML content
+ */
+function generateJourneyEmailHTML(params: JourneyEmailParams): string {
+  const { userEmail, businessName, analytics } = params
+
+  const analyticsRows = []
+  
+  if (analytics.totalDays !== undefined) {
+    analyticsRows.push(`
+      <tr>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">Total time using ReplyFlow</td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">${analytics.totalDays} day${analytics.totalDays !== 1 ? 's' : ''}</td>
+      </tr>
+    `)
+  }
+  
+  if (analytics.leadsCaptured !== undefined) {
+    analyticsRows.push(`
+      <tr>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">Leads captured</td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">${analytics.leadsCaptured}</td>
+      </tr>
+    `)
+  }
+  
+  if (analytics.conversations !== undefined) {
+    analyticsRows.push(`
+      <tr>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">Customer conversations</td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">${analytics.conversations}</td>
+      </tr>
+    `)
+  }
+  
+  if (analytics.aiCallsHandled !== undefined) {
+    analyticsRows.push(`
+      <tr>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">AI calls handled</td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">${analytics.aiCallsHandled}</td>
+      </tr>
+    `)
+  }
+  
+  if (analytics.appointmentsScheduled !== undefined) {
+    analyticsRows.push(`
+      <tr>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">Appointments scheduled</td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">${analytics.appointmentsScheduled}</td>
+      </tr>
+    `)
+  }
+  
+  if (analytics.paymentRequestsSent !== undefined) {
+    analyticsRows.push(`
+      <tr>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">Payment requests sent</td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">${analytics.paymentRequestsSent}</td>
+      </tr>
+    `)
+  }
+  
+  if (analytics.messagesExchanged !== undefined) {
+    analyticsRows.push(`
+      <tr>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">Messages exchanged</td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">${analytics.messagesExchanged}</td>
+      </tr>
+    `)
+  }
+
+  const analyticsTable = analyticsRows.length > 0 ? `
+    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+      ${analyticsRows.join('')}
+    </table>
+  ` : ''
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Thanks for using ReplyFlow</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+          .section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e5e7eb; }
+          .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0; font-size: 24px;">Thanks for using ReplyFlow</h1>
+          </div>
+          <div class="content">
+            <p>Hi there,</p>
+            
+            <p>Thank you for trusting ReplyFlow with your business. We appreciate the opportunity to have worked with you${businessName ? ` at ${businessName}` : ''}.</p>
+            
+            ${analyticsTable ? `
+            <div class="section">
+              <h2 style="margin-top: 0; color: #1f2937;">Your ReplyFlow Journey</h2>
+              ${analyticsTable}
+            </div>
+            ` : ''}
+            
+            <p>We wish you the very best in your future endeavors.</p>
+            
+            <p>Thank you for using ReplyFlow.<br>ReplyFlow Team</p>
+          </div>
+          <div class="footer">
+            <p>You're receiving this email because your ReplyFlow account was deleted.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `
+}
+
+/**
+ * Send journey email with analytics
+ * @returns { success: boolean, error?: string, messageId?: string }
+ */
+export async function sendJourneyEmail(params: JourneyEmailParams): Promise<{
+  success: boolean
+  error?: string
+  messageId?: string
+}> {
+  if (!resendClient) {
+    console.error('[email] Resend client not initialized - RESEND_API_KEY not set')
+    return { success: false, error: 'Email service not configured' }
+  }
+
+  const { userEmail } = params
+
+  try {
+    const html = generateJourneyEmailHTML(params)
+
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'ReplyFlow <noreply@replyflowhq.com>'
+    console.log('[email] Sending journey email', {
+      to: userEmail,
+      from: fromEmail,
+      hasApiKey: !!process.env.RESEND_API_KEY,
+    })
+
+    const result = await resendClient.emails.send({
+      from: fromEmail,
+      to: userEmail,
+      subject: 'Thanks for using ReplyFlow',
+      html,
+    })
+
+    // Log full provider response in debug mode
+    if (process.env.NODE_ENV === 'development' || process.env.DEBUG_EMAIL === 'true') {
+      console.log('[email] Resend provider response', {
+        to: userEmail,
+        result: JSON.stringify(result),
+      })
+    }
+
+    // Validate that provider confirmed delivery acceptance
+    if (!result.data?.id) {
+      console.warn('[email] Provider returned no message id - email may not have been accepted', {
+        to: userEmail,
+        result: JSON.stringify(result),
+      })
+      return { success: false, error: 'Provider did not return message id' }
+    }
+
+    console.log('[email] Journey email sent successfully', {
+      to: userEmail,
+      messageId: result.data.id,
+    })
+
+    return { success: true, messageId: result.data.id }
+  } catch (error: any) {
+    // Explicit error logging for provider errors
+    const errorMessage = error?.message || String(error)
+    const errorName = error?.name || 'UnknownError'
+    const errorStatusCode = error?.statusCode
+
+    console.error('[email] Failed to send journey email', {
       to: userEmail,
       error: errorMessage,
       errorName,

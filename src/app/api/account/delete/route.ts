@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import getStripe from '@/lib/stripe'
 import { twilioClient } from '@/lib/twilio'
-import { sendOffboardingEmail, sendAccountDeletionConfirmationEmail } from '@/lib/email'
+import { sendOffboardingEmail, sendAccountDeletionConfirmationEmail, sendJourneyEmail } from '@/lib/email'
 import { sendSms } from '@/lib/twilio'
 
 const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
@@ -104,6 +104,72 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[delete-account] Found businesses:', businessIds.length, businessIds)
+
+    // Gather analytics for journey email before deletion
+    let analytics = {
+      totalDays: 0,
+      leadsCaptured: 0,
+      conversations: 0,
+      aiCallsHandled: 0,
+      appointmentsScheduled: 0,
+      paymentRequestsSent: 0,
+      messagesExchanged: 0,
+    }
+
+    if (!dryRun && businesses && businesses.length > 0) {
+      const business = businesses[0]
+      
+      // Calculate total days using ReplyFlow
+      if (business.created_at) {
+        const createdDate = new Date(business.created_at)
+        const now = new Date()
+        const diffTime = Math.abs(now.getTime() - createdDate.getTime())
+        analytics.totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      }
+
+      // Gather analytics from database
+      try {
+        // Count leads
+        const { count: leadsCount } = await supabaseAdmin
+          .from('leads')
+          .select('*', { count: 'exact', head: true })
+          .eq('business_id', business.id)
+        analytics.leadsCaptured = leadsCount || 0
+
+        // Count conversations
+        const { count: conversationsCount } = await supabaseAdmin
+          .from('conversations')
+          .select('*', { count: 'exact', head: true })
+          .eq('business_id', business.id)
+        analytics.conversations = conversationsCount || 0
+
+        // Count AI calls
+        const { count: aiCallsCount } = await supabaseAdmin
+          .from('ai_call_records')
+          .select('*', { count: 'exact', head: true })
+          .eq('business_id', business.id)
+        analytics.aiCallsHandled = aiCallsCount || 0
+
+        // Count messages (get lead IDs first)
+        const { data: leadsData } = await supabaseAdmin
+          .from('leads')
+          .select('id')
+          .eq('business_id', business.id)
+        
+        if (leadsData && leadsData.length > 0) {
+          const leadIds = leadsData.map(l => l.id)
+          const { count: messagesCount } = await supabaseAdmin
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .in('lead_id', leadIds)
+          analytics.messagesExchanged = messagesCount || 0
+        }
+
+        console.log('[delete-account] Gathered analytics for journey email:', analytics)
+      } catch (analyticsError) {
+        console.warn('[delete-account] Failed to gather analytics for journey email:', analyticsError)
+      }
+    }
 
     // Step 2: Cancel any active Stripe subscriptions BEFORE deleting any data
     console.log('[delete-account] Step 2: Cancel Stripe subscriptions (before data deletion)')
@@ -211,9 +277,35 @@ export async function POST(request: NextRequest) {
     })
 
     // Send offboarding email before deletion (with idempotency check)
+    let confirmationToken = null
     if (!dryRun && businesses && businesses.length > 0) {
       const business = businesses[0] // Use first business for email
       const userEmail = user.email
+      
+      // Create offboarding tracking record
+      try {
+        const offboardingResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/offboarding/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            businessPhone: business.business_phone_number,
+            businessEmail: userEmail,
+            businessId: business.id,
+            userId: user.id,
+            twilioPhoneNumber: business.twilio_phone_number,
+          }),
+        })
+        
+        const offboardingData = await offboardingResponse.json()
+        if (offboardingData.success) {
+          confirmationToken = offboardingData.confirmationToken
+          console.log('[delete-account] Offboarding tracking record created:', offboardingData.trackingId)
+        } else {
+          console.warn('[delete-account] Failed to create offboarding tracking record:', offboardingData.error)
+        }
+      } catch (offboardingError) {
+        console.warn('[delete-account] Failed to create offboarding tracking record:', offboardingError)
+      }
       
       // Note: trial_history table check removed as it doesn't exist in production schema
       // Offboarding email will be sent each time without idempotency check
@@ -231,6 +323,7 @@ export async function POST(request: NextRequest) {
           businessPhone: business.twilio_phone_number,
           replyFlowNumber: business.twilio_phone_number, // Same as business phone in this context
           userEmail,
+          confirmationToken,
         })
         
         if (emailResult.success) {
@@ -581,6 +674,10 @@ export async function POST(request: NextRequest) {
             replyflow_number: replyFlowNumber,
           })
 
+          const confirmationUrl = confirmationToken 
+            ? `${process.env.NEXT_PUBLIC_APP_URL}/api/offboarding/confirm?token=${confirmationToken}`
+            : null
+
           const offboardingSmsMessage = `ReplyFlow has been disconnected from your account.
 
 Important: Disable call forwarding so missed calls return to your normal voicemail.
@@ -594,6 +691,8 @@ AT&T: ##004#
 T-Mobile: ##004#
 
 Using another carrier? Contact your mobile carrier for instructions to disable conditional call forwarding.
+
+${confirmationUrl ? `Confirm you've disabled forwarding: ${confirmationUrl}` : ''}
 
 If forwarding does not stop immediately, restart your phone or contact your carrier.`
 
@@ -851,6 +950,42 @@ If forwarding does not stop immediately, restart your phone or contact your carr
               })
               summary.confirmationEmailSent = false
               summary.confirmationEmailError = emailResult.error
+            }
+
+            // Send journey email with analytics
+            if (user.email && businesses && businesses.length > 0) {
+              console.log('[delete-account] Sending journey email with analytics', {
+                userEmail: user.email,
+                analytics,
+              })
+
+              try {
+                const journeyEmailResult = await sendJourneyEmail({
+                  userEmail: user.email,
+                  businessName: businesses[0].name,
+                  analytics,
+                })
+
+                if (journeyEmailResult.success) {
+                  console.log('[delete-account] Journey email sent successfully', {
+                    messageId: journeyEmailResult.messageId,
+                  })
+                  summary.journeyEmailSent = true
+                  summary.journeyEmailMessageId = journeyEmailResult.messageId
+                } else {
+                  console.warn('[delete-account] Failed to send journey email (account deletion completed)', {
+                    error: journeyEmailResult.error,
+                  })
+                  summary.journeyEmailSent = false
+                  summary.journeyEmailError = journeyEmailResult.error
+                }
+              } catch (journeyEmailError) {
+                console.error('[delete-account] Exception sending journey email (account deletion completed)', {
+                  error: journeyEmailError instanceof Error ? journeyEmailError.message : String(journeyEmailError),
+                })
+                summary.journeyEmailSent = false
+                summary.journeyEmailError = journeyEmailError instanceof Error ? journeyEmailError.message : 'Unknown error'
+              }
             }
           } catch (emailError) {
             console.error('[delete-account] Exception sending account deletion confirmation email (account deletion completed)', {

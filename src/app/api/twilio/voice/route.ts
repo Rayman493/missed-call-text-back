@@ -449,6 +449,47 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       });
     }
     
+    // Check if business has been deleted (offboarding tracking)
+    console.log('[OFFBOARDING CHECK] Checking if business has been deleted');
+    const { data: offboardingRecord, error: offboardingError } = await supabaseAdmin
+      .from('offboarding_tracking')
+      .select('*')
+      .eq('business_id', business.id)
+      .eq('forwarding_confirmed', false)
+      .single();
+    
+    if (offboardingRecord && !offboardingError) {
+      console.log('[OFFBOARDING CHECK] Business has been deleted, playing fallback voicemail', {
+        businessId: business.id,
+        businessPhone: business.business_phone_number,
+      });
+      
+      const fallbackTwiml = `
+<Response>
+  <Say voice="alice">This business is no longer using ReplyFlow. They may still have call forwarding enabled. Please contact the business directly using their primary phone number.</Say>
+  <Hangup/>
+</Response>
+`.trim();
+      
+      console.log('[OFFBOARDING CHECK] Returning fallback voicemail TwiML');
+      console.log('[VOICE ROUTE RETURN]', {
+        path: 'OFFBOARDING_FALLBACK',
+        reason: 'Business has been deleted but call forwarding may still be enabled',
+        callSid: CallSid || 'unknown',
+        businessId: business.id,
+      });
+      
+      return new NextResponse(fallbackTwiml, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/xml",
+          "X-ReplyFlow-Voice-Version": "v2"
+        },
+      });
+    }
+    
+    console.log('[OFFBOARDING CHECK] Business is active, continuing with normal call processing');
+    
     // EARLIEST POSSIBLE POINT: Check if caller is in ignored contacts BEFORE ANY DB write
     console.log('[IGNORED CONTACT CHECK] =========================================');
     console.log('[IGNORED CONTACT CHECK] businessId:', business.id);
