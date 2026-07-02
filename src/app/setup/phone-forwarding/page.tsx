@@ -227,21 +227,14 @@ export default function PhoneForwardingPage() {
         console.log('[Phone Forwarding] Updated onboarding status:', 'pending_test')
         console.log('[Phone Forwarding] Updated phone_setup_completed_at:', new Date().toISOString())
         
-        // Show success state
-        setForwardingCompleted(true)
-        setShowSuccess(true)
-        
         // Force refresh business context to get latest state (bypasses cache)
         await refreshBusiness(true)
         
         // Invalidate Next.js cache to ensure fresh data
         router.refresh()
         
-        // Redirect to dashboard after showing success confirmation
-        // Using setTimeout to allow success state to be shown briefly
-        setTimeout(() => {
-          router.push('/dashboard')
-        }, 1500)
+        // Immediately redirect to dashboard to show updated state
+        router.push('/dashboard')
       }
     } catch (error) {
       setSaveError('Failed to save. Please try again.')
