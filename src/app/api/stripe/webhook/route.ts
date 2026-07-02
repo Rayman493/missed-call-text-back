@@ -146,32 +146,45 @@ function logOrphanedSubscriptionWarning(
 
 export async function POST(request: Request) {
   try {
-    console.log('[SYSTEM] [STRIPE] Webhook received');
+    console.log('[STRIPE WEBHOOK] Webhook received');
     
     const stripe = getStripe()
     
     if (!stripe) {
-      console.error('[SYSTEM] [STRIPE] Stripe is not configured');
+      console.error('[STRIPE WEBHOOK] Stripe is not configured');
       return NextResponse.json({ error: 'Stripe is not configured' }, { status: 500 })
     }
     
+    // Check if STRIPE_WEBHOOK_SECRET is configured
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+    const webhookSecretExists = !!webhookSecret
+    console.log('[STRIPE WEBHOOK] STRIPE_WEBHOOK_SECRET configured:', webhookSecretExists);
+    
+    if (!webhookSecret) {
+      console.error('[STRIPE WEBHOOK] Webhook secret not configured');
+      return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 })
+    }
+    
+    // Read raw request body exactly once before signature verification
     const body = await request.text()
     const signature = request.headers.get('stripe-signature')
 
     if (!signature) {
-      console.error('[SYSTEM] [STRIPE] Missing signature');
+      console.error('[STRIPE WEBHOOK] Missing signature');
       return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
     }
 
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
-    if (!webhookSecret) {
-      console.error('[SYSTEM] [STRIPE] Webhook secret not configured');
-      return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 })
+    // Verify signature and construct event
+    let event: Stripe.Event
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+      console.log('[STRIPE WEBHOOK] Signature verification succeeded');
+      console.log('[STRIPE WEBHOOK] Event type:', event.type);
+      console.log('[STRIPE WEBHOOK] Event id:', event.id);
+    } catch (error) {
+      console.error('[STRIPE WEBHOOK] Signature verification failed:', error instanceof Error ? error.message : String(error));
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
     }
-
-    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
-    console.log('[SYSTEM] [STRIPE] Event type:', event.type);
-    console.log('[SYSTEM] [STRIPE] Event id:', event.id);
 
     // Use service role key for webhook to bypass RLS
     const supabase = createClient(
