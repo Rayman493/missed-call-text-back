@@ -7,6 +7,8 @@ import { SUBSCRIPTION_STATES, isEligibleForProvisioning } from '@/lib/subscripti
 import getStripe from '@/lib/stripe'
 import { scheduleTwilioRelease, cancelTwilioRelease } from '@/lib/twilio-reclamation'
 import { normalizeStripeCustomerId } from '@/lib/supabase/admin'
+import { timelineEvents } from '@/lib/event-timeline'
+import { notificationServiceServer } from '@/lib/notifications-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -1093,7 +1095,7 @@ export async function POST(request: Request) {
         console.log('[PAYMENT WEBHOOK] Looking up payment request by stripe_checkout_session_id:', sessionId)
         const { data: paymentRequest, error: paymentRequestError } = await supabase
           .from('payment_requests')
-          .select('id, lead_id, business_id, status')
+          .select('id, lead_id, business_id, status, amount_cents')
           .eq('stripe_checkout_session_id', sessionId)
           .single()
 
@@ -1151,13 +1153,13 @@ export async function POST(request: Request) {
         try {
           const { data: lead } = await supabase
             .from('leads')
-            .select('id, status')
+            .select('id, status, caller_phone')
             .eq('id', paymentRequest.lead_id)
             .single()
 
           if (lead) {
             console.log('[PAYMENT WEBHOOK] Found lead:', lead.id, 'current status:', lead.status)
-            
+
             if (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active') {
               const { error: leadUpdateError } = await supabase
                 .from('leads')
@@ -1180,6 +1182,50 @@ export async function POST(request: Request) {
         } catch (leadError) {
           console.error('[PAYMENT WEBHOOK] Exception during lead update (non-critical):', leadError)
           // Don't fail webhook for lead update errors
+        }
+
+        // Create timeline event for payment completion
+        try {
+          const { data: leadForTimeline } = await supabase
+            .from('leads')
+            .select('caller_phone')
+            .eq('id', paymentRequest.lead_id)
+            .single()
+
+          if (leadForTimeline) {
+            await timelineEvents.paymentCompleted(
+              paymentRequest.business_id,
+              paymentRequest.lead_id,
+              paymentRequest.id,
+              paymentRequest.amount_cents
+            )
+            console.log('[PAYMENT WEBHOOK] Timeline event created successfully')
+          }
+        } catch (timelineError) {
+          console.error('[PAYMENT WEBHOOK] Failed to create timeline event:', timelineError)
+          // Non-critical error, continue
+        }
+
+        // Create notification for payment completion
+        try {
+          const { data: leadForNotification } = await supabase
+            .from('leads')
+            .select('caller_phone')
+            .eq('id', paymentRequest.lead_id)
+            .single()
+
+          if (leadForNotification) {
+            await notificationServiceServer.notifyPaymentCompleted(
+              paymentRequest.business_id,
+              paymentRequest.lead_id,
+              leadForNotification.caller_phone,
+              paymentRequest.amount_cents
+            )
+            console.log('[PAYMENT WEBHOOK] Notification created successfully')
+          }
+        } catch (notificationError) {
+          console.error('[PAYMENT WEBHOOK] Failed to create notification:', notificationError)
+          // Non-critical error, continue
         }
 
         // Mark event as processed
@@ -1219,7 +1265,7 @@ export async function POST(request: Request) {
         // Update lead payment status if this was the most recent payment request
         const { data: paymentRequest } = await supabase
           .from('payment_requests')
-          .select('lead_id, business_id')
+          .select('lead_id, business_id, id')
           .eq('stripe_checkout_session_id', session.id)
           .single()
 
@@ -1235,6 +1281,19 @@ export async function POST(request: Request) {
               .from('leads')
               .update({ payment_status: 'cancelled' })
               .eq('id', paymentRequest.lead_id)
+          }
+
+          // Create timeline event for payment expiry
+          try {
+            await timelineEvents.paymentExpired(
+              paymentRequest.business_id,
+              paymentRequest.lead_id,
+              paymentRequest.id
+            )
+            console.log('[PAYMENT WEBHOOK] Timeline event created successfully')
+          } catch (timelineError) {
+            console.error('[PAYMENT WEBHOOK] Failed to create timeline event:', timelineError)
+            // Non-critical error, continue
           }
 
           // Mark event as processed

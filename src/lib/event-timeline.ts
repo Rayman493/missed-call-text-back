@@ -12,7 +12,7 @@ export interface TimelineEvent {
   lead_id?: string
   message_id?: string
   message_sid?: string
-  event_type: 'call_received' | 'lead_created' | 'auto_reply_queued' | 'message_sent' | 'message_delivered' | 'message_failed' | 'conversation_created'
+  event_type: 'call_received' | 'lead_created' | 'auto_reply_queued' | 'message_sent' | 'message_delivered' | 'message_failed' | 'conversation_created' | 'payment_requested' | 'payment_completed' | 'payment_expired'
   event_data?: Record<string, any>
   created_at?: string
 }
@@ -116,5 +116,29 @@ export const timelineEvents = {
       message_sid: messageSid,
       event_type: 'message_failed',
       event_data: { error_code: errorCode, error_message: errorMessage }
+    }),
+
+  paymentRequestCreated: (businessId: string, leadId: string, paymentRequestId: string, amountCents: number, description: string) =>
+    logTimelineEvent({
+      business_id: businessId,
+      lead_id: leadId,
+      event_type: 'payment_requested',
+      event_data: { payment_request_id: paymentRequestId, amount_cents: amountCents, description }
+    }),
+
+  paymentCompleted: (businessId: string, leadId: string, paymentRequestId: string, amountCents: number) =>
+    logTimelineEvent({
+      business_id: businessId,
+      lead_id: leadId,
+      event_type: 'payment_completed',
+      event_data: { payment_request_id: paymentRequestId, amount_cents: amountCents }
+    }),
+
+  paymentExpired: (businessId: string, leadId: string, paymentRequestId: string) =>
+    logTimelineEvent({
+      business_id: businessId,
+      lead_id: leadId,
+      event_type: 'payment_expired',
+      event_data: { payment_request_id: paymentRequestId }
     })
 }

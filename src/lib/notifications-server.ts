@@ -4,7 +4,7 @@ import { normalizePunctuation } from '@/lib/utils'
 export interface Notification {
   id: string
   business_id: string
-  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'ai_intake_completed'
+  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'ai_intake_completed' | 'payment_requested' | 'payment_completed'
   title: string
   message: string
   data?: any
@@ -80,6 +80,20 @@ export const NOTIFICATION_TEMPLATES = {
   ai_intake_completed: (data: { leadName: string; leadPhone: string; leadId: string; serviceRequested?: string }) => ({
     title: 'New AI Intake Lead',
     message: `${data.leadName || data.leadPhone || 'Customer'} requested help${data.serviceRequested ? ` with ${normalizePunctuation(data.serviceRequested)}` : ''}`,
+    action_url: `/dashboard/leads/${data.leadId}`,
+    action_text: 'View Lead'
+  }),
+
+  payment_requested: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number; description?: string }) => ({
+    title: 'Payment Request Sent',
+    message: `Payment request of $${(data.amountCents / 100).toFixed(2)} sent to ${data.leadName || data.leadPhone}${data.description ? ` for ${normalizePunctuation(data.description)}` : ''}`,
+    action_url: `/dashboard/leads/${data.leadId}`,
+    action_text: 'View Lead'
+  }),
+
+  payment_completed: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number }) => ({
+    title: 'Payment Received',
+    message: `$${(data.amountCents / 100).toFixed(2)} payment received from ${data.leadName || data.leadPhone}`,
     action_url: `/dashboard/leads/${data.leadId}`,
     action_text: 'View Lead'
   })
@@ -284,6 +298,24 @@ export class NotificationServiceServer {
       'ai_intake_completed',
       '',
       { leadName, leadPhone, leadId, serviceRequested }
+    )
+  }
+
+  async notifyPaymentRequested(businessId: string, leadId: string, leadPhone: string, amountCents: number, description?: string): Promise<boolean> {
+    return await this.createNotification(
+      businessId,
+      'payment_requested',
+      '',
+      { leadName: leadPhone, leadPhone, leadId, amountCents, description }
+    )
+  }
+
+  async notifyPaymentCompleted(businessId: string, leadId: string, leadPhone: string, amountCents: number): Promise<boolean> {
+    return await this.createNotification(
+      businessId,
+      'payment_completed',
+      '',
+      { leadName: leadPhone, leadPhone, leadId, amountCents }
     )
   }
 }

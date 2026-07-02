@@ -5,6 +5,8 @@ import Stripe from 'stripe'
 import getStripe from '@/lib/stripe'
 import { sendSms } from '@/lib/twilio'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
+import { timelineEvents } from '@/lib/event-timeline'
+import { notificationServiceServer } from '@/lib/notifications-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -408,6 +410,31 @@ Thank you! If you have any questions, simply reply to this message.`
     }
 
     console.log('[PAYMENT REQUEST] SMS sent successfully, SID:', smsResult.sid)
+
+    // Create timeline event for payment request
+    try {
+      await timelineEvents.paymentRequestCreated(business_id, lead_id, paymentRequest.id, amount_cents, paymentDescription)
+      console.log('[PAYMENT REQUEST] Timeline event created successfully')
+    } catch (timelineError) {
+      console.error('[PAYMENT REQUEST] Failed to create timeline event:', timelineError)
+      // Non-critical error, continue
+    }
+
+    // Create notification for payment request
+    try {
+      await notificationServiceServer.notifyPaymentRequested(
+        business_id,
+        lead_id,
+        lead.caller_phone,
+        amount_cents,
+        paymentDescription
+      )
+      console.log('[PAYMENT REQUEST] Notification created successfully')
+    } catch (notificationError) {
+      console.error('[PAYMENT REQUEST] Failed to create notification:', notificationError)
+      // Non-critical error, continue
+    }
+
     console.log('[PAYMENT REQUEST] Payment request creation flow completed successfully')
 
     return NextResponse.json({
