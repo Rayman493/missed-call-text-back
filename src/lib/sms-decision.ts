@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { isBusinessOutOfOffice } from '@/lib/out-of-office'
+import { isCompleteAIIntake, determineAIOutcomeFromExtractedInfo } from '@/lib/ai-intake-completion'
 
 /**
  * Check if current time is within business hours for a business
@@ -221,9 +222,23 @@ export async function determineSmsTemplate(params: {
   const fieldsCollectedCount = aiCallRecord?.fields_collected_count || 0
   const hadUserSpeech = aiCallRecord?.had_user_speech || false
 
+  // CRITICAL: Override stale outcome using canonical completion check
+  // If extracted_info has all required fields, treat as completed_intake regardless of outcome field
+  const isCompleteByFields = isCompleteAIIntake(aiCallRecord?.extracted_info as any)
+  const effectiveOutcome = isCompleteByFields ? 'completed_intake' as AiCallOutcome : outcome
+
+  console.log('[AUTO SMS DECISION] Outcome determination', {
+    originalOutcome: outcome,
+    isCompleteByFields,
+    effectiveOutcome,
+    hasExtractedInfo,
+    hasSummary,
+    fieldsCollectedCount
+  })
+
   let result: SmsDecisionResult
 
-  if (outcome === 'completed_intake') {
+  if (effectiveOutcome === 'completed_intake') {
     // AI completed full intake - AI summary SMS should be sent by external service
     console.log('[AFTER HOURS DECISION] AI completed intake - suppressing generic SMS', {
       callSid,
@@ -239,6 +254,7 @@ export async function determineSmsTemplate(params: {
       leadId,
       aiCallRecordId: aiCallRecord?.id,
       outcome,
+      effectiveOutcome,
       reason: 'ai_intake_completed'
     })
 
@@ -249,10 +265,10 @@ export async function determineSmsTemplate(params: {
       aiCompleted: true,
       voicemailCompleted: false,
       aiCallRecordId: aiCallRecord?.id,
-      aiOutcome: outcome,
+      aiOutcome: effectiveOutcome,
       fallbackSmsType: 'none'
     }
-  } else if (outcome === 'partial_intake') {
+  } else if (effectiveOutcome === 'partial_intake') {
     // Partial intake - AI service sends the partial recovery SMS via /api/ai-confirmation-sms
     console.log('[AUTO SMS DECISION] Partial intake detected - AI service is authoritative sender', {
       callSid,
@@ -270,10 +286,10 @@ export async function determineSmsTemplate(params: {
       aiCompleted: false,
       voicemailCompleted: false,
       aiCallRecordId: aiCallRecord?.id,
-      aiOutcome: outcome,
+      aiOutcome: effectiveOutcome,
       fallbackSmsType: 'none'
     }
-  } else if (outcome === 'early_hangup' || outcome === 'no_speech') {
+  } else if (effectiveOutcome === 'early_hangup' || effectiveOutcome === 'no_speech') {
     // Early hangup or no speech - AI service sends the standard missed-call SMS via /api/ai-confirmation-sms
     console.log('[AUTO SMS DECISION] Early hangup or no speech - AI service is authoritative sender', {
       callSid,
@@ -287,14 +303,14 @@ export async function determineSmsTemplate(params: {
     result = {
       template: 'none',
       shouldSend: false,
-      reason: `ai_${outcome}_sms_authoritative`,
+      reason: `ai_${effectiveOutcome}_sms_authoritative`,
       aiCompleted: false,
       voicemailCompleted: false,
       aiCallRecordId: aiCallRecord?.id,
-      aiOutcome: outcome,
+      aiOutcome: effectiveOutcome,
       fallbackSmsType: 'none'
     }
-  } else if (outcome === 'ai_connection_failed') {
+  } else if (effectiveOutcome === 'ai_connection_failed') {
     // AI connection failed - AI service sends the standard missed-call SMS via /api/ai-confirmation-sms
     console.log('[AUTO SMS DECISION] AI connection failed - AI service is authoritative sender', {
       callSid,
@@ -311,30 +327,54 @@ export async function determineSmsTemplate(params: {
       aiCompleted: false,
       voicemailCompleted: false,
       aiCallRecordId: aiCallRecord?.id,
-      aiOutcome: outcome,
+      aiOutcome: effectiveOutcome,
       fallbackSmsType: 'none'
     }
   } else if (hasExtractedInfo || hasSummary || fieldsCollectedCount > 0) {
     // Legacy fallback: if AI has some data but no outcome recorded, treat as partial intake
-    console.log('[AUTO SMS DECISION] AI has data but no outcome - treat as partial intake', {
-      callSid,
-      leadId,
-      aiCallRecordId: aiCallRecord?.id,
-      hasExtractedInfo,
-      hasSummary,
-      fieldsCollectedCount,
-      reason: 'ai_data_without_outcome'
-    })
+    // But first check if it's actually complete using the canonical helper
+    if (isCompleteByFields) {
+      console.log('[AUTO SMS DECISION] AI has complete fields but no outcome - treat as completed intake', {
+        callSid,
+        leadId,
+        aiCallRecordId: aiCallRecord?.id,
+        hasExtractedInfo,
+        hasSummary,
+        fieldsCollectedCount,
+        reason: 'ai_complete_fields_without_outcome'
+      })
 
-    result = {
-      template: 'partial_intake',
-      shouldSend: true,
-      reason: 'ai_data_without_outcome',
-      aiCompleted: false,
-      voicemailCompleted: false,
-      aiCallRecordId: aiCallRecord?.id,
-      aiOutcome: outcome || 'partial_intake',
-      fallbackSmsType: 'partial_recovery'
+      result = {
+        template: 'none',
+        shouldSend: false,
+        reason: 'ai_complete_fields_without_outcome',
+        aiCompleted: true,
+        voicemailCompleted: false,
+        aiCallRecordId: aiCallRecord?.id,
+        aiOutcome: 'completed_intake',
+        fallbackSmsType: 'none'
+      }
+    } else {
+      console.log('[AUTO SMS DECISION] AI has data but no outcome - treat as partial intake', {
+        callSid,
+        leadId,
+        aiCallRecordId: aiCallRecord?.id,
+        hasExtractedInfo,
+        hasSummary,
+        fieldsCollectedCount,
+        reason: 'ai_data_without_outcome'
+      })
+
+      result = {
+        template: 'partial_intake',
+        shouldSend: true,
+        reason: 'ai_data_without_outcome',
+        aiCompleted: false,
+        voicemailCompleted: false,
+        aiCallRecordId: aiCallRecord?.id,
+        aiOutcome: effectiveOutcome || 'partial_intake',
+        fallbackSmsType: 'partial_recovery'
+      }
     }
   } else {
     // No AI data - send generic missed-call SMS
