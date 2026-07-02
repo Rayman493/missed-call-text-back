@@ -379,9 +379,9 @@ export default function OnboardingPage() {
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-1">
               <div className="h-1 flex-1 bg-blue-600 rounded-full"></div>
-              <div className="h-1 flex-1 bg-slate-600 rounded-full"></div>
+              <div className="h-1 flex-1 bg-blue-600 rounded-full"></div>
             </div>
-            <p className="text-xs text-slate-400 text-right">Step 1 of 2: Business Information</p>
+            <p className="text-xs text-slate-400 text-right">Step 2 of 2: Business Information</p>
           </div>
           
           <div className="flex items-center justify-between mb-2">

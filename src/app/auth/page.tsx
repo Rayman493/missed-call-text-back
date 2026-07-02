@@ -383,6 +383,17 @@ function AuthContent() {
         </div>
         
         <div className="w-full max-w-md sm:max-w-[480px] bg-gradient-to-b from-slate-900 to-slate-900/95 border border-slate-700/50 rounded-2xl shadow-xl shadow-blue-900/5 p-5 sm:p-6 md:p-8 backdrop-blur-sm">
+          {/* Progress indicator for signup mode */}
+          {!isSignIn && !isCheckoutReturn && (
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-1 flex-1 bg-blue-600 rounded-full"></div>
+                <div className="h-1 flex-1 bg-slate-600 rounded-full"></div>
+              </div>
+              <p className="text-xs text-slate-400 text-right">Step 1 of 2: Create Your Account</p>
+            </div>
+          )}
+          
           <div className="text-center mb-5 sm:mb-6">
             <div className="inline-flex items-center justify-center mb-3 sm:mb-4">
               <BrandIcon size={64} />

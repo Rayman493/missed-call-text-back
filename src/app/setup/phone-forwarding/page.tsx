@@ -234,6 +234,9 @@ export default function PhoneForwardingPage() {
         // Force refresh business context to get latest state (bypasses cache)
         await refreshBusiness(true)
         
+        // Invalidate Next.js cache to ensure fresh data
+        router.refresh()
+        
         // Redirect to test setup after showing success confirmation
         setTimeout(() => {
           router.push('/dashboard/test-setup')
