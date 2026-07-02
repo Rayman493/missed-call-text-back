@@ -51,6 +51,7 @@ import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadL
 import StatCard from '@/components/StatCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
+import AddCustomerModal from '@/components/AddCustomerModal'
 
 // Helper to get compact summary for lead card
 // [simple_mode_structured_preview_generated]
@@ -199,6 +200,7 @@ export default function LeadsPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const { checkoutMode, isLoading: eligibilityLoading } = useTrialEligibility()
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false)
 
   const supabase = createBrowserClient()
 
@@ -917,6 +919,15 @@ export default function LeadsPage() {
                     </button>
                   </div>
                 )}
+                <button
+                  onClick={() => setShowAddCustomerModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Customer
+                </button>
               </div>
             </div>
 
@@ -1086,9 +1097,20 @@ export default function LeadsPage() {
                         </p>
 
                         {/* Passive instruction */}
-                        <p className="text-slate-500 dark:text-slate-500 text-xs sm:text-sm max-w-md mx-auto">
+                        <p className="text-slate-500 dark:text-slate-500 text-xs sm:text-sm max-w-md mx-auto mb-6">
                           Leads will appear here as missed calls are detected.
                         </p>
+
+                        {/* Add Customer Button */}
+                        <button
+                          onClick={() => setShowAddCustomerModal(true)}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          Add Customer Manually
+                        </button>
                       </div>
                     </div>
                   )
@@ -1626,6 +1648,10 @@ export default function LeadsPage() {
       </BusinessGuard>
     </AuthGuard>
     <BottomNavigation />
+    <AddCustomerModal 
+      isOpen={showAddCustomerModal} 
+      onClose={() => setShowAddCustomerModal(false)} 
+    />
     </DashboardErrorBoundary>
   )
 }
