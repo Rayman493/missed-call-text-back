@@ -50,42 +50,53 @@ export function validateTwilioSignature(
 /**
  * Reconstructs the public URL from forwarded headers
  * This is necessary when running behind reverse proxies like Vercel
+ * For GET requests, includes the raw query string exactly as Twilio sent it
  */
 function getPublicUrl(request: Request): string[] {
   const candidates: string[] = []
+  const url = new URL(request.url)
   
-  // Candidate 1: Original request.url (may be internal)
+  // Use the raw query string from the request to preserve exact encoding/order
+  const rawQueryString = url.search
+  
+  // Candidate 1: Original request.url (includes query string)
   candidates.push(request.url)
   
-  // Candidate 2: Reconstruct from forwarded headers
+  // Candidate 2: Reconstruct from forwarded headers with raw query string
   const forwardedProto = request.headers.get('x-forwarded-proto') || 'https'
   const forwardedHost = request.headers.get('x-forwarded-host') || request.headers.get('host')
   
   if (forwardedHost) {
-    const url = new URL(request.url)
-    const reconstructedUrl = `${forwardedProto}://${forwardedHost}${url.pathname}`
+    const reconstructedUrl = `${forwardedProto}://${forwardedHost}${url.pathname}${rawQueryString}`
     candidates.push(reconstructedUrl)
   }
   
-  // Candidate 3: Configured production base URL
+  // Candidate 3: Configured production base URL with raw query string
   const configuredBaseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL
   if (configuredBaseUrl) {
-    const url = new URL(request.url)
-    const configuredUrl = `${configuredBaseUrl}${url.pathname}`
+    const configuredUrl = `${configuredBaseUrl}${url.pathname}${rawQueryString}`
     candidates.push(configuredUrl)
     
-    // Candidate 4: Canonical www version of configured URL
+    // Candidate 4: Canonical www version of configured URL with raw query string
     if (configuredBaseUrl.startsWith('https://')) {
       const wwwUrl = configuredBaseUrl.replace('https://', 'https://www.')
       if (wwwUrl !== configuredUrl) {
-        candidates.push(`${wwwUrl}${url.pathname}`)
+        candidates.push(`${wwwUrl}${url.pathname}${rawQueryString}`)
       }
+    }
+    
+    // Candidate 5: Non-www version of configured URL with raw query string
+    if (configuredBaseUrl.startsWith('https://www.')) {
+      const nonWwwUrl = configuredBaseUrl.replace('https://www.', 'https://')
+      candidates.push(`${nonWwwUrl}${url.pathname}${rawQueryString}`)
     }
   }
   
-  // Candidate 5: Default www.replyflowhq.com
-  const url = new URL(request.url)
-  candidates.push(`https://www.replyflowhq.com${url.pathname}`)
+  // Candidate 6: Default www.replyflowhq.com with raw query string
+  candidates.push(`https://www.replyflowhq.com${url.pathname}${rawQueryString}`)
+  
+  // Candidate 7: Default replyflowhq.com (non-www) with raw query string
+  candidates.push(`https://replyflowhq.com${url.pathname}${rawQueryString}`)
   
   return candidates
 }
@@ -153,7 +164,7 @@ export function requireTwilioAuth(
   const result = validateTwilioSignatureWithCandidates(authToken, signature, params, request)
   
   if (!result.valid) {
-    console.error('[TWILIO-WEBHOOK] Invalid webhook signature - POSSIBLE ATTACK')
+    console.warn('[TWILIO-WEBHOOK] Invalid webhook signature - validation failed for all URL candidates')
     console.log('[TWILIO-WEBHOOK] Request URL:', request.url)
     console.log('[TWILIO-WEBHOOK] Forwarded proto:', request.headers.get('x-forwarded-proto'))
     console.log('[TWILIO-WEBHOOK] Forwarded host:', request.headers.get('x-forwarded-host'))

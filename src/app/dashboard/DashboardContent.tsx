@@ -506,6 +506,17 @@ export default function DashboardContent() {
     return () => clearTimeout(timeout)
   }, [businessLoading, webhookConfirming])
 
+  // Refresh business data on mount to fix stale state after forwarding completion
+  useEffect(() => {
+    const refreshOnMount = async () => {
+      if (businessFetchComplete && business?.id) {
+        console.log('[Dashboard] Refreshing business data on mount to fix stale state')
+        await refreshBusiness(true)
+      }
+    }
+    refreshOnMount()
+  }, [businessFetchComplete, business?.id, refreshBusiness])
+
   // Throttled logging to avoid spamming console
   // Removed debug logging to reduce console noise
 
