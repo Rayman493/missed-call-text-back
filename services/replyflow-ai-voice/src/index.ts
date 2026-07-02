@@ -6316,6 +6316,7 @@ Reply to this message if you'd like to update or add any information.
             if (state.queuedTranscript) {
               console.log('[SIMPLE MODE] =========================================');
               console.log('[SIMPLE MODE] event: processing_queued_transcript');
+              console.log('[SIMPLE MODE] currentStage:', state.currentStage);
               console.log('[SIMPLE MODE] queuedTranscript:', state.queuedTranscript);
               console.log('[SIMPLE MODE] =========================================');
 
@@ -6323,6 +6324,24 @@ Reply to this message if you'd like to update or add any information.
               const currentIndex = stages.indexOf(state.currentStage);
               const isValidStage = currentIndex !== -1;
               const isFinalStage = currentIndex === stages.length - 1;
+
+              // Store the queued transcript field before stage advancement
+              const stageToFieldMap: Record<string, string> = {
+                ask_name_reason: 'customerName',
+                ask_details: 'issueDescription',
+                ask_location: 'serviceAddress',
+                ask_completion_time: 'desiredCompletionTime',
+                ask_callback_time: 'callbackTime'
+              };
+              const fieldName = stageToFieldMap[state.currentStage];
+              if (fieldName && isValidStage) {
+                state.intakeData[fieldName] = state.queuedTranscript;
+                console.log('[SIMPLE MODE] =========================================');
+                console.log('[SIMPLE MODE] event: queued_transcript_field_stored');
+                console.log('[SIMPLE MODE] field:', fieldName);
+                console.log('[SIMPLE MODE] value:', state.queuedTranscript);
+                console.log('[SIMPLE MODE] =========================================');
+              }
 
               if (isValidStage) {
                 if (currentIndex < stages.length - 1) {
