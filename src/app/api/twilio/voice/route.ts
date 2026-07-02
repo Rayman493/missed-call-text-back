@@ -1743,7 +1743,7 @@ export async function POST(request: NextRequest) {
   return handleVoiceWebhook(request, false); // POST requires signature validation
 }
 
-// GET handler - now uses shared handler with signature validation skipped
+// GET handler - requires signature validation for security
 export async function GET(request: NextRequest) {
-  return handleVoiceWebhook(request, true); // GET skips signature validation
+  return handleVoiceWebhook(request, false); // GET also requires signature validation
 }
