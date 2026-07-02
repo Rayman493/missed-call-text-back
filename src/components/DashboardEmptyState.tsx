@@ -18,6 +18,9 @@ export default function DashboardEmptyState() {
 
   // Only show test setup if user has active access and set up number
   const canShowTestSetup = hasActiveAccess(business) && business?.twilio_phone_number
+  
+  // Check if user needs to start trial (no active subscription)
+  const needsTrial = !hasActiveAccess(business)
 
   const handleTestSetup = () => {
     setShowTestModal(true)
@@ -69,6 +72,22 @@ export default function DashboardEmptyState() {
               Your ReplyFlow texting is ready
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Trial CTA for users without active subscription */}
+      {needsTrial && (
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-5 mb-6 max-w-md shadow-lg">
+          <h3 className="text-white font-semibold mb-2">Start your 14-day free trial</h3>
+          <p className="text-blue-100 text-sm mb-4">
+            Get your ReplyFlow number and start recovering leads immediately. No credit card required.
+          </p>
+          <button
+            onClick={() => router.push('/pricing')}
+            className="w-full bg-white text-blue-600 py-2.5 px-4 rounded-lg hover:bg-blue-50 transition-colors font-semibold text-sm"
+          >
+            Start Free Trial
+          </button>
         </div>
       )}
 
