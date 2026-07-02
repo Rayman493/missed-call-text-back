@@ -98,7 +98,7 @@ export default function OnboardingPage() {
       // Check if user already has a business
       const { data: existingBusiness, error: existingError } = await supabase
         .from('businesses')
-        .select('id, name, onboarding_status, subscription_status, twilio_phone_number')
+        .select('id, name, onboarding_status, subscription_status, twilio_phone_number, forwarding_verified, phone_setup_completed_at')
         .eq('user_id', user.id)
         .limit(1)
         .single()
@@ -106,32 +106,83 @@ export default function OnboardingPage() {
       if (existingBusiness && !existingError) {
         // CRITICAL: Users with existing business rows should NEVER be on /onboarding (Welcome to ReplyFlow)
         // /onboarding is only for users with NO business row
-        // If user has a business, redirect to appropriate page
-        
+        // If user has a business, redirect to appropriate page based on actual progress
+
         let redirectTarget: string
         let redirectReason: string
-        
+
+        const hasActiveSub = existingBusiness.subscription_status === 'active' ||
+                           existingBusiness.subscription_status === 'trialing' ||
+                           existingBusiness.subscription_status === 'beta' ||
+                           existingBusiness.subscription_status === 'comped'
+        const hasNumber = Boolean(existingBusiness.twilio_phone_number)
+        const forwardingComplete = existingBusiness.forwarding_verified === true ||
+                                 existingBusiness.phone_setup_completed_at !== null
+
         // If onboarding is completed, go to dashboard
         if (existingBusiness.onboarding_status === 'completed') {
           redirectTarget = '/dashboard'
           redirectReason = 'Onboarding completed'
         }
-        // If has Twilio number but onboarding not completed, go to new onboarding flow
-        else if (existingBusiness.twilio_phone_number) {
+        // If has active subscription but onboarding not complete, go to new onboarding flow
+        else if (hasActiveSub && !forwardingComplete) {
           redirectTarget = '/onboarding/new-onboarding'
-          redirectReason = 'Has Twilio number, continue setup'
+          redirectReason = 'Has active subscription, continue setup'
         }
-        // If needs forwarding, go to forwarding setup
-        else if (!existingBusiness.forwarding_verified) {
-          redirectTarget = '/setup/forwarding'
-          redirectReason = 'Needs forwarding setup'
+        // If has number but no active subscription, resume at payment (trigger checkout)
+        else if (hasNumber && !hasActiveSub) {
+          // Trigger checkout session to resume at Step 2 (payment)
+          const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              checkout_mode: 'trial',
+            }),
+          })
+
+          if (checkoutResponse.ok) {
+            const checkoutData = await checkoutResponse.json()
+            if (checkoutData.url) {
+              window.location.href = checkoutData.url
+              return
+            }
+          }
+          // If checkout fails, go to dashboard where user can try again
+          redirectTarget = '/dashboard'
+          redirectReason = 'Business exists with number, checkout failed'
         }
-        // Otherwise, go to dashboard (may need trial/subscription, but not Welcome page)
+        // If has business but no number and no active subscription, resume at payment (trigger checkout)
+        else if (!hasNumber && !hasActiveSub) {
+          // Trigger checkout session to resume at Step 2 (payment)
+          const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              checkout_mode: 'trial',
+            }),
+          })
+
+          if (checkoutResponse.ok) {
+            const checkoutData = await checkoutResponse.json()
+            if (checkoutData.url) {
+              window.location.href = checkoutData.url
+              return
+            }
+          }
+          // If checkout fails, go to dashboard where user can try again
+          redirectTarget = '/dashboard'
+          redirectReason = 'Business exists, checkout failed'
+        }
+        // Otherwise, go to dashboard
         else {
           redirectTarget = '/dashboard'
           redirectReason = 'Business exists, allow dashboard access'
         }
-        
+
         router.push(redirectTarget)
         return
       }
