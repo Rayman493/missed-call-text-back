@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Call Forwarding Confirmed - ReplyFlow</title>
+  <title>You're all set - ReplyFlow</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 40px 20px; }
     .container { text-align: center; }
@@ -95,12 +95,8 @@ export async function GET(request: NextRequest) {
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
       </svg>
     </div>
-    <h1>Call Forwarding Confirmed</h1>
-    <p>Thank you for confirming that you've disabled call forwarding.</p>
-    <div class="message">
-      <strong>Your ReplyFlow account has been successfully offboarded.</strong>
-      <p style="margin-top: 10px; font-size: 16px; color: #16a34a;">No further reminders will be sent.</p>
-    </div>
+    <h1>You're all set</h1>
+    <p>Thanks for confirming. We'll stop all future reminder emails and text messages. Your ReplyFlow offboarding is complete.</p>
     <div class="footer">
       <p>Thank you for using ReplyFlow. We wish you the very best.</p>
       <p style="margin-top: 10px;">ReplyFlow Support Team</p>

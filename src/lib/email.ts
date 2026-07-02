@@ -58,9 +58,10 @@ function generateOffboardingEmailHTML(params: OffboardingEmailParams): string {
 
   const confirmationSection = confirmationToken
     ? `
-    <div style="text-align: center; margin: 30px 0;">
-      <a href="${process.env.NEXT_PUBLIC_APP_URL}/api/offboarding/confirm?token=${confirmationToken}" style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600;">I've disabled call forwarding</a>
-      <p style="margin-top: 10px; font-size: 14px; color: #6b7280;">Click to confirm and stop receiving reminders</p>
+    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 24px; text-align: center; margin: 30px 0;">
+      <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #1e40af;">Finished disabling call forwarding?</h3>
+      <p style="margin: 0 0 16px 0; font-size: 14px; color: #3b82f6;">Once you've disabled call forwarding, click below and we'll stop all reminder emails and text messages.</p>
+      <a href="${process.env.NEXT_PUBLIC_APP_URL}/api/offboarding/confirm?token=${confirmationToken}" style="display: inline-block; background: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">I've Disabled Call Forwarding</a>
     </div>
     `
     : ''
@@ -102,8 +103,6 @@ function generateOffboardingEmailHTML(params: OffboardingEmailParams): string {
               ${replyFlowNumberSection}
             </div>
             
-            ${confirmationSection}
-            
             <div class="section">
               <h2 style="margin-top: 0; color: #1f2937;">Turn off call forwarding:</h2>
               
@@ -129,6 +128,8 @@ function generateOffboardingEmailHTML(params: OffboardingEmailParams): string {
             </div>
             
             <p>After dialing the code, wait for the carrier confirmation tone or message. If forwarding still appears active, restart your phone and try again.</p>
+            
+            ${confirmationSection}
             
             <p>If you need help, contact <a href="mailto:support@replyflowhq.com" style="color: #2563eb;">support@replyflowhq.com</a>.</p>
             
@@ -576,85 +577,101 @@ export async function sendOffboardingReminderEmail(params: OffboardingReminderEm
 function generateJourneyEmailHTML(params: JourneyEmailParams): string {
   const { userEmail, businessName, analytics } = params
 
-  // Build metric cards
+  // Build metric cards using table layout for Gmail compatibility
   const metricCards = []
   
   if (analytics.totalDays !== undefined) {
     metricCards.push(`
-      <div style="flex: 1; min-width: 140px; background: #f8fafc; border-radius: 8px; padding: 16px; text-align: center;">
-        <div style="font-size: 32px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.totalDays}</div>
-        <div style="font-size: 12px; color: #64748b; font-weight: 500;">${analytics.totalDays === 1 ? 'Day' : 'Days'}</div>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Using ReplyFlow</div>
-      </div>
+      <td style="width: 50%; padding: 8px; vertical-align: top;">
+        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.totalDays}</div>
+          <div style="font-size: 13px; color: #64748b; font-weight: 500;">${analytics.totalDays === 1 ? 'Day' : 'Days'}</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Using ReplyFlow</div>
+        </div>
+      </td>
     `)
   }
   
   if (analytics.leadsCaptured !== undefined) {
     metricCards.push(`
-      <div style="flex: 1; min-width: 140px; background: #f8fafc; border-radius: 8px; padding: 16px; text-align: center;">
-        <div style="font-size: 32px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.leadsCaptured}</div>
-        <div style="font-size: 12px; color: #64748b; font-weight: 500;">Leads</div>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Captured</div>
-      </div>
+      <td style="width: 50%; padding: 8px; vertical-align: top;">
+        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.leadsCaptured}</div>
+          <div style="font-size: 13px; color: #64748b; font-weight: 500;">Leads</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Captured</div>
+        </div>
+      </td>
     `)
   }
   
   if (analytics.conversations !== undefined) {
     metricCards.push(`
-      <div style="flex: 1; min-width: 140px; background: #f8fafc; border-radius: 8px; padding: 16px; text-align: center;">
-        <div style="font-size: 32px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.conversations}</div>
-        <div style="font-size: 12px; color: #64748b; font-weight: 500;">Conversations</div>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">With Customers</div>
-      </div>
+      <td style="width: 50%; padding: 8px; vertical-align: top;">
+        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.conversations}</div>
+          <div style="font-size: 13px; color: #64748b; font-weight: 500;">Conversations</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">With Customers</div>
+        </div>
+      </td>
     `)
   }
   
   if (analytics.aiCallsHandled !== undefined) {
     metricCards.push(`
-      <div style="flex: 1; min-width: 140px; background: #f8fafc; border-radius: 8px; padding: 16px; text-align: center;">
-        <div style="font-size: 32px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.aiCallsHandled}</div>
-        <div style="font-size: 12px; color: #64748b; font-weight: 500;">AI Calls</div>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Handled</div>
-      </div>
+      <td style="width: 50%; padding: 8px; vertical-align: top;">
+        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.aiCallsHandled}</div>
+          <div style="font-size: 13px; color: #64748b; font-weight: 500;">AI Calls</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Handled</div>
+        </div>
+      </td>
     `)
   }
   
   if (analytics.messagesExchanged !== undefined) {
     metricCards.push(`
-      <div style="flex: 1; min-width: 140px; background: #f8fafc; border-radius: 8px; padding: 16px; text-align: center;">
-        <div style="font-size: 32px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.messagesExchanged}</div>
-        <div style="font-size: 12px; color: #64748b; font-weight: 500;">Messages</div>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Exchanged</div>
-      </div>
+      <td style="width: 50%; padding: 8px; vertical-align: top;">
+        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.messagesExchanged}</div>
+          <div style="font-size: 13px; color: #64748b; font-weight: 500;">Messages</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Exchanged</div>
+        </div>
+      </td>
     `)
   }
   
   if (analytics.appointmentsScheduled !== undefined) {
     metricCards.push(`
-      <div style="flex: 1; min-width: 140px; background: #f8fafc; border-radius: 8px; padding: 16px; text-align: center;">
-        <div style="font-size: 32px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.appointmentsScheduled}</div>
-        <div style="font-size: 12px; color: #64748b; font-weight: 500;">Appointments</div>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Scheduled</div>
-      </div>
+      <td style="width: 50%; padding: 8px; vertical-align: top;">
+        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.appointmentsScheduled}</div>
+          <div style="font-size: 13px; color: #64748b; font-weight: 500;">Appointments</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Scheduled</div>
+        </div>
+      </td>
     `)
   }
   
   if (analytics.paymentRequestsSent !== undefined) {
     metricCards.push(`
-      <div style="flex: 1; min-width: 140px; background: #f8fafc; border-radius: 8px; padding: 16px; text-align: center;">
-        <div style="font-size: 32px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.paymentRequestsSent}</div>
-        <div style="font-size: 12px; color: #64748b; font-weight: 500;">Payments</div>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Requested</div>
-      </div>
+      <td style="width: 50%; padding: 8px; vertical-align: top;">
+        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; font-weight: 700; color: #2563eb; margin-bottom: 4px;">${analytics.paymentRequestsSent}</div>
+          <div style="font-size: 13px; color: #64748b; font-weight: 500;">Payments</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Requested</div>
+        </div>
+      </td>
     `)
   }
 
   const metricsSection = metricCards.length > 0 ? `
     <div style="background: white; border-radius: 12px; padding: 24px; margin-top: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
       <h3 style="margin: 0 0 20px 0; font-size: 14px; font-weight: 600; color: #1f2937; text-transform: uppercase; letter-spacing: 0.5px;">Your ReplyFlow Journey</h3>
-      <div style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;">
-        ${metricCards.join('')}
-      </div>
+      <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+        <tr>
+          ${metricCards.join('')}
+        </tr>
+      </table>
     </div>
   ` : ''
 

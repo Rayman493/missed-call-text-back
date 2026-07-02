@@ -678,21 +678,18 @@ export async function POST(request: NextRequest) {
             ? `${process.env.NEXT_PUBLIC_APP_URL}/api/offboarding/confirm?token=${confirmationToken}`
             : null
 
-          const offboardingSmsMessage = `ReplyFlow has been disconnected from your account.
+          const offboardingSmsMessage = `Your ReplyFlow account has been deleted.
 
 Important: Disable call forwarding so missed calls return to your normal voicemail.
 
-Common carrier codes:
-
 Verizon: *73
-
 AT&T: ##004#
-
 T-Mobile: ##004#
 
 Using another carrier? Contact your mobile carrier for instructions to disable conditional call forwarding.
 
-${confirmationUrl ? `Confirm you've disabled forwarding: ${confirmationUrl}` : ''}
+Once forwarding is disabled, confirm here so we stop reminders:
+${confirmationUrl}
 
 If forwarding does not stop immediately, restart your phone or contact your carrier.`
 
