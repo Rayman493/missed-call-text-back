@@ -44,41 +44,39 @@ const suggestedPrompts: SuggestedPrompt[] = [
     category: 'Customers',
     icon: <Users className="w-4 h-4" />,
     prompts: [
-      'Who should I call back today?',
-      'Summarize today\'s new leads.',
-      'Which customers haven\'t replied?'
+      'Show my newest leads',
+      'Summarize today\'s customer conversations',
+      'Which customers requested a callback?'
     ]
   },
   {
     category: 'Schedule',
     icon: <CalendarIcon className="w-4 h-4" />,
     prompts: [
-      'What\'s on my schedule tomorrow?',
-      'Do I have any afternoon openings?'
+      'Show today\'s appointments',
+      'What\'s on my schedule tomorrow?'
     ]
   },
   {
     category: 'Payments',
     icon: <CreditCard className="w-4 h-4" />,
     prompts: [
-      'Who still owes me money?',
-      'Show unpaid payment requests.'
+      'Show pending payment requests'
     ]
   },
   {
     category: 'AI Receptionist',
     icon: <Bot className="w-4 h-4" />,
     prompts: [
-      'Summarize today\'s AI calls.',
-      'Which AI calls need follow-up?'
+      'Summarize today\'s AI calls',
+      'Show incomplete AI intakes'
     ]
   },
   {
     category: 'Business',
     icon: <TrendingUp className="w-4 h-4" />,
     prompts: [
-      'How many leads did I receive this week?',
-      'What\'s my busiest day?'
+      'Give me today\'s business summary'
     ]
   }
 ]
@@ -441,7 +439,15 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
 
         {/* Suggested Prompts */}
         {!showResults && (
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Welcome Message */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/30">
+              <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">Welcome to ReplyFlow Assistant</h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                I can help you quickly understand what's happening in your business. Ask about customers, appointments, conversations, payments, or AI receptionist activity.
+              </p>
+            </div>
+
             <div className="flex items-center gap-2 mb-3">
               <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
               <p className="text-sm font-semibold text-slate-900 dark:text-white">Suggested questions</p>
