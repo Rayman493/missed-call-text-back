@@ -21,15 +21,22 @@ interface BusinessContextType {
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined)
 
+// Revalidation configuration
+const REVALIDATION_THRESHOLD_MS = 60 * 1000 // 60 seconds
+const FOCUS_DEBOUNCE_MS = 1000 // 1 second debounce
+
 export function BusinessProvider({ children }: { children: ReactNode }) {
   const [business, setBusiness] = useState<Business | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [fetchComplete, setFetchComplete] = useState(false)
   const [businessMissingConfirmed, setBusinessMissingConfirmed] = useState(false)
+  const [lastFetchTimestamp, setLastFetchTimestamp] = useState<number>(0)
   const userIdRef = useRef<string | null>(null)
   const authSubscriptionRef = useRef<any>(null)
   const hasInitialFetchRef = useRef(false)
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isRevalidatingRef = useRef(false)
 
   const supabase = useMemo(() => createBrowserClient(), [])
 
@@ -45,9 +52,13 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     if (!supabase) return
     log('[BusinessContext] Fetching business...', { force })
     
-    // Skip loading if business is already verified and we have cached data, unless force is true
-    if (!force && businessVerified && business) {
-      log('[BusinessContext] Skipping fetch - business already verified')
+    // Check if we need to revalidate based on timestamp
+    const now = Date.now()
+    const shouldRevalidate = force || (now - lastFetchTimestamp > REVALIDATION_THRESHOLD_MS)
+    
+    // Skip loading if business is already verified, we have cached data, and not forcing revalidation
+    if (!shouldRevalidate && businessVerified && business) {
+      log('[BusinessContext] Skipping fetch - business already verified and data is fresh')
       setFetchComplete(true)
       return
     }
@@ -114,12 +125,15 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         setLoading(false)
         setFetchComplete(true)
       }
+      
+      // Update last fetch timestamp
+      setLastFetchTimestamp(now)
     } catch (err: any) {
       setError(err.message || 'Failed to fetch business')
       setLoading(false)
       setFetchComplete(true)
     }
-  }, [supabase, businessVerified, business])
+  }, [supabase, businessVerified, business, lastFetchTimestamp])
 
   // Listen to auth state changes - only once
   useEffect(() => {
@@ -169,6 +183,47 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       fetchBusiness()
     }
   }, [fetchBusiness])
+
+  // Handle window focus and visibility change for revalidation
+  useEffect(() => {
+    const handleFocus = () => {
+      // Clear any existing timeout
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current)
+      }
+      
+      // Debounce the revalidation
+      focusTimeoutRef.current = setTimeout(() => {
+        const now = Date.now()
+        const shouldRevalidate = now - lastFetchTimestamp > REVALIDATION_THRESHOLD_MS
+        
+        if (shouldRevalidate && !isRevalidatingRef.current && businessVerified) {
+          log('[BusinessContext] App resumed after idle, revalidating business data')
+          isRevalidatingRef.current = true
+          fetchBusiness(true).finally(() => {
+            isRevalidatingRef.current = false
+          })
+        }
+      }, FOCUS_DEBOUNCE_MS)
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleFocus()
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current)
+      }
+    }
+  }, [fetchBusiness, lastFetchTimestamp, businessVerified])
 
   const contextValue = useMemo(() => {
     return {
