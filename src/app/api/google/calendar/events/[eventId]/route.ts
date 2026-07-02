@@ -1,34 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { eventId: string } }
 ) {
+  console.log('[GOOGLE CALENDAR DELETE] Request received for eventId:', params.eventId)
+  
   try {
     const { eventId } = params
 
-    // Get user session
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user from session
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
+    // Get user session using server client pattern
+    const supabase = createServerSupabaseClient()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {
+      console.error('[GOOGLE CALENDAR DELETE] Auth failed:', userError?.message)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    console.log('[GOOGLE CALENDAR DELETE] Authenticated user:', user.id)
 
     // Get business
     const { data: business, error: businessError } = await supabase
@@ -57,7 +50,7 @@ export async function DELETE(
 
     // Check if token needs refresh
     if (integration.expires_at && new Date(integration.expires_at) < new Date()) {
-      console.log('[Google Calendar Delete] Token expired, refreshing...')
+      console.log('[GOOGLE CALENDAR TOKEN REFRESH] Token expired for business:', business.id, 'expires_at:', integration.expires_at)
 
       const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -71,12 +64,22 @@ export async function DELETE(
       })
 
       if (!refreshResponse.ok) {
+        const errorText = await refreshResponse.text()
+        console.error('[GOOGLE CALENDAR TOKEN ERROR]', {
+          type: 'token_refresh',
+          status: refreshResponse.status,
+          statusText: refreshResponse.statusText,
+          body: errorText,
+          timestamp: new Date().toISOString(),
+          businessId: business.id
+        })
         console.error('[Google Calendar Delete] Failed to refresh token')
         return NextResponse.json({ error: 'Failed to refresh token' }, { status: 401 })
       }
 
       const refreshData = await refreshResponse.json()
       accessToken = refreshData.access_token
+      console.log('[GOOGLE CALENDAR TOKEN REFRESH] Token refreshed successfully for business:', business.id)
 
       // Update integration with new token
       const { error: updateError } = await supabase

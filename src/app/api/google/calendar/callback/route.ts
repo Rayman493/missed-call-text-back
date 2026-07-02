@@ -54,6 +54,15 @@ export async function GET(request: NextRequest) {
       if (!stateData.business_id || !stateData.timestamp) {
         throw new Error('Invalid state')
       }
+
+      // Validate state timestamp (reject if older than 5 minutes)
+      const stateAge = Date.now() - stateData.timestamp
+      const MAX_STATE_AGE_MS = 5 * 60 * 1000 // 5 minutes
+      if (stateAge > MAX_STATE_AGE_MS) {
+        console.error('[Google Calendar Callback] State expired, age:', stateAge, 'ms')
+        throw new Error('State expired')
+      }
+      console.log('[Google Calendar Callback] State validated, age:', stateAge, 'ms')
     } catch (error) {
       console.error('[Google Calendar Callback] Invalid state:', error)
       return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))

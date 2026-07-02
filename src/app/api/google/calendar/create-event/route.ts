@@ -87,15 +87,16 @@ export async function POST(request: NextRequest) {
     // Check if token is expired and refresh if needed (same as events route)
     let accessToken = integration.access_token
     if (integration.expires_at && new Date(integration.expires_at) < new Date()) {
-      console.log('[Calendar Create] Token expired, attempting refresh')
+      console.log('[GOOGLE CALENDAR TOKEN REFRESH] Token expired for business:', business.id, 'expires_at:', integration.expires_at)
       
       // Token expired, refresh it
       if (!integration.refresh_token) {
+        console.error('[GOOGLE CALENDAR TOKEN ERROR] No refresh token available for business:', business.id)
         console.error('[Calendar Create] No refresh token available')
         return NextResponse.json({ error: 'Cannot refresh token: no refresh token available' }, { status: 401 })
       }
 
-      console.log('[Calendar Create] Refreshing token')
+      console.log('[GOOGLE CALENDAR TOKEN REFRESH] Refreshing token for business:', business.id)
       const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: {
@@ -111,13 +112,21 @@ export async function POST(request: NextRequest) {
 
       if (!refreshResponse.ok) {
         const errorText = await refreshResponse.text()
+        console.error('[GOOGLE CALENDAR TOKEN ERROR]', {
+          type: 'token_refresh',
+          status: refreshResponse.status,
+          statusText: refreshResponse.statusText,
+          body: errorText,
+          timestamp: new Date().toISOString(),
+          businessId: business.id
+        })
         console.error('[Calendar Create] Token refresh failed:', refreshResponse.status, errorText)
         return NextResponse.json({ error: 'Failed to refresh token' }, { status: 401 })
       }
 
       const tokenData = await refreshResponse.json()
       accessToken = tokenData.access_token
-      console.log('[Calendar Create] Token refreshed successfully')
+      console.log('[GOOGLE CALENDAR TOKEN REFRESH] Token refreshed successfully for business:', business.id)
 
       // Update the integration with new token
       const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
