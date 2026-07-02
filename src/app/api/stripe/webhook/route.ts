@@ -907,30 +907,9 @@ export async function POST(request: Request) {
           // Legacy releaseNumberForBusiness removed - not needed with new provisioning flow
           console.log('[stripe-webhook] Legacy number release removed - using new provisioning flow')
 
-          // Send offboarding email with forwarding disable instructions
-          try {
-            console.log('[stripe-webhook] Triggering offboarding email for business:', business.id)
-            
-            // Call offboarding email API
-            const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-offboarding-email`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                businessId: business.id,
-                userId: business.user_id,
-                carrier: business.carrier || 'other'
-              })
-            })
-
-            if (emailResponse.ok) {
-              console.log('[stripe-webhook] Offboarding email triggered successfully')
-            } else {
-              console.error('[stripe-webhook] Failed to trigger offboarding email:', await emailResponse.text())
-            }
-          } catch (emailError) {
-            console.error('[stripe-webhook] Error triggering offboarding email:', emailError)
-            // Don't fail the webhook - email is not critical
-          }
+          // NOTE: Offboarding email/SMS is handled by account deletion flow, not webhook
+          // Account deletion is the primary offboarding path and handles email, SMS, and offboarding tracking
+          // Webhook only updates subscription status in database
 
           // Mark event as processed
           await markEventProcessed(supabase, event.id, event.type, business.id)

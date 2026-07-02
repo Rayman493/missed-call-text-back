@@ -32,6 +32,7 @@ export async function sendSms(
     conversation_id?: string;
     isManual?: boolean; // Flag to distinguish manual user messages from automated
     source?: string; // Explicit source to identify message type (e.g., 'follow_up_job')
+    isOffboarding?: boolean; // Flag to bypass number readiness check for offboarding/system SMS
   }
 ): Promise<{ sid: string | null; messageId: string | null }> {
   // Idempotency check for automated messages (prevent duplicates within 5 minutes)
@@ -208,21 +209,28 @@ export async function sendSms(
   console.log('[FOLLOWUP TWILIO SEND RESULT] Business config check passed');
 
   // FAIL-SAFE: Check if number is ready for use before sending
-  console.log('[FOLLOWUP TWILIO SEND START] Number readiness check');
-  console.log('[SMS FAIL-SAFE] Checking if number is ready for use');
-  const isReady = await isNumberReadyForUse(business.id);
+  // Bypass this check for offboarding/system SMS - they can use valid numbers even if not fully provisioned
+  const isOffboardingSms = options?.isOffboarding || false;
   
-  if (!isReady) {
-    console.error('[SMS FAILED] Number not ready for use - provisioning incomplete');
-    console.error('[FOLLOWUP TWILIO SEND FAILED] Number not ready');
-    console.error('[SMS FAILED] Business provisioning status:', business.provisioning_status);
-    console.log('[FOLLOWUP RETURN PATH] Number not ready - returning null SID');
-    await logFailedMessage(business, to, message, options, 'Number not ready for use - provisioning incomplete', 'NUMBER_NOT_READY', false);
-    return { sid: null, messageId: null };
-  }
+  if (!isOffboardingSms) {
+    console.log('[FOLLOWUP TWILIO SEND START] Number readiness check');
+    console.log('[SMS FAIL-SAFE] Checking if number is ready for use');
+    const isReady = await isNumberReadyForUse(business.id);
+    
+    if (!isReady) {
+      console.error('[SMS FAILED] Number not ready for use - provisioning incomplete');
+      console.error('[FOLLOWUP TWILIO SEND FAILED] Number not ready');
+      console.error('[SMS FAILED] Business provisioning status:', business.provisioning_status);
+      console.log('[FOLLOWUP RETURN PATH] Number not ready - returning null SID');
+      await logFailedMessage(business, to, message, options, 'Number not ready for use - provisioning incomplete', 'NUMBER_NOT_READY', false);
+      return { sid: null, messageId: null };
+    }
 
-  console.log('[FOLLOWUP TWILIO SEND RESULT] Number readiness check passed');
-  console.log('[SMS FAIL-SAFE] Number is ready for use');
+    console.log('[FOLLOWUP TWILIO SEND RESULT] Number readiness check passed');
+    console.log('[SMS FAIL-SAFE] Number is ready for use');
+  } else {
+    console.log('[SMS OFFBOARDING] Skipping number readiness check for offboarding SMS');
+  }
 
   // Handle simulation mode
   if (smsValidation.method === 'simulated') {
@@ -886,6 +894,7 @@ async function logFailedMessage(
   options?: {
     lead_id?: string;
     conversation_id?: string;
+    isOffboarding?: boolean;
   },
   errorMessage?: string,
   errorCode?: string,
@@ -899,6 +908,7 @@ async function logFailedMessage(
       from_phone: business.twilio_phone_number,
       lead_id: options?.lead_id,
       conversation_id: options?.conversation_id,
+      is_offboarding: options?.isOffboarding,
       error_message: errorMessage,
       error_code: errorCode,
       twilio_api_called: twilioApiCalled,
@@ -906,6 +916,40 @@ async function logFailedMessage(
       message_body: message.substring(0, 50) + '...'
     });
     
+    // Check if this is a system/offboarding SMS (no lead_id)
+    const isSystemSms = !options?.lead_id || options?.isOffboarding;
+    
+    if (isSystemSms) {
+      // Try to insert into system_sms table for account-level messages
+      try {
+        const { error: insertError } = await supabase
+          .from('system_sms')
+          .insert({
+            business_id: business.id,
+            to_phone: to,
+            from_phone: business.twilio_phone_number,
+            body: message,
+            twilio_message_sid: null,
+            status: 'failed',
+            error_code: errorCode,
+            error_message: errorMessage,
+            message_type: options?.isOffboarding ? 'offboarding' : 'other',
+            status_updated_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+          });
+
+        if (insertError) {
+          console.warn('[SMS FAILED] system_sms insert failed (table may not exist), skipping optional logging');
+        } else {
+          console.log('[SMS FAILED] Failed system SMS logged successfully');
+        }
+      } catch (error) {
+        console.warn('[SMS FAILED] system_sms table not found - skipping optional logging for failed system SMS');
+      }
+      return;
+    }
+    
+    // Insert into messages table for lead/conversation messages
     const { error: insertError } = await supabase
       .from('messages')
       .insert({

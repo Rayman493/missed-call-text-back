@@ -29,7 +29,6 @@ export async function POST(request: NextRequest) {
       .insert({
         business_phone_number: businessPhone,
         business_email: businessEmail,
-        deletion_timestamp: new Date().toISOString(),
         forwarding_confirmed: false,
         reminder_count: 0,
         confirmation_token: confirmationToken,

@@ -701,6 +701,7 @@ If forwarding does not stop immediately, restart your phone or contact your carr
               offboardingSmsMessage,
               {
                 lead_id: undefined, // Not a lead, it's an offboarding message
+                isOffboarding: true, // Bypass number readiness check for offboarding SMS
               }
             )
 
