@@ -7,6 +7,7 @@
 
 import WebSocket from 'ws';
 import { log, LogLevel } from './logger';
+import { OPENAI_REALTIME_MODEL, createOpenAIRealtimeUrl } from './realtime-model';
 
 // Log ws package version
 console.log('[OPENAI] ws package version:', require('ws/package.json').version);
@@ -85,8 +86,8 @@ export class OpenAIRealtimeClient {
         length: this.config.apiKey?.length,
       });
 
-      // Use gpt-4o-realtime-preview model in URL query string for GA API
-      const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
+      const wsUrl = createOpenAIRealtimeUrl();
+      console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
       const headers = {
         'Authorization': `Bearer ${this.config.apiKey}`,
       };
@@ -126,7 +127,7 @@ export class OpenAIRealtimeClient {
         
         log(LogLevel.INFO, '[OPENAI] websocket object created');
         log(LogLevel.INFO, '[OPENAI] full websocket URL', { url: wsUrl });
-        log(LogLevel.INFO, '[OPENAI] exact model being used', { model: 'gpt-4o-realtime-preview' });
+        log(LogLevel.INFO, '[OPENAI] exact model being used', { model: OPENAI_REALTIME_MODEL });
 
         // Log readyState every second for 15 seconds
         let readyStateCheckCount = 0;
@@ -287,11 +288,10 @@ export class OpenAIRealtimeClient {
     }
 
     log(LogLevel.INFO, '[AI POC] Using GA Realtime API schema');
-    log(LogLevel.INFO, '[AI POC] exact model being used', { model: 'gpt-4o-realtime-preview' });
+    log(LogLevel.INFO, '[AI POC] exact model being used', { model: OPENAI_REALTIME_MODEL });
 
-    // Configure session using GA Realtime API schema (gpt-4o-realtime-preview)
     // Minimal payload first: only required session.type and instructions
-    console.log('[OPENAI CLIENT] realtime model: gpt-4o-realtime-preview');
+    console.log('[OPENAI CLIENT] realtime model:', OPENAI_REALTIME_MODEL);
     const sessionUpdate = {
       type: 'session.update',
       session: {

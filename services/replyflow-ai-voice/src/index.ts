@@ -37,6 +37,7 @@ import {
   getIntakeStageTextSafe,
 } from './intake-templates';
 import { testFallbacks, warnIfTestFallbacksActive } from './test-fallbacks';
+import { OPENAI_REALTIME_MODEL, createOpenAIRealtimeUrl } from './realtime-model';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -70,6 +71,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
 console.log('[AUDIO TRACE BUILD VERSION] caller-audio-debug-v1');
 console.log('[AI CONFIRMATION TEMPLATE VERSION] confirmation-v3-your-name-is');
 console.log('[AI VOICE STARTUP] Service initializing');
+console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
 console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] =========================================');
 console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] All assistantSpeaking writes are instrumented');
 console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] Timestamp:', new Date().toISOString());
@@ -4704,7 +4706,8 @@ const server = createServer(async (req, res) => {
     
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
-    const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
+    const wsUrl = createOpenAIRealtimeUrl();
+    console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
     const headers = {
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
       'OpenAI-Beta': 'realtime=v1',
@@ -4828,7 +4831,8 @@ const server = createServer(async (req, res) => {
     
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
-    const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
+    const wsUrl = createOpenAIRealtimeUrl();
+    console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
     const headers = {
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
       'OpenAI-Beta': 'realtime=v1',
@@ -4932,7 +4936,8 @@ const server = createServer(async (req, res) => {
     
     res.writeHead(200, { 'Content-Type': 'application/json' });
     
-    const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
+    const wsUrl = createOpenAIRealtimeUrl();
+    console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
     console.log('[MINIMAL TEST] creating websocket to:', wsUrl);
     
     const testWs = new WebSocket(wsUrl, {
@@ -6298,7 +6303,8 @@ Reply to this message if you'd like to update or add any information.
         });
 
         // Connect to OpenAI Realtime - use same URL as legacy
-        const openAiUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview`;
+        const openAiUrl = createOpenAIRealtimeUrl();
+        console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
         console.log('[SIMPLE MODE WS CREATE] URL:', openAiUrl);
         console.log('[SIMPLE MODE WS CREATE] model extracted:', new URL(openAiUrl).searchParams.get('model'));
         state.openAiWs = new WebSocket(openAiUrl, {
@@ -6315,7 +6321,7 @@ Reply to this message if you'd like to update or add any information.
           console.log('[SIMPLE MODE] =========================================');
 
           // Configure session using GA Realtime API schema (minimal payload first)
-          console.log('[SIMPLE MODE] realtime model: gpt-4o-realtime-preview');
+          console.log('[SIMPLE MODE] realtime model:', OPENAI_REALTIME_MODEL);
           const sessionUpdate = {
             type: "session.update",
             session: {
@@ -8946,7 +8952,8 @@ Return only JSON, no other text.`;
             console.log('[STREAM CLONED] WebSocket package:', 'ws');
             console.log('[STREAM CLONED] API key exists:', !!OPENAI_API_KEY);
             
-            const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
+            const wsUrl = createOpenAIRealtimeUrl();
+    console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
             console.log('[STREAM CLONED] creating websocket to:', wsUrl);
             console.log('[OPENAI WEBSOCKET CLEANUP] Creating FRESH OpenAI session for this call');
             console.log('[OPENAI WEBSOCKET CLEANUP] callSid:', callSid);
@@ -9226,7 +9233,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 turnDetection: audioConfig.input?.turn_detection?.type || 'not_set',
                 outputFormat: outputFormat || 'not_set',
                 voice: audioConfig.output?.voice || 'not_set',
-                model: 'gpt-4o-realtime-preview'
+                model: OPENAI_REALTIME_MODEL
               });
               
               // Verify audio format matches Twilio (audio/pcmu / mulaw 8khz)
