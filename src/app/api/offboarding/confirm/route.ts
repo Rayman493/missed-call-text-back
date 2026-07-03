@@ -103,15 +103,18 @@ function getSuccessHtml(): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>You're all set - ReplyFlow</title>
+  <title>Offboarding Verified - ReplyFlow</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 40px 20px; }
     .container { text-align: center; }
     .success-icon { width: 80px; height: 80px; background: #10b981; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; }
     .success-icon svg { width: 40px; height: 40px; color: white; }
-    h1 { color: #1e293b; margin-bottom: 16px; }
-    p { color: #64748b; font-size: 18px; margin-bottom: 30px; }
-    .message { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    h1 { color: #1e293b; margin-bottom: 16px; font-size: 28px; }
+    p { color: #64748b; font-size: 16px; margin-bottom: 16px; }
+    .receipt { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 24px; margin: 24px 0; text-align: left; }
+    .receipt-item { margin-bottom: 12px; display: flex; align-items: center; }
+    .receipt-item:last-child { margin-bottom: 0; }
+    .checkmark { color: #10b981; margin-right: 12px; font-size: 20px; }
     .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 14px; }
   </style>
 </head>
@@ -122,11 +125,27 @@ function getSuccessHtml(): string {
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
       </svg>
     </div>
-    <h1>You're all set</h1>
-    <p>Thanks for confirming. We'll stop all future reminder emails and text messages. Your ReplyFlow offboarding is complete.</p>
+    <h1>✅ Offboarding Verified</h1>
+    
+    <div class="receipt">
+      <div class="receipt-item">
+        <span class="checkmark">✓</span>
+        <span>We've successfully recorded that you've disabled call forwarding.</span>
+      </div>
+      <div class="receipt-item">
+        <span class="checkmark">✓</span>
+        <span>You won't receive any additional reminder messages from ReplyFlow.</span>
+      </div>
+      <div class="receipt-item">
+        <span class="checkmark">✓</span>
+        <span>Your account has been deleted and your ReplyFlow phone number has been released.</span>
+      </div>
+    </div>
+
+    <p>Thank you for trying ReplyFlow. We'd love to have you back in the future.</p>
+    
     <div class="footer">
-      <p>Thank you for using ReplyFlow. We wish you the very best.</p>
-      <p style="margin-top: 10px;">ReplyFlow Support Team</p>
+      <p>ReplyFlow Support Team</p>
     </div>
   </div>
 </body>
@@ -141,15 +160,18 @@ function getAlreadyConfirmedHtml(): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Already Confirmed - ReplyFlow</title>
+  <title>Already Verified - ReplyFlow</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 40px 20px; }
     .container { text-align: center; }
     .info-icon { width: 80px; height: 80px; background: #3b82f6; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; }
     .info-icon svg { width: 40px; height: 40px; color: white; }
-    h1 { color: #1e293b; margin-bottom: 16px; }
-    p { color: #64748b; font-size: 18px; margin-bottom: 30px; }
-    .message { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    h1 { color: #1e293b; margin-bottom: 16px; font-size: 28px; }
+    p { color: #64748b; font-size: 16px; margin-bottom: 16px; }
+    .receipt { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 24px; margin: 24px 0; text-align: left; }
+    .receipt-item { margin-bottom: 12px; display: flex; align-items: center; }
+    .receipt-item:last-child { margin-bottom: 0; }
+    .checkmark { color: #3b82f6; margin-right: 12px; font-size: 20px; }
     .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 14px; }
   </style>
 </head>
@@ -157,14 +179,28 @@ function getAlreadyConfirmedHtml(): string {
   <div class="container">
     <div class="info-icon">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
       </svg>
     </div>
-    <h1>Already Confirmed</h1>
-    <p>You've already confirmed that you've disabled call forwarding. We've stopped all reminder emails and text messages.</p>
+    <h1>✅ Already Verified</h1>
+    
+    <div class="receipt">
+      <div class="receipt-item">
+        <span class="checkmark">✓</span>
+        <span>We've already recorded that you've disabled call forwarding.</span>
+      </div>
+      <div class="receipt-item">
+        <span class="checkmark">✓</span>
+        <span>No further action is required.</span>
+      </div>
+      <div class="receipt-item">
+        <span class="checkmark">✓</span>
+        <span>You won't receive any additional reminder messages.</span>
+      </div>
+    </div>
+    
     <div class="footer">
-      <p>Thank you for using ReplyFlow. We wish you the very best.</p>
-      <p style="margin-top: 10px;">ReplyFlow Support Team</p>
+      <p>ReplyFlow Support Team</p>
     </div>
   </div>
 </body>

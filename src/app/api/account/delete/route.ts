@@ -696,7 +696,7 @@ T-Mobile: ##004#
 
 Using another carrier? Contact your mobile carrier for instructions to disable conditional call forwarding.
 
-Once forwarding is disabled, confirm here so we stop reminders:
+After you've disabled call forwarding, tap the link below to confirm. This will stop future reminder messages:
 ${confirmationUrl}
 
 If forwarding does not stop immediately, restart your phone or contact your carrier.`
