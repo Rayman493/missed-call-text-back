@@ -52,22 +52,23 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   return (
     <>
       {/* Bottom Navigation Bar - Mobile Only - Improved touch targets */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 z-50 pb-safe md:hidden">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4">
-          <div className="flex items-center justify-around h-16 sm:h-16">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe md:hidden">
+        <div className="mx-auto max-w-7xl px-2 pb-2 sm:px-4" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
+          <div className="flex h-16 items-center justify-around rounded-3xl border border-white/10 bg-slate-950/82 px-1 shadow-[0_1px_0_rgba(255,255,255,0.06),0_-18px_60px_rgba(2,6,23,0.55)] backdrop-blur-xl">
             {primaryNavItems.map((item) => {
               const Icon = item.icon
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${
+                  className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
                     isActive(item.href)
-                      ? 'text-blue-600 dark:text-blue-400 scale-105'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:scale-105'
+                      ? 'text-white bg-white/10 scale-105 shadow-inner shadow-white/5'
+                      : 'text-slate-400 hover:text-white hover:bg-white/[0.06] hover:scale-105'
                   }`}
                 >
-                  <Icon className="w-6 h-6 sm:w-6 sm:h-6 mb-1 transition-transform duration-200" />
+                  {isActive(item.href) && <span className="absolute top-1 h-1 w-5 rounded-full bg-gradient-to-r from-blue-400 to-cyan-300" />}
+                  <Icon className="w-5 h-5 sm:w-5 sm:h-5 mb-1 transition-transform duration-200" />
                   <span className={`text-[10px] sm:text-[10px] font-medium transition-colors ${
                     isActive(item.href) ? 'font-semibold' : ''
                   }`}>{item.label}</span>
@@ -78,13 +79,14 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             {/* More Button - Improved touch target */}
             <button
               onClick={() => setIsMoreMenuOpen(true)}
-              className={`relative flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${
+              className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
                 isMoreMenuOpen
-                  ? 'text-blue-600 dark:text-blue-400 scale-105'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:scale-105'
+                  ? 'text-white bg-white/10 scale-105 shadow-inner shadow-white/5'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.06] hover:scale-105'
               }`}
             >
-              <Settings className="w-6 h-6 sm:w-6 sm:h-6 mb-1 transition-transform duration-200" />
+              {isMoreMenuOpen && <span className="absolute top-1 h-1 w-5 rounded-full bg-gradient-to-r from-blue-400 to-cyan-300" />}
+              <Settings className="w-5 h-5 sm:w-5 sm:h-5 mb-1 transition-transform duration-200" />
               <span className={`text-[10px] sm:text-[10px] font-medium transition-colors ${
                 isMoreMenuOpen ? 'font-semibold' : ''
               }`}>More</span>
@@ -97,19 +99,19 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       {isMoreMenuOpen && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 md:hidden"
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 md:hidden"
             onClick={() => setIsMoreMenuOpen(false)}
           />
-          <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 rounded-t-3xl z-50 md:hidden animate-in slide-in-from-bottom duration-300">
-            <div className="p-4 pb-8">
+          <div className="fixed bottom-0 left-0 right-0 rounded-t-[2rem] border-t border-white/10 bg-slate-900/95 shadow-[0_1px_0_rgba(255,255,255,0.06),0_-28px_90px_rgba(2,6,23,0.65)] backdrop-blur-xl z-50 md:hidden animate-in slide-in-from-bottom duration-300">
+            <div className="p-4 pb-8" style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))' }}>
               {/* Drag Handle */}
-              <div className="w-12 h-1 bg-slate-300 dark:bg-slate-600 rounded-full mx-auto mb-4" />
+              <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4" />
 
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">Menu</h2>
+                <h2 className="text-lg font-semibold text-white">Menu</h2>
                 <button
                   onClick={() => setIsMoreMenuOpen(false)}
-                  className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                  className="p-2.5 hover:bg-white/10 rounded-xl transition-colors"
                 >
                   <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                 </button>
@@ -145,7 +147,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                           ? 'bg-red-100 dark:bg-red-900/30'
                           : isBilling
                           ? 'bg-purple-100 dark:bg-purple-900/30'
-                          : 'bg-blue-100 dark:bg-blue-900/30'
+                          : 'bg-blue-500/10 ring-1 ring-blue-400/15'
                       }`}>
                         <Icon className={`w-5 h-5 ${
                           isDanger
@@ -156,10 +158,10 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                         }`} />
                       </div>
                       <div className="flex-1">
-                        <div className={`font-medium ${isDanger ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-foreground'}`}>
+                        <div className={`font-medium ${isDanger ? 'text-red-400' : 'text-white'}`}>
                           {item.label}
                         </div>
-                        <div className="text-sm text-slate-500 dark:text-slate-400">
+                        <div className="text-sm text-slate-400">
                           {isDanger ? 'Sign out of your account' : isBilling ? 'Manage your subscription' : item.label === 'View Homepage' ? 'Go to homepage' : 'Configure your account'}
                         </div>
                       </div>
@@ -172,7 +174,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                         key={item.label}
                         href={item.href}
                         onClick={() => setIsMoreMenuOpen(false)}
-                        className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors active:scale-[0.98]"
+                        className="flex items-center gap-4 p-4 hover:bg-white/[0.06] rounded-2xl transition-colors active:scale-[0.98]"
                       >
                         {content}
                       </Link>
@@ -183,7 +185,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                     <button
                       key={item.label}
                       onClick={handleClick}
-                      className="flex items-center gap-4 p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors w-full active:scale-[0.98]"
+                      className="flex items-center gap-4 p-4 hover:bg-white/[0.06] rounded-2xl transition-colors w-full active:scale-[0.98]"
                     >
                       {content}
                     </button>

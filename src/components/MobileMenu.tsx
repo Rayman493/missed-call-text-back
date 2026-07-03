@@ -112,7 +112,7 @@ export default function MobileMenu() {
     <div className="md:hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted/40 transition-colors"
+        className="rounded-full border border-white/10 bg-white/[0.03] p-2.5 text-slate-400 shadow-inner shadow-black/10 transition-colors hover:bg-white/[0.08] hover:text-white"
         aria-label="Toggle menu"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,17 +127,18 @@ export default function MobileMenu() {
       {isOpen && (
         <>
           <div
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+            className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute left-3 right-3 top-14 z-50 bg-card rounded-lg shadow-xl border border-border py-1 transform transition-all duration-200 ease-in-out animate-in slide-in-from-top-2 duration-200">
+          <div className="absolute left-3 right-3 top-14 z-50 overflow-hidden rounded-2xl border border-white/10 bg-slate-900/95 py-2 shadow-[0_1px_0_rgba(255,255,255,0.06),0_24px_70px_rgba(2,6,23,0.55)] backdrop-blur-xl transform transition-all duration-200 ease-in-out animate-in slide-in-from-top-2 duration-200">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/40 to-transparent" />
             {menuItems.map((item) => {
               if (item.href === '#' && item.label === 'Account') {
                 return (
                   <button
                     key="account"
                     onClick={handleAccountAction}
-                    className="block w-full px-4 py-2 text-sm text-left transition-colors text-foreground hover:bg-muted/50"
+                    className="block w-full px-4 py-3 text-sm text-left transition-colors text-slate-200 hover:bg-white/[0.06]"
                   >
                     Account
                   </button>
@@ -149,7 +150,7 @@ export default function MobileMenu() {
                   <button
                     key="logout"
                     onClick={handleLogout}
-                    className="block w-full px-4 py-2 text-sm text-left transition-colors text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10"
+                    className="block w-full px-4 py-3 text-sm text-left transition-colors text-red-400 hover:bg-red-500/10"
                   >
                     Logout
                   </button>
@@ -161,10 +162,10 @@ export default function MobileMenu() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsOpen(false)}
-                  className={`block px-4 py-2 text-sm transition-colors ${
+                  className={`mx-2 block rounded-xl px-4 py-3 text-sm transition-colors ${
                     isActive(item.href)
-                      ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10 font-medium'
-                      : 'text-foreground hover:bg-muted/50'
+                      ? 'text-white bg-white/10 font-semibold shadow-inner shadow-white/5'
+                      : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'
                   }`}
                 >
                   {item.label}

@@ -49,12 +49,12 @@ export default function MobileConversationComposer({
   }
 
   return (
-    <div className="border-t-2 border-border/60 bg-card/95 backdrop-blur-md p-4 sm:p-5 lg:p-6 pb-6 sm:pb-8 z-50" style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
+    <div className="border-t border-white/10 bg-slate-950/80 backdrop-blur-xl p-3 sm:p-5 lg:p-6 pb-6 sm:pb-8 z-50 shadow-[0_-18px_60px_rgba(2,6,23,0.45)]" style={{ paddingBottom: 'max(18px, env(safe-area-inset-bottom))' }}>
       <div className="max-w-5xl mx-auto">
         {/* Composer Container */}
         <div className="relative">
           {/* iPhone-style Composer Row */}
-          <div className="flex items-center gap-3 bg-background border border-border/80 rounded-2xl px-4 py-3 shadow-md hover:shadow-lg transition-all duration-200">
+          <div className="flex items-center gap-3 rounded-3xl border border-white/10 bg-white/[0.045] px-4 py-3 shadow-[0_1px_0_rgba(255,255,255,0.04),0_12px_36px_rgba(2,6,23,0.32)] transition-all duration-200 focus-within:border-blue-400/40 focus-within:bg-white/[0.065]">
             {/* Message Input */}
             <div className="flex-1 relative">
               <textarea
@@ -64,7 +64,7 @@ export default function MobileConversationComposer({
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
                 disabled={sending}
-                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-muted-foreground/50 text-base leading-relaxed py-2.5 px-1 max-h-32 disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-slate-500 text-base leading-relaxed py-2.5 px-1 max-h-32 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
                   isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
                 }`}
                 rows={1}
@@ -85,8 +85,8 @@ export default function MobileConversationComposer({
               disabled={sending || !message.trim()}
               className={`flex-shrink-0 w-11 h-11 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed ${
                 message.trim() && !sending
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg'
-                  : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-[0_10px_25px_rgba(37,99,235,0.35)] hover:from-blue-500 hover:to-cyan-500 hover:shadow-[0_14px_34px_rgba(37,99,235,0.42)]'
+                  : 'bg-white/8 hover:bg-white/10 text-slate-500 ring-1 ring-white/10'
               }`}
             >
               {sending ? (
@@ -101,7 +101,7 @@ export default function MobileConversationComposer({
           
           {/* Typing Indicator */}
           {isTyping && (
-            <div className="absolute bottom-full left-4 mb-2 flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg rounded-bl-none shadow-lg">
+            <div className="absolute bottom-full left-4 mb-2 flex items-center gap-2 px-3 py-2 bg-blue-600/95 text-white rounded-xl rounded-bl-none shadow-[0_16px_40px_rgba(37,99,235,0.25)] backdrop-blur-sm">
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                 <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
