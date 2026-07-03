@@ -141,7 +141,7 @@ export default function CompleteSetupPage() {
               Complete your free trial setup
             </h1>
             <p className="text-slate-400">
-              Your ReplyFlow account has been created successfully. One final step remains: securely activate your 14-day free trial through Stripe.
+              Your account is almost ready. Complete one final step to activate your 14-day free trial through our secure billing partner, Stripe.
             </p>
           </div>
 
@@ -177,22 +177,26 @@ export default function CompleteSetupPage() {
                 disabled={isRedirectingToStripe}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isRedirectingToStripe ? 'Redirecting to Stripe...' : 'Continue to Secure Checkout'}
+                {isRedirectingToStripe ? 'Redirecting to Stripe...' : 'Activate My Free Trial'}
               </button>
 
+              <p className="text-center text-xs text-slate-500">
+                Securely powered by Stripe
+              </p>
+
               {/* Come back later message */}
-              <div className="text-center">
+              <div className="text-center pt-2">
                 <p className="text-sm font-medium text-slate-300 mb-1">Not ready yet?</p>
                 <p className="text-sm text-slate-500">
-                  You can safely close this page and return later by signing in with your email. We&apos;ll bring you back here until your free trial is activated.
+                  You can safely close this page and come back later by signing in with your email. We&apos;ll save your progress until you&apos;re ready to activate your free trial.
                 </p>
               </div>
 
               {/* Delete account section */}
-              <div className="border-t border-slate-800 pt-6">
+              <div className="border-t border-slate-800 pt-8 mt-4">
                 <p className="text-sm font-medium text-slate-300 mb-1 text-center">Changed your mind?</p>
                 <p className="text-sm text-slate-500 text-center mb-4">
-                  If you no longer want to use ReplyFlow, you can permanently delete your account before activating your free trial.
+                  If you&apos;ve decided ReplyFlow isn&apos;t right for you, you can permanently delete your account before activating your free trial.
                 </p>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
