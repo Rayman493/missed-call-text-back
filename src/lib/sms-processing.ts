@@ -10,6 +10,15 @@ import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { extractFromSmsBody, safeMergeSmsExtraction } from '@/lib/voicemail-extraction'
 import { promoteLeadToActiveIfNew } from '@/lib/lead-lifecycle'
 
+/**
+ * Strip trailing punctuation from name fields only
+ * Removes trailing ., ,, !, ?, : from names
+ */
+function stripTrailingPunctuationFromName(name: string | null | undefined): string | null {
+  if (!name) return null
+  return name.replace(/[.,!?:]+$/, '').trim()
+}
+
 // Helper function to download MMS media from Twilio and store in Supabase Storage
 async function downloadAndStoreMedia(twilioMediaUrl: string, messageId: string, index: number): Promise<string | null> {
   try {
@@ -1086,7 +1095,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 
         const correctedExtractedInfo = {
           ...updatedExtractedInfo,
-          ...(updatedExtractedInfo.callerName ? { customerName: updatedExtractedInfo.callerName } : {})
+          callerName: stripTrailingPunctuationFromName(updatedExtractedInfo.callerName),
+          ...(updatedExtractedInfo.callerName ? { customerName: stripTrailingPunctuationFromName(updatedExtractedInfo.callerName) } : {})
         }
 
         const updatePayload: any = {
@@ -1153,7 +1163,10 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 
         for (const correction of correctedFields) {
           const correctedFieldKey = fieldKeyMap[correction.field] || correction.field
-          updatedCorrectedFields[correctedFieldKey] = correction.newValue
+          const newValue = correction.field === 'callerName' 
+            ? stripTrailingPunctuationFromName(correction.newValue)
+            : correction.newValue
+          updatedCorrectedFields[correctedFieldKey] = newValue
           updatedPreviousValues[correctedFieldKey] = correction.oldValue || 'unknown'
         }
 

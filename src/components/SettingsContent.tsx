@@ -58,7 +58,7 @@ export default function SettingsContent() {
   const [activeSection, setActiveSection] = useState('general')
 
   // Default out of office message
-  const DEFAULT_OUT_OF_OFFICE_MESSAGE = "Thanks for contacting {{business_name}}. We are currently out of office and responses may be delayed. Please provide details about what you need and we will get back to you as soon as possible."
+  const DEFAULT_OUT_OF_OFFICE_MESSAGE = "Thanks for contacting {{business_name}}. We are currently out of office until {{return_date}}. Responses may be delayed until we return, but we'll get back to you as soon as possible."
 
   // Default after hours message
   const DEFAULT_AFTER_HOURS_MESSAGE = "Thanks for contacting {{business_name}}. We're currently closed and will get back to you during business hours."
@@ -1706,7 +1706,7 @@ export default function SettingsContent() {
                             </div>
                           )}
                           <p className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                            Use {'{'}{'{'}business_name{'}'}{'}'} to automatically insert your business name.
+                            Use {'{'}{'{'}business_name{'}'}{'}'} to automatically insert your business name. Use {'{'}{'{'}return_date{'}'}{'}'} to automatically insert your return date.
                           </p>
                         </div>
 
@@ -1717,7 +1717,12 @@ export default function SettingsContent() {
                           </label>
                           <div className="p-2 sm:p-3 bg-slate-100 dark:bg-slate-800/60 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
                             <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-                              {(formBusiness.out_of_office_message || DEFAULT_OUT_OF_OFFICE_MESSAGE).replace('{{business_name}}', formBusiness.name || 'your business')}
+                              {(formBusiness.out_of_office_message || DEFAULT_OUT_OF_OFFICE_MESSAGE)
+                                .replace(/\{\{business_name\}\}/gi, formBusiness.name || 'your business')
+                                .replace(/\{\{return_date\}\}/gi, formBusiness.out_of_office_end 
+                                  ? new Date(formBusiness.out_of_office_end).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                                  : '[return date]'
+                                )}
                             </p>
                           </div>
                         </div>

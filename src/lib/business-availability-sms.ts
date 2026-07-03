@@ -9,6 +9,19 @@ function replaceBusinessName(message: string, business: any): string {
   return message.replace(/\{\{business_name\}\}/gi, business?.name || 'the business').trim()
 }
 
+function replaceReturnDate(message: string, business: any): string {
+  if (!business?.out_of_office_end) return message
+  const endDate = new Date(business.out_of_office_end)
+  const friendlyDate = endDate.toLocaleDateString('en-US', { 
+    weekday: 'short', 
+    month: 'short', 
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  })
+  return message.replace(/\{\{return_date\}\}/gi, friendlyDate).trim()
+}
+
 export function isWithinBusinessHoursForSms(business: any): boolean {
   const businessHoursEnabled = business?.business_hours_enabled || false
   if (!businessHoursEnabled) return true
@@ -45,8 +58,8 @@ export function getBusinessAvailabilityNoticeForSms(business: any): BusinessAvai
 
     if (now >= start && now <= end) {
       const notice = business.out_of_office_message && business.out_of_office_message.trim()
-        ? replaceBusinessName(business.out_of_office_message, business)
-        : `Thanks for contacting ${business.name || 'the business'}. We are currently out of office and responses may be delayed.`
+        ? replaceReturnDate(replaceBusinessName(business.out_of_office_message, business), business)
+        : `Thanks for contacting ${business.name || 'the business'}. We are currently out of office until ${new Date(end).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Responses may be delayed until we return, but we'll get back to you as soon as possible.`
 
       return { type: 'out_of_office', notice }
     }

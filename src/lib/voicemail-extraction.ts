@@ -9,6 +9,15 @@ import { normalizeExtractedInfo, CANONICAL_FIELDS } from './ai-field-mapping'
 import OpenAI from 'openai'
 
 /**
+ * Strip trailing punctuation from name fields only
+ * Removes trailing ., ,, !, ?, : from names
+ */
+function stripTrailingPunctuationFromName(name: string | null | undefined): string | null {
+  if (!name) return null
+  return name.replace(/[.,!?:]+$/, '').trim()
+}
+
+/**
  * Get OpenAI client (lazy initialization to avoid build-time errors)
  */
 function getOpenAIClient(): OpenAI {
@@ -824,7 +833,7 @@ export function safeMergeVoicemailExtraction(
 
   const mergedExtractedInfo = {
     ...existingExtractedInfo,
-    callerName: mergeField('callerName', voicemailExtractedInfo.callerName, existingExtractedInfo.callerName),
+    callerName: stripTrailingPunctuationFromName(mergeField('callerName', voicemailExtractedInfo.callerName, existingExtractedInfo.callerName)),
     reasonForCalling: mergeField('reasonForCalling', voicemailExtractedInfo.reasonForCalling, existingExtractedInfo.reasonForCalling),
     importantDetails: mergeField('importantDetails', voicemailExtractedInfo.importantDetails, existingExtractedInfo.importantDetails),
     desiredCompletionTime: mergeField('desiredCompletionTime', voicemailExtractedInfo.desiredCompletionTime, existingExtractedInfo.desiredCompletionTime),
@@ -1168,7 +1177,7 @@ export async function safeMergeSmsExtraction(
 
   const mergedExtractedInfo = {
     ...existingExtractedInfo,
-    callerName: mergeSmsField('callerName'),
+    callerName: stripTrailingPunctuationFromName(mergeSmsField('callerName')),
     reasonForCalling: mergeSmsField('reasonForCalling'),
     importantDetails: (() => {
       const shouldUse = isSmsBetter('importantDetails', smsExtractedInfo.importantDetails, existingExtractedInfo.importantDetails)
