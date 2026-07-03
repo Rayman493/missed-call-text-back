@@ -53,7 +53,29 @@ export async function GET(request: NextRequest) {
 
     // Check if already confirmed
     if (trackingRecord.forwarding_confirmed) {
-      console.log('[Offboarding Confirm] Already confirmed (forwarding_confirmed=true):', trackingRecord.id)
+      // If confirmed within the last 5 seconds, treat as duplicate request from browser prefetch/preload
+      // and show success page instead of already-confirmed page
+      const now = new Date()
+      const confirmedAt = trackingRecord.confirmed_at ? new Date(trackingRecord.confirmed_at) : null
+      const timeSinceConfirmation = confirmedAt ? now.getTime() - confirmedAt.getTime() : Infinity
+      const duplicateRequestWindow = 5000 // 5 seconds
+
+      if (timeSinceConfirmation < duplicateRequestWindow) {
+        console.log('[Offboarding Confirm] Duplicate request detected (confirmed within 5 seconds), showing success page:', {
+          id: trackingRecord.id,
+          timeSinceConfirmationMs: timeSinceConfirmation,
+          confirmedAt: trackingRecord.confirmed_at,
+        })
+        return new NextResponse(getSuccessHtml(), {
+          headers: { 'Content-Type': 'text/html' },
+        })
+      }
+
+      console.log('[Offboarding Confirm] Already confirmed (true revisit, confirmed >5 seconds ago):', {
+        id: trackingRecord.id,
+        timeSinceConfirmationMs: timeSinceConfirmation,
+        confirmedAt: trackingRecord.confirmed_at,
+      })
       return new NextResponse(getAlreadyConfirmedHtml(), {
         headers: { 'Content-Type': 'text/html' },
       })
@@ -75,7 +97,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    console.log('[Offboarding Confirm] Forwarding confirmed:', {
+    console.log('[Offboarding Confirm] Forwarding confirmed (performed update):', {
       id: trackingRecord.id,
       businessPhone: trackingRecord.business_phone_number,
       businessEmail: trackingRecord.business_email,
