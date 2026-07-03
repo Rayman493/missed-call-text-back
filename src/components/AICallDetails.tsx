@@ -40,9 +40,10 @@ interface AICallDetailsProps {
   callerPhone: string
   leadData?: any
   collapsible?: boolean
+  onSave?: () => void | Promise<void>
 }
 
-export default function AICallDetails({ leadId, businessId, conversationId, callerPhone, leadData, collapsible = true }: AICallDetailsProps) {
+export default function AICallDetails({ leadId, businessId, conversationId, callerPhone, leadData, collapsible = true, onSave }: AICallDetailsProps) {
   const [aiCallRecord, setAiCallRecord] = useState<AICallRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [transcriptExpanded, setTranscriptExpanded] = useState(false)
@@ -59,62 +60,75 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
     desiredCompletionTime: ''
   })
   const [manualFields, setManualFields] = useState<Set<string>>(new Set())
+  const [saveError, setSaveError] = useState<string | null>(null)
   const supabase = createBrowserClient()
 
   const handleSave = async () => {
     try {
       setIsSaving(true)
-      
-      // Update the lead's raw_metadata with the manually edited values
+      setSaveError(null)
+
+      // Track which fields were manually changed
       const updatedManualFields = new Set<string>(manualFields)
-      
-      // Track which fields were changed
-      if (editValues.callerName !== extractedInfo?.callerName) updatedManualFields.add('callerName')
-      if (editValues.reasonForCalling !== extractedInfo?.reasonForCalling) updatedManualFields.add('reasonForCalling')
-      if (editValues.importantDetails !== extractedInfo?.importantDetails) updatedManualFields.add('importantDetails')
-      if (editValues.addressOrLocation !== extractedInfo?.addressOrLocation) updatedManualFields.add('addressOrLocation')
-      if (editValues.preferredCallbackTime !== extractedInfo?.preferredCallbackTime) updatedManualFields.add('preferredCallbackTime')
-      if (editValues.desiredCompletionTime !== extractedInfo?.desiredCompletionTime) updatedManualFields.add('desiredCompletionTime')
-      
-      // Update the lead's extracted_info in raw_metadata
+      if (editValues.callerName !== (extractedInfo?.callerName ?? '')) updatedManualFields.add('callerName')
+      if (editValues.reasonForCalling !== (extractedInfo?.reasonForCalling ?? '')) updatedManualFields.add('reasonForCalling')
+      if (editValues.importantDetails !== (extractedInfo?.importantDetails ?? '')) updatedManualFields.add('importantDetails')
+      if (editValues.addressOrLocation !== (extractedInfo?.addressOrLocation ?? '')) updatedManualFields.add('addressOrLocation')
+      if (editValues.preferredCallbackTime !== (extractedInfo?.preferredCallbackTime ?? '')) updatedManualFields.add('preferredCallbackTime')
+      if (editValues.desiredCompletionTime !== (extractedInfo?.desiredCompletionTime ?? '')) updatedManualFields.add('desiredCompletionTime')
+
+      // Write edits to corrected_fields — the canonical key read by getLeadAIIntake.
+      // Preserve untouched source metadata (transcript, ai extracted_info, voicemail data).
+      const existingRawMetadata = leadData?.raw_metadata || {}
+      const updatedRawMetadata = {
+        ...existingRawMetadata,
+        corrected_fields: {
+          ...(existingRawMetadata.corrected_fields || {}),
+          name: editValues.callerName || undefined,
+          callerName: editValues.callerName || undefined,
+          serviceRequested: editValues.reasonForCalling || undefined,
+          reasonForCalling: editValues.reasonForCalling || undefined,
+          importantDetails: editValues.importantDetails || undefined,
+          details: editValues.importantDetails || undefined,
+          address: editValues.addressOrLocation || undefined,
+          addressOrLocation: editValues.addressOrLocation || undefined,
+          serviceAddress: editValues.addressOrLocation || undefined,
+          preferredCallbackTime: editValues.preferredCallbackTime || undefined,
+          callbackTime: editValues.preferredCallbackTime || undefined,
+          desiredCompletion: editValues.desiredCompletionTime || undefined,
+          desiredCompletionTime: editValues.desiredCompletionTime || undefined,
+        },
+        manualFields: Array.from(updatedManualFields),
+      }
+
+      const updatePayload: Record<string, any> = { raw_metadata: updatedRawMetadata }
+
+      // Also update leads.name so the page header reflects the change immediately
+      if (editValues.callerName && editValues.callerName.trim()) {
+        updatePayload.name = editValues.callerName.trim()
+      }
+
       const { error: updateError } = await supabase
         .from('leads')
-        .update({
-          raw_metadata: {
-            ...(leadData?.raw_metadata || {}),
-            extractedInfo: {
-              ...(leadData?.raw_metadata?.extractedInfo || {}),
-              callerName: editValues.callerName,
-              reasonForCalling: editValues.reasonForCalling,
-              importantDetails: editValues.importantDetails,
-              addressOrLocation: editValues.addressOrLocation,
-              preferredCallbackTime: editValues.preferredCallbackTime,
-              desiredCompletionTime: editValues.desiredCompletionTime
-            },
-            manualFields: Array.from(updatedManualFields)
-          }
-        })
+        .update(updatePayload)
         .eq('id', leadId)
-      
+
       if (updateError) {
-        console.error('Error updating lead:', updateError)
-        alert('Failed to save changes')
+        console.error('[AICallDetails] Error updating lead:', updateError)
+        setSaveError('Failed to save changes. Please try again.')
         return
       }
-      
+
       setManualFields(updatedManualFields)
       setIsEditMode(false)
-      
-      // Refresh the AI call record to show updated values
-      await fetchAICallRecord()
-      
-      // Trigger a page reload to refresh the lead header if name changed
-      if (editValues.callerName !== extractedInfo?.callerName) {
-        window.location.reload()
+
+      // Notify parent to refresh leadData state — no hard reload needed
+      if (onSave) {
+        await onSave()
       }
     } catch (error) {
-      console.error('Error saving changes:', error)
-      alert('Failed to save changes')
+      console.error('[AICallDetails] Error saving changes:', error)
+      setSaveError('Failed to save changes. Please try again.')
     } finally {
       setIsSaving(false)
     }
@@ -122,6 +136,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   const handleCancel = () => {
     setIsEditMode(false)
+    setSaveError(null)
     setEditValues({
       callerName: extractedInfo?.callerName || '',
       reasonForCalling: extractedInfo?.reasonForCalling || '',
@@ -492,6 +507,13 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 )}
               </div>
 
+              {/* Save error */}
+              {saveError && (
+                <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-600 dark:text-red-400">
+                  {saveError}
+                </div>
+              )}
+
               {/* Structured Information */}
               <div className="space-y-3">
           {/* Customer Information - Prominent */}
@@ -721,6 +743,13 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </button>
             )}
           </div>
+
+          {/* Save error */}
+          {saveError && (
+            <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-600 dark:text-red-400">
+              {saveError}
+            </div>
+          )}
 
           {/* Structured Information */}
           {/* Customer Information - Prominent */}

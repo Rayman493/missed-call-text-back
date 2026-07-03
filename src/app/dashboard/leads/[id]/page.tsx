@@ -2335,6 +2335,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         callerPhone={leadData?.phone_number || lead?.phone}
                         leadData={leadData}
                         collapsible={false}
+                        onSave={handleRefresh}
                       />
                     </div>
                   )}
@@ -2559,6 +2560,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     callerPhone={leadData?.phone_number || lead?.phone}
                     leadData={leadData}
                     collapsible={false}
+                    onSave={handleRefresh}
                   />
                 </div>
               )}
