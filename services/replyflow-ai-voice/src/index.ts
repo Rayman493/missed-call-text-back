@@ -5324,7 +5324,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     audioAccumulator: [] as Buffer[],
     audioAccumulatorBytes: 0,
     audioChunkCount: 0,
-    audioFlushCount: 0
+    audioFlushCount: 0,
+    // Instrumentation counters
+    mediaPacketCount: 0,
+    audioBufferAppendCount: 0
   };
 
   // Hardcoded prompts for each stage
@@ -6321,11 +6324,16 @@ Reply to this message if you'd like to update or add any information.
           const message = JSON.parse(data.toString());
 
           // Log key OpenAI events
-          if (['input_audio_buffer.speech_stopped', 'conversation.item.input_audio_transcription.completed'].includes(message.type)) {
-            console.log('[SIMPLE MODE] =========================================');
-            console.log('[SIMPLE MODE] event: openai_event');
-            console.log('[SIMPLE MODE] type:', message.type);
-            console.log('[SIMPLE MODE] =========================================');
+          if (message.type === 'input_audio_buffer.speech_started') {
+            console.log('[AUDIO PIPELINE] OpenAI event: input_audio_buffer.speech_started')
+          } else if (message.type === 'input_audio_buffer.speech_stopped') {
+            console.log('[AUDIO PIPELINE] OpenAI event: input_audio_buffer.speech_stopped')
+          } else if (message.type === 'input_audio_buffer.committed') {
+            console.log('[AUDIO PIPELINE] OpenAI event: input_audio_buffer.committed')
+          } else if (message.type === 'conversation.item.input_audio_transcription.completed') {
+            console.log('[AUDIO PIPELINE] OpenAI event: transcription.completed')
+          } else if (message.type === 'conversation.item.input_audio_transcription.failed') {
+            console.log('[AUDIO PIPELINE] OpenAI event: transcription.failed')
           }
 
           // Reset audio accumulator counters at the start of each new response
@@ -6474,6 +6482,11 @@ Reply to this message if you'd like to update or add any information.
             const transcript = message.transcript || '';
             state.transcript += ' ' + transcript;
 
+            console.log('[INTAKE PIPELINE] Transcript reached stage processor', {
+              currentStage: state.currentStage,
+              transcript: transcript
+            })
+
             // Log transcription decision
             const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
             const currentIndex = stages.indexOf(state.currentStage);
@@ -6586,12 +6599,26 @@ Reply to this message if you'd like to update or add any information.
 
       } else if (message.event === 'media') {
         // Caller audio - only accept if assistant is not speaking
+        state.mediaPacketCount = (state.mediaPacketCount || 0) + 1
+        if (state.mediaPacketCount % 50 === 0) {
+          console.log('[AUDIO PIPELINE] Twilio inbound media received', {
+            packetCount: state.mediaPacketCount,
+            payloadLength: message.media.payload?.length || 0
+          })
+        }
         if (!state.assistantSpeaking && state.openAiWs && state.openAiWs.readyState === WebSocket.OPEN) {
           const audioMessage = {
             type: 'input_audio_buffer.append',
             audio: message.media.payload
           };
           state.openAiWs.send(JSON.stringify(audioMessage));
+          state.audioBufferAppendCount = (state.audioBufferAppendCount || 0) + 1
+          if (state.audioBufferAppendCount % 50 === 0) {
+            console.log('[AUDIO PIPELINE] Audio forwarded to OpenAI', {
+              appendCount: state.audioBufferAppendCount,
+              bytes: message.media.payload?.length || 0
+            })
+          }
         }
       } else if (message.event === 'mark') {
         // Handle Twilio mark events
