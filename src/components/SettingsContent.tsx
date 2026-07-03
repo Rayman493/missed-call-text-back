@@ -2190,18 +2190,25 @@ export default function SettingsContent() {
                           </span>
                         </div>
                         <p className="text-sm sm:text-base font-black text-slate-900 dark:text-foreground">
-                          {getPricingDisplay()}
-                          {isInTrialPeriod(business?.subscription_status) && ` (${getTrialDisplay()})`}
+                          {isInTrialPeriod(business?.subscription_status)
+                            ? `ReplyFlow — ${getPricingDisplay()}`
+                            : getPricingDisplay()}
                         </p>
                         <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
-                          {getSubscriptionStatusDescription(
-                            business?.subscription_status,
-                            business?.stripe_customer_id,
-                            business?.stripe_subscription_id,
-                            business?.cancel_at_period_end,
-                            business?.current_period_end,
-                            business?.trial_ends_at
-                          )}
+                          {isInTrialPeriod(business?.subscription_status) && business?.trial_ends_at
+                            ? `Your free trial ends on ${new Date(business.trial_ends_at).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}. You won't be charged until then.`
+                            : getSubscriptionStatusDescription(
+                                business?.subscription_status,
+                                business?.stripe_customer_id,
+                                business?.stripe_subscription_id,
+                                business?.cancel_at_period_end,
+                                business?.current_period_end,
+                                business?.trial_ends_at
+                              )}
                         </p>
                       </div>
                       <div className="flex-shrink-0">
