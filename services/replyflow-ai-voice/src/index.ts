@@ -1711,6 +1711,7 @@ Speak ONLY the exact text in quotes above.`;
       console.log('[GREETING TIMELINE] =========================================');
     }
 
+    console.log('[OPENAI TIMING]', Date.now(), 'response.create sent');
     openAiWs.send(JSON.stringify(message));
 
     // ORDER TRACE: After response.create send
@@ -5330,7 +5331,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     audioFlushCount: 0,
     // Instrumentation counters
     mediaPacketCount: 0,
-    audioBufferAppendCount: 0
+    audioBufferAppendCount: 0,
+    // OpenAI handshake readiness
+    sessionCreatedReceived: false,
+    sessionUpdatedReceived: false,
+    initialPromptSent: false,
+    sessionReadyTimeout: null as NodeJS.Timeout | null,
   };
 
   // Hardcoded prompts for each stage
@@ -6189,6 +6195,20 @@ Reply to this message if you'd like to update or add any information.
     }
   };
 
+  // Only send the first prompt after both session.created and session.updated arrive
+  function maybeSendInitialPrompt() {
+    if (state.sessionCreatedReceived && state.sessionUpdatedReceived && !state.initialPromptSent) {
+      state.initialPromptSent = true;
+      if (state.sessionReadyTimeout) {
+        clearTimeout(state.sessionReadyTimeout);
+        state.sessionReadyTimeout = null;
+      }
+      console.log('[OPENAI READY]', Date.now(), 'both session.created and session.updated received');
+      console.log('[OPENAI TIMING]', Date.now(), 'sendPrompt.initial');
+      sendPrompt(state.currentStage);
+    }
+  }
+
   // Handle Twilio media events
   twilioHandler.handleConnection(ws, req);
 
@@ -6289,6 +6309,7 @@ Reply to this message if you'd like to update or add any information.
 
         state.openAiWs.on('open', () => {
           logSimple('openai_connected');
+          console.log('[OPENAI TIMING]', Date.now(), 'websocket_open');
           console.log('[SIMPLE MODE] =========================================');
           console.log('[SIMPLE MODE] event: language_lock_active');
           console.log('[SIMPLE MODE] =========================================');
@@ -6309,32 +6330,51 @@ Reply to this message if you'd like to update or add any information.
           console.log('[SIMPLE MODE] payload:', JSON.stringify(sessionUpdate, null, 2));
           console.log('[SIMPLE MODE] =========================================');
 
+          console.log('[OPENAI TIMING]', Date.now(), 'session.update sent');
           state.openAiWs?.send(JSON.stringify(sessionUpdate));
 
-          // Send opening prompt
-          sendPrompt(state.currentStage);
+          // Wait for session.created + session.updated before sending the first prompt
+          state.sessionReadyTimeout = setTimeout(() => {
+            console.log('[OPENAI READY TIMEOUT]', {
+              elapsedMs: 5000,
+              sessionCreatedReceived: state.sessionCreatedReceived,
+              sessionUpdatedReceived: state.sessionUpdatedReceived,
+              initialPromptSent: state.initialPromptSent,
+              currentStage: state.currentStage,
+            });
+          }, 5000);
         });
 
         state.openAiWs.on('message', (data) => {
           const message = JSON.parse(data.toString());
 
+          console.log('[OPENAI RAW EVENT]', message.type, JSON.stringify(message));
+          console.log('[OPENAI TIMING]', Date.now(), 'incoming_event', message.type);
+
           // Log session lifecycle events
           if (message.type === 'session.created') {
+            state.sessionCreatedReceived = true;
             console.log('[OPENAI EVENT] session.created');
+            console.log('[OPENAI TIMING]', Date.now(), 'session.created received');
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: session.created - OpenAI accepted connection');
             console.log('[SIMPLE MODE] session.id:', message.session?.id);
             console.log('[SIMPLE MODE] session.model:', message.session?.model);
             console.log('[SIMPLE MODE] =========================================');
+            maybeSendInitialPrompt();
           } else if (message.type === 'session.updated') {
+            state.sessionUpdatedReceived = true;
             console.log('[OPENAI EVENT] session.updated');
+            console.log('[OPENAI TIMING]', Date.now(), 'session.updated received');
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: session.updated - session.update accepted');
             console.log('[SIMPLE MODE] session.id:', message.session?.id);
             console.log('[SIMPLE MODE] session.audio:', JSON.stringify(message.session?.audio));
             console.log('[SIMPLE MODE] =========================================');
+            maybeSendInitialPrompt();
           } else if (message.type === 'error') {
             console.log('[OPENAI EVENT] error', message.error);
+            console.log('[OPENAI ERROR DUMP]', JSON.stringify(message, null, 2));
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: error from OpenAI');
             console.log('[SIMPLE MODE] error:', JSON.stringify(message.error));
@@ -6617,6 +6657,9 @@ Reply to this message if you'd like to update or add any information.
 
       } else if (message.event === 'media') {
         // Caller audio - only accept if assistant is not speaking
+        if (state.mediaPacketCount === 0) {
+          console.log('[OPENAI TIMING]', Date.now(), 'first_twilio_media_packet');
+        }
         state.mediaPacketCount = (state.mediaPacketCount || 0) + 1
         if (state.mediaPacketCount % 50 === 0) {
           console.log('[AUDIO PIPELINE] Twilio inbound media received', {
@@ -8550,6 +8593,7 @@ Return only JSON, no other text.`;
           
           if (!audioReceived) {
             audioReceived = true;
+            console.log('[OPENAI TIMING]', Date.now(), 'first_twilio_media_packet');
             log(LogLevel.INFO, '[TWILIO AUDIO RECEIVED]', { 
               packetCount: mediaPacketCount, 
               payloadSize: payloadSize,
@@ -9029,6 +9073,13 @@ Return only JSON, no other text.`;
             let sessionReady = false;
             const sessionReadyTimeout = setTimeout(async () => {
               if (!sessionReady) {
+                console.log('[OPENAI READY TIMEOUT]', {
+                  elapsedMs: 5000,
+                  sessionCreatedReceived,
+                  sessionUpdatedReceived,
+                  greetingSent,
+                  callSid,
+                });
                 console.log('[SESSION READY TIMEOUT] Session not ready within 5 seconds');
                 await triggerVoicemailFallback(
                   ws, 
@@ -9049,6 +9100,7 @@ Return only JSON, no other text.`;
             let greetingSent = false;
             let responseCreatedReceived = false;
             let sessionCreated = false;
+            let sessionCreatedReceived = false;
             let sessionUpdatedReceived = false;
             
             // Attach listeners - using minimal endpoint pattern
@@ -9195,11 +9247,12 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               console.log("[AI CONFIRMATION FLOW] ACTIVE - instructions require confirmation before final goodbye");
               if (openAiWs) {
                 console.log('[OPENAI OUTBOUND] session.update');
+                console.log('[OPENAI TIMING]', Date.now(), 'session.update sent');
                 openAiWs.send(rawSessionUpdate);
               }
               
-              // Greeting will be sent after session.updated is received
-              console.log('[SESSION] waiting for session.updated before sending greeting');
+              // Greeting will be sent after session.created and session.updated are received
+              console.log('[SESSION] waiting for session.created and session.updated before sending greeting');
             };
             
             // Check if websocket is already open and send session.update immediately
@@ -9218,6 +9271,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               opened = true;
               console.log('[OPENAI AUDIT] open listener attached');
               console.log('[OPENAI RAW] open');
+              console.log('[OPENAI TIMING]', Date.now(), 'websocket_open');
               sendSessionUpdate();
             });
             console.log('[OPENAI AUDIT] open listener attached');
@@ -9239,6 +9293,9 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 log(LogLevel.ERROR, '[STREAM OPENAI] JSON parse failed', err);
                 return;
               }
+
+              console.log('[OPENAI RAW EVENT]', message.type, JSON.stringify(message));
+              console.log('[OPENAI TIMING]', Date.now(), 'incoming_event', message.type);
 
               // Compact log for EVERY OpenAI message type
               console.log('[OPENAI EVENT TYPE] type=' + message.type + ' responseId=' + (message.response_id || message.response?.id || 'none') + ' timestamp=' + new Date().toISOString());
@@ -10698,15 +10755,65 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 }
               }
 
+              // Send greeting only after both session.created and session.updated arrive
+              const sendGreetingIfReady = () => {
+                if (sessionCreatedReceived && sessionUpdatedReceived && !greetingSent) {
+                  console.log('[OPENAI READY]', Date.now(), 'both session.created and session.updated received');
+                  console.log('[SESSION READY] - both session.created and session.updated received, now ready to send greeting');
+                  console.log('[CODE OWNED FIRST PROMPT SENT] =========================================');
+                  console.log('[CODE OWNED FIRST PROMPT SENT] Sending exact greeting prompt');
+                  console.log('[CODE OWNED FIRST PROMPT SENT] Timestamp:', new Date().toISOString());
+                  console.log('[CODE OWNED FIRST PROMPT SENT] =========================================');
+
+                  // Use centralized sendApprovedPrompt for greeting
+                  sendApprovedPrompt('ask_name_reason', openAiWs, ws);
+                  // Set current stage for validation
+                  if (twilioHandler && typeof (twilioHandler as any).setCurrentStage === 'function') {
+                    (twilioHandler as any).setCurrentStage('ask_name_reason');
+                  }
+                  greetingSent = true;
+                  updateAISessionState(aiSessionTracker, 'GREETING_SENT', 'Greeting response.create sent');
+                  console.log('[GREETING SENT]');
+                  console.log('[AI STATE] GREETING_SENT');
+
+                  // Set flag to enable manual fallback after greeting
+                  twilioHandler.setGreetingSent();
+
+                  // After greeting is sent, set streamReady and flush buffer
+                  streamReady = true;
+                  console.log('[STREAM READY] true - now accepting caller audio');
+                  (twilioHandler as any).streamReady = true;
+                  if (audioBuffer.length > 0) {
+                    console.log('[BUFFER FLUSH] sending buffered audio', { count: audioBuffer.length });
+                    const openAiWs = (twilioHandler as any).openAiWs;
+                    if (openAiWs) {
+                      for (const buffer of audioBuffer) {
+                        const audioMessage = {
+                          type: 'input_audio_buffer.append',
+                          audio: buffer.toString('base64'),
+                        };
+                        openAiWs.send(JSON.stringify(audioMessage));
+                      }
+                    }
+                    console.log('[BUFFER FLUSH] complete');
+                  }
+                }
+              };
+
               // Log session configuration
               if (message.type === 'session.created') {
                 console.log('[OPENAI EVENT] session.created');
                 console.log('[OPENAI RECV] session.created');
+                console.log('[OPENAI TIMING]', Date.now(), 'session.created received');
                 console.log('[SESSION] session configuration', JSON.stringify(message.session, null, 2));
+                sessionCreatedReceived = true;
+                sessionCreated = true;
+                sendGreetingIfReady();
               }
               if (message.type === 'session.updated') {
                 console.log('[OPENAI EVENT] session.updated');
                 console.log('[OPENAI RECV] session.updated');
+                console.log('[OPENAI TIMING]', Date.now(), 'session.updated received');
                 console.log('[SESSION UPDATED RECEIVED]');
                 sessionUpdatedReceived = true;
                 sessionReady = true; // Set sessionReady to true
@@ -10717,7 +10824,6 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 // Update session state tracking
                 updateAISessionState(aiSessionTracker, 'SESSION_READY', 'session.updated received');
                 
-                console.log('[SESSION READY] - session.updated received, now ready to send greeting');
                 console.log('[SESSION UPDATED CONFIG]', JSON.stringify(message.session, null, 2));
                 console.log('[SESSION COMPARE] instructions:', {
                   outbound: 'You are an English-speaking receptionist.',
@@ -10732,53 +10838,14 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   returned: message.session?.audio
                 });
                 
-                // Send exactly one greeting response.create after session.updated
-                if (!greetingSent) {
-                  console.log('[CODE OWNED FIRST PROMPT SENT] =========================================');
-                  console.log('[CODE OWNED FIRST PROMPT SENT] Sending exact greeting prompt');
-                  console.log('[CODE OWNED FIRST PROMPT SENT] Timestamp:', new Date().toISOString());
-                  console.log('[CODE OWNED FIRST PROMPT SENT] =========================================');
-                  
-                  // Use centralized sendApprovedPrompt for greeting
-                  sendApprovedPrompt('ask_name_reason', openAiWs, ws);
-                  // Set current stage for validation
-                  if (twilioHandler && typeof (twilioHandler as any).setCurrentStage === 'function') {
-                    (twilioHandler as any).setCurrentStage('ask_name_reason');
-                  }
-                  greetingSent = true;
-                  updateAISessionState(aiSessionTracker, 'GREETING_SENT', 'Greeting response.create sent');
-                  console.log('[GREETING SENT]');
-                  console.log('[AI STATE] GREETING_SENT');
-                } else {
-                  console.log('[GREETING BLOCKED - ALREADY SENT]');
-                }
-                
-                // Set flag to enable manual fallback after greeting
-                twilioHandler.setGreetingSent();
-                
-                // After greeting is sent, set streamReady and flush buffer
-                streamReady = true;
-                console.log('[STREAM READY] true - now accepting caller audio');
-                (twilioHandler as any).streamReady = true;
-                if (audioBuffer.length > 0) {
-                  console.log('[BUFFER FLUSH] sending buffered audio', { count: audioBuffer.length });
-                  const openAiWs = (twilioHandler as any).openAiWs;
-                  if (openAiWs) {
-                    for (const buffer of audioBuffer) {
-                      const audioMessage = {
-                        type: 'input_audio_buffer.append',
-                        audio: buffer.toString('base64'),
-                      };
-                      openAiWs.send(JSON.stringify(audioMessage));
-                    }
-                  }
-                  console.log('[BUFFER FLUSH] complete');
-                }
+                // Send exactly one greeting response.create after both session.created and session.updated
+                sendGreetingIfReady();
               }
 
               // Log full error payload
               if (message.type === 'error') {
                 console.log('[OPENAI EVENT] error', message.error);
+                console.error('[OPENAI ERROR DUMP]', JSON.stringify(message, null, 2));
                 console.error('[OPENAI FULL ERROR]', JSON.stringify(message, null, 2));
                 console.error('[OPENAI FATAL ERROR] - stopping processing');
                 console.error('[OPENAI ERROR FIELDS]', {
