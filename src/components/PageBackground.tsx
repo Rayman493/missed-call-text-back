@@ -26,9 +26,11 @@ interface PageBackgroundProps {
  */
 export default function PageBackground({ children, className = '' }: PageBackgroundProps) {
   return (
-    <div className={`min-h-screen bg-background dark:bg-background flex flex-col relative ${className}`}>
-      {/* Content */}
-      {children}
+    <div className={`min-h-screen flex flex-col relative overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.18),transparent_34rem),radial-gradient(circle_at_80%_10%,rgba(124,58,237,0.12),transparent_28rem),linear-gradient(180deg,#020817_0%,#050b18_42%,#020617_100%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.18),transparent_34rem),radial-gradient(circle_at_80%_10%,rgba(124,58,237,0.12),transparent_28rem),linear-gradient(180deg,#020817_0%,#050b18_42%,#020617_100%)] ${className}`}>
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[linear-gradient(rgba(148,163,184,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.035)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:linear-gradient(to_bottom,black,transparent_80%)]" />
+      <div className="relative z-10 flex min-h-screen flex-col">
+        {children}
+      </div>
     </div>
   )
 }

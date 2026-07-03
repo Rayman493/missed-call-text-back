@@ -19,15 +19,16 @@ export default function NewJobModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={onClose} />
+      <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-sm">
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 shadow-[0_1px_0_rgba(255,255,255,0.06),0_28px_90px_rgba(2,6,23,0.65)] backdrop-blur-xl w-full max-w-sm">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/40 to-transparent" />
           {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
-            <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">Create Job</h2>
+          <div className="flex items-center justify-between p-5 border-b border-white/10 bg-white/[0.025]">
+            <h2 className="text-base font-semibold text-white">Create Job</h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
             >
               <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             </button>
@@ -35,7 +36,7 @@ export default function NewJobModal({
 
           {/* Prompt */}
           <div className="px-5 pt-4 pb-2">
-            <p className="text-sm text-slate-500 dark:text-slate-400">How would you like to create this job?</p>
+            <p className="text-sm text-slate-400">How would you like to create this job?</p>
           </div>
 
           {/* Options */}
@@ -43,14 +44,14 @@ export default function NewJobModal({
             {/* Manual Job */}
             <button
               onClick={() => { onClose(); onSelectManual() }}
-              className="w-full flex items-start gap-4 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all text-left group active:scale-[0.99]"
+              className="w-full flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.025] hover:border-blue-400/50 hover:bg-blue-500/10 transition-all text-left group active:scale-[0.99]"
             >
-              <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 flex items-center justify-center flex-shrink-0 transition-colors">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 flex items-center justify-center flex-shrink-0 transition-colors ring-1 ring-blue-400/15">
                 <FileText className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-foreground">Create Manually</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                <p className="text-sm font-semibold text-white">Create Manually</p>
+                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
                   Enter customer and job details from scratch.
                 </p>
               </div>
@@ -59,14 +60,14 @@ export default function NewJobModal({
             {/* Existing Lead */}
             <button
               onClick={() => { onClose(); onSelectLead() }}
-              className="w-full flex items-start gap-4 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all text-left group active:scale-[0.99]"
+              className="w-full flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.025] hover:border-blue-400/50 hover:bg-blue-500/10 transition-all text-left group active:scale-[0.99]"
             >
-              <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 flex items-center justify-center flex-shrink-0 transition-colors">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 flex items-center justify-center flex-shrink-0 transition-colors ring-1 ring-blue-400/15">
                 <Users className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-foreground">Use Existing Lead</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                <p className="text-sm font-semibold text-white">Use Existing Lead</p>
+                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
                   Prefill a job from a ReplyFlow lead or caller.
                 </p>
               </div>

@@ -15,6 +15,8 @@ body {
   background-color: #020617;
   color: #ffffff;
   min-height: 100vh;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  text-rendering: optimizeLegibility;
 }
 
 /* Theme transitions */
@@ -159,6 +161,53 @@ main {
       background: var(--background) !important;
     }
   }
+}
+
+@layer components {
+  .premium-card {
+    @apply border border-white/10 bg-slate-900/55 shadow-[0_1px_0_rgba(255,255,255,0.04),0_18px_50px_rgba(2,6,23,0.28)] backdrop-blur-xl;
+  }
+
+  .premium-card-soft {
+    @apply border border-white/10 bg-white/[0.035] shadow-[0_1px_0_rgba(255,255,255,0.04),0_12px_32px_rgba(2,6,23,0.22)] backdrop-blur-xl;
+  }
+
+  .premium-button {
+    @apply bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-[0_10px_25px_rgba(37,99,235,0.28)] hover:from-blue-500 hover:to-cyan-500 hover:shadow-[0_14px_34px_rgba(37,99,235,0.36)] active:scale-[0.99];
+  }
+
+  .premium-input {
+    @apply border-white/10 bg-slate-950/40 text-slate-100 placeholder:text-slate-500 shadow-inner shadow-black/10 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/20;
+  }
+}
+
+::selection {
+  background: rgba(59, 130, 246, 0.35);
+  color: #ffffff;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(96, 165, 250, 0.45) rgba(15, 23, 42, 0.45);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.5), rgba(34, 211, 238, 0.35));
+  border: 2px solid rgba(15, 23, 42, 0.85);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.7), rgba(34, 211, 238, 0.5));
 }
 
 /* Custom animations for conversation experience */

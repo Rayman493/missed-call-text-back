@@ -26,19 +26,23 @@ export default function StatCard({
 }: StatCardProps) {
   // Unified card foundation
   const baseClasses = `
-    bg-card
-    border border-slate-300 dark:border-border/60 
-    rounded-xl shadow-sm hover:shadow-md
-    p-1.5 sm:p-2.5 md:p-4 
+    relative overflow-hidden
+    border border-white/10
+    bg-slate-900/55
+    shadow-[0_1px_0_rgba(255,255,255,0.04),0_18px_50px_rgba(2,6,23,0.22)]
+    backdrop-blur-xl
+    rounded-2xl
+    p-3 sm:p-4 md:p-5
     h-full
-    transition-all duration-200
+    transition-all duration-300
     hover:-translate-y-[2px]
-    hover:border-slate-400/80 dark:hover:border-border
+    hover:border-blue-400/25
+    hover:bg-slate-900/70
   `
 
   // Interactive hover states
   const interactiveClasses = isInteractive ? `
-    hover:shadow-lg hover:border-slate-400 dark:hover:border-border/90
+    hover:shadow-[0_1px_0_rgba(255,255,255,0.06),0_24px_70px_rgba(37,99,235,0.13)]
     cursor-pointer
     ${href ? 'group' : ''}
   ` : ''
@@ -65,6 +69,8 @@ export default function StatCard({
 
   const cardContent = (
     <div className={`${baseClasses} ${interactiveClasses} ${className}`}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl" />
       {/* Icon and Label Header */}
       {(icon || label) && (
         <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
@@ -75,13 +81,13 @@ export default function StatCard({
               rounded-lg sm:rounded-xl 
               flex items-center justify-center 
               text-sm sm:text-lg md:text-xl 
-              shadow-sm border
+              shadow-[0_10px_24px_rgba(2,6,23,0.25)] border
               ${isInteractive && href ? '' : ''}
             `}>
               {icon}
             </span>
           )}
-          <h3 className="text-[10px] sm:text-xs font-bold text-slate-800 dark:text-slate-300 uppercase tracking-wide leading-tight">
+          <h3 className="text-[10px] sm:text-xs font-bold text-slate-300 uppercase tracking-[0.16em] leading-tight">
             {label}
           </h3>
         </div>
@@ -102,7 +108,7 @@ export default function StatCard({
 
       {/* Description */}
       {description && (
-        <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium leading-tight">
+        <p className="text-[10px] sm:text-xs text-slate-400 font-medium leading-snug">
           {description}
         </p>
       )}

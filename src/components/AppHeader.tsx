@@ -29,17 +29,17 @@ export default function AppHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-[#0b1220] dark:bg-[#0b1220] flex-shrink-0 shadow-none border-b border-slate-800 dark:border-slate-700">
+      <header className="sticky top-0 z-50 flex-shrink-0 border-b border-white/10 bg-slate-950/75 shadow-[0_1px_0_rgba(255,255,255,0.04),0_16px_40px_rgba(2,6,23,0.28)] backdrop-blur-xl supports-[backdrop-filter]:bg-slate-950/65">
         <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 py-3 border-0">
           <div className="flex items-center justify-between h-10">
             {/* Left side - Logo and navigation */}
             <div className="flex items-center gap-2 md:gap-8">
               {/* Logo */}
-              <Link href={isPublicPage ? '/' : '/dashboard'} className="flex items-center gap-2 hover:opacity-90 transition">
+              <Link href={isPublicPage ? '/' : '/dashboard'} className="group flex items-center gap-2 rounded-full px-1.5 py-1 hover:bg-white/[0.03] transition-all duration-200">
                 <BrandIcon size={56} />
                 <span className="text-[15px] md:text-lg lg:text-xl font-semibold tracking-tight">
                   <span className="text-white">ReplyFlow</span>
-                  <span className="text-blue-400">HQ</span>
+                  <span className="bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">HQ</span>
                 </span>
               </Link>
 

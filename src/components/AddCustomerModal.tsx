@@ -112,14 +112,16 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
+      <div className="relative w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 shadow-[0_1px_0_rgba(255,255,255,0.06),0_28px_90px_rgba(2,6,23,0.65)] backdrop-blur-xl">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/40 to-transparent" />
+        <div className="max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Add Customer</h2>
+        <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/[0.025]">
+          <h2 className="text-xl font-semibold text-white">Add Customer</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -140,7 +142,7 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
                 value={formData.phoneNumber}
                 onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                 placeholder="+1 (555) 123-4567"
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
                 disabled={isSubmitting}
               />
             </div>
@@ -154,14 +156,14 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
                 value={formData.customerName}
                 onChange={(e) => handleInputChange('customerName', e.target.value)}
                 placeholder="John Smith"
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
                 disabled={isSubmitting}
               />
             </div>
           </div>
 
           {/* Recommended Fields */}
-          <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="space-y-4 pt-4 border-t border-white/10">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Service Requested
@@ -171,7 +173,7 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
                 value={formData.serviceRequested}
                 onChange={(e) => handleInputChange('serviceRequested', e.target.value)}
                 placeholder="Plumbing repair, HVAC service, etc."
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
                 disabled={isSubmitting}
               />
             </div>
@@ -185,7 +187,7 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
                 value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
                 placeholder="123 Main St, City, State"
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
                 disabled={isSubmitting}
               />
             </div>
@@ -199,14 +201,14 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
                 value={formData.desiredCompletion}
                 onChange={(e) => handleInputChange('desiredCompletion', e.target.value)}
                 placeholder="ASAP, Next week, etc."
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
                 disabled={isSubmitting}
               />
             </div>
           </div>
 
           {/* Optional Fields */}
-          <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="space-y-4 pt-4 border-t border-white/10">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Best Callback Time
@@ -216,7 +218,7 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
                 value={formData.callbackTime}
                 onChange={(e) => handleInputChange('callbackTime', e.target.value)}
                 placeholder="Morning, Afternoon, etc."
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
                 disabled={isSubmitting}
               />
             </div>
@@ -230,7 +232,7 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
                 onChange={(e) => handleInputChange('notes', e.target.value)}
                 placeholder="Any additional details..."
                 rows={3}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white resize-none"
+                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
                 disabled={isSubmitting}
               />
             </div>
@@ -238,8 +240,8 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
 
           {/* Error */}
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
+              <p className="text-sm text-red-200">{error}</p>
             </div>
           )}
 
@@ -249,14 +251,14 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2.5 border border-white/10 text-slate-300 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="premium-button flex-1 px-4 py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -269,6 +271,7 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   )
