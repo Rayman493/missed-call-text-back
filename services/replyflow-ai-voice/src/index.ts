@@ -6362,6 +6362,9 @@ Reply to this message if you'd like to update or add any information.
                   },
                   turn_detection: {
                     type: "server_vad",
+                    threshold: 0.5,
+                    prefix_padding_ms: 300,
+                    silence_duration_ms: 900,
                     create_response: false
                   }
                 },

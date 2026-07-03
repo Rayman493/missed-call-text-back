@@ -30,6 +30,7 @@ export interface ExtractedInfo {
   urgencyLevel?: string
   addressOrLocation?: string
   preferredCallbackTime?: string
+  desiredCompletionTime?: string
   callbackNumber?: string
 }
 
@@ -335,6 +336,44 @@ async function detectCorrectionWithRegex(
         /the name is\s+(.+)/i,
         /actually it's\s+(.+)/i,
         /actually its\s+(.+)/i
+      ]
+    },
+    {
+      field: 'reasonForCalling',
+      patterns: [
+        /i need\s+(.+)\s+instead/i,
+        /i want\s+(.+)\s+instead/i,
+        /need\s+(.+)\s+instead/i,
+        /want\s+(.+)\s+instead/i,
+        /actually i need\s+(.+)/i,
+        /actually i want\s+(.+)/i,
+        /i meant\s+(.+)/i,
+        /the service is\s+(.+)/i,
+        /service is\s+(.+)/i,
+        /the request is\s+(.+)/i,
+        /request is\s+(.+)/i,
+        /i need help with\s+(.+)/i,
+        /need help with\s+(.+)/i,
+        /looking for help with\s+(.+)/i
+      ]
+    },
+    {
+      field: 'desiredCompletionTime',
+      patterns: [
+        /it should be\s+(.+)/i,
+        /should be\s+(.+)/i,
+        /i need it\s+(.+)/i,
+        /need it\s+(.+)/i,
+        /completion time is\s+(.+)/i,
+        /desired completion time is\s+(.+)/i,
+        /desired time is\s+(.+)/i,
+        /when is\s+(.+)/i,
+        /next friday/i,
+        /next week/i,
+        /tomorrow/i,
+        /today/i,
+        /as soon as possible/i,
+        /ASAP/i
       ]
     },
     {
@@ -719,6 +758,11 @@ export function applyCorrection(
     'preferred callback time': 'preferredCallbackTime',
     'callbackTime': 'preferredCallbackTime',
     'callback_time': 'preferredCallbackTime',
+    'desiredCompletionTime': 'desiredCompletionTime',
+    'desired completion time': 'desiredCompletionTime',
+    'desired_completion_time': 'desiredCompletionTime',
+    'completion time': 'desiredCompletionTime',
+    'when': 'desiredCompletionTime',
     'callback number': 'callbackNumber',
     'callbackNumber': 'callbackNumber',
     'callback_number': 'callbackNumber'

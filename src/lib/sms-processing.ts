@@ -847,15 +847,58 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           confidence: correctionResult.confidence
         })
 
-        // Apply correction to extracted_info
+        const beforeApply = normalizeExtractedInfo(updatedExtractedInfo)
         updatedExtractedInfo = applyCorrection(
           updatedExtractedInfo,
           correction.field,
           correction.newValue
         )
+        const afterApply = normalizeExtractedInfo(updatedExtractedInfo)
+        const canonicalFieldMap: Record<string, string> = {
+          name: 'callerName',
+          callerName: 'callerName',
+          caller_name: 'callerName',
+          reason: 'reasonForCalling',
+          reasonForCalling: 'reasonForCalling',
+          reason_for_call: 'reasonForCalling',
+          details: 'importantDetails',
+          importantDetails: 'importantDetails',
+          address: 'addressOrLocation',
+          location: 'addressOrLocation',
+          addressOrLocation: 'addressOrLocation',
+          serviceAddress: 'addressOrLocation',
+          callbackTime: 'preferredCallbackTime',
+          preferredCallbackTime: 'preferredCallbackTime',
+          desiredCompletionTime: 'desiredCompletionTime',
+          callbackNumber: 'callbackNumber'
+        }
+        const canonicalField = canonicalFieldMap[correction.field] || correction.field
+        const oldValue = String((beforeApply as any)[canonicalField] || '').trim()
+        const newValue = String((afterApply as any)[canonicalField] || '').trim()
 
-        correctedFields.push(correction)
+        if (newValue && newValue !== oldValue) {
+          correctedFields.push({
+            field: canonicalField,
+            oldValue,
+            newValue
+          })
+        } else {
+          console.log('[AI CORRECTION NO FIELD CHANGE]', {
+            leadId: lead.id,
+            field: correction.field,
+            canonicalField,
+            oldValue,
+            newValue
+          })
+        }
       }
+
+      if (correctedFields.length === 0) {
+        console.log('[AI CORRECTION NO REAL CHANGES]', {
+          leadId: lead.id,
+          reason: 'Detected correction did not change canonical intake data'
+        })
+      } else {
 
       console.log('[MULTI-FIELD CORRECTION APPLIED]', {
         leadId: lead.id,
@@ -961,6 +1004,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           'urgencyLevel': 'urgency',
           'importantDetails': 'details',
           'reasonForCalling': 'reason',
+          'desiredCompletionTime': 'desired_completion_time',
           'callerName': 'name'
         }
 
@@ -985,6 +1029,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 
         const correctedMetadata = {
           ...currentMetadata,
+          extracted_info: updatedExtractedInfo,
           customer_corrected_info: true,
           last_correction_at: now,
           last_correction_field: correctedFields[correctedFields.length - 1].field,
@@ -1099,6 +1144,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           // Note: This would require a function to add a system note to the conversation
           // For now, the correction is logged and stored in lead.raw_metadata
         }
+      }
       }
     } else {
       console.log('[AI CORRECTION NOT DETECTED]', {
