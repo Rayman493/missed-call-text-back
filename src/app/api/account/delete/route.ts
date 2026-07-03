@@ -696,7 +696,9 @@ T-Mobile: ##004#
 
 Using another carrier? Contact your mobile carrier for instructions to disable conditional call forwarding.
 
-After you've disabled call forwarding, tap the link below to confirm. This will stop future reminder messages:
+Finished disabling call forwarding?
+
+Tap the link below to let ReplyFlow know you're done. We'll immediately stop sending future reminder messages:
 ${confirmationUrl}
 
 If forwarding does not stop immediately, restart your phone or contact your carrier.`
