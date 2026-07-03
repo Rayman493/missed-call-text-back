@@ -52,7 +52,7 @@ async function processVoiceStatusCallback(params: any, method: string) {
 
   // Extract params
   const CallSid = params.CallSid
-  const From = params.From
+  let From = params.From
   const To = params.To
   const CallStatus = params.CallStatus
   const Duration = params.Duration || params.CallDuration
@@ -110,7 +110,7 @@ async function processVoiceStatusCallback(params: any, method: string) {
 
     const { data: record } = await supabase
       .from('ai_call_records')
-      .select('id, lead_id, conversation_id, caller_phone, call_sid, outcome, extracted_info, summary')
+      .select('id, lead_id, conversation_id, caller_phone, call_sid, business_id, outcome, extracted_info, summary')
       .eq('call_sid', CallSid)
       .maybeSingle()
 
@@ -173,15 +173,28 @@ async function processVoiceStatusCallback(params: any, method: string) {
   })
 
   if (!From || !To) {
-    console.log('[VOICE STATUS EARLY RETURN] =========================================');
-    console.log('[VOICE STATUS EARLY RETURN] reason: missing required fields');
-    console.log('[VOICE STATUS EARLY RETURN] From:', From);
-    console.log('[VOICE STATUS EARLY RETURN] To:', To);
-    console.log('[VOICE STATUS EARLY RETURN] Timestamp:', new Date().toISOString());
-    console.log('[VOICE STATUS EARLY RETURN] =========================================');
-    console.error('[voice-status] Missing required fields:', { From, To })
-    console.error('[voice-status] Early return: missing required fields')
-    return { success: false, reason: 'missing_required_fields' };
+    // Twilio Stream status callbacks do not include From/To.
+    // If we already found an ai_call_record, use its fields as the source of truth
+    // so incomplete AI calls can still receive the structured summary SMS.
+    if (aiCallRecord && aiCallRecord.caller_phone) {
+      console.log('[VOICE STATUS] From/To missing but ai_call_record found — using ai_call_record fields', {
+        callSid: CallSid,
+        callerPhone: aiCallRecord.caller_phone,
+        businessId: aiCallRecord.business_id,
+        outcome: aiCallRecord.outcome
+      });
+      From = aiCallRecord.caller_phone;
+    } else {
+      console.log('[VOICE STATUS EARLY RETURN] =========================================');
+      console.log('[VOICE STATUS EARLY RETURN] reason: missing required fields and no ai_call_record');
+      console.log('[VOICE STATUS EARLY RETURN] From:', From);
+      console.log('[VOICE STATUS EARLY RETURN] To:', To);
+      console.log('[VOICE STATUS EARLY RETURN] Timestamp:', new Date().toISOString());
+      console.log('[VOICE STATUS EARLY RETURN] =========================================');
+      console.error('[voice-status] Missing required fields:', { From, To })
+      console.error('[voice-status] Early return: missing required fields')
+      return { success: false, reason: 'missing_required_fields' };
+    }
   }
 
   // Treat ALL inbound calls as valid leads, regardless of CallStatus
@@ -205,11 +218,13 @@ async function processVoiceStatusCallback(params: any, method: string) {
 
   let business = null
   try {
-    const { data: businessData } = await supabase
-      .from('businesses')
-      .select('*')
-      .eq('twilio_phone_number', normalizedTo)
-      .single()
+    // If To is missing (Stream callback) but we have an ai_call_record with business_id,
+    // look up the business by ID rather than by Twilio phone number.
+    const businessQuery = (!To && aiCallRecord?.business_id)
+      ? supabase.from('businesses').select('*').eq('id', aiCallRecord.business_id).single()
+      : supabase.from('businesses').select('*').eq('twilio_phone_number', normalizedTo!).single()
+
+    const { data: businessData } = await businessQuery
 
     business = businessData
     console.log('[Twilio Voice Status Webhook] Business lookup result:', business ? {

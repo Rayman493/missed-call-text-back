@@ -71,6 +71,7 @@ export interface SmsDecisionResult {
 export type AiCallOutcome = 
   | 'completed_intake'  // AI collected required fields and confirmation flow completed
   | 'partial_intake'    // Caller provided some useful info but hung up before completion
+  | 'incomplete'        // Baseline outcome written by voice/route.ts before AI finalizes; treated as partial_intake
   | 'early_hangup'      // Caller hung up before providing useful info
   | 'no_speech'         // Call connected but caller did not speak
   | 'ai_connection_failed'  // AI service failed before intake could start
@@ -270,8 +271,8 @@ export async function determineSmsTemplate(params: {
       aiOutcome: effectiveOutcome,
       fallbackSmsType: 'none'
     }
-  } else if (effectiveOutcome === 'partial_intake') {
-    // Partial intake - AI service sends the partial recovery SMS via /api/ai-confirmation-sms
+  } else if (effectiveOutcome === 'partial_intake' || effectiveOutcome === 'incomplete') {
+    // Partial intake or baseline incomplete - AI service sends the structured summary SMS via /api/ai-confirmation-sms
     console.log('[AUTO SMS DECISION] Partial intake detected - AI service is authoritative sender', {
       callSid,
       leadId,
