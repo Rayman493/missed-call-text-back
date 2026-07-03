@@ -324,8 +324,10 @@ async function detectCorrectionWithRegex(
       field: 'callerName',
       patterns: [
         // Stricter name patterns - must avoid matching callback instructions
-        /my name is\s+(.+)/i,
+        /no, my name is\s+(.+)/i,
+        /no my name is\s+(.+)/i,
         /actually my name is\s+(.+)/i,
+        /my name is\s+(.+)/i,
         /this is\s+(.+)/i,
         /i am\s+(.+)/i,
         /i'm\s+(.+)/i,

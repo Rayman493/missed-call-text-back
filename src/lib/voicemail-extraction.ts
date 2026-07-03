@@ -163,7 +163,7 @@ desiredCompletionTime: Normalize to concise scheduling values. Extract WHEN the 
 - "I'd like it done within the next three weeks" → "Within 3 weeks"
 - "As soon as possible" → "ASAP"
 
-preferredCallbackTime: Extract ONLY when the customer wants to receive a callback (time of day). Never copy desired completion into this field. Normalize to concise time-of-day values.
+preferredCallbackTime: Extract ONLY when the customer wants to receive a callback (time of day). Never copy desired completion into this field. Normalize to concise time-of-day values, but PRESERVE relative timing words like "tomorrow", "Friday", "next week", "this afternoon", "tomorrow morning".
 - "Morning" → "Morning"
 - "Afternoon" → "Afternoon"
 - "Evening" → "Evening"
@@ -406,7 +406,7 @@ desiredCompletionTime: Normalize to concise scheduling values. Extract WHEN the 
 - "I'd like it done within the next three weeks" → "Within 3 weeks"
 - "As soon as possible" → "ASAP"
 
-preferredCallbackTime: Extract ONLY when the customer wants to receive a callback (time of day). Never copy desired completion into this field. Normalize to concise time-of-day values.
+preferredCallbackTime: Extract ONLY when the customer wants to receive a callback (time of day). Never copy desired completion into this field. Normalize to concise time-of-day values, but PRESERVE relative timing words like "tomorrow", "Friday", "next week", "this afternoon", "tomorrow morning".
 - "Morning" → "Morning"
 - "Afternoon" → "Afternoon"
 - "Evening" → "Evening"
@@ -665,7 +665,7 @@ desiredCompletionTime: Normalize to concise scheduling values. Extract WHEN the 
 - "I'd like it done within the next three weeks" → "Within 3 weeks"
 - "As soon as possible" → "ASAP"
 
-preferredCallbackTime: Extract ONLY when the customer wants to receive a callback (time of day). Never copy desired completion into this field. Normalize to concise time-of-day values.
+preferredCallbackTime: Extract ONLY when the customer wants to receive a callback (time of day). Never copy desired completion into this field. Normalize to concise time-of-day values, but PRESERVE relative timing words like "tomorrow", "Friday", "next week", "this afternoon", "tomorrow morning".
 - "Morning" → "Morning"
 - "Afternoon" → "Afternoon"
 - "Evening" → "Evening"

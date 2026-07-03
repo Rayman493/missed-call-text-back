@@ -10,6 +10,7 @@ import { markForwardingVerified } from '@/lib/forwarding-verification';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 import { getOutOfOfficeNotice } from '@/lib/out-of-office';
 import { formatAiIntakeSummary } from '@/lib/ai-intake-formatter';
+import { getLeadAIIntake } from '@/lib/ai-field-mapping';
 
 // CALL TRACE logging function
 function logCallTrace(data: {
@@ -601,10 +602,18 @@ export async function POST(request: NextRequest) {
           let personalizedMessage: string;
           let templateSource: 'ai_summary' | 'custom' | 'voicemail_default';
 
-          // Get voicemail extraction data from lead's raw_metadata
-          const extractedInfo = lead.raw_metadata?.extractedInfo || lead.raw_metadata?.voicemailExtraction || {};
+          // Get canonical AI intake data from lead (same source as Customer Summary)
+          const leadIntake = getLeadAIIntake(lead);
+          const extractedInfo = {
+            callerName: leadIntake.customerName || undefined,
+            reasonForCalling: leadIntake.serviceRequested || undefined,
+            importantDetails: leadIntake.additionalDetails || undefined,
+            desiredCompletionTime: leadIntake.desiredCompletion || undefined,
+            addressOrLocation: leadIntake.serviceAddress || undefined,
+            preferredCallbackTime: leadIntake.callbackTime || undefined,
+          };
 
-          // Generate AI summary SMS with voicemail extraction data
+          // Generate AI summary SMS with canonical voicemail extraction data
           const aiSummary = formatAiIntakeSummary(
             extractedInfo,
             normalizedCallerPhone,
@@ -618,7 +627,8 @@ export async function POST(request: NextRequest) {
           personalizedMessage = aiSummaryWithStop;
           templateSource = 'ai_summary';
 
-          console.log('[VOICEMAIL SMS] Using AI summary format', {
+          console.log('[VOICEMAIL SMS] Using AI summary format with canonical data source', {
+            leadIntake,
             extractedInfo,
             templateSource,
             summaryLength: personalizedMessage.length
