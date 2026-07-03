@@ -723,10 +723,6 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         } : {})
       }
       const mergedLeadUpdatePayload: any = { raw_metadata: enrichedMetadata }
-      const mergedNameCorrection = newMergeCorrections.find(([field]) => field === 'callerName') as [string, any] | undefined
-      if (mergedNameCorrection?.[1]?.to) {
-        mergedLeadUpdatePayload.contact_name = String(mergedNameCorrection[1].to).trim()
-      }
 
       console.log('[SMS MERGE PERSIST PREPARED]', {
         leadId: lead.id,
@@ -734,7 +730,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         rawMetadataToWrite: enrichedMetadata,
         correctedFieldsToWrite: enrichedMetadata.corrected_fields,
         correctionsCountToWrite: enrichedMetadata.corrections_count,
-        leadContactNameToWrite: mergedLeadUpdatePayload.contact_name || null,
+        correctedNameToWrite: enrichedMetadata.corrected_fields?.name || null,
         newMergeCorrections
       })
 
@@ -742,7 +738,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         .from('leads')
         .update(mergedLeadUpdatePayload)
         .eq('id', lead.id)
-        .select('id, contact_name, raw_metadata')
+        .select('id, raw_metadata')
 
       if (updateError) {
         console.error('[SMS ENRICHMENT UPDATE ERROR]', {
@@ -804,7 +800,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 
         const { data: verifiedLead } = await supabaseAdmin
           .from('leads')
-          .select('id, contact_name, raw_metadata')
+          .select('id, raw_metadata')
           .eq('id', lead.id)
           .single()
         const { data: verifiedAiRecord } = await supabaseAdmin
@@ -817,7 +813,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 
         console.log('[SMS MERGE DB READBACK]', {
           leadId: lead.id,
-          finalLeadContactName: verifiedLead?.contact_name,
+          finalCorrectedName: verifiedLead?.raw_metadata?.corrected_fields?.name,
           finalLeadRawMetadataExtractedInfo: verifiedLead?.raw_metadata?.extracted_info,
           finalLeadCorrectedFields: verifiedLead?.raw_metadata?.corrected_fields,
           finalLeadCorrectionsCount: verifiedLead?.raw_metadata?.corrections_count,
