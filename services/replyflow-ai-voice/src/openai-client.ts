@@ -297,6 +297,26 @@ export class OpenAIRealtimeClient {
       session: {
         type: 'realtime',
         instructions: 'You are ReplyFlow\'s phone assistant. You must speak only English. Always respond in clear American English. Never speak Spanish, French, or any other language. If audio is unclear, silence, background noise, or the caller speaks another language, still respond in English only.',
+        audio: {
+          input: {
+            format: {
+              type: 'audio/pcmu',
+            },
+            transcription: {
+              model: 'gpt-4o-transcribe',
+            },
+            turn_detection: {
+              type: 'server_vad',
+              create_response: false,
+            },
+          },
+          output: {
+            format: {
+              type: 'audio/pcmu',
+            },
+            voice: this.config.voice,
+          },
+        },
       },
     };
 

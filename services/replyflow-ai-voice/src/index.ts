@@ -6323,7 +6323,27 @@ Reply to this message if you'd like to update or add any information.
             type: "session.update",
             session: {
               type: "realtime",
-              instructions: "You are ReplyFlow Simple Mode. The system controls the conversation. Only speak the exact prompt provided in response.create. Never acknowledge caller content. Never ask unscripted follow-up questions. Never add filler. Speak exactly what is requested and nothing else."
+              instructions: "You are ReplyFlow Simple Mode. The system controls the conversation. Only speak the exact prompt provided in response.create. Never acknowledge caller content. Never ask unscripted follow-up questions. Never add filler. Speak exactly what is requested and nothing else.",
+              audio: {
+                input: {
+                  format: {
+                    type: "audio/pcmu"
+                  },
+                  transcription: {
+                    model: "gpt-4o-transcribe"
+                  },
+                  turn_detection: {
+                    type: "server_vad",
+                    create_response: false
+                  }
+                },
+                output: {
+                  format: {
+                    type: "audio/pcmu"
+                  },
+                  voice: AI_VOICE
+                }
+              }
             }
           };
 
@@ -9121,6 +9141,26 @@ Return only JSON, no other text.`;
                 type: "session.update",
                 session: {
                   type: "realtime",
+                  audio: {
+                    input: {
+                      format: {
+                        type: "audio/pcmu"
+                      },
+                      transcription: {
+                        model: "gpt-4o-transcribe"
+                      },
+                      turn_detection: {
+                        type: "server_vad",
+                        create_response: false
+                      }
+                    },
+                    output: {
+                      format: {
+                        type: "audio/pcmu"
+                      },
+                      voice: AI_VOICE
+                    }
+                  },
                   instructions: `You are an extraction-only AI assistant for missed call intake.
 
 EXTRACTION-ONLY MODE - STRICT SCRIPTED RESPONSES ONLY:
