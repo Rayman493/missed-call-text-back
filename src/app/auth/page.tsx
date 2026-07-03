@@ -312,12 +312,47 @@ function AuthContent() {
       }
 
       console.log('[Auth] Client signed in successfully')
-      setLoading(false)
-      setIsSubmitting(false)
-      isSubmittingRef.current = false
-      setRedirecting(true)
-      await new Promise(resolve => setTimeout(resolve, 800))
-      router.replace('/dashboard')
+      
+      // Create Stripe Checkout session for trial
+      console.log('[Auth] Creating Stripe Checkout session...')
+      try {
+        const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            checkout_mode: 'trial',
+          }),
+        })
+
+        const checkoutData = await checkoutResponse.json()
+        console.log('[Auth] Checkout session response:', checkoutData)
+
+        if (!checkoutResponse.ok || !checkoutData.url) {
+          console.error('[Auth] Failed to create checkout session:', checkoutData)
+          setError('Account created! Please sign in to complete your trial setup.')
+          setIsSignIn(true)
+          setLoading(false)
+          setIsSubmitting(false)
+          isSubmittingRef.current = false
+          return
+        }
+
+        // Redirect to Stripe Checkout
+        console.log('[Auth] Redirecting to Stripe Checkout...')
+        setLoading(false)
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
+        router.replace(checkoutData.url)
+      } catch (checkoutError: any) {
+        console.error('[Auth] Error creating checkout session:', checkoutError)
+        setError('Account created! Please sign in to complete your trial setup.')
+        setIsSignIn(true)
+        setLoading(false)
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to create account')
       setLoading(false)

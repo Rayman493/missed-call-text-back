@@ -19,9 +19,9 @@ export type SubscriptionState = typeof SUBSCRIPTION_STATES[keyof typeof SUBSCRIP
 export function getSubscriptionStatusText(subscriptionStatus: string | null | undefined): string {
   switch (subscriptionStatus) {
     case SUBSCRIPTION_STATES.TRIALING:
-      return 'Trial Active'
+      return 'Free Trial Active'
     case SUBSCRIPTION_STATES.ACTIVE:
-      return 'Active'
+      return 'Subscription Active'
     case SUBSCRIPTION_STATES.BETA:
       return 'Beta Access'
     case SUBSCRIPTION_STATES.COMPED:

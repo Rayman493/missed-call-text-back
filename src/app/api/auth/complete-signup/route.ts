@@ -122,11 +122,8 @@ export async function POST(request: Request) {
     try {
       console.log('[complete-signup] Creating business row...')
       
-      // Calculate trial end date (14 days from now)
-      const trialEndsAt = new Date()
-      trialEndsAt.setDate(trialEndsAt.getDate() + 14)
-      
       // Insert business directly using supabaseAdmin to bypass RLS
+      // Do NOT set trial status yet - user must complete Stripe Checkout first
       const { data: business, error: businessError } = await supabaseAdmin
         .from('businesses')
         .insert({
@@ -138,9 +135,9 @@ export async function POST(request: Request) {
           messaging_status: 'active',
           onboarding_status: 'profile_created',
           twilio_phone_number: null, // Will be set during provisioning
-          subscription_status: 'trialing', // Set to trialing for new accounts
+          subscription_status: null, // Will be set by Stripe webhook after checkout
           stripe_customer_id: null,
-          trial_ends_at: trialEndsAt.toISOString(),
+          trial_ends_at: null, // Will be set by Stripe webhook after checkout
         })
         .select()
         .single()
@@ -158,11 +155,11 @@ export async function POST(request: Request) {
       }
 
       console.log('[complete-signup] Business row created:', business.id)
-      console.log('[complete-signup] Trial ends at:', trialEndsAt.toISOString())
+      console.log('[complete-signup] User must complete Stripe Checkout to activate trial')
 
-      // Return success - client will handle sign-in
+      // Return success - client will handle sign-in and redirect to checkout
       console.log('[complete-signup] Account created successfully')
-      return NextResponse.json({ ok: true, business })
+      return NextResponse.json({ ok: true, business, requiresCheckout: true })
 
     } catch (businessError: any) {
       // Rollback: Delete the auth user since business creation failed
