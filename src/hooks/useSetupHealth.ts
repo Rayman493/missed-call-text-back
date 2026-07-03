@@ -30,7 +30,7 @@ export function useSetupHealth() {
     const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
     checks.push({
       id: 'subscription',
-      name: 'Subscription Active',
+      name: business.subscription_status === 'trialing' ? 'Free Trial Active' : 'Subscription Active',
       status: subscriptionValid ? 'complete' : 'not_configured',
       description: subscriptionValid 
         ? (business.subscription_status === 'trialing' ? 'Trial period active' : 'Subscription active')

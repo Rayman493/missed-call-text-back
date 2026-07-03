@@ -164,7 +164,7 @@ export default function SetupReviewPanel({ isOpen, onClose, business, onTestCall
         // STEP 2: Subscription Active
         {
           id: 'subscription',
-          title: 'Subscription Active',
+          title: hasActiveTrial(business) ? 'Free Trial Active' : 'Subscription Active',
           description: 'Your ReplyFlow subscription plan',
           status: subscriptionActive ? 'complete' : 'needs-action',
           icon: <CreditCard className="w-5 h-5" />,

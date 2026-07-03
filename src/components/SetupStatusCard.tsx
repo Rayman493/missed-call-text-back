@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { Business } from '@/lib/types'
-import { hasActiveSubscription, deriveSetupState } from '@/lib/subscription-utils'
+import { hasActiveSubscription, hasActiveTrial, deriveSetupState } from '@/lib/subscription-utils'
 import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Settings, Loader2, HelpCircle, X } from 'lucide-react'
 import { formatPhoneNumber } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
@@ -299,6 +299,8 @@ export default function SetupStatusCard({
     const forwardingActuallyVerified = business?.forwarding_verified === true
     const smsActuallyActive = business?.messaging_status === 'active'
     const isProvisioning = business?.provisioning_status === 'pending' || business?.provisioning_status === 'provisioning'
+    const isTrialing = hasActiveTrial(business)
+    const trialEndDate = business?.trial_ends_at ? new Date(business.trial_ends_at).toLocaleDateString() : null
 
     return (
       <div className="bg-gradient-to-br from-green-600 to-emerald-700 dark:from-green-700 dark:to-emerald-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-green-500/30">
@@ -310,10 +312,19 @@ export default function SetupStatusCard({
               </div>
             </div>
             <div className="flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Subscription Active</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+                {isTrialing ? 'Free Trial Active' : 'Subscription Active'}
+              </h1>
               <p className="text-green-100 text-base sm:text-lg">
-                Your ReplyFlow subscription is active. Complete the remaining setup below before ReplyFlow begins handling missed calls.
+                {isTrialing
+                  ? "Your 14-day free trial is active. Complete the setup below before ReplyFlow begins handling missed calls."
+                  : "Your ReplyFlow subscription is active. Complete the setup below before ReplyFlow begins handling missed calls."}
               </p>
+              {isTrialing && trialEndDate && (
+                <p className="text-green-200 text-sm mt-2">
+                  Your trial ends on {trialEndDate}.
+                </p>
+              )}
             </div>
           </div>
 
