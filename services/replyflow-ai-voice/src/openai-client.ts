@@ -85,8 +85,8 @@ export class OpenAIRealtimeClient {
         length: this.config.apiKey?.length,
       });
 
-      // Use gpt-realtime model in URL query string for GA API
-      const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
+      // Use gpt-4o-realtime-preview model in URL query string for GA API
+      const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
       const headers = {
         'Authorization': `Bearer ${this.config.apiKey}`,
       };
@@ -126,7 +126,7 @@ export class OpenAIRealtimeClient {
         
         log(LogLevel.INFO, '[OPENAI] websocket object created');
         log(LogLevel.INFO, '[OPENAI] full websocket URL', { url: wsUrl });
-        log(LogLevel.INFO, '[OPENAI] exact model being used', { model: 'gpt-realtime' });
+        log(LogLevel.INFO, '[OPENAI] exact model being used', { model: 'gpt-4o-realtime-preview' });
 
         // Log readyState every second for 15 seconds
         let readyStateCheckCount = 0;
@@ -287,7 +287,7 @@ export class OpenAIRealtimeClient {
     }
 
     log(LogLevel.INFO, '[AI POC] Using GA Realtime API schema');
-    log(LogLevel.INFO, '[AI POC] exact model being used', { model: 'gpt-realtime' });
+    log(LogLevel.INFO, '[AI POC] exact model being used', { model: 'gpt-4o-realtime-preview' });
 
     // Configure session with full configuration for Twilio compatibility
     const sessionUpdate = {

@@ -4703,7 +4703,7 @@ const server = createServer(async (req, res) => {
     
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
-    const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
+    const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
     const headers = {
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
     };
@@ -4826,7 +4826,7 @@ const server = createServer(async (req, res) => {
     
     res.writeHead(200, { 'Content-Type': 'application/json' });
 
-    const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
+    const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
     const headers = {
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
     };
@@ -4929,7 +4929,7 @@ const server = createServer(async (req, res) => {
     
     res.writeHead(200, { 'Content-Type': 'application/json' });
     
-    const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
+    const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
     console.log('[MINIMAL TEST] creating websocket to:', wsUrl);
     
     const testWs = new WebSocket(wsUrl, {
@@ -6272,7 +6272,7 @@ Reply to this message if you'd like to update or add any information.
         });
 
         // Connect to OpenAI Realtime - use same URL as legacy
-        const openAiUrl = `wss://api.openai.com/v1/realtime?model=gpt-realtime`;
+        const openAiUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview`;
         state.openAiWs = new WebSocket(openAiUrl, {
           headers: {
             'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
