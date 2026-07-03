@@ -33,7 +33,6 @@ import { hasActiveSubscription } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state'
-import { BUSINESS_SERVICE_TYPES } from '@/lib/business-service-types'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
@@ -1180,41 +1179,6 @@ export default function SettingsContent() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-                      Business Type
-                    </label>
-                    <select
-                      value={formBusiness.business_type || ''}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        updateBusiness({ 
-                          business_type: value,
-                          business_type_other: value === 'Other' ? formBusiness.business_type_other : null
-                        })
-                      }}
-                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground transition-all text-sm"
-                    >
-                      <option value="">Select your business type</option>
-                      {BUSINESS_SERVICE_TYPES.map(type => (
-                        <option key={type} value={type}>{type}</option>
-                      ))}
-                    </select>
-                  </div>
-                  {formBusiness.business_type === 'Other' && (
-                    <div>
-                      <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-                        Specify Business Type
-                      </label>
-                      <input
-                        type="text"
-                        value={formBusiness.business_type_other || ''}
-                        onChange={(e) => updateBusiness({ business_type_other: e.target.value })}
-                        placeholder="e.g., Pool Service, Wedding Photographer"
-                        className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all text-sm"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
                       Business Phone Number
                     </label>
                     <div className="space-y-3">
@@ -1240,15 +1204,15 @@ export default function SettingsContent() {
                       </div>
                       
                       {phoneCooldown?.inCooldown && phoneCooldown.nextAvailableDate && (
-                        <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                        <div className="flex items-start gap-2 p-3 bg-amber-50/60 dark:bg-amber-900/15 border border-amber-200/60 dark:border-amber-800/60 rounded-md">
                           <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                           </svg>
                           <div className="flex-1">
-                            <p className="text-sm text-amber-800 dark:text-amber-200 font-medium mb-1">
+                            <p className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">
                               Phone number change on cooldown
                             </p>
-                            <p className="text-xs text-amber-700 dark:text-amber-300">
+                            <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
                               Phone number changes are limited to help protect your account from fraud and accidental reassignment. You can update your phone number again on{' '}
                               <span className="font-medium">
                                 {new Date(phoneCooldown.nextAvailableDate).toLocaleDateString('en-US', {
@@ -1277,21 +1241,21 @@ export default function SettingsContent() {
                             )}
                           </p>
                           {/* Personal/Business Number Guidance */}
-                          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                            <div className="flex items-start gap-2">
+                          <div className="bg-blue-50/60 dark:bg-blue-900/15 border border-blue-200/60 dark:border-blue-800/60 rounded-md p-3">
+                            <div className="flex items-start gap-2.5">
                               <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                               </svg>
                               <div>
                                 <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Best experience: Dedicated business number</p>
-                                <p className="text-[10px] text-blue-700 dark:text-blue-300 mb-2">
+                                <p className="text-xs text-blue-700 dark:text-blue-300 mb-1.5 leading-relaxed">
                                   A dedicated business phone number provides the best experience. It allows ReplyFlow to automatically handle every missed customer call without affecting personal callers.
                                 </p>
                                 <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Still fully supported: Personal business phones</p>
-                                <p className="text-[10px] text-blue-700 dark:text-blue-300 mb-1">
+                                <p className="text-xs text-blue-700 dark:text-blue-300 mb-1.5 leading-relaxed">
                                   If you use one phone for both business and personal calls, ReplyFlow still works well. You can use Ignored Contacts to keep known personal callers out of the normal ReplyFlow customer workflow.
                                 </p>
-                                <p className="text-[10px] text-blue-700 dark:text-blue-300">
+                                <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
                                   See the Ignored Contacts section below for more information.
                                 </p>
                               </div>
@@ -1887,10 +1851,10 @@ export default function SettingsContent() {
                       <button
                         onClick={calendarConnected ? handleDisconnectCalendar : handleConnectCalendar}
                         disabled={isConnectingCalendar || isDisconnectingCalendar}
-                        className={`flex-shrink-0 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2 ${
+                        className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
                           calendarConnected
-                            ? 'bg-red-600 hover:bg-red-700 text-white shadow-md'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                            ? 'bg-red-600 hover:bg-red-700 text-white'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
                         }`}
                       >
                         {isConnectingCalendar || isDisconnectingCalendar ? (
@@ -1953,10 +1917,10 @@ export default function SettingsContent() {
                       <button
                         onClick={handleConnectStripe}
                         disabled={isConnectingStripe}
-                        className={`flex-shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-medium rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2 shadow-sm ${
+                        className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
                           business?.stripe_charges_enabled && business?.stripe_details_submitted
-                            ? 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                            ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
                         }`}
                       >
                         {business?.stripe_charges_enabled && business?.stripe_details_submitted ? 'Manage' : 'Connect'}
@@ -2003,54 +1967,54 @@ export default function SettingsContent() {
                 </div>
                 </div>
                 {/* Personal/Business Number Guidance */}
-                <div className="bg-blue-50/80 dark:bg-blue-900/15 border border-blue-200/60 dark:border-blue-800/60 rounded-md p-3 mb-3">
+                <div className="bg-blue-50/60 dark:bg-blue-900/15 border border-blue-200/60 dark:border-blue-800/60 rounded-md p-3 mb-3">
                   <div className="flex items-start gap-2.5">
                     <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
                     <div>
                       <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1.5">Using your personal phone as your business number?</p>
-                      <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                      <p className="text-xs text-blue-700 dark:text-blue-300 mb-2 leading-relaxed">
                         Many small business owners use one phone for both business and personal calls, and ReplyFlow fully supports this.
                       </p>
                       <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">You have complete control:</p>
                       <div className="space-y-1.5 mt-1.5">
                         <div className="flex items-start gap-2">
                           <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs mt-0.5">•</span>
-                          <p className="text-xs text-blue-700 dark:text-blue-300"><strong>Leave off Ignored Contacts:</strong> ReplyFlow treats it like a customer (AI Voice, lead creation, automated texts, follow-ups).</p>
+                          <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed"><strong>Leave off Ignored Contacts:</strong> ReplyFlow treats it like a customer (AI Voice, lead creation, automated texts, follow-ups).</p>
                         </div>
                         <div className="flex items-start gap-2">
                           <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs mt-0.5">•</span>
-                          <p className="text-xs text-blue-700 dark:text-blue-300"><strong>Add to Ignored Contacts:</strong> ReplyFlow stays out (no AI Voice, no automated texts, no lead, no follow-ups).</p>
+                          <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed"><strong>Add to Ignored Contacts:</strong> ReplyFlow stays out (no AI Voice, no automated texts, no lead, no follow-ups).</p>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
                 {/* When should I use Ignored Contacts */}
-                <div className="bg-slate-50/80 dark:bg-slate-800/30 border border-slate-200/60 dark:border-slate-700/60 rounded-md p-3 mb-3">
+                <div className="bg-slate-50/60 dark:bg-slate-800/30 border border-slate-200/60 dark:border-slate-700/60 rounded-md p-3 mb-3">
                   <div className="flex items-start gap-2.5">
                     <svg className="w-4 h-4 text-slate-600 dark:text-slate-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
                     <div>
                       <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1.5">When should I use Ignored Contacts?</p>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 mb-2">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 mb-2 leading-relaxed">
                         Add people here when you never want ReplyFlow to respond to their missed calls.
                       </p>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 mb-2">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 mb-2 leading-relaxed">
                         Common examples: friends, family, schools, doctors, and other personal contacts.
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200/60 dark:border-slate-600/60">
                         <div>
                           <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1">On the list:</p>
-                          <p className="text-xs text-slate-700 dark:text-slate-300">
+                          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                             No AI Voice, no automated texts, no lead is created.
                           </p>
                         </div>
                         <div>
                           <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1">Off the list:</p>
-                          <p className="text-xs text-slate-700 dark:text-slate-300">
+                          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                             Treated like a customer (AI Voice, texts, follow-ups).
                           </p>
                         </div>
@@ -2064,14 +2028,14 @@ export default function SettingsContent() {
                       <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-blue-600"></div>
                     </div>
                   ) : ignoredContacts.length === 0 ? (
-                    <div className="text-center py-6 sm:py-8 bg-muted/40 rounded-lg border border-border/50">
+                    <div className="text-center py-5 sm:py-6 bg-slate-50/50 dark:bg-slate-800/30 rounded-md border border-slate-200/60 dark:border-slate-700/60">
                       <div className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-2 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                         <svg className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
                       <h3 className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">No ignored contacts yet</h3>
-                      <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground max-w-[220px] sm:max-w-[280px] mx-auto">
+                      <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 max-w-[220px] sm:max-w-[280px] mx-auto leading-relaxed">
                         Add employees, family members, vendors, or other personal contacts that ReplyFlow should ignore.
                       </p>
                     </div>
@@ -2107,7 +2071,7 @@ export default function SettingsContent() {
                           </div>
                           <button
                             onClick={() => removeIgnoredContact(contact.id)}
-                            className="ml-2 sm:ml-3 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all hover:scale-105 active:scale-95"
+                            className="ml-2 sm:ml-3 px-2.5 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-colors"
                           >
                             Remove
                           </button>
@@ -2262,7 +2226,7 @@ export default function SettingsContent() {
                           <button
                             onClick={() => handleBillingActionClick('portal')}
                             disabled={isOpeningPortal}
-                            className="px-3 py-1.5 sm:px-4 sm:py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs flex items-center gap-2 shadow-sm"
+                            className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
                           >
                             {isOpeningPortal ? (
                               <>
@@ -2284,11 +2248,11 @@ export default function SettingsContent() {
                     <button
                       onClick={() => handleBillingActionClick('upgrade')}
                       disabled={isStartingCheckout}
-                      className="w-full px-4 py-2 sm:px-5 sm:py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 text-[10px] sm:text-xs flex items-center justify-center gap-2 shadow-sm"
+                      className="w-full px-4 py-2.5 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                     >
                       {isStartingCheckout ? (
                         <>
-                          <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                           </svg>
@@ -2313,7 +2277,7 @@ export default function SettingsContent() {
                       <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Change Password</h3>
                       <button
                         onClick={() => setShowChangePasswordModal(true)}
-                        className="mt-1 sm:mt-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs shadow-sm"
+                        className="mt-1 sm:mt-2 px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
                       >
                         Change Password
                       </button>
@@ -2333,7 +2297,7 @@ export default function SettingsContent() {
                     <h3 className="text-xs sm:text-sm font-semibold text-red-900 dark:text-red-100 mb-1.5 sm:mb-2">Delete Account</h3>
                     <button
                       onClick={() => setShowDeleteModal(true)}
-                      className="px-3 py-1.5 sm:px-4 sm:py-2 bg-red-600/90 hover:bg-red-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 text-[10px] sm:text-xs shadow-sm"
+                      className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-red-600 hover:bg-red-700 text-white"
                     >
                       Delete Account
                     </button>
@@ -2358,30 +2322,34 @@ export default function SettingsContent() {
 
           {/* Delete Account Modal */}
           {showDeleteModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-card rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl">
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="flex-shrink-0 w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
-                    <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-foreground mb-2">
-                      Permanently delete your ReplyFlow account
-                    </h2>
-                    <p className="text-sm text-slate-600 dark:text-muted-foreground">
-                      This permanently removes your ReplyFlow account and business data. Please review what happens before continuing.
-                    </p>
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white dark:bg-slate-900 rounded-xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl">
+                {/* Fixed Header */}
+                <div className="flex-shrink-0 p-6 border-b border-slate-200/70 dark:border-slate-700/50">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                      <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-foreground mb-2">
+                        Permanently delete your ReplyFlow account
+                      </h2>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        This permanently removes your ReplyFlow account and business data. Please review what happens before continuing.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* What happens on deletion */}
-                <div className="space-y-4 mb-6">
+                {/* Scrollable Body */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {/* What happens on deletion */}
                   <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                       <CreditCard className="w-4 h-4" />
                       Billing & Subscription
                     </h3>
-                    <ul className="text-sm text-slate-600 dark:text-muted-foreground space-y-2">
+                    <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-2">
                       <li className="flex items-start gap-2">
                         <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                         <span>We'll automatically cancel your active subscription (if one exists).</span>
@@ -2394,7 +2362,7 @@ export default function SettingsContent() {
                       <Mail className="w-4 h-4" />
                       Offboarding Communications
                     </h3>
-                    <ul className="text-sm text-slate-600 dark:text-muted-foreground space-y-2">
+                    <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-2">
                       <li className="flex items-start gap-2">
                         <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                         <span>Call forwarding instructions via email and SMS</span>
@@ -2419,7 +2387,7 @@ export default function SettingsContent() {
                       <FileText className="w-4 h-4" />
                       Data Deletion
                     </h3>
-                    <ul className="text-sm text-slate-600 dark:text-muted-foreground space-y-2">
+                    <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-2">
                       <li className="flex items-start gap-2">
                         <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                         <span>Permanent deletion of your business, customers, conversations, messages, appointments, settings, and related ReplyFlow data.</span>
@@ -2430,123 +2398,125 @@ export default function SettingsContent() {
                       </li>
                     </ul>
                   </div>
-                </div>
 
-                {/* Warning callout */}
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg p-4 mb-6">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">
-                        Important: Call Forwarding
-                      </p>
-                      <p className="text-xs text-amber-800 dark:text-amber-200">
-                        If call forwarding is still enabled after deleting your account, new callers may continue reaching your ReplyFlow number instead of your normal voicemail. We'll email and text simple instructions to help you disable forwarding, and reminders stop immediately once you confirm forwarding has been disabled.
-                      </p>
+                  {/* Warning callout */}
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                          Important: Call Forwarding
+                        </p>
+                        <p className="text-xs text-amber-800 dark:text-amber-200">
+                          If call forwarding is still enabled after deleting your account, new callers may continue reaching your ReplyFlow number instead of your normal voicemail. We'll email and text simple instructions to help you disable forwarding, and reminders stop immediately once you confirm forwarding has been disabled.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Confirmation input */}
-                <div className="mb-6">
-                  <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
-                    Type <span className="font-mono font-bold">DELETE</span> to confirm
-                  </label>
-                  <input
-                    type="text"
-                    value={deleteConfirmText}
-                    onChange={(e) => setDeleteConfirmText(e.target.value)}
-                    placeholder="Type DELETE"
-                    disabled={isDeleting}
-                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-background text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground disabled:opacity-50"
-                  />
-                </div>
-
-                {/* Final Confirmation - Password */}
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">
-                    Final Confirmation
-                  </h3>
-                  <p className="text-xs text-slate-600 dark:text-muted-foreground mb-3">
-                    Enter your current password to permanently delete your ReplyFlow account.
-                  </p>
-                  <div className="relative">
+                  {/* Confirmation input */}
+                  <div>
                     <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
-                      Current Password
+                      Type <span className="font-mono font-bold">DELETE</span> to confirm
                     </label>
+                    <input
+                      type="text"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      placeholder="Type DELETE"
+                      disabled={isDeleting}
+                      className="w-full px-4 py-3 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 disabled:opacity-50"
+                    />
+                  </div>
+
+                  {/* Final Confirmation - Password */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">
+                      Final Confirmation
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
+                      Enter your current password to permanently delete your ReplyFlow account.
+                    </p>
                     <div className="relative">
-                      <input
-                        type={showDeletePassword ? 'text' : 'password'}
-                        value={deletePassword}
-                        onChange={(e) => {
-                          setDeletePassword(e.target.value)
-                          setDeletePasswordError('')
-                        }}
-                        placeholder="Enter your current password"
-                        disabled={isDeleting}
-                        className={`w-full px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:border-red-500 bg-background text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground disabled:opacity-50 ${
-                          deletePasswordError 
-                            ? 'border-red-500 focus:ring-red-500' 
-                            : 'border-border focus:ring-red-500/40 focus:border-red-500/80'
-                        }`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowDeletePassword(!showDeletePassword)}
-                        disabled={isDeleting}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {showDeletePassword ? (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                          </svg>
-                        ) : (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        )}
-                      </button>
+                      <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
+                        Current Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showDeletePassword ? 'text' : 'password'}
+                          value={deletePassword}
+                          onChange={(e) => {
+                            setDeletePassword(e.target.value)
+                            setDeletePasswordError('')
+                          }}
+                          placeholder="Enter your current password"
+                          disabled={isDeleting}
+                          className={`w-full px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:border-red-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 disabled:opacity-50 ${
+                            deletePasswordError 
+                              ? 'border-red-500 focus:ring-red-500' 
+                              : 'border-slate-200/70 dark:border-slate-700/50 focus:ring-red-500/40 focus:border-red-500/80'
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowDeletePassword(!showDeletePassword)}
+                          disabled={isDeleting}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {showDeletePassword ? (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                      {deletePasswordError && (
+                        <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                          {deletePasswordError}
+                        </p>
+                      )}
                     </div>
-                    {deletePasswordError && (
-                      <p className="mt-2 text-xs text-red-600 dark:text-red-400">
-                        {deletePasswordError}
-                      </p>
-                    )}
                   </div>
                 </div>
 
-                {/* Action buttons */}
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => {
-                      setShowDeleteModal(false)
-                      setDeleteConfirmText('')
-                      setDeletePassword('')
-                      setDeletePasswordError('')
-                    }}
-                    disabled={isDeleting}
-                    className="px-4 py-2.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleDeleteAccount}
-                    disabled={deleteConfirmText !== 'DELETE' || !deletePassword.trim() || isDeleting}
-                    className="px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    {isDeleting ? (
-                      <>
-                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block"></div>
-                        Deleting...
-                      </>
-                    ) : (
-                      <>
-                        <Trash2 className="w-4 h-4" />
-                        Delete Account Permanently
-                      </>
-                    )}
-                  </button>
+                {/* Fixed Footer */}
+                <div className="flex-shrink-0 p-6 border-t border-slate-200/70 dark:border-slate-700/50">
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => {
+                        setShowDeleteModal(false)
+                        setDeleteConfirmText('')
+                        setDeletePassword('')
+                        setDeletePasswordError('')
+                      }}
+                      disabled={isDeleting}
+                      className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={deleteConfirmText !== 'DELETE' || !deletePassword.trim() || isDeleting}
+                      className="px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block"></div>
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="w-4 h-4" />
+                          Delete Account Permanently
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2626,14 +2596,14 @@ export default function SettingsContent() {
                       setReason('')
                     }}
                     disabled={isAdding}
-                    className="px-4 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                    className="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleAddIgnoredContact}
                     disabled={isAdding || !phoneNumber.trim()}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     {isAdding ? (
                       <>
@@ -2651,21 +2621,23 @@ export default function SettingsContent() {
 
           {/* Change Password Modal */}
           {showChangePasswordModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-6">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
-                  Change Password
-                </h3>
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+              <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full">
+                <div className="p-6 border-b border-slate-200/70 dark:border-slate-700/50">
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">
+                    Change Password
+                  </h3>
+                </div>
                 
                 {passwordError && (
-                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg p-3 mb-4">
-                    <p className="text-sm text-red-600 dark:text-red-400">{passwordError}</p>
+                  <div className="px-6 py-3 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800/50">
+                    <p className="text-xs text-red-600 dark:text-red-400">{passwordError}</p>
                   </div>
                 )}
 
-                <div className="space-y-4">
+                <div className="p-6 space-y-4">
                   <div>
-                    <label htmlFor="newPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    <label htmlFor="newPassword" className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
                       New Password
                     </label>
                     <PasswordInput
@@ -2675,7 +2647,7 @@ export default function SettingsContent() {
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
                       autoComplete="new-password"
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-500/80"
+                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
                       placeholder="Enter new password"
                     />
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -2684,7 +2656,7 @@ export default function SettingsContent() {
                   </div>
 
                   <div>
-                    <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
                       Confirm New Password
                     </label>
                     <PasswordInput
@@ -2694,13 +2666,13 @@ export default function SettingsContent() {
                       onChange={(e) => setConfirmNewPassword(e.target.value)}
                       required
                       autoComplete="new-password"
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-500/80"
+                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
                       placeholder="Confirm new password"
                     />
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 mt-6">
+                <div className="flex justify-end gap-3 p-4 border-t border-slate-200/70 dark:border-slate-700/50">
                   <button
                     onClick={() => {
                       setShowChangePasswordModal(false)
@@ -2709,14 +2681,14 @@ export default function SettingsContent() {
                       setPasswordError('')
                     }}
                     disabled={isChangingPassword}
-                    className="px-4 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                    className="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleChangePassword}
                     disabled={isChangingPassword || !newPassword.trim() || !confirmNewPassword.trim()}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     {isChangingPassword ? (
                       <>
