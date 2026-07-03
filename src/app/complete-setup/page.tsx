@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { createBrowserClient } from '@/lib/supabase/browser'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import BrandIcon from '@/components/BrandIcon'
+
+const supabase = createBrowserClient()
 
 export default function CompleteSetupPage() {
   const router = useRouter()
@@ -99,7 +102,54 @@ export default function CompleteSetupPage() {
       const data = await response.json()
 
       if (response.ok) {
-        router.replace('/signup')
+        console.log('[CompleteSetup] Account deleted, signing out and clearing caches')
+        
+        // Sign out from Supabase client to clear local session state
+        try {
+          await supabase.auth.signOut()
+          console.log('[CompleteSetup] Supabase sign out successful')
+        } catch (signOutError) {
+          console.error('[CompleteSetup] Supabase sign out error:', signOutError)
+        }
+        
+        // Clear auth and business caches from local/session storage
+        if (typeof window !== 'undefined') {
+          const keysToClear = [
+            'replyflow_business_verified',
+            'onboarding_status',
+            'businessSetupPending',
+            'pendingOnboarding',
+            'supabase.auth.token',
+            'sb-' + window.location.hostname + '-auth-token',
+          ]
+          keysToClear.forEach(key => {
+            try {
+              sessionStorage.removeItem(key)
+              localStorage.removeItem(key)
+            } catch (e) {
+              console.error('[CompleteSetup] Error clearing cache key:', key, e)
+            }
+          })
+          
+          // Also clear any Supabase auth keys with common prefixes
+          try {
+            Object.keys(localStorage).forEach(key => {
+              if (key.startsWith('sb-') && key.includes('auth-token')) {
+                localStorage.removeItem(key)
+              }
+            })
+            Object.keys(sessionStorage).forEach(key => {
+              if (key.startsWith('sb-') && key.includes('auth-token')) {
+                sessionStorage.removeItem(key)
+              }
+            })
+          } catch (e) {
+            console.error('[CompleteSetup] Error clearing Supabase auth cache:', e)
+          }
+        }
+        
+        // Redirect to homepage
+        window.location.href = '/'
       } else {
         setError(data.error || 'Could not delete account. Please try again.')
         setIsDeleting(false)
