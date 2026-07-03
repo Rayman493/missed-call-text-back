@@ -656,6 +656,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     smsBodyLength: body.length
   })
 
+  let smsMergeAppliedCorrections = false
+
   try {
     const smsExtraction = await extractFromSmsBody(body)
     
@@ -703,6 +705,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       const newMergeCorrections = Object.entries(mergedFieldCorrections).filter(([field, correction]: [string, any]) => {
         const previous = currentFieldCorrections[field]
         return correction?.to && (!previous || previous.to !== correction.to)
+      })
+      smsMergeAppliedCorrections = newMergeCorrections.length > 0
+      console.log('[SMS CORRECTION PIPELINE]', {
+        leadId: lead.id,
+        appliedCorrections: smsMergeAppliedCorrections,
+        correctionsApplied: newMergeCorrections.length,
+        correctedFields: newMergeCorrections.map(([field]) => field)
       })
       const correctedFieldsFromMerge = { ...(currentMetadata.corrected_fields || {}) }
       const previousValuesFromMerge = { ...(currentMetadata.previous_values || {}) }
@@ -876,10 +885,25 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     aiCallRecordId: aiCallRecord?.id,
     hasExtractedInfo: !!(aiCallRecord?.extracted_info),
     extractedInfo: aiCallRecord?.extracted_info,
-    willEnter: !!(aiCallRecord && aiCallRecord.extracted_info)
+    skippedBecauseSmsAlreadyHandled: smsMergeAppliedCorrections,
+    willEnter: !!(aiCallRecord && aiCallRecord.extracted_info && !smsMergeAppliedCorrections)
   })
 
-  if (aiCallRecord && aiCallRecord.extracted_info) {
+  console.log('[AI CORRECTION PIPELINE]', {
+    leadId: lead.id,
+    skippedBecauseSmsAlreadyHandled: smsMergeAppliedCorrections,
+    processing: !!(aiCallRecord && aiCallRecord.extracted_info && !smsMergeAppliedCorrections)
+  })
+
+  if (smsMergeAppliedCorrections) {
+    console.log('[AI REPLY HANDLING SKIPPED]', {
+      leadId: lead.id,
+      conversationId: conversation?.id,
+      reason: 'sms_merge_already_applied_corrections',
+      aiCallRecordFound: !!aiCallRecord,
+      hasExtractedInfo: !!(aiCallRecord?.extracted_info)
+    })
+  } else if (aiCallRecord && aiCallRecord.extracted_info) {
     console.log('[AI CORRECTION DETECTION START]', {
       leadId: lead.id,
       aiCallRecordId: aiCallRecord.id,
@@ -895,7 +919,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     })
   }
 
-  if (aiCallRecord && aiCallRecord.extracted_info) {
+  if (!smsMergeAppliedCorrections && aiCallRecord && aiCallRecord.extracted_info) {
     // Use current extracted_info for comparison
     const extractedInfoForComparison = aiCallRecord.extracted_info
 
