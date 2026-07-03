@@ -332,6 +332,7 @@ export async function POST(request: Request) {
             current_period_end: checkoutCurrentPeriodEnd,
             cancel_at: checkoutCancelAt,
             cancel_at_period_end: subscription?.cancel_at_period_end ?? false,
+            checkout_completed_at: new Date().toISOString(), // Mark checkout as completed to gate subscription event activation
           }
 
           // Only set subscription_price_id if available
@@ -552,11 +553,24 @@ export async function POST(request: Request) {
         console.log('[DEBUG] Period end:', periodEnd, 'type:', typeof periodEnd)
         console.log('[DEBUG] Trial end:', trialEnd, 'type:', typeof trialEnd)
 
+        // Map subscription timing fields with proper fallback logic
+        const trialEndsAt = (subscription as any).trial_end
+          ? new Date((subscription as any).trial_end * 1000).toISOString()
+          : null
+
+        const currentPeriodEnd = (subscription as any).current_period_end
+          ? new Date((subscription as any).current_period_end * 1000).toISOString()
+          : trialEndsAt
+
+        const cancelAt = subscription.cancel_at
+          ? new Date(subscription.cancel_at * 1000).toISOString()
+          : null
+
         // Find business by stripe_customer_id
         console.log('[DEBUG] Looking up business by stripe_customer_id:', customerId)
         const { data: business, error: lookupError } = await supabase
           .from('businesses')
-          .select('id')
+          .select('id, checkout_completed_at, subscription_status')
           .eq('stripe_customer_id', customerId)
           .limit(1)
           .single()
@@ -569,7 +583,44 @@ export async function POST(request: Request) {
         }
 
         console.log('[DEBUG] Business ID:', business.id)
-          
+
+        // CRITICAL: Only activate if checkout was completed
+        // customer.subscription.created fires BEFORE checkout.session.completed
+        // We must not activate the business or trigger provisioning until checkout is actually completed
+        if (!business.checkout_completed_at) {
+          console.log('[STRIPE WEBHOOK] SUBSCRIPTION.CREATED IGNORED - checkout not completed yet')
+          console.log('[STRIPE WEBHOOK] This prevents premature activation when user cancels checkout')
+          console.log('[STRIPE WEBHOOK] Business will be activated when checkout.session.completed fires')
+          // Still save subscription metadata (IDs, timing) but do NOT set subscription_status or trigger provisioning
+          const metadataOnlyPayload = {
+            stripe_customer_id: typeof subscription.customer === 'string'
+              ? subscription.customer
+              : subscription.customer?.id,
+            stripe_subscription_id: subscription.id,
+            subscription_price_id: priceId,
+            trial_ends_at: trialEndsAt,
+            current_period_end: currentPeriodEnd,
+            cancel_at: cancelAt,
+            cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+          }
+
+          console.log('[DB WRITE] Metadata only (no activation):', {
+            eventType: event.type,
+            businessId: business.id,
+            updatePayload: metadataOnlyPayload,
+          })
+
+          await supabase
+            .from('businesses')
+            .update(metadataOnlyPayload)
+            .eq('id', business.id)
+
+          await markEventProcessed(supabase, event.id, event.type, business.id)
+          return NextResponse.json({ received: true, info: 'Subscription event ignored until checkout completion' })
+        }
+
+        console.log('[STRIPE WEBHOOK] Checkout completed confirmed, proceeding with subscription activation')
+
         console.log('[STRIPE EVENT]', {
             eventType: event.type,
             subscriptionId: subscription?.id,
@@ -579,19 +630,6 @@ export async function POST(request: Request) {
             cancel_at: subscription?.cancel_at,
             cancel_at_period_end: subscription?.cancel_at_period_end,
           })
-          
-          // Map subscription timing fields with proper fallback logic
-          const trialEndsAt = (subscription as any).trial_end
-            ? new Date((subscription as any).trial_end * 1000).toISOString()
-            : null
-
-          const currentPeriodEnd = (subscription as any).current_period_end
-            ? new Date((subscription as any).current_period_end * 1000).toISOString()
-            : trialEndsAt
-
-          const cancelAt = subscription.cancel_at
-            ? new Date(subscription.cancel_at * 1000).toISOString()
-            : null
 
           const updatePayload = {
             subscription_status: subscription.status,
@@ -807,6 +845,50 @@ export async function POST(request: Request) {
         })
 
         if (business) {
+          // Fetch business to check checkout_completed_at
+          const { data: businessDetails } = await supabase
+            .from('businesses')
+            .select('id, checkout_completed_at')
+            .eq('id', business.id)
+            .single()
+
+          // CRITICAL: Only activate if checkout was completed
+          // customer.subscription.updated can fire BEFORE checkout.session.completed
+          if (!businessDetails?.checkout_completed_at) {
+            console.log('[STRIPE WEBHOOK] SUBSCRIPTION.UPDATED IGNORED - checkout not completed yet')
+            console.log('[STRIPE WEBHOOK] This prevents premature activation when user cancels checkout')
+            // Still save subscription metadata (IDs, timing) but do NOT set subscription_status
+            const trialEndsAt = (subscription as any).trial_end
+              ? new Date((subscription as any).trial_end * 1000).toISOString()
+              : null
+
+            const currentPeriodEnd = (subscription as any).current_period_end
+              ? new Date((subscription as any).current_period_end * 1000).toISOString()
+              : trialEndsAt
+
+            const cancelAtIso = subscription.cancel_at
+              ? new Date(subscription.cancel_at * 1000).toISOString()
+              : null
+
+            const metadataOnlyPayload = {
+              stripe_customer_id: customerId,
+              stripe_subscription_id: subscription.id,
+              subscription_price_id: priceId,
+              trial_ends_at: trialEndsAt,
+              current_period_end: currentPeriodEnd,
+              cancel_at: cancelAtIso,
+              cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+            }
+
+            await supabase
+              .from('businesses')
+              .update(metadataOnlyPayload)
+              .eq('id', business.id)
+
+            await markEventProcessed(supabase, event.id, event.type, business.id)
+            return NextResponse.json({ received: true, info: 'Subscription event ignored until checkout completion' })
+          }
+
           const trialEndsAt = (subscription as any).trial_end
             ? new Date((subscription as any).trial_end * 1000).toISOString()
             : null
