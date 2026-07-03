@@ -37,9 +37,23 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Debug logging: log all confirmation-related fields before deciding which page to render
+    console.log('[Offboarding Confirm] Tracking record fields before confirmation decision:', {
+      id: trackingRecord.id,
+      forwarding_confirmed: trackingRecord.forwarding_confirmed,
+      forwarding_confirmed_at: trackingRecord.forwarding_confirmed_at,
+      reminders_cancelled_at: trackingRecord.reminders_cancelled_at,
+      confirmed_at: trackingRecord.confirmed_at,
+      tokenPrefix: token.substring(0, 8),
+      tokenSuffix: token.substring(token.length - 8),
+      tokenLength: token.length,
+      created_at: trackingRecord.created_at,
+      updated_at: trackingRecord.updated_at,
+    })
+
     // Check if already confirmed
     if (trackingRecord.forwarding_confirmed) {
-      console.log('[Offboarding Confirm] Already confirmed:', trackingRecord.id)
+      console.log('[Offboarding Confirm] Already confirmed (forwarding_confirmed=true):', trackingRecord.id)
       return new NextResponse(getAlreadyConfirmedHtml(), {
         headers: { 'Content-Type': 'text/html' },
       })
