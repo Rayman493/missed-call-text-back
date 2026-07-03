@@ -236,12 +236,10 @@ export default function NewOnboardingPage() {
                   <p className="text-xs text-slate-400">Step 1 of 3</p>
                 </div>
                 <div className="flex-1">
-                  <div className="h-1 bg-slate-600 rounded-full mb-3"></div>
-                  <p className="text-xs text-slate-400">Step 2 of 3</p>
+                  <div className="h-1 bg-slate-600 rounded-full"></div>
                 </div>
                 <div className="flex-1">
-                  <div className="h-1 bg-slate-600 rounded-full mb-3"></div>
-                  <p className="text-xs text-slate-400">Step 3 of 3</p>
+                  <div className="h-1 bg-slate-600 rounded-full"></div>
                 </div>
               </div>
             </div>
