@@ -140,49 +140,50 @@ export class NotificationService {
   }
 
   async markAsRead(notificationId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('id', notificationId)
+    // Use server-side API to ensure proper authentication and persistence
+    const response = await fetch(`/api/notifications/${notificationId}/mark-read`, {
+      method: 'PATCH',
+    })
 
-    if (error) {
-      console.error('Error marking notification as read:', error)
+    if (!response.ok) {
+      console.error('Error marking notification as read:', response.statusText)
+      throw new Error('Failed to mark notification as read')
     }
   }
 
   async markAllAsRead(businessId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('business_id', businessId)
-      .eq('read', false)
+    // Use server-side API to ensure proper authentication and persistence
+    const response = await fetch(`/api/notifications/mark-all-read?businessId=${businessId}`, {
+      method: 'PATCH',
+    })
 
-    if (error) {
-      console.error('Error marking all notifications as read:', error)
+    if (!response.ok) {
+      console.error('Error marking all notifications as read:', response.statusText)
+      throw new Error('Failed to mark all notifications as read')
     }
   }
 
   async deleteNotification(notificationId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('notifications')
-      .delete()
-      .eq('id', notificationId)
+    // Use server-side API to ensure proper authentication and persistence
+    const response = await fetch(`/api/notifications/${notificationId}`, {
+      method: 'DELETE',
+    })
 
-    if (error) {
-      console.error('Error deleting notification:', error)
-      throw error
+    if (!response.ok) {
+      console.error('Error deleting notification:', response.statusText)
+      throw new Error('Failed to delete notification')
     }
   }
 
   async clearAllNotifications(businessId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from('notifications')
-      .delete()
-      .eq('business_id', businessId)
+    // Use server-side API to ensure proper authentication and persistence
+    const response = await fetch(`/api/notifications/clear?businessId=${businessId}`, {
+      method: 'DELETE',
+    })
 
-    if (error) {
-      console.error('Error clearing notifications:', error)
-      throw error
+    if (!response.ok) {
+      console.error('Error clearing notifications:', response.statusText)
+      throw new Error('Failed to clear notifications')
     }
   }
 
