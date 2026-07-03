@@ -1,5 +1,3 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { db, supabaseAdmin } from '@/lib/supabase/admin'
 
@@ -110,6 +108,11 @@ export async function POST(request: Request) {
     // Step 2: Create business row
     try {
       console.log('[complete-signup] Creating business row...')
+      
+      // Calculate trial end date (14 days from now)
+      const trialEndsAt = new Date()
+      trialEndsAt.setDate(trialEndsAt.getDate() + 14)
+      
       const business = await db.createBusiness({
         user_id: userId,
         name: businessName,
@@ -119,8 +122,9 @@ export async function POST(request: Request) {
         messaging_status: 'active',
         onboarding_status: 'profile_created',
         twilio_phone_number: null, // Will be set during provisioning
-        subscription_status: null, // Will be set by Stripe webhook
+        subscription_status: 'trialing', // Set to trialing for new accounts
         stripe_customer_id: null,
+        trial_ends_at: trialEndsAt.toISOString(),
       })
 
       if (!business) {
@@ -128,41 +132,10 @@ export async function POST(request: Request) {
       }
 
       console.log('[complete-signup] Business row created:', business.id)
+      console.log('[complete-signup] Trial ends at:', trialEndsAt.toISOString())
 
-      // Step 3: Sign in the user
-      const cookieStore = cookies()
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            getAll() {
-              return cookieStore.getAll()
-            },
-            setAll(cookiesToSet) {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
-            },
-          },
-        }
-      )
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (signInError) {
-        console.error('[complete-signup] Sign in failed after account creation:', signInError)
-        // Don't rollback - account was created successfully, user can sign in manually
-        return NextResponse.json(
-          { ok: true, business, signInRequired: true, warning: 'Account created but automatic sign-in failed. Please sign in manually.' },
-          { status: 200 }
-        )
-      }
-
-      console.log('[complete-signup] Account created and user signed in successfully')
+      // Return success - client will handle sign-in
+      console.log('[complete-signup] Account created successfully')
       return NextResponse.json({ ok: true, business })
 
     } catch (businessError: any) {

@@ -284,9 +284,16 @@ function AuthContent() {
         return
       }
 
-      if (data.signInRequired) {
-        // Account created but auto sign-in failed
-        setError(data.warning || 'Account created! Please sign in to continue.')
+      // Account created successfully - now sign in the client
+      console.log('[Auth] Account created, signing in client...')
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (signInError) {
+        console.error('[Auth] Client sign-in failed after account creation:', signInError)
+        setError('Account created! Please sign in to continue.')
         setIsSignIn(true)
         setLoading(false)
         setIsSubmitting(false)
@@ -294,7 +301,17 @@ function AuthContent() {
         return
       }
 
-      // Success - redirect to dashboard
+      if (!signInData.session) {
+        console.error('[Auth] Client sign-in returned no session')
+        setError('Account created! Please sign in to continue.')
+        setIsSignIn(true)
+        setLoading(false)
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
+        return
+      }
+
+      console.log('[Auth] Client signed in successfully')
       setLoading(false)
       setIsSubmitting(false)
       isSubmittingRef.current = false
