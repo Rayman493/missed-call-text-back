@@ -385,6 +385,120 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+
+      // === FINAL TEXT-MESSAGE FALLBACK ===
+      // If AI failed and voicemail produced no usable transcript (or any error occurred),
+      // sms_pending may still be true. Send the structured summary with all fields "Not collected"
+      // so the customer always receives a reply they can respond to.
+      try {
+        const { data: pendingCallEvent } = await supabaseAdmin
+          .from('call_events')
+          .select('*')
+          .eq('twilio_call_sid', voicemail.call_sid)
+          .eq('sms_pending', true)
+          .maybeSingle();
+
+        if (pendingCallEvent && !pendingCallEvent.sms_sent_at) {
+          console.log('[FINAL SMS FALLBACK] sms_pending still true after all voicemail paths - sending structured fallback SMS', {
+            callSid: voicemail.call_sid,
+            leadId: voicemail.lead_id,
+            businessId: voicemail.business_id,
+            recordingStatus,
+            reason: 'ai_failed_and_voicemail_no_usable_transcript'
+          });
+
+          const { data: fallbackBusiness } = await supabaseAdmin
+            .from('businesses')
+            .select('*')
+            .eq('id', voicemail.business_id)
+            .single();
+
+          if (fallbackBusiness && voicemail.caller_phone) {
+            // Populate all fields as "Not collected" - phone from caller ID
+            const emptyExtractedInfo = {};
+
+            const aiSummary = formatAiIntakeSummary(
+              emptyExtractedInfo,
+              voicemail.caller_phone,
+              fallbackBusiness.name || 'My Business'
+            );
+
+            let smsBody = `${aiSummary}\n\nReply STOP to opt out.`;
+
+            const outOfOfficeNotice = getOutOfOfficeNotice(fallbackBusiness);
+            if (outOfOfficeNotice) {
+              const stopIndex = smsBody.indexOf('Reply STOP');
+              if (stopIndex !== -1) {
+                smsBody = smsBody.substring(0, stopIndex) + outOfOfficeNotice + '\n\n' + smsBody.substring(stopIndex);
+              } else {
+                smsBody = smsBody + '\n\n' + outOfOfficeNotice;
+              }
+            }
+
+            let fallbackConversation = await db.getOpenConversationForLead(voicemail.lead_id, voicemail.business_id);
+            if (!fallbackConversation) {
+              fallbackConversation = await db.createConversation({
+                lead_id: voicemail.lead_id,
+                business_id: voicemail.business_id,
+                status: 'open',
+                source: 'missed_call',
+                started_at: new Date().toISOString(),
+                last_activity_at: new Date().toISOString(),
+              });
+            }
+
+            const fallbackResult = await sendSms(fallbackBusiness, voicemail.caller_phone, smsBody, {
+              lead_id: voicemail.lead_id,
+              conversation_id: fallbackConversation?.id,
+            });
+
+            const fallbackMessageSid = fallbackResult?.sid || null;
+            console.log('[FINAL SMS FALLBACK] Structured fallback SMS sent', {
+              messageSid: fallbackMessageSid,
+              leadId: voicemail.lead_id,
+              callerPhone: voicemail.caller_phone,
+              allFieldsNotCollected: true
+            });
+
+            if (fallbackMessageSid) {
+              await supabaseAdmin
+                .from('call_events')
+                .update({
+                  sms_sent_at: new Date().toISOString(),
+                  sms_message_sid: fallbackMessageSid,
+                  sms_pending: false
+                })
+                .eq('twilio_call_sid', voicemail.call_sid);
+
+              await timelineEvents.messageSent(voicemail.business_id, voicemail.lead_id, fallbackConversation?.id || '', '', fallbackMessageSid);
+
+              try {
+                await createFollowUpJobs({
+                  businessId: voicemail.business_id,
+                  leadId: voicemail.lead_id,
+                  conversationId: fallbackConversation?.id,
+                  businessName: fallbackBusiness.name
+                });
+              } catch (followUpError) {
+                console.error('[FINAL SMS FALLBACK] Error creating follow-up jobs:', followUpError);
+              }
+            }
+          } else {
+            console.error('[FINAL SMS FALLBACK] Could not fetch business or missing caller phone for fallback SMS', {
+              businessId: voicemail.business_id,
+              callerPhone: voicemail.caller_phone
+            });
+          }
+        } else if (pendingCallEvent?.sms_sent_at) {
+          console.log('[FINAL SMS FALLBACK] SMS already sent, skipping fallback', { callSid: voicemail.call_sid });
+        } else {
+          console.log('[FINAL SMS FALLBACK] No pending SMS flag found, no fallback needed', { callSid: voicemail.call_sid });
+        }
+      } catch (finalFallbackError) {
+        console.error('[FINAL SMS FALLBACK] Error in final SMS fallback:', finalFallbackError);
+      }
+      // === END FINAL TEXT-MESSAGE FALLBACK ===
+
     } else {
       console.log('[RECORDING STATUS] No voicemail recording found for sid:', recordingSid);
     }

@@ -564,15 +564,21 @@ export async function POST(request: NextRequest) {
     let selectedTemplate: string;
     let selectionReason: string;
 
-    if (intakeComplete) {
+    const isFinalFallback = aiOutcome === 'ai_failed_voicemail' || aiOutcome === 'ai_failed_sms';
+
+    if (intakeComplete || isFinalFallback) {
       selectedTemplate = 'ai_summary';
-      selectionReason = 'canonical_completion_check';
+      selectionReason = isFinalFallback ? 'final_fallback_structured_summary' : 'canonical_completion_check';
     console.log('[AI SMS TEMPLATE DECISION CANONICAL]', {
       callSid,
       aiOutcome,
       intakeComplete,
-      overrideReason: 'canonical_completion_true_overrides_aiOutcome'
+      isFinalFallback,
+      overrideReason: isFinalFallback ? 'final_fallback_forces_structured_summary' : 'canonical_completion_true_overrides_aiOutcome'
     });
+      if (isFinalFallback) {
+        console.log('[FINAL SMS FALLBACK] Using structured summary formatter with all fields Not collected', { callSid, aiOutcome });
+      }
       console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] formatAiIntakeSummary via generateSummaryFromExtractedInfo');
       messageBody = generateSummaryFromExtractedInfo(extracted, callerPhone, businessName, prefixNotice);
     } else if (isPartialIntake) {

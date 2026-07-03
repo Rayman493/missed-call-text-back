@@ -74,6 +74,8 @@ export type AiCallOutcome =
   | 'early_hangup'      // Caller hung up before providing useful info
   | 'no_speech'         // Call connected but caller did not speak
   | 'ai_connection_failed'  // AI service failed before intake could start
+  | 'ai_failed_voicemail'  // AI failed, redirected to voicemail (structured SMS sent by fallback)
+  | 'ai_failed_sms'    // AI and voicemail both failed, structured SMS sent as final fallback
 
 /**
  * Centralized SMS Decision Logic
@@ -324,6 +326,27 @@ export async function determineSmsTemplate(params: {
       template: 'none',
       shouldSend: false,
       reason: 'ai_connection_failed_sms_authoritative',
+      aiCompleted: false,
+      voicemailCompleted: false,
+      aiCallRecordId: aiCallRecord?.id,
+      aiOutcome: effectiveOutcome,
+      fallbackSmsType: 'none'
+    }
+  } else if (effectiveOutcome === 'ai_failed_voicemail' || effectiveOutcome === 'ai_failed_sms') {
+    // AI failed and fallback (voicemail or SMS) already sent structured summary SMS
+    // Suppress voice-status generic SMS to prevent duplicates
+    console.log('[AUTO SMS DECISION] AI fallback outcome - structured SMS already sent by fallback layer', {
+      callSid,
+      leadId,
+      aiCallRecordId: aiCallRecord?.id,
+      outcome,
+      reason: 'ai_fallback_sms_already_sent'
+    })
+
+    result = {
+      template: 'none',
+      shouldSend: false,
+      reason: 'ai_fallback_sms_already_sent',
       aiCompleted: false,
       voicemailCompleted: false,
       aiCallRecordId: aiCallRecord?.id,

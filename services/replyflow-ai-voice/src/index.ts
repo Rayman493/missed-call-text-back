@@ -4316,6 +4316,47 @@ async function createFallbackLead(
 
     console.log('[LEAD CREATED FROM FALLBACK] All fallback data saved successfully');
 
+    // === FINAL TEXT-MESSAGE FALLBACK ===
+    // AI failed and the Twilio redirect to voicemail also failed.
+    // Send the structured summary SMS with all intake fields "Not collected"
+    // so the customer still gets a reply they can respond to.
+    // Uses sendAIConfirmationSMS with empty extractedInfo; the ai-confirmation-sms
+    // route detects outcome 'ai_failed_voicemail' and forces the structured formatter.
+    if (lead?.id && conversation?.id) {
+      try {
+        console.log('[FINAL SMS FALLBACK] Sending structured summary SMS after voicemail redirect failure', {
+          callSid,
+          businessId,
+          leadId: lead.id,
+          conversationId: conversation.id,
+          callerPhone,
+          reason: 'ai_failed_and_voicemail_redirect_also_failed'
+        });
+
+        await sendAIConfirmationSMS(
+          businessId,
+          lead.id,
+          conversation.id,
+          callSid || 'unknown',
+          callerPhone || 'unknown',
+          {} // empty extractedInfo - all fields will show "Not collected"
+        );
+
+        console.log('[FINAL SMS FALLBACK] Structured summary SMS dispatched successfully', {
+          callSid,
+          leadId: lead.id
+        });
+      } catch (smsFallbackError) {
+        console.log('[FINAL SMS FALLBACK] Error sending structured summary SMS:', smsFallbackError);
+      }
+    } else {
+      console.log('[FINAL SMS FALLBACK] Skipping SMS - missing lead or conversation', {
+        hasLead: !!lead?.id,
+        hasConversation: !!conversation?.id
+      });
+    }
+    // === END FINAL TEXT-MESSAGE FALLBACK ===
+
   } catch (error) {
     console.log('[LEAD CREATED FROM FALLBACK] Fallback lead creation failed:', error);
   }
