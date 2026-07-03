@@ -8,6 +8,7 @@ import PageBackground from '@/components/PageBackground'
 import BrandIcon from '@/components/BrandIcon'
 import HomepageErrorBoundary from '@/components/HomepageErrorBoundary'
 import HomepageInteractiveDemo from '@/components/HomepageInteractiveDemo'
+import HomepageAuthRedirect from '@/components/HomepageAuthRedirect'
 import { motion } from 'framer-motion'
 
 // Structured Data for Google Search
@@ -200,6 +201,7 @@ export default async function Home() {
   return (
     <>
       <StructuredData />
+      <HomepageAuthRedirect />
       <PageBackground>
         <SSRSafeNavbar forceDark={true} />
 
