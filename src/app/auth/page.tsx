@@ -169,13 +169,17 @@ function AuthContent() {
       let redirectTarget: string
       if (business) {
         // Business found - go to dashboard
+        console.log('[Auth] Business found for user:', persistedSession.user.id, '- routing to dashboard')
         redirectTarget = returnToParam || redirectParam || '/dashboard'
       } else if (businessError?.code === 'PGRST116') {
         // No business row confirmed - go to onboarding
+        console.log('[Auth] No business row found for user:', persistedSession.user.id, '- routing to onboarding (orphan auth recovery)')
         redirectTarget = '/onboarding'
       } else {
-        // Business query error - go to dashboard with setup check failed, not onboarding
-        redirectTarget = '/dashboard?setup_check=failed'
+        // Business query error or no business found - route to onboarding for recovery
+        // This handles orphan auth users gracefully instead of sending them to a broken dashboard
+        console.log('[Auth] Business query error or no business for user:', persistedSession.user.id, '- routing to onboarding for recovery', businessError)
+        redirectTarget = '/onboarding'
       }
 
       await new Promise(resolve => setTimeout(resolve, 800))
@@ -241,7 +245,7 @@ function AuthContent() {
 
         if (isDuplicateError) {
           setExistingAccount(true)
-          setError('Account already exists. Please sign in.')
+          setError('This email already has an account. Sign in to continue setup.')
         } else {
           setError(errorMessage)
         }

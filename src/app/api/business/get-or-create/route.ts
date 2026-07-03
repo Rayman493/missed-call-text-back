@@ -73,16 +73,19 @@ export async function POST(request: Request) {
 
     if (!business) {
       console.error('[get-or-create] Failed to resolve business for user:', user.id)
-      // Check if this is due to incomplete business profile
+      // Check if this is due to incomplete business profile - this is expected for new users
       if (!businessData?.name || !businessData?.business_phone_number) {
+        console.log('[get-or-create] Business profile incomplete - user needs to complete onboarding')
         return NextResponse.json(
-          { ok: false, step: 'incomplete_profile', reason: 'no_business_profile', error: 'Business profile incomplete - name and phone required' },
+          { ok: false, step: 'incomplete_profile', reason: 'no_business_profile', needsOnboarding: true, error: 'Business profile incomplete - name and phone required' },
           { status: 200 } // 200 not 400 - this is expected for new users
         )
       }
+      // Business lookup failed but this could be a recoverable state (auth user exists but no business)
+      console.log('[get-or-create] Business missing but auth user exists - recoverable state')
       return NextResponse.json(
-        { ok: false, step: 'resolve_business', error: 'Failed to create or find business' },
-        { status: 500 }
+        { ok: false, step: 'business_missing', reason: 'no_business_row', needsOnboarding: true, error: 'Business row not found - user needs to complete onboarding' },
+        { status: 200 } // 200 not 500 - this is a recoverable state, not a server error
       )
     }
 

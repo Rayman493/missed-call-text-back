@@ -285,6 +285,7 @@ export default function OnboardingPage() {
       }
 
       // Use centralized getOrCreateBusiness API - backend will provision dedicated local number
+      console.log('[Onboarding] Creating/updating business for user:', user.id)
       const response = await fetch('/api/business/get-or-create', {
         method: 'POST',
         headers: {
@@ -304,8 +305,20 @@ export default function OnboardingPage() {
         })
       })
 
+      const responseData = await response.json()
+      console.log('[Onboarding] API response:', responseData)
+
+      // Handle recoverable state (auth user exists but no business)
+      if (!response.ok && responseData.needsOnboarding) {
+        console.log('[Onboarding] Recoverable state detected - user needs onboarding (this should not happen here)')
+        // This shouldn't happen since we're providing complete data, but handle it gracefully
+        setError('Please complete your business information.')
+        setLoading(false)
+        return
+      }
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        const errorData = responseData || { error: 'Unknown error' }
         console.error('[Onboarding] Save error:', response.status, errorData)
         const errorMessage = errorData.step
           ? `Failed at step: ${errorData.step}. ${errorData.error}`
@@ -313,13 +326,14 @@ export default function OnboardingPage() {
         throw new Error(errorMessage)
       }
 
-      const data = await response.json()
-      const business = data.business
+      const business = responseData.business
 
       if (!business) {
-        console.error('[Onboarding] No business returned from API. Response:', data)
+        console.error('[Onboarding] No business returned from API. Response:', responseData)
         throw new Error('Failed to create business: no business in response')
       }
+
+      console.log('[Onboarding] Business created/updated successfully:', business.id)
 
       // Refresh business context to update state
       await refreshBusiness()

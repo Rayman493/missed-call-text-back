@@ -101,6 +101,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         if (fetchError.code === 'PGRST116') {
           // No business found - do NOT auto-create, just set business to null
           log('[BusinessContext] No business found (PGRST116), not auto-creating. User must explicitly create business.')
+          log('[BusinessContext] Orphan auth recovery triggered for user:', user.id)
           setBusiness(null)
           setBusinessMissingConfirmed(true) // Confirmed no business
           setLoading(false)
@@ -109,13 +110,14 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           // For other errors, do NOT assume no business - keep business null but mark fetch as complete
           // This prevents sending existing users to onboarding due to transient failures
           log('[BusinessContext] Business query failed (non-PGRST116 error), treating as unknown state')
+          log('[BusinessContext] Error:', fetchError.message, 'for user:', user.id)
           setBusiness(null)
           setBusinessMissingConfirmed(false) // Not confirmed, could be error
           setLoading(false)
           setFetchComplete(true)
         }
       } else {
-        log('[BusinessContext] Business found:', businessData?.id)
+        log('[BusinessContext] Business found:', businessData?.id, 'for user:', user.id)
         setBusiness(businessData)
         setBusinessMissingConfirmed(false)
         setBusinessVerified(true)
