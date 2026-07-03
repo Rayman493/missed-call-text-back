@@ -33,6 +33,7 @@ import { hasActiveSubscription } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state'
+import { BUSINESS_SERVICE_TYPES } from '@/lib/business-service-types'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
@@ -145,6 +146,8 @@ export default function SettingsContent() {
       const updatePayload: any = {
         name: businessData.name,
         business_phone_number: businessData.business_phone_number,
+        business_type: businessData.business_type,
+        business_type_other: businessData.business_type_other,
         out_of_office_enabled: businessData.out_of_office_enabled,
         out_of_office_start: businessData.out_of_office_start,
         out_of_office_end: businessData.out_of_office_end,
@@ -167,7 +170,7 @@ export default function SettingsContent() {
         'out_of_office_message' in updatePayload
       )
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('businesses')
         .update(updatePayload)
         .eq('id', businessData.id)
@@ -182,11 +185,15 @@ export default function SettingsContent() {
         })
         throw new Error(`Failed to save settings: ${error.message} (code: ${error.code})`)
       }
+
+      // Return the confirmed database record
+      return data
     },
-    onBusinessUpdated: (updatedBusiness) => {
-      // Set save success state when business is updated after successful save
+    onBusinessUpdated: async (updatedBusiness) => {
+      // Force refresh from database to get confirmed persisted values
+      await refreshBusiness(true)
+      // Set save success state after business is refreshed
       setSaveSuccess(true)
-      refreshBusiness()
       showToast('Settings saved successfully', 'success')
     }
   })
@@ -1171,6 +1178,41 @@ export default function SettingsContent() {
                       className="w-full px-4 py-3 border border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all text-sm hover:border-slate-600/50"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-2">
+                      Business Type
+                    </label>
+                    <select
+                      value={formBusiness.business_type || ''}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        updateBusiness({ 
+                          business_type: value,
+                          business_type_other: value === 'Other' ? formBusiness.business_type_other : null
+                        })
+                      }}
+                      className="w-full px-4 py-3 border border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-slate-800/40 text-foreground transition-all text-sm hover:border-slate-600/50"
+                    >
+                      <option value="">Select your business type</option>
+                      {BUSINESS_SERVICE_TYPES.map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {formBusiness.business_type === 'Other' && (
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Specify Business Type
+                      </label>
+                      <input
+                        type="text"
+                        value={formBusiness.business_type_other || ''}
+                        onChange={(e) => updateBusiness({ business_type_other: e.target.value })}
+                        placeholder="e.g., Pool Service, Wedding Photographer"
+                        className="w-full px-4 py-3 border border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all text-sm hover:border-slate-600/50"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">
                       Business Phone Number
