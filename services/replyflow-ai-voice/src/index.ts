@@ -2328,7 +2328,19 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       // Robust name/service parsing for combined answers like:
       // "My name is Ryan. I want to get my tree cut down."
       const stripNamePrefix = (s: string): string =>
-        s.replace(/^(?:my name is|i am|i'm|this is|it is|it's)\s+/i, '').trim();
+        s
+          .replace(/^(?:hi|hello|hey)[,\s]+/i, '')
+          .replace(/^(?:my name is|my name's|name is|i am|i'm|this is|it is|it's)\s+/i, '')
+          .replace(/\s+here$/i, '')
+          .trim();
+      const normalizeNameCandidate = (s: string): string => {
+        let normalized = stripNamePrefix(s)
+          .replace(/\s+(?:and\s+)?(?:i\s+(?:need|want|would like|am looking for|am looking to)|i'm\s+(?:looking for|looking to|trying to)|calling about)\b.*$/i, '')
+          .replace(/[.,;:]\s*$/i, '')
+          .trim();
+        normalized = stripNamePrefix(normalized);
+        return normalized;
+      };
       const stripServicePrefix = (s: string): string =>
         s
           .replace(/^(?:i want to|i would like to|i'd like to|i need to|i need|i'm looking to|i am looking to|looking to|calling about|i'm calling about|i am calling about)\s+/i, '')
@@ -2336,10 +2348,14 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
           .trim();
 
       const namePatterns = [
-        /(?:^|\.\s+|,\s*)my name is\s+(.+?)(?:\.|,|;|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
-        /(?:^|\.\s+|,\s*)i am\s+(.+?)(?:\.|,|;|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
-        /(?:^|\.\s+|,\s*)i'm\s+(.+?)(?:\.|,|;|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
-        /(?:^|\.\s+|,\s*)this is\s+(.+?)(?:\.|,|;|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
+        /(?:^|\.\s+|,\s*)(?:hi|hello|hey)[,\s]+my name is\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
+        /(?:^|\.\s+|,\s*)my name is\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
+        /(?:^|\.\s+|,\s*)my name's\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
+        /(?:^|\.\s+|,\s*)name is\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
+        /(?:^|\.\s+|,\s*)i am\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
+        /(?:^|\.\s+|,\s*)i'm\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
+        /(?:^|\.\s+|,\s*)this is\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|(?:\s+i\s+(?:want|need|would like|am looking)|\s+i'm\s+(?:looking|trying))\b|$)/i,
+        /(?:^|\.\s+|,\s*)([a-z][a-z' -]{1,40}?)\s+here(?:\.|,|;|\band\b|$)/i,
       ];
 
       const servicePatterns = [
@@ -2361,7 +2377,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       }
 
       if (nameMatch) {
-        parsedName = stripNamePrefix(nameMatch[1].trim()).replace(/[.,;]\s*$/, '');
+        parsedName = normalizeNameCandidate(nameMatch[1].trim());
         parsedName = parsedName.charAt(0).toUpperCase() + parsedName.slice(1);
       }
       if (serviceMatch) {
@@ -5466,7 +5482,20 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
       // Common prefixes to strip from a name candidate
       const stripNamePrefix = (s: string): string =>
-        s.replace(/^(?:my name is|i am|i'm|this is|it is|it's)\s+/i, '').trim();
+        s
+          .replace(/^(?:hi|hello|hey)[,\s]+/i, '')
+          .replace(/^(?:my name is|my name's|name is|i am|i'm|this is|it is|it's)\s+/i, '')
+          .replace(/\s+here$/i, '')
+          .trim();
+
+      const normalizeNameCandidate = (s: string): string => {
+        let normalized = stripNamePrefix(s)
+          .replace(/\s+(?:and\s+)?(?:i\s+(?:need|want|would like|am looking for|am looking to)|i'm\s+(?:looking for|looking to|trying to)|calling about)\b.*$/i, '')
+          .replace(/[.,;:]\s*$/i, '')
+          .trim();
+        normalized = stripNamePrefix(normalized);
+        return normalized;
+      };
 
       // Common prefixes to strip from a service candidate
       const stripServicePrefix = (s: string): string =>
@@ -5482,12 +5511,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         const nameCandidate = serviceIdx > 0
           ? trimmed.slice(0, serviceIdx).trim()
           : trimmed;
-        customerName = stripNamePrefix(
-          nameCandidate
-            .replace(/[.,;]\s*$/, '')
-            .replace(/\s+(and|i'd|i would|i want|i need)\s*$/i, '')
-            .trim()
-        ) || trimmed;
+        customerName = normalizeNameCandidate(nameCandidate) || trimmed;
         return { customerName, serviceRequested };
       }
 
@@ -5500,7 +5524,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       for (const pattern of combinedPatterns) {
         const match = trimmed.match(pattern);
         if (match) {
-          const namePart = stripNamePrefix(match[1].trim()).replace(/[.,;]\s*$/, '');
+          const namePart = normalizeNameCandidate(match[1].trim());
           const servicePart = stripServicePrefix(match[2].trim()).replace(/[.,;]\s*$/, '');
           if (namePart) customerName = namePart;
           if (servicePart) serviceRequested = servicePart;
@@ -5510,11 +5534,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
       // Extract name first
       const namePatterns = [
-        /^my name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-        /^i am\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-        /^i'm\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-        /^this is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-        /^it is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /^(?:hi|hello|hey)[,\s]+my name is\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
+        /^my name is\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
+        /^my name's\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
+        /^name is\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
+        /^i am\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
+        /^i'm\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
+        /^this is\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
+        /^it is\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
+        /^([a-z][a-z' -]{1,40}?)\s+here(?:\.|,|;|\band\b|$)/i,
       ];
       let nameMatch: RegExpMatchArray | null = null;
       for (const pattern of namePatterns) {
@@ -5537,7 +5565,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
       // Determine name and service from matches
       if (nameMatch) {
-        const namePart = stripNamePrefix(nameMatch[1].trim()).replace(/[.,;]\s*$/, '');
+        const namePart = normalizeNameCandidate(nameMatch[1].trim());
         if (namePart) customerName = namePart;
       }
       if (serviceMatch) {
@@ -5559,7 +5587,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         if (sentences.length > 1) {
           // Use the first sentence as name if it's short (<= 4 words) or starts with a name phrase
           const first = sentences[0].trim();
-          const firstClean = stripNamePrefix(first).replace(/[.,;]\s*$/, '');
+          const firstClean = normalizeNameCandidate(first);
           if (firstClean.split(/\s+/).length <= 4) {
             customerName = firstClean;
             serviceRequested = stripServicePrefix(sentences.slice(1).join('. ').trim()).replace(/[.,;]\s*$/, '');
@@ -5582,7 +5610,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       if (customerName === trimmed && serviceRequested && serviceRequested !== 'General inquiry') {
         const serviceIdx = trimmed.toLowerCase().indexOf(serviceRequested.toLowerCase());
         if (serviceIdx > 0) {
-          const nameCandidate = stripNamePrefix(trimmed.slice(0, serviceIdx).trim()).replace(/[.,;]\s*$/, '');
+          const nameCandidate = normalizeNameCandidate(trimmed.slice(0, serviceIdx).trim());
           if (nameCandidate) customerName = nameCandidate;
         }
       }
