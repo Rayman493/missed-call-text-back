@@ -76,6 +76,11 @@ function AuthContent() {
   useEffect(() => {
     if (checkoutCancelled) {
       setError('Your free trial setup isn\'t complete yet. Complete Stripe Checkout to activate your ReplyFlow account.')
+      // Force business data refresh to clear any stale cached subscription status
+      if (typeof window !== 'undefined') {
+        console.log('[Auth] Stripe cancel detected, clearing business cache')
+        sessionStorage.removeItem('replyflow_business_verified')
+      }
     }
   }, [checkoutCancelled])
 

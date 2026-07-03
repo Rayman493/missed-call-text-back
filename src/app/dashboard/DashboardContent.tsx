@@ -263,6 +263,14 @@ export default function DashboardContent() {
   const checkoutStatus = searchParams?.get('checkout')
   const supabase = createBrowserClient()
 
+  // Force business refresh when returning from Stripe cancel to ensure stale cached data is cleared
+  useEffect(() => {
+    if (checkoutStatus === 'cancelled' && refreshBusiness) {
+      console.log('[Dashboard] Stripe cancel detected, forcing business refresh to clear stale cached data')
+      refreshBusiness(true) // Force refresh
+    }
+  }, [checkoutStatus, refreshBusiness])
+
   // Central setup health - single source of truth
   const latestLead = processedLeads[0] || null
   const setupHealth = getSetupHealth({
