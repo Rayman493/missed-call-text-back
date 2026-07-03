@@ -6284,7 +6284,6 @@ Reply to this message if you'd like to update or add any information.
         state.openAiWs = new WebSocket(openAiUrl, {
           headers: {
             'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            'OpenAI-Beta': 'realtime=v1'
           }
         });
 
@@ -6294,30 +6293,19 @@ Reply to this message if you'd like to update or add any information.
           console.log('[SIMPLE MODE] event: language_lock_active');
           console.log('[SIMPLE MODE] =========================================');
 
-          // Configure session using correct flat OpenAI Realtime API schema
+          // Configure session using GA Realtime API schema (minimal payload first)
           console.log('[SIMPLE MODE] realtime model: gpt-4o-realtime-preview');
           const sessionUpdate = {
             type: "session.update",
             session: {
               type: "realtime",
-              modalities: ["audio", "text"],
-              instructions: "You are ReplyFlow Simple Mode. The system controls the conversation. Only speak the exact prompt provided in response.create. Never acknowledge caller content. Never ask unscripted follow-up questions. Never add filler. Speak exactly what is requested and nothing else.",
-              voice: "alloy",
-              input_audio_format: "g711_ulaw",
-              output_audio_format: "g711_ulaw",
-              input_audio_transcription: { model: "whisper-1" },
-              turn_detection: {
-                type: "server_vad",
-                threshold: 0.5,
-                prefix_padding_ms: 300,
-                silence_duration_ms: 1150,
-                create_response: false
-              }
+              instructions: "You are ReplyFlow Simple Mode. The system controls the conversation. Only speak the exact prompt provided in response.create. Never acknowledge caller content. Never ask unscripted follow-up questions. Never add filler. Speak exactly what is requested and nothing else."
             }
           };
 
           console.log('[SIMPLE MODE] =========================================');
           console.log('[SIMPLE MODE] event: session_update_send');
+          console.log('[OPENAI SESSION UPDATE PAYLOAD]', JSON.stringify(sessionUpdate, null, 2));
           console.log('[SIMPLE MODE] payload:', JSON.stringify(sessionUpdate, null, 2));
           console.log('[SIMPLE MODE] =========================================');
 
@@ -6332,20 +6320,21 @@ Reply to this message if you'd like to update or add any information.
 
           // Log session lifecycle events
           if (message.type === 'session.created') {
+            console.log('[OPENAI EVENT] session.created');
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: session.created - OpenAI accepted connection');
             console.log('[SIMPLE MODE] session.id:', message.session?.id);
             console.log('[SIMPLE MODE] session.model:', message.session?.model);
             console.log('[SIMPLE MODE] =========================================');
           } else if (message.type === 'session.updated') {
+            console.log('[OPENAI EVENT] session.updated');
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: session.updated - session.update accepted');
             console.log('[SIMPLE MODE] session.id:', message.session?.id);
-            console.log('[SIMPLE MODE] session.voice:', message.session?.voice);
-            console.log('[SIMPLE MODE] session.input_audio_format:', message.session?.input_audio_format);
-            console.log('[SIMPLE MODE] session.output_audio_format:', message.session?.output_audio_format);
+            console.log('[SIMPLE MODE] session.audio:', JSON.stringify(message.session?.audio));
             console.log('[SIMPLE MODE] =========================================');
           } else if (message.type === 'error') {
+            console.log('[OPENAI EVENT] error', message.error);
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: error from OpenAI');
             console.log('[SIMPLE MODE] error:', JSON.stringify(message.error));
@@ -8936,7 +8925,6 @@ Return only JSON, no other text.`;
                 const ws = new WebSocket(wsUrl, {
                   headers: {
                     Authorization: `Bearer ${OPENAI_API_KEY}`,
-                    'OpenAI-Beta': 'realtime=v1',
                   },
                 });
                 
@@ -9171,47 +9159,36 @@ DO NOT:
 - Ask about amenities or specific features
 - Ask any service-specific follow-up questions not in the approved prompt
 
-SPEAK ONLY the exact text provided by the app via response.create instructions.`,
-                  modalities: ["audio", "text"],
-              voice: "alloy",
-              input_audio_format: "g711_ulaw",
-              output_audio_format: "g711_ulaw",
-              input_audio_transcription: { model: "whisper-1" },
-              turn_detection: {
-                type: "server_vad",
-                threshold: 0.5,
-                prefix_padding_ms: 300,
-                silence_duration_ms: 1150,
-                create_response: false
-                // Longer silence duration prevents AI from responding during natural caller pauses.
-              }
+SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 }
               };
 
               // Log transcription configuration
+              const audioConfig = (sessionUpdatePayload.session as any).audio || {};
+              const inputFormat = audioConfig.input?.format?.type;
+              const outputFormat = audioConfig.output?.format?.type;
               console.log("[SESSION TRANSCRIPTION CONFIG]", {
-                transcriptionEnabled: !!sessionUpdatePayload.session.input_audio_transcription,
-                transcriptionModel: sessionUpdatePayload.session.input_audio_transcription?.model || 'not_set',
-                inputFormat: sessionUpdatePayload.session.input_audio_format || 'not_set',
-                turnDetection: sessionUpdatePayload.session.turn_detection?.type || 'not_set',
-                outputFormat: sessionUpdatePayload.session.output_audio_format || 'not_set',
-                voice: sessionUpdatePayload.session.voice || 'not_set',
+                transcriptionEnabled: !!audioConfig.input?.transcription,
+                transcriptionModel: audioConfig.input?.transcription?.model || 'not_set',
+                inputFormat: inputFormat || 'not_set',
+                turnDetection: audioConfig.input?.turn_detection?.type || 'not_set',
+                outputFormat: outputFormat || 'not_set',
+                voice: audioConfig.output?.voice || 'not_set',
                 model: 'gpt-4o-realtime-preview'
               });
               
-              // Verify audio format matches Twilio (g711_ulaw / mulaw 8khz)
-              const inputFormat = sessionUpdatePayload.session.input_audio_format;
-              const outputFormat = sessionUpdatePayload.session.output_audio_format;
+              // Verify audio format matches Twilio (audio/pcmu / mulaw 8khz)
               console.log('[OPENAI AUDIO FORMAT VERIFICATION]', {
                 inputFormat: inputFormat,
                 outputFormat: outputFormat,
-                matchesTwilio: inputFormat === 'g711_ulaw' && outputFormat === 'g711_ulaw',
-                twilioFormat: 'g711_ulaw (mulaw 8khz)',
-                status: inputFormat === 'g711_ulaw' ? 'MATCHED' : 'MISMATCH'
+                matchesTwilio: inputFormat === 'audio/pcmu' && outputFormat === 'audio/pcmu',
+                twilioFormat: 'audio/pcmu (mulaw 8khz)',
+                status: inputFormat === 'audio/pcmu' ? 'MATCHED' : 'MISMATCH'
               });
 
               const rawSessionUpdate = JSON.stringify(sessionUpdatePayload);
               console.log("[SESSION BUSINESS NAME]", businessName || 'we');
+              console.log("[OPENAI SESSION UPDATE PAYLOAD]", JSON.stringify(sessionUpdatePayload, null, 2));
               console.log("[OPENAI SEND] session.update", JSON.stringify(sessionUpdatePayload, null, 2));
               console.log("[SESSION.UPDATE RAW SENT]", rawSessionUpdate);
               console.log("[AI INSTRUCTIONS VERSION] confirmation-flow-v2 - session.update payload");
@@ -10723,10 +10700,12 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
 
               // Log session configuration
               if (message.type === 'session.created') {
+                console.log('[OPENAI EVENT] session.created');
                 console.log('[OPENAI RECV] session.created');
                 console.log('[SESSION] session configuration', JSON.stringify(message.session, null, 2));
               }
               if (message.type === 'session.updated') {
+                console.log('[OPENAI EVENT] session.updated');
                 console.log('[OPENAI RECV] session.updated');
                 console.log('[SESSION UPDATED RECEIVED]');
                 sessionUpdatedReceived = true;
@@ -10799,6 +10778,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
 
               // Log full error payload
               if (message.type === 'error') {
+                console.log('[OPENAI EVENT] error', message.error);
                 console.error('[OPENAI FULL ERROR]', JSON.stringify(message, null, 2));
                 console.error('[OPENAI FATAL ERROR] - stopping processing');
                 console.error('[OPENAI ERROR FIELDS]', {

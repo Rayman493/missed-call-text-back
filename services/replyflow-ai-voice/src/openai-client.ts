@@ -89,7 +89,6 @@ export class OpenAIRealtimeClient {
       const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
       const headers = {
         'Authorization': `Bearer ${this.config.apiKey}`,
-        'OpenAI-Beta': 'realtime=v1',
       };
 
       log(LogLevel.INFO, '[AI POC] OPENAI URL FINAL', { url: wsUrl });
@@ -290,30 +289,20 @@ export class OpenAIRealtimeClient {
     log(LogLevel.INFO, '[AI POC] Using GA Realtime API schema');
     log(LogLevel.INFO, '[AI POC] exact model being used', { model: 'gpt-4o-realtime-preview' });
 
-    // Configure session using correct flat OpenAI Realtime API schema (gpt-4o-realtime-preview)
+    // Configure session using GA Realtime API schema (gpt-4o-realtime-preview)
+    // Minimal payload first: only required session.type and instructions
     console.log('[OPENAI CLIENT] realtime model: gpt-4o-realtime-preview');
     const sessionUpdate = {
       type: 'session.update',
       session: {
         type: 'realtime',
-        modalities: ['audio', 'text'],
         instructions: 'You are ReplyFlow\'s phone assistant. You must speak only English. Always respond in clear American English. Never speak Spanish, French, or any other language. If audio is unclear, silence, background noise, or the caller speaks another language, still respond in English only.',
-        voice: this.config.voice || 'alloy',
-        input_audio_format: 'g711_ulaw',
-        output_audio_format: 'g711_ulaw',
-        input_audio_transcription: { model: 'whisper-1', language: 'en' },
-        turn_detection: {
-          type: 'server_vad',
-          threshold: 0.5,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 800,
-          create_response: false
-        }
       },
     };
 
     console.log('[AI ACTIVE ROUTE] replyflow-ai-voice /stream language-lock-enabled=true');
     console.log('[AI SESSION LANGUAGE LOCK SENT] english - strict lock applied');
+    console.log('[OPENAI SESSION UPDATE PAYLOAD]', JSON.stringify(sessionUpdate, null, 2));
     console.log('[OPENAI SESSION] session.update sent');
     console.log('[OPENAI SESSION] session.update fields', {
       type: sessionUpdate.type,
@@ -399,10 +388,12 @@ export class OpenAIRealtimeClient {
     console.log('[OPENAI IN] type', { type: message.type });
     switch (message.type) {
       case 'session.created':
+        console.log('[OPENAI EVENT] session.created');
         console.log('[OPENAI SESSION] session.created received');
         log(LogLevel.INFO, '[AI POC] OpenAI session created');
         break;
       case 'session.updated':
+        console.log('[OPENAI EVENT] session.updated');
         console.log('[OPENAI SESSION] session.updated received');
         console.log('[AI SESSION LANGUAGE LOCK ACKED] english - strict lock confirmed');
         this.sessionUpdatedReceived = true;
@@ -424,6 +415,12 @@ export class OpenAIRealtimeClient {
         }
         break;
       case 'error':
+        console.log('[OPENAI EVENT] error', {
+          type: message.error?.type,
+          code: message.error?.code,
+          message: message.error?.message,
+          param: message.error?.param,
+        });
         console.log('[OPENAI ERROR]', {
           type: message.error?.type,
           code: message.error?.code,
