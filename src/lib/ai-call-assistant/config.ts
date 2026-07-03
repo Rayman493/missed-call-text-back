@@ -89,18 +89,15 @@ export function isOpenAIConfigured(): boolean {
 }
 
 /**
- * Check if AI assistant is enabled for a specific business
- */
-export function isBusinessAIEnabled(business: { ai_assistant_enabled?: boolean | null; id?: string; onboarding_status?: string | null; provisioning_status?: string | null; forwarding_verified?: boolean | null }): boolean {
-  const enabled = business.ai_assistant_enabled === true
-  return enabled
-}
-
-/**
  * Check all guards for AI assistant
  * Returns true if all guards pass
+ *
+ * V1 canonical logic: AI is attempted for every eligible business.
+ * The per-business ai_assistant_enabled flag has been removed — the UI toggle
+ * no longer exists and the DB column defaults false. Legitimate skip conditions
+ * are: global env flags not set, OpenAI key missing, or Fly WebSocket URL missing.
  */
-export function checkAllGuards(businessId: string, business?: { ai_assistant_enabled?: boolean | null; onboarding_status?: string | null; provisioning_status?: string | null; forwarding_verified?: boolean | null }): { passed: boolean; reason: string } {
+export function checkAllGuards(businessId: string, business?: { onboarding_status?: string | null; provisioning_status?: string | null; forwarding_verified?: boolean | null }): { passed: boolean; reason: string } {
   // Check 1: Global enable flag
   if (!isGloballyEnabled()) {
     return { passed: false, reason: 'not_globally_enabled' }
@@ -111,17 +108,12 @@ export function checkAllGuards(businessId: string, business?: { ai_assistant_ena
     return { passed: false, reason: 'business_not_allowed' }
   }
 
-  // Check 3: Business-level AI enabled flag
-  if (business && !isBusinessAIEnabled(business)) {
-    return { passed: false, reason: 'business_ai_not_enabled' }
-  }
-
-  // Check 4: OpenAI configuration
+  // Check 3: OpenAI configuration
   if (!isOpenAIConfigured()) {
     return { passed: false, reason: 'openai_not_configured' }
   }
 
-  // Check 5: AI Voice WebSocket URL
+  // Check 4: AI Voice WebSocket URL
   const aiVoiceWsUrl = process.env.AI_VOICE_FLY_WS_URL
   if (!aiVoiceWsUrl) {
     console.error('[AI VOICE CONFIG ERROR] AI_VOICE_FLY_WS_URL is not configured. AI Voice cannot function without Fly.io WebSocket URL.', {

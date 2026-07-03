@@ -820,7 +820,6 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     console.log('[AI CALL ASSISTANT] Checking if AI should handle this call');
     console.log('[AI ROUTING GUARD CHECK] Starting guard checks', {
       businessId: business.id,
-      ai_assistant_enabled: business.ai_assistant_enabled,
       onboarding_status: business.onboarding_status,
       provisioning_status: business.provisioning_status,
       forwarding_verified: business.forwarding_verified,
