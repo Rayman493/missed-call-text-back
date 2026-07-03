@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { db, supabaseAdmin } from '@/lib/supabase/admin'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,10 +50,23 @@ export async function POST(request: Request) {
     
     if (existingUser) {
       console.log('[complete-signup] User already exists for email:', email)
-      // Check if user has a business
-      const businessLookup = await db.getBusinessByUserId(existingUser.id)
+      // Check if user has a business using admin client
+      const { data: existingBusiness, error: businessCheckError } = await supabaseAdmin
+        .from('businesses')
+        .select('*')
+        .eq('user_id', existingUser.id)
+        .limit(1)
+        .maybeSingle()
       
-      if (businessLookup.found) {
+      if (businessCheckError && businessCheckError.code !== 'PGRST116') {
+        console.error('[complete-signup] Error checking existing business:', businessCheckError)
+        return NextResponse.json(
+          { ok: false, step: 'check_business', error: 'Failed to check existing account' },
+          { status: 500 }
+        )
+      }
+      
+      if (existingBusiness) {
         return NextResponse.json(
           { ok: false, step: 'user_exists', hasBusiness: true, error: 'This email already has an account. Please sign in.' },
           { status: 409 }
@@ -105,7 +118,7 @@ export async function POST(request: Request) {
     const userId = authData.user.id
     console.log('[complete-signup] Auth user created:', userId)
 
-    // Step 2: Create business row
+    // Step 2: Create business row directly using admin client to bypass RLS
     try {
       console.log('[complete-signup] Creating business row...')
       
@@ -113,22 +126,35 @@ export async function POST(request: Request) {
       const trialEndsAt = new Date()
       trialEndsAt.setDate(trialEndsAt.getDate() + 14)
       
-      const business = await db.createBusiness({
-        user_id: userId,
-        name: businessName,
-        business_phone_number: normalizedPhone,
-        auto_reply_message: `Hi, this is ${businessName}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
-        sms_type: 'local_a2p',
-        messaging_status: 'active',
-        onboarding_status: 'profile_created',
-        twilio_phone_number: null, // Will be set during provisioning
-        subscription_status: 'trialing', // Set to trialing for new accounts
-        stripe_customer_id: null,
-        trial_ends_at: trialEndsAt.toISOString(),
-      })
+      // Insert business directly using supabaseAdmin to bypass RLS
+      const { data: business, error: businessError } = await supabaseAdmin
+        .from('businesses')
+        .insert({
+          user_id: userId,
+          name: businessName,
+          business_phone_number: normalizedPhone,
+          auto_reply_message: `Hi, this is ${businessName}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
+          sms_type: 'local_a2p',
+          messaging_status: 'active',
+          onboarding_status: 'profile_created',
+          twilio_phone_number: null, // Will be set during provisioning
+          subscription_status: 'trialing', // Set to trialing for new accounts
+          stripe_customer_id: null,
+          trial_ends_at: trialEndsAt.toISOString(),
+        })
+        .select()
+        .single()
+
+      if (businessError) {
+        console.error('[complete-signup] Business insert error:', businessError)
+        console.error('[complete-signup] Error code:', businessError.code)
+        console.error('[complete-signup] Error message:', businessError.message)
+        console.error('[complete-signup] Error details:', businessError.details)
+        throw new Error(`Business creation failed: ${businessError.message}`)
+      }
 
       if (!business) {
-        throw new Error('Business creation returned null')
+        throw new Error('Business creation returned no data')
       }
 
       console.log('[complete-signup] Business row created:', business.id)
@@ -141,6 +167,11 @@ export async function POST(request: Request) {
     } catch (businessError: any) {
       // Rollback: Delete the auth user since business creation failed
       console.error('[complete-signup] Business creation failed, rolling back auth user:', businessError)
+      console.error('[complete-signup] Business error details:', {
+        message: businessError.message,
+        code: businessError.code,
+        stack: businessError.stack,
+      })
       
       try {
         await supabaseAdmin.auth.admin.deleteUser(userId)
@@ -149,8 +180,17 @@ export async function POST(request: Request) {
         console.error('[complete-signup] Failed to rollback auth user:', rollbackError)
       }
 
+      // Return user-friendly error without exposing RLS/security details
+      const isSecurityError = businessError.code === '42501' || 
+                             businessError.message?.includes('row-level security') ||
+                             businessError.message?.includes('RLS')
+      
+      const userMessage = isSecurityError 
+        ? "We couldn't finish creating your account. Please try again. If this keeps happening, contact support."
+        : "We couldn't finish creating your account. Please try again."
+      
       return NextResponse.json(
-        { ok: false, step: 'create_business', error: businessError.message || 'Failed to create business' },
+        { ok: false, step: 'create_business', error: userMessage },
         { status: 500 }
       )
     }
