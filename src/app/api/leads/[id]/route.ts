@@ -38,7 +38,28 @@ export async function PATCH(
 
     const leadId = params.id;
     const body = await request.json();
-    const { status, deleted_at, deleted_by, deletion_reason } = body;
+    const { status, deleted_at, deleted_by, deletion_reason, raw_metadata, name } = body;
+
+    // Handle manual field edits (raw_metadata update from AI intake editor)
+    if (raw_metadata !== undefined) {
+      const metaUpdate: Record<string, any> = { raw_metadata }
+      if (name !== undefined) metaUpdate.name = name
+
+      const { data: updatedLead, error: updateError } = await supabase
+        .from('leads')
+        .update(metaUpdate)
+        .eq('id', leadId)
+        .eq('business_id', business.id)
+        .select()
+        .single()
+
+      if (updateError) {
+        console.error('Error updating lead metadata:', updateError)
+        return NextResponse.json({ error: 'Failed to update lead' }, { status: 500 })
+      }
+
+      return NextResponse.json({ lead: updatedLead })
+    }
 
     // Handle restore operation (when deleted_at is explicitly set to null)
     if (deleted_at === null) {

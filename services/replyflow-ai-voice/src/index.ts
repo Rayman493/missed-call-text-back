@@ -6285,34 +6285,23 @@ Reply to this message if you'd like to update or add any information.
           console.log('[SIMPLE MODE] event: language_lock_active');
           console.log('[SIMPLE MODE] =========================================');
 
-          // Configure session - transcription and PCMU audio output
+          // Configure session using correct flat OpenAI Realtime API schema
+          console.log('[SIMPLE MODE] realtime model: gpt-4o-realtime-preview');
           const sessionUpdate = {
             type: "session.update",
             session: {
-              type: "realtime",
+              modalities: ["audio", "text"],
               instructions: "You are ReplyFlow Simple Mode. The system controls the conversation. Only speak the exact prompt provided in response.create. Never acknowledge caller content. Never ask unscripted follow-up questions. Never add filler. Speak exactly what is requested and nothing else.",
-              audio: {
-                input: {
-                  format: {
-                    type: "audio/pcmu"
-                  },
-                  turn_detection: {
-                    type: "server_vad",
-                    threshold: 0.5,
-                    prefix_padding_ms: 300,
-                    silence_duration_ms: 1150,
-                    create_response: false
-                  },
-                  transcription: {
-                    model: "whisper-1"
-                  }
-                },
-                output: {
-                  format: {
-                    type: "audio/pcmu"
-                  },
-                  voice: "alloy"
-                }
+              voice: "alloy",
+              input_audio_format: "g711_ulaw",
+              output_audio_format: "g711_ulaw",
+              input_audio_transcription: { model: "whisper-1" },
+              turn_detection: {
+                type: "server_vad",
+                threshold: 0.5,
+                prefix_padding_ms: 300,
+                silence_duration_ms: 1150,
+                create_response: false
               }
             }
           };
@@ -9124,52 +9113,42 @@ DO NOT:
 - Ask any service-specific follow-up questions not in the approved prompt
 
 SPEAK ONLY the exact text provided by the app via response.create instructions.`,
-                  audio: {
-                    input: {
-                      format: {
-                        type: "audio/pcmu"
-                      },
-                      turn_detection: {
-                        type: "server_vad",
-                        threshold: 0.5,
-                        prefix_padding_ms: 300,
-                        silence_duration_ms: 1150,
-                        create_response: false
-                      },
-                      transcription: {
-                        model: "whisper-1"
-                      }
-                      // We intentionally use a longer silence duration to prevent the AI from responding during natural caller pauses.
-                    },
-                    output: {
-                      format: {
-                        type: "audio/pcmu"
-                      },
-                      voice: "alloy"
-                    }
-                  }
+                  modalities: ["audio", "text"],
+              voice: "alloy",
+              input_audio_format: "g711_ulaw",
+              output_audio_format: "g711_ulaw",
+              input_audio_transcription: { model: "whisper-1" },
+              turn_detection: {
+                type: "server_vad",
+                threshold: 0.5,
+                prefix_padding_ms: 300,
+                silence_duration_ms: 1150,
+                create_response: false
+                // Longer silence duration prevents AI from responding during natural caller pauses.
+              }
                 }
               };
 
               // Log transcription configuration
               console.log("[SESSION TRANSCRIPTION CONFIG]", {
-                transcriptionEnabled: !!sessionUpdatePayload.session.audio.input.transcription,
-                transcriptionModel: sessionUpdatePayload.session.audio.input.transcription?.model || 'not_set',
-                inputFormat: sessionUpdatePayload.session.audio.input.format?.type || 'not_set',
-                turnDetection: sessionUpdatePayload.session.audio.input.turn_detection?.type || 'not_set',
-                outputFormat: sessionUpdatePayload.session.audio.output.format?.type || 'not_set',
-                voice: sessionUpdatePayload.session.audio.output.voice || 'not_set'
+                transcriptionEnabled: !!sessionUpdatePayload.session.input_audio_transcription,
+                transcriptionModel: sessionUpdatePayload.session.input_audio_transcription?.model || 'not_set',
+                inputFormat: sessionUpdatePayload.session.input_audio_format || 'not_set',
+                turnDetection: sessionUpdatePayload.session.turn_detection?.type || 'not_set',
+                outputFormat: sessionUpdatePayload.session.output_audio_format || 'not_set',
+                voice: sessionUpdatePayload.session.voice || 'not_set',
+                model: 'gpt-4o-realtime-preview'
               });
               
-              // Verify audio format matches Twilio (PCMU/mulaw 8khz)
-              const inputFormat = sessionUpdatePayload.session.audio.input.format?.type;
-              const outputFormat = sessionUpdatePayload.session.audio.output.format?.type;
+              // Verify audio format matches Twilio (g711_ulaw / mulaw 8khz)
+              const inputFormat = sessionUpdatePayload.session.input_audio_format;
+              const outputFormat = sessionUpdatePayload.session.output_audio_format;
               console.log('[OPENAI AUDIO FORMAT VERIFICATION]', {
                 inputFormat: inputFormat,
                 outputFormat: outputFormat,
-                matchesTwilio: inputFormat === 'audio/pcmu' && outputFormat === 'audio/pcmu',
-                twilioFormat: 'PCMU/mulaw 8khz',
-                status: inputFormat === 'audio/pcmu' ? 'MATCHED' : 'MISMATCH'
+                matchesTwilio: inputFormat === 'g711_ulaw' && outputFormat === 'g711_ulaw',
+                twilioFormat: 'g711_ulaw (mulaw 8khz)',
+                status: inputFormat === 'g711_ulaw' ? 'MATCHED' : 'MISMATCH'
               });
 
               const rawSessionUpdate = JSON.stringify(sessionUpdatePayload);

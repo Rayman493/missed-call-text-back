@@ -749,7 +749,8 @@ async function processVoiceStatusCallback(params: any, method: string) {
         callSid: CallSid,
         leadId: lead.id,
         conversationId: conversation.id,
-        businessId: business.id
+        businessId: business.id,
+        aiCallRecord: aiCallRecord || undefined
       })
     } catch (decisionError) {
       console.error('[Twilio Voice Status Webhook] Error determining SMS template:', decisionError)

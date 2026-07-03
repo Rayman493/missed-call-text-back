@@ -108,13 +108,22 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         updatePayload.name = editValues.callerName.trim()
       }
 
-      const { error: updateError } = await supabase
-        .from('leads')
-        .update(updatePayload)
-        .eq('id', leadId)
+      // Call API route to avoid RLS issues (browser client has limited permissions)
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
 
-      if (updateError) {
-        console.error('[AICallDetails] Error updating lead:', updateError)
+      const response = await fetch(`/api/leads/${leadId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(updatePayload)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('[AICallDetails] Error updating lead via API:', errorData)
         setSaveError('Failed to save changes. Please try again.')
         return
       }
