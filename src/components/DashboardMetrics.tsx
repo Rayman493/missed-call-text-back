@@ -15,7 +15,7 @@ interface MetricsData {
   messagesSent: number
   followUpsSent: number
   customerReplies: number
-  activeConversations: number
+  recoveredLeads: number
   recoveryRate: number
   followUpResponseRate: number
   period: string
@@ -34,7 +34,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
     messagesSent: 0,
     followUpsSent: 0,
     customerReplies: 0,
-    activeConversations: 0,
+    recoveredLeads: 0,
     recoveryRate: 0,
     followUpResponseRate: 0,
     period: '30 days'
@@ -129,13 +129,6 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           messagesToday = messagesTodayData || []
         }
 
-        // Fetch active conversations (leads with recent activity) - filter by status
-        const { data: activeConversations } = await supabase
-          .from('leads')
-          .select('id, status')
-          .eq('business_id', business.id)
-          .gte('created_at', thirtyDaysAgo)
-
         // Fetch follow-ups sent - 30 days
         const { data: followUpJobs } = await supabase
           .from('follow_up_jobs')
@@ -156,9 +149,12 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         const leadsGenerated = missedCallsCaptured
         const messagesSent = outboundMessages.length
         const customerReplies = inboundMessages.length
-        const activeConversationsCount = activeConversations?.filter((l: any) => l.status === 'active' || l.status === 'new').length || 0
-        // Recovery rate should be recovered leads / captured leads, not messages sent / captured leads
-        const recoveryRate = missedCallsCaptured > 0 ? Math.min(100, Math.max(0, Math.round((activeConversationsCount / missedCallsCaptured) * 100))) : 0
+        
+        // Recovery rate: recovered leads / captured leads
+        // A lead is recovered if it has at least one inbound customer message (customer replied)
+        const recoveredLeadsSet = new Set(inboundMessages?.map((m: any) => m.lead_id) || [])
+        const recoveredLeadsCount = recoveredLeadsSet.size
+        const recoveryRate = missedCallsCaptured > 0 ? Math.min(100, Math.max(0, Math.round((recoveredLeadsCount / missedCallsCaptured) * 100))) : 0
 
         // Calculate metrics - today
         const missedCallsToday = leadsToday?.length || 0
@@ -175,7 +171,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           messagesSent,
           followUpsSent,
           customerReplies,
-          activeConversations: activeConversationsCount,
+          recoveredLeads: recoveredLeadsCount,
           recoveryRate,
           followUpResponseRate,
           period: '30 days'
