@@ -172,10 +172,31 @@ export default async function Home() {
   const { data, error } = await supabase.auth.getSession()
   const session = data?.session
 
-  // DISABLED: Auto-redirect for logged-in users
-  // Homepage is now always public - logged-in users can access it
-  // Dashboard button will take logged-in users to dashboard
-  // Render public homepage for unauthenticated users
+  // If user is signed in, check if they have an incomplete signup business
+  // If business exists but subscription_status is null, redirect to /complete-setup
+  if (session?.user) {
+    try {
+      const { data: business, error: businessError } = await supabase
+        .from('businesses')
+        .select('id, subscription_status')
+        .eq('user_id', session.user.id)
+        .limit(1)
+        .maybeSingle()
+
+      if (businessError) {
+        console.error('[Homepage] Error checking business:', businessError)
+      }
+
+      if (business && business.subscription_status === null) {
+        console.log('[Homepage] Incomplete signup detected, redirecting to /complete-setup')
+        return redirect('/complete-setup')
+      }
+    } catch (err) {
+      console.error('[Homepage] Unexpected error checking business:', err)
+    }
+  }
+
+  // Render public homepage for unauthenticated users and users with active subscriptions
   return (
     <>
       <StructuredData />
