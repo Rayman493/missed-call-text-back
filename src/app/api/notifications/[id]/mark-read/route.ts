@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 /**
  * PATCH /api/notifications/:id/mark-read
- * 
+ *
  * Mark a single notification as read for the current user's business
- * 
+ *
  * Security:
  * - Verifies user is authenticated
  * - Verifies user owns the business that the notification belongs to
@@ -18,25 +19,44 @@ export async function PATCH(
 ) {
   try {
     console.log('[NOTIFICATION MARK READ] Request received for notification:', params.id)
-    
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const cookieStore = cookies()
-    
-    // Get user session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-    if (sessionError || !session) {
-      console.error('[NOTIFICATION MARK READ] Unauthorized: No session found')
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+
+    // Get user session
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      console.error('[NOTIFICATION MARK READ] Unauthorized: No user found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const notificationId = params.id
-    console.log('[NOTIFICATION MARK READ] User:', session.user.id, 'Notification:', notificationId)
+    console.log('[NOTIFICATION MARK READ] User:', user.id, 'Notification:', notificationId)
+
+    // Use service role client for database operations after authentication
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
     // Fetch notification to verify ownership
-    const { data: notification, error: fetchError } = await supabase
+    const { data: notification, error: fetchError } = await supabaseAdmin
       .from('notifications')
       .select('id, business_id')
       .eq('id', notificationId)
@@ -53,25 +73,25 @@ export async function PATCH(
     })
 
     // Verify user owns the business
-    const { data: businessMembership, error: membershipError } = await supabase
+    const { data: businessMembership, error: membershipError } = await supabaseAdmin
       .from('business_users')
       .select('business_id')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .eq('business_id', notification.business_id)
       .single()
 
     if (membershipError || !businessMembership) {
       console.error('[NOTIFICATION MARK READ] Unauthorized: User does not own this business', {
-        userId: session.user.id,
+        userId: user.id,
         businessId: notification.business_id
       })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
     // Mark the notification as read with timestamp
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('notifications')
-      .update({ 
+      .update({
         read: true,
         read_at: new Date().toISOString()
       })
@@ -86,7 +106,7 @@ export async function PATCH(
     console.log('[NOTIFICATION MARK READ]', {
       notificationId,
       businessId: notification.business_id,
-      userId: session.user.id,
+      userId: user.id,
       success: true,
       reason: 'User marked notification as read'
     })

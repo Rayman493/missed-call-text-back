@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 /**
  * DELETE /api/notifications/clear
- * 
+ *
  * Delete all notifications for the current user's business
- * 
+ *
  * Query parameters:
  * - businessId: string (required)
- * 
+ *
  * Security:
  * - Verifies user is authenticated
  * - Verifies user owns the business
@@ -18,17 +19,30 @@ import { cookies } from 'next/headers'
 export async function DELETE(request: NextRequest) {
   try {
     console.log('[NOTIFICATION CLEAR ALL] Request received')
-    
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const cookieStore = cookies()
-    
-    // Get user session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-    if (sessionError || !session) {
-      console.error('[NOTIFICATION CLEAR ALL] Unauthorized: No session found')
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+
+    // Get user session
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      console.error('[NOTIFICATION CLEAR ALL] Unauthorized: No user found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -41,26 +55,32 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required parameter: businessId' }, { status: 400 })
     }
 
-    console.log('[NOTIFICATION CLEAR ALL] User:', session.user.id, 'Business:', businessId)
+    console.log('[NOTIFICATION CLEAR ALL] User:', user.id, 'Business:', businessId)
+
+    // Use service role client for database operations after authentication
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
     // Verify user owns the business
-    const { data: businessMembership, error: membershipError } = await supabase
+    const { data: businessMembership, error: membershipError } = await supabaseAdmin
       .from('business_users')
       .select('business_id')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .eq('business_id', businessId)
       .single()
 
     if (membershipError || !businessMembership) {
       console.error('[NOTIFICATION CLEAR ALL] Unauthorized: User does not own this business', {
-        userId: session.user.id,
+        userId: user.id,
         businessId
       })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
     // Delete all notifications for this business
-    const { error: deleteError, count } = await supabase
+    const { error: deleteError, count } = await supabaseAdmin
       .from('notifications')
       .delete()
       .eq('business_id', businessId)
@@ -72,7 +92,7 @@ export async function DELETE(request: NextRequest) {
 
     console.log('[NOTIFICATION CLEAR ALL]', {
       businessId,
-      userId: session.user.id,
+      userId: user.id,
       success: true,
       reason: 'User cleared all notifications for business',
       deletedCount: count

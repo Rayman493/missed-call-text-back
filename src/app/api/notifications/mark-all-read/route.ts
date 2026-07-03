@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 /**
  * PATCH /api/notifications/mark-all-read
- * 
+ *
  * Mark all unread notifications as read for the current user's business
- * 
+ *
  * Query parameters:
  * - businessId: string (required)
- * 
+ *
  * Security:
  * - Verifies user is authenticated
  * - Verifies user owns the business
@@ -18,17 +19,30 @@ import { cookies } from 'next/headers'
 export async function PATCH(request: NextRequest) {
   try {
     console.log('[NOTIFICATION MARK ALL READ] Request received')
-    
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const cookieStore = cookies()
-    
-    // Get user session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-    if (sessionError || !session) {
-      console.error('[NOTIFICATION MARK ALL READ] Unauthorized: No session found')
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+
+    // Get user session
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      console.error('[NOTIFICATION MARK ALL READ] Unauthorized: No user found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -41,28 +55,34 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required parameter: businessId' }, { status: 400 })
     }
 
-    console.log('[NOTIFICATION MARK ALL READ] User:', session.user.id, 'Business:', businessId)
+    console.log('[NOTIFICATION MARK ALL READ] User:', user.id, 'Business:', businessId)
+
+    // Use service role client for database operations after authentication
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
     // Verify user owns the business
-    const { data: businessMembership, error: membershipError } = await supabase
+    const { data: businessMembership, error: membershipError } = await supabaseAdmin
       .from('business_users')
       .select('business_id')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .eq('business_id', businessId)
       .single()
 
     if (membershipError || !businessMembership) {
       console.error('[NOTIFICATION MARK ALL READ] Unauthorized: User does not own this business', {
-        userId: session.user.id,
+        userId: user.id,
         businessId
       })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
     // Mark all unread notifications as read with timestamp
-    const { error: updateError, count } = await supabase
+    const { error: updateError, count } = await supabaseAdmin
       .from('notifications')
-      .update({ 
+      .update({
         read: true,
         read_at: new Date().toISOString()
       })
@@ -76,7 +96,7 @@ export async function PATCH(request: NextRequest) {
 
     console.log('[NOTIFICATION MARK ALL READ]', {
       businessId,
-      userId: session.user.id,
+      userId: user.id,
       success: true,
       reason: 'User marked all notifications as read for business',
       updatedCount: count
