@@ -51,6 +51,7 @@ export default function SchedulePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [isConnecting, setIsConnecting] = useState(false)
+  const [isDisconnecting, setIsDisconnecting] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [calendarEmail, setCalendarEmail] = useState<string | null>(null)
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
@@ -175,6 +176,35 @@ export default function SchedulePage() {
       console.error('Failed to connect calendar:', error)
       showToast('Failed to connect calendar', 'error')
       setIsConnecting(false)
+    }
+  }
+
+  const handleDisconnectCalendar = async () => {
+    if (!confirm('Disconnect Google Calendar? This will stop syncing your calendar events with ReplyFlow.')) {
+      return
+    }
+
+    setIsDisconnecting(true)
+    try {
+      const response = await fetch('/api/google/calendar/disconnect', {
+        method: 'POST',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to disconnect calendar' }))
+        throw new Error(errorData.error || 'Failed to disconnect calendar')
+      }
+
+      setCalendarConnected(false)
+      setCalendarEmail(null)
+      setEvents([])
+      showToast('Calendar disconnected successfully', 'success')
+    } catch (error) {
+      console.error('Failed to disconnect calendar:', error)
+      showToast('Failed to disconnect calendar', 'error')
+    } finally {
+      setIsDisconnecting(false)
     }
   }
 
@@ -555,7 +585,7 @@ export default function SchedulePage() {
           <AppHeader title="Schedule" />
 
           {/* Main Content */}
-          <div className="flex-1 pt-0 lg:pt-2 px-2 sm:px-3 lg:px-4 pb-20 md:pb-6">
+          <div className="flex-1 pt-0 lg:pt-2 px-2 sm:px-3 lg:px-4 pb-36 md:pb-6">
             <div className="max-w-[1400px] mx-auto">
               {/* Loading State */}
               {isLoading ? (
@@ -775,7 +805,7 @@ export default function SchedulePage() {
                           </div>
                           <button
                             onClick={handleSync}
-                            disabled={isSyncing}
+                            disabled={isSyncing || isDisconnecting}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-md transition-colors border border-slate-700/40 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {isSyncing ? (
@@ -791,6 +821,22 @@ export default function SchedulePage() {
                             )}
                           </button>
                           <button
+                            onClick={handleDisconnectCalendar}
+                            disabled={isDisconnecting || isSyncing}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600/80 hover:bg-red-700 text-white text-xs font-medium rounded-md transition-colors border border-red-700/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isDisconnecting ? (
+                              <>
+                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                <span>Disconnecting...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>Disconnect</span>
+                              </>
+                            )}
+                          </button>
+                          <button
                             onClick={() => handleAddEvent()}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-95 shadow-md"
                           >
@@ -798,36 +844,6 @@ export default function SchedulePage() {
                             <span>New Appointment</span>
                           </button>
                         </div>
-                      </div>
-
-                      {/* Calendar Header with Sync Button */}
-                      <div className="flex items-center justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-green-500 rounded-full"></div>
-                          <div>
-                            <p className="text-xs sm:text-sm font-semibold text-foreground">Google Calendar</p>
-                            {calendarEmail && (
-                              <p className="text-[10px] sm:text-xs text-slate-400">{calendarEmail}</p>
-                            )}
-                          </div>
-                        </div>
-                        <button
-                          onClick={handleSync}
-                          disabled={isSyncing}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
-                        >
-                          {isSyncing ? (
-                            <>
-                              <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                              <span>Syncing...</span>
-                            </>
-                          ) : (
-                            <>
-                              <RefreshCw className="w-3.5 h-3.5" />
-                              <span>Sync</span>
-                            </>
-                          )}
-                        </button>
                       </div>
 
                       {/* View Mode Toggle - Desktop - Simplified */}
@@ -882,11 +898,99 @@ export default function SchedulePage() {
                         </div>
                       </div>
 
+                      {/* Mobile: Compact Metrics - shown above calendar */}
+                      <div className="md:hidden mb-4">
+                        <div className="flex items-center justify-around p-3 sm:p-4 bg-slate-800/40 border border-slate-700/40 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                            <div>
+                              <p className="text-[10px] text-slate-400">Today</p>
+                              <p className="text-sm font-semibold text-foreground leading-tight">
+                                {getTodayCounts().appointments} <span className="text-[10px] font-normal text-slate-400">appts</span>
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                {getTodayCounts().jobs} {getTodayCounts().jobs === 1 ? 'job' : 'jobs'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <div>
+                              <p className="text-[10px] text-slate-400">Week</p>
+                              <p className="text-sm font-semibold text-foreground leading-tight">
+                                {getThisWeekCounts().appointments} <span className="text-[10px] font-normal text-slate-400">appts</span>
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                {getThisWeekCounts().jobs} {getThisWeekCounts().jobs === 1 ? 'job' : 'jobs'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                            <div>
+                              <p className="text-[10px] text-slate-400">Month</p>
+                              <p className="text-sm font-semibold text-foreground leading-tight">
+                                {getThisMonthCounts().appointments} <span className="text-[10px] font-normal text-slate-400">appts</span>
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                {getThisMonthCounts().jobs} {getThisMonthCounts().jobs === 1 ? 'job' : 'jobs'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Calendar Header with Sync Button - mobile only; desktop uses Compact Status Bar */}
+                      <div className="flex md:hidden items-center justify-between gap-4 mb-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-green-500 rounded-full"></div>
+                          <div>
+                            <p className="text-xs sm:text-sm font-semibold text-foreground">Google Calendar</p>
+                            {calendarEmail && (
+                              <p className="text-[10px] sm:text-xs text-slate-400">{calendarEmail}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={handleSync}
+                            disabled={isSyncing || isDisconnecting}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                          >
+                            {isSyncing ? (
+                              <>
+                                <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                                <span>Syncing...</span>
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                <span>Sync</span>
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={handleDisconnectCalendar}
+                            disabled={isDisconnecting || isSyncing}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-red-600/80 hover:bg-red-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                          >
+                            {isDisconnecting ? (
+                              <>
+                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                <span>Disconnecting...</span>
+                              </>
+                            ) : (
+                              <span>Disconnect</span>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
                       {/* Conditionally render Month or Agenda view */}
                       {viewMode === 'month' ? (
-                        <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 xl:gap-6">
-                          {/* Calendar Grid - takes 4 columns on extra-large screens, full width on smaller screens */}
-                          <div className="xl:col-span-4 order-1">
+                        <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-4 xl:gap-6">
+                          {/* Calendar Grid */}
+                          <div className="order-1">
                             <CalendarGrid
                               month={currentMonth}
                               events={visibleMonthEvents}
@@ -929,8 +1033,8 @@ export default function SchedulePage() {
                             />
                           </div>
 
-                          {/* Upcoming Agenda Sidebar - takes 1 column on extra-large screens, below calendar on smaller screens */}
-                          <div className="xl:col-span-1 order-2">
+                          {/* Upcoming Agenda Sidebar */}
+                          <div className="order-2">
                             <UpcomingAgenda
                               events={events}
                               maxEvents={8}
@@ -949,61 +1053,6 @@ export default function SchedulePage() {
                           />
                         </div>
                       )}
-
-                      {/* Mobile: Compact Metrics - Improved mobile spacing */}
-                      <div className="md:hidden mt-4 sm:mt-6">
-                        <div className="flex items-center justify-around p-3 sm:p-4 bg-slate-800/40 border border-slate-700/40 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                            <div>
-                              <p className="text-[10px] text-slate-400">Today</p>
-                              <p className="text-sm font-semibold text-foreground leading-tight">
-                                {getTodayCounts().appointments} <span className="text-[10px] font-normal text-slate-400">appts</span>
-                              </p>
-                              <p className="text-[10px] text-slate-400">
-                                {getTodayCounts().jobs} {getTodayCounts().jobs === 1 ? 'job' : 'jobs'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <div>
-                              <p className="text-[10px] text-slate-400">Week</p>
-                              <p className="text-sm font-semibold text-foreground leading-tight">
-                                {getThisWeekCounts().appointments} <span className="text-[10px] font-normal text-slate-400">appts</span>
-                              </p>
-                              <p className="text-[10px] text-slate-400">
-                                {getThisWeekCounts().jobs} {getThisWeekCounts().jobs === 1 ? 'job' : 'jobs'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                            <div>
-                              <p className="text-[10px] text-slate-400">Month</p>
-                              <p className="text-sm font-semibold text-foreground leading-tight">
-                                {getThisMonthCounts().appointments} <span className="text-[10px] font-normal text-slate-400">appts</span>
-                              </p>
-                              <p className="text-[10px] text-slate-400">
-                                {getThisMonthCounts().jobs} {getThisMonthCounts().jobs === 1 ? 'job' : 'jobs'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Google Calendar Controls - Simplified (email only, sync moved to top) */}
-                        <div className="p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-slate-700/50 shadow-sm mt-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-green-500 rounded-full"></div>
-                            <div>
-                              <p className="text-xs font-semibold text-foreground">Google Calendar</p>
-                              {calendarEmail && (
-                                <p className="text-[10px] text-slate-400">{calendarEmail}</p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
 
                       {/* Floating Add Event button for mobile */}
                       <button

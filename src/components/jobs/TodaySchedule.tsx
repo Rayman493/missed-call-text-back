@@ -185,7 +185,7 @@ export default function TodaySchedule({
             ))}
           </div>
         ) : todayJobs.length === 0 ? (
-          <div className="py-7 text-center">
+          <div className="py-5 text-center">
             <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
               <CheckCircle2 className="w-5 h-5 text-slate-400 dark:text-slate-500" />
             </div>
