@@ -122,35 +122,45 @@ export async function POST(request: Request) {
     try {
       console.log('[complete-signup] Creating business row...')
       
+      const insertPayload = {
+        user_id: userId,
+        name: businessName,
+        business_phone_number: normalizedPhone,
+        auto_reply_message: `Hi, this is ${businessName}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
+        sms_type: 'local_a2p',
+        messaging_status: 'active',
+        onboarding_status: 'profile_created',
+        twilio_phone_number: null, // Will be set during provisioning
+        subscription_status: null, // Will be set by Stripe webhook after checkout
+        stripe_customer_id: null,
+        trial_ends_at: null, // Will be set by Stripe webhook after checkout
+      }
+
+      console.log('[complete-signup] Insert payload:', insertPayload)
+      
       // Insert business directly using supabaseAdmin to bypass RLS
       // Do NOT set trial status yet - user must complete Stripe Checkout first
       const { data: business, error: businessError } = await supabaseAdmin
         .from('businesses')
-        .insert({
-          user_id: userId,
-          name: businessName,
-          business_phone_number: normalizedPhone,
-          auto_reply_message: `Hi, this is ${businessName}. Sorry we missed your call—how can we help? Reply STOP to opt out.`,
-          sms_type: 'local_a2p',
-          messaging_status: 'active',
-          onboarding_status: 'profile_created',
-          twilio_phone_number: null, // Will be set during provisioning
-          subscription_status: null, // Will be set by Stripe webhook after checkout
-          stripe_customer_id: null,
-          trial_ends_at: null, // Will be set by Stripe webhook after checkout
-        })
+        .insert(insertPayload)
         .select()
         .single()
 
       if (businessError) {
-        console.error('[complete-signup] Business insert error:', businessError)
+        console.error('[complete-signup] ========== BUSINESS INSERT ERROR ==========')
+        console.error('[complete-signup] Full Supabase error:', JSON.stringify(businessError, null, 2))
         console.error('[complete-signup] Error code:', businessError.code)
         console.error('[complete-signup] Error message:', businessError.message)
         console.error('[complete-signup] Error details:', businessError.details)
-        throw new Error(`Business creation failed: ${businessError.message}`)
+        console.error('[complete-signup] Error hint:', businessError.hint)
+        console.error('[complete-signup] Insert payload:', JSON.stringify(insertPayload, null, 2))
+        console.error('[complete-signup] User ID:', userId)
+        console.error('[complete-signup] Stack:', new Error().stack)
+        throw new Error(`Business creation failed: ${businessError.message} (code: ${businessError.code})`)
       }
 
       if (!business) {
+        console.error('[complete-signup] Business creation returned no data')
         throw new Error('Business creation returned no data')
       }
 
@@ -163,7 +173,8 @@ export async function POST(request: Request) {
 
     } catch (businessError: any) {
       // Rollback: Delete the auth user since business creation failed
-      console.error('[complete-signup] Business creation failed, rolling back auth user:', businessError)
+      console.error('[complete-signup] ========== BUSINESS CREATION FAILED ==========')
+      console.error('[complete-signup] Rolling back auth user:', userId)
       console.error('[complete-signup] Business error details:', {
         message: businessError.message,
         code: businessError.code,
@@ -175,6 +186,11 @@ export async function POST(request: Request) {
         console.log('[complete-signup] Auth user rolled back successfully')
       } catch (rollbackError: any) {
         console.error('[complete-signup] Failed to rollback auth user:', rollbackError)
+        console.error('[complete-signup] Rollback error details:', {
+          message: rollbackError.message,
+          code: rollbackError.code,
+          stack: rollbackError.stack,
+        })
       }
 
       // Return user-friendly error without exposing RLS/security details
