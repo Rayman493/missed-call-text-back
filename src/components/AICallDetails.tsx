@@ -414,9 +414,28 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </span>
             </button>
             <div className="flex items-center gap-2">
-              {!isEditMode && (
+              {isEditMode ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                    className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50 flex items-center gap-1"
+                  >
+                    {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                    Save
+                  </button>
+                </div>
+              ) : (
                 <button
                   onClick={() => {
+                    setSummaryExpanded(true)
                     setIsEditMode(true)
                     setEditValues({
                       callerName: extractedInfo?.callerName || '',

@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { db, normalizePhoneNumberForStorage } from '@/lib/supabase/admin';
-import { sendSms } from '@/lib/twilio';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
-import { timelineEvents } from '@/lib/event-timeline';
-import { createFollowUpJobs } from '@/lib/follow-ups';
 import { notificationServiceServer } from '@/lib/notifications-server';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
-import { getOutOfOfficeNotice } from '@/lib/out-of-office';
-import { formatAiIntakeSummary } from '@/lib/ai-intake-formatter';
-import { getLeadAIIntake } from '@/lib/ai-field-mapping';
 
 // CALL TRACE logging function
 function logCallTrace(data: {
@@ -521,224 +515,16 @@ export async function POST(request: NextRequest) {
       console.error('[VOICEMAIL] Failed to create voicemail notification:', error);
     }
 
-    // MISSED CALL TIMING: Check if SMS needs to be sent after voicemail completion
-    console.log('[VOICEMAIL SMS] Checking if initial SMS should be sent', {
+    // MISSED CALL TIMING: SMS is deferred to recording-status callback
+    // The structured SMS is sent AFTER transcription and extraction complete in /api/twilio/recording-status
+    // so it contains the actual extracted caller name and service. Do NOT send SMS here.
+    console.log('[VOICEMAIL SMS] SMS intentionally deferred - will be sent after extraction in recording-status callback', {
       businessId: business.id,
       callSid: callSid,
       recordingSid: recordingSid,
       leadId: lead.id,
       timestamp: new Date().toISOString()
     });
-
-    // Check for pending SMS from voice webhook
-    const { data: callEvent, error: callEventError } = await supabaseAdmin
-      .from('call_events')
-      .select('*')
-      .eq('twilio_call_sid', callSid)
-      .eq('sms_pending', true)
-      .single();
-
-    if (!callEventError && callEvent) {
-      console.log('[VOICEMAIL SMS] sms_pending flag found - sending initial missed-call SMS', {
-        callSid: callSid,
-        leadId: lead.id,
-        businessId: business.id
-      });
-      
-      // Prevent duplicate SMS by checking if already sent
-      if (callEvent.sms_sent_at) {
-        console.log('[VOICEMAIL SMS] Skipped - SMS already sent for this call', {
-          callSid: callSid,
-          smsSentAt: callEvent.sms_sent_at
-        });
-      } else {
-        // Send the delayed SMS
-        try {
-          console.log('[VOICEMAIL SMS] Sending initial missed-call SMS', {
-            to: from,
-            leadId: lead.id,
-            businessId: business.id
-          });
-
-          // Get business details for SMS sending
-          const { data: businessDetails } = await supabaseAdmin
-            .from('businesses')
-            .select('*')
-            .eq('id', business.id)
-            .single();
-
-          if (!businessDetails) {
-            console.error('[VOICEMAIL SMS] Failed to fetch business details for SMS sending');
-            return;
-          }
-
-          console.log('[VOICEMAIL SMS] Business details fetched', {
-            businessId: businessDetails.id,
-            twilioPhoneNumber: businessDetails.twilio_phone_number,
-            messagingServiceSid: businessDetails.twilio_messaging_service_sid,
-            hasAutoReply: !!businessDetails.auto_reply_message
-          });
-
-          // Ensure conversation exists
-          let conversation = await db.getOpenConversationForLead(lead.id, business.id);
-
-          if (!conversation) {
-            console.log('[VOICEMAIL SMS] Creating conversation for SMS');
-            conversation = await db.createConversation({
-              lead_id: lead.id,
-              business_id: business.id,
-              status: 'open',
-              source: 'missed_call',
-              started_at: new Date().toISOString(),
-              last_activity_at: new Date().toISOString(),
-            });
-          } else {
-            console.log('[VOICEMAIL SMS] Using existing conversation', {
-              conversationId: conversation.id
-            });
-          }
-
-          // Prepare SMS message using AI summary format
-          let personalizedMessage: string;
-          let templateSource: 'ai_summary' | 'custom' | 'voicemail_default';
-
-          // Get canonical AI intake data from lead (same source as Customer Summary)
-          const leadIntake = getLeadAIIntake(lead);
-          const extractedInfo = {
-            callerName: leadIntake.customerName || undefined,
-            reasonForCalling: leadIntake.serviceRequested || undefined,
-            importantDetails: leadIntake.additionalDetails || undefined,
-            desiredCompletionTime: leadIntake.desiredCompletion || undefined,
-            addressOrLocation: leadIntake.serviceAddress || undefined,
-            preferredCallbackTime: leadIntake.callbackTime || undefined,
-          };
-
-          // Generate AI summary SMS with canonical voicemail extraction data
-          const aiSummary = formatAiIntakeSummary(
-            extractedInfo,
-            normalizedCallerPhone,
-            businessDetails.name || 'My Business'
-          );
-
-          // Append STOP compliance
-          const aiSummaryWithStop = `${aiSummary}\n\nReply STOP to opt out.`;
-
-          // Use AI summary as default template
-          personalizedMessage = aiSummaryWithStop;
-          templateSource = 'ai_summary';
-
-          console.log('[VOICEMAIL SMS] Using AI summary format with canonical data source', {
-            leadIntake,
-            extractedInfo,
-            templateSource,
-            summaryLength: personalizedMessage.length
-          });
-
-          // Append Out of Office notice if currently active
-          const outOfOfficeNotice = getOutOfOfficeNotice(businessDetails);
-          if (outOfOfficeNotice) {
-            // Append before STOP wording to ensure compliance language remains at the end
-            const stopIndex = personalizedMessage.indexOf('Reply STOP');
-            if (stopIndex !== -1) {
-              // Insert Out of Office notice before STOP wording
-              personalizedMessage = personalizedMessage.substring(0, stopIndex) + outOfOfficeNotice + '\n\n' + personalizedMessage.substring(stopIndex);
-            } else {
-              // If no STOP wording found, append at the end
-              personalizedMessage = personalizedMessage + '\n\n' + outOfOfficeNotice;
-            }
-            console.log('[VOICEMAIL SMS] Out of Office notice appended', {
-              businessId: businessDetails.id,
-              notice: outOfOfficeNotice
-            });
-          }
-
-          console.log('[VOICEMAIL SMS] SMS prepared', {
-            to: from,
-            fromNumber: businessDetails.twilio_phone_number,
-            messageLength: personalizedMessage.length,
-            conversationId: conversation?.id,
-            templateSource,
-            messagePreview: personalizedMessage.substring(0, 100)
-          });
-
-          // Send SMS
-          const result = await sendSms(businessDetails, from, personalizedMessage, {
-            lead_id: lead.id,
-            conversation_id: conversation?.id,
-          });
-
-          const messageSid = result?.sid || null;
-
-          // Log message link debug
-          console.log('[VOICEMAIL SMS] Twilio send result', {
-            messageId: messageSid,
-            businessId: business.id,
-            leadId: lead.id,
-            conversationId: conversation?.id,
-            direction: 'outbound',
-            bodyPresent: !!personalizedMessage,
-            createdAt: new Date().toISOString(),
-            reason: 'SMS sent from voicemail callback with delayed auto-reply'
-          });
-
-          if (messageSid) {
-            console.log('[VOICEMAIL SMS] Twilio send success', {
-              messageSid,
-              callSid: callSid
-            });
-              
-              // Update call_event to mark SMS as sent
-              await supabaseAdmin
-                .from('call_events')
-                .update({
-                  sms_sent_at: new Date().toISOString(),
-                  sms_message_sid: messageSid,
-                  sms_pending: false
-                })
-                .eq('twilio_call_sid', callSid);
-
-              // Create timeline events
-              await timelineEvents.messageSent(business.id, lead.id, conversation?.id || '', '', messageSid);
-
-              console.log('[VOICEMAIL SMS] Outbound message saved to database', {
-                messageSid,
-                leadId: lead.id,
-                conversationId: conversation?.id
-              });
-
-              // Create follow-up jobs
-              try {
-                console.log('[VOICEMAIL SMS] Creating follow-up jobs', {
-                  businessId: business.id,
-                  leadId: lead.id,
-                  conversationId: conversation?.id
-                });
-
-                const followUpJobs = await createFollowUpJobs({
-                  businessId: business.id,
-                  leadId: lead.id,
-                  conversationId: conversation?.id,
-                  businessName: businessDetails.name
-                });
-
-                console.log(`[VOICEMAIL SMS] Created ${followUpJobs.length} follow-up jobs`);
-              } catch (followUpError) {
-                console.error('[VOICEMAIL SMS] Error creating follow-up jobs:', followUpError);
-              }
-
-            } else {
-              console.log('[VOICEMAIL SMS] Twilio send failed - no messageSid returned');
-            }
-          } catch (smsError) {
-            console.error('[VOICEMAIL SMS] Error sending delayed SMS:', smsError);
-          }
-        }
-      } else {
-        console.log('[VOICEMAIL SMS] Skipped - no pending SMS flag found for this call', {
-          callSid: callSid,
-          callEventError: callEventError?.message
-        });
-      }
 
     // Return thank you TwiML
     const thankYouTwiml = `<?xml version="1.0" encoding="UTF-8"?>

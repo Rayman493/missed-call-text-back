@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { supabaseAdmin, db } from '@/lib/supabase/admin';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
-import { normalizePhoneNumber } from '@/lib/twilio';
+import { normalizePhoneNumber, sendSms } from '@/lib/twilio';
 import { extractFromVoicemailTranscript, safeMergeVoicemailExtraction } from '@/lib/voicemail-extraction';
 import { transcribeVoicemail } from '@/lib/voicemail-transcription';
+import { getLeadAIIntake } from '@/lib/ai-field-mapping';
+import { formatAiIntakeSummary } from '@/lib/ai-intake-formatter';
+import { getOutOfOfficeNotice } from '@/lib/out-of-office';
+import { timelineEvents } from '@/lib/event-timeline';
+import { createFollowUpJobs } from '@/lib/follow-ups';
 
 export async function POST(request: NextRequest) {
   console.log('[RECORDING STATUS ROUTE HIT]')
@@ -245,6 +250,125 @@ export async function POST(request: NextRequest) {
                       verifiedVoicemailExtraction: verifiedLead?.raw_metadata?.voicemail_extraction,
                       metadataMatches: JSON.stringify(verifiedLead?.raw_metadata) === JSON.stringify(updatedMetadata)
                     });
+
+                    // === SEND STRUCTURED SMS NOW (after extraction, using canonical data) ===
+                    // Check if there is a pending SMS for this call that hasn't been sent yet
+                    try {
+                      const { data: callEvent } = await supabaseAdmin
+                        .from('call_events')
+                        .select('*')
+                        .eq('twilio_call_sid', voicemail.call_sid)
+                        .eq('sms_pending', true)
+                        .maybeSingle();
+
+                      if (callEvent && !callEvent.sms_sent_at) {
+                        console.log('[RECORDING STATUS SMS] sms_pending flag found, sending structured SMS after extraction');
+
+                        // Fetch the updated lead with freshly extracted data
+                        const { data: freshLead } = await supabaseAdmin
+                          .from('leads')
+                          .select('*')
+                          .eq('id', voicemail.lead_id)
+                          .single();
+
+                        const { data: businessDetails } = await supabaseAdmin
+                          .from('businesses')
+                          .select('*')
+                          .eq('id', voicemail.business_id)
+                          .single();
+
+                        if (freshLead && businessDetails) {
+                          const callerPhone = voicemail.caller_phone;
+
+                          // Build canonical extracted info from freshly-written lead
+                          const leadIntake = getLeadAIIntake(freshLead);
+                          const extractedInfo = {
+                            callerName: leadIntake.customerName || undefined,
+                            reasonForCalling: leadIntake.serviceRequested || undefined,
+                            importantDetails: leadIntake.additionalDetails || undefined,
+                            desiredCompletionTime: leadIntake.desiredCompletion || undefined,
+                            addressOrLocation: leadIntake.serviceAddress || undefined,
+                            preferredCallbackTime: leadIntake.callbackTime || undefined,
+                          };
+
+                          const aiSummary = formatAiIntakeSummary(
+                            extractedInfo,
+                            callerPhone,
+                            businessDetails.name || 'My Business'
+                          );
+
+                          let smsBody = `${aiSummary}\n\nReply STOP to opt out.`;
+
+                          const outOfOfficeNotice = getOutOfOfficeNotice(businessDetails);
+                          if (outOfOfficeNotice) {
+                            const stopIndex = smsBody.indexOf('Reply STOP');
+                            if (stopIndex !== -1) {
+                              smsBody = smsBody.substring(0, stopIndex) + outOfOfficeNotice + '\n\n' + smsBody.substring(stopIndex);
+                            } else {
+                              smsBody = smsBody + '\n\n' + outOfOfficeNotice;
+                            }
+                          }
+
+                          let conversation = await db.getOpenConversationForLead(voicemail.lead_id, voicemail.business_id);
+                          if (!conversation) {
+                            conversation = await db.createConversation({
+                              lead_id: voicemail.lead_id,
+                              business_id: voicemail.business_id,
+                              status: 'open',
+                              source: 'missed_call',
+                              started_at: new Date().toISOString(),
+                              last_activity_at: new Date().toISOString(),
+                            });
+                          }
+
+                          const result = await sendSms(businessDetails, callerPhone, smsBody, {
+                            lead_id: voicemail.lead_id,
+                            conversation_id: conversation?.id,
+                          });
+
+                          const messageSid = result?.sid || null;
+                          console.log('[RECORDING STATUS SMS] Structured SMS sent after extraction', {
+                            messageSid,
+                            leadId: voicemail.lead_id,
+                            extractedName: leadIntake.customerName,
+                            extractedService: leadIntake.serviceRequested
+                          });
+
+                          if (messageSid) {
+                            await supabaseAdmin
+                              .from('call_events')
+                              .update({
+                                sms_sent_at: new Date().toISOString(),
+                                sms_message_sid: messageSid,
+                                sms_pending: false
+                              })
+                              .eq('twilio_call_sid', voicemail.call_sid);
+
+                            await timelineEvents.messageSent(voicemail.business_id, voicemail.lead_id, conversation?.id || '', '', messageSid);
+
+                            try {
+                              await createFollowUpJobs({
+                                businessId: voicemail.business_id,
+                                leadId: voicemail.lead_id,
+                                conversationId: conversation?.id,
+                                businessName: businessDetails.name
+                              });
+                            } catch (followUpError) {
+                              console.error('[RECORDING STATUS SMS] Error creating follow-up jobs:', followUpError);
+                            }
+                          }
+                        } else {
+                          console.error('[RECORDING STATUS SMS] Could not fetch fresh lead or business for SMS send');
+                        }
+                      } else if (callEvent?.sms_sent_at) {
+                        console.log('[RECORDING STATUS SMS] SMS already sent for this call, skipping', { callSid: voicemail.call_sid });
+                      } else {
+                        console.log('[RECORDING STATUS SMS] No pending SMS flag found, skipping', { callSid: voicemail.call_sid });
+                      }
+                    } catch (smsError) {
+                      console.error('[RECORDING STATUS SMS] Error sending post-extraction SMS:', smsError);
+                    }
+                    // === END SMS SEND ===
                   }
                 } else {
                   console.log('[RECORDING STATUS] Low confidence extraction, skipping lead update');
