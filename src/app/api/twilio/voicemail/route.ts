@@ -9,6 +9,7 @@ import { notificationServiceServer } from '@/lib/notifications-server';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 import { getOutOfOfficeNotice } from '@/lib/out-of-office';
+import { formatAiIntakeSummary } from '@/lib/ai-intake-formatter';
 
 // CALL TRACE logging function
 function logCallTrace(data: {
@@ -596,29 +597,32 @@ export async function POST(request: NextRequest) {
             });
           }
 
-          // Prepare SMS message
-          let messageToSend: string;
-          let templateSource: 'custom' | 'stale_default_replaced' | 'voicemail_default';
+          // Prepare SMS message using AI summary format
+          let personalizedMessage: string;
+          let templateSource: 'ai_summary' | 'custom' | 'voicemail_default';
 
-          // Define old stale default template
-          const staleDefaultTemplate = 'Sorry we missed your call—how can we help?';
+          // Get voicemail extraction data from lead's raw_metadata
+          const extractedInfo = lead.raw_metadata?.extractedInfo || lead.raw_metadata?.voicemailExtraction || {};
 
-          if (businessDetails.auto_reply_message && businessDetails.auto_reply_message.trim()) {
-            // Check if the custom message is actually the old stale default
-            if (businessDetails.auto_reply_message.includes(staleDefaultTemplate)) {
-              console.log('[VOICEMAIL SMS] Detected stale default auto_reply_message, replacing with new voicemail template');
-              messageToSend = `Hi, this is {{business_name}}. We just missed your call and received your voicemail. If you'd like to add anything else, simply reply to this text and we'll include it with your request before getting back to you. Reply STOP to opt out.`;
-              templateSource = 'stale_default_replaced';
-            } else {
-              messageToSend = businessDetails.auto_reply_message;
-              templateSource = 'custom';
-            }
-          } else {
-            messageToSend = `Hi, this is {{business_name}}. We just missed your call and received your voicemail. If you'd like to add anything else, simply reply to this text and we'll include it with your request before getting back to you. Reply STOP to opt out.`;
-            templateSource = 'voicemail_default';
-          }
+          // Generate AI summary SMS with voicemail extraction data
+          const aiSummary = formatAiIntakeSummary(
+            extractedInfo,
+            normalizedCallerPhone,
+            businessDetails.name || 'My Business'
+          );
 
-          let personalizedMessage = messageToSend.replace('{{business_name}}', businessDetails.name || 'My Business');
+          // Append STOP compliance
+          const aiSummaryWithStop = `${aiSummary}\n\nReply STOP to opt out.`;
+
+          // Use AI summary as default template
+          personalizedMessage = aiSummaryWithStop;
+          templateSource = 'ai_summary';
+
+          console.log('[VOICEMAIL SMS] Using AI summary format', {
+            extractedInfo,
+            templateSource,
+            summaryLength: personalizedMessage.length
+          });
 
           // Append Out of Office notice if currently active
           const outOfOfficeNotice = getOutOfOfficeNotice(businessDetails);
