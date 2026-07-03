@@ -392,7 +392,8 @@ function AuthContent() {
                   <p className="text-xs text-slate-400">Step 1 of 2: Create Your Account</p>
                 </div>
                 <div className="flex-1">
-                  <div className="h-1 bg-slate-600 rounded-full"></div>
+                  <div className="h-1 bg-slate-600 rounded-full mb-3"></div>
+                  <div className="h-4"></div>
                 </div>
               </div>
             </div>

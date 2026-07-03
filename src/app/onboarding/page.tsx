@@ -379,7 +379,8 @@ export default function OnboardingPage() {
           <div className="mb-4">
           <div className="flex items-center gap-2">
             <div className="flex-1">
-              <div className="h-1 bg-blue-600 rounded-full"></div>
+              <div className="h-1 bg-blue-600 rounded-full mb-3"></div>
+              <div className="h-4"></div>
             </div>
             <div className="flex-1">
               <div className="h-1 bg-blue-600 rounded-full mb-3"></div>
