@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import BrandIcon from '@/components/BrandIcon'
@@ -243,7 +244,7 @@ export default function CompleteSetupPage() {
 
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1">
-                  Confirm your password
+                  Enter your password to confirm account deletion
                 </label>
                 <input
                   id="password"
@@ -254,6 +255,14 @@ export default function CompleteSetupPage() {
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={isDeleting}
                 />
+                <div className="mt-2">
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
+                  >
+                    Forgot your password?
+                  </Link>
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
