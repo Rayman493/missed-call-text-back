@@ -230,17 +230,27 @@ export default function NewOnboardingPage() {
         {step === 'number-ready' && (
           <div className="bg-gray-800 rounded-xl p-6 sm:p-8">
             <div className="mb-6">
-              <div className="flex items-center gap-2">
+              {/* Progress bars row */}
+              <div className="flex gap-2 mb-3">
                 <div className="flex-1">
-                  <div className="h-1 bg-blue-600 rounded-full mb-3"></div>
+                  <div className="h-1 bg-blue-600 rounded-full"></div>
+                </div>
+                <div className="flex-1">
+                  <div className="h-1 bg-slate-600 rounded-full"></div>
+                </div>
+                <div className="flex-1">
+                  <div className="h-1 bg-slate-600 rounded-full"></div>
+                </div>
+              </div>
+              {/* Labels row */}
+              <div className="flex gap-2">
+                <div className="flex-1">
                   <p className="text-xs text-slate-400">Step 1 of 3</p>
                 </div>
                 <div className="flex-1">
-                  <div className="h-1 bg-slate-600 rounded-full mb-3"></div>
                   <div className="h-4"></div>
                 </div>
                 <div className="flex-1">
-                  <div className="h-1 bg-slate-600 rounded-full mb-3"></div>
                   <div className="h-4"></div>
                 </div>
               </div>
