@@ -412,10 +412,25 @@ export async function POST(request: Request) {
         if (updateError) {
           console.error('[STRIPE WEBHOOK] ========== DB UPDATE ERROR ==========')
           console.error('[STRIPE WEBHOOK] Supabase error:', updateError)
+          console.error('[STRIPE WEBHOOK] Error code:', updateError.code)
+          console.error('[STRIPE WEBHOOK] Error message:', updateError.message)
+          console.error('[STRIPE WEBHOOK] Error details:', updateError.details)
+          console.error('[STRIPE WEBHOOK] Error hint:', updateError.hint)
+          console.error('[STRIPE WEBHOOK] Update payload:', JSON.stringify(updateData, null, 2))
+          console.error('[STRIPE WEBHOOK] NOT marking event as processed - Stripe will retry')
+          // Return error so Stripe retries the webhook
+          return NextResponse.json({ 
+            error: 'Database update failed', 
+            code: updateError.code,
+            message: updateError.message 
+          }, { status: 500 })
         } else {
           console.log('[STRIPE WEBHOOK] ========== DB UPDATE SUCCESS ==========')
           console.log('[STRIPE WEBHOOK] Successfully updated business:', businessId)
           console.log('[STRIPE WEBHOOK] Fields updated:', Object.keys(updateData).join(', '))
+          
+          // Mark event as processed only after successful DB update
+          await markEventProcessed(supabase, event.id, event.type, businessId)
           
           // Fetch updated business state after update
           console.log('[ProvisioningState] Fetching business state after update')
@@ -511,9 +526,6 @@ export async function POST(request: Request) {
           // Cancel any scheduled Twilio release since access is being restored
           await cancelTwilioRelease(businessId)
         }
-
-        // Mark event as processed
-        await markEventProcessed(supabase, event.id, event.type, businessId)
 
         // DISABLED: Old Twilio Number Manager provisioning path
         // Only provisionTwilioNumber() should be used for provisioning
