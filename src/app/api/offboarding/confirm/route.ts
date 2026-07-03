@@ -2,35 +2,69 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export async function GET(request: NextRequest) {
+  // Generate unique request ID for tracking
+  const requestId = crypto.randomUUID()
+  const timestamp = new Date().toISOString()
+
+  // Log request details at the very beginning
+  console.log('[Offboarding Confirm] ========== REQUEST START ==========', {
+    requestId,
+    timestamp,
+    method: request.method,
+    url: request.url,
+    userAgent: request.headers.get('user-agent'),
+    referer: request.headers.get('referer'),
+    secFetchMode: request.headers.get('sec-fetch-mode'),
+    secFetchSite: request.headers.get('sec-fetch-site'),
+    secFetchDest: request.headers.get('sec-fetch-dest'),
+    purpose: request.headers.get('purpose'),
+    xPurpose: request.headers.get('x-purpose'),
+    xMoz: request.headers.get('x-moz'),
+    xPrefetch: request.headers.get('x-prefetch'),
+  })
+
   try {
     const { searchParams } = new URL(request.url)
     const token = searchParams.get('token')
 
+    console.log('[Offboarding Confirm] Token extracted', {
+      requestId,
+      tokenPrefix: token ? token.substring(0, 8) : null,
+      tokenSuffix: token ? token.substring(token.length - 8) : null,
+      tokenLength: token ? token.length : null,
+    })
+
     if (!token) {
+      console.log('[Offboarding Confirm] No token provided, returning invalid token page', {
+        requestId,
+      })
       return new NextResponse(getInvalidTokenHtml(), {
         headers: { 'Content-Type': 'text/html' },
       })
     }
 
-    // Log token lookup for debugging
-    console.log('[Offboarding Confirm] Looking up tracking record', {
-      tokenPrefix: token.substring(0, 8),
-      tokenSuffix: token.substring(token.length - 8),
-      tokenLength: token.length,
+    // Find tracking record by token
+    console.log('[Offboarding Confirm] Database lookup started', {
+      requestId,
     })
 
-    // Find tracking record by token
     const { data: trackingRecord, error: trackingError } = await supabaseAdmin
       .from('offboarding_tracking')
       .select('*')
       .eq('confirmation_token', token)
       .single()
 
+    console.log('[Offboarding Confirm] Database lookup completed', {
+      requestId,
+      hasError: !!trackingError,
+      hasRecord: !!trackingRecord,
+      error: trackingError,
+    })
+
     if (trackingError || !trackingRecord) {
-      console.error('[Offboarding Confirm] Tracking record not found:', {
+      console.error('[Offboarding Confirm] Tracking record not found, returning invalid token page', {
+        requestId,
         error: trackingError,
-        tokenPrefix: token.substring(0, 8),
-        tokenLength: token.length,
       })
       return new NextResponse(getInvalidTokenHtml(), {
         headers: { 'Content-Type': 'text/html' },
@@ -38,7 +72,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Debug logging: log all confirmation-related fields before deciding which page to render
-    console.log('[Offboarding Confirm] Tracking record fields before confirmation decision:', {
+    console.log('[Offboarding Confirm] Tracking record state before decision:', {
+      requestId,
       id: trackingRecord.id,
       forwarding_confirmed: trackingRecord.forwarding_confirmed,
       forwarding_confirmed_at: trackingRecord.forwarding_confirmed_at,
@@ -52,36 +87,34 @@ export async function GET(request: NextRequest) {
     })
 
     // Check if already confirmed
+    console.log('[Offboarding Confirm] Checking if already confirmed', {
+      requestId,
+      forwarding_confirmed: trackingRecord.forwarding_confirmed,
+    })
+
     if (trackingRecord.forwarding_confirmed) {
-      // If confirmed within the last 5 seconds, treat as duplicate request from browser prefetch/preload
-      // and show success page instead of already-confirmed page
-      const now = new Date()
-      const confirmedAt = trackingRecord.confirmed_at ? new Date(trackingRecord.confirmed_at) : null
-      const timeSinceConfirmation = confirmedAt ? now.getTime() - confirmedAt.getTime() : Infinity
-      const duplicateRequestWindow = 5000 // 5 seconds
-
-      if (timeSinceConfirmation < duplicateRequestWindow) {
-        console.log('[Offboarding Confirm] Duplicate request detected (confirmed within 5 seconds), showing success page:', {
-          id: trackingRecord.id,
-          timeSinceConfirmationMs: timeSinceConfirmation,
-          confirmedAt: trackingRecord.confirmed_at,
-        })
-        return new NextResponse(getSuccessHtml(), {
-          headers: { 'Content-Type': 'text/html' },
-        })
-      }
-
-      console.log('[Offboarding Confirm] Already confirmed (true revisit, confirmed >5 seconds ago):', {
+      console.log('[Offboarding Confirm] DECISION: Already confirmed (forwarding_confirmed=true), showing already-confirmed page', {
+        requestId,
         id: trackingRecord.id,
-        timeSinceConfirmationMs: timeSinceConfirmation,
-        confirmedAt: trackingRecord.confirmed_at,
+        confirmed_at: trackingRecord.confirmed_at,
+        time_since_creation_ms: trackingRecord.created_at ? new Date().getTime() - new Date(trackingRecord.created_at).getTime() : null,
       })
       return new NextResponse(getAlreadyConfirmedHtml(), {
         headers: { 'Content-Type': 'text/html' },
       })
     }
 
+    console.log('[Offboarding Confirm] DECISION: Not yet confirmed, will perform update', {
+      requestId,
+      id: trackingRecord.id,
+    })
+
     // Mark as confirmed
+    console.log('[Offboarding Confirm] Starting database update', {
+      requestId,
+      id: trackingRecord.id,
+    })
+
     const { error: updateError } = await supabaseAdmin
       .from('offboarding_tracking')
       .update({
@@ -90,14 +123,26 @@ export async function GET(request: NextRequest) {
       })
       .eq('id', trackingRecord.id)
 
+    console.log('[Offboarding Confirm] Database update completed', {
+      requestId,
+      id: trackingRecord.id,
+      hasError: !!updateError,
+      error: updateError,
+    })
+
     if (updateError) {
-      console.error('[Offboarding Confirm] Failed to update tracking record:', updateError)
+      console.error('[Offboarding Confirm] DECISION: Update failed, returning error page', {
+        requestId,
+        id: trackingRecord.id,
+        error: updateError,
+      })
       return new NextResponse(getErrorHtml('Failed to confirm forwarding'), {
         headers: { 'Content-Type': 'text/html' },
       })
     }
 
-    console.log('[Offboarding Confirm] Forwarding confirmed (performed update):', {
+    console.log('[Offboarding Confirm] DECISION: Update successful, showing success page', {
+      requestId,
       id: trackingRecord.id,
       businessPhone: trackingRecord.business_phone_number,
       businessEmail: trackingRecord.business_email,
