@@ -4,154 +4,72 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 export async function GET(request: NextRequest) {
   // Generate unique request ID for tracking
   const requestId = crypto.randomUUID()
-  const timestamp = new Date().toISOString()
-
-  // Log request details at the very beginning
-  console.log('[Offboarding Confirm] ========== REQUEST START ==========', {
-    requestId,
-    timestamp,
-    method: request.method,
-    url: request.url,
-    userAgent: request.headers.get('user-agent'),
-    referer: request.headers.get('referer'),
-    secFetchMode: request.headers.get('sec-fetch-mode'),
-    secFetchSite: request.headers.get('sec-fetch-site'),
-    secFetchDest: request.headers.get('sec-fetch-dest'),
-    purpose: request.headers.get('purpose'),
-    xPurpose: request.headers.get('x-purpose'),
-    xMoz: request.headers.get('x-moz'),
-    xPrefetch: request.headers.get('x-prefetch'),
-  })
 
   try {
     const { searchParams } = new URL(request.url)
     const token = searchParams.get('token')
 
-    console.log('[Offboarding Confirm] Token extracted', {
-      requestId,
-      tokenPrefix: token ? token.substring(0, 8) : null,
-      tokenSuffix: token ? token.substring(token.length - 8) : null,
-      tokenLength: token ? token.length : null,
-    })
-
     if (!token) {
-      console.log('[Offboarding Confirm] No token provided, returning invalid token page', {
-        requestId,
-      })
+      console.log('[Offboarding Confirm] No token provided')
       return new NextResponse(getInvalidTokenHtml(), {
         headers: { 'Content-Type': 'text/html' },
       })
     }
 
     // Find tracking record by token
-    console.log('[Offboarding Confirm] Database lookup started', {
-      requestId,
-    })
-
     const { data: trackingRecord, error: trackingError } = await supabaseAdmin
       .from('offboarding_tracking')
       .select('*')
       .eq('confirmation_token', token)
       .single()
 
-    console.log('[Offboarding Confirm] Database lookup completed', {
-      requestId,
-      hasError: !!trackingError,
-      hasRecord: !!trackingRecord,
-      error: trackingError,
-    })
-
     if (trackingError || !trackingRecord) {
-      console.error('[Offboarding Confirm] Tracking record not found, returning invalid token page', {
+      console.log('[Offboarding Confirm] Tracking record not found', {
         requestId,
-        error: trackingError,
+        tokenPrefix: token.substring(0, 8),
       })
       return new NextResponse(getInvalidTokenHtml(), {
         headers: { 'Content-Type': 'text/html' },
       })
     }
 
-    // Debug logging: log all confirmation-related fields before deciding which page to render
-    console.log('[Offboarding Confirm] Tracking record state before decision:', {
-      requestId,
-      id: trackingRecord.id,
-      forwarding_confirmed: trackingRecord.forwarding_confirmed,
-      forwarding_confirmed_at: trackingRecord.forwarding_confirmed_at,
-      reminders_cancelled_at: trackingRecord.reminders_cancelled_at,
-      confirmed_at: trackingRecord.confirmed_at,
-      tokenPrefix: token.substring(0, 8),
-      tokenSuffix: token.substring(token.length - 8),
-      tokenLength: token.length,
-      created_at: trackingRecord.created_at,
-      updated_at: trackingRecord.updated_at,
-    })
-
     // Check if already confirmed
-    console.log('[Offboarding Confirm] Checking if already confirmed', {
-      requestId,
-      forwarding_confirmed: trackingRecord.forwarding_confirmed,
-    })
-
     if (trackingRecord.forwarding_confirmed) {
-      console.log('[Offboarding Confirm] DECISION: Already confirmed (forwarding_confirmed=true), showing already-confirmed page', {
+      console.log('[Offboarding Confirm] Already confirmed, skipping update', {
         requestId,
         id: trackingRecord.id,
-        confirmed_at: trackingRecord.confirmed_at,
-        time_since_creation_ms: trackingRecord.created_at ? new Date().getTime() - new Date(trackingRecord.created_at).getTime() : null,
       })
-      return new NextResponse(getAlreadyConfirmedHtml(), {
-        headers: { 'Content-Type': 'text/html' },
-      })
-    }
+    } else {
+      // Mark as confirmed
+      const { error: updateError } = await supabaseAdmin
+        .from('offboarding_tracking')
+        .update({
+          forwarding_confirmed: true,
+          confirmed_at: new Date().toISOString(),
+        })
+        .eq('id', trackingRecord.id)
 
-    console.log('[Offboarding Confirm] DECISION: Not yet confirmed, will perform update', {
-      requestId,
-      id: trackingRecord.id,
-    })
+      if (updateError) {
+        console.error('[Offboarding Confirm] Update failed', {
+          requestId,
+          id: trackingRecord.id,
+          error: updateError,
+        })
+        return new NextResponse(getErrorHtml('Failed to confirm forwarding'), {
+          headers: { 'Content-Type': 'text/html' },
+        })
+      }
 
-    // Mark as confirmed
-    console.log('[Offboarding Confirm] Starting database update', {
-      requestId,
-      id: trackingRecord.id,
-    })
-
-    const { error: updateError } = await supabaseAdmin
-      .from('offboarding_tracking')
-      .update({
-        forwarding_confirmed: true,
-        confirmed_at: new Date().toISOString(),
-      })
-      .eq('id', trackingRecord.id)
-
-    console.log('[Offboarding Confirm] Database update completed', {
-      requestId,
-      id: trackingRecord.id,
-      hasError: !!updateError,
-      error: updateError,
-    })
-
-    if (updateError) {
-      console.error('[Offboarding Confirm] DECISION: Update failed, returning error page', {
+      console.log('[Offboarding Confirm] Update successful', {
         requestId,
         id: trackingRecord.id,
-        error: updateError,
-      })
-      return new NextResponse(getErrorHtml('Failed to confirm forwarding'), {
-        headers: { 'Content-Type': 'text/html' },
       })
     }
-
-    console.log('[Offboarding Confirm] DECISION: Update successful, showing success page', {
-      requestId,
-      id: trackingRecord.id,
-      businessPhone: trackingRecord.business_phone_number,
-      businessEmail: trackingRecord.business_email,
-    })
 
     // DO NOT delete the tracking record after confirmation - keep it for idempotency
     // This allows users to click the link multiple times without errors
 
-    // Return HTML success page
+    // Return HTML success page (same for both first confirmation and revisits)
     return new NextResponse(getSuccessHtml(), {
       headers: { 'Content-Type': 'text/html' },
     })
@@ -197,19 +115,17 @@ function getSuccessHtml(): string {
     <div class="receipt">
       <div class="receipt-item">
         <span class="checkmark">✓</span>
-        <span>We've successfully recorded that you've disabled call forwarding.</span>
+        <span>We've recorded that call forwarding has been disabled.</span>
+      </div>
+      <div class="receipt-item">
+        <span class="checkmark">✓</span>
+        <span>No further action is required.</span>
       </div>
       <div class="receipt-item">
         <span class="checkmark">✓</span>
         <span>You won't receive any additional reminder messages from ReplyFlow.</span>
       </div>
-      <div class="receipt-item">
-        <span class="checkmark">✓</span>
-        <span>Your account has been deleted and your ReplyFlow phone number has been released.</span>
-      </div>
     </div>
-
-    <p>Thank you for trying ReplyFlow. We'd love to have you back in the future.</p>
     
     <div class="footer">
       <p>ReplyFlow Support Team</p>
