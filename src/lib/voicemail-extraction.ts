@@ -951,73 +951,66 @@ export async function safeMergeSmsExtraction(
       smsExtractedInfo
     )
 
-    for (const field of Array.from(explicitlyProvidedFields)) {
-      const incomingValue = smsExtractedInfo[field]
-      if (incomingValue) {
-        intelligentlyMerged[field] = incomingValue
-      }
-    }
+    const explicitOnlyMerged: VoicemailExtractedInfo = { ...existingExtractedInfo }
+    const fieldsPreserved: string[] = []
+    const fieldsUpdated: string[] = []
+    const fieldCorrections: Record<string, { from: string; to: string; source: string; correctedAt: string }> = {}
+    const existingCorrections = metadata.field_corrections || {}
 
     for (const field of Object.keys(explicitFieldPatterns) as (keyof VoicemailExtractedInfo)[]) {
       const existing = existingExtractedInfo[field]
       const incoming = smsExtractedInfo[field]
-      const merged = intelligentlyMerged[field]
-      console.log('[SMS MERGE FIELD]', {
-        field,
-        existing,
-        incoming,
-        merged,
-        reason: explicitlyProvidedFields.has(field) && incoming
-          ? 'explicit_customer_correction_sms_value_replaces_existing'
-          : incoming
-            ? 'intelligent_merge_result'
-            : 'sms_did_not_provide_field'
-      })
-    }
+      const llmMerged = intelligentlyMerged[field]
+      const isExplicit = explicitlyProvidedFields.has(field)
+      const merged = isExplicit && incoming ? incoming : existing
+      explicitOnlyMerged[field] = merged
 
-    // Log what was preserved vs updated
-    const fieldsPreserved: string[] = []
-    const fieldsUpdated: string[] = []
-
-    // Track correction metadata
-    const fieldCorrections: Record<string, { from: string; to: string; source: string; correctedAt: string }> = {}
-    const existingCorrections = metadata.field_corrections || {}
-
-    for (const key of Object.keys(existingExtractedInfo) as (keyof VoicemailExtractedInfo)[]) {
-      if (intelligentlyMerged[key] === existingExtractedInfo[key]) {
-        fieldsPreserved.push(key)
+      if (merged === existing) {
+        fieldsPreserved.push(field)
       } else {
-        fieldsUpdated.push(key)
-        // Record correction metadata only if there was an actual value change
-        if (existingExtractedInfo[key] && intelligentlyMerged[key] && existingExtractedInfo[key] !== intelligentlyMerged[key]) {
-          fieldCorrections[key] = {
-            from: existingExtractedInfo[key]!,
-            to: intelligentlyMerged[key]!,
+        fieldsUpdated.push(field)
+        if (existing && merged) {
+          fieldCorrections[field] = {
+            from: existing,
+            to: merged,
             source: 'sms',
             correctedAt: new Date().toISOString()
           }
         }
       }
+
+      console.log('[SMS MERGE FIELD]', {
+        field,
+        existing,
+        incoming,
+        llmMerged,
+        merged,
+        reason: isExplicit && incoming
+          ? 'explicit_customer_correction_sms_value_replaces_existing'
+          : llmMerged !== existing
+            ? 'llm_merge_change_ignored_field_not_explicitly_provided'
+            : 'sms_did_not_explicitly_provide_field_existing_preserved'
+      })
     }
 
     console.log('[SMS MERGE] Intelligent merge results', {
       fieldsPreserved,
       fieldsUpdated,
       original: existingExtractedInfo,
-      merged: intelligentlyMerged,
+      llmMerged: intelligentlyMerged,
+      explicitOnlyMerged,
       fieldCorrections
     })
 
-    // Update sources for fields that were updated
     for (const key of fieldsUpdated as (keyof VoicemailExtractedInfo)[]) {
-      if (intelligentlyMerged[key]) {
+      if (explicitOnlyMerged[key]) {
         sources[key] = 'sms'
       }
     }
 
     const result = {
       ...metadata,
-      extracted_info: intelligentlyMerged,
+      extracted_info: explicitOnlyMerged,
       intake_sources: sources,
       sms_extraction: {
         extractedAt: smsExtraction.extractedAt,
