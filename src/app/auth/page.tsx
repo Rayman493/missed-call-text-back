@@ -70,6 +70,14 @@ function AuthContent() {
   const emailRef = React.useRef<HTMLInputElement>(null)
   const isSubmittingRef = React.useRef(false)
   const [redirecting, setRedirecting] = useState(false)
+  
+  // Handle Stripe cancel message
+  const checkoutCancelled = searchParams?.get('checkout') === 'cancelled'
+  useEffect(() => {
+    if (checkoutCancelled) {
+      setError('Your free trial setup isn\'t complete yet. Complete Stripe Checkout to activate your ReplyFlow account.')
+    }
+  }, [checkoutCancelled])
 
   // Password requirements validation
   const [passwordRequirements, setPasswordRequirements] = useState({
@@ -171,9 +179,41 @@ function AuthContent() {
       // Determine redirect target based on business query result
       let redirectTarget: string
       if (business) {
-        // Business found - go to dashboard
-        console.log('[Auth] Business found for user:', persistedSession.user.id, '- routing to dashboard')
-        redirectTarget = returnToParam || redirectParam || '/dashboard'
+        // Business found - check if Stripe Checkout is completed
+        if (business.subscription_status === null) {
+          // Business exists but Stripe Checkout NOT completed - redirect to checkout
+          console.log('[Auth] Business found but subscription_status is null - redirecting to Stripe Checkout')
+          
+          // Create Stripe Checkout session and redirect
+          try {
+            const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                checkout_mode: 'trial',
+              }),
+            })
+
+            const checkoutData = await checkoutResponse.json()
+
+            if (checkoutResponse.ok && checkoutData.url) {
+              redirectTarget = checkoutData.url
+            } else {
+              console.error('[Auth] Failed to create checkout session:', checkoutData)
+              // If checkout fails, redirect to auth page with cancel message
+              redirectTarget = '/auth?checkout=cancelled'
+            }
+          } catch (error) {
+            console.error('[Auth] Error creating checkout session:', error)
+            redirectTarget = '/auth?checkout=cancelled'
+          }
+        } else {
+          // Business found and Stripe Checkout completed - go to dashboard
+          console.log('[Auth] Business found for user:', persistedSession.user.id, '- routing to dashboard')
+          redirectTarget = returnToParam || redirectParam || '/dashboard'
+        }
       } else if (businessError?.code === 'PGRST116') {
         // No business row confirmed - go to onboarding
         console.log('[Auth] No business row found for user:', persistedSession.user.id, '- routing to onboarding (orphan auth recovery)')

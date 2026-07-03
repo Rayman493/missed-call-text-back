@@ -136,6 +136,44 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         return
       }
 
+      // SIMPLIFIED GATING: If subscription_status is null, redirect to Stripe Checkout
+      // This means business exists but Stripe Checkout has NOT been completed
+      if (business.subscription_status === null) {
+        if (hasRedirectedRef.current === pathname) return
+        hasRedirectedRef.current = pathname
+        
+        // Create Stripe Checkout session and redirect
+        const createCheckoutAndRedirect = async () => {
+          try {
+            const response = await fetch('/api/stripe/create-checkout-session', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                checkout_mode: 'trial',
+              }),
+            })
+
+            const checkoutData = await response.json()
+
+            if (response.ok && checkoutData.url) {
+              router.replace(checkoutData.url)
+            } else {
+              console.error('[BusinessGuard] Failed to create checkout session:', checkoutData)
+              // If checkout fails, redirect to auth page with cancel message
+              router.push('/auth?checkout=cancelled')
+            }
+          } catch (error) {
+            console.error('[BusinessGuard] Error creating checkout session:', error)
+            router.push('/auth?checkout=cancelled')
+          }
+        }
+        
+        createCheckoutAndRedirect()
+        return
+      }
+
       const hasAccess = hasBillingAccess(business)
       const hasBasicProfile = business.name && business.business_phone_number
 
@@ -241,52 +279,6 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
     hasRedirectedRef.current = pathname
     router.push('/onboarding')
     return <AppLoadingScreen />
-  }
-
-  // Show friendly message if onboarding is not completed and user tries to access dashboard
-  const isOnboardingComplete = business.onboarding_status === 'completed'
-  const hasActiveSubscription = isActiveSubscription(business.subscription_status)
-  const hasBasicProfile = business.name && business.business_phone_number
-  const isMainDashboardPage = pathname === '/dashboard'
-  
-  // Only show the "finish setup" message if user has no basic profile AND is on main dashboard
-  // Users with a profile but no subscription should see the dashboard with Start Free Trial state
-  if (!hasBasicProfile && !hasActiveSubscription && isMainDashboardPage) {
-    logRouteFlashDebug({
-      source: 'BusinessGuard',
-      pathname,
-      previousPathname: previousPathnameRef.current,
-      authLoading: false,
-      userId: user?.id ?? null,
-      businessId: business?.id ?? null,
-      onboardingStatus: business?.onboarding_status,
-      subscriptionStatus: business?.subscription_status,
-      renderBranch: 'setup',
-      reason: 'main dashboard, no basic profile, no active subscription; showing finish setup screen',
-    })
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
-          <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            Finish Setup Before Accessing Dashboard
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Complete your onboarding to unlock your ReplyFlow dashboard and start capturing missed calls.
-          </p>
-          <button
-            onClick={() => router.push('/onboarding')}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Complete Setup
-          </button>
-        </div>
-      </div>
-    )
   }
 
   logRouteFlashDebug({
