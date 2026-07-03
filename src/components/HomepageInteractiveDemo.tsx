@@ -23,7 +23,7 @@ const InteractiveDemoWalkthrough = dynamic(
 
 export default function HomepageInteractiveDemo() {
   return (
-    <section className="bg-white dark:bg-background py-12 sm:py-16 md:py-20 border-t border-slate-100 dark:border-slate-800">
+    <section id="interactive-demo" className="bg-white dark:bg-background py-12 sm:py-16 md:py-20 border-t border-slate-100 dark:border-slate-800">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -61,12 +61,6 @@ export default function HomepageInteractiveDemo() {
             className="inline-flex items-center justify-center h-12 px-6 sm:px-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-[2px] text-sm sm:text-base"
           >
             Start Your 14-Day Free Trial
-          </Link>
-          <Link
-            href="/demo"
-            className="inline-flex items-center justify-center h-12 px-6 sm:px-8 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl border border-slate-200 dark:border-slate-700 transition-all text-sm sm:text-base"
-          >
-            See the Full Demo
           </Link>
         </motion.div>
       </div>

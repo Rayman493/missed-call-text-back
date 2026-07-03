@@ -24,6 +24,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   // Check if we're on a public/marketing page
   const isPublicPage = pathname === '/' || 
                        pathname === '/faq' || 
+                       pathname === '/pricing' || 
                        pathname === '/privacy' || 
                        pathname === '/terms' || 
                        pathname === '/compliance' || 
@@ -119,7 +120,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                       {!isHomepage && !isContentPage && (
                         <>
                           <Link
-                            href="/home"
+                            href="/"
                             className={`text-base font-semibold ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-200 hover:text-white'} transition-colors hidden sm:block py-1`}
                           >
                             Home
@@ -196,7 +197,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                   {!isHomepage && !isContentPage && (
                     <>
                       <Link
-                        href="/home"
+                        href="/"
                         className={`text-sm font-medium ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-300 hover:text-gray-100'} transition-colors hidden sm:block`}
                       >
                         Home
