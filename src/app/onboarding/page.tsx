@@ -377,15 +377,13 @@ export default function OnboardingPage() {
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 sm:p-8">
         <div className="max-w-md w-full bg-slate-800 rounded-xl shadow-lg p-5 sm:p-8">
           <div className="mb-4">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-1 flex-1 bg-blue-600 rounded-full"></div>
-            <div className="h-1 flex-1 bg-blue-600 rounded-full"></div>
-          </div>
           <div className="flex items-center gap-2">
             <div className="flex-1">
+              <div className="h-1 bg-blue-600 rounded-full mb-3"></div>
               <p className="text-xs text-slate-400">Step 1 of 2: Create Your Account</p>
             </div>
             <div className="flex-1">
+              <div className="h-1 bg-blue-600 rounded-full mb-3"></div>
               <p className="text-xs text-slate-400">Step 2 of 2: Business Information</p>
             </div>
           </div>

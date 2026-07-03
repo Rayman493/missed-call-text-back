@@ -386,11 +386,16 @@ function AuthContent() {
           {/* Progress indicator for signup mode */}
           {!isSignIn && !isCheckoutReturn && (
             <div className="mb-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="h-1 flex-1 bg-blue-600 rounded-full"></div>
-                <div className="h-1 flex-1 bg-slate-600 rounded-full"></div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <div className="h-1 bg-blue-600 rounded-full mb-3"></div>
+                  <p className="text-xs text-slate-400">Step 1 of 2: Create Your Account</p>
+                </div>
+                <div className="flex-1">
+                  <div className="h-1 bg-slate-600 rounded-full mb-3"></div>
+                  <p className="text-xs text-slate-400">Step 2 of 2: Business Information</p>
+                </div>
               </div>
-              <p className="text-xs text-slate-400 text-right">Step 1 of 2: Create Your Account</p>
             </div>
           )}
           
