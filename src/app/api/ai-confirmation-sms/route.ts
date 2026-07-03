@@ -7,6 +7,7 @@ import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { getOutOfOfficeNotice } from '@/lib/out-of-office'
 import { generateSummaryFromExtractedInfo } from '@/lib/sms-processing'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
+import { cancelPendingFollowUpsForLead } from '@/lib/follow-ups'
 
 /**
  * Check if current time is within business hours for a business
@@ -794,6 +795,17 @@ Reply STOP to opt out.`;
               leadId,
               pendingAcknowledgement
             })
+          }
+        }
+
+        // Cancel any pending follow-up jobs since AI intake is complete
+        if (intakeComplete) {
+          console.log('[AI CONFIRMATION SMS] Canceling pending follow-ups for completed AI intake', { leadId })
+          try {
+            const cancelled = await cancelPendingFollowUpsForLead(leadId, 'ai_intake_complete')
+            console.log('[AI CONFIRMATION SMS] Cancelled follow-ups:', cancelled)
+          } catch (cancelError) {
+            console.error('[AI CONFIRMATION SMS] Error cancelling follow-ups:', cancelError)
           }
         }
 

@@ -4,6 +4,7 @@ import { sendSms } from "@/lib/twilio";
 import { isIgnoredContact } from "@/lib/ignored-contacts";
 import { hasBillingAccess } from "@/lib/manual-access";
 import { getOutOfOfficeNotice } from "@/lib/out-of-office";
+import { isCompleteAIIntake } from "@/lib/ai-intake-completion";
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
     let processed = 0;
     let sent = 0;
     let failed = 0;
+    let cancelled = 0;
     let errors = 0;
 
     // Process each job
@@ -218,6 +220,41 @@ export async function POST(request: Request) {
             })
             .eq('id', job.id);
           failed++;
+          continue;
+        }
+
+        // Guard: Check if AI intake is complete - skip follow-up if so
+        console.log(`[SYSTEM] [FOLLOWUP-CRON] Checking AI intake completion for lead: ${job.lead_id}`)
+        const { data: aiCallRecords, error: aiRecordsError } = await supabase
+          .from('ai_call_records')
+          .select('extracted_info, outcome')
+          .eq('lead_id', job.lead_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        const completedOutcomes = ['complete', 'completed', 'completed_intake']
+        const aiIntakeComplete = !aiRecordsError && !!aiCallRecords && (
+          completedOutcomes.includes(String(aiCallRecords.outcome || '').toLowerCase()) ||
+          isCompleteAIIntake(aiCallRecords.extracted_info)
+        )
+        console.log(`[SYSTEM] [FOLLOWUP-CRON] AI intake completion check for lead ${job.lead_id}:`, {
+          hasAiRecords: !!aiCallRecords,
+          aiOutcome: aiCallRecords?.outcome,
+          aiIntakeComplete
+        })
+
+        if (aiIntakeComplete) {
+          console.log(`[FOLLOWUP SUPPRESSED] reason=ai_intake_complete leadId=${job.lead_id} jobId=${job.id}`)
+          await supabase
+            .from('follow_up_jobs')
+            .update({
+              status: 'cancelled',
+              cancelled_reason: 'ai_intake_complete',
+              cancelled_at: new Date().toISOString()
+            })
+            .eq('id', job.id);
+          cancelled++;
           continue;
         }
 

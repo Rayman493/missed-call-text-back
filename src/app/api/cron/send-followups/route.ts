@@ -7,6 +7,7 @@ import { NotificationService } from '@/lib/notifications'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { hasBillingAccess } from '@/lib/manual-access'
 import { promoteLeadToActiveIfNew } from '@/lib/lead-lifecycle'
+import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 
 // Helper function to check if a date is during business hours
 function isDuringBusinessHours(date: Date, timezone: string): boolean {
@@ -317,6 +318,45 @@ export async function POST(req: NextRequest) {
         }
         
         console.log(`[send-followups] Found lead: ${lead.id}, business: ${business.id}`)
+
+        // Guard: Check if AI intake is complete - skip follow-up if so
+        console.log(`[send-followups] Checking AI intake completion for lead: ${lead.id}`)
+        const { data: aiCallRecords, error: aiRecordsError } = await supabase
+          .from('ai_call_records')
+          .select('extracted_info, outcome')
+          .eq('lead_id', lead.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        const completedOutcomes = ['complete', 'completed', 'completed_intake']
+        const aiIntakeComplete = !aiRecordsError && !!aiCallRecords && (
+          completedOutcomes.includes(String(aiCallRecords.outcome || '').toLowerCase()) ||
+          isCompleteAIIntake(aiCallRecords.extracted_info)
+        )
+        console.log(`[send-followups] AI intake completion check for lead ${lead.id}:`, {
+          hasAiRecords: !!aiCallRecords,
+          aiOutcome: aiCallRecords?.outcome,
+          aiIntakeComplete
+        })
+
+        if (aiIntakeComplete) {
+          console.log(`[FOLLOWUP SUPPRESSED] reason=ai_intake_complete leadId=${lead.id} jobId=${followUp.id}`)
+          const { error: cancelError } = await supabase
+            .from('follow_up_jobs')
+            .update({
+              status: 'cancelled',
+              cancelled_reason: 'ai_intake_complete',
+              cancelled_at: new Date().toISOString()
+            })
+            .eq('id', followUp.id)
+
+          if (cancelError) {
+            console.error('[send-followups] Error cancelling follow-up for completed AI intake:', cancelError)
+          }
+          cancelled++
+          continue
+        }
 
         // Check if lead has opted out of messages
         if (lead.opted_out) {
@@ -884,6 +924,45 @@ export async function GET(req: NextRequest) {
         }
         
         console.log(`[send-followups] Found lead: ${lead.id}, business: ${business.id}`)
+
+        // Guard: Check if AI intake is complete - skip follow-up if so
+        console.log(`[send-followups] Checking AI intake completion for lead: ${lead.id}`)
+        const { data: aiCallRecords, error: aiRecordsError } = await supabase
+          .from('ai_call_records')
+          .select('extracted_info, outcome')
+          .eq('lead_id', lead.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        const completedOutcomes = ['complete', 'completed', 'completed_intake']
+        const aiIntakeComplete = !aiRecordsError && !!aiCallRecords && (
+          completedOutcomes.includes(String(aiCallRecords.outcome || '').toLowerCase()) ||
+          isCompleteAIIntake(aiCallRecords.extracted_info)
+        )
+        console.log(`[send-followups] AI intake completion check for lead ${lead.id}:`, {
+          hasAiRecords: !!aiCallRecords,
+          aiOutcome: aiCallRecords?.outcome,
+          aiIntakeComplete
+        })
+
+        if (aiIntakeComplete) {
+          console.log(`[FOLLOWUP SUPPRESSED] reason=ai_intake_complete leadId=${lead.id} jobId=${followUp.id}`)
+          const { error: cancelError } = await supabase
+            .from('follow_up_jobs')
+            .update({
+              status: 'cancelled',
+              cancelled_reason: 'ai_intake_complete',
+              cancelled_at: new Date().toISOString()
+            })
+            .eq('id', followUp.id)
+
+          if (cancelError) {
+            console.error('[send-followups] Error cancelling follow-up for completed AI intake:', cancelError)
+          }
+          cancelled++
+          continue
+        }
 
         // Check if lead phone is in ignored contacts
         if (lead.caller_phone) {

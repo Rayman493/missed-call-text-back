@@ -1,6 +1,7 @@
-import { db } from '@/lib/supabase/admin'
+import { db, supabaseAdmin } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
 import { getOutOfOfficeNotice } from '@/lib/out-of-office'
+import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 
 // Helper function to check if a date is during business hours
 function isDuringBusinessHours(date: Date, timezone: string): boolean {
@@ -184,7 +185,47 @@ export async function createFollowUpJobs(params: {
   console.log('[FOLLOWUP CREATE CHECK] businessName:', businessName);
   console.log('[FOLLOWUP CREATE CHECK] Timestamp:', new Date().toISOString());
   console.log('[FOLLOWUP CREATE CHECK] =========================================');
-  
+
+  // Guard: Check if AI intake is complete - skip follow-up creation if so
+  console.log('[FOLLOWUP CREATE CHECK] Checking AI intake completion for lead:', leadId)
+  const { data: leadData } = await supabaseAdmin
+    .from('leads')
+    .select('raw_metadata')
+    .eq('id', leadId)
+    .single()
+
+  const { data: aiCallRecord } = await supabaseAdmin
+    .from('ai_call_records')
+    .select('extracted_info, outcome')
+    .eq('lead_id', leadId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const completedOutcomes = ['complete', 'completed', 'completed_intake']
+  const extractedInfo = aiCallRecord?.extracted_info || leadData?.raw_metadata?.extracted_info
+  const aiIntakeComplete =
+    completedOutcomes.includes(String(aiCallRecord?.outcome || '').toLowerCase()) ||
+    isCompleteAIIntake(extractedInfo)
+  console.log('[FOLLOWUP CREATE CHECK] AI intake completion check:', {
+    leadId,
+    hasExtractedInfo: !!extractedInfo,
+    aiOutcome: aiCallRecord?.outcome,
+    aiIntakeComplete
+  })
+
+  if (aiIntakeComplete) {
+      console.log('[FOLLOWUP CANCELED] reason=ai_intake_complete leadId=', leadId)
+      // Cancel any existing pending follow-ups for this lead
+      try {
+        const cancelled = await db.cancelPendingFollowUpJobsForLead(leadId, 'ai_intake_complete')
+        console.log('[FOLLOWUP CANCELED] Cancelled existing follow-ups:', cancelled)
+      } catch (cancelError) {
+        console.error('[FOLLOWUP CANCELED] Error cancelling existing follow-ups:', cancelError)
+      }
+    return []
+  }
+
   // Fetch business settings for timezone and business hours
   const business = await db.getBusiness(businessId)
   if (!business) {
