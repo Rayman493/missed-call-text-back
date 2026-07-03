@@ -308,15 +308,6 @@ export default function OnboardingPage() {
       const responseData = await response.json()
       console.log('[Onboarding] API response:', responseData)
 
-      // Handle recoverable state (auth user exists but no business)
-      if (!response.ok && responseData.needsOnboarding) {
-        console.log('[Onboarding] Recoverable state detected - user needs onboarding (this should not happen here)')
-        // This shouldn't happen since we're providing complete data, but handle it gracefully
-        setError('Please complete your business information.')
-        setLoading(false)
-        return
-      }
-
       if (!response.ok) {
         const errorData = responseData || { error: 'Unknown error' }
         console.error('[Onboarding] Save error:', response.status, errorData)
