@@ -7,7 +7,6 @@ import { extractFromVoicemailTranscript, safeMergeVoicemailExtraction } from '@/
 import { transcribeVoicemail } from '@/lib/voicemail-transcription';
 import { getLeadAIIntake } from '@/lib/ai-field-mapping';
 import { formatAiIntakeSummary } from '@/lib/ai-intake-formatter';
-import { getOutOfOfficeNotice } from '@/lib/out-of-office';
 import { timelineEvents } from '@/lib/event-timeline';
 import { createFollowUpJobs } from '@/lib/follow-ups';
 import { testFallbacks, warnIfTestFallbacksActive } from '@/lib/testing/test-fallbacks';
@@ -309,16 +308,6 @@ export async function POST(request: NextRequest) {
 
                           let smsBody = `${aiSummary}\n\nReply STOP to opt out.`;
 
-                          const outOfOfficeNotice = getOutOfOfficeNotice(businessDetails);
-                          if (outOfOfficeNotice) {
-                            const stopIndex = smsBody.indexOf('Reply STOP');
-                            if (stopIndex !== -1) {
-                              smsBody = smsBody.substring(0, stopIndex) + outOfOfficeNotice + '\n\n' + smsBody.substring(stopIndex);
-                            } else {
-                              smsBody = smsBody + '\n\n' + outOfOfficeNotice;
-                            }
-                          }
-
                           let conversation = await db.getOpenConversationForLead(voicemail.lead_id, voicemail.business_id);
                           if (!conversation) {
                             conversation = await db.createConversation({
@@ -441,16 +430,6 @@ export async function POST(request: NextRequest) {
             );
 
             let smsBody = `${aiSummary}\n\nReply STOP to opt out.`;
-
-            const outOfOfficeNotice = getOutOfOfficeNotice(fallbackBusiness);
-            if (outOfOfficeNotice) {
-              const stopIndex = smsBody.indexOf('Reply STOP');
-              if (stopIndex !== -1) {
-                smsBody = smsBody.substring(0, stopIndex) + outOfOfficeNotice + '\n\n' + smsBody.substring(stopIndex);
-              } else {
-                smsBody = smsBody + '\n\n' + outOfOfficeNotice;
-              }
-            }
 
             let fallbackConversation = await db.getOpenConversationForLead(voicemail.lead_id, voicemail.business_id);
             if (!fallbackConversation) {

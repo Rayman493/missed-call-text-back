@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { validateTwilioForSms, logTwilioEnvStatus } from './twilio/env';
 import { isNumberReadyForUse } from './twilio-provisioning-service';
 import { markForwardingVerified } from './forwarding-verification';
+import { appendBusinessAvailabilityNote } from './business-availability-sms';
 
 // Log Twilio environment status on module import
 logTwilioEnvStatus();
@@ -35,6 +36,8 @@ export async function sendSms(
     isOffboarding?: boolean; // Flag to bypass number readiness check for offboarding/system SMS
   }
 ): Promise<{ sid: string | null; messageId: string | null }> {
+  message = options?.isOffboarding ? message : appendBusinessAvailabilityNote(message, business);
+
   // Idempotency check for automated messages (prevent duplicates within 5 minutes)
   // Check for any outbound message to the same lead/phone within 5 minutes, regardless of body
   // This prevents duplicates even if message body differs slightly
@@ -718,6 +721,8 @@ export async function sendMms(
     isManual?: boolean; // Flag to distinguish manual user messages from automated
   }
 ): Promise<{ sid: string | null; messageId: string | null }> {
+  message = appendBusinessAvailabilityNote(message, business);
+
   // Validate Twilio environment for SMS operations
   const smsValidation = validateTwilioForSms();
   

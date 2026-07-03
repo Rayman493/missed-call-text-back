@@ -4,43 +4,10 @@ import { sendSms } from '@/lib/twilio'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizePunctuation } from '@/lib/utils'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
-import { getOutOfOfficeNotice } from '@/lib/out-of-office'
 import { generateSummaryFromExtractedInfo } from '@/lib/sms-processing'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 import { cancelPendingFollowUpsForLead } from '@/lib/follow-ups'
 
-/**
- * Check if current time is within business hours for a business
- */
-function isWithinBusinessHours(business: any): boolean {
-  const businessHoursEnabled = business.business_hours_enabled || false
-  if (!businessHoursEnabled) {
-    return true // If business hours not enabled, treat as always within hours
-  }
-
-  const businessHoursStart = business.business_hours_start || '09:00'
-  const businessHoursEnd = business.business_hours_end || '17:00'
-  const businessTimezone = business.business_hours_timezone || 'America/New_York'
-
-  const now = new Date()
-  const nowInTimezone = new Date(now.toLocaleString('en-US', { timeZone: businessTimezone }))
-
-  const [startHour, startMin] = businessHoursStart.split(':').map(Number)
-  const [endHour, endMin] = businessHoursEnd.split(':').map(Number)
-
-  const currentHour = nowInTimezone.getHours()
-  const currentMin = nowInTimezone.getMinutes()
-  const currentTimeInMinutes = currentHour * 60 + currentMin
-  const startTimeInMinutes = startHour * 60 + startMin
-  const endTimeInMinutes = endHour * 60 + endMin
-
-  const dayIndex = nowInTimezone.getDay()
-  const isWeekday = dayIndex >= 1 && dayIndex <= 5
-
-  const withinBusinessHours = isWeekday && currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes
-
-  return withinBusinessHours
-}
 
 export const dynamic = 'force-dynamic'
 
@@ -507,38 +474,6 @@ export async function POST(request: NextRequest) {
     });
     const isComplete = missingFields.length === 0;
 
-    // Determine if we need to prepend an out-of-office or after-hours notice
-    let prefixNotice = ''
-    let messageType: 'normal' | 'after_hours' | 'out_of_office' = 'normal'
-    let usingDefaultMessage = false
-
-    // Priority: Out of Office > After Hours > Normal
-    const outOfOfficeNotice = getOutOfOfficeNotice(business);
-    const outOfOfficeActive = outOfOfficeNotice !== null;
-
-    if (outOfOfficeActive) {
-      messageType = 'out_of_office'
-      // Use custom out of office message or default
-      if (business.out_of_office_message && business.out_of_office_message.trim()) {
-        prefixNotice = business.out_of_office_message.replace(/\{\{business_name\}\}/gi, businessName)
-        usingDefaultMessage = false
-      } else {
-        prefixNotice = `Thanks for contacting ${businessName}. We are currently out of office and responses may be delayed.`
-        usingDefaultMessage = true
-      }
-    } else if (!isWithinBusinessHours(business)) {
-      messageType = 'after_hours'
-      // Use custom after-hours message or default
-      const afterHoursMessage = business.after_hours_message || ''
-      if (afterHoursMessage && afterHoursMessage.trim()) {
-        prefixNotice = afterHoursMessage.replace(/\{\{business_name\}\}/gi, businessName)
-        usingDefaultMessage = false
-      } else {
-        prefixNotice = `Thanks for calling ${businessName}. We are currently closed and will get back to you during business hours.`
-        usingDefaultMessage = true
-      }
-    }
-
     // Choose SMS template based on AI outcome
     // completed_intake/completed -> AI summary (existing behavior)
     // partial_intake -> brief partial info SMS
@@ -581,7 +516,7 @@ export async function POST(request: NextRequest) {
         console.log('[FINAL SMS FALLBACK] Using structured summary formatter with all fields Not collected', { callSid, aiOutcome });
       }
       console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] formatAiIntakeSummary via generateSummaryFromExtractedInfo');
-      messageBody = generateSummaryFromExtractedInfo(extracted, callerPhone, businessName, prefixNotice);
+      messageBody = generateSummaryFromExtractedInfo(extracted, callerPhone, businessName, '');
     } else if (isPartialIntake) {
       selectedTemplate = 'partial_intake';
       selectionReason = 'partial_intake';
@@ -594,14 +529,12 @@ export async function POST(request: NextRequest) {
       if (extracted.importantDetails?.trim()) collectedParts.push(`Details: ${extracted.importantDetails.trim()}`);
 
       const partialInfo = collectedParts.length > 0 ? `\n\nWe got: ${collectedParts.join('; ')}` : '';
-      const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
-      messageBody = `${prefix}Hi, this is ${businessName}. We just missed your call.${partialInfo} Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`;
+      messageBody = `Hi, this is ${businessName}. We just missed your call.${partialInfo} Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`;
     } else if (isIncompleteOrEarlyHangup && !hasAnyIntakeInfo) {
       // Incomplete or early hangup with no information collected - use intake-oriented guided message
       selectedTemplate = 'early_hangup_no_info';
       selectionReason = 'incomplete_no_info';
-      const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
-      messageBody = `${prefix}Hi, this is ${businessName}. We noticed the call ended before we could collect your information.
+      messageBody = `Hi, this is ${businessName}. We noticed the call ended before we could collect your information.
 
 Please reply with:
 
@@ -618,11 +551,10 @@ Reply STOP to opt out.`;
       // Standard missed-call fallback for no useful info or unknown outcome
       selectedTemplate = 'missed_call';
       selectionReason = isIncompleteOrEarlyHangup ? 'incomplete_with_info' : 'standard_missed_call';
-      const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
       const autoReplyMessage = business.auto_reply_message && business.auto_reply_message.trim()
         ? business.auto_reply_message.replace(/\{\{business_name\}\}/gi, businessName)
         : `Hi, this is ${businessName}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`;
-      messageBody = `${prefix}${autoReplyMessage}`;
+      messageBody = autoReplyMessage;
     }
 
     // Temporary debug logs for decision logic

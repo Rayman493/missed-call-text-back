@@ -3,7 +3,6 @@ import { createClient } from "@supabase/supabase-js";
 import { sendSms } from "@/lib/twilio";
 import { isIgnoredContact } from "@/lib/ignored-contacts";
 import { hasBillingAccess } from "@/lib/manual-access";
-import { getOutOfOfficeNotice } from "@/lib/out-of-office";
 import { isCompleteAIIntake } from "@/lib/ai-intake-completion";
 
 // Helper function to validate environment variables
@@ -286,42 +285,7 @@ export async function POST(request: Request) {
         });
 
         // Check if business is currently Out of Office and append notice
-        console.log('[FOLLOWUP OOO CHECK] =========================================');
-        console.log('[FOLLOWUP OOO CHECK] followUpId:', job.id);
-        console.log('[FOLLOWUP OOO CHECK] businessId:', business.id);
-        console.log('[FOLLOWUP OOO CHECK] stepNumber:', job.step);
-        console.log('[FOLLOWUP OOO CHECK] out_of_office_enabled:', business.out_of_office_enabled);
-        console.log('[FOLLOWUP OOO CHECK] out_of_office_start:', business.out_of_office_start);
-        console.log('[FOLLOWUP OOO CHECK] out_of_office_end:', business.out_of_office_end);
-        console.log('[FOLLOWUP OOO CHECK] Timestamp:', new Date().toISOString());
-        console.log('[FOLLOWUP OOO CHECK] =========================================');
-
-        const outOfOfficeNotice = getOutOfOfficeNotice(business);
-        const outOfOfficeActive = outOfOfficeNotice !== null;
         let messageBody = job.message_body;
-
-        console.log('[FOLLOWUP OOO CHECK] =========================================');
-        console.log('[FOLLOWUP OOO CHECK] outOfOfficeActive:', outOfOfficeActive);
-        console.log('[FOLLOWUP OOO CHECK] noticeApplied:', outOfOfficeActive);
-        console.log('[FOLLOWUP OOO CHECK] finalMessagePreview:', messageBody.substring(0, 50) + '...');
-        if (outOfOfficeNotice) {
-          console.log('[FOLLOWUP OOO CHECK] noticePreview:', outOfOfficeNotice.substring(0, 50) + '...');
-        }
-        console.log('[FOLLOWUP OOO CHECK] Timestamp:', new Date().toISOString());
-        console.log('[FOLLOWUP OOO CHECK] =========================================');
-
-        console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
-        console.log('[OUT OF OFFICE NOTICE APPLIED] businessId:', business.id);
-        console.log('[OUT OF OFFICE NOTICE APPLIED] smsType:', `followup_${job.step}`);
-        console.log('[OUT OF OFFICE NOTICE APPLIED] outOfOfficeActive:', outOfOfficeActive);
-        console.log('[OUT OF OFFICE NOTICE APPLIED] returnDate:', business.out_of_office_end || null);
-        console.log('[OUT OF OFFICE NOTICE APPLIED] Timestamp:', new Date().toISOString());
-        console.log('[OUT OF OFFICE NOTICE APPLIED] =========================================');
-
-        if (outOfOfficeActive) {
-          messageBody += outOfOfficeNotice;
-          console.log('[OUT OF OFFICE NOTICE APPLIED] Notice appended successfully');
-        }
 
         const smsOptions: any = {
           lead_id: job.lead_id,
@@ -336,8 +300,6 @@ export async function POST(request: Request) {
         console.log('[FOLLOWUP FINAL SMS BODY] followUpId:', job.id);
         console.log('[FOLLOWUP FINAL SMS BODY] businessId:', business.id);
         console.log('[FOLLOWUP FINAL SMS BODY] stepNumber:', job.step);
-        console.log('[FOLLOWUP FINAL SMS BODY] outOfOfficeActive:', outOfOfficeActive);
-        console.log('[FOLLOWUP FINAL SMS BODY] noticeApplied:', outOfOfficeActive);
         console.log('[FOLLOWUP FINAL SMS BODY] finalBody:', messageBody);
         console.log('[FOLLOWUP FINAL SMS BODY] finalBodyLength:', messageBody.length);
         console.log('[FOLLOWUP FINAL SMS BODY] Timestamp:', new Date().toISOString());

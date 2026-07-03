@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendSms } from "@/lib/twilio";
-import { getOutOfOfficeNotice } from "@/lib/out-of-office";
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -175,7 +174,7 @@ export async function POST(request: Request) {
         // Fetch business information for Twilio
         const { data: business, error: businessError } = await supabase
           .from('businesses')
-          .select('id, twilio_messaging_service_sid, twilio_phone_number, twilio_phone_number_sid')
+          .select('id, name, twilio_messaging_service_sid, twilio_phone_number, twilio_phone_number_sid, out_of_office_enabled, out_of_office_start, out_of_office_end, out_of_office_message, business_hours_enabled, business_hours_start, business_hours_end, business_hours_timezone, after_hours_message')
           .eq('id', lead.business_id)
           .single();
 
@@ -186,45 +185,7 @@ export async function POST(request: Request) {
         console.log(`[FOLLOWUP BUSINESS LOADED] Business ${business.id} loaded for job ${job.id}`);
 
         // Fetch business OOO settings
-        const { data: businessWithOOO, error: businessOOOError } = await supabase
-          .from('businesses')
-          .select('name, out_of_office_enabled, out_of_office_start, out_of_office_end')
-          .eq('id', business.id)
-          .single();
-
-        if (businessOOOError || !businessWithOOO) {
-          console.error(`[FOLLOWUP BUSINESS OOO FETCH ERROR] Error fetching OOO settings for business ${business.id}:`, businessOOOError);
-        }
-
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] =========================================');
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] followUpId:', job.id);
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] businessId:', business.id);
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] stepNumber:', job.step);
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] outOfOfficeEnabled:', businessWithOOO?.out_of_office_enabled || false);
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] outOfOfficeStart:', businessWithOOO?.out_of_office_start || null);
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] outOfOfficeEnd:', businessWithOOO?.out_of_office_end || null);
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] Timestamp:', new Date().toISOString());
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] =========================================');
-
-        const outOfOfficeNotice = businessWithOOO ? getOutOfOfficeNotice(businessWithOOO) : null;
-        const noticeApplied = outOfOfficeNotice !== null;
-
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] =========================================');
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] noticeApplied:', noticeApplied);
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] originalLength:', job.message_body.length);
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] Timestamp:', new Date().toISOString());
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] =========================================');
-
-        // Build final message body with OOO notice appended
         let finalMessageBody = job.message_body;
-        if (noticeApplied && outOfOfficeNotice) {
-          finalMessageBody += '\n\n' + outOfOfficeNotice;
-        }
-
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] =========================================');
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] finalLength:', finalMessageBody.length);
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] Timestamp:', new Date().toISOString());
-        console.log('[FOLLOWUP OOO CHECK ACTIVE PATH] =========================================');
 
         // Validate business has messaging service SID
         if (!business.twilio_messaging_service_sid) {
