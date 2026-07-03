@@ -295,6 +295,7 @@ export class OpenAIRealtimeClient {
     const sessionUpdate = {
       type: 'session.update',
       session: {
+        type: 'realtime',
         modalities: ['audio', 'text'],
         instructions: 'You are ReplyFlow\'s phone assistant. You must speak only English. Always respond in clear American English. Never speak Spanish, French, or any other language. If audio is unclear, silence, background noise, or the caller speaks another language, still respond in English only.',
         voice: this.config.voice || 'alloy',

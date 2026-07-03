@@ -6299,6 +6299,7 @@ Reply to this message if you'd like to update or add any information.
           const sessionUpdate = {
             type: "session.update",
             session: {
+              type: "realtime",
               modalities: ["audio", "text"],
               instructions: "You are ReplyFlow Simple Mode. The system controls the conversation. Only speak the exact prompt provided in response.create. Never acknowledge caller content. Never ask unscripted follow-up questions. Never add filler. Speak exactly what is requested and nothing else.",
               voice: "alloy",
@@ -6328,6 +6329,28 @@ Reply to this message if you'd like to update or add any information.
 
         state.openAiWs.on('message', (data) => {
           const message = JSON.parse(data.toString());
+
+          // Log session lifecycle events
+          if (message.type === 'session.created') {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: session.created - OpenAI accepted connection');
+            console.log('[SIMPLE MODE] session.id:', message.session?.id);
+            console.log('[SIMPLE MODE] session.model:', message.session?.model);
+            console.log('[SIMPLE MODE] =========================================');
+          } else if (message.type === 'session.updated') {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: session.updated - session.update accepted');
+            console.log('[SIMPLE MODE] session.id:', message.session?.id);
+            console.log('[SIMPLE MODE] session.voice:', message.session?.voice);
+            console.log('[SIMPLE MODE] session.input_audio_format:', message.session?.input_audio_format);
+            console.log('[SIMPLE MODE] session.output_audio_format:', message.session?.output_audio_format);
+            console.log('[SIMPLE MODE] =========================================');
+          } else if (message.type === 'error') {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: error from OpenAI');
+            console.log('[SIMPLE MODE] error:', JSON.stringify(message.error));
+            console.log('[SIMPLE MODE] =========================================');
+          }
 
           // Log key OpenAI events
           if (message.type === 'input_audio_buffer.speech_started') {
