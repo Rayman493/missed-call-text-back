@@ -854,93 +854,44 @@ async function processVoiceStatusCallback(params: any, method: string) {
     // Select message based on business hours and out of office status
     let autoReplyMessage
     let messageTemplate = smsDecision.template
-    let templateSource: 'custom' | 'stale_default_replaced' | 'missed_call_default' | 'after_hours' | 'out_of_office'
+    let templateSource: 'custom' | 'stale_default_replaced' | 'missed_call_default'
 
     // Define old stale default template
     const staleDefaultTemplate = 'Sorry we missed your call—how can we help?'
 
-    // Priority: Out of Office Mode > After Hours > Normal
-    console.log('[AFTER HOURS DECISION] Message template selection starting', {
+    // Note: Out of Office and After Hours availability notes are now handled centrally
+    // by appendBusinessAvailabilityNote in sendSms/sendMms. This route only handles
+    // the normal missed_call template.
+
+    console.log('[VOICE STATUS] Message template selection', {
       messageTemplate,
       businessHoursEnabled,
-      withinBusinessHours,
-      out_of_office_enabled: business.out_of_office_enabled
+      withinBusinessHours
     })
 
-    if (messageTemplate === 'out_of_office') {
-      console.log('[AFTER HOURS DECISION] Branch: out_of_office template selected')
-      // Use custom out of office message or default
-      if (business.out_of_office_message && business.out_of_office_message.trim()) {
-        autoReplyMessage = business.out_of_office_message.replace(/\{\{business_name\}\}/gi, business.name)
-      } else {
-        autoReplyMessage = `Thanks for contacting ${business.name}. We are currently out of office and responses may be delayed. Please provide details about what you need and we will get back to you as soon as possible. Reply STOP to opt out.`
-      }
-      templateSource = 'out_of_office'
-      console.log('[OUT OF OFFICE MESSAGE SELECTED]', {
-        template: messageTemplate,
-        businessId: business.id,
-        messageBody: autoReplyMessage?.substring(0, 100),
-        templateSource
-      })
-    } else if (businessHoursEnabled && !withinBusinessHours) {
-      console.log('[AFTER HOURS DECISION] Branch: after_hours condition met', {
-        businessHoursEnabled,
-        withinBusinessHours,
-        reason: 'Business hours enabled and currently outside hours'
-      })
-      // Use custom after-hours message or default
-      if (afterHoursMessage && afterHoursMessage.trim()) {
-        autoReplyMessage = afterHoursMessage
-        templateSource = 'after_hours'
-        console.log('[AFTER HOURS MESSAGE SELECTED]', {
-          template: messageTemplate,
-          businessId: business.id,
-          messageBody: autoReplyMessage?.substring(0, 100),
-          templateSource,
-          usingDefault: false
-        })
-      } else {
-        // Default after-hours message when custom message is blank
-        autoReplyMessage = `Thanks for contacting {{business_name}}. We're currently closed and will get back to you during business hours.`
-        templateSource = 'after_hours'
-        console.log('[AFTER HOURS MESSAGE SELECTED]', {
-          template: messageTemplate,
-          businessId: business.id,
-          messageBody: autoReplyMessage?.substring(0, 100),
-          templateSource,
-          usingDefault: true,
-          reason: 'after_hours_message is blank'
-        })
-      }
-      messageTemplate = 'after_hours'
-    } else {
-      console.log('[AFTER HOURS DECISION] Branch: normal missed call (after-hours condition NOT met)', {
-        businessHoursEnabled,
-        withinBusinessHours,
-        reason: !businessHoursEnabled ? 'Business hours not enabled' : 'Within business hours'
-      })
-      if (business.auto_reply_message && business.auto_reply_message.trim()) {
-        // Check if the custom message is actually the old stale default
-        if (business.auto_reply_message.includes(staleDefaultTemplate)) {
-          console.log('[VOICE STATUS] Detected stale default auto_reply_message, replacing with new missed call template')
-          autoReplyMessage = `Hi, this is {{business_name}}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`
-          templateSource = 'stale_default_replaced'
-        } else {
-          autoReplyMessage = business.auto_reply_message
-          templateSource = 'custom'
-        }
-      } else {
+    // Handle normal missed call template (OOO/after-hours notes appended by sendSms)
+    if (business.auto_reply_message && business.auto_reply_message.trim()) {
+      // Check if the custom message is actually the old stale default
+      if (business.auto_reply_message.includes(staleDefaultTemplate)) {
+        console.log('[VOICE STATUS] Detected stale default auto_reply_message, replacing with new missed call template')
         autoReplyMessage = `Hi, this is {{business_name}}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`
-        templateSource = 'missed_call_default'
+        templateSource = 'stale_default_replaced'
+      } else {
+        autoReplyMessage = business.auto_reply_message
+        templateSource = 'custom'
       }
-      messageTemplate = 'missed_call'
-      console.log('[NORMAL MISSED CALL MESSAGE SELECTED]', {
-        template: messageTemplate,
-        businessId: business.id,
-        messageBody: autoReplyMessage?.substring(0, 100),
-        templateSource
-      })
+    } else {
+      autoReplyMessage = `Hi, this is {{business_name}}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`
+      templateSource = 'missed_call_default'
     }
+
+    messageTemplate = 'missed_call'
+    console.log('[NORMAL MISSED CALL MESSAGE SELECTED]', {
+      template: messageTemplate,
+      businessId: business.id,
+      messageBody: autoReplyMessage?.substring(0, 100),
+      templateSource
+    })
 
     // Substitute {{business_name}} token
     const personalizedMessage = autoReplyMessage ? autoReplyMessage.replace('{{business_name}}', business.name || 'My Business') : null

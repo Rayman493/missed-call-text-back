@@ -178,56 +178,15 @@ export async function determineSmsTemplate(params: {
     businessTimezone: business?.business_hours_timezone
   })
 
-  if (business && isBusinessOutOfOffice(business as any)) {
-    console.log('[AUTO SMS DECISION] Out of Office Mode is active - using out of office message', {
-      leadId,
-      callSid,
-      businessId,
-      businessName: business.name
-    })
-    return {
-      template: 'out_of_office',
-      shouldSend: true,
-      reason: 'out_of_office_active',
-      aiCompleted: false,
-      voicemailCompleted: false,
-      aiCallRecordId: aiCallRecord?.id
-    }
-  }
+  // Note: Out of Office and After Hours availability notes are now handled centrally
+  // by appendBusinessAvailabilityNote in sendSms/sendMms. This function returns
+  // the normal template and lets the central helper append the availability note.
+  // This prevents sending a standalone availability SMS before the main message.
 
-  // Check for After Hours Mode (priority: 3, after out-of-office, before AI outcome)
-  // For NON-AI completed intake only. For AI completed intake, the notice will be prepended to AI Summary SMS.
-  const isAfterHours = business && !isWithinBusinessHours(business)
-  if (business && isAfterHours) {
-    // Check if AI completed intake - if so, let the AI summary SMS handle the notice
-    const outcome = aiCallRecord?.outcome as AiCallOutcome
-    if (outcome === 'completed_intake') {
-      console.log('[AUTO SMS DECISION] After Hours Mode active but AI completed intake - AI summary will include notice', {
-        leadId,
-        callSid,
-        businessId,
-        businessName: business.name,
-        businessHoursEnabled: business.business_hours_enabled
-      })
-      // Continue to AI outcome logic, which will return template: 'none'
-    } else {
-      console.log('[AUTO SMS DECISION] After Hours Mode is active - using after hours message', {
-        leadId,
-        callSid,
-        businessId,
-        businessName: business.name,
-        businessHoursEnabled: business.business_hours_enabled
-      })
-      return {
-        template: 'after_hours',
-        shouldSend: true,
-        reason: 'after_hours_active',
-        aiCompleted: false,
-        voicemailCompleted: false,
-        aiCallRecordId: aiCallRecord?.id
-      }
-    }
-  }
+  // Note: After Hours availability notes are now handled centrally by
+  // appendBusinessAvailabilityNote in sendSms/sendMms. This function returns
+  // the normal template and lets the central helper append the availability note.
+  // This prevents sending a standalone after-hours SMS before the main message.
 
   // Decision logic based on AI call outcome
   const outcome = aiCallRecord?.outcome as AiCallOutcome
