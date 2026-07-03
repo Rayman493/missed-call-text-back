@@ -1,5 +1,6 @@
 import { db } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
+import { getOutOfOfficeNotice } from '@/lib/out-of-office'
 
 // Helper function to check if a date is during business hours
 function isDuringBusinessHours(date: Date, timezone: string): boolean {
@@ -264,7 +265,27 @@ export async function createFollowUpJobs(params: {
         }
       }
       
-      const messageBody = followUp.message
+      let messageBody = followUp.message
+
+      // Append Out of Office notice if currently active
+      const outOfOfficeNotice = getOutOfOfficeNotice(business)
+      if (outOfOfficeNotice) {
+        // Append before STOP wording to ensure compliance language remains at the end
+        const stopIndex = messageBody.indexOf('Reply STOP')
+        if (stopIndex !== -1) {
+          // Insert Out of Office notice before STOP wording
+          messageBody = messageBody.substring(0, stopIndex) + outOfOfficeNotice + '\n\n' + messageBody.substring(stopIndex)
+        } else {
+          // If no STOP wording found, append at the end
+          messageBody = messageBody + '\n\n' + outOfOfficeNotice
+        }
+        console.log('[FOLLOWUP JOB] Out of Office notice appended', {
+          businessId,
+          leadId,
+          step: followUp.step,
+          notice: outOfOfficeNotice
+        })
+      }
 
       console.log('[FOLLOWUP JOB INSERT]', {
         step: followUp.step,

@@ -8,6 +8,7 @@ import { createFollowUpJobs } from '@/lib/follow-ups';
 import { notificationServiceServer } from '@/lib/notifications-server';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
+import { getOutOfOfficeNotice } from '@/lib/out-of-office';
 
 // CALL TRACE logging function
 function logCallTrace(data: {
@@ -617,7 +618,25 @@ export async function POST(request: NextRequest) {
             templateSource = 'voicemail_default';
           }
 
-          const personalizedMessage = messageToSend.replace('{{business_name}}', businessDetails.name || 'My Business');
+          let personalizedMessage = messageToSend.replace('{{business_name}}', businessDetails.name || 'My Business');
+
+          // Append Out of Office notice if currently active
+          const outOfOfficeNotice = getOutOfOfficeNotice(businessDetails);
+          if (outOfOfficeNotice) {
+            // Append before STOP wording to ensure compliance language remains at the end
+            const stopIndex = personalizedMessage.indexOf('Reply STOP');
+            if (stopIndex !== -1) {
+              // Insert Out of Office notice before STOP wording
+              personalizedMessage = personalizedMessage.substring(0, stopIndex) + outOfOfficeNotice + '\n\n' + personalizedMessage.substring(stopIndex);
+            } else {
+              // If no STOP wording found, append at the end
+              personalizedMessage = personalizedMessage + '\n\n' + outOfOfficeNotice;
+            }
+            console.log('[VOICEMAIL SMS] Out of Office notice appended', {
+              businessId: businessDetails.id,
+              notice: outOfOfficeNotice
+            });
+          }
 
           console.log('[VOICEMAIL SMS] SMS prepared', {
             to: from,
