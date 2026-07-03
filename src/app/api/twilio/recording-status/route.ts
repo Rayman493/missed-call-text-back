@@ -10,8 +10,10 @@ import { formatAiIntakeSummary } from '@/lib/ai-intake-formatter';
 import { getOutOfOfficeNotice } from '@/lib/out-of-office';
 import { timelineEvents } from '@/lib/event-timeline';
 import { createFollowUpJobs } from '@/lib/follow-ups';
+import { testFallbacks, warnIfTestFallbacksActive } from '@/lib/testing/test-fallbacks';
 
 export async function POST(request: NextRequest) {
+  warnIfTestFallbacksActive();
   console.log('[RECORDING STATUS ROUTE HIT]')
   
   try {
@@ -153,6 +155,14 @@ export async function POST(request: NextRequest) {
       
       // Attempt OpenAI transcription when recording completes
       if (recordingStatus === 'completed' && voicemail.lead_id && voicemail.recording_url) {
+        // ── TEST FALLBACK: forceVoicemailFailure ─────────────────────────────
+        if (testFallbacks.forceVoicemailFailure) {
+          console.warn('[TEST FALLBACK] forceVoicemailFailure active — skipping transcription/extraction to trigger final SMS fallback');
+          console.warn('[TEST FALLBACK] Reset forceVoicemailFailure to false in src/lib/testing/test-fallbacks.ts after testing.');
+          // Fall through without transcribing so sms_pending remains true
+          // and the final SMS fallback block below will fire.
+        } else
+        // ── END TEST FALLBACK ───────────────────────────────────────────────
         // Idempotency check: skip if transcript already exists
         if (voicemail.transcription_text && voicemail.transcription_text.trim().length > 0) {
           console.log('[RECORDING STATUS] Transcript already exists, skipping transcription');
@@ -391,6 +401,13 @@ export async function POST(request: NextRequest) {
       // sms_pending may still be true. Send the structured summary with all fields "Not collected"
       // so the customer always receives a reply they can respond to.
       try {
+        // ── TEST FALLBACK: forceFinalSmsFallback ───────────────────────────────────
+        if (testFallbacks.forceFinalSmsFallback) {
+          console.warn('[TEST FALLBACK] forceFinalSmsFallback active — forcing final structured SMS fallback regardless of sms_pending state');
+          console.warn('[TEST FALLBACK] Reset forceFinalSmsFallback to false in src/lib/testing/test-fallbacks.ts after testing.');
+        }
+        // ── END TEST FALLBACK ──────────────────────────────────────────────────────
+
         const { data: pendingCallEvent } = await supabaseAdmin
           .from('call_events')
           .select('*')
@@ -398,7 +415,7 @@ export async function POST(request: NextRequest) {
           .eq('sms_pending', true)
           .maybeSingle();
 
-        if (pendingCallEvent && !pendingCallEvent.sms_sent_at) {
+        if ((pendingCallEvent && !pendingCallEvent.sms_sent_at) || testFallbacks.forceFinalSmsFallback) {
           console.log('[FINAL SMS FALLBACK] sms_pending still true after all voicemail paths - sending structured fallback SMS', {
             callSid: voicemail.call_sid,
             leadId: voicemail.lead_id,

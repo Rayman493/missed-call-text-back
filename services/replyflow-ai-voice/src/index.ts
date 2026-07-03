@@ -36,6 +36,7 @@ import {
   getIntakeTemplateForBusinessTypeSafe,
   getIntakeStageTextSafe,
 } from './intake-templates';
+import { testFallbacks, warnIfTestFallbacksActive } from './test-fallbacks';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -133,6 +134,7 @@ console.log('[AI VOICE DEPLOYMENT PROOF] deployedAt:', new Date().toISOString())
 console.log('[AI VOICE DEPLOYMENT PROOF] =========================================');
 
 console.log('[AI VOICE STARTUP] Timestamp:', new Date().toISOString());
+warnIfTestFallbacksActive();
 
 // Normalize phone number to E.164 US format
 function normalizePhoneNumberForStorage(phone: string): string {
@@ -8803,6 +8805,26 @@ Return only JSON, no other text.`;
           // Store empty placeholder to avoid undefined errors
           (ws as any).aiInstructions = '';
 
+          // ── TEST FALLBACK: forceAiFailure ──────────────────────────────────────
+          if (testFallbacks.forceAiFailure) {
+            console.warn('[TEST FALLBACK] forceAiFailure active — immediately triggering voicemail fallback');
+            console.warn('[TEST FALLBACK] Reset forceAiFailure to false in services/replyflow-ai-voice/src/test-fallbacks.ts after testing.');
+            const aiSessionTrackerForced = createAISessionTracker(callSid || '', businessId || '');
+            await triggerVoicemailFallback(
+              ws,
+              twilioHandler,
+              aiSessionTrackerForced,
+              'forceAiFailure test switch',
+              callSid || '',
+              businessId || '',
+              callerPhone || '',
+              businessName || '',
+              forwardedFrom || ''
+            );
+            return;
+          }
+          // ── END TEST FALLBACK ──────────────────────────────────────────────────
+
           // Check for required parameters
           if (!sessionId || !callSid) {
             log(LogLevel.WARN, '[AI POC] initialization skipped because: missing required parameters', { sessionId, callSid });
@@ -8846,7 +8868,7 @@ Return only JSON, no other text.`;
             console.log('[STREAM CLONED] WebSocket package:', 'ws');
             console.log('[STREAM CLONED] API key exists:', !!OPENAI_API_KEY);
             
-            const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-realtime';
+            const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
             console.log('[STREAM CLONED] creating websocket to:', wsUrl);
             console.log('[OPENAI WEBSOCKET CLEANUP] Creating FRESH OpenAI session for this call');
             console.log('[OPENAI WEBSOCKET CLEANUP] callSid:', callSid);
