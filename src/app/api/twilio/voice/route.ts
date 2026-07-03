@@ -95,7 +95,8 @@ async function hasRecentAutoReply(businessId: string, callerPhone: string): Prom
 // Helper to generate voice greeting with static polished wording
 function generateVoiceGreeting(): string {
   // Static, polished voicemail greeting for all businesses
-  const voicemailMessage = "Thank you for calling. We're sorry we missed your call. Please leave your name, your phone number, and a brief message after the tone, and we'll get back to you as soon as possible.";
+  // Note: Phone number is not requested since ReplyFlow receives it from Caller ID
+  const voicemailMessage = "Thank you for calling. We're sorry we missed your call. Please leave your name and the reason for your call after the tone, and we'll get back to you as soon as possible.";
   
   // Note: Transcription is now fetched via REST API in recording-status callback
   // instead of using Twilio's transcribeCallback (account-level restrictions prevent callbacks)

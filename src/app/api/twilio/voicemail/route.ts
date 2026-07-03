@@ -607,14 +607,14 @@ export async function POST(request: NextRequest) {
             // Check if the custom message is actually the old stale default
             if (businessDetails.auto_reply_message.includes(staleDefaultTemplate)) {
               console.log('[VOICEMAIL SMS] Detected stale default auto_reply_message, replacing with new voicemail template');
-              messageToSend = `Hi, this is {{business_name}}. We just missed your call and received your voicemail. If there's anything you'd like to add or clarify, reply to this text and we'll include it with your request before getting back to you. Reply STOP to opt out.`;
+              messageToSend = `Hi, this is {{business_name}}. We just missed your call and received your voicemail. If you'd like to add anything else, simply reply to this text and we'll include it with your request before getting back to you. Reply STOP to opt out.`;
               templateSource = 'stale_default_replaced';
             } else {
               messageToSend = businessDetails.auto_reply_message;
               templateSource = 'custom';
             }
           } else {
-            messageToSend = `Hi, this is {{business_name}}. We just missed your call and received your voicemail. If there's anything you'd like to add or clarify, reply to this text and we'll include it with your request before getting back to you. Reply STOP to opt out.`;
+            messageToSend = `Hi, this is {{business_name}}. We just missed your call and received your voicemail. If you'd like to add anything else, simply reply to this text and we'll include it with your request before getting back to you. Reply STOP to opt out.`;
             templateSource = 'voicemail_default';
           }
 
