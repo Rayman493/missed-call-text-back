@@ -8,6 +8,7 @@ import { isActiveSubscription } from '@/lib/subscription'
 import { hasBillingAccess } from '@/lib/manual-access'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
 import StripeReturnLoadingScreen from '@/components/StripeReturnLoadingScreen'
+import CheckoutRedirectLoadingScreen from '@/components/CheckoutRedirectLoadingScreen'
 import { logRouteFlashDebug } from '@/lib/route-flash-debug'
 import { isStripeReturnUrl } from '@/lib/stripe-return'
 
@@ -41,6 +42,16 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       previousPathnameRef.current = pathname
     }
   }, [pathname])
+
+  // Clear stale businessVerified cache when returning from Stripe cancel
+  // This ensures fresh business validation instead of relying on cached state
+  useEffect(() => {
+    if (checkoutStatus === 'cancelled' && typeof window !== 'undefined') {
+      console.log('[BusinessGuard] checkout=cancelled detected, clearing businessVerified cache')
+      sessionStorage.removeItem('replyflow_business_verified')
+      setBusinessVerified(false)
+    }
+  }, [checkoutStatus])
 
   useEffect(() => {
     // Mark as initialized once loading is complete and fetch is complete
@@ -219,6 +230,25 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       reason: 'Stripe return detected; business still loading or transiently missing; showing StripeReturnLoadingScreen',
     })
     return <StripeReturnLoadingScreen />
+  }
+
+  // EXPLICIT CHECKOUT REDIRECT GATE: If business exists but checkout is not completed,
+  // show redirect loading screen immediately and never render dashboard content.
+  // This prevents the dashboard flash before the redirect useEffect kicks in.
+  if (business && business.subscription_status === null) {
+    logRouteFlashDebug({
+      source: 'BusinessGuard',
+      pathname,
+      previousPathname: previousPathnameRef.current,
+      authLoading: false,
+      userId: user?.id ?? null,
+      businessId: business?.id ?? null,
+      onboardingStatus: business?.onboarding_status,
+      subscriptionStatus: business?.subscription_status,
+      renderBranch: 'checkout-redirect',
+      reason: 'business exists but subscription_status is null; showing checkout redirect loading screen',
+    })
+    return <CheckoutRedirectLoadingScreen />
   }
 
   // Show loading state while business is loading or not yet initialized
