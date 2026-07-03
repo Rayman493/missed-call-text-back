@@ -690,20 +690,59 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       // Safely merge SMS extraction with existing metadata
       const updatedMetadata = await safeMergeSmsExtraction(currentMetadata, smsExtraction, body)
 
-      console.log('[SMS ENRICHMENT UPDATED METADATA]', {
+      const fieldKeyMap: Record<string, string> = {
+        addressOrLocation: 'address',
+        preferredCallbackTime: 'callback_time',
+        importantDetails: 'details',
+        reasonForCalling: 'reason',
+        desiredCompletionTime: 'desired_completion_time',
+        callerName: 'name'
+      }
+      const currentFieldCorrections = currentMetadata.field_corrections || {}
+      const mergedFieldCorrections = updatedMetadata.field_corrections || {}
+      const newMergeCorrections = Object.entries(mergedFieldCorrections).filter(([field, correction]: [string, any]) => {
+        const previous = currentFieldCorrections[field]
+        return correction?.to && (!previous || previous.to !== correction.to)
+      })
+      const correctedFieldsFromMerge = { ...(currentMetadata.corrected_fields || {}) }
+      const previousValuesFromMerge = { ...(currentMetadata.previous_values || {}) }
+      for (const [field, correction] of newMergeCorrections as [string, any][]) {
+        const correctedFieldKey = fieldKeyMap[field] || field
+        correctedFieldsFromMerge[correctedFieldKey] = correction.to
+        previousValuesFromMerge[correctedFieldKey] = correction.from || 'unknown'
+      }
+      const enrichedMetadata = {
+        ...updatedMetadata,
+        ...(newMergeCorrections.length > 0 ? {
+          customer_corrected_info: true,
+          last_correction_at: now,
+          last_correction_field: newMergeCorrections[newMergeCorrections.length - 1][0],
+          corrections_count: (currentMetadata.corrections_count || 0) + newMergeCorrections.length,
+          corrected_fields: correctedFieldsFromMerge,
+          previous_values: previousValuesFromMerge
+        } : {})
+      }
+      const mergedLeadUpdatePayload: any = { raw_metadata: enrichedMetadata }
+      const mergedNameCorrection = newMergeCorrections.find(([field]) => field === 'callerName') as [string, any] | undefined
+      if (mergedNameCorrection?.[1]?.to) {
+        mergedLeadUpdatePayload.name = String(mergedNameCorrection[1].to).trim()
+      }
+
+      console.log('[SMS MERGE PERSIST PREPARED]', {
         leadId: lead.id,
-        updatedExtractedInfo: updatedMetadata.extracted_info,
-        updatedIntakeSources: updatedMetadata.intake_sources,
-        updatedVoicemailExtraction: updatedMetadata.voicemail_extraction,
-        updatedSmsExtraction: updatedMetadata.sms_extraction,
-        metadataChanged: JSON.stringify(currentMetadata) !== JSON.stringify(updatedMetadata)
+        mergedExtractedInfo: updatedMetadata.extracted_info,
+        rawMetadataToWrite: enrichedMetadata,
+        correctedFieldsToWrite: enrichedMetadata.corrected_fields,
+        correctionsCountToWrite: enrichedMetadata.corrections_count,
+        leadNameToWrite: mergedLeadUpdatePayload.name || null,
+        newMergeCorrections
       })
 
-      // Update lead with merged metadata
-      const { error: updateError } = await supabaseAdmin
+      const { data: leadUpdateRows, error: updateError } = await supabaseAdmin
         .from('leads')
-        .update({ raw_metadata: updatedMetadata })
+        .update(mergedLeadUpdatePayload)
         .eq('id', lead.id)
+        .select('id, name, raw_metadata')
 
       if (updateError) {
         console.error('[SMS ENRICHMENT UPDATE ERROR]', {
@@ -712,27 +751,83 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           errorDetails: updateError
         })
       } else {
-        console.log('[SMS ENRICHMENT UPDATE SUCCESS]', {
+        console.log('[SMS MERGE LEAD UPDATE RESULT]', {
           leadId: lead.id,
-          fieldsUpdated: Object.keys(smsExtraction.extractedInfo).filter(k => smsExtraction.extractedInfo[k as keyof typeof smsExtraction.extractedInfo]).length,
-          updatePayloadSize: JSON.stringify(updatedMetadata).length
+          rowsAffected: leadUpdateRows?.length || 0,
+          valuesWrittenToRawMetadata: enrichedMetadata.extracted_info,
+          valuesWrittenToCorrectedFields: enrichedMetadata.corrected_fields,
+          returnedRows: leadUpdateRows
         })
 
-        // Verify persistence by re-reading the lead
+        const { data: latestAiRecordForMerge } = await supabaseAdmin
+          .from('ai_call_records')
+          .select('id, extracted_info')
+          .eq('lead_id', lead.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (latestAiRecordForMerge?.id) {
+          const aiMergedExtractedInfo = {
+            ...(latestAiRecordForMerge.extracted_info || {}),
+            ...(enrichedMetadata.extracted_info || {}),
+            ...(enrichedMetadata.extracted_info?.callerName ? { customerName: enrichedMetadata.extracted_info.callerName } : {})
+          }
+          const { data: aiUpdateRows, error: aiMergeUpdateError } = await supabaseAdmin
+            .from('ai_call_records')
+            .update({ extracted_info: aiMergedExtractedInfo, updated_at: now })
+            .eq('id', latestAiRecordForMerge.id)
+            .select('id, extracted_info')
+
+          if (aiMergeUpdateError) {
+            console.error('[SMS MERGE AI RECORD UPDATE ERROR]', {
+              leadId: lead.id,
+              aiCallRecordId: latestAiRecordForMerge.id,
+              error: aiMergeUpdateError.message,
+              errorDetails: aiMergeUpdateError
+            })
+          } else {
+            console.log('[SMS MERGE AI RECORD UPDATE RESULT]', {
+              leadId: lead.id,
+              aiCallRecordId: latestAiRecordForMerge.id,
+              rowsAffected: aiUpdateRows?.length || 0,
+              valuesWrittenToAiCallRecord: aiMergedExtractedInfo,
+              returnedRows: aiUpdateRows
+            })
+          }
+        } else {
+          console.log('[SMS MERGE AI RECORD UPDATE SKIPPED]', {
+            leadId: lead.id,
+            reason: 'no_latest_ai_call_record_found'
+          })
+        }
+
         const { data: verifiedLead } = await supabaseAdmin
           .from('leads')
-          .select('raw_metadata')
+          .select('id, name, raw_metadata')
           .eq('id', lead.id)
           .single()
+        const { data: verifiedAiRecord } = await supabaseAdmin
+          .from('ai_call_records')
+          .select('id, extracted_info')
+          .eq('lead_id', lead.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
 
-        console.log('[SMS ENRICHMENT VERIFICATION]', {
+        console.log('[SMS MERGE DB READBACK]', {
           leadId: lead.id,
-          hasVerifiedLead: !!verifiedLead,
-          verifiedExtractedInfo: verifiedLead?.raw_metadata?.extracted_info,
-          verifiedIntakeSources: verifiedLead?.raw_metadata?.intake_sources,
-          verifiedSmsExtraction: verifiedLead?.raw_metadata?.sms_extraction,
-          metadataMatches: JSON.stringify(verifiedLead?.raw_metadata) === JSON.stringify(updatedMetadata)
+          finalLeadName: verifiedLead?.name,
+          finalLeadRawMetadataExtractedInfo: verifiedLead?.raw_metadata?.extracted_info,
+          finalLeadCorrectedFields: verifiedLead?.raw_metadata?.corrected_fields,
+          finalLeadCorrectionsCount: verifiedLead?.raw_metadata?.corrections_count,
+          finalAiCallRecordId: verifiedAiRecord?.id,
+          finalAiCallRecordExtractedInfo: verifiedAiRecord?.extracted_info
         })
+
+        if (leadUpdateRows?.[0]) {
+          lead = leadUpdateRows[0]
+        }
       }
     } else {
       console.log('[SMS ENRICHMENT NO EXTRACTION]', {
