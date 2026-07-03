@@ -48,6 +48,9 @@ export default function SettingsContent() {
   const [successMessage, setSuccessMessage] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deletePassword, setDeletePassword] = useState('')
+  const [showDeletePassword, setShowDeletePassword] = useState(false)
+  const [deletePasswordError, setDeletePasswordError] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
   const [isOpeningPortal, setIsOpeningPortal] = useState(false)
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
@@ -761,9 +764,11 @@ export default function SettingsContent() {
 
   // Delete account handler
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== 'DELETE') return
+    if (deleteConfirmText !== 'DELETE' || !deletePassword.trim()) return
 
     setIsDeleting(true)
+    setDeletePasswordError('')
+    
     try {
       // Starting account deletion process
       
@@ -776,12 +781,20 @@ export default function SettingsContent() {
       const response = await fetch('/api/account/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deletePassword }),
       })
 
       const result = await response.json().catch(() => ({}))
 
       if (!response.ok || !result?.ok) {
         console.error('[Settings] Delete account server error:', result)
+        
+        if (result?.step === 'password_verification') {
+          setDeletePasswordError(result?.error || 'Incorrect password. Please try again.')
+          setIsDeleting(false)
+          return
+        }
+        
         const friendly =
           result?.step === 'stripe_cancel'
             ? (result?.error || 'We could not cancel your subscription. Your account was not deleted. Please try again or contact support.')
@@ -789,6 +802,7 @@ export default function SettingsContent() {
               ? 'Billing service is temporarily unavailable. Please try again in a moment.'
               : (result?.error || 'Failed to delete account. Please try again.')
         showToast(friendly, 'error')
+        setIsDeleting(false)
         return
       }
 
@@ -811,10 +825,7 @@ export default function SettingsContent() {
     } catch (error) {
       console.error('[Settings] Delete account network error:', error)
       showToast('Failed to delete account. Please try again.', 'error')
-    } finally {
       setIsDeleting(false)
-      setShowDeleteModal(false)
-      setDeleteConfirmText('')
     }
   }
 
@@ -2397,8 +2408,63 @@ export default function SettingsContent() {
                     value={deleteConfirmText}
                     onChange={(e) => setDeleteConfirmText(e.target.value)}
                     placeholder="Type DELETE"
-                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-background text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground"
+                    disabled={isDeleting}
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-background text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground disabled:opacity-50"
                   />
+                </div>
+
+                {/* Final Confirmation - Password */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">
+                    Final Confirmation
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-muted-foreground mb-3">
+                    Enter your current password to permanently delete your ReplyFlow account.
+                  </p>
+                  <div className="relative">
+                    <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
+                      Current Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showDeletePassword ? 'text' : 'password'}
+                        value={deletePassword}
+                        onChange={(e) => {
+                          setDeletePassword(e.target.value)
+                          setDeletePasswordError('')
+                        }}
+                        placeholder="Enter your current password"
+                        disabled={isDeleting}
+                        className={`w-full px-4 py-3 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:border-red-500 bg-background text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground disabled:opacity-50 ${
+                          deletePasswordError 
+                            ? 'border-red-500 focus:ring-red-500' 
+                            : 'border-border focus:ring-red-500/40 focus:border-red-500/80'
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowDeletePassword(!showDeletePassword)}
+                        disabled={isDeleting}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {showDeletePassword ? (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                    {deletePasswordError && (
+                      <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                        {deletePasswordError}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Action buttons */}
@@ -2407,6 +2473,8 @@ export default function SettingsContent() {
                     onClick={() => {
                       setShowDeleteModal(false)
                       setDeleteConfirmText('')
+                      setDeletePassword('')
+                      setDeletePasswordError('')
                     }}
                     disabled={isDeleting}
                     className="px-4 py-2.5 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
@@ -2415,7 +2483,7 @@ export default function SettingsContent() {
                   </button>
                   <button
                     onClick={handleDeleteAccount}
-                    disabled={deleteConfirmText !== 'DELETE' || isDeleting}
+                    disabled={deleteConfirmText !== 'DELETE' || !deletePassword.trim() || isDeleting}
                     className="px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     {isDeleting ? (

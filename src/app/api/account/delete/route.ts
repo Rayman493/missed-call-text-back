@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
     // Check for dry-run mode
     const body = await request.json().catch(() => ({}))
     const dryRun = body.dryRun === true
+    const password = body.password
 
     if (dryRun) {
       console.log('[delete-account] DRY RUN MODE - No actual deletions will occur')
@@ -65,6 +66,43 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[delete-account] Authenticated user:', user.id)
+
+    // Verify password before any deletion logic
+    if (!password || typeof password !== 'string' || !password.trim()) {
+      console.error('[delete-account] Password not provided')
+      return NextResponse.json(
+        { ok: false, step: 'password_verification', error: 'Password is required' },
+        { status: 400 }
+      )
+    }
+
+    console.log('[delete-account] Verifying password for user:', user.id)
+
+    // Verify password by attempting to sign in
+    // This is the standard way to verify credentials in Supabase
+    const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithPassword({
+      email: user.email || '',
+      password: password.trim(),
+    })
+
+    if (signInError || !signInData.user) {
+      console.error('[delete-account] Password verification failed:', signInError)
+      return NextResponse.json(
+        { ok: false, step: 'password_verification', error: 'Incorrect password. Please try again.' },
+        { status: 401 }
+      )
+    }
+
+    // Verify the authenticated user matches the signed-in user
+    if (signInData.user.id !== user.id) {
+      console.error('[delete-account] User ID mismatch during password verification')
+      return NextResponse.json(
+        { ok: false, step: 'password_verification', error: 'Authentication failed' },
+        { status: 401 }
+      )
+    }
+
+    console.log('[delete-account] Password verified successfully')
 
     // Summary object for logging
     const summary: any = {
