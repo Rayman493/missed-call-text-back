@@ -4710,7 +4710,6 @@ const server = createServer(async (req, res) => {
     console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
     const headers = {
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'OpenAI-Beta': 'realtime=v1',
     };
 
     console.log('[TEST OPENAI] creating websocket');
@@ -4835,7 +4834,6 @@ const server = createServer(async (req, res) => {
     console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
     const headers = {
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'OpenAI-Beta': 'realtime=v1',
     };
 
     console.log('[DEBUG OPENAI] websocket URL:', wsUrl);
@@ -4943,7 +4941,6 @@ const server = createServer(async (req, res) => {
     const testWs = new WebSocket(wsUrl, {
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
-        'OpenAI-Beta': 'realtime=v1',
       },
     });
     
