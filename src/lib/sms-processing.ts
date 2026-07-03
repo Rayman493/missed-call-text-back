@@ -858,6 +858,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           name: 'callerName',
           callerName: 'callerName',
           caller_name: 'callerName',
+          customerName: 'callerName',
+          customer_name: 'callerName',
           reason: 'reasonForCalling',
           reasonForCalling: 'reasonForCalling',
           reason_for_call: 'reasonForCalling',
@@ -877,26 +879,36 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         const newValue = String((afterApply as any)[canonicalField] || '').trim()
 
         if (newValue && newValue !== oldValue) {
+          console.log('[SMS CORRECTION DETECTED]', {
+            leadId: lead.id,
+            field: canonicalField,
+            previousValue: oldValue,
+            newValue,
+            reason: correctionResult.reason || 'correction_detected'
+          })
           correctedFields.push({
             field: canonicalField,
             oldValue,
             newValue
           })
         } else {
-          console.log('[AI CORRECTION NO FIELD CHANGE]', {
+          console.log('[SMS CORRECTION SKIPPED]', {
             leadId: lead.id,
-            field: correction.field,
-            canonicalField,
-            oldValue,
-            newValue
+            field: canonicalField,
+            previousValue: oldValue,
+            newValue,
+            reason: 'no_canonical_field_change'
           })
         }
       }
 
       if (correctedFields.length === 0) {
-        console.log('[AI CORRECTION NO REAL CHANGES]', {
+        console.log('[SMS CORRECTION SKIPPED]', {
           leadId: lead.id,
-          reason: 'Detected correction did not change canonical intake data'
+          field: correctionResult.fieldChanged || 'unknown',
+          previousValue: correctionResult.oldValue || '',
+          newValue: correctionResult.newValue || '',
+          reason: 'detected_correction_did_not_change_canonical_intake_data'
         })
       } else {
 
@@ -914,7 +926,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           confidence: correctionResult.confidence,
           reason: correctionResult.reason
         })
-      } else {
+      }
+
         console.log('[CORRECTION FIELDS]', {
           totalCorrections: correctedFields.length,
           corrections: correctedFields
@@ -956,8 +969,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           newValue: correctedFields[0]?.newValue
         })
 
+        const correctedExtractedInfo = {
+          ...updatedExtractedInfo,
+          ...(updatedExtractedInfo.callerName ? { customerName: updatedExtractedInfo.callerName } : {})
+        }
+
         const updatePayload: any = {
-          extracted_info: updatedExtractedInfo,
+          extracted_info: correctedExtractedInfo,
           updated_at: now
         }
 
@@ -984,7 +1002,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         }
 
         // Update lead raw_metadata with correction history and count
-        const currentMetadata = lead?.raw_metadata || {}
+        const { data: latestLeadForCorrection } = await supabaseAdmin
+          .from('leads')
+          .select('raw_metadata')
+          .eq('id', lead.id)
+          .single()
+
+        const currentMetadata = latestLeadForCorrection?.raw_metadata || lead?.raw_metadata || {}
         const currentCorrectionsCount = currentMetadata.corrections_count || 0
         const currentCorrectedFields = currentMetadata.corrected_fields || {}
         const currentPreviousValues = currentMetadata.previous_values || {}
@@ -1029,7 +1053,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 
         const correctedMetadata = {
           ...currentMetadata,
-          extracted_info: updatedExtractedInfo,
+          extracted_info: correctedExtractedInfo,
           customer_corrected_info: true,
           last_correction_at: now,
           last_correction_field: correctedFields[correctedFields.length - 1].field,
@@ -1039,10 +1063,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           previous_values: updatedPreviousValues
         }
 
-        console.log('[AI CORRECTION SAVE]', {
+        console.log('[SMS CORRECTION APPLIED]', {
           leadId: lead.id,
+          field: correctedFields[correctedFields.length - 1].field,
+          previousValue: correctedFields[correctedFields.length - 1].oldValue,
+          newValue: correctedFields[correctedFields.length - 1].newValue,
+          reason: 'persisting_to_ai_call_record_and_lead_metadata',
           totalCorrections: correctedFields.length,
-          corrections: correctedFields,
           correctedFieldsBefore: currentCorrectedFields,
           correctedFieldsAfter: correctedMetadata.corrected_fields
         })
@@ -1144,7 +1171,6 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           // Note: This would require a function to add a system note to the conversation
           // For now, the correction is logged and stored in lead.raw_metadata
         }
-      }
       }
     } else {
       console.log('[AI CORRECTION NOT DETECTED]', {

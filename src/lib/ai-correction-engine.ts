@@ -25,6 +25,7 @@ export interface CorrectionDetectionResult {
 
 export interface ExtractedInfo {
   callerName?: string
+  customerName?: string
   reasonForCalling?: string
   importantDetails?: string
   urgencyLevel?: string
@@ -737,6 +738,8 @@ export function applyCorrection(
     'callerName': 'callerName',
     'caller name': 'callerName',
     'caller_name': 'callerName',
+    'customerName': 'callerName',
+    'customer_name': 'callerName',
     'reason': 'reasonForCalling',
     'reasonForCalling': 'reasonForCalling',
     'reason for calling': 'reasonForCalling',
