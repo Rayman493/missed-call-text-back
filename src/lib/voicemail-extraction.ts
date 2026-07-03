@@ -918,12 +918,27 @@ export async function safeMergeSmsExtraction(
     'wrong'
   ]
   const smsBodyLower = originalSmsBody?.toLowerCase() || ''
+  const explicitFieldPatterns: Record<keyof VoicemailExtractedInfo, RegExp[]> = {
+    callerName: [/\bmy name is\b/i, /\bname is\b/i, /\bthis is\b/i, /\bi am\b/i, /\bi'm\b/i],
+    reasonForCalling: [/\bi need\b/i, /\bi want\b/i, /\bneed help with\b/i],
+    importantDetails: [/\bit is actually\b/i, /\bit's actually\b/i, /\bactually\b/i],
+    desiredCompletionTime: [/\bit should be\b/i, /\bshould be\b/i, /\bi need it\b/i],
+    addressOrLocation: [/\bmy address is\b/i, /\baddress is\b/i, /\bmy service address is\b/i, /\bservice address is\b/i],
+    preferredCallbackTime: [/\bcall me\b/i, /\bcall me after\b/i, /\bcall after\b/i, /\bavailable after\b/i]
+  }
+  const explicitlyProvidedFields = new Set<keyof VoicemailExtractedInfo>()
+  for (const [field, patterns] of Object.entries(explicitFieldPatterns) as [keyof VoicemailExtractedInfo, RegExp[]][]) {
+    if ((smsExtractedInfo as any)[field] && patterns.some(pattern => pattern.test(originalSmsBody || ''))) {
+      explicitlyProvidedFields.add(field)
+    }
+  }
   const detectedCorrectionPhrase = correctionPhrases.find(phrase => smsBodyLower.includes(phrase))
-  const hasCorrectionIntent = !!detectedCorrectionPhrase
+  const hasCorrectionIntent = !!detectedCorrectionPhrase || explicitlyProvidedFields.size > 0
 
   console.log('[SMS MERGE] Correction intent detection', {
     hasCorrectionIntent,
     detectedCorrectionPhrase,
+    explicitlyProvidedFields: Array.from(explicitlyProvidedFields),
     smsBodyPreview: originalSmsBody?.substring(0, 100)
   })
 
@@ -935,6 +950,30 @@ export async function safeMergeSmsExtraction(
       originalSmsBody,
       smsExtractedInfo
     )
+
+    for (const field of Array.from(explicitlyProvidedFields)) {
+      const incomingValue = smsExtractedInfo[field]
+      if (incomingValue) {
+        intelligentlyMerged[field] = incomingValue
+      }
+    }
+
+    for (const field of Object.keys(explicitFieldPatterns) as (keyof VoicemailExtractedInfo)[]) {
+      const existing = existingExtractedInfo[field]
+      const incoming = smsExtractedInfo[field]
+      const merged = intelligentlyMerged[field]
+      console.log('[SMS MERGE FIELD]', {
+        field,
+        existing,
+        incoming,
+        merged,
+        reason: explicitlyProvidedFields.has(field) && incoming
+          ? 'explicit_customer_correction_sms_value_replaces_existing'
+          : incoming
+            ? 'intelligent_merge_result'
+            : 'sms_did_not_provide_field'
+      })
+    }
 
     // Log what was preserved vs updated
     const fieldsPreserved: string[] = []
@@ -1021,6 +1060,14 @@ export async function safeMergeSmsExtraction(
       console.log(`[SMS MERGE DECISION] ${fieldName}: ACCEPTED - no existing value`)
       return true
     }
+
+    if (explicitlyProvidedFields.has(fieldName)) {
+      console.log(`[SMS MERGE DECISION] ${fieldName}: ACCEPTED - explicit customer correction`, {
+        oldValue: existingValue,
+        newValue: smsValue
+      })
+      return true
+    }
     
     // Don't overwrite manually corrected fields
     if (metadata.customer_corrected_info && metadata.corrected_fields) {
@@ -1097,32 +1144,39 @@ export async function safeMergeSmsExtraction(
   const fieldCorrections: Record<string, { from: string; to: string; source: string; correctedAt: string }> = {}
   const existingCorrections = metadata.field_corrections || {}
 
+  const mergeSmsField = (fieldName: keyof VoicemailExtractedInfo): string | undefined => {
+    const shouldUse = isSmsBetter(fieldName, smsExtractedInfo[fieldName], existingExtractedInfo[fieldName])
+    const merged = shouldUse ? smsExtractedInfo[fieldName] : existingExtractedInfo[fieldName]
+    if (shouldUse && existingExtractedInfo[fieldName] && smsExtractedInfo[fieldName] && existingExtractedInfo[fieldName] !== smsExtractedInfo[fieldName]) {
+      fieldCorrections[fieldName] = {
+        from: existingExtractedInfo[fieldName]!,
+        to: smsExtractedInfo[fieldName]!,
+        source: 'sms',
+        correctedAt: new Date().toISOString()
+      }
+    }
+    console.log('[SMS MERGE FIELD]', {
+      field: fieldName,
+      existing: existingExtractedInfo[fieldName],
+      incoming: smsExtractedInfo[fieldName],
+      merged,
+      reason: shouldUse
+        ? explicitlyProvidedFields.has(fieldName)
+          ? 'explicit_customer_correction_sms_value_replaces_existing'
+          : existingExtractedInfo[fieldName]
+            ? 'sms_value_accepted_by_merge_policy'
+            : 'existing_value_empty'
+        : smsExtractedInfo[fieldName]
+          ? 'existing_value_preserved_by_merge_policy'
+          : 'sms_did_not_provide_field'
+    })
+    return merged
+  }
+
   const mergedExtractedInfo = {
     ...existingExtractedInfo,
-    callerName: (() => {
-      const shouldUse = isSmsBetter('callerName', smsExtractedInfo.callerName, existingExtractedInfo.callerName)
-      if (shouldUse && existingExtractedInfo.callerName && smsExtractedInfo.callerName && existingExtractedInfo.callerName !== smsExtractedInfo.callerName) {
-        fieldCorrections.callerName = {
-          from: existingExtractedInfo.callerName,
-          to: smsExtractedInfo.callerName,
-          source: 'sms',
-          correctedAt: new Date().toISOString()
-        }
-      }
-      return shouldUse ? smsExtractedInfo.callerName : existingExtractedInfo.callerName
-    })(),
-    reasonForCalling: (() => {
-      const shouldUse = isSmsBetter('reasonForCalling', smsExtractedInfo.reasonForCalling, existingExtractedInfo.reasonForCalling)
-      if (shouldUse && existingExtractedInfo.reasonForCalling && smsExtractedInfo.reasonForCalling && existingExtractedInfo.reasonForCalling !== smsExtractedInfo.reasonForCalling) {
-        fieldCorrections.reasonForCalling = {
-          from: existingExtractedInfo.reasonForCalling,
-          to: smsExtractedInfo.reasonForCalling,
-          source: 'sms',
-          correctedAt: new Date().toISOString()
-        }
-      }
-      return shouldUse ? smsExtractedInfo.reasonForCalling : existingExtractedInfo.reasonForCalling
-    })(),
+    callerName: mergeSmsField('callerName'),
+    reasonForCalling: mergeSmsField('reasonForCalling'),
     importantDetails: (() => {
       const shouldUse = isSmsBetter('importantDetails', smsExtractedInfo.importantDetails, existingExtractedInfo.importantDetails)
       const newValue = shouldUse
@@ -1138,44 +1192,26 @@ export async function safeMergeSmsExtraction(
           correctedAt: new Date().toISOString()
         }
       }
+      console.log('[SMS MERGE FIELD]', {
+        field: 'importantDetails',
+        existing: existingExtractedInfo.importantDetails,
+        incoming: smsExtractedInfo.importantDetails,
+        merged: newValue,
+        reason: shouldUse
+          ? explicitlyProvidedFields.has('importantDetails')
+            ? 'explicit_customer_correction_sms_value_replaces_existing'
+            : existingExtractedInfo.importantDetails
+              ? 'sms_value_accepted_by_merge_policy'
+              : 'existing_value_empty'
+          : smsExtractedInfo.importantDetails
+            ? 'existing_value_preserved_by_merge_policy'
+            : 'sms_did_not_provide_field'
+      })
       return newValue
     })(),
-    desiredCompletionTime: (() => {
-      const shouldUse = isSmsBetter('desiredCompletionTime', smsExtractedInfo.desiredCompletionTime, existingExtractedInfo.desiredCompletionTime)
-      if (shouldUse && existingExtractedInfo.desiredCompletionTime && smsExtractedInfo.desiredCompletionTime && existingExtractedInfo.desiredCompletionTime !== smsExtractedInfo.desiredCompletionTime) {
-        fieldCorrections.desiredCompletionTime = {
-          from: existingExtractedInfo.desiredCompletionTime,
-          to: smsExtractedInfo.desiredCompletionTime,
-          source: 'sms',
-          correctedAt: new Date().toISOString()
-        }
-      }
-      return shouldUse ? smsExtractedInfo.desiredCompletionTime : existingExtractedInfo.desiredCompletionTime
-    })(),
-    addressOrLocation: (() => {
-      const shouldUse = isSmsBetter('addressOrLocation', smsExtractedInfo.addressOrLocation, existingExtractedInfo.addressOrLocation)
-      if (shouldUse && existingExtractedInfo.addressOrLocation && smsExtractedInfo.addressOrLocation && existingExtractedInfo.addressOrLocation !== smsExtractedInfo.addressOrLocation) {
-        fieldCorrections.addressOrLocation = {
-          from: existingExtractedInfo.addressOrLocation,
-          to: smsExtractedInfo.addressOrLocation,
-          source: 'sms',
-          correctedAt: new Date().toISOString()
-        }
-      }
-      return shouldUse ? smsExtractedInfo.addressOrLocation : existingExtractedInfo.addressOrLocation
-    })(),
-    preferredCallbackTime: (() => {
-      const shouldUse = isSmsBetter('preferredCallbackTime', smsExtractedInfo.preferredCallbackTime, existingExtractedInfo.preferredCallbackTime)
-      if (shouldUse && existingExtractedInfo.preferredCallbackTime && smsExtractedInfo.preferredCallbackTime && existingExtractedInfo.preferredCallbackTime !== smsExtractedInfo.preferredCallbackTime) {
-        fieldCorrections.preferredCallbackTime = {
-          from: existingExtractedInfo.preferredCallbackTime,
-          to: smsExtractedInfo.preferredCallbackTime,
-          source: 'sms',
-          correctedAt: new Date().toISOString()
-        }
-      }
-      return shouldUse ? smsExtractedInfo.preferredCallbackTime : existingExtractedInfo.preferredCallbackTime
-    })()
+    desiredCompletionTime: mergeSmsField('desiredCompletionTime'),
+    addressOrLocation: mergeSmsField('addressOrLocation'),
+    preferredCallbackTime: mergeSmsField('preferredCallbackTime')
   }
 
   // Clear stale importantDetails when reasonForCalling is corrected
