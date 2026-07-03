@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { createClient } from '@supabase/supabase-js'
+import { db, supabaseAdmin } from '@/lib/supabase/admin'
 import { cookies } from 'next/headers'
 
 /**
@@ -13,7 +13,7 @@ import { cookies } from 'next/headers'
  *
  * Security:
  * - Verifies user is authenticated
- * - Verifies user owns the business
+ * - Verifies user owns the business (using canonical businesses.user_id pattern)
  * - Never allows deleting another business's notifications
  */
 export async function DELETE(request: NextRequest) {
@@ -57,24 +57,23 @@ export async function DELETE(request: NextRequest) {
 
     console.log('[NOTIFICATION CLEAR ALL] User:', user.id, 'Business:', businessId)
 
-    // Use service role client for database operations after authentication
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    // Verify user owns the business using canonical pattern (businesses.user_id)
+    const lookupResult = await db.getBusinessByUserId(user.id)
 
-    // Verify user owns the business
-    const { data: businessMembership, error: membershipError } = await supabaseAdmin
-      .from('business_users')
-      .select('business_id')
-      .eq('user_id', user.id)
-      .eq('business_id', businessId)
-      .single()
-
-    if (membershipError || !businessMembership) {
-      console.error('[NOTIFICATION CLEAR ALL] Unauthorized: User does not own this business', {
+    if (!lookupResult.found || lookupResult.reason !== 'found' || !lookupResult.business) {
+      console.error('[NOTIFICATION CLEAR ALL] Unauthorized: User does not have a business', {
         userId: user.id,
-        businessId
+        reason: lookupResult.reason
+      })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    // Verify the requested businessId matches the user's business
+    if (lookupResult.business.id !== businessId) {
+      console.error('[NOTIFICATION CLEAR ALL] Unauthorized: User cannot access this business', {
+        userId: user.id,
+        userBusinessId: lookupResult.business.id,
+        requestedBusinessId: businessId
       })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }

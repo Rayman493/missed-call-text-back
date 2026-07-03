@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { createClient } from '@supabase/supabase-js'
+import { db, supabaseAdmin } from '@/lib/supabase/admin'
 import { cookies } from 'next/headers'
 
 /**
@@ -49,11 +49,18 @@ export async function PATCH(
     const notificationId = params.id
     console.log('[NOTIFICATION MARK READ] User:', user.id, 'Notification:', notificationId)
 
-    // Use service role client for database operations after authentication
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    // Verify user owns the business using canonical pattern (businesses.user_id)
+    const lookupResult = await db.getBusinessByUserId(user.id)
+
+    if (!lookupResult.found || lookupResult.reason !== 'found' || !lookupResult.business) {
+      console.error('[NOTIFICATION MARK READ] Unauthorized: User does not have a business', {
+        userId: user.id,
+        reason: lookupResult.reason
+      })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    const userBusinessId = lookupResult.business.id
 
     // Fetch notification to verify ownership
     const { data: notification, error: fetchError } = await supabaseAdmin
@@ -72,18 +79,12 @@ export async function PATCH(
       businessId: notification.business_id
     })
 
-    // Verify user owns the business
-    const { data: businessMembership, error: membershipError } = await supabaseAdmin
-      .from('business_users')
-      .select('business_id')
-      .eq('user_id', user.id)
-      .eq('business_id', notification.business_id)
-      .single()
-
-    if (membershipError || !businessMembership) {
-      console.error('[NOTIFICATION MARK READ] Unauthorized: User does not own this business', {
+    // Verify the notification belongs to the user's business
+    if (notification.business_id !== userBusinessId) {
+      console.error('[NOTIFICATION MARK READ] Unauthorized: User cannot access this notification', {
         userId: user.id,
-        businessId: notification.business_id
+        userBusinessId,
+        notificationBusinessId: notification.business_id
       })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
