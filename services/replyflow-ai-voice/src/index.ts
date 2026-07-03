@@ -4706,6 +4706,7 @@ const server = createServer(async (req, res) => {
     const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
     const headers = {
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'OpenAI-Beta': 'realtime=v1',
     };
 
     console.log('[TEST OPENAI] creating websocket');
@@ -4829,6 +4830,7 @@ const server = createServer(async (req, res) => {
     const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
     const headers = {
       'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      'OpenAI-Beta': 'realtime=v1',
     };
 
     console.log('[DEBUG OPENAI] websocket URL:', wsUrl);
@@ -4935,6 +4937,7 @@ const server = createServer(async (req, res) => {
     const testWs = new WebSocket(wsUrl, {
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
+        'OpenAI-Beta': 'realtime=v1',
       },
     });
     
@@ -6276,9 +6279,12 @@ Reply to this message if you'd like to update or add any information.
 
         // Connect to OpenAI Realtime - use same URL as legacy
         const openAiUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview`;
+        console.log('[SIMPLE MODE WS CREATE] URL:', openAiUrl);
+        console.log('[SIMPLE MODE WS CREATE] model extracted:', new URL(openAiUrl).searchParams.get('model'));
         state.openAiWs = new WebSocket(openAiUrl, {
           headers: {
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            'OpenAI-Beta': 'realtime=v1'
           }
         });
 
@@ -8902,9 +8908,12 @@ Return only JSON, no other text.`;
                 console.log(`[OPENAI CONNECT ATTEMPT ${retryAttempt}]`);
                 updateAISessionState(aiSessionTracker, 'AI_CONNECTING', `Attempt ${retryAttempt}`);
                 
+                console.log('[LEGACY WS CREATE] URL:', wsUrl);
+                console.log('[LEGACY WS CREATE] model extracted:', new URL(wsUrl).searchParams.get('model'));
                 const ws = new WebSocket(wsUrl, {
                   headers: {
                     Authorization: `Bearer ${OPENAI_API_KEY}`,
+                    'OpenAI-Beta': 'realtime=v1',
                   },
                 });
                 

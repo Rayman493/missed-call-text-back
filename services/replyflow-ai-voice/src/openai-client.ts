@@ -89,6 +89,7 @@ export class OpenAIRealtimeClient {
       const wsUrl = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';
       const headers = {
         'Authorization': `Bearer ${this.config.apiKey}`,
+        'OpenAI-Beta': 'realtime=v1',
       };
 
       log(LogLevel.INFO, '[AI POC] OPENAI URL FINAL', { url: wsUrl });
