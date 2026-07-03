@@ -55,9 +55,12 @@ function AuthContent() {
   const isCheckoutReturn = redirectParam?.includes('checkout=success')
   
   const [isSignIn, setIsSignIn] = useState(mode === 'signin')
+  const [signupStep, setSignupStep] = useState(1) // 1 = account details, 2 = business info
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [businessName, setBusinessName] = useState('')
+  const [businessPhone, setBusinessPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [existingAccount, setExistingAccount] = useState(false)
@@ -191,27 +194,46 @@ function AuthContent() {
     }
   }
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSignUpStep1 = () => {
+    // Validate Step 1 fields
+    if (!email.trim()) {
+      setError('Please enter your email.')
+      return
+    }
 
-    // IMPORTANT: For MVP/testing mode, email confirmation should be disabled in Supabase
-    // Supabase Dashboard → Authentication → Providers → Email → Confirm email = OFF
-    // This allows signup to immediately create a session without requiring email confirmation
-    // If email confirmation is enabled, users will see: "Please check your email to confirm your account before continuing."
+    if (!password) {
+      setError('Please enter a password.')
+      return
+    }
 
-    // Validate password requirements
     if (!allPasswordRequirementsMet) {
       setError('Please complete all password requirements.')
       return
     }
 
-    // Validate confirm password
     if (password !== confirmPassword) {
       setError('Passwords do not match.')
       return
     }
 
-    // Hard submit lock - prevent double-submit
+    // Clear error and move to Step 2
+    setError('')
+    setSignupStep(2)
+  }
+
+  const handleSignUpStep2 = async () => {
+    // Validate Step 2 fields
+    if (!businessName.trim()) {
+      setError('Please enter a business name.')
+      return
+    }
+
+    if (!businessPhone.trim()) {
+      setError('Please enter a business phone number.')
+      return
+    }
+
+    // Hard submit lock
     if (isSubmitting || isSubmittingRef.current) {
       return
     }
@@ -222,142 +244,85 @@ function AuthContent() {
     setExistingAccount(false)
 
     try {
-      // Step 1: Attempt sign up
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        }
-      })
-
-      if (error) {
-        const errorMessage = error.message || 'Failed to sign up'
-        const errorCode = error.name || error.code || ''
-
-        // Only show "account already exists" for specific duplicate auth errors
-        const isDuplicateError =
-          errorCode === 'UserAlreadyExists' ||
-          errorCode === 'DuplicateUser' ||
-          errorMessage.toLowerCase().includes('user already registered') ||
-          errorMessage.toLowerCase().includes('already exists') ||
-          errorMessage.toLowerCase().includes('duplicate email')
-
-        if (isDuplicateError) {
-          setExistingAccount(true)
-          setError('This email already has an account. Sign in to continue setup.')
-        } else {
-          setError(errorMessage)
-        }
-
-        // Store debug info for display
-        setDebugError({
-          message: errorMessage,
-          status: error.status,
-          code: errorCode,
-          hasUser: !!data.user,
-          hasSession: !!data.session,
-        })
-
+      // Normalize phone number
+      const normalizedPhone = businessPhone.replace(/\D/g, '')
+      if (normalizedPhone.length < 10) {
+        setError('Please enter a valid phone number.')
         setLoading(false)
         setIsSubmitting(false)
         isSubmittingRef.current = false
         return
       }
 
-      // Success path 1: Email confirmation is required (user exists but no session)
-      if (data.user && !data.session) {
-        // Explicit handling for unconfirmed users - do NOT continue without session
-        if (!data.user?.email_confirmed_at) {
-          setError('Please check your email to confirm your account before continuing.')
-          setIsSignIn(true)
-          setDebugError({
-            message: 'Email confirmation required',
-            status: '200',
-            code: 'EmailNotConfirmed',
-            hasUser: true,
-            hasSession: false,
-          })
-          setLoading(false)
-          isSubmittingRef.current = false
-          return
-        }
-
-        // Auto sign-in to bypass email confirmation for MVP
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      // Call the complete-signup endpoint
+      const response = await fetch('/api/auth/complete-signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           email,
           password,
-        })
+          businessName,
+          businessPhone,
+        }),
+      })
 
-        if (signInError || !signInData.session) {
-          const signInErrorMessage = signInError?.message || 'Unknown error'
+      const data = await response.json()
+      console.log('[Auth] Complete signup response:', data)
 
-          // Only redirect to sign-in if error clearly indicates email confirmation is required
-          if (signInErrorMessage.toLowerCase().includes('email not confirmed') ||
-              signInErrorMessage.toLowerCase().includes('confirm your email') ||
-              signInErrorMessage.toLowerCase().includes('email confirmation')) {
-            setError('Account created! Please check your email to confirm, then sign in.')
-            setIsSignIn(true)
-            setDebugError({
-              message: signInErrorMessage,
-              status: signInError?.status,
-              code: signInError?.name || signInError?.code || 'EmailConfirmationRequired',
-              hasUser: true,
-              hasSession: false,
-            })
-            setLoading(false)
-            isSubmittingRef.current = false
-            router.push(`/auth/signin?email=${encodeURIComponent(email)}`)
-            return
-          }
-
-          // For any other error, show the error but don't redirect
-          setError(`Account created but could not establish session: ${signInErrorMessage}. Please try signing in.`)
-          setIsSignIn(true)
-          setDebugError({
-            message: signInErrorMessage,
-            status: signInError?.status,
-            code: signInError?.name || signInError?.code || 'SessionCreationFailed',
-            hasUser: true,
-            hasSession: false,
-          })
-          setLoading(false)
-          isSubmittingRef.current = false
-          return
+      if (!response.ok) {
+        if (data.step === 'user_exists') {
+          setExistingAccount(true)
+          setError(data.error || 'This email already has an account.')
+        } else {
+          setError(data.error || 'Failed to create account')
         }
-
-        // Continue with the signInData.session
-      }
-
-      // Success path 3: Verify session exists before proceeding
-      const { data: { session: verifiedSession } } = await supabase.auth.getSession()
-
-      if (!verifiedSession) {
-        setError('Account created but session could not be established. Please sign in.')
-        setIsSignIn(true)
         setLoading(false)
+        setIsSubmitting(false)
         isSubmittingRef.current = false
         return
       }
 
+      if (data.signInRequired) {
+        // Account created but auto sign-in failed
+        setError(data.warning || 'Account created! Please sign in to continue.')
+        setIsSignIn(true)
+        setLoading(false)
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
+        return
+      }
+
+      // Success - redirect to dashboard
       setLoading(false)
+      setIsSubmitting(false)
       isSubmittingRef.current = false
-
-      // Show redirecting state
       setRedirecting(true)
-
       await new Promise(resolve => setTimeout(resolve, 800))
       router.replace('/dashboard')
     } catch (err: any) {
-      setError(err.message || 'Failed to sign up')
-    } finally {
-      // Only set loading false if not already set in success/error paths
-      if (loading) {
-        setLoading(false)
-      }
+      setError(err.message || 'Failed to create account')
+      setLoading(false)
       setIsSubmitting(false)
       isSubmittingRef.current = false
     }
+  }
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Route to appropriate step handler
+    if (signupStep === 1) {
+      handleSignUpStep1()
+    } else {
+      await handleSignUpStep2()
+    }
+  }
+
+  const handleBackToStep1 = () => {
+    setSignupStep(1)
+    setError('')
   }
 
   const handleBackToHomepage = () => {
@@ -393,10 +358,10 @@ function AuthContent() {
               {/* Progress bars row */}
               <div className="flex gap-2 mb-3">
                 <div className="flex-1">
-                  <div className="h-1 bg-blue-600 rounded-full"></div>
+                  <div className={`h-1 rounded-full ${signupStep >= 1 ? 'bg-blue-600' : 'bg-slate-600'}`}></div>
                 </div>
                 <div className="flex-1">
-                  <div className="h-1 bg-slate-600 rounded-full"></div>
+                  <div className={`h-1 rounded-full ${signupStep >= 2 ? 'bg-blue-600' : 'bg-slate-600'}`}></div>
                 </div>
               </div>
               {/* Labels row */}
@@ -405,7 +370,11 @@ function AuthContent() {
                   <p className="text-xs text-slate-400">Step 1 of 2: Create Your Account</p>
                 </div>
                 <div className="flex-1">
-                  <div className="h-4"></div>
+                  {signupStep === 2 ? (
+                    <p className="text-xs text-slate-400">Step 2 of 2: Business Information</p>
+                  ) : (
+                    <div className="h-4"></div>
+                  )}
                 </div>
               </div>
             </div>
@@ -416,10 +385,10 @@ function AuthContent() {
               <BrandIcon size={64} />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-100 mb-2">
-              {isCheckoutReturn ? 'Sign In' : (isSignIn ? 'Sign In' : 'Sign Up')}
+              {isCheckoutReturn ? 'Sign In' : (isSignIn ? 'Sign In' : (signupStep === 1 ? 'Create Your Account' : 'Business Information'))}
             </h1>
             <p className="text-xs sm:text-sm text-slate-400">
-              {isCheckoutReturn ? 'Sign in to finish your trial setup' : 'Automatically text back missed calls.'}
+              {isCheckoutReturn ? 'Sign in to finish your trial setup' : (isSignIn ? 'Sign in to your account' : (signupStep === 1 ? 'Create your login details' : 'Tell us about your business'))}
             </p>
           </div>
           
@@ -494,109 +463,194 @@ function AuthContent() {
           )}
 
           <form onSubmit={isSignIn ? handleSignIn : handleSignUp} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
-                Email
-              </label>
-              <input
-                id="email"
-                ref={emailRef}
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                name="email"
-                className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
-                placeholder="you@example.com"
-              />
-            </div>
+            {/* Step 1: Account Details */}
+            {!isSignIn && signupStep === 1 && (
+              <>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    ref={emailRef}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    name="email"
+                    className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                    placeholder="you@example.com"
+                  />
+                </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
-                Password
-              </label>
-              <PasswordInput
-                id="password"
-                name="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete={isSignIn ? "current-password" : "new-password"}
-                className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
-              />
-              
-              {/* Password Requirements - Only show for signup */}
-              {!isSignIn && (
-                <div className="mt-3 space-y-2">
-                  <p className="text-xs sm:text-sm text-slate-400 font-medium">Password must contain:</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className={`flex items-center gap-2 text-xs sm:text-sm ${passwordRequirements.minLength ? 'text-green-400' : 'text-slate-500'}`}>
-                      {passwordRequirements.minLength ? (
-                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <div className="w-3.5 h-3.5 rounded-full border border-slate-600 flex-shrink-0"></div>
-                      )}
-                      <span>At least 8 characters</span>
-                    </div>
-                    <div className={`flex items-center gap-2 text-xs sm:text-sm ${passwordRequirements.hasUppercase ? 'text-green-400' : 'text-slate-500'}`}>
-                      {passwordRequirements.hasUppercase ? (
-                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <div className="w-3.5 h-3.5 rounded-full border border-slate-600 flex-shrink-0"></div>
-                      )}
-                      <span>1 uppercase letter</span>
-                    </div>
-                    <div className={`flex items-center gap-2 text-xs sm:text-sm ${passwordRequirements.hasLowercase ? 'text-green-400' : 'text-slate-500'}`}>
-                      {passwordRequirements.hasLowercase ? (
-                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <div className="w-3.5 h-3.5 rounded-full border border-slate-600 flex-shrink-0"></div>
-                      )}
-                      <span>1 lowercase letter</span>
-                    </div>
-                    <div className={`flex items-center gap-2 text-xs sm:text-sm ${passwordRequirements.hasNumber ? 'text-green-400' : 'text-slate-500'}`}>
-                      {passwordRequirements.hasNumber ? (
-                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <div className="w-3.5 h-3.5 rounded-full border border-slate-600 flex-shrink-0"></div>
-                      )}
-                      <span>1 number</span>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+                    Password
+                  </label>
+                  <PasswordInput
+                    id="password"
+                    name="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="new-password"
+                    className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                  />
+                  
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs sm:text-sm text-slate-400 font-medium">Password must contain:</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className={`flex items-center gap-2 text-xs sm:text-sm ${passwordRequirements.minLength ? 'text-green-400' : 'text-slate-500'}`}>
+                        {passwordRequirements.minLength ? (
+                          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          <div className="w-3.5 h-3.5 rounded-full border border-slate-600 flex-shrink-0"></div>
+                        )}
+                        <span>At least 8 characters</span>
+                      </div>
+                      <div className={`flex items-center gap-2 text-xs sm:text-sm ${passwordRequirements.hasUppercase ? 'text-green-400' : 'text-slate-500'}`}>
+                        {passwordRequirements.hasUppercase ? (
+                          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          <div className="w-3.5 h-3.5 rounded-full border border-slate-600 flex-shrink-0"></div>
+                        )}
+                        <span>1 uppercase letter</span>
+                      </div>
+                      <div className={`flex items-center gap-2 text-xs sm:text-sm ${passwordRequirements.hasLowercase ? 'text-green-400' : 'text-slate-500'}`}>
+                        {passwordRequirements.hasLowercase ? (
+                          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          <div className="w-3.5 h-3.5 rounded-full border border-slate-600 flex-shrink-0"></div>
+                        )}
+                        <span>1 lowercase letter</span>
+                      </div>
+                      <div className={`flex items-center gap-2 text-xs sm:text-sm ${passwordRequirements.hasNumber ? 'text-green-400' : 'text-slate-500'}`}>
+                        {passwordRequirements.hasNumber ? (
+                          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        ) : (
+                          <div className="w-3.5 h-3.5 rounded-full border border-slate-600 flex-shrink-0"></div>
+                        )}
+                        <span>1 number</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Confirm Password - Only show for signup */}
-            {!isSignIn && (
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-2">
-                  Confirm Password
-                </label>
-                <PasswordInput
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  autoComplete="new-password"
-                  className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
-                />
-                {confirmPassword && (
-                  <div className={`mt-2 text-xs ${password === confirmPassword ? 'text-green-400' : 'text-red-400'}`}>
-                    {password === confirmPassword ? '✓ Passwords match' : 'Passwords do not match'}
-                  </div>
-                )}
-              </div>
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-2">
+                    Confirm Password
+                  </label>
+                  <PasswordInput
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    autoComplete="new-password"
+                    className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                  />
+                  {confirmPassword && (
+                    <div className={`mt-2 text-xs ${password === confirmPassword ? 'text-green-400' : 'text-red-400'}`}>
+                      {password === confirmPassword ? '✓ Passwords match' : 'Passwords do not match'}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Step 2: Business Information */}
+            {!isSignIn && signupStep === 2 && (
+              <>
+                <div>
+                  <label htmlFor="businessName" className="block text-sm font-medium text-slate-300 mb-2">
+                    Business Name
+                  </label>
+                  <input
+                    id="businessName"
+                    type="text"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    required
+                    autoComplete="organization"
+                    name="businessName"
+                    className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                    placeholder="Your Business Name"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="businessPhone" className="block text-sm font-medium text-slate-300 mb-2">
+                    Business Phone Number
+                  </label>
+                  <input
+                    id="businessPhone"
+                    type="tel"
+                    value={businessPhone}
+                    onChange={(e) => setBusinessPhone(e.target.value)}
+                    required
+                    autoComplete="tel"
+                    name="businessPhone"
+                    className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                    placeholder="(555) 123-4567"
+                  />
+                  <p className="text-xs text-slate-500 mt-2">This is the number you want ReplyFlow to text back when calls are missed</p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleBackToStep1}
+                  className="text-sm text-slate-400 hover:text-slate-300 transition-colors"
+                >
+                  ← Back to account details
+                </button>
+              </>
+            )}
+
+            {/* Sign-in fields */}
+            {isSignIn && (
+              <>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    ref={emailRef}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    name="email"
+                    className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+                    Password
+                  </label>
+                  <PasswordInput
+                    id="password"
+                    name="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
+                  />
+                </div>
+              </>
             )}
 
             {isSignIn && (
@@ -620,7 +674,11 @@ function AuthContent() {
                   <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent inline-block mr-2"></div>
                   Redirecting to dashboard...
                 </>
-              ) : loading || isSubmitting ? (isSignIn ? 'Signing In...' : 'Creating Account...') : (isSignIn ? 'Sign In' : 'Sign Up')}
+              ) : loading || isSubmitting ? (
+                isSignIn ? 'Signing In...' : (signupStep === 1 ? 'Continuing...' : 'Creating Account...')
+              ) : (
+                isSignIn ? 'Sign In' : (signupStep === 1 ? 'Continue' : 'Continue to Free Trial')
+              )}
             </button>
           </form>
 
