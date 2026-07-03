@@ -147,41 +147,16 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         return
       }
 
-      // SIMPLIFIED GATING: If subscription_status is null, redirect to Stripe Checkout
+      // SIMPLIFIED GATING: If subscription_status is null, redirect to complete-setup page
       // This means business exists but Stripe Checkout has NOT been completed
+      // Show the intermediate page so users can continue checkout or delete their account
       if (business.subscription_status === null) {
         if (hasRedirectedRef.current === pathname) return
         hasRedirectedRef.current = pathname
         
-        // Create Stripe Checkout session and redirect
-        const createCheckoutAndRedirect = async () => {
-          try {
-            const response = await fetch('/api/stripe/create-checkout-session', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                checkout_mode: 'trial',
-              }),
-            })
-
-            const checkoutData = await response.json()
-
-            if (response.ok && checkoutData.url) {
-              router.replace(checkoutData.url)
-            } else {
-              console.error('[BusinessGuard] Failed to create checkout session:', checkoutData)
-              // If checkout fails, redirect to auth page with cancel message
-              router.push('/auth?checkout=cancelled')
-            }
-          } catch (error) {
-            console.error('[BusinessGuard] Error creating checkout session:', error)
-            router.push('/auth?checkout=cancelled')
-          }
-        }
-        
-        createCheckoutAndRedirect()
+        // Redirect to complete-setup page instead of immediately redirecting to Stripe
+        // This gives users an escape hatch to delete their account if they abandon checkout
+        router.push('/complete-setup')
         return
       }
 

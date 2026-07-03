@@ -186,34 +186,10 @@ function AuthContent() {
       if (business) {
         // Business found - check if Stripe Checkout is completed
         if (business.subscription_status === null) {
-          // Business exists but Stripe Checkout NOT completed - redirect to checkout
-          console.log('[Auth] Business found but subscription_status is null - redirecting to Stripe Checkout')
-          
-          // Create Stripe Checkout session and redirect
-          try {
-            const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                checkout_mode: 'trial',
-              }),
-            })
-
-            const checkoutData = await checkoutResponse.json()
-
-            if (checkoutResponse.ok && checkoutData.url) {
-              redirectTarget = checkoutData.url
-            } else {
-              console.error('[Auth] Failed to create checkout session:', checkoutData)
-              // If checkout fails, redirect to auth page with cancel message
-              redirectTarget = '/auth?checkout=cancelled'
-            }
-          } catch (error) {
-            console.error('[Auth] Error creating checkout session:', error)
-            redirectTarget = '/auth?checkout=cancelled'
-          }
+          // Business exists but Stripe Checkout NOT completed - redirect to complete-setup page
+          // This gives users an escape hatch to delete their account if they abandon checkout
+          console.log('[Auth] Business found but subscription_status is null - redirecting to complete-setup page')
+          redirectTarget = '/complete-setup'
         } else {
           // Business found and Stripe Checkout completed - go to dashboard
           console.log('[Auth] Business found for user:', persistedSession.user.id, '- routing to dashboard')
