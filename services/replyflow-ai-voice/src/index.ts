@@ -5476,6 +5476,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     };
     ws.send(JSON.stringify(mediaMessage));
     const sendLatencyMs = Date.now() - sendStart;
+    console.log('[OPENAI AUDIO SENT TO TWILIO]', {
+      reason,
+      bytes: adjustedAudio.length,
+      chunks: state.audioChunkCount,
+      flushCount: state.audioFlushCount,
+      sendLatencyMs,
+      streamSid
+    });
 
     if (DEBUG_AUDIO) {
       console.log('[AUDIO FLUSH]', {
@@ -6289,13 +6297,14 @@ Reply to this message if you'd like to update or add any information.
         return;
       }
 
-      state.openAiWs.send(JSON.stringify({
+      const responseCreatePayload = {
         type: 'response.create',
         response: {
-          modalities: ['audio', 'text'],
           instructions: `Say exactly: ${prompt}`
         }
-      }));
+      };
+      console.log('[OPENAI RESPONSE CREATE PAYLOAD]', JSON.stringify(responseCreatePayload, null, 2));
+      state.openAiWs.send(JSON.stringify(responseCreatePayload));
     }
   };
 
@@ -6537,6 +6546,12 @@ Reply to this message if you'd like to update or add any information.
           if (message.type === 'response.output_audio.delta' && message.delta) {
             // Decode base64 delta into raw bytes and accumulate
             const deltaBytes = Buffer.from(message.delta, 'base64');
+            console.log('[OPENAI AUDIO DELTA RECEIVED]', {
+              responseId: message.response_id || 'unknown',
+              deltaBase64Length: message.delta.length,
+              bytes: deltaBytes.length,
+              stage: state.currentStage
+            });
             state.audioAccumulator.push(deltaBytes);
             state.audioAccumulatorBytes += deltaBytes.length;
             state.audioChunkCount++;
