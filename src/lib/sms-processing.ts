@@ -711,9 +711,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       }
       const currentFieldCorrections = currentMetadata.field_corrections || {}
       const mergedFieldCorrections = updatedMetadata.field_corrections || {}
+      const manualFields = new Set<string>(currentMetadata.manualFields || [])
+      const correctionSources = currentMetadata.correction_sources || {}
       const newMergeCorrections = Object.entries(mergedFieldCorrections).filter(([field, correction]: [string, any]) => {
+        const correctedFieldKey = fieldKeyMap[field] || field
         const previous = currentFieldCorrections[field]
-        return correction?.to && (!previous || previous.to !== correction.to)
+        const isManual = manualFields.has(field) || manualFields.has(correctedFieldKey) || correctionSources[field] === 'manual' || correctionSources[correctedFieldKey] === 'manual'
+        return !isManual && correction?.to && (!previous || previous.to !== correction.to)
       })
       smsMergeAppliedCorrections = newMergeCorrections.length > 0
       console.log('[SMS CORRECTION PIPELINE]', {
@@ -737,7 +741,11 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           last_correction_field: newMergeCorrections[newMergeCorrections.length - 1][0],
           corrections_count: (currentMetadata.corrections_count || 0) + newMergeCorrections.length,
           corrected_fields: correctedFieldsFromMerge,
-          previous_values: previousValuesFromMerge
+          previous_values: previousValuesFromMerge,
+          correction_sources: {
+            ...(currentMetadata.correction_sources || {}),
+            ...Object.fromEntries(newMergeCorrections.map(([field]) => [fieldKeyMap[field] || field, 'sms']))
+          }
         } : {})
       }
       const mergedLeadUpdatePayload: any = { raw_metadata: enrichedMetadata }
@@ -958,11 +966,61 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         confidence: correctionResult.confidence
       })
 
-      // Apply all corrections
+      const { data: latestLeadForManualGuard } = await supabaseAdmin
+        .from('leads')
+        .select('raw_metadata')
+        .eq('id', lead.id)
+        .single()
+      const manualGuardMetadata = latestLeadForManualGuard?.raw_metadata || lead.raw_metadata || {}
+      const manualGuardFields = new Set<string>(manualGuardMetadata.manualFields || [])
+      const manualGuardSources = manualGuardMetadata.correction_sources || {}
+      const correctedFieldKeyMap: Record<string, string> = {
+        addressOrLocation: 'address',
+        callbackNumber: 'phone',
+        preferredCallbackTime: 'callback_time',
+        urgencyLevel: 'urgency',
+        importantDetails: 'details',
+        reasonForCalling: 'reason',
+        desiredCompletionTime: 'desired_completion_time',
+        callerName: 'name'
+      }
+      const canonicalFieldMap: Record<string, string> = {
+        name: 'callerName',
+        callerName: 'callerName',
+        caller_name: 'callerName',
+        customerName: 'callerName',
+        customer_name: 'callerName',
+        reason: 'reasonForCalling',
+        reasonForCalling: 'reasonForCalling',
+        reason_for_call: 'reasonForCalling',
+        details: 'importantDetails',
+        importantDetails: 'importantDetails',
+        address: 'addressOrLocation',
+        location: 'addressOrLocation',
+        addressOrLocation: 'addressOrLocation',
+        serviceAddress: 'addressOrLocation',
+        callbackTime: 'preferredCallbackTime',
+        preferredCallbackTime: 'preferredCallbackTime',
+        desiredCompletionTime: 'desiredCompletionTime',
+        callbackNumber: 'callbackNumber'
+      }
+
+      // Apply all non-manual corrections
       let updatedExtractedInfo = { ...aiCallRecord.extracted_info }
       const correctedFields: Array<{ field: string; oldValue: string; newValue: string }> = []
 
       for (const correction of correctionResult.corrections) {
+        const canonicalField = canonicalFieldMap[correction.field] || correction.field
+        const correctedFieldKey = correctedFieldKeyMap[canonicalField] || correctedFieldKeyMap[correction.field] || correction.field
+        const isManual = manualGuardFields.has(canonicalField) || manualGuardFields.has(correctedFieldKey) || manualGuardSources[canonicalField] === 'manual' || manualGuardSources[correctedFieldKey] === 'manual'
+        if (isManual) {
+          console.log('[SMS CORRECTION SKIPPED]', {
+            leadId: lead.id,
+            field: canonicalField,
+            reason: 'manual_correction_has_precedence'
+          })
+          continue
+        }
         console.log('[AI CORRECTION DETECTED]', {
           leadId: lead.id,
           field: correction.field,
@@ -978,27 +1036,6 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           correction.newValue
         )
         const afterApply = normalizeExtractedInfo(updatedExtractedInfo)
-        const canonicalFieldMap: Record<string, string> = {
-          name: 'callerName',
-          callerName: 'callerName',
-          caller_name: 'callerName',
-          customerName: 'callerName',
-          customer_name: 'callerName',
-          reason: 'reasonForCalling',
-          reasonForCalling: 'reasonForCalling',
-          reason_for_call: 'reasonForCalling',
-          details: 'importantDetails',
-          importantDetails: 'importantDetails',
-          address: 'addressOrLocation',
-          location: 'addressOrLocation',
-          addressOrLocation: 'addressOrLocation',
-          serviceAddress: 'addressOrLocation',
-          callbackTime: 'preferredCallbackTime',
-          preferredCallbackTime: 'preferredCallbackTime',
-          desiredCompletionTime: 'desiredCompletionTime',
-          callbackNumber: 'callbackNumber'
-        }
-        const canonicalField = canonicalFieldMap[correction.field] || correction.field
         const oldValue = String((beforeApply as any)[canonicalField] || '').trim()
         const newValue = String((afterApply as any)[canonicalField] || '').trim()
 
@@ -1137,6 +1174,8 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         const currentCorrectionsCount = currentMetadata.corrections_count || 0
         const currentCorrectedFields = currentMetadata.corrected_fields || {}
         const currentPreviousValues = currentMetadata.previous_values || {}
+        const currentCorrectionSources = currentMetadata.correction_sources || {}
+        const currentManualFields = new Set<string>(currentMetadata.manualFields || [])
 
         console.log('[CORRECTION COUNT]', {
           leadId: lead.id,
@@ -1161,43 +1200,50 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         const updatedCorrectedFields = { ...currentCorrectedFields }
         const updatedPreviousValues = { ...currentPreviousValues }
 
-        for (const correction of correctedFields) {
+        const smsCorrectedFields = correctedFields.filter((correction) => {
+          const correctedFieldKey = fieldKeyMap[correction.field] || correction.field
+          return !currentManualFields.has(correction.field) && !currentManualFields.has(correctedFieldKey) && currentCorrectionSources[correction.field] !== 'manual' && currentCorrectionSources[correctedFieldKey] !== 'manual'
+        })
+
+        for (const correction of smsCorrectedFields) {
           const correctedFieldKey = fieldKeyMap[correction.field] || correction.field
           const newValue = correction.field === 'callerName' 
             ? stripTrailingPunctuationFromName(correction.newValue)
             : correction.newValue
           updatedCorrectedFields[correctedFieldKey] = newValue
           updatedPreviousValues[correctedFieldKey] = correction.oldValue || 'unknown'
+          currentCorrectionSources[correctedFieldKey] = 'sms'
         }
 
-        const correctionNote = correctedFields.length === 1
+        const correctionNote = smsCorrectedFields.length === 1
           ? generateCorrectionNote(
-              correctedFields[0].field,
-              correctedFields[0].oldValue || 'unknown',
-              correctedFields[0].newValue,
+              smsCorrectedFields[0].field,
+              smsCorrectedFields[0].oldValue || 'unknown',
+              smsCorrectedFields[0].newValue,
               correctionResult.confidence
             )
-          : `[AI CORRECTIONS APPLIED] ${correctedFields.length} fields updated: ${correctedFields.map(c => c.field).join(', ')}`
+          : `[AI CORRECTIONS APPLIED] ${smsCorrectedFields.length} fields updated: ${smsCorrectedFields.map(c => c.field).join(', ')}`
 
         const correctedMetadata = {
           ...currentMetadata,
           extracted_info: correctedExtractedInfo,
           customer_corrected_info: true,
           last_correction_at: now,
-          last_correction_field: correctedFields[correctedFields.length - 1].field,
+          last_correction_field: smsCorrectedFields[smsCorrectedFields.length - 1]?.field || correctedFields[correctedFields.length - 1].field,
           last_correction_note: correctionNote,
-          corrections_count: currentCorrectionsCount + correctedFields.length,
+          corrections_count: currentCorrectionsCount + smsCorrectedFields.length,
           corrected_fields: updatedCorrectedFields,
-          previous_values: updatedPreviousValues
+          previous_values: updatedPreviousValues,
+          correction_sources: currentCorrectionSources
         }
 
         console.log('[SMS CORRECTION APPLIED]', {
           leadId: lead.id,
-          field: correctedFields[correctedFields.length - 1].field,
-          previousValue: correctedFields[correctedFields.length - 1].oldValue,
-          newValue: correctedFields[correctedFields.length - 1].newValue,
+          field: smsCorrectedFields[smsCorrectedFields.length - 1]?.field || correctedFields[correctedFields.length - 1].field,
+          previousValue: smsCorrectedFields[smsCorrectedFields.length - 1]?.oldValue || correctedFields[correctedFields.length - 1].oldValue,
+          newValue: smsCorrectedFields[smsCorrectedFields.length - 1]?.newValue || correctedFields[correctedFields.length - 1].newValue,
           reason: 'persisting_to_ai_call_record_and_lead_metadata',
-          totalCorrections: correctedFields.length,
+          totalCorrections: smsCorrectedFields.length,
           correctedFieldsBefore: currentCorrectedFields,
           correctedFieldsAfter: correctedMetadata.corrected_fields
         })
