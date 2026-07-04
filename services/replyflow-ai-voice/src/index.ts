@@ -5337,6 +5337,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     assistantSpeaking: false,
     transcript: '',
     intakeData: {} as any,
+    stageCaptures: [] as Array<{ stage: string; rawTranscript: string; capturedAnswer: string; extractedField: string; source: string; timestamp: string }>,
     openAiWs: null as WebSocket | null,
     queuedTranscript: null as string | null,
     ttsCompleteTime: 0 as number,
@@ -5392,6 +5393,54 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     });
     console.log('[SIMPLE MODE] Timestamp:', new Date().toISOString());
     console.log('[SIMPLE MODE] =========================================');
+  };
+
+  const storeStageCapture = (stage: string, rawTranscript: string, source: string): string | null => {
+    const stageToFieldMap: Record<string, string> = {
+      ask_name_reason: 'customerName',
+      ask_details: 'issueDescription',
+      ask_location: 'serviceAddress',
+      ask_completion_time: 'desiredCompletionTime',
+      ask_callback_time: 'callbackTime'
+    };
+    const extractedField = stageToFieldMap[stage];
+    if (!extractedField) {
+      console.log('[AI INTAKE CAPTURE AUDIT] =========================================');
+      console.log('[AI INTAKE CAPTURE AUDIT] stage:', stage);
+      console.log('[AI INTAKE CAPTURE AUDIT] rawTranscript:', rawTranscript);
+      console.log('[AI INTAKE CAPTURE AUDIT] capturedAnswer:', rawTranscript);
+      console.log('[AI INTAKE CAPTURE AUDIT] extractedField:', 'none');
+      console.log('[AI INTAKE CAPTURE AUDIT] source:', source);
+      console.log('[AI INTAKE CAPTURE AUDIT] stored:', false);
+      console.log('[AI INTAKE CAPTURE AUDIT] Timestamp:', new Date().toISOString());
+      console.log('[AI INTAKE CAPTURE AUDIT] =========================================');
+      return null;
+    }
+
+    const capturedAnswer = rawTranscript.trim();
+    state.intakeData[extractedField] = capturedAnswer;
+    const capture = {
+      stage,
+      rawTranscript,
+      capturedAnswer,
+      extractedField,
+      source,
+      timestamp: new Date().toISOString()
+    };
+    state.stageCaptures.push(capture);
+
+    console.log('[AI INTAKE CAPTURE AUDIT] =========================================');
+    console.log('[AI INTAKE CAPTURE AUDIT] stage:', stage);
+    console.log('[AI INTAKE CAPTURE AUDIT] rawTranscript:', rawTranscript);
+    console.log('[AI INTAKE CAPTURE AUDIT] capturedAnswer:', capturedAnswer);
+    console.log('[AI INTAKE CAPTURE AUDIT] extractedField:', extractedField);
+    console.log('[AI INTAKE CAPTURE AUDIT] source:', source);
+    console.log('[AI INTAKE CAPTURE AUDIT] storedValue:', state.intakeData[extractedField]);
+    console.log('[AI INTAKE CAPTURE AUDIT] allStageCaptures:', JSON.stringify(state.stageCaptures, null, 2));
+    console.log('[AI INTAKE CAPTURE AUDIT] Timestamp:', capture.timestamp);
+    console.log('[AI INTAKE CAPTURE AUDIT] =========================================');
+
+    return extractedField;
   };
 
   // --- Audio buffering constants ---
@@ -5899,6 +5948,14 @@ Reply to this message if you'd like to update or add any information.
       // Include canonical AI intake metadata in the upsert so the lead is useful
       // even if the ai_call_record insert fails.
       const canonicalExtractedInfo = buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '');
+
+      console.log('[AI INTAKE FINAL EXTRACTION AUDIT] =========================================');
+      console.log('[AI INTAKE FINAL EXTRACTION AUDIT] stageCaptures:', JSON.stringify(state.stageCaptures, null, 2));
+      console.log('[AI INTAKE FINAL EXTRACTION AUDIT] normalizedIntakeData:', JSON.stringify(state.intakeData, null, 2));
+      console.log('[AI INTAKE FINAL EXTRACTION AUDIT] finalExtractedInfo:', JSON.stringify(canonicalExtractedInfo, null, 2));
+      console.log('[AI INTAKE FINAL EXTRACTION AUDIT] rawTranscript:', state.transcript);
+      console.log('[AI INTAKE FINAL EXTRACTION AUDIT] Timestamp:', new Date().toISOString());
+      console.log('[AI INTAKE FINAL EXTRACTION AUDIT] =========================================');
 
       const { data: lead, error: leadError } = await supabase
         .from('leads')
@@ -6508,17 +6565,8 @@ Reply to this message if you'd like to update or add any information.
               const isValidStage = currentIndex !== -1;
               const isFinalStage = currentIndex === stages.length - 1;
 
-              // Store the queued transcript field before stage advancement
-              const stageToFieldMap: Record<string, string> = {
-                ask_name_reason: 'customerName',
-                ask_details: 'issueDescription',
-                ask_location: 'serviceAddress',
-                ask_completion_time: 'desiredCompletionTime',
-                ask_callback_time: 'callbackTime'
-              };
-              const fieldName = stageToFieldMap[state.currentStage];
-              if (fieldName && isValidStage) {
-                state.intakeData[fieldName] = state.queuedTranscript;
+              const fieldName = isValidStage ? storeStageCapture(state.currentStage, state.queuedTranscript, 'queued_after_assistant_response') : null;
+              if (fieldName) {
                 console.log('[SIMPLE MODE] =========================================');
                 console.log('[SIMPLE MODE] event: queued_transcript_field_stored');
                 console.log('[SIMPLE MODE] field:', fieldName);
@@ -6633,18 +6681,8 @@ Reply to this message if you'd like to update or add any information.
 
             logSimple('user_transcription', { transcript: transcript.substring(0, 50), stage: state.currentStage });
 
-            // Store transcript answer in intakeData based on current stage
-            const stageToFieldMap: Record<string, string> = {
-              ask_name_reason: 'customerName',
-              ask_details: 'issueDescription',
-              ask_location: 'serviceAddress',
-              ask_completion_time: 'desiredCompletionTime',
-              ask_callback_time: 'callbackTime'
-            };
-            
-            const fieldName = stageToFieldMap[state.currentStage];
+            const fieldName = accepted ? storeStageCapture(state.currentStage, transcript, 'openai_transcription_completed') : null;
             if (fieldName && accepted) {
-              state.intakeData[fieldName] = transcript;
               logSimple('intake_data_stored', { field: fieldName, value: transcript.substring(0, 50) });
               
               // Log when final callback transcript is received
