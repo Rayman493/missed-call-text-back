@@ -966,6 +966,20 @@ export const db = {
     return true
   },
 
+  /**
+   * Helper function to determine if a lead is recent (within 24 hours)
+   * Used for recent-caller lead reuse to prevent duplicate leads
+   */
+  isRecentLead(lead: Lead | null): boolean {
+    if (!lead) {
+      return false
+    }
+
+    // Check if lead was created within 24 hours
+    const hoursSinceCreation = (Date.now() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60)
+    return hoursSinceCreation <= 24
+  },
+
   async createLead(lead: Omit<Lead, 'id' | 'created_at' | 'updated_at'>): Promise<Lead | null> {
     // DEFENSIVE GUARD: Validate required fields
     if (!lead.business_id || !lead.caller_phone) {
@@ -1218,42 +1232,48 @@ export const db = {
       .eq('business_id', params.businessId)
       .eq('caller_phone', normalizedPhone)
       .maybeSingle()
-    
+
     let leadId: string | null = null
     let isNewLead = false
-    
-    if (existingLead) {
-      // Check if the lead should be reused based on the policy
-      const shouldReuse = this.shouldReuseLead(existingLead as Lead)
 
-      console.log('[LEAD REUSE DECISION]', {
+    if (existingLead) {
+      // Check if the lead is recent (within 24 hours) for recent-caller reuse
+      const isRecent = this.isRecentLead(existingLead as Lead)
+      const hoursSinceCreation = (Date.now() - new Date(existingLead.created_at).getTime()) / (1000 * 60 * 60)
+
+      console.log('[RECENT CALLER]', {
+        existingLeadFound: true,
         leadId: existingLead.id,
-        phone: normalizedPhone,
-        status: existingLead.status,
-        lastActivity: existingLead.last_message_at || existingLead.last_reply_at || existingLead.first_contact_at || existingLead.created_at,
-        daysSinceActivity: existingLead.last_message_at || existingLead.last_reply_at || existingLead.first_contact_at || existingLead.created_at
-          ? Math.round((Date.now() - new Date(existingLead.last_message_at || existingLead.last_reply_at || existingLead.first_contact_at || existingLead.created_at).getTime()) / (1000 * 60 * 60 * 24))
-          : null,
-        decision: shouldReuse ? 'REUSE' : 'CREATE_NEW'
+        leadAgeHours: Math.round(hoursSinceCreation * 10) / 10,
+        isRecent,
+        decision: isRecent ? 'REUSE' : 'CREATE_NEW'
       })
 
-      if (shouldReuse) {
-        console.log('[CALL INTAKE] Reusing existing lead for repeat caller:', existingLead.id)
+      if (isRecent) {
+        console.log('[RECENT CALLER] Reusing existing lead for recent caller:', existingLead.id)
         leadId = existingLead.id
         isNewLead = false
       } else {
-        console.log('[CALL INTAKE] Creating new lead (existing lead does not meet reuse criteria)')
+        console.log('[RECENT CALLER] Creating new lead (existing lead is older than 24 hours)')
         isNewLead = true
       }
     } else {
-      // Step 4: Create new lead if no existing lead found
+      console.log('[RECENT CALLER]', {
+        existingLeadFound: false,
+        decision: 'CREATE_NEW'
+      })
+      isNewLead = true
+    }
+
+    // Step 4: Create new lead if needed (first-time caller or lead older than 24 hours)
+    if (isNewLead) {
       // DEFENSIVE GUARD: Only create lead if call event exists (prevents phantom leads from status callbacks)
       const { data: callEventForValidation } = await supabaseAdmin
         .from('call_events')
         .select('id, call_status')
         .eq('twilio_call_sid', params.callSid)
         .maybeSingle()
-      
+
       if (!callEventForValidation && params.requireValidCall !== false) {
         console.error('[CALL INTAKE] Refusing to create lead - no call event found for CallSid:', params.callSid)
         console.error('[PHANTOM LEAD PREVENTED]', {
@@ -1264,8 +1284,8 @@ export const db = {
         })
         return { leadId: null, conversationId: null, isNew: false }
       }
-      
-      console.log('[CALL INTAKE] No existing lead found, creating new lead')
+
+      console.log('[CALL INTAKE] Creating new lead')
       const { data: newLead, error: leadError } = await supabaseAdmin
         .from('leads')
         .insert({
@@ -1276,12 +1296,12 @@ export const db = {
         })
         .select()
         .single()
-      
+
       if (leadError || !newLead) {
         console.error('[CALL INTAKE] Failed to create lead:', leadError)
         return { leadId: null, conversationId: null, isNew: false }
       }
-      
+
       console.log('[LEAD CREATED]', {
         leadId: newLead.id,
         businessId: params.businessId,
@@ -1291,7 +1311,6 @@ export const db = {
         timestamp: new Date().toISOString()
       })
       leadId = newLead.id
-      isNewLead = true
     }
     
     // Step 5: Find or create conversation for this lead
