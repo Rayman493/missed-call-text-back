@@ -5391,6 +5391,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     silentRepromptSent: false,
     silentCloseStarted: false,
     silentSmsSent: false,
+    silentCloseMarkSent: false,
+    silentCloseMarkReceived: false,
+    silentCloseHangupTimeout: null as NodeJS.Timeout | null,
     cachedPlaybackInterrupted: false,
   };
 
@@ -6315,7 +6318,7 @@ Reply to this message if you'd like to update or add any information.
           extracted_info: null,
           summary: 'Silent caller: no meaningful speech captured.',
           outcome: 'no_speech',
-          status: 'incomplete',
+          extraction_failed: false,
         });
 
       if (recordError) {
@@ -6323,6 +6326,7 @@ Reply to this message if you'd like to update or add any information.
         return;
       }
 
+      console.log('[SILENT AI RECORD SAVED]');
       await sendAIConfirmationSMS(
         state.businessId,
         lead.id,
@@ -6828,16 +6832,30 @@ Reply to this message if you'd like to update or add any information.
             state.assistantSpeaking = false;
             state.ttsCompleteTime = Date.now();
 
-            if (state.silentCloseStarted) {
-              console.log('[SILENCE FINAL CLOSE MARK RECEIVED]');
-              sendSilentCallerSms().catch(err => console.log('[SILENT SMS FAILED] reason: exception -', err));
-              setTimeout(() => {
-                console.log('[SILENCE HANGUP AFTER AUDIO]');
-                ws.close();
-                if (state.openAiWs) {
-                  state.openAiWs.close();
+            if (state.silentCloseStarted && !state.silentCloseMarkSent) {
+              console.log('[SILENCE FINAL CLOSE MARK SENT]');
+              state.silentCloseMarkSent = true;
+              // Send Twilio mark to signal audio completion
+              if (state.streamSid) {
+                const markMessage = {
+                  event: 'mark',
+                  streamSid: state.streamSid,
+                  mark: {
+                    name: 'silent_close_audio_complete'
+                  }
+                };
+                ws.send(JSON.stringify(markMessage));
+              }
+              // Start fallback timeout for mark reception
+              state.silentCloseHangupTimeout = setTimeout(() => {
+                if (!state.silentCloseMarkReceived) {
+                  console.log('[SILENCE HANGUP AFTER AUDIO] (fallback timeout)');
+                  ws.close();
+                  if (state.openAiWs) {
+                    state.openAiWs.close();
+                  }
                 }
-              }, 3000); // 3-second fallback to ensure audio completes
+              }, 8000); // 8-second fallback to ensure audio completes
               return;
             }
 
@@ -7137,6 +7155,30 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SIMPLE MODE] bufferMs:', 2000);
             console.log('[SIMPLE MODE] =========================================');
             logSimple('call_complete');
+            ws.close();
+            if (state.openAiWs) {
+              state.openAiWs.close();
+            }
+          }, 2000);
+        }
+
+        // Handle silent close mark
+        if (message.mark?.name === 'silent_close_audio_complete') {
+          console.log('[SILENCE FINAL CLOSE TWILIO MARK RECEIVED]');
+          state.silentCloseMarkReceived = true;
+          
+          // Clear fallback timeout since mark was received
+          if (state.silentCloseHangupTimeout) {
+            clearTimeout(state.silentCloseHangupTimeout);
+            state.silentCloseHangupTimeout = null;
+          }
+
+          // Send SMS before hangup
+          sendSilentCallerSms().catch(err => console.log('[SILENT SMS FAILED] reason: exception -', err));
+
+          // Hang up after 2 second buffer
+          setTimeout(() => {
+            console.log('[SILENCE HANGUP AFTER TWILIO MARK]');
             ws.close();
             if (state.openAiWs) {
               state.openAiWs.close();
