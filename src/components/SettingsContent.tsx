@@ -36,6 +36,7 @@ import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
+import { getDefaultOutOfOfficeTemplate } from '@/lib/out-of-office'
 import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle } from 'lucide-react'
 
 export default function SettingsContent() {
@@ -57,8 +58,8 @@ export default function SettingsContent() {
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [activeSection, setActiveSection] = useState('general')
 
-  // Default out of office message
-  const DEFAULT_OUT_OF_OFFICE_MESSAGE = "Thanks for contacting {{business_name}}. We are currently out of office and responses may be delayed. We’ll be back on {{return_date}}. Please provide details about what you need and we will get back to you as soon as possible."
+  // Default out of office message (use canonical template)
+  const DEFAULT_OUT_OF_OFFICE_MESSAGE = getDefaultOutOfOfficeTemplate()
 
   // Default after hours message
   const DEFAULT_AFTER_HOURS_MESSAGE = "Thanks for contacting {{business_name}}. We're currently closed and will get back to you during business hours."

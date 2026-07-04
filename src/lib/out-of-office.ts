@@ -7,6 +7,34 @@
 import { Business } from './types'
 
 /**
+ * Get the canonical default Out of Office message template
+ * 
+ * @returns The default template with placeholders
+ */
+export function getDefaultOutOfOfficeTemplate(): string {
+  return "Thanks for contacting {{business_name}}. We are currently out of office and responses may be delayed. We'll be back on {{return_date}}. Please provide details about what you need and we will get back to you as soon as possible."
+}
+
+/**
+ * Format the return date in a friendly format
+ * 
+ * @param date - The return date
+ * @returns Formatted date string (e.g., "July 15" or "July 15, 2026")
+ */
+export function formatReturnDate(date: Date): string {
+  const currentYear = new Date().getFullYear()
+  const returnYear = date.getFullYear()
+  
+  if (returnYear === currentYear) {
+    // Same year: "July 15"
+    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+  } else {
+    // Different year: "July 15, 2026"
+    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  }
+}
+
+/**
  * Check if a business is currently in Out of Office Mode
  * Returns true when:
  * - out_of_office_enabled = true
@@ -35,7 +63,7 @@ export function isBusinessOutOfOffice(business: Business | null | undefined): bo
 
 /**
  * Get the Out of Office message for a business
- * Replaces {{business_name}} placeholder with the actual business name
+ * Replaces {{business_name}} and {{return_date}} placeholders with actual values
  * 
  * @param business - The business object
  * @returns The formatted out of office message, or null if not active
@@ -43,12 +71,12 @@ export function isBusinessOutOfOffice(business: Business | null | undefined): bo
 export function getOutOfOfficeMessage(business: Business | null | undefined): string | null {
   if (!business || !isBusinessOutOfOffice(business)) return null
   
-  const returnDate = new Date(business.out_of_office_end!).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-  const defaultMessage = `Thanks for contacting ${business.name}. We are currently out of office and responses may be delayed. We’ll be back on ${returnDate}. Please provide details about what you need and we will get back to you as soon as possible.`
+  const returnDate = formatReturnDate(new Date(business.out_of_office_end!))
+  const defaultMessage = getDefaultOutOfOfficeTemplate()
   
   let message = business.out_of_office_message || defaultMessage
   
-  // Replace {{business_name}} placeholder
+  // Replace placeholders
   message = message.replace(/\{\{business_name\}\}/gi, business.name)
   message = message.replace(/\{\{return_date\}\}/gi, returnDate)
   
@@ -113,7 +141,7 @@ export function getOutOfOfficeStatus(business: Business | null | undefined): {
  * @param business - The business object (can be partial)
  * @returns The formatted out of office notice, or null if not active
  */
-export function getOutOfOfficeNotice(business: Business | null | undefined | { name?: string; out_of_office_enabled?: boolean; out_of_office_start?: string; out_of_office_end?: string }): string | null {
+export function getOutOfOfficeNotice(business: Business | null | undefined | { name?: string; out_of_office_enabled?: boolean; out_of_office_start?: string; out_of_office_end?: string; out_of_office_message?: string }): string | null {
   if (!business) return null
 
   // Check if Out of Office Mode is enabled
@@ -130,14 +158,18 @@ export function getOutOfOfficeNotice(business: Business | null | undefined | { n
   if (now < start || now > end) return null
 
   const businessName = business.name || 'the business'
-  let notice = `\n\nOut of Office Notice:\n${businessName} is currently out of office, so responses may be delayed.`
-
-  // Add expected return date if available
-  if (business.out_of_office_end) {
-    const endDate = new Date(business.out_of_office_end)
-    const formattedDate = endDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
-    notice += ` Expected return: ${formattedDate}.`
-  }
+  const returnDate = formatReturnDate(end)
+  
+  // Use the canonical template
+  const defaultMessage = getDefaultOutOfOfficeTemplate()
+  let message = business.out_of_office_message || defaultMessage
+  
+  // Replace placeholders
+  message = message.replace(/\{\{business_name\}\}/gi, businessName)
+  message = message.replace(/\{\{return_date\}\}/gi, returnDate)
+  
+  // Add SMS-specific formatting
+  const notice = `\n\nOut of Office Notice:\n${message}`
 
   return notice
 }

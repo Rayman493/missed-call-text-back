@@ -7,6 +7,7 @@ import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { generateSummaryFromExtractedInfo } from '@/lib/sms-processing'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 import { cancelPendingFollowUpsForLead } from '@/lib/follow-ups'
+import { getOutOfOfficeNotice, formatReturnDate } from '@/lib/out-of-office'
 
 
 export const dynamic = 'force-dynamic'
@@ -499,12 +500,9 @@ export async function POST(request: NextRequest) {
     let messageBody: string;
     let selectedTemplate: string;
     let selectionReason: string;
-    const outOfOfficeReturnDate = business.out_of_office_end
-      ? new Date(business.out_of_office_end).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-      : '[return date]';
-    const outOfOfficeAppend = business.out_of_office_enabled && business.out_of_office_message?.trim()
-      ? `\n\n${business.out_of_office_message.trim().replace(/\{\{business_name\}\}/gi, businessName).replace(/\{\{return_date\}\}/gi, outOfOfficeReturnDate)}`
-      : '';
+    
+    // Use canonical Out of Office notice function
+    const outOfOfficeAppend = getOutOfOfficeNotice(business) || '';
 
     const isFinalFallback = aiOutcome === 'ai_failed_voicemail' || aiOutcome === 'ai_failed_sms';
 
