@@ -3190,6 +3190,42 @@ function normalizeExtractedFields(extractedFields: any): any {
   return normalized;
 }
 
+type ScriptCategory = 'empty' | 'english_latin' | 'mixed_non_english' | 'garbled';
+
+function sanitizeEnglishIntakeField(fieldName: string, value: string): string {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return '';
+
+  const letters = Array.from(trimmed.matchAll(/\p{L}/gu)).map(match => match[0]);
+  const nonLatinLetters = letters.filter(char => !/\p{Script=Latin}/u.test(char));
+  const asciiAlphaNumeric = Array.from(trimmed.matchAll(/[A-Za-z0-9]/g)).length;
+  const suspiciousSymbols = Array.from(trimmed.matchAll(/[\uFFFD\u2500-\u25FF\u0370-\u03FF]/gu)).length;
+  const letterCount = letters.length;
+  const nonLatinRatio = letterCount > 0 ? nonLatinLetters.length / letterCount : 0;
+  const suspiciousRatio = trimmed.length > 0 ? suspiciousSymbols / trimmed.length : 0;
+
+  let scriptCategory: ScriptCategory = 'english_latin';
+  if (!trimmed) {
+    scriptCategory = 'empty';
+  } else if (suspiciousRatio >= 0.2 || (asciiAlphaNumeric === 0 && suspiciousSymbols >= 2)) {
+    scriptCategory = 'garbled';
+  } else if (nonLatinRatio >= 0.3 || (asciiAlphaNumeric === 0 && nonLatinLetters.length > 0)) {
+    scriptCategory = 'mixed_non_english';
+  }
+
+  if (scriptCategory === 'garbled' || scriptCategory === 'mixed_non_english') {
+    console.log('[AI INTAKE FIELD SANITIZED]', {
+      field: fieldName,
+      originalLength: trimmed.length,
+      scriptCategory,
+      replacement: 'Not Provided'
+    });
+    return 'Not Provided';
+  }
+
+  return trimmed;
+}
+
 // Build canonical extracted_info for leads.raw_metadata and ai_call_records.
 // Keeps field names aligned with getLeadAIIntake expectations.
 function buildCanonicalExtractedInfo(
@@ -3217,21 +3253,23 @@ function buildCanonicalExtractedInfo(
   }
 
   return {
-    customerName: (fields.customerName || '').trim(),
+    customerName: sanitizeEnglishIntakeField('customerName', fields.customerName || ''),
     customerPhone: (callerPhone || fields.customerPhone || '').trim(),
-    serviceRequested: (fields.serviceRequested || '').trim(),
-    additionalDetails: (
+    serviceRequested: sanitizeEnglishIntakeField('serviceRequested', fields.serviceRequested || ''),
+    additionalDetails: sanitizeEnglishIntakeField(
+      'additionalDetails',
       fields.additionalDetails ||
       fields.issueDescription ||
       ''
-    ).trim(),
-    serviceAddress: (fields.serviceAddress || '').trim(),
-    desiredCompletion: (
+    ),
+    serviceAddress: sanitizeEnglishIntakeField('serviceAddress', fields.serviceAddress || ''),
+    desiredCompletion: sanitizeEnglishIntakeField(
+      'desiredCompletion',
       fields.desiredCompletion ||
       fields.desiredCompletionTime ||
       ''
-    ).trim(),
-    callbackTime: (fields.callbackTime || '').trim(),
+    ),
+    callbackTime: sanitizeEnglishIntakeField('callbackTime', fields.callbackTime || ''),
   }
 }
 
@@ -6012,7 +6050,7 @@ Reply to this message if you'd like to update or add any information.
             caller_phone: state.callerPhone,
             transcript: state.transcript,
             extracted_info: canonicalExtractedInfo,
-            summary: state.intakeData.issueDescription || '',
+            summary: canonicalExtractedInfo.additionalDetails || '',
             outcome: 'completed',
             status: 'completed',
           };
