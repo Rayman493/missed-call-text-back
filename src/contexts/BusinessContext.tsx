@@ -63,7 +63,12 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       return
     }
     
-    setLoading(true)
+    // Skip loading state if revalidating for verified business with cached data (background refresh)
+    // Only show loading if we don't have cached data or business is not verified
+    const shouldShowLoading = !businessVerified || !business
+    if (shouldShowLoading) {
+      setLoading(true)
+    }
     setFetchComplete(false)
     setError(null)
 
@@ -75,7 +80,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         setBusiness(null)
         setBusinessMissingConfirmed(false)
         userIdRef.current = null
-        setLoading(false)
+        if (shouldShowLoading) setLoading(false)
         setFetchComplete(true)
         return
       }
@@ -104,7 +109,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           log('[BusinessContext] Orphan auth recovery triggered for user:', user.id)
           setBusiness(null)
           setBusinessMissingConfirmed(true) // Confirmed no business
-          setLoading(false)
+          if (shouldShowLoading) setLoading(false)
           setFetchComplete(true)
         } else {
           // For other errors, do NOT assume no business - keep business null but mark fetch as complete
@@ -113,7 +118,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           log('[BusinessContext] Error:', fetchError.message, 'for user:', user.id)
           setBusiness(null)
           setBusinessMissingConfirmed(false) // Not confirmed, could be error
-          setLoading(false)
+          if (shouldShowLoading) setLoading(false)
           setFetchComplete(true)
         }
       } else {
@@ -124,7 +129,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('replyflow_business_verified', 'true')
         }
-        setLoading(false)
+        if (shouldShowLoading) setLoading(false)
         setFetchComplete(true)
       }
       
@@ -132,7 +137,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       setLastFetchTimestamp(now)
     } catch (err: any) {
       setError(err.message || 'Failed to fetch business')
-      setLoading(false)
+      if (shouldShowLoading) setLoading(false)
       setFetchComplete(true)
     }
   }, [supabase, businessVerified, business, lastFetchTimestamp])
