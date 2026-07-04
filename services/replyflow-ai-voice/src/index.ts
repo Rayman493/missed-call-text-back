@@ -6348,24 +6348,17 @@ Reply to this message if you'd like to update or add any information.
     clearSilentTimeout('silent_close_triggered');
     console.log('[SIMPLE MODE] event: silent_close_triggered');
 
-    await sendSilentCallerSms();
-
     const sent = sendSimpleModeLivePrompt("I'm sorry, I wasn't able to hear anything. We'll send you a text message so you can reply with what you need. Have a great day.", false, true);
     if (!sent) {
+      console.log('[SILENT SMS FAILED] reason: prompt_not_sent');
+      await sendSilentCallerSms();
       ws.close();
       if (state.openAiWs) {
         state.openAiWs.close();
       }
     } else {
-      // Wait for audio to complete before disconnecting (similar to normal final goodbye)
-      setTimeout(() => {
-        console.log('[SILENCE AUDIO COMPLETE]');
-        state.assistantSpeaking = false;
-        ws.close();
-        if (state.openAiWs) {
-          state.openAiWs.close();
-        }
-      }, 4000); // Wait 4 seconds for silent close message to complete
+      console.log('[SILENCE FINAL CLOSE SENT]');
+      // SMS will be sent after response.done event (audio completion)
     }
   };
 
@@ -6836,12 +6829,15 @@ Reply to this message if you'd like to update or add any information.
             state.ttsCompleteTime = Date.now();
 
             if (state.silentCloseStarted) {
+              console.log('[SILENCE FINAL CLOSE MARK RECEIVED]');
+              sendSilentCallerSms().catch(err => console.log('[SILENT SMS FAILED] reason: exception -', err));
               setTimeout(() => {
+                console.log('[SILENCE HANGUP AFTER AUDIO]');
                 ws.close();
                 if (state.openAiWs) {
                   state.openAiWs.close();
                 }
-              }, 1500);
+              }, 3000); // 3-second fallback to ensure audio completes
               return;
             }
 
