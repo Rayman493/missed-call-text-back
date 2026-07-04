@@ -72,13 +72,13 @@ export async function PATCH(
 
     const leadId = params.id;
     const body = await request.json();
-    const { status, deleted_at, deleted_by, deletion_reason, raw_metadata, name } = body;
+    const { status, deleted_at, deleted_by, deletion_reason, raw_metadata } = body;
 
     // Handle manual field edits (raw_metadata update from AI intake editor)
     if (raw_metadata !== undefined) {
       const { data: currentLead, error: currentLeadError } = await supabase
         .from('leads')
-        .select('id, name, raw_metadata')
+        .select('id, raw_metadata')
         .eq('id', leadId)
         .eq('business_id', business.id)
         .single()
@@ -130,9 +130,6 @@ export async function PATCH(
       }
 
       const metaUpdate: Record<string, any> = { raw_metadata: mergedRawMetadata }
-      const manualName = firstValue(correctedFields, MANUAL_FIELD_ALIASES.callerName)
-      if (manualName) metaUpdate.name = manualName
-      else if (name !== undefined) metaUpdate.name = name
 
       const { data: updatedLead, error: updateError } = await supabase
         .from('leads')
