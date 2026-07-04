@@ -8,7 +8,6 @@
 import WebSocket from 'ws';
 import { log, LogLevel } from './logger';
 import { OPENAI_REALTIME_MODEL, createOpenAIRealtimeUrl } from './realtime-model';
-import { AI_VOICE_OUTPUT_VOICE } from './voice-config';
 
 // Log ws package version
 console.log('[OPENAI] ws package version:', require('ws/package.json').version);
@@ -56,7 +55,7 @@ export class OpenAIRealtimeClient {
   constructor(config: OpenAIConfig) {
     this.config = {
       model: config.model || 'gpt-4o',
-      voice: config.voice || AI_VOICE_OUTPUT_VOICE,
+      voice: config.voice || 'alloy',
       ...config,
     };
   }
@@ -168,7 +167,7 @@ export class OpenAIRealtimeClient {
             type: 'response.create',
             response: {
               modalities: ['audio', 'text'],
-              instructions: 'Say exactly: Hello from ReplyFlow. Always respond in English only. Speak calmly and conversationally, without exaggerated pronunciation or dramatic inflection.',
+              instructions: 'Say exactly: Hello from ReplyFlow. Always respond in English only.',
             },
           };
           console.log('[AI RESPONSE LANGUAGE LOCK SENT] english - test message');
@@ -297,7 +296,7 @@ export class OpenAIRealtimeClient {
       type: 'session.update',
       session: {
         type: 'realtime',
-        instructions: 'You are ReplyFlow\'s phone assistant. You must speak only English. Always respond in clear American English. Never speak Spanish, French, or any other language. If audio is unclear, silence, background noise, or the caller speaks another language, still respond in English only. Voice delivery: speak calmly and conversationally, with natural pacing, no exaggerated pronunciation, no over-emphasis on S, SH, or F consonants, and no dramatic inflection.',
+        instructions: 'You are ReplyFlow\'s phone assistant. You must speak only English. Always respond in clear American English. Never speak Spanish, French, or any other language. If audio is unclear, silence, background noise, or the caller speaks another language, still respond in English only.',
         audio: {
           input: {
             format: {
@@ -369,7 +368,7 @@ export class OpenAIRealtimeClient {
       const createResponse = {
         type: 'response.create',
         response: {
-          instructions: 'Always respond in English only. Speak calmly and conversationally, without exaggerated pronunciation, over-emphasized consonants, or dramatic inflection.',
+          instructions: 'Always respond in English only.',
         },
       };
       console.log('[AI RESPONSE LANGUAGE LOCK SENT] english - greeting');
