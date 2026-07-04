@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
-import { Clock, User, Phone, MapPin, AlertCircle, MessageCircle, ChevronDown, ChevronUp, Briefcase, FileText, TriangleAlert, Pencil, X, Check, Loader2 } from 'lucide-react'
+import { Clock, User, Phone, MapPin, MessageCircle, ChevronDown, ChevronUp, Briefcase, FileText, TriangleAlert, Pencil, X, Check, Loader2 } from 'lucide-react'
 import { normalizeExtractedInfo, getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { isCompleteAIIntake, determineAIOutcomeFromExtractedInfo } from '@/lib/ai-intake-completion'
 
@@ -272,160 +272,14 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         summary: normalizeExtractedInfo(aiCallRecord.extracted_info || {}).summary,
       }
     : normalizeExtractedInfo(aiCallRecord.extracted_info || {})
-  const hasCustomerCorrections = leadData?.raw_metadata?.customer_corrected_info || leadData?.raw_metadata?.corrected_fields
   const correctedFields = leadData?.raw_metadata?.corrected_fields
-  const previousValues = leadData?.raw_metadata?.previous_values
-  const correctionsCount = leadData?.raw_metadata?.corrections_count || 0
-  const lastCorrectionField = leadData?.raw_metadata?.last_correction_field
-  const correctionSources = leadData?.raw_metadata?.correction_sources || {}
-
-  // Hide "Corrections Made" section if all corrections are manual (user already knows they made the edit)
-  const hasNonManualCorrections = Object.keys(correctedFields || {}).some(
-    field => correctionSources[field] !== 'manual'
-  )
 
   // Use canonical helper to determine effective outcome
   const isComplete = isCompleteAIIntake(extractedInfo as any)
   const effectiveOutcome = determineAIOutcomeFromExtractedInfo(extractedInfo as any, aiCallRecord?.outcome)
 
-  // Get last correction field name for display
-  const getFieldName = (field: string) => {
-    const fieldNames: Record<string, string> = {
-      'addressOrLocation': 'Address',
-      'address': 'Address',
-      'callbackNumber': 'Phone',
-      'phone': 'Phone',
-      'preferredCallbackTime': 'Callback Time',
-      'callback_time': 'Callback Time',
-      'urgencyLevel': 'Urgency',
-      'urgency': 'Urgency',
-      'importantDetails': 'Details',
-      'details': 'Details',
-      'reasonForCalling': 'Reason',
-      'reason': 'Reason'
-    }
-    return fieldNames[field] || field
-  }
-
   return (
     <div className="space-y-4">
-      {/* Customer Correction Badge - only show if at least one correction is non-manual */}
-      {hasCustomerCorrections && hasNonManualCorrections && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2.5">
-              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-                Corrections Made: {correctionsCount}
-              </span>
-            </div>
-          </div>
-
-          {/* Last Correction */}
-          {lastCorrectionField && (
-            <div className="text-xs text-amber-700 dark:text-amber-300 mb-2.5 leading-relaxed">
-              Last Correction: {getFieldName(lastCorrectionField)} updated by customer
-            </div>
-          )}
-
-          {/* Display corrected fields */}
-          {correctedFields && Object.keys(correctedFields).length > 0 && (
-            <div className="space-y-2">
-              {correctedFields.address && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
-                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                    Location
-                  </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
-                    {correctedFields.address}
-                  </div>
-                  {previousValues?.address && previousValues.address !== correctedFields.address && (
-                    <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                      Previous: {previousValues.address}
-                    </div>
-                  )}
-                </div>
-              )}
-              {correctedFields.details && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
-                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                    Details
-                  </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
-                    {correctedFields.details}
-                  </div>
-                  {previousValues?.details && previousValues.details !== correctedFields.details && (
-                    <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                      Previous: {previousValues.details}
-                    </div>
-                  )}
-                </div>
-              )}
-              {correctedFields.phone && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
-                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                    Phone
-                  </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
-                    {correctedFields.phone}
-                  </div>
-                  {previousValues?.phone && previousValues.phone !== correctedFields.phone && (
-                    <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                      Previous: {previousValues.phone}
-                    </div>
-                  )}
-                </div>
-              )}
-              {correctedFields.callback_time && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
-                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                    Callback Time
-                  </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
-                    {correctedFields.callback_time}
-                  </div>
-                  {previousValues?.callback_time && previousValues.callback_time !== correctedFields.callback_time && (
-                    <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                      Previous: {previousValues.callback_time}
-                    </div>
-                  )}
-                </div>
-              )}
-              {correctedFields.urgency && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
-                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                    Urgency
-                  </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
-                    {correctedFields.urgency}
-                  </div>
-                  {previousValues?.urgency && previousValues.urgency !== correctedFields.urgency && (
-                    <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                      Previous: {previousValues.urgency}
-                    </div>
-                  )}
-                </div>
-              )}
-              {correctedFields.reason && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
-                  <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
-                    Reason
-                  </div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
-                    {correctedFields.reason}
-                  </div>
-                  {previousValues?.reason && previousValues.reason !== correctedFields.reason && (
-                    <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                      Previous: {previousValues.reason}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* AI Summary Card - Compact and Collapsible */}
       {collapsible ? (
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
@@ -569,11 +423,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               )}
             </div>
             {isEditMode ? (
-              <input
-                type="text"
+              <textarea
                 value={editValues.reasonForCalling}
                 onChange={(e) => setEditValues({ ...editValues, reasonForCalling: e.target.value })}
-                className="w-full px-2 py-1.5 text-sm font-medium text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full min-h-[72px] px-2 py-1.5 text-sm font-medium text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
+                rows={3}
                 placeholder="Service requested"
               />
             ) : (
@@ -607,8 +461,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <textarea
                   value={editValues.importantDetails}
                   onChange={(e) => setEditValues({ ...editValues, importantDetails: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-none"
-                  rows={3}
+                  className="w-full min-h-[120px] px-2 py-1.5 text-sm text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                  rows={5}
                   placeholder="Additional details"
                 />
               ) : (
@@ -638,11 +492,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     )}
                   </div>
                   {isEditMode ? (
-                    <input
-                      type="text"
+                    <textarea
                       value={editValues.addressOrLocation}
                       onChange={(e) => setEditValues({ ...editValues, addressOrLocation: e.target.value })}
-                      className="w-full px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                      className="w-full min-h-[64px] px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                      rows={3}
                       placeholder="Service address"
                     />
                   ) : (
@@ -666,11 +520,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     )}
                   </div>
                   {isEditMode ? (
-                    <input
-                      type="text"
+                    <textarea
                       value={editValues.preferredCallbackTime}
                       onChange={(e) => setEditValues({ ...editValues, preferredCallbackTime: e.target.value })}
-                      className="w-full px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                      className="w-full min-h-[64px] px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                      rows={3}
                       placeholder="Best time to call"
                     />
                   ) : (
@@ -693,11 +547,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   )}
                 </div>
                 {isEditMode ? (
-                  <input
-                    type="text"
+                  <textarea
                     value={editValues.desiredCompletionTime}
                     onChange={(e) => setEditValues({ ...editValues, desiredCompletionTime: e.target.value })}
-                    className="w-full px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                    className="w-full min-h-[64px] px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                    rows={3}
                     placeholder="Desired completion"
                   />
                 ) : (
@@ -805,11 +659,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               )}
             </div>
             {isEditMode ? (
-              <input
-                type="text"
+              <textarea
                 value={editValues.reasonForCalling}
                 onChange={(e) => setEditValues({ ...editValues, reasonForCalling: e.target.value })}
-                className="w-full px-2 py-1.5 text-base font-medium text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full min-h-[80px] px-2 py-1.5 text-base font-medium text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
+                rows={3}
                 placeholder="Service requested"
               />
             ) : (
@@ -843,8 +697,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <textarea
                   value={editValues.importantDetails}
                   onChange={(e) => setEditValues({ ...editValues, importantDetails: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-none"
-                  rows={3}
+                  className="w-full min-h-[120px] px-2 py-1.5 text-sm text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                  rows={5}
                   placeholder="Additional details"
                 />
               ) : (
@@ -874,11 +728,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     )}
                   </div>
                   {isEditMode ? (
-                    <input
-                      type="text"
+                    <textarea
                       value={editValues.addressOrLocation}
                       onChange={(e) => setEditValues({ ...editValues, addressOrLocation: e.target.value })}
-                      className="w-full px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                      className="w-full min-h-[64px] px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                      rows={3}
                       placeholder="Service address"
                     />
                   ) : (
@@ -902,11 +756,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     )}
                   </div>
                   {isEditMode ? (
-                    <input
-                      type="text"
+                    <textarea
                       value={editValues.preferredCallbackTime}
                       onChange={(e) => setEditValues({ ...editValues, preferredCallbackTime: e.target.value })}
-                      className="w-full px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                      className="w-full min-h-[64px] px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                      rows={3}
                       placeholder="Best time to call"
                     />
                   ) : (
@@ -929,11 +783,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   )}
                 </div>
                 {isEditMode ? (
-                  <input
-                    type="text"
+                  <textarea
                     value={editValues.desiredCompletionTime}
                     onChange={(e) => setEditValues({ ...editValues, desiredCompletionTime: e.target.value })}
-                    className="w-full px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                    className="w-full min-h-[64px] px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                    rows={3}
                     placeholder="Desired completion"
                   />
                 ) : (
