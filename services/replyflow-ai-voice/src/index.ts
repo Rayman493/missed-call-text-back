@@ -1403,7 +1403,7 @@ const APPROVED_PROMPTS: Record<string, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
   ask_details: "Got it. Can you share any important details the business should know?",
   ask_location_or_context: "Thanks. Just a couple more questions. Where will this take place?",
-  ask_timing: "When are you hoping this can happen?",
+  ask_timing: "When are you hoping this will be done?",
   ask_callback_time: "Perfect. Last question—what's the best time for the business to call you back?",
   final_goodbye: "Perfect. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
 };
@@ -2057,7 +2057,7 @@ const STAGE_PROMPTS: Record<IntakeStage, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
   ask_details: "Got it. Can you share any important details the business should know?",
   ask_location_or_context: "Thanks. Just a couple more questions. Where will this take place?",
-  ask_timing: "When are you hoping this can happen?",
+  ask_timing: "When are you hoping this will be done?",
   ask_callback_time: "Perfect. Last question—what's the best time for the business to call you back?",
   complete: "Perfect. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
 };
