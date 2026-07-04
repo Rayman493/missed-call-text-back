@@ -5380,6 +5380,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Instrumentation counters
     mediaPacketCount: 0,
     audioBufferAppendCount: 0,
+    audioAppendBlockedLogged: false,
+    inSpeechSegment: false,
     // OpenAI handshake readiness
     sessionCreatedReceived: false,
     sessionUpdatedReceived: false,
@@ -6707,9 +6709,16 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SIMPLE MODE] =========================================');
           }
 
-          // Log key OpenAI events
+          // Log key OpenAI events with full details
           if (message.type === 'input_audio_buffer.speech_started') {
-            console.log('[AUDIO PIPELINE] OpenAI event: input_audio_buffer.speech_started')
+            console.log('[AUDIO PIPELINE] =========================================');
+            console.log('[AUDIO PIPELINE] event: input_audio_buffer.speech_started');
+            console.log('[AUDIO PIPELINE] timestamp:', Date.now());
+            console.log('[AUDIO PIPELINE] assistantSpeaking:', state.assistantSpeaking);
+            console.log('[AUDIO PIPELINE] audioBufferAppendCount:', state.audioBufferAppendCount || 0);
+            console.log('[AUDIO PIPELINE] =========================================');
+            state.inSpeechSegment = true;
+            state.audioAppendBlockedLogged = false;
             if (state.assistantSpeaking) {
               console.log('[SIMPLE MODE] =========================================');
               console.log('[SIMPLE MODE] event: caller_speech_detected_during_prompt');
@@ -6718,13 +6727,45 @@ Reply to this message if you'd like to update or add any information.
               state.cachedPlaybackInterrupted = true;
             }
           } else if (message.type === 'input_audio_buffer.speech_stopped') {
-            console.log('[AUDIO PIPELINE] OpenAI event: input_audio_buffer.speech_stopped')
+            console.log('[AUDIO PIPELINE] =========================================');
+            console.log('[AUDIO PIPELINE] event: input_audio_buffer.speech_stopped');
+            console.log('[AUDIO PIPELINE] timestamp:', Date.now());
+            console.log('[AUDIO PIPELINE] assistantSpeaking:', state.assistantSpeaking);
+            console.log('[AUDIO PIPELINE] audioBufferAppendCount:', state.audioBufferAppendCount || 0);
+            console.log('[AUDIO PIPELINE] =========================================');
+            state.inSpeechSegment = false;
           } else if (message.type === 'input_audio_buffer.committed') {
-            console.log('[AUDIO PIPELINE] OpenAI event: input_audio_buffer.committed')
+            console.log('[AUDIO PIPELINE] =========================================');
+            console.log('[AUDIO PIPELINE] event: input_audio_buffer.committed');
+            console.log('[AUDIO PIPELINE] timestamp:', Date.now());
+            console.log('[AUDIO PIPELINE] itemId:', message.item_id);
+            console.log('[AUDIO PIPELINE] audioBufferAppendCount:', state.audioBufferAppendCount || 0);
+            console.log('[AUDIO PIPELINE] assistantSpeaking:', state.assistantSpeaking);
+            console.log('[AUDIO PIPELINE] inSpeechSegment:', state.inSpeechSegment);
+            console.log('[AUDIO PIPELINE] =========================================');
           } else if (message.type === 'conversation.item.input_audio_transcription.completed') {
-            console.log('[AUDIO PIPELINE] OpenAI event: transcription.completed')
+            console.log('[AUDIO PIPELINE] =========================================');
+            console.log('[AUDIO PIPELINE] event: transcription.completed');
+            console.log('[AUDIO PIPELINE] timestamp:', Date.now());
+            console.log('[AUDIO PIPELINE] itemId:', message.item_id);
+            console.log('[AUDIO PIPELINE] transcript:', message.transcript);
+            console.log('[AUDIO PIPELINE] assistantSpeaking:', state.assistantSpeaking);
+            console.log('[AUDIO PIPELINE] audioBufferAppendCount:', state.audioBufferAppendCount || 0);
+            console.log('[AUDIO PIPELINE] =========================================');
           } else if (message.type === 'conversation.item.input_audio_transcription.failed') {
-            console.log('[AUDIO PIPELINE] OpenAI event: transcription.failed')
+            console.log('[AUDIO PIPELINE] =========================================');
+            console.log('[AUDIO PIPELINE] event: transcription.failed');
+            console.log('[AUDIO PIPELINE] timestamp:', Date.now());
+            console.log('[AUDIO PIPELINE] itemId:', message.item_id);
+            console.log('[AUDIO PIPELINE] error:', JSON.stringify(message.error, null, 2));
+            console.log('[AUDIO PIPELINE] errorCode:', message.error?.code);
+            console.log('[AUDIO PIPELINE] errorMessage:', message.error?.message);
+            console.log('[AUDIO PIPELINE] errorParam:', message.error?.param);
+            console.log('[AUDIO PIPELINE] errorDetails:', JSON.stringify(message.error?.details, null, 2));
+            console.log('[AUDIO PIPELINE] assistantSpeaking:', state.assistantSpeaking);
+            console.log('[AUDIO PIPELINE] audioBufferAppendCount:', state.audioBufferAppendCount || 0);
+            console.log('[AUDIO PIPELINE] inSpeechSegment:', state.inSpeechSegment);
+            console.log('[AUDIO PIPELINE] =========================================');
           }
 
           // Reset audio accumulator counters at the start of each new response
@@ -7025,6 +7066,28 @@ Reply to this message if you'd like to update or add any information.
               appendCount: state.audioBufferAppendCount,
               bytes: message.media.payload?.length || 0
             })
+          }
+          // Log first few appends for transcription debugging
+          if (state.audioBufferAppendCount <= 10) {
+            console.log('[AUDIO PIPELINE] =========================================');
+            console.log('[AUDIO PIPELINE] event: input_audio_buffer.append');
+            console.log('[AUDIO PIPELINE] appendCount:', state.audioBufferAppendCount);
+            console.log('[AUDIO PIPELINE] bytes:', message.media.payload?.length || 0);
+            console.log('[AUDIO PIPELINE] timestamp:', Date.now());
+            console.log('[AUDIO PIPELINE] assistantSpeaking:', state.assistantSpeaking);
+            console.log('[AUDIO PIPELINE] =========================================');
+          }
+        } else if (state.assistantSpeaking) {
+          // Log when audio append is blocked due to assistant speaking
+          if (!state.audioAppendBlockedLogged) {
+            console.log('[AUDIO PIPELINE] =========================================');
+            console.log('[AUDIO PIPELINE] event: audio_append_blocked');
+            console.log('[AUDIO PIPELINE] reason: assistant_speaking');
+            console.log('[AUDIO PIPELINE] timestamp:', Date.now());
+            console.log('[AUDIO PIPELINE] currentStage:', state.currentStage);
+            console.log('[AUDIO PIPELINE] audioBufferAppendCount:', state.audioBufferAppendCount || 0);
+            console.log('[AUDIO PIPELINE] =========================================');
+            state.audioAppendBlockedLogged = true;
           }
         }
       } else if (message.event === 'mark') {
