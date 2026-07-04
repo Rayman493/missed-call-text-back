@@ -6317,9 +6317,11 @@ Reply to this message if you'd like to update or add any information.
           transcript: state.transcript,
           extracted_info: null,
           summary: 'Silent caller: no meaningful speech captured.',
-          outcome: 'no_speech',
+          outcome: 'caller_hung_up',
           extraction_failed: false,
         });
+
+      console.log('[SILENT AI RECORD OUTCOME] value: caller_hung_up');
 
       if (recordError) {
         console.log('[SILENT SMS FAILED] reason: ai_call_record_insertion_failed -', recordError.message);
