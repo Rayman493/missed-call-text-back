@@ -3214,10 +3214,9 @@ function sanitizeEnglishIntakeField(fieldName: string, value: string): string {
   }
 
   if (scriptCategory === 'garbled' || scriptCategory === 'mixed_non_english') {
-    console.log('[AI INTAKE FIELD SANITIZED]', {
+    console.log('[AI FIELD SANITIZED]', {
       field: fieldName,
-      originalLength: trimmed.length,
-      scriptCategory,
+      original: trimmed,
       replacement: 'Not Provided'
     });
     return 'Not Provided';
@@ -5884,12 +5883,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
     // Helper function to format AI intake summary (used by SMS and dashboard)
     const formatAiIntakeSummary = (intakeData: any, callerPhone: string, businessName?: string): string => {
-      const customerName = normalizeText(intakeData.customerName);
-      const serviceRequested = normalizeText(intakeData.serviceRequested);
-      const serviceAddress = normalizeText(intakeData.serviceAddress);
-      const desiredCompletionTime = normalizeText(intakeData.desiredCompletionTime);
-      const callbackTime = normalizeText(intakeData.callbackTime);
-      const issueDescription = normalizeText(intakeData.issueDescription);
+      const customerName = sanitizeEnglishIntakeField('customerName', intakeData.customerName || '');
+      const serviceRequested = sanitizeEnglishIntakeField('serviceRequested', intakeData.serviceRequested || '');
+      const serviceAddress = sanitizeEnglishIntakeField('serviceAddress', intakeData.serviceAddress || '');
+      const desiredCompletionTime = sanitizeEnglishIntakeField('desiredCompletion', intakeData.desiredCompletionTime || '');
+      const callbackTime = sanitizeEnglishIntakeField('callbackTime', intakeData.callbackTime || '');
+      const issueDescription = sanitizeEnglishIntakeField('additionalDetails', intakeData.issueDescription || '');
       
       const displayName = businessName || 'us';
       
@@ -6192,9 +6191,9 @@ Reply to this message if you'd like to update or add any information.
                   businessId:       state.businessId,
                   leadId:           lead.id,
                   type:             'ai_intake_completed',
-                  customerName:     state.intakeData.customerName  || '',
+                  customerName:     canonicalExtractedInfo.customerName  || '',
                   customerPhone:    state.callerPhone              || '',
-                  serviceRequested: state.intakeData.serviceRequested || '',
+                  serviceRequested: canonicalExtractedInfo.serviceRequested || '',
                 }),
               });
               if (notifRes.ok) {
