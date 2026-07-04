@@ -58,7 +58,7 @@ export default function SettingsContent() {
   const [activeSection, setActiveSection] = useState('general')
 
   // Default out of office message
-  const DEFAULT_OUT_OF_OFFICE_MESSAGE = "Thanks for contacting {{business_name}}. We are currently out of office until {{return_date}}. Responses may be delayed until we return, but we'll get back to you as soon as possible."
+  const DEFAULT_OUT_OF_OFFICE_MESSAGE = "Thanks for contacting {{business_name}}. We are currently out of office and responses may be delayed. We’ll be back on {{return_date}}. Please provide details about what you need and we will get back to you as soon as possible."
 
   // Default after hours message
   const DEFAULT_AFTER_HOURS_MESSAGE = "Thanks for contacting {{business_name}}. We're currently closed and will get back to you during business hours."

@@ -43,12 +43,14 @@ export function isBusinessOutOfOffice(business: Business | null | undefined): bo
 export function getOutOfOfficeMessage(business: Business | null | undefined): string | null {
   if (!business || !isBusinessOutOfOffice(business)) return null
   
-  const defaultMessage = `Thanks for contacting ${business.name}. We are currently out of office and responses may be delayed. Please provide details about what you need and we will get back to you as soon as possible.`
+  const returnDate = new Date(business.out_of_office_end!).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  const defaultMessage = `Thanks for contacting ${business.name}. We are currently out of office and responses may be delayed. We’ll be back on ${returnDate}. Please provide details about what you need and we will get back to you as soon as possible.`
   
   let message = business.out_of_office_message || defaultMessage
   
   // Replace {{business_name}} placeholder
   message = message.replace(/\{\{business_name\}\}/gi, business.name)
+  message = message.replace(/\{\{return_date\}\}/gi, returnDate)
   
   return message
 }

@@ -59,7 +59,7 @@ export function getBusinessAvailabilityNoticeForSms(business: any): BusinessAvai
     if (now >= start && now <= end) {
       const notice = business.out_of_office_message && business.out_of_office_message.trim()
         ? replaceReturnDate(replaceBusinessName(business.out_of_office_message, business), business)
-        : `Thanks for contacting ${business.name || 'the business'}. We are currently out of office until ${new Date(end).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Responses may be delayed until we return, but we'll get back to you as soon as possible.`
+        : `Thanks for contacting ${business.name || 'the business'}. We are currently out of office and responses may be delayed. We’ll be back on ${new Date(end).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Please provide details about what you need and we will get back to you as soon as possible.`
 
       return { type: 'out_of_office', notice }
     }
