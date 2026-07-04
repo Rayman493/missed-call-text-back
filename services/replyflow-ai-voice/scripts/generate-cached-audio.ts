@@ -10,12 +10,12 @@ if (!OPENAI_API_KEY) {
 }
 
 const prompts = {
-  ask_name_reason: "Hi, this is ReplyFlow AI. Who am I speaking with, and what can we help you with today?",
-  ask_details: "Thanks. Can you share any other details the business should know?",
-  ask_location: "What address or location is this for?",
-  ask_completion_time: "When would you like this work completed?",
-  ask_callback_time: "What is the best time for the business to call you back?",
-  complete: "Perfect. I'll pass this information along, and the business will get back to you soon. Goodbye."
+  ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
+  ask_details: "Got it. Can you share any important details the business should know?",
+  ask_location: "Thanks. Just a couple more questions. Where will this take place?",
+  ask_completion_time: "When are you hoping this can happen?",
+  ask_callback_time: "Perfect. Last question—what's the best time for the business to call you back?",
+  complete: "Perfect. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
 };
 
 // Standard G.711 μ-law encoding
