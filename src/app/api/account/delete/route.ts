@@ -5,6 +5,7 @@ import getStripe from '@/lib/stripe'
 import { twilioClient } from '@/lib/twilio'
 import { sendOffboardingEmail, sendAccountDeletionConfirmationEmail, sendJourneyEmail } from '@/lib/email'
 import { sendSms, sendSystemSms } from '@/lib/twilio'
+import { isSystemPhoneNumber } from '@/lib/twilio-assignment'
 
 const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
 
@@ -845,6 +846,13 @@ If forwarding does not stop immediately, restart your phone or contact your carr
 
       for (const business of businesses as any[]) {
         if (business.twilio_phone_number_sid) {
+          // Protect against reserving the dedicated system phone
+          if (isSystemPhoneNumber(business.twilio_phone_number)) {
+            console.log('[SYSTEM PHONE] Skipping reservation for dedicated system number:', business.twilio_phone_number)
+            console.log('[delete-account] System phone will not be reserved during account deletion')
+            continue
+          }
+
           console.log('[delete-account] Reserving Twilio number for 30-day grace period', {
             businessId: business.id,
             phoneNumber: business.twilio_phone_number,

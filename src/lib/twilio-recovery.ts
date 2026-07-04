@@ -2,6 +2,7 @@
 import 'server-only'
 import { supabaseAdmin } from './supabase/admin'
 import Twilio from 'twilio'
+import { isSystemPhoneNumber } from './twilio-assignment'
 
 /**
  * Verify if a Twilio number still exists and is active
@@ -65,6 +66,12 @@ export async function recoverBusinessWithInvalidTwilioNumber(
     if (!business.twilio_phone_number || !business.twilio_phone_number_sid) {
       console.log('[TWILIO RECOVERY] No Twilio number assigned, skipping')
       return { success: true, needsReprovision: true }
+    }
+
+    // Protect against recovering/clearing the dedicated system phone
+    if (isSystemPhoneNumber(business.twilio_phone_number)) {
+      console.log('[SYSTEM PHONE] Skipping dedicated system number during recovery:', business.twilio_phone_number)
+      return { success: true, needsReprovision: false }
     }
 
     // Verify the number exists in Twilio

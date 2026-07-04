@@ -2,6 +2,25 @@
 
 const SHARED_TWILIO_NUMBER = '+18336584303'
 
+/**
+ * Check if a phone number is the dedicated ReplyFlow system phone number
+ * 
+ * The system phone is permanently reserved for:
+ * - Account deletion SMS
+ * - Offboarding reminders
+ * - Future ReplyFlow system notifications
+ * 
+ * It must never be assigned to a business or included in warm inventory.
+ */
+export function isSystemPhoneNumber(phoneNumber: string | null | undefined): boolean {
+  if (!phoneNumber) return false
+  
+  const systemPhoneNumber = process.env.REPLYFLOW_SYSTEM_SMS_NUMBER
+  if (!systemPhoneNumber) return false
+  
+  return phoneNumber === systemPhoneNumber
+}
+
 export interface TwilioAssignmentResult {
   phoneNumber: string
   phoneNumberSid?: string
@@ -36,11 +55,19 @@ export function getAssignedTwilioNumber(): TwilioAssignmentResult {
  * Validate that a Twilio number assignment is allowed
  * 
  * This function prevents any code from assigning a non-shared number when shared mode is enabled
+ * and prevents assigning the dedicated system phone to any business
  * 
  * DEFAULT BEHAVIOR: Shared mode is DISABLED - unique number assignments are allowed
  */
 export function validateTwilioNumberAssignment(proposedNumber: string): { valid: boolean; error?: string } {
   const useSharedTwilioNumber = process.env.USE_SHARED_TWILIO_NUMBER === 'true'
+  
+  // Protect against assigning the dedicated system phone
+  if (isSystemPhoneNumber(proposedNumber)) {
+    const error = `[SYSTEM PHONE] REJECTED: Attempted to assign dedicated system phone ${proposedNumber} to a business. System phone is permanently reserved for ReplyFlow system SMS.`
+    console.error(error)
+    return { valid: false, error }
+  }
   
   if (useSharedTwilioNumber) {
     if (proposedNumber !== SHARED_TWILIO_NUMBER) {

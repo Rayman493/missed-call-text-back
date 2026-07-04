@@ -12,6 +12,7 @@
 
 import Twilio from "twilio";
 import { createClient } from '@supabase/supabase-js';
+import { isSystemPhoneNumber } from './twilio-assignment';
 
 // Initialize Supabase client for DB operations
 const supabase = createClient(
@@ -570,7 +571,7 @@ async function purchaseNumber(
     // No strong reclaim found, continue with normal flow
     console.log('[PURCHASE NUMBER] No strong reclaim found, continuing with normal provisioning flow');
 
-    // Next, check for available numbers in inventory (excluding reserved)
+    // Next, check for available numbers in inventory (excluding reserved and system phone)
     console.log('[PURCHASE NUMBER] Checking for available numbers in inventory');
     const { data: availableNumber, error: availableError } = await supabase
       .from('twilio_numbers')
@@ -581,57 +582,63 @@ async function purchaseNumber(
       .maybeSingle();
 
     if (availableNumber && !availableError) {
-      console.log('[PURCHASE NUMBER] Found available number in inventory:', availableNumber.phone_number);
-      console.log('[PURCHASE NUMBER] Assigning existing number to business instead of purchasing new');
+      // Protect against assigning the dedicated system phone
+      if (isSystemPhoneNumber(availableNumber.phone_number)) {
+        console.log('[SYSTEM PHONE] Skipping dedicated system number during inventory scan:', availableNumber.phone_number);
+        console.log('[PURCHASE NUMBER] System phone found in inventory, skipping and purchasing new number instead');
+      } else {
+        console.log('[PURCHASE NUMBER] Found available number in inventory:', availableNumber.phone_number);
+        console.log('[PURCHASE NUMBER] Assigning existing number to business instead of purchasing new');
 
-      // Assign the available number to the business
-      const { error: assignError } = await supabase
-        .from('twilio_numbers')
-        .update({
-          business_id: businessId,
-          status: 'active',
-          assigned_at: new Date().toISOString(),
-          detached_at: null,
-          detached_reason: null,
-        })
-        .eq('id', availableNumber.id);
+        // Assign the available number to the business
+        const { error: assignError } = await supabase
+          .from('twilio_numbers')
+          .update({
+            business_id: businessId,
+            status: 'active',
+            assigned_at: new Date().toISOString(),
+            detached_at: null,
+            detached_reason: null,
+          })
+          .eq('id', availableNumber.id);
 
-      if (assignError) {
-        console.error('[PURCHASE NUMBER] Failed to assign available number:', assignError);
-        return { success: false, error: 'Failed to assign available number' };
+        if (assignError) {
+          console.error('[PURCHASE NUMBER] Failed to assign available number:', assignError);
+          return { success: false, error: 'Failed to assign available number' };
+        }
+
+        // Update businesses table
+        const { error: updateError } = await supabase
+          .from('businesses')
+          .update({
+            twilio_phone_number: availableNumber.phone_number,
+            twilio_phone_number_sid: availableNumber.twilio_sid,
+            assigned_twilio_number_id: availableNumber.id,
+            twilio_messaging_service_sid: messagingServiceSid,
+            provisioning_status: 'ready',
+            provisioning_error: null,
+            last_provisioning_attempt_at: new Date().toISOString(),
+            provisioned_at: new Date().toISOString(),
+          })
+          .eq('id', businessId);
+
+        if (updateError) {
+          console.error('[PURCHASE NUMBER] Failed to update business:', updateError);
+          return { success: false, error: 'Failed to update business record' };
+        }
+
+        console.log('[PURCHASE NUMBER] Assigned available number successfully', {
+          phoneNumber: availableNumber.phone_number,
+          phoneNumberSid: availableNumber.twilio_sid,
+        });
+
+        return {
+          success: true,
+          phoneNumber: availableNumber.phone_number,
+          phoneNumberSid: availableNumber.twilio_sid,
+          status: 'ready'
+        };
       }
-
-      // Update businesses table
-      const { error: updateError } = await supabase
-        .from('businesses')
-        .update({
-          twilio_phone_number: availableNumber.phone_number,
-          twilio_phone_number_sid: availableNumber.twilio_sid,
-          assigned_twilio_number_id: availableNumber.id,
-          twilio_messaging_service_sid: messagingServiceSid,
-          provisioning_status: 'ready',
-          provisioning_error: null,
-          last_provisioning_attempt_at: new Date().toISOString(),
-          provisioned_at: new Date().toISOString(),
-        })
-        .eq('id', businessId);
-
-      if (updateError) {
-        console.error('[PURCHASE NUMBER] Failed to update business:', updateError);
-        return { success: false, error: 'Failed to update business record' };
-      }
-
-      console.log('[PURCHASE NUMBER] Assigned available number successfully', {
-        phoneNumber: availableNumber.phone_number,
-        phoneNumberSid: availableNumber.twilio_sid,
-      });
-
-      return {
-        success: true,
-        phoneNumber: availableNumber.phone_number,
-        phoneNumberSid: availableNumber.twilio_sid,
-        status: 'ready'
-      };
     }
 
     // No available numbers in inventory, purchase new from Twilio

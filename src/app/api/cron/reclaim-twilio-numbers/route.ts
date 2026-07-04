@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { hasActiveManualAccess } from '@/lib/manual-access'
+import { isSystemPhoneNumber } from '@/lib/twilio-assignment'
 
 export const dynamic = 'force-dynamic'
 
@@ -93,6 +94,14 @@ export async function GET(request: NextRequest) {
         phoneNumber: business.twilio_phone_number,
         releaseAt: business.twilio_release_at
       })
+
+      // Protect against releasing the dedicated system phone
+      if (isSystemPhoneNumber(business.twilio_phone_number)) {
+        console.log('[SYSTEM PHONE] Skipping release for dedicated system number:', business.twilio_phone_number)
+        results.skipped++
+        results.skippedReasons.push(`System phone: ${business.twilio_phone_number}`)
+        continue
+      }
 
       // Safety check: Verify no active billing access
       const hasActiveSubscription = business.subscription_status === 'active' || business.subscription_status === 'trialing'
