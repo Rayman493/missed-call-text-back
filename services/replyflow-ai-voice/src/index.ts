@@ -38,6 +38,7 @@ import {
 } from './intake-templates';
 import { testFallbacks, warnIfTestFallbacksActive } from './test-fallbacks';
 import { OPENAI_REALTIME_MODEL, createOpenAIRealtimeUrl } from './realtime-model';
+import { applyPcmuOutputHeadroom } from './audio-quality';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -5417,10 +5418,11 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     }
 
     const sendStart = Date.now();
+    const adjustedAudio = applyPcmuOutputHeadroom(combined);
     const mediaMessage = {
       event: 'media',
       streamSid,
-      media: { payload: combined.toString('base64') }
+      media: { payload: adjustedAudio.toString('base64') }
     };
     ws.send(JSON.stringify(mediaMessage));
     const sendLatencyMs = Date.now() - sendStart;

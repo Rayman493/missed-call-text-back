@@ -9,6 +9,7 @@ import WebSocket from 'ws';
 import { log, LogLevel } from './logger';
 import { OpenAIRealtimeClient } from './openai-client';
 import Twilio from 'twilio';
+import { applyPcmuOutputHeadroom } from './audio-quality';
 
 // Approved assistant utterances per stage - strict allowlist
 const APPROVED_UTTERANCES: Record<string, string> = {
@@ -529,11 +530,12 @@ export class TwilioStreamHandler {
         (this as any).greetingMediaSentCount = ((this as any).greetingMediaSentCount || 0) + 1;
       }
 
+      const adjustedAudio = applyPcmuOutputHeadroom(audioData);
       const message = {
         event: 'media',
         streamSid: this.streamSid,
         media: {
-          payload: audioData.toString('base64'),
+          payload: adjustedAudio.toString('base64'),
         },
       };
       this.ws.send(JSON.stringify(message));
