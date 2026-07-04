@@ -16,9 +16,23 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Validate that the URL is from Twilio
-    if (!mediaUrl.includes('twilio.com') && !mediaUrl.includes('twilio')) {
-      console.error('[Twilio Media Proxy] Invalid URL domain:', mediaUrl)
+    let parsedMediaUrl: URL
+    try {
+      parsedMediaUrl = new URL(mediaUrl)
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid media URL' },
+        { status: 400 }
+      )
+    }
+
+    const allowedTwilioHosts = new Set(['api.twilio.com', 'mcs.us1.twilio.com'])
+    const isAllowedTwilioHost = parsedMediaUrl.protocol === 'https:' && (
+      allowedTwilioHosts.has(parsedMediaUrl.hostname) || parsedMediaUrl.hostname.endsWith('.twilio.com')
+    )
+
+    if (!isAllowedTwilioHost) {
+      console.error('[Twilio Media Proxy] Invalid URL domain:', parsedMediaUrl.hostname)
       return NextResponse.json(
         { error: 'Invalid media URL' },
         { status: 400 }

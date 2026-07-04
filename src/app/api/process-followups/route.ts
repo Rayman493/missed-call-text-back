@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendSms } from "@/lib/twilio";
+import crypto from "crypto";
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -25,8 +26,6 @@ export async function POST(request: Request) {
     // Support both Authorization header and Vercel's x-vercel-cron header
     const authHeader = request.headers.get('authorization')
     const cronHeader = request.headers.get('x-vercel-cron')
-    const searchParams = new URL(request.url).searchParams
-    const secretParam = searchParams.get('secret')
 
     const expectedSecret = process.env.CRON_SECRET
     if (!expectedSecret) {
@@ -34,18 +33,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
     }
 
-    // Check authentication via multiple methods
+    const providedSecret = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+    const hasValidBearerSecret = !!providedSecret &&
+      providedSecret.length === expectedSecret.length &&
+      crypto.timingSafeEqual(Buffer.from(providedSecret), Buffer.from(expectedSecret))
+
+    // Check authentication via trusted headers only
     const isAuthorized = 
       cronHeader === '1' || // Vercel cron
-      (authHeader && authHeader.replace('Bearer ', '') === expectedSecret) || // Authorization header
-      secretParam === expectedSecret // Query parameter for manual testing
+      hasValidBearerSecret // Authorization header
 
     if (!isAuthorized) {
       console.error('[FOLLOWUP CRON] Unauthorized request - missing or invalid credentials')
       console.error('[FOLLOWUP CRON] Headers:', {
         hasAuth: !!authHeader,
-        hasCron: !!cronHeader,
-        hasSecret: !!secretParam
+        hasCron: !!cronHeader
       })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -75,7 +77,7 @@ export async function POST(request: Request) {
 
     console.log('[FOLLOWUP PROCESSOR RESULT] =========================================');
     console.log('[FOLLOWUP PROCESSOR RESULT] pendingCount:', jobs?.length || 0);
-    console.log('[FOLLOWUP PROCESSOR RESULT] jobs:', JSON.stringify(jobs || [], null, 2));
+    console.log('[FOLLOWUP PROCESSOR RESULT] jobIds:', (jobs || []).map((job: any) => job.id));
     console.log('[FOLLOWUP PROCESSOR RESULT] queryError:', jobsError?.message || 'none');
     console.log('[FOLLOWUP PROCESSOR RESULT] Timestamp:', new Date().toISOString());
     console.log('[FOLLOWUP PROCESSOR RESULT] =========================================');

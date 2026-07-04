@@ -159,9 +159,7 @@ export async function POST(request: Request) {
     // Check if STRIPE_WEBHOOK_SECRET is configured
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
     const webhookSecretExists = !!webhookSecret
-    const webhookSecretPrefix = webhookSecret ? webhookSecret.substring(0, 8) : 'null'
     console.log('[STRIPE WEBHOOK] STRIPE_WEBHOOK_SECRET configured:', webhookSecretExists);
-    console.log('[STRIPE WEBHOOK] STRIPE_WEBHOOK_SECRET prefix:', webhookSecretPrefix);
     
     if (!webhookSecret) {
       console.error('[STRIPE WEBHOOK] Webhook secret not configured');

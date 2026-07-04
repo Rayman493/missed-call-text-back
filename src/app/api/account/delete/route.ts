@@ -323,9 +323,17 @@ export async function POST(request: NextRequest) {
       
       // Create offboarding tracking record
       try {
+        if (!process.env.INTERNAL_API_SECRET) {
+          console.warn('[delete-account] INTERNAL_API_SECRET not configured, skipping offboarding tracking record')
+          throw new Error('Internal API secret not configured')
+        }
+
         const offboardingResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/offboarding/create`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.INTERNAL_API_SECRET}`,
+          },
           body: JSON.stringify({
             businessPhone: business.business_phone_number,
             businessEmail: userEmail,

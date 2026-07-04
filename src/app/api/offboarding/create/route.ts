@@ -2,8 +2,27 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import crypto from 'crypto'
 
+function isAuthorizedInternalRequest(request: NextRequest): boolean {
+  const expectedSecret = process.env.INTERNAL_API_SECRET
+  if (!expectedSecret) return false
+
+  const authHeader = request.headers.get('authorization')
+  const providedSecret = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+
+  if (!providedSecret || providedSecret.length !== expectedSecret.length) return false
+
+  return crypto.timingSafeEqual(
+    Buffer.from(providedSecret),
+    Buffer.from(expectedSecret)
+  )
+}
+
 export async function POST(request: NextRequest) {
   try {
+    if (!isAuthorizedInternalRequest(request)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json()
     const {
       businessPhone,
@@ -50,9 +69,8 @@ export async function POST(request: NextRequest) {
 
     console.log('[Offboarding Tracking] Created tracking record:', {
       id: trackingRecord.id,
-      businessPhone,
-      businessEmail,
-      confirmationToken,
+      hasBusinessPhone: !!businessPhone,
+      hasBusinessEmail: !!businessEmail,
     })
 
     return NextResponse.json({

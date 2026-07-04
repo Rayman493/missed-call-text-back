@@ -82,8 +82,7 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     console.log('[PAYMENT REQUEST] Business lookup result:', {
-      data: business,
-      error: businessError,
+      found: !!business,
       errorCode: businessError?.code,
       errorMessage: businessError?.message
     })
@@ -123,8 +122,7 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     console.log('[PAYMENT REQUEST] Lead lookup result:', {
-      data: lead,
-      error: leadError,
+      found: !!lead,
       errorCode: leadError?.code,
       errorMessage: leadError?.message
     })
@@ -140,6 +138,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Lead not found or unauthorized' }, { status: 404 })
     }
 
+    if (lead.business_id !== business.id) {
+      console.error('[PAYMENT REQUEST] Lead/business mismatch', {
+        leadId: lead.id,
+        businessId: business.id,
+      })
+      return NextResponse.json({ error: 'Lead not found or unauthorized' }, { status: 403 })
+    }
+
     // Verify conversation exists and user has access (RLS will handle authorization)
     console.log('[PAYMENT REQUEST] Conversation lookup with RLS:', {
       conversation_id,
@@ -152,8 +158,7 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     console.log('[PAYMENT REQUEST] Conversation lookup result:', {
-      data: conversation,
-      error: conversationError,
+      found: !!conversation,
       errorCode: conversationError?.code,
       errorMessage: conversationError?.message
     })
@@ -167,6 +172,15 @@ export async function POST(request: Request) {
         conversationId: conversation_id,
       })
       return NextResponse.json({ error: 'Conversation not found or unauthorized' }, { status: 404 })
+    }
+
+    if (conversation.business_id !== business.id || conversation.lead_id !== lead.id) {
+      console.error('[PAYMENT REQUEST] Conversation/business/lead mismatch', {
+        conversationId: conversation.id,
+        businessId: business.id,
+        leadId: lead.id,
+      })
+      return NextResponse.json({ error: 'Conversation not found or unauthorized' }, { status: 403 })
     }
 
     // Prefill description from canonical AI intake service if not provided
