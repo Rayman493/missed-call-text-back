@@ -5347,6 +5347,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     sessionUpdatedReceived: false,
     initialPromptSent: false,
     sessionReadyTimeout: null as NodeJS.Timeout | null,
+    silentTimeout: null as NodeJS.Timeout | null,
+    silentRepromptSent: false,
+    silentCloseStarted: false,
+    silentSmsSent: false,
   };
 
   const simpleModeStageToTemplateStage: Record<string, IntakeStage> = {
@@ -6179,6 +6183,160 @@ Reply to this message if you'd like to update or add any information.
     console.log('[SIMPLE MODE] =========================================');
   };
 
+  const clearSilentTimeout = () => {
+    if (state.silentTimeout) {
+      clearTimeout(state.silentTimeout);
+      state.silentTimeout = null;
+    }
+  };
+
+  const sendSimpleModeLivePrompt = (text: string) => {
+    if (!state.openAiWs || state.openAiWs.readyState !== WebSocket.OPEN) {
+      return false;
+    }
+
+    state.assistantSpeaking = true;
+    state.openAiWs.send(JSON.stringify({
+      type: 'response.create',
+      response: {
+        modalities: ['audio', 'text'],
+        instructions: text
+      }
+    }));
+    return true;
+  };
+
+  const sendSilentCallerSms = async () => {
+    if (state.silentSmsSent) {
+      console.log('[SIMPLE MODE] event: silent_sms_skipped');
+      return;
+    }
+
+    state.silentSmsSent = true;
+    console.log('[SIMPLE MODE] event: silent_sms_send_start');
+
+    try {
+      const { data: lead, error: leadError } = await supabase
+        .from('leads')
+        .upsert({
+          business_id: state.businessId,
+          caller_phone: state.callerPhone || '',
+          status: 'new',
+          raw_metadata: {
+            ai_intake_completed: false,
+            ai_intake_outcome: 'no_speech',
+          }
+        }, {
+          onConflict: 'business_id,caller_phone',
+        })
+        .select()
+        .single();
+
+      if (leadError || !lead) {
+        console.log('[SIMPLE MODE] event: silent_sms_skipped');
+        console.log('[SIMPLE MODE] reason:', leadError?.message || 'lead_not_created');
+        return;
+      }
+
+      const { data: conversation, error: conversationError } = await supabase
+        .from('conversations')
+        .insert({
+          lead_id: lead.id,
+          business_id: state.businessId,
+          status: 'active',
+        })
+        .select()
+        .single();
+
+      if (conversationError || !conversation) {
+        console.log('[SIMPLE MODE] event: silent_sms_skipped');
+        console.log('[SIMPLE MODE] reason:', conversationError?.message || 'conversation_not_created');
+        return;
+      }
+
+      const { error: recordError } = await supabase
+        .from('ai_call_records')
+        .insert({
+          lead_id: lead.id,
+          conversation_id: conversation.id,
+          business_id: state.businessId,
+          call_sid: state.callSid,
+          caller_phone: state.callerPhone,
+          transcript: state.transcript,
+          extracted_info: null,
+          summary: 'Silent caller: no meaningful speech captured.',
+          outcome: 'no_speech',
+          status: 'incomplete',
+        });
+
+      if (recordError) {
+        console.log('[SIMPLE MODE] event: silent_sms_skipped');
+        console.log('[SIMPLE MODE] reason:', recordError.message);
+        return;
+      }
+
+      await sendAIConfirmationSMS(
+        state.businessId,
+        lead.id,
+        conversation.id,
+        state.callSid || 'unknown',
+        state.callerPhone || 'unknown',
+        undefined
+      );
+
+      console.log('[SIMPLE MODE] event: silent_sms_sent');
+    } catch (error) {
+      console.log('[SIMPLE MODE] event: silent_sms_skipped');
+      console.log('[SIMPLE MODE] reason:', error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  const triggerSilentClose = async () => {
+    if (state.silentCloseStarted || state.stageCaptures.length > 0) {
+      return;
+    }
+
+    state.silentCloseStarted = true;
+    clearSilentTimeout();
+    console.log('[SIMPLE MODE] event: silent_close_triggered');
+
+    await sendSilentCallerSms();
+
+    const sent = sendSimpleModeLivePrompt("I'm sorry, I wasn't able to hear anything. We'll send you a text message so you can reply with what you need. Have a great day.");
+    if (!sent) {
+      ws.close();
+      if (state.openAiWs) {
+        state.openAiWs.close();
+      }
+    }
+  };
+
+  const startInitialSilentTimeout = () => {
+    if (state.currentStage !== 'ask_name_reason' || state.stageCaptures.length > 0 || state.silentCloseStarted) {
+      return;
+    }
+
+    clearSilentTimeout();
+    console.log('[SIMPLE MODE] event: silent_timeout_started');
+    state.silentTimeout = setTimeout(() => {
+      if (state.stageCaptures.length > 0 || state.silentCloseStarted) {
+        return;
+      }
+
+      if (!state.silentRepromptSent) {
+        state.silentRepromptSent = true;
+        console.log('[SIMPLE MODE] event: silent_reprompt_sent');
+        sendSimpleModeLivePrompt("Are you still there? If you can hear me, please let me know your name and what you're calling about.");
+        startInitialSilentTimeout();
+        return;
+      }
+
+      triggerSilentClose().catch(error => {
+        console.log('[SIMPLE MODE] Error triggering silent close:', error);
+      });
+    }, 15000);
+  };
+
   // Helper to send prompt using cached PCMU audio or Realtime response.create
   const sendPrompt = async (stage: string) => {
     const prompt = prompts[stage];
@@ -6245,7 +6403,12 @@ Reply to this message if you'd like to update or add any information.
         // Mark speaking as false after audio is sent
         setTimeout(() => {
           state.assistantSpeaking = false;
+          state.ttsCompleteTime = Date.now();
           logSimple('cached_prompt_complete', { stage });
+
+          if (stage === 'ask_name_reason') {
+            startInitialSilentTimeout();
+          }
 
           // Handle final complete stage close
           if (stage === 'complete') {
@@ -6550,6 +6713,16 @@ Reply to this message if you'd like to update or add any information.
             state.assistantSpeaking = false;
             state.ttsCompleteTime = Date.now();
 
+            if (state.silentCloseStarted) {
+              setTimeout(() => {
+                ws.close();
+                if (state.openAiWs) {
+                  state.openAiWs.close();
+                }
+              }, 1500);
+              return;
+            }
+
             // Process queued transcript if exists
             if (state.queuedTranscript) {
               console.log('[SIMPLE MODE] =========================================');
@@ -6558,12 +6731,20 @@ Reply to this message if you'd like to update or add any information.
               console.log('[SIMPLE MODE] queuedTranscript:', state.queuedTranscript);
               console.log('[SIMPLE MODE] =========================================');
 
+              const queuedTranscript = state.queuedTranscript.trim();
+              if (!queuedTranscript) {
+                state.queuedTranscript = null;
+                return;
+              }
+
               const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
               const currentIndex = stages.indexOf(state.currentStage);
               const isValidStage = currentIndex !== -1;
               const isFinalStage = currentIndex === stages.length - 1;
 
-              const fieldName = isValidStage ? storeStageCapture(state.currentStage, state.queuedTranscript, 'queued_after_assistant_response') : null;
+              clearSilentTimeout();
+
+              const fieldName = isValidStage ? storeStageCapture(state.currentStage, queuedTranscript, 'queued_after_assistant_response') : null;
               if (fieldName) {
                 console.log('[SIMPLE MODE] =========================================');
                 console.log('[SIMPLE MODE] event: queued_transcript_field_stored');
@@ -6653,11 +6834,15 @@ Reply to this message if you'd like to update or add any information.
             const isValidStage = currentIndex !== -1;
             const isFinalStage = currentIndex === stages.length - 1;
             const timeSinceTtsCompleteMs = state.ttsCompleteTime ? Date.now() - state.ttsCompleteTime : -1;
+            const meaningfulTranscript = transcript.trim();
 
-            let accepted = !state.assistantSpeaking && isValidStage;
+            let accepted = !state.assistantSpeaking && isValidStage && !!meaningfulTranscript;
             let ignoredReason = '';
 
-            if (state.assistantSpeaking) {
+            if (!meaningfulTranscript) {
+              accepted = false;
+              ignoredReason = 'no_meaningful_transcript';
+            } else if (state.assistantSpeaking) {
               // Queue transcript for processing after tts_complete
               state.queuedTranscript = transcript;
               accepted = false;
@@ -6679,9 +6864,13 @@ Reply to this message if you'd like to update or add any information.
 
             logSimple('user_transcription', { transcript: transcript.substring(0, 50), stage: state.currentStage });
 
-            const fieldName = accepted ? storeStageCapture(state.currentStage, transcript, 'openai_transcription_completed') : null;
+            if (accepted) {
+              clearSilentTimeout();
+            }
+
+            const fieldName = accepted ? storeStageCapture(state.currentStage, meaningfulTranscript, 'openai_transcription_completed') : null;
             if (fieldName && accepted) {
-              logSimple('intake_data_stored', { field: fieldName, value: transcript.substring(0, 50) });
+              logSimple('intake_data_stored', { field: fieldName, value: meaningfulTranscript.substring(0, 50) });
               
               // Log when final callback transcript is received
               if (state.currentStage === 'ask_callback_time') {
@@ -6812,6 +7001,7 @@ Reply to this message if you'd like to update or add any information.
   };
 
   ws.on('close', () => {
+    clearSilentTimeout();
     console.log('[SIMPLE MODE] WebSocket closed');
     if (state.openAiWs) state.openAiWs.close();
   });

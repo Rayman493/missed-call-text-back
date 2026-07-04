@@ -499,6 +499,9 @@ export async function POST(request: NextRequest) {
     let messageBody: string;
     let selectedTemplate: string;
     let selectionReason: string;
+    const outOfOfficeAppend = business.out_of_office_enabled && business.out_of_office_message?.trim()
+      ? `\n\n${business.out_of_office_message.trim().replace(/\{\{business_name\}\}/gi, businessName)}`
+      : '';
 
     const isFinalFallback = aiOutcome === 'ai_failed_voicemail' || aiOutcome === 'ai_failed_sms';
 
@@ -530,6 +533,10 @@ export async function POST(request: NextRequest) {
 
       const partialInfo = collectedParts.length > 0 ? `\n\nWe got: ${collectedParts.join('; ')}` : '';
       messageBody = `Hi, this is ${businessName}. We just missed your call.${partialInfo} Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`;
+    } else if (aiOutcome === 'no_speech') {
+      selectedTemplate = 'silent_caller';
+      selectionReason = 'no_speech';
+      messageBody = `Thanks for calling ${businessName}. We weren't able to hear you during your call. Reply to this text with what you need, and we'll make sure the business receives your message.${outOfOfficeAppend}`;
     } else if (isIncompleteOrEarlyHangup && !hasAnyIntakeInfo) {
       // Incomplete or early hangup with no information collected - use intake-oriented guided message
       selectedTemplate = 'early_hangup_no_info';
