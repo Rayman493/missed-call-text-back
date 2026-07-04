@@ -13,25 +13,27 @@ export default function Navigation() {
     return pathname === path || pathname?.startsWith(path + '/')
   }
 
-  // Show loading screen while auth is loading
+  // Show loading skeleton matching exact navigation dimensions to prevent layout shift
   if (loading) {
     return (
-      <div className="flex items-center gap-0.5">
-        <div className="h-9 w-20 bg-muted rounded-lg animate-pulse"></div>
-        <div className="h-9 w-16 bg-muted rounded-lg animate-pulse"></div>
-        <div className="h-9 w-20 bg-muted rounded-lg animate-pulse"></div>
-      </div>
+      <nav className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1 shadow-inner shadow-black/20">
+        <div className="h-9 w-20 bg-muted rounded-full animate-pulse"></div>
+        <div className="h-9 w-16 bg-muted rounded-full animate-pulse"></div>
+        <div className="h-9 w-20 bg-muted rounded-full animate-pulse"></div>
+        <div className="h-9 w-20 bg-muted rounded-full animate-pulse"></div>
+      </nav>
     )
   }
 
-  // Don't show navigation for logged-out users, but render invisible placeholders to prevent layout shift
+  // Don't show navigation for logged-out users, but render invisible placeholders matching exact dimensions to prevent layout shift
   if (!user) {
     return (
-      <div className="flex items-center gap-0.5 opacity-0">
+      <nav className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1 shadow-inner shadow-black/20 opacity-0">
         <div className="h-9 w-20"></div>
         <div className="h-9 w-16"></div>
         <div className="h-9 w-20"></div>
-      </div>
+        <div className="h-9 w-20"></div>
+      </nav>
     )
   }
 
