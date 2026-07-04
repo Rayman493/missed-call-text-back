@@ -6241,14 +6241,16 @@ Reply to this message if you'd like to update or add any information.
     const payload = {
       type: 'response.create',
       response: {
-        instructions: text
+        instructions: isSilentReprompt || isSilentClose
+          ? `Speak ONLY this exact text: "${text}". Do not add any words. Do not identify yourself. Do not say your name. Do not add filler. Do not paraphrase. Speak exactly as written.`
+          : text
       }
     };
 
     if (isSilentReprompt) {
-      console.log('[SILENCE REPROMPT PAYLOAD VALID]');
+      console.log('[SILENCE REPROMPT SENT]');
     } else if (isSilentClose) {
-      console.log('[SILENCE FINAL CLOSE PAYLOAD VALID]');
+      console.log('[SILENCE FINAL CLOSE]');
     }
 
     state.openAiWs.send(JSON.stringify(payload));
@@ -6257,7 +6259,7 @@ Reply to this message if you'd like to update or add any information.
 
   const sendSilentCallerSms = async () => {
     if (state.silentSmsSent) {
-      console.log('[SIMPLE MODE] event: silent_sms_skipped');
+      console.log('[SILENT SMS FAILED] reason: duplicate_protection');
       return;
     }
 
@@ -6282,8 +6284,7 @@ Reply to this message if you'd like to update or add any information.
         .single();
 
       if (leadError || !lead) {
-        console.log('[SIMPLE MODE] event: silent_sms_skipped');
-        console.log('[SIMPLE MODE] reason:', leadError?.message || 'lead_not_created');
+        console.log('[SILENT SMS FAILED] reason: lead_creation_failed -', leadError?.message || 'lead_not_created');
         return;
       }
 
@@ -6298,8 +6299,7 @@ Reply to this message if you'd like to update or add any information.
         .single();
 
       if (conversationError || !conversation) {
-        console.log('[SIMPLE MODE] event: silent_sms_skipped');
-        console.log('[SIMPLE MODE] reason:', conversationError?.message || 'conversation_not_created');
+        console.log('[SILENT SMS FAILED] reason: conversation_creation_failed -', conversationError?.message || 'conversation_not_created');
         return;
       }
 
@@ -6319,8 +6319,7 @@ Reply to this message if you'd like to update or add any information.
         });
 
       if (recordError) {
-        console.log('[SIMPLE MODE] event: silent_sms_skipped');
-        console.log('[SIMPLE MODE] reason:', recordError.message);
+        console.log('[SILENT SMS FAILED] reason: ai_call_record_insertion_failed -', recordError.message);
         return;
       }
 
@@ -6336,8 +6335,7 @@ Reply to this message if you'd like to update or add any information.
       console.log('[SILENT SMS SENT]');
       console.log('[SIMPLE MODE] event: silent_sms_sent');
     } catch (error) {
-      console.log('[SIMPLE MODE] event: silent_sms_skipped');
-      console.log('[SIMPLE MODE] reason:', error instanceof Error ? error.message : String(error));
+      console.log('[SILENT SMS FAILED] reason: exception -', error instanceof Error ? error.message : String(error));
     }
   };
 
@@ -6358,6 +6356,16 @@ Reply to this message if you'd like to update or add any information.
       if (state.openAiWs) {
         state.openAiWs.close();
       }
+    } else {
+      // Wait for audio to complete before disconnecting (similar to normal final goodbye)
+      setTimeout(() => {
+        console.log('[SILENCE AUDIO COMPLETE]');
+        state.assistantSpeaking = false;
+        ws.close();
+        if (state.openAiWs) {
+          state.openAiWs.close();
+        }
+      }, 4000); // Wait 4 seconds for silent close message to complete
     }
   };
 
