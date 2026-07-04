@@ -455,20 +455,21 @@ export class TwilioStreamHandler {
         (this as any)[chunkKey].firstSentAt = Date.now();
       }
       
-      // Log streamSid and ws readyState for debugging
-      console.log('[SEND AUDIO INTERNAL DEBUG] =========================================');
-      console.log('[SEND AUDIO INTERNAL DEBUG] streamSid:', this.streamSid);
-      console.log('[SEND AUDIO INTERNAL DEBUG] ws readyState:', this.ws.readyState);
-      console.log('[SEND AUDIO INTERNAL DEBUG] ws readyState value:', this.ws.readyState === WebSocket.OPEN ? 'OPEN' : 'NOT OPEN');
-      console.log('[SEND AUDIO INTERNAL DEBUG] responseId:', responseId);
-      console.log('[SEND AUDIO INTERNAL DEBUG] chunkSent:', (this as any)[chunkKey].sent);
-      console.log('[SEND AUDIO INTERNAL DEBUG] chunkReceived:', (this as any)[chunkKey].received);
-      console.log('[SEND AUDIO INTERNAL DEBUG] isFirstChunkSent:', isFirstChunkSent);
-      console.log('[SEND AUDIO INTERNAL DEBUG] Reading assistantSpeaking from callSessionState:', (this as any).callSessionState?.assistantSpeaking);
-      console.log('[SEND AUDIO INTERNAL DEBUG] Reading assistantSpeaking from local variable:', assistantSpeaking);
-      console.log('[SEND AUDIO INTERNAL DEBUG] callSessionState exists:', !!(this as any).callSessionState);
-      console.log('[SEND AUDIO INTERNAL DEBUG] Timestamp:', new Date().toISOString());
-      console.log('[SEND AUDIO INTERNAL DEBUG] =========================================');
+      if (process.env.DEBUG_AI_VOICE === 'true') {
+        console.log('[SEND AUDIO INTERNAL DEBUG] =========================================');
+        console.log('[SEND AUDIO INTERNAL DEBUG] streamSid:', this.streamSid);
+        console.log('[SEND AUDIO INTERNAL DEBUG] ws readyState:', this.ws.readyState);
+        console.log('[SEND AUDIO INTERNAL DEBUG] ws readyState value:', this.ws.readyState === WebSocket.OPEN ? 'OPEN' : 'NOT OPEN');
+        console.log('[SEND AUDIO INTERNAL DEBUG] responseId:', responseId);
+        console.log('[SEND AUDIO INTERNAL DEBUG] chunkSent:', (this as any)[chunkKey].sent);
+        console.log('[SEND AUDIO INTERNAL DEBUG] chunkReceived:', (this as any)[chunkKey].received);
+        console.log('[SEND AUDIO INTERNAL DEBUG] isFirstChunkSent:', isFirstChunkSent);
+        console.log('[SEND AUDIO INTERNAL DEBUG] Reading assistantSpeaking from callSessionState:', (this as any).callSessionState?.assistantSpeaking);
+        console.log('[SEND AUDIO INTERNAL DEBUG] Reading assistantSpeaking from local variable:', assistantSpeaking);
+        console.log('[SEND AUDIO INTERNAL DEBUG] callSessionState exists:', !!(this as any).callSessionState);
+        console.log('[SEND AUDIO INTERNAL DEBUG] Timestamp:', new Date().toISOString());
+        console.log('[SEND AUDIO INTERNAL DEBUG] =========================================');
+      }
       
       // Log when final goodbye audio is sent to Twilio
       if (finalClosingStarted) {
@@ -478,25 +479,25 @@ export class TwilioStreamHandler {
         console.log('[FINAL GOODBYE AUDIO SENT] audioLength:', audioData.length);
       }
 
-      // Comprehensive AUDIO TO TWILIO log before every media send
-      const authorized = !!this.responseAuthorized;
-      const source = (this as any)._lastAudioSource || 'sendAudioInternal';
-      const route = (this as any).responseAuthorized ? 'buffered' : 'direct';
-      console.log('[AUDIO TO TWILIO]');
-      console.log('[AUDIO TO TWILIO] responseId:', responseId);
-      console.log('[AUDIO TO TWILIO] authorized:', authorized);
-      console.log('[AUDIO TO TWILIO] source:', source);
-      console.log('[AUDIO TO TWILIO] route:', route);
+      if (process.env.DEBUG_AI_VOICE === 'true') {
+        const authorized = !!this.responseAuthorized;
+        const source = (this as any)._lastAudioSource || 'sendAudioInternal';
+        const route = (this as any).responseAuthorized ? 'buffered' : 'direct';
+        console.log('[AUDIO TO TWILIO]');
+        console.log('[AUDIO TO TWILIO] responseId:', responseId);
+        console.log('[AUDIO TO TWILIO] authorized:', authorized);
+        console.log('[AUDIO TO TWILIO] source:', source);
+        console.log('[AUDIO TO TWILIO] route:', route);
 
-      // Log first prompt media sent to Twilio for debugging
-      if (currentStage === 'ask_name_reason') {
-        console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] =========================================');
-        console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] Stage:', currentStage);
-        console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] streamSid:', this.streamSid);
-        console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] ws readyState:', this.ws.readyState);
-        console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] audioLength:', audioData.length);
-        console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] Timestamp:', new Date().toISOString());
-        console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] =========================================');
+        if (currentStage === 'ask_name_reason') {
+          console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] =========================================');
+          console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] Stage:', currentStage);
+          console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] streamSid:', this.streamSid);
+          console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] ws readyState:', this.ws.readyState);
+          console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] audioLength:', audioData.length);
+          console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] Timestamp:', new Date().toISOString());
+          console.log('[FIRST PROMPT MEDIA SENT TO TWILIO] =========================================');
+        }
       }
 
       // Increment flush counter for direct sends (buffered flushes are counted in authorizeResponse)

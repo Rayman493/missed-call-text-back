@@ -69,18 +69,8 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
 }
 
 // Version log - guaranteed to appear on startup
-console.log('[AUDIO TRACE BUILD VERSION] caller-audio-debug-v1');
-console.log('[AI CONFIRMATION TEMPLATE VERSION] confirmation-v3-your-name-is');
 console.log('[AI VOICE STARTUP] Service initializing');
 console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
-console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] =========================================');
-console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] All assistantSpeaking writes are instrumented');
-console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] Timestamp:', new Date().toISOString());
-console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] =========================================');
-console.log('[OPENING ORDER TRACE BUILD ACTIVE] =========================================');
-console.log('[OPENING ORDER TRACE BUILD ACTIVE] Order trace logging is active');
-console.log('[OPENING ORDER TRACE BUILD ACTIVE] Timestamp:', new Date().toISOString());
-console.log('[OPENING ORDER TRACE BUILD ACTIVE] =========================================');
 
 // VERSION PROOF STARTUP LOGS
 console.log('====================================================================================================');
@@ -4663,13 +4653,13 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Create HTTP server for health checks
 const server = createServer(async (req, res) => {
-  // Log ALL incoming HTTP requests
-  console.log('[HTTP REQUEST]', {
-    method: req.method,
-    url: req.url,
-    timestamp: new Date().toISOString(),
-    headers: JSON.stringify(req.headers)
-  });
+  if (req.url !== '/health') {
+    console.log('[HTTP REQUEST]', {
+      method: req.method,
+      url: req.url,
+      timestamp: new Date().toISOString()
+    });
+  }
   
   // Health check endpoint
   if (req.url === '/health') {
@@ -6467,8 +6457,10 @@ Reply to this message if you'd like to update or add any information.
         state.openAiWs.on('message', (data) => {
           const message = JSON.parse(data.toString());
 
-          console.log('[OPENAI RAW EVENT]', message.type, JSON.stringify(message));
-          console.log('[OPENAI TIMING]', Date.now(), 'incoming_event', message.type);
+          if (process.env.DEBUG_AI_VOICE === 'true') {
+            console.log('[OPENAI RAW EVENT]', message.type, JSON.stringify(message));
+            console.log('[OPENAI TIMING]', Date.now(), 'incoming_event', message.type);
+          }
 
           // Log session lifecycle events
           if (message.type === 'session.created') {
