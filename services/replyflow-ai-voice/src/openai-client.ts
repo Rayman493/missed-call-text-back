@@ -8,6 +8,7 @@
 import WebSocket from 'ws';
 import { log, LogLevel } from './logger';
 import { OPENAI_REALTIME_MODEL, createOpenAIRealtimeUrl } from './realtime-model';
+import { AI_VOICE_OUTPUT_VOICE } from './voice-config';
 
 // Log ws package version
 console.log('[OPENAI] ws package version:', require('ws/package.json').version);
@@ -55,7 +56,7 @@ export class OpenAIRealtimeClient {
   constructor(config: OpenAIConfig) {
     this.config = {
       model: config.model || 'gpt-4o',
-      voice: config.voice || 'sage',
+      voice: config.voice || AI_VOICE_OUTPUT_VOICE,
       ...config,
     };
   }

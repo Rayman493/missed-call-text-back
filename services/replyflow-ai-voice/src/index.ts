@@ -14,8 +14,8 @@
  */
 
 // VERSION PROOF CONSTANTS - Hardcoded to prove deployment
-const AI_VOICE_DEPLOY_VERSION = "early-chunk-buffering-v2";
-const AI_VOICE_EXPECTED_COMMIT = "d0290af0";
+const AI_VOICE_DEPLOY_VERSION = "voice-output-sage-v2";
+const AI_VOICE_EXPECTED_COMMIT = process.env.FLY_IMAGE_REF || process.env.FLY_ALLOC_ID || "local";
 const AI_VOICE_BUILD_TIMESTAMP = new Date().toISOString();
 const AI_VOICE_DEPLOY_ENV = process.env.NODE_ENV || "unknown";
 
@@ -39,6 +39,7 @@ import {
 import { testFallbacks, warnIfTestFallbacksActive } from './test-fallbacks';
 import { OPENAI_REALTIME_MODEL, createOpenAIRealtimeUrl } from './realtime-model';
 import { applyPcmuOutputHeadroom } from './audio-quality';
+import { AI_VOICE_OUTPUT_VOICE } from './voice-config';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -73,6 +74,7 @@ console.log('[AUDIO TRACE BUILD VERSION] caller-audio-debug-v1');
 console.log('[AI CONFIRMATION TEMPLATE VERSION] confirmation-v3-your-name-is');
 console.log('[AI VOICE STARTUP] Service initializing');
 console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
+console.log(`[AI VOICE CONFIG] voice=${AI_VOICE_OUTPUT_VOICE}`);
 console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] =========================================');
 console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] All assistantSpeaking writes are instrumented');
 console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] Timestamp:', new Date().toISOString());
@@ -403,7 +405,6 @@ const OPENAI_FINAL_EMERGENCY_FALLBACK_MS = 5000; // 5 seconds before falling bac
 
 const PORT = process.env.PORT || 8080;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const AI_VOICE = process.env.AI_VOICE || 'alloy'; // Configurable voice: alloy, verse, cedar, marin
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -6432,7 +6433,7 @@ Reply to this message if you'd like to update or add any information.
                   format: {
                     type: "audio/pcmu"
                   },
-                  voice: AI_VOICE
+                  voice: AI_VOICE_OUTPUT_VOICE
                 }
               }
             }
@@ -9230,7 +9231,7 @@ Return only JSON, no other text.`;
                       format: {
                         type: "audio/pcmu"
                       },
-                      voice: AI_VOICE
+                      voice: AI_VOICE_OUTPUT_VOICE
                     }
                   },
                   instructions: `You are an extraction-only AI assistant for missed call intake.
@@ -10946,7 +10947,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   returned: message.session?.instructions
                 });
                 console.log('[SESSION COMPARE] voice:', {
-                  outbound: AI_VOICE,
+                  outbound: AI_VOICE_OUTPUT_VOICE,
                   returned: message.session?.voice
                 });
                 console.log('[SESSION COMPARE] audio format:', {
@@ -13770,11 +13771,11 @@ server.listen(PORT, () => {
   console.log('[RUNTIME VERSION CHECK] - ASSISTANT SPEAKING TRUE/FALSE');
   console.log('[RUNTIME VERSION CHECK] Timestamp:', AI_VOICE_BUILD_TIMESTAMP);
   console.log('[RUNTIME VERSION CHECK] =========================================');
-  console.log('[AI VOICE SERVICE VERSION] commit=mark-based-hangup-v1 deterministic-closing');
+  console.log('[AI VOICE SERVICE VERSION] feature=voice-output-sage-v2');
   console.log('[SCHEMA COMPATIBILITY CHECK] conversations table columns: lead_id, business_id, status, created_at, updated_at (NO call_sid)');
   console.log('[SCHEMA COMPATIBILITY CHECK] leads table columns: id, business_id, phone, caller_phone, name, email, source, status, raw_metadata, created_at, updated_at (AI service writes only business_id, caller_phone, status, source, raw_metadata)');
   console.log('[SCHEMA COMPATIBILITY CHECK] ai_call_records table columns: id, business_id, lead_id, conversation_id, caller_phone, call_sid, ai_session_id, transcript, outcome, extracted_info, summary, extraction_failed, created_at, updated_at');
-  console.log('[AI VOICE SERVICE VERSION] commit=473dfc1 language-lock-enabled=true');
+  console.log(`[AI VOICE CONFIG] voice=${AI_VOICE_OUTPUT_VOICE}`);
   console.log('[AI VOICE SERVICE VERSION] Mark-based hangup: uses Twilio marks to track audio playback completion');
   console.log('[AI VOICE SERVICE VERSION] Hangup now waits for final-goodbye-complete mark + 2s buffer');
   console.log('[AI VOICE SERVICE VERSION] Fallback timeout: 10s if mark never received');
