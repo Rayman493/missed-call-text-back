@@ -6225,7 +6225,8 @@ Reply to this message if you'd like to update or add any information.
 
         for (let i = 0; i < audioBuffer.length; i += chunkSize) {
           const rawChunk = audioBuffer.slice(i, i + chunkSize);
-          const base64Chunk = rawChunk.toString('base64');
+          const adjustedChunk = applyPcmuOutputHeadroom(rawChunk);
+          const base64Chunk = adjustedChunk.toString('base64');
           const mediaMessage = {
             event: 'media',
             streamSid: state.streamSid,

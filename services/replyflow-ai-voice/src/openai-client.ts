@@ -55,7 +55,7 @@ export class OpenAIRealtimeClient {
   constructor(config: OpenAIConfig) {
     this.config = {
       model: config.model || 'gpt-4o',
-      voice: config.voice || 'alloy',
+      voice: config.voice || 'sage',
       ...config,
     };
   }
@@ -167,7 +167,7 @@ export class OpenAIRealtimeClient {
             type: 'response.create',
             response: {
               modalities: ['audio', 'text'],
-              instructions: 'Say exactly: Hello from ReplyFlow. Always respond in English only.',
+              instructions: 'Say exactly: Hello from ReplyFlow. Always respond in English only. Speak calmly and conversationally, without exaggerated pronunciation or dramatic inflection.',
             },
           };
           console.log('[AI RESPONSE LANGUAGE LOCK SENT] english - test message');
@@ -296,7 +296,7 @@ export class OpenAIRealtimeClient {
       type: 'session.update',
       session: {
         type: 'realtime',
-        instructions: 'You are ReplyFlow\'s phone assistant. You must speak only English. Always respond in clear American English. Never speak Spanish, French, or any other language. If audio is unclear, silence, background noise, or the caller speaks another language, still respond in English only.',
+        instructions: 'You are ReplyFlow\'s phone assistant. You must speak only English. Always respond in clear American English. Never speak Spanish, French, or any other language. If audio is unclear, silence, background noise, or the caller speaks another language, still respond in English only. Voice delivery: speak calmly and conversationally, with natural pacing, no exaggerated pronunciation, no over-emphasis on S, SH, or F consonants, and no dramatic inflection.',
         audio: {
           input: {
             format: {
@@ -368,7 +368,7 @@ export class OpenAIRealtimeClient {
       const createResponse = {
         type: 'response.create',
         response: {
-          instructions: 'Always respond in English only.',
+          instructions: 'Always respond in English only. Speak calmly and conversationally, without exaggerated pronunciation, over-emphasized consonants, or dramatic inflection.',
         },
       };
       console.log('[AI RESPONSE LANGUAGE LOCK SENT] english - greeting');
