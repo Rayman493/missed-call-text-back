@@ -6224,10 +6224,11 @@ Reply to this message if you'd like to update or add any information.
     console.log('[SIMPLE MODE] =========================================');
   };
 
-  const clearSilentTimeout = () => {
+  const clearSilentTimeout = (reason: string) => {
     if (state.silentTimeout) {
       clearTimeout(state.silentTimeout);
       state.silentTimeout = null;
+      console.log('[SILENCE TIMER CANCELLED] reason:', reason);
     }
   };
 
@@ -6325,6 +6326,7 @@ Reply to this message if you'd like to update or add any information.
         undefined
       );
 
+      console.log('[SILENT SMS SENT]');
       console.log('[SIMPLE MODE] event: silent_sms_sent');
     } catch (error) {
       console.log('[SIMPLE MODE] event: silent_sms_skipped');
@@ -6338,7 +6340,7 @@ Reply to this message if you'd like to update or add any information.
     }
 
     state.silentCloseStarted = true;
-    clearSilentTimeout();
+    clearSilentTimeout('silent_close_triggered');
     console.log('[SIMPLE MODE] event: silent_close_triggered');
 
     await sendSilentCallerSms();
@@ -6357,21 +6359,26 @@ Reply to this message if you'd like to update or add any information.
       return;
     }
 
-    clearSilentTimeout();
+    clearSilentTimeout('starting_new_silence_timer');
+    console.log('[SILENCE TIMER STARTED]');
     console.log('[SIMPLE MODE] event: silent_timeout_started');
     state.silentTimeout = setTimeout(() => {
+      console.log('[SILENCE TIMER FIRED]');
       if (state.stageCaptures.length > 0 || state.silentCloseStarted) {
+        console.log('[SILENCE REPROMPT SKIPPED] reason:', state.stageCaptures.length > 0 ? 'user_spoke' : 'silent_close_already_started');
         return;
       }
 
       if (!state.silentRepromptSent) {
         state.silentRepromptSent = true;
+        console.log('[SILENCE REPROMPT SENT]');
         console.log('[SIMPLE MODE] event: silent_reprompt_sent');
         sendSimpleModeLivePrompt("Are you still there? If you can hear me, please let me know your name and what you're calling about.");
         startInitialSilentTimeout();
         return;
       }
 
+      console.log('[SILENCE FINAL CLOSE]');
       triggerSilentClose().catch(error => {
         console.log('[SIMPLE MODE] Error triggering silent close:', error);
       });
@@ -6842,9 +6849,10 @@ Reply to this message if you'd like to update or add any information.
               const isValidStage = currentIndex !== -1;
               const isFinalStage = currentIndex === stages.length - 1;
 
-              clearSilentTimeout();
-
               const fieldName = isValidStage ? storeStageCapture(state.currentStage, queuedTranscript, 'queued_after_assistant_response') : null;
+              if (fieldName) {
+                clearSilentTimeout('valid_transcript_received');
+              }
               if (fieldName) {
                 console.log('[SIMPLE MODE] =========================================');
                 console.log('[SIMPLE MODE] event: queued_transcript_field_stored');
@@ -6964,8 +6972,12 @@ Reply to this message if you'd like to update or add any information.
 
             logSimple('user_transcription', { transcript: transcript.substring(0, 50), stage: state.currentStage });
 
+            const fieldName = accepted ? storeStageCapture(state.currentStage, meaningfulTranscript, 'openai_transcription_completed') : null;
+            if (fieldName) {
+              clearSilentTimeout('valid_transcript_accepted');
+            }
+
             if (accepted) {
-              clearSilentTimeout();
               if (state.cachedPlaybackInterrupted) {
                 console.log('[SIMPLE MODE] =========================================');
                 console.log('[SIMPLE MODE] event: answer_accepted_after_interruption');
@@ -6973,8 +6985,6 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[SIMPLE MODE] =========================================');
               }
             }
-
-            const fieldName = accepted ? storeStageCapture(state.currentStage, meaningfulTranscript, 'openai_transcription_completed') : null;
             if (fieldName && accepted) {
               logSimple('intake_data_stored', { field: fieldName, value: meaningfulTranscript.substring(0, 50) });
               
@@ -7129,7 +7139,7 @@ Reply to this message if you'd like to update or add any information.
   };
 
   ws.on('close', () => {
-    clearSilentTimeout();
+    clearSilentTimeout('websocket_closed');
     console.log('[SIMPLE MODE] WebSocket closed');
     if (state.openAiWs) state.openAiWs.close();
   });
