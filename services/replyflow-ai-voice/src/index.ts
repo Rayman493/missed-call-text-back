@@ -6232,19 +6232,26 @@ Reply to this message if you'd like to update or add any information.
     }
   };
 
-  const sendSimpleModeLivePrompt = (text: string) => {
+  const sendSimpleModeLivePrompt = (text: string, isSilentReprompt: boolean = false, isSilentClose: boolean = false) => {
     if (!state.openAiWs || state.openAiWs.readyState !== WebSocket.OPEN) {
       return false;
     }
 
     state.assistantSpeaking = true;
-    state.openAiWs.send(JSON.stringify({
+    const payload = {
       type: 'response.create',
       response: {
-        modalities: ['audio', 'text'],
         instructions: text
       }
-    }));
+    };
+
+    if (isSilentReprompt) {
+      console.log('[SILENCE REPROMPT PAYLOAD VALID]');
+    } else if (isSilentClose) {
+      console.log('[SILENCE FINAL CLOSE PAYLOAD VALID]');
+    }
+
+    state.openAiWs.send(JSON.stringify(payload));
     return true;
   };
 
@@ -6345,7 +6352,7 @@ Reply to this message if you'd like to update or add any information.
 
     await sendSilentCallerSms();
 
-    const sent = sendSimpleModeLivePrompt("I'm sorry, I wasn't able to hear anything. We'll send you a text message so you can reply with what you need. Have a great day.");
+    const sent = sendSimpleModeLivePrompt("I'm sorry, I wasn't able to hear anything. We'll send you a text message so you can reply with what you need. Have a great day.", false, true);
     if (!sent) {
       ws.close();
       if (state.openAiWs) {
@@ -6373,7 +6380,7 @@ Reply to this message if you'd like to update or add any information.
         state.silentRepromptSent = true;
         console.log('[SILENCE REPROMPT SENT]');
         console.log('[SIMPLE MODE] event: silent_reprompt_sent');
-        sendSimpleModeLivePrompt("Are you still there? If you can hear me, please let me know your name and what you're calling about.");
+        sendSimpleModeLivePrompt("Are you still there? If you can hear me, please let me know your name and what you're calling about.", true, false);
         startInitialSilentTimeout();
         return;
       }
