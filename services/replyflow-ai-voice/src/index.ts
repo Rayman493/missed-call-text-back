@@ -27,7 +27,7 @@ import { OpenAIRealtimeClient } from './openai-client';
 import { TwilioStreamHandler } from './twilio-stream';
 import { createClient } from '@supabase/supabase-js';
 import audioDecode from 'audio-decode';
-import { cachedPromptAudio } from './cached-audio';
+import { cachedPromptAudioByVoice } from './cached-audio';
 import {
   IntakeTemplate,
   AI_INTAKE_TEMPLATES,
@@ -6206,14 +6206,16 @@ Reply to this message if you'd like to update or add any information.
 
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
-    const cachedAudio = cachedPromptAudio[stage];
+    const cacheKey = `${stage}:${AI_VOICE_OUTPUT_VOICE}`;
+    const cachedAudio = cachedPromptAudioByVoice[AI_VOICE_OUTPUT_VOICE as keyof typeof cachedPromptAudioByVoice]?.[stage as keyof typeof cachedPromptAudioByVoice[keyof typeof cachedPromptAudioByVoice]];
+    console.log(`[CACHED PROMPT AUDIO] voice=${AI_VOICE_OUTPUT_VOICE} cacheKey=${cacheKey}`);
 
     if (cachedAudio) {
       // Use cached PCMU audio
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: cached_prompt_audio_found');
       console.log('[SIMPLE MODE] sourceOfSpeech:', 'cached_pcmu_prompt');
-      console.log('[SIMPLE MODE] cached_prompt_key:', stage);
+      console.log('[SIMPLE MODE] cached_prompt_key:', cacheKey);
       console.log('[SIMPLE MODE] cached_prompt_audio_found:', true);
       console.log('[SIMPLE MODE] response_create_live_prompt_disabled:', true);
       console.log('[SIMPLE MODE] =========================================');
@@ -6243,7 +6245,7 @@ Reply to this message if you'd like to update or add any information.
 
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: cached_prompt_audio_sent');
-        console.log('[SIMPLE MODE] cached_prompt_key:', stage);
+        console.log('[SIMPLE MODE] cached_prompt_key:', cacheKey);
         console.log('[SIMPLE MODE] chunk_count:', totalChunks);
         console.log('[SIMPLE MODE] =========================================');
 
@@ -6274,15 +6276,26 @@ Reply to this message if you'd like to update or add any information.
       }
 
     } else {
-      // Cached audio missing - fail loudly
       console.log('[SIMPLE MODE] =========================================');
-      console.log('[SIMPLE MODE] ERROR: Cached prompt audio is required but missing!');
-      console.log('[SIMPLE MODE] ERROR: cached_prompt_key:', stage);
-      console.log('[SIMPLE MODE] ERROR: Please populate cachedPromptAudio with base64 PCMU audio');
-      console.log('[SIMPLE MODE] ERROR: Run: npx ts-node scripts/generate-cached-audio.ts');
+      console.log('[SIMPLE MODE] event: cached_prompt_audio_missing_for_voice');
+      console.log('[SIMPLE MODE] sourceOfSpeech:', 'openai_realtime_prompt');
+      console.log('[SIMPLE MODE] cached_prompt_key:', cacheKey);
+      console.log('[SIMPLE MODE] response_create_live_prompt_enabled:', true);
       console.log('[SIMPLE MODE] =========================================');
-      state.assistantSpeaking = false;
-      return;
+
+      if (!state.openAiWs || state.openAiWs.readyState !== WebSocket.OPEN) {
+        console.log('[SIMPLE MODE] ERROR: OpenAI websocket unavailable for live prompt audio');
+        state.assistantSpeaking = false;
+        return;
+      }
+
+      state.openAiWs.send(JSON.stringify({
+        type: 'response.create',
+        response: {
+          modalities: ['audio', 'text'],
+          instructions: `Say exactly: ${prompt}`
+        }
+      }));
     }
   };
 
