@@ -14,7 +14,7 @@
  */
 
 // VERSION PROOF CONSTANTS - Hardcoded to prove deployment
-const AI_VOICE_DEPLOY_VERSION = "voice-output-sage-v2";
+const AI_VOICE_DEPLOY_VERSION = "stable-cached-prompts-alloy-v1";
 const AI_VOICE_EXPECTED_COMMIT = process.env.FLY_IMAGE_REF || process.env.FLY_ALLOC_ID || "local";
 const AI_VOICE_BUILD_TIMESTAMP = new Date().toISOString();
 const AI_VOICE_DEPLOY_ENV = process.env.NODE_ENV || "unknown";
@@ -27,7 +27,7 @@ import { OpenAIRealtimeClient } from './openai-client';
 import { TwilioStreamHandler } from './twilio-stream';
 import { createClient } from '@supabase/supabase-js';
 import audioDecode from 'audio-decode';
-import { cachedPromptAudioByVoice } from './cached-audio';
+import { cachedPromptAudio } from './cached-audio';
 import {
   IntakeTemplate,
   AI_INTAKE_TEMPLATES,
@@ -39,7 +39,6 @@ import {
 import { testFallbacks, warnIfTestFallbacksActive } from './test-fallbacks';
 import { OPENAI_REALTIME_MODEL, createOpenAIRealtimeUrl } from './realtime-model';
 import { applyPcmuOutputHeadroom } from './audio-quality';
-import { AI_VOICE_OUTPUT_VOICE } from './voice-config';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -74,7 +73,6 @@ console.log('[AUDIO TRACE BUILD VERSION] caller-audio-debug-v1');
 console.log('[AI CONFIRMATION TEMPLATE VERSION] confirmation-v3-your-name-is');
 console.log('[AI VOICE STARTUP] Service initializing');
 console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
-console.log(`[AI VOICE CONFIG] voice=${AI_VOICE_OUTPUT_VOICE}`);
 console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] =========================================');
 console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] All assistantSpeaking writes are instrumented');
 console.log('[ASSISTANT SPEAKING WRITE LOGGING ACTIVE] Timestamp:', new Date().toISOString());
@@ -405,6 +403,7 @@ const OPENAI_FINAL_EMERGENCY_FALLBACK_MS = 5000; // 5 seconds before falling bac
 
 const PORT = process.env.PORT || 8080;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const AI_VOICE = process.env.AI_VOICE || 'alloy';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -5476,14 +5475,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     };
     ws.send(JSON.stringify(mediaMessage));
     const sendLatencyMs = Date.now() - sendStart;
-    console.log('[OPENAI AUDIO SENT TO TWILIO]', {
-      reason,
-      bytes: adjustedAudio.length,
-      chunks: state.audioChunkCount,
-      flushCount: state.audioFlushCount,
-      sendLatencyMs,
-      streamSid
-    });
 
     if (DEBUG_AUDIO) {
       console.log('[AUDIO FLUSH]', {
@@ -6214,16 +6205,14 @@ Reply to this message if you'd like to update or add any information.
 
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
-    const cacheKey = `${stage}:${AI_VOICE_OUTPUT_VOICE}`;
-    const cachedAudio = cachedPromptAudioByVoice[AI_VOICE_OUTPUT_VOICE as keyof typeof cachedPromptAudioByVoice]?.[stage as keyof typeof cachedPromptAudioByVoice[keyof typeof cachedPromptAudioByVoice]];
-    console.log(`[CACHED PROMPT AUDIO] voice=${AI_VOICE_OUTPUT_VOICE} cacheKey=${cacheKey}`);
+    const cachedAudio = cachedPromptAudio[stage as keyof typeof cachedPromptAudio];
 
     if (cachedAudio) {
       // Use cached PCMU audio
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: cached_prompt_audio_found');
       console.log('[SIMPLE MODE] sourceOfSpeech:', 'cached_pcmu_prompt');
-      console.log('[SIMPLE MODE] cached_prompt_key:', cacheKey);
+      console.log('[SIMPLE MODE] cached_prompt_key:', stage);
       console.log('[SIMPLE MODE] cached_prompt_audio_found:', true);
       console.log('[SIMPLE MODE] response_create_live_prompt_disabled:', true);
       console.log('[SIMPLE MODE] =========================================');
@@ -6253,7 +6242,7 @@ Reply to this message if you'd like to update or add any information.
 
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: cached_prompt_audio_sent');
-        console.log('[SIMPLE MODE] cached_prompt_key:', cacheKey);
+        console.log('[SIMPLE MODE] cached_prompt_key:', stage);
         console.log('[SIMPLE MODE] chunk_count:', totalChunks);
         console.log('[SIMPLE MODE] =========================================');
 
@@ -6285,26 +6274,13 @@ Reply to this message if you'd like to update or add any information.
 
     } else {
       console.log('[SIMPLE MODE] =========================================');
-      console.log('[SIMPLE MODE] event: cached_prompt_audio_missing_for_voice');
-      console.log('[SIMPLE MODE] sourceOfSpeech:', 'openai_realtime_prompt');
-      console.log('[SIMPLE MODE] cached_prompt_key:', cacheKey);
-      console.log('[SIMPLE MODE] response_create_live_prompt_enabled:', true);
+      console.log('[SIMPLE MODE] ERROR: Cached prompt audio is required but missing!');
+      console.log('[SIMPLE MODE] ERROR: cached_prompt_key:', stage);
+      console.log('[SIMPLE MODE] ERROR: Please populate cachedPromptAudio with base64 PCMU audio');
+      console.log('[SIMPLE MODE] ERROR: Run: npx ts-node scripts/generate-cached-audio.ts');
       console.log('[SIMPLE MODE] =========================================');
-
-      if (!state.openAiWs || state.openAiWs.readyState !== WebSocket.OPEN) {
-        console.log('[SIMPLE MODE] ERROR: OpenAI websocket unavailable for live prompt audio');
-        state.assistantSpeaking = false;
-        return;
-      }
-
-      const responseCreatePayload = {
-        type: 'response.create',
-        response: {
-          instructions: `Say exactly: ${prompt}`
-        }
-      };
-      console.log('[OPENAI RESPONSE CREATE PAYLOAD]', JSON.stringify(responseCreatePayload, null, 2));
-      state.openAiWs.send(JSON.stringify(responseCreatePayload));
+      state.assistantSpeaking = false;
+      return;
     }
   };
 
@@ -6455,7 +6431,7 @@ Reply to this message if you'd like to update or add any information.
                   format: {
                     type: "audio/pcmu"
                   },
-                  voice: AI_VOICE_OUTPUT_VOICE
+                  voice: AI_VOICE
                 }
               }
             }
@@ -6546,12 +6522,6 @@ Reply to this message if you'd like to update or add any information.
           if (message.type === 'response.output_audio.delta' && message.delta) {
             // Decode base64 delta into raw bytes and accumulate
             const deltaBytes = Buffer.from(message.delta, 'base64');
-            console.log('[OPENAI AUDIO DELTA RECEIVED]', {
-              responseId: message.response_id || 'unknown',
-              deltaBase64Length: message.delta.length,
-              bytes: deltaBytes.length,
-              stage: state.currentStage
-            });
             state.audioAccumulator.push(deltaBytes);
             state.audioAccumulatorBytes += deltaBytes.length;
             state.audioChunkCount++;
@@ -9259,7 +9229,7 @@ Return only JSON, no other text.`;
                       format: {
                         type: "audio/pcmu"
                       },
-                      voice: AI_VOICE_OUTPUT_VOICE
+                      voice: AI_VOICE
                     }
                   },
                   instructions: `You are an extraction-only AI assistant for missed call intake.
@@ -10975,7 +10945,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   returned: message.session?.instructions
                 });
                 console.log('[SESSION COMPARE] voice:', {
-                  outbound: AI_VOICE_OUTPUT_VOICE,
+                  outbound: AI_VOICE,
                   returned: message.session?.voice
                 });
                 console.log('[SESSION COMPARE] audio format:', {
@@ -13799,11 +13769,10 @@ server.listen(PORT, () => {
   console.log('[RUNTIME VERSION CHECK] - ASSISTANT SPEAKING TRUE/FALSE');
   console.log('[RUNTIME VERSION CHECK] Timestamp:', AI_VOICE_BUILD_TIMESTAMP);
   console.log('[RUNTIME VERSION CHECK] =========================================');
-  console.log('[AI VOICE SERVICE VERSION] feature=voice-output-sage-v2');
+  console.log('[AI VOICE SERVICE VERSION] feature=stable-cached-prompts-alloy-v1');
   console.log('[SCHEMA COMPATIBILITY CHECK] conversations table columns: lead_id, business_id, status, created_at, updated_at (NO call_sid)');
   console.log('[SCHEMA COMPATIBILITY CHECK] leads table columns: id, business_id, phone, caller_phone, name, email, source, status, raw_metadata, created_at, updated_at (AI service writes only business_id, caller_phone, status, source, raw_metadata)');
   console.log('[SCHEMA COMPATIBILITY CHECK] ai_call_records table columns: id, business_id, lead_id, conversation_id, caller_phone, call_sid, ai_session_id, transcript, outcome, extracted_info, summary, extraction_failed, created_at, updated_at');
-  console.log(`[AI VOICE CONFIG] voice=${AI_VOICE_OUTPUT_VOICE}`);
   console.log('[AI VOICE SERVICE VERSION] Mark-based hangup: uses Twilio marks to track audio playback completion');
   console.log('[AI VOICE SERVICE VERSION] Hangup now waits for final-goodbye-complete mark + 2s buffer');
   console.log('[AI VOICE SERVICE VERSION] Fallback timeout: 10s if mark never received');
