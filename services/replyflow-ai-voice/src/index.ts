@@ -5389,6 +5389,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     silentRepromptSent: false,
     silentCloseStarted: false,
     silentSmsSent: false,
+    cachedPlaybackInterrupted: false,
   };
 
   const simpleModeStageToTemplateStage: Record<string, IntakeStage> = {
@@ -6409,6 +6410,8 @@ Reply to this message if you'd like to update or add any information.
       console.log('[SIMPLE MODE] response_create_live_prompt_disabled:', true);
       console.log('[SIMPLE MODE] =========================================');
 
+      state.cachedPlaybackInterrupted = false;
+
       try {
         // Send cached PCMU audio to Twilio
         const chunkSize = 160; // 20ms at 8kHz mu-law (160 bytes)
@@ -6416,6 +6419,17 @@ Reply to this message if you'd like to update or add any information.
         let totalChunks = 0;
 
         for (let i = 0; i < audioBuffer.length; i += chunkSize) {
+          if (state.cachedPlaybackInterrupted) {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: cached_prompt_playback_interrupted');
+            console.log('[SIMPLE MODE] stage:', stage);
+            console.log('[SIMPLE MODE] chunksSent:', totalChunks);
+            console.log('[SIMPLE MODE] =========================================');
+            state.assistantSpeaking = false;
+            state.ttsCompleteTime = Date.now();
+            break;
+          }
+
           const rawChunk = audioBuffer.slice(i, i + chunkSize);
           const adjustedChunk = applyPcmuOutputHeadroom(rawChunk);
           const base64Chunk = adjustedChunk.toString('base64');
@@ -6696,6 +6710,13 @@ Reply to this message if you'd like to update or add any information.
           // Log key OpenAI events
           if (message.type === 'input_audio_buffer.speech_started') {
             console.log('[AUDIO PIPELINE] OpenAI event: input_audio_buffer.speech_started')
+            if (state.assistantSpeaking) {
+              console.log('[SIMPLE MODE] =========================================');
+              console.log('[SIMPLE MODE] event: caller_speech_detected_during_prompt');
+              console.log('[SIMPLE MODE] stage:', state.currentStage);
+              console.log('[SIMPLE MODE] =========================================');
+              state.cachedPlaybackInterrupted = true;
+            }
           } else if (message.type === 'input_audio_buffer.speech_stopped') {
             console.log('[AUDIO PIPELINE] OpenAI event: input_audio_buffer.speech_stopped')
           } else if (message.type === 'input_audio_buffer.committed') {
@@ -6904,6 +6925,12 @@ Reply to this message if you'd like to update or add any information.
 
             if (accepted) {
               clearSilentTimeout();
+              if (state.cachedPlaybackInterrupted) {
+                console.log('[SIMPLE MODE] =========================================');
+                console.log('[SIMPLE MODE] event: answer_accepted_after_interruption');
+                console.log('[SIMPLE MODE] stage:', state.currentStage);
+                console.log('[SIMPLE MODE] =========================================');
+              }
             }
 
             const fieldName = accepted ? storeStageCapture(state.currentStage, meaningfulTranscript, 'openai_transcription_completed') : null;
