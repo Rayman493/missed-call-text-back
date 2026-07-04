@@ -5319,7 +5319,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   console.log('[SIMPLE MODE] =========================================');
   console.log('[SIMPLE MODE] event: connection_start');
   console.log('[SIMPLE MODE] simple_mode_selected:', true);
-  console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_hardcoded');
+  console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_intake_templates');
   console.log('[SIMPLE MODE] business_id:', url.searchParams.get('businessId') || 'none');
   console.log('[SIMPLE MODE] call_sid:', url.searchParams.get('callSid') || 'none');
   console.log('[SIMPLE MODE] Timestamp:', new Date().toISOString());
@@ -5359,15 +5359,21 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     sessionReadyTimeout: null as NodeJS.Timeout | null,
   };
 
-  // Hardcoded prompts for each stage
-  const prompts: Record<string, string> = {
-    ask_name_reason: "Hi, this is ReplyFlow AI. Who am I speaking with, and what can we help you with today?",
-    ask_details: "Thanks. Can you share any other details the business should know?",
-    ask_location: "What address or location is this for?",
-    ask_completion_time: "When would you like this work completed?",
-    ask_callback_time: "What is the best time for the business to call you back?",
-    complete: "Perfect. I'll pass this information along, and the business will get back to you soon. Goodbye."
+  const simpleModeStageToTemplateStage: Record<string, IntakeStage> = {
+    ask_name_reason: 'ask_name_reason',
+    ask_details: 'ask_details',
+    ask_location: 'ask_location_or_context',
+    ask_completion_time: 'ask_timing',
+    ask_callback_time: 'ask_callback_time',
+    complete: 'complete'
   };
+
+  const prompts: Record<string, string> = Object.fromEntries(
+    Object.entries(simpleModeStageToTemplateStage).map(([stage, templateStage]) => [
+      stage,
+      getIntakeStageTextSafe('on_site', templateStage)
+    ])
+  );
 
   // Cached PCMU audio for each prompt (pre-generated for deterministic speech)
   state.sessionId = url.searchParams.get('sessionId') || '';
@@ -6196,7 +6202,7 @@ Reply to this message if you'd like to update or add any information.
     console.log('[SIMPLE MODE] =========================================');
     console.log('[SIMPLE MODE] event: stage_prompt_mapping');
     console.log('[SIMPLE MODE] simple_mode_selected:', true);
-    console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_hardcoded');
+    console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_intake_templates');
     console.log('[SIMPLE MODE] business_id:', state.businessId);
     console.log('[SIMPLE MODE] currentStage:', stage);
     console.log('[SIMPLE MODE] promptKey:', stage);
