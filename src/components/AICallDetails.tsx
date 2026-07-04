@@ -277,6 +277,12 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const previousValues = leadData?.raw_metadata?.previous_values
   const correctionsCount = leadData?.raw_metadata?.corrections_count || 0
   const lastCorrectionField = leadData?.raw_metadata?.last_correction_field
+  const correctionSources = leadData?.raw_metadata?.correction_sources || {}
+
+  // Hide "Corrections Made" section if all corrections are manual (user already knows they made the edit)
+  const hasNonManualCorrections = Object.keys(correctedFields || {}).some(
+    field => correctionSources[field] !== 'manual'
+  )
 
   // Use canonical helper to determine effective outcome
   const isComplete = isCompleteAIIntake(extractedInfo as any)
@@ -303,8 +309,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   return (
     <div className="space-y-4">
-      {/* Customer Correction Badge */}
-      {hasCustomerCorrections && (
+      {/* Customer Correction Badge - only show if at least one correction is non-manual */}
+      {hasCustomerCorrections && hasNonManualCorrections && (
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
