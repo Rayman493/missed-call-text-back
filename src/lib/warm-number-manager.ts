@@ -506,13 +506,15 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
 
     // STEP 2: Fetch the oldest available warm number (NO legacy compatibility)
     console.log(`[Warm Inventory] STEP 2: Fetching oldest available warm number...`);
-    console.log(`[Warm Inventory] Query criteria: status=available, business_id IS NULL, sms_status=ready`);
+    console.log(`[Warm Inventory] Query criteria: status=available, business_id IS NULL, sms_status=ready, detached_at IS NULL, detached_reason IS NULL`);
     const { data: availableNumbers, error: fetchError } = await supabase
       .from('twilio_numbers')
       .select('*')
       .is('business_id', null)
       .eq('status', 'available')
       .eq('sms_status', 'ready')
+      .is('detached_at', null)
+      .is('detached_reason', null)
       .order('created_at', { ascending: true })
       .limit(1);
 
@@ -534,8 +536,45 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
     console.log(`[Warm Inventory] First available sms_status: ${warmNumber.sms_status}`);
     console.log(`[Warm Inventory] First available id: ${warmNumber.id}`);
 
-    // STEP 3: Update twilio_numbers table
-    console.log(`[Warm Inventory] STEP 3: Assigning number to business...`);
+    // STEP 3: Verify Twilio still owns the number before assignment
+    console.log(`[Warm Inventory] STEP 3: Verifying Twilio ownership...`);
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+    if (!accountSid || !authToken) {
+      console.error('[Warm Inventory] ERROR: Missing Twilio credentials for ownership verification');
+      return { success: false, error: 'Missing Twilio credentials' };
+    }
+
+    const client = Twilio(accountSid, authToken);
+    let twilioOwnsNumber = false;
+
+    try {
+      await client.incomingPhoneNumbers(warmNumber.twilio_sid).fetch();
+      twilioOwnsNumber = true;
+      console.log(`[Warm Inventory] Twilio ownership verified: ${warmNumber.phone_number}`);
+    } catch (twilioError: any) {
+      console.error(`[Warm Inventory] Twilio ownership check failed for ${warmNumber.phone_number}:`, twilioError);
+      if (twilioError.code === 20404 || twilioError.status === 404) {
+        console.log(`[Warm Inventory] Number not found in Twilio Active Numbers - marking as invalid`);
+        // Mark the number as invalid/retired
+        await supabase
+          .from('twilio_numbers')
+          .update({
+            status: 'retired',
+            detached_at: new Date().toISOString(),
+            detached_reason: 'twilio_number_not_owned',
+            business_id: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', warmNumber.id);
+        console.log(`[Warm Inventory] Marked number as retired: ${warmNumber.phone_number}`);
+      }
+      return { success: false, error: 'Number not owned by Twilio' };
+    }
+
+    // STEP 4: Update twilio_numbers table
+    console.log(`[Warm Inventory] STEP 4: Assigning number to business...`);
     console.log(`[Warm Inventory] Business ID: ${businessId}`);
     console.log(`[Warm Inventory] Phone Number: ${warmNumber.phone_number}`);
     console.log(`[Warm Inventory] Phone SID: ${warmNumber.twilio_sid}`);
@@ -547,6 +586,11 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
         business_id: businessId,
         assigned_at: new Date().toISOString(),
         sms_status: 'ready',
+        detached_at: null,
+        detached_reason: null,
+        last_error: null,
+        provisioning_error: null,
+        provisioning_status: 'completed',
         updated_at: new Date().toISOString(),
       })
       .eq('id', warmNumber.id);
@@ -570,6 +614,110 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
     console.error('[Warm Inventory] EXCEPTION: Exception assigning warm number');
     console.error('[Warm Inventory] EXCEPTION Details:', JSON.stringify(error, null, 2));
     console.error('[Warm Inventory] ========== END WARM INVENTORY ASSIGNMENT (EXCEPTION) ==========');    
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Verify and heal business Twilio assignment
+ * Checks if the business's assigned Twilio number is still owned by Twilio
+ * If not, invalidates the assignment and triggers reprovisioning
+ */
+export async function verifyAndHealBusinessTwilioAssignment(businessId: string): Promise<{ success: boolean; reprovisioned?: boolean; error?: string }> {
+  console.log(`[SELF-HEAL] ========== START BUSINESS TWILIO ASSIGNMENT VERIFICATION ==========`);
+  console.log(`[SELF-HEAL] Verifying business ${businessId} Twilio assignment...`);
+
+  if (!supabase) {
+    console.error('[SELF-HEAL] ERROR: Supabase client not configured');
+    return { success: false, error: 'Supabase client not configured' };
+  }
+
+  try {
+    // Get business with Twilio assignment
+    const { data: business, error: businessError } = await supabase
+      .from('businesses')
+      .select('id, twilio_phone_number, twilio_phone_number_sid')
+      .eq('id', businessId)
+      .single();
+
+    if (businessError || !business) {
+      console.error('[SELF-HEAL] ERROR: Failed to fetch business:', businessError);
+      return { success: false, error: 'Failed to fetch business' };
+    }
+
+    if (!business.twilio_phone_number_sid) {
+      console.log('[SELF-HEAL] Business has no Twilio number assigned, nothing to verify');
+      return { success: true, reprovisioned: false };
+    }
+
+    console.log(`[SELF-HEAL] Business has assigned number: ${business.twilio_phone_number} (SID: ${business.twilio_phone_number_sid})`);
+
+    // Verify Twilio still owns the number
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+    if (!accountSid || !authToken) {
+      console.error('[SELF-HEAL] ERROR: Missing Twilio credentials for ownership verification');
+      return { success: false, error: 'Missing Twilio credentials' };
+    }
+
+    const client = Twilio(accountSid, authToken);
+
+    try {
+      await client.incomingPhoneNumbers(business.twilio_phone_number_sid).fetch();
+      console.log(`[SELF-HEAL] Twilio ownership verified: ${business.twilio_phone_number}`);
+      return { success: true, reprovisioned: false };
+    } catch (twilioError: any) {
+      console.error(`[SELF-HEAL] Twilio ownership check failed for ${business.twilio_phone_number}:`, twilioError);
+      if (twilioError.code === 20404 || twilioError.status === 404) {
+        console.log(`[SELF-HEAL] Number not found in Twilio Active Numbers - invalidating assignment`);
+        
+        // Invalidate the assignment in twilio_numbers table
+        const { error: updateError } = await supabase
+          .from('twilio_numbers')
+          .update({
+            status: 'retired',
+            detached_at: new Date().toISOString(),
+            detached_reason: 'twilio_number_not_owned',
+            business_id: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('twilio_sid', business.twilio_phone_number_sid);
+
+        if (updateError) {
+          console.error('[SELF-HEAL] ERROR: Failed to invalidate twilio_numbers row:', updateError);
+        } else {
+          console.log(`[SELF-HEAL] Invalidated twilio_numbers row for ${business.twilio_phone_number}`);
+        }
+
+        // Clear business Twilio assignment
+        const { error: businessUpdateError } = await supabase
+          .from('businesses')
+          .update({
+            twilio_phone_number: null,
+            twilio_phone_number_sid: null,
+            twilio_messaging_service_sid: null,
+            assigned_twilio_number_id: null,
+            provisioning_status: null,
+            provisioning_error: 'Previous number not owned by Twilio',
+            provisioned_at: null,
+          })
+          .eq('id', businessId);
+
+        if (businessUpdateError) {
+          console.error('[SELF-HEAL] ERROR: Failed to clear business Twilio assignment:', businessUpdateError);
+          return { success: false, error: 'Failed to clear business assignment' };
+        }
+
+        console.log(`[SELF-HEAL] Cleared business Twilio assignment`);
+        console.log(`[SELF-HEAL] Business should reprovision on next access`);
+        return { success: true, reprovisioned: true };
+      }
+
+      return { success: false, error: 'Twilio ownership check failed' };
+    }
+  } catch (error: any) {
+    console.error('[SELF-HEAL] EXCEPTION: Exception during verification:', error);
     return { success: false, error: error.message };
   }
 }
