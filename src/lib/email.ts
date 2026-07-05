@@ -250,10 +250,8 @@ function generateAccountDeletionConfirmationHTML(params: AccountDeletionConfirma
     ? `<p><strong>ReplyFlow number:</strong><br>${twilioNumber}</p>`
     : ''
 
-  const twilioReservationSection = twilioNumberReserved && twilioNumber
-    ? `<p><strong>Number status:</strong><br>Your ReplyFlow number has been reserved for 30 days according to our retention policy. If you wish to reclaim it, please contact support within 30 days of deletion.</p>`
-    : twilioNumberReserved
-    ? `<p><strong>Number status:</strong><br>Your ReplyFlow number has been reserved for 30 days according to our retention policy.</p>`
+  const twilioReservationSection = twilioNumber
+    ? `<p><strong>Number status:</strong><br>Your ReplyFlow number has been released immediately and is no longer associated with your account.</p>`
     : ''
 
   return `

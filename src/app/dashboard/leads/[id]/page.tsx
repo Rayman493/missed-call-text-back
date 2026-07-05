@@ -3260,15 +3260,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
+              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-3">
                 Payment Method
               </label>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {/* Stripe */}
-                <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                  selectedPaymentProvider === 'stripe' 
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                    : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600'
+                <label className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                  selectedPaymentProvider === 'stripe'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                 } ${!business || !isProviderAvailable('stripe', business) ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <input
                     type="radio"
@@ -3277,25 +3277,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     checked={selectedPaymentProvider === 'stripe'}
                     onChange={() => setSelectedPaymentProvider('stripe')}
                     disabled={!business || !isProviderAvailable('stripe', business)}
-                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                    className="w-5 h-5 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
                   />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-900 dark:text-white">Stripe</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-slate-900 dark:text-white">Stripe</span>
                       {business && isProviderAvailable('stripe', business) ? (
-                        <span className="text-xs text-green-600 dark:text-green-400">✓ Connected</span>
+                        <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full">Connected</span>
                       ) : (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">Not configured</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Set up in Settings</span>
                       )}
                     </div>
                   </div>
                 </label>
 
                 {/* Venmo */}
-                <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                  selectedPaymentProvider === 'venmo' 
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                    : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600'
+                <label className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                  selectedPaymentProvider === 'venmo'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                 } ${!business || !isProviderAvailable('venmo', business) ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <input
                     type="radio"
@@ -3304,25 +3304,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     checked={selectedPaymentProvider === 'venmo'}
                     onChange={() => setSelectedPaymentProvider('venmo')}
                     disabled={!business || !isProviderAvailable('venmo', business)}
-                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                    className="w-5 h-5 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
                   />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-900 dark:text-white">Venmo</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-slate-900 dark:text-white">Venmo</span>
                       {business && isProviderAvailable('venmo', business) ? (
-                        <span className="text-xs text-green-600 dark:text-green-400">✓ Configured</span>
+                        <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full">Configured</span>
                       ) : (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">Configure in Settings</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Set up in Settings</span>
                       )}
                     </div>
                   </div>
                 </label>
 
                 {/* PayPal */}
-                <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                  selectedPaymentProvider === 'paypal' 
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                    : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600'
+                <label className={`relative flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                  selectedPaymentProvider === 'paypal'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                 } ${!business || !isProviderAvailable('paypal', business) ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <input
                     type="radio"
@@ -3331,15 +3331,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     checked={selectedPaymentProvider === 'paypal'}
                     onChange={() => setSelectedPaymentProvider('paypal')}
                     disabled={!business || !isProviderAvailable('paypal', business)}
-                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                    className="w-5 h-5 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
                   />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-900 dark:text-white">PayPal</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-slate-900 dark:text-white">PayPal</span>
                       {business && isProviderAvailable('paypal', business) ? (
-                        <span className="text-xs text-green-600 dark:text-green-400">✓ Configured</span>
+                        <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full">Configured</span>
                       ) : (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">Configure in Settings</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Set up in Settings</span>
                       )}
                     </div>
                   </div>
@@ -3348,13 +3348,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Show message if no providers are available */}
               {!business || (!isProviderAvailable('stripe', business) && !isProviderAvailable('venmo', business) && !isProviderAvailable('paypal', business)) && (
-                <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
                   <p className="text-sm text-amber-800 dark:text-amber-200">
                     Configure a payment provider in Settings before sending payment requests.
                   </p>
                   <Link
                     href="/dashboard/settings"
-                    className="inline-block mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    className="inline-block mt-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     Go to Settings → Payments
                   </Link>
@@ -3437,7 +3437,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               disabled={isCreatingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || !business || !isProviderAvailable(selectedPaymentProvider, business)}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isCreatingPayment ? 'Creating...' : 'Send Payment Request'}
+              {isCreatingPayment ? 'Sending Payment Request...' : 'Send Payment Request'}
             </button>
           </div>
         </div>
