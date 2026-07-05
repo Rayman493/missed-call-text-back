@@ -70,6 +70,8 @@ function AuthContent() {
   const emailRef = React.useRef<HTMLInputElement>(null)
   const isSubmittingRef = React.useRef(false)
   const [redirecting, setRedirecting] = useState(false)
+  const [isCreatingCheckout, setIsCreatingCheckout] = useState(false)
+  const isCreatingCheckoutRef = React.useRef(false)
   
   // Handle Stripe cancel message
   const checkoutCancelled = searchParams?.get('checkout') === 'cancelled'
@@ -351,11 +353,26 @@ function AuthContent() {
         setLoading(false)
         setIsSubmitting(false)
         isSubmittingRef.current = false
+        setIsCreatingCheckout(false)
+        isCreatingCheckoutRef.current = false
         return
       }
       
       // Create Stripe Checkout session for trial
       console.log('[Auth] Creating Stripe Checkout session...')
+      
+      // Guard against duplicate checkout calls
+      if (isCreatingCheckout || isCreatingCheckoutRef.current) {
+        console.log('[Auth] Checkout already in progress, skipping duplicate call')
+        setLoading(false)
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
+        return
+      }
+      
+      setIsCreatingCheckout(true)
+      isCreatingCheckoutRef.current = true
+      
       try {
         const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
           method: 'POST',
@@ -379,6 +396,8 @@ function AuthContent() {
             setLoading(false)
             setIsSubmitting(false)
             isSubmittingRef.current = false
+            setIsCreatingCheckout(false)
+            isCreatingCheckoutRef.current = false
             router.replace(checkoutData.redirect)
             return
           }
@@ -388,6 +407,8 @@ function AuthContent() {
           setLoading(false)
           setIsSubmitting(false)
           isSubmittingRef.current = false
+          setIsCreatingCheckout(false)
+          isCreatingCheckoutRef.current = false
           return
         }
 
@@ -396,6 +417,8 @@ function AuthContent() {
         setLoading(false)
         setIsSubmitting(false)
         isSubmittingRef.current = false
+        setIsCreatingCheckout(false)
+        isCreatingCheckoutRef.current = false
         router.replace(checkoutData.url)
       } catch (checkoutError: any) {
         console.error('[Auth] Error creating checkout session:', checkoutError)
@@ -404,6 +427,8 @@ function AuthContent() {
         setLoading(false)
         setIsSubmitting(false)
         isSubmittingRef.current = false
+        setIsCreatingCheckout(false)
+        isCreatingCheckoutRef.current = false
       }
     } catch (err: any) {
       setError(err.message || 'Unable to create account. Please try again or contact support if the issue persists.')
