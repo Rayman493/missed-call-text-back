@@ -13,6 +13,7 @@
 import Twilio from "twilio";
 import { createClient } from '@supabase/supabase-js';
 import { isSystemPhoneNumber } from './twilio-assignment';
+import { triggerBackgroundReplenishment } from './warm-number-manager';
 
 // Initialize Supabase client for DB operations
 const supabase = createClient(
@@ -631,6 +632,10 @@ async function purchaseNumber(
           phoneNumber: availableNumber.phone_number,
           phoneNumberSid: availableNumber.twilio_sid,
         });
+
+        // Trigger background replenishment to maintain inventory
+        console.log('[PURCHASE NUMBER] Triggering background replenishment to maintain inventory');
+        triggerBackgroundReplenishment();
 
         return {
           success: true,

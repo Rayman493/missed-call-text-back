@@ -6,13 +6,16 @@
 import Twilio from 'twilio';
 import { createClient } from '@supabase/supabase-js';
 
-const MIN_AVAILABLE_WARM_NUMBERS = 2;
+const MIN_AVAILABLE_WARM_NUMBERS = 3;
+
+// Duplicate purchase protection flag
+let isReplenishing = false;
 
 // Use service role key for database operations
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
-const supabase = supabaseUrl && supabaseServiceKey 
+const supabase = supabaseUrl && supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
 
@@ -42,9 +45,6 @@ export async function getAvailableWarmNumberCount(): Promise<number> {
   }
 
   try {
-    console.log('[Warm Inventory] ========== COUNTING AVAILABLE WARM NUMBERS ==========');
-    console.log('[Warm Inventory] Query criteria: status=available, business_id IS NULL, sms_status=ready');
-    
     const { data, error } = await supabase
       .from('twilio_numbers')
       .select('id')
@@ -58,8 +58,7 @@ export async function getAvailableWarmNumberCount(): Promise<number> {
     }
 
     const count = data?.length || 0;
-    console.log(`[Warm Inventory] Available warm numbers count: ${count}`);
-    console.log('[Warm Inventory] ========== COUNTING COMPLETE ==========');
+    console.log(`[INVENTORY] Warm inventory: ${count}/${MIN_AVAILABLE_WARM_NUMBERS}`);
     return count;
   } catch (error) {
     console.error('[Warm Inventory] Exception fetching available warm numbers:', error);
@@ -271,67 +270,61 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
  * Provisions additional numbers if below minimum
  */
 export async function ensureWarmNumberMinimum(): Promise<{ success: boolean; numbersAdded: number; availableBefore: number; availableAfter: number }> {
-  console.log('[Warm Inventory] ========== ensureWarmNumberMinimum HIT ==========');
-  console.log('[Warm Inventory] ========== MANUAL REPLENISH TRIGGERED ==========');
-  console.log('[Warm Inventory] Checking warm number minimum...');
-
-  const availableBefore = await getAvailableWarmNumberCount();
-  console.log(`[Warm Inventory] Available before: ${availableBefore}`);
-
-  if (availableBefore >= MIN_AVAILABLE_WARM_NUMBERS) {
-    console.log('[Warm Inventory] Minimum already satisfied, no action needed');
+  // Duplicate purchase protection
+  if (isReplenishing) {
+    console.log('[INVENTORY] Replenishment already in progress, skipping duplicate request');
     return {
       success: true,
       numbersAdded: 0,
-      availableBefore,
-      availableAfter: availableBefore,
+      availableBefore: await getAvailableWarmNumberCount(),
+      availableAfter: await getAvailableWarmNumberCount(),
     };
   }
 
-  const numbersNeeded = MIN_AVAILABLE_WARM_NUMBERS - availableBefore;
-  console.log(`[Warm Inventory] Need to provision ${numbersNeeded} warm number(s)`);
+  isReplenishing = true;
 
-  let numbersAdded = 0;
-  let lastError: string | undefined;
+  try {
+    const availableBefore = await getAvailableWarmNumberCount();
 
-  for (let i = 0; i < numbersNeeded; i++) {
-    console.log(`[Warm Inventory] Provisioning warm number ${i + 1} of ${numbersNeeded}...`);
-    console.log(`[Warm Inventory] ========== PURCHASING REPLACEMENT NUMBER ==========`);
-    const result = await provisionWarmNumber();
-
-    if (result.success) {
-      numbersAdded++;
-      console.log(`[Warm Inventory] ========== PURCHASED REPLACEMENT NUMBER ==========`);
-      console.log(`[Warm Inventory] Successfully provisioned warm number ${numbersAdded}`);
-      console.log(`[Warm Inventory] Phone number: ${result.phoneNumber}`);
-    } else {
-      console.error(`[Warm Inventory] Failed to provision warm number ${i + 1}:`, result.error);
-      lastError = result.error;
-      // Continue trying to provision remaining numbers
+    if (availableBefore >= MIN_AVAILABLE_WARM_NUMBERS) {
+      return {
+        success: true,
+        numbersAdded: 0,
+        availableBefore,
+        availableAfter: availableBefore,
+      };
     }
-  }
 
-  const availableAfter = await getAvailableWarmNumberCount();
-  console.log(`[Warm Inventory] Available after: ${availableAfter}`);
-  console.log(`[Warm Inventory] ========== MANUAL REPLENISH COMPLETE ==========`);
+    const numbersNeeded = MIN_AVAILABLE_WARM_NUMBERS - availableBefore;
+    console.log(`[INVENTORY] Purchasing replacement number...`);
 
-  const success = numbersAdded === numbersNeeded;
-  
-  if (success) {
-    console.log(`[Warm Inventory] Replenish complete: added ${numbersAdded} number(s)`);
-  } else {
-    console.error(`[Warm Inventory] Replenish partially failed: added ${numbersAdded}/${numbersNeeded} number(s)`);
-    if (lastError) {
-      console.error(`[Warm Inventory] Last error: ${lastError}`);
+    let numbersAdded = 0;
+    let lastError: string | undefined;
+
+    for (let i = 0; i < numbersNeeded; i++) {
+      const result = await provisionWarmNumber();
+
+      if (result.success) {
+        numbersAdded++;
+      } else {
+        lastError = result.error;
+      }
     }
-  }
 
-  return {
-    success,
-    numbersAdded,
-    availableBefore,
-    availableAfter,
-  };
+    const availableAfter = await getAvailableWarmNumberCount();
+    console.log(`[INVENTORY] Inventory restored: ${availableAfter}/${MIN_AVAILABLE_WARM_NUMBERS}`);
+
+    const success = numbersAdded === numbersNeeded;
+
+    return {
+      success,
+      numbersAdded,
+      availableBefore,
+      availableAfter,
+    };
+  } finally {
+    isReplenishing = false;
+  }
 }
 
 /**
