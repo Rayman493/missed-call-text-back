@@ -307,6 +307,20 @@ function AuthContent() {
         return
       }
 
+      // Hard guard: complete-signup must return business_id
+      const businessIdFromCompleteSignup = data.business?.id
+      if (!businessIdFromCompleteSignup) {
+        console.error('[Auth] complete-signup did not return business_id:', data)
+        setError('Account created but business setup incomplete. Please sign in to complete your profile.')
+        setIsSignIn(true)
+        setLoading(false)
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
+        return
+      }
+
+      console.log('[Auth] complete-signup returned business_id:', businessIdFromCompleteSignup)
+
       // Account created successfully - now sign in the client
       console.log('[Auth] Account created, signing in client...')
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
@@ -357,9 +371,25 @@ function AuthContent() {
         isCreatingCheckoutRef.current = false
         return
       }
+
+      // Hard guard: verified business_id must match complete-signup business_id
+      if (business.id !== businessIdFromCompleteSignup) {
+        console.error('[Auth] Business ID mismatch:', { 
+          fromCompleteSignup: businessIdFromCompleteSignup, 
+          fromDatabase: business.id 
+        })
+        setError('Account created but business verification failed. Please sign in to complete your profile.')
+        setIsSignIn(true)
+        setLoading(false)
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
+        setIsCreatingCheckout(false)
+        isCreatingCheckoutRef.current = false
+        return
+      }
       
       // Create Stripe Checkout session for trial
-      console.log('[Auth] Creating Stripe Checkout session...')
+      console.log('[Auth] Starting checkout for verified business_id:', business.id)
       
       // Guard against duplicate checkout calls
       if (isCreatingCheckout || isCreatingCheckoutRef.current) {
