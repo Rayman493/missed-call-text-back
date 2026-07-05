@@ -642,12 +642,22 @@ Reply STOP to opt out.`;
 
       const twilioMessageSid = sendResult.sid
 
-      console.log('[AI SUMMARY SMS SENT]', {
-        callSid,
-        messageSid: twilioMessageSid,
-        leadId,
-        conversationId
-      })
+      if (twilioMessageSid) {
+        console.log('[AI SUMMARY SMS SENT]', {
+          callSid,
+          messageSid: twilioMessageSid,
+          leadId,
+          conversationId
+        })
+      } else {
+        console.log('[AI SUMMARY SMS FAILED_TO_SEND]', {
+          callSid,
+          messageSid: null,
+          leadId,
+          conversationId,
+          reason: 'sendSms returned null'
+        })
+      }
 
       if (twilioMessageSid) {
         console.log('[AI CONFIRMATION SMS SUCCESS]', {

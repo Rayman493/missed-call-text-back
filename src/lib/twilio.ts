@@ -39,8 +39,8 @@ export async function sendSms(
   message = options?.isOffboarding ? message : appendBusinessAvailabilityNote(message, business);
 
   // Idempotency check for automated messages (prevent duplicates within 5 minutes)
-  // Check for any outbound message to the same lead/phone within 5 minutes, regardless of body
-  // This prevents duplicates even if message body differs slightly
+  // Only block if a previous message was actually sent to Twilio or is truly pending
+  // Failed/unsent messages should NOT block a retry
   // Manual user messages are exempt from this check to allow normal conversation flow
   // FOLLOW-UP EXCEPTION: Messages with explicit source='follow_up_job' are allowed even if within 5 minutes
   const isFollowUpMessage = options?.source === 'follow_up_job';
@@ -50,7 +50,7 @@ export async function sendSms(
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const { data: existingMessage, error: duplicateError } = await supabase
       .from('messages')
-      .select('id, created_at, body')
+      .select('id, created_at, body, twilio_message_sid, status, error_code')
       .eq('lead_id', options.lead_id)
       .eq('body', message)
       .gte('created_at', fiveMinutesAgo)
@@ -58,8 +58,24 @@ export async function sendSms(
       .maybeSingle();
 
     if (existingMessage) {
-      console.log('[SMS] Duplicate blocked (idempotency):', { lead_id: options.lead_id, message_sid: existingMessage.id });
-      return { sid: null, messageId: null }; // Block duplicate
+      // Only block if the previous message was actually sent to Twilio or is pending
+      // Failed/unsent messages (twilio_api_called=false, error_code set, or twilio_message_sid=null/NOT_CALLED) should NOT block
+      const wasTwilioCalled = existingMessage.twilio_message_sid && existingMessage.twilio_message_sid !== 'NOT_CALLED';
+      const hasError = existingMessage.error_code;
+      const isFailedStatus = existingMessage.status === 'failed' || existingMessage.status === 'undelivered';
+
+      if (wasTwilioCalled && !hasError && !isFailedStatus) {
+        console.log('[SMS] Duplicate blocked (idempotency):', { lead_id: options.lead_id, message_sid: existingMessage.id, twilio_message_sid: existingMessage.twilio_message_sid });
+        return { sid: null, messageId: null }; // Block duplicate
+      } else {
+        console.log('[SMS] Previous message failed/unsent, allowing retry:', { 
+          lead_id: options.lead_id, 
+          message_id: existingMessage.id, 
+          twilio_message_sid: existingMessage.twilio_message_sid,
+          error_code: existingMessage.error_code,
+          status: existingMessage.status
+        });
+      }
     }
 
     if (duplicateError && duplicateError.code !== 'PGRST116') {

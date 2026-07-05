@@ -601,6 +601,31 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
     }
 
     console.log(`[Warm Inventory] SUCCESS: Assignment DB update successful`);
+
+    // STEP 5: Update businesses table to mark provisioning as ready
+    console.log(`[Warm Inventory] STEP 5: Updating business provisioning status to ready...`);
+    const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+    const { error: businessUpdateError } = await supabase
+      .from('businesses')
+      .update({
+        twilio_phone_number: warmNumber.phone_number,
+        twilio_phone_number_sid: warmNumber.twilio_sid,
+        assigned_twilio_number_id: warmNumber.id,
+        twilio_messaging_service_sid: messagingServiceSid,
+        provisioning_status: 'ready',
+        provisioning_error: null,
+        last_provisioning_attempt_at: new Date().toISOString(),
+        provisioned_at: new Date().toISOString(),
+      })
+      .eq('id', businessId);
+
+    if (businessUpdateError) {
+      console.error('[Warm Inventory] ERROR: Business update failed');
+      console.error('[Warm Inventory] ERROR Details:', JSON.stringify(businessUpdateError, null, 2));
+      return { success: false, error: 'Failed to update business record' };
+    }
+
+    console.log(`[Warm Inventory] SUCCESS: Business provisioning status set to ready`);
     console.log(`[ASSIGN] Assigned recycled warm number to business: ${warmNumber.phone_number}`);
     console.log(`[Warm Inventory] ========== END WARM INVENTORY ASSIGNMENT (SUCCESS) ==========`);
     return {
