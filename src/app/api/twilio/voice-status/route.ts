@@ -155,20 +155,20 @@ async function processVoiceStatusCallback(params: any, method: string) {
       aiCallRecordId: aiCallRecord.id,
       currentOutcome: aiCallRecord.outcome,
       totalRetries: retryDelays.length,
-      action: 'Updating outcome to ai_connection_failed to trigger fallback SMS'
+      action: 'Updating outcome to ai_failed to trigger fallback SMS'
     });
 
     try {
       const { error: updateError } = await supabase
         .from('ai_call_records')
-        .update({ outcome: 'ai_connection_failed' })
+        .update({ outcome: 'ai_failed' })
         .eq('id', aiCallRecord.id);
 
       if (updateError) {
         console.error('[FALLBACK] Failed to update ai_call_records outcome:', updateError);
       } else {
-        console.log('[FALLBACK] Successfully updated ai_call_records outcome to ai_connection_failed');
-        aiCallRecord.outcome = 'ai_connection_failed';
+        console.log('[FALLBACK] Successfully updated ai_call_records outcome to ai_failed');
+        aiCallRecord.outcome = 'ai_failed';
       }
     } catch (updateException) {
       console.error('[FALLBACK] Exception updating ai_call_records outcome:', updateException);

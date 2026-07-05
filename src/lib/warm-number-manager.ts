@@ -590,7 +590,6 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
         detached_reason: null,
         last_error: null,
         provisioning_error: null,
-        provisioning_status: 'completed',
         updated_at: new Date().toISOString(),
       })
       .eq('id', warmNumber.id);
