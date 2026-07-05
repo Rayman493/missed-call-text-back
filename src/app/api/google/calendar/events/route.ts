@@ -2,38 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
-  console.log('[GOOGLE CALENDAR REQUEST]', {
-    timestamp: new Date().toISOString()
-  });
-  console.log('[Google Calendar Events] Request received')
-  
   try {
     // Get the user's session
     const supabase = createServerSupabaseClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    if (userError) {
-      console.error('[Google Calendar Events] Auth error:', userError)
+    if (userError || !user) {
+      console.error('[CALENDAR] Auth error:', userError)
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-
-    if (!user) {
-      console.error('[GOOGLE CALENDAR AUTH FAILED]');
-      console.log('[Google Calendar Events] No user found')
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    console.log('[GOOGLE CALENDAR AUTH]', {
-      authenticated: !!user,
-      userId: user.id
-    });
-    console.log('[Google Calendar Events] Authenticated user:', user.id)
 
     // Get the user's business
     const { data: business, error: businessError } = await supabase
@@ -42,27 +22,13 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    if (businessError) {
-      console.error('[Google Calendar Events] Business lookup error:', businessError)
+    if (businessError || !business) {
+      console.error('[CALENDAR] Business not found:', businessError)
       return NextResponse.json(
         { error: 'Business not found' },
         { status: 404 }
       )
     }
-
-    if (!business) {
-      console.log('[Google Calendar Events] No business found for user:', user.id)
-      return NextResponse.json(
-        { error: 'Business not found' },
-        { status: 404 }
-      )
-    }
-
-    console.log('[Google Calendar Events] Business found:', business.id)
-    console.log('[GOOGLE CALENDAR BUSINESS]', {
-      found: !!business,
-      businessId: business?.id
-    });
 
     // Get the calendar integration
     const { data: integration, error: integrationError } = await supabase
@@ -72,59 +38,28 @@ export async function GET(request: NextRequest) {
       .eq('provider', 'google')
       .single()
 
-    if (integrationError) {
-      console.error('[Google Calendar Events] Integration lookup error:', integrationError)
+    if (integrationError || !integration) {
+      console.error('[CALENDAR] Integration not found:', integrationError)
       return NextResponse.json(
         { error: 'Calendar not connected' },
         { status: 404 }
       )
     }
-
-    if (!integration) {
-      console.log('[GOOGLE CALENDAR ACCOUNT]', {
-        found: false,
-        provider: 'google',
-        connected: false
-      });
-      console.log('[Google Calendar Events] No integration found')
-      return NextResponse.json(
-        { error: 'Calendar not connected' },
-        { status: 404 }
-      )
-    }
-
-    console.log('[GOOGLE CALENDAR ACCOUNT]', {
-      found: true,
-      provider: integration.provider,
-      connected: true
-    });
-    console.log('[Google Calendar Events] Integration found:', integration.id)
 
     // Check if token is expired and refresh if needed
     let accessToken = integration.access_token
-    console.log('[GOOGLE CALENDAR TOKENS]', {
-      hasAccessToken: !!accessToken,
-      hasRefreshToken: !!integration.refresh_token,
-      accessTokenLength: accessToken?.length || 0,
-      refreshTokenLength: integration.refresh_token?.length || 0,
-      expiresAt: integration.expires_at,
-      isExpired: integration.expires_at && new Date(integration.expires_at) < new Date()
-    });
 
     if (integration.expires_at && new Date(integration.expires_at) < new Date()) {
-      console.log('[GOOGLE CALENDAR TOKEN REFRESH] Token expired for business:', business.id, 'expires_at:', integration.expires_at)
+      console.log('[CALENDAR] Token expired, refreshing for business:', business.id)
 
       // Token expired, refresh it
       if (!integration.refresh_token) {
-        console.error('[GOOGLE CALENDAR TOKEN ERROR] No refresh token available for business:', business.id)
-        console.error('[Google Calendar Events] No refresh token available')
+        console.error('[CALENDAR] No refresh token available for business:', business.id)
         return NextResponse.json(
           { error: 'Cannot refresh token: no refresh token available' },
           { status: 401 }
         )
       }
-
-      console.log('[GOOGLE CALENDAR TOKEN REFRESH] Refreshing token for business:', business.id)
       const refreshResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: {
@@ -140,15 +75,7 @@ export async function GET(request: NextRequest) {
 
       if (!refreshResponse.ok) {
         const errorText = await refreshResponse.text()
-        console.error('[GOOGLE CALENDAR TOKEN ERROR]', {
-          type: 'token_refresh',
-          status: refreshResponse.status,
-          statusText: refreshResponse.statusText,
-          body: errorText,
-          timestamp: new Date().toISOString(),
-          businessId: business.id
-        })
-        console.error('[Google Calendar Events] Token refresh failed:', refreshResponse.status, errorText)
+        console.error('[CALENDAR] Token refresh failed:', { status: refreshResponse.status, business_id: business.id })
         return NextResponse.json(
           { error: 'Failed to refresh token' },
           { status: 401 }
@@ -157,12 +84,11 @@ export async function GET(request: NextRequest) {
 
       const tokenData = await refreshResponse.json()
       accessToken = tokenData.access_token
-      console.log('[GOOGLE CALENDAR TOKEN REFRESH] Token refreshed successfully for business:', business.id)
+      console.log('[CALENDAR] Token refreshed successfully for business:', business.id)
 
       // Update the integration with new token
       const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
-      console.log('[Google Calendar Events] Updating integration with new token')
-      
+
       const { error: updateError } = await supabase
         .from('calendar_integrations')
         .update({
@@ -172,7 +98,7 @@ export async function GET(request: NextRequest) {
         .eq('id', integration.id)
 
       if (updateError) {
-        console.error('[Google Calendar Events] Failed to update integration:', updateError)
+        console.error('[CALENDAR] Failed to update integration:', updateError)
         // Continue anyway, we have the new token
       }
     }
@@ -181,8 +107,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const timeMin = searchParams.get('timeMin')
     const timeMax = searchParams.get('timeMax')
-
-    console.log('[Google Calendar Events] Date range:', { timeMin, timeMax })
 
     // Build Google Calendar API URL with date range
     let apiUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?'

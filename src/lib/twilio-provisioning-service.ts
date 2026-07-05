@@ -56,11 +56,6 @@ async function checkProvisioningConsistency(
   phoneNumberSid: string,
   correlationId: string
 ): Promise<{ consistent: boolean; mismatchReason?: string; twilioNumber?: any }> {
-  console.log('[TWILIO PROVISIONING CONSISTENCY] ========== START ==========');
-  console.log('[TWILIO PROVISIONING CONSISTENCY] correlation_id:', correlationId);
-  console.log('[TWILIO PROVISIONING CONSISTENCY] business_id:', businessId);
-  console.log('[TWILIO PROVISIONING CONSISTENCY] phone_number_sid:', phoneNumberSid);
-  
   try {
     // Query businesses table
     const { data: business, error: businessError } = await supabase
@@ -68,89 +63,56 @@ async function checkProvisioningConsistency(
       .select('id, twilio_phone_number, twilio_phone_number_sid, assigned_twilio_number_id')
       .eq('id', businessId)
       .single();
-    
+
     if (businessError || !business) {
       const error = 'Business not found';
-      console.error('[TWILIO PROVISIONING CONSISTENCY] ERROR:', error);
+      console.error('[TWILIO PROVISIONING] Consistency check failed:', error);
       return { consistent: false, mismatchReason: error };
     }
-    
-    console.log('[TWILIO PROVISIONING CONSISTENCY] Business found:', {
-      businessId: business.id,
-      businessPhoneNumber: business.twilio_phone_number,
-      businessTwilioSid: business.twilio_phone_number_sid,
-      assignedTwilioNumberId: business.assigned_twilio_number_id
-    });
-    
+
     // Query twilio_numbers table
     const { data: twilioNumber, error: twilioError } = await supabase
       .from('twilio_numbers')
       .select('id, phone_number, twilio_sid, business_id, status')
       .eq('twilio_sid', phoneNumberSid)
       .maybeSingle();
-    
-    console.log('[TWILIO PROVISIONING CONSISTENCY] Twilio number lookup result:', {
-      twilioNumberRowFound: !!twilioNumber,
-      twilioNumberId: twilioNumber?.id,
-      twilioNumberPhone: twilioNumber?.phone_number,
-      twilioNumberBusinessId: twilioNumber?.business_id,
-      twilioNumberStatus: twilioNumber?.status
-    });
-    
-    const consistencyCheck = {
-      businessId,
-      businessPhoneNumber: business.twilio_phone_number,
-      twilioPhoneNumber: twilioNumber?.phone_number,
-      assignedTwilioNumberId: business.assigned_twilio_number_id,
-      twilioNumberRowFound: !!twilioNumber,
-      twilioNumberBusinessId: twilioNumber?.business_id,
-      status: twilioNumber?.status,
-      mismatchReason: null as string | null
-    };
-    
+
     // Check 1: twilio_numbers row must exist
     if (!twilioNumber) {
-      consistencyCheck.mismatchReason = 'twilio_numbers row not found';
-      console.log('[TWILIO PROVISIONING CONSISTENCY] MISMATCH:', consistencyCheck);
-      return { consistent: false, mismatchReason: consistencyCheck.mismatchReason };
+      console.error('[TWILIO PROVISIONING] twilio_numbers row not found:', { businessId, phoneNumberSid });
+      return { consistent: false, mismatchReason: 'twilio_numbers row not found' };
     }
-    
+
     // Check 2: phone_number must match
     if (business.twilio_phone_number !== twilioNumber.phone_number) {
-      consistencyCheck.mismatchReason = 'phone_number mismatch between businesses and twilio_numbers';
-      console.log('[TWILIO PROVISIONING CONSISTENCY] MISMATCH:', consistencyCheck);
-      return { consistent: false, mismatchReason: consistencyCheck.mismatchReason };
+      console.error('[TWILIO PROVISIONING] phone_number mismatch:', { businessId, phoneNumberSid });
+      return { consistent: false, mismatchReason: 'phone_number mismatch between businesses and twilio_numbers' };
     }
-    
+
     // Check 3: business_id must match
     if (businessId !== twilioNumber.business_id) {
-      consistencyCheck.mismatchReason = 'business_id mismatch between businesses and twilio_numbers';
-      console.log('[TWILIO PROVISIONING CONSISTENCY] MISMATCH:', consistencyCheck);
-      return { consistent: false, mismatchReason: consistencyCheck.mismatchReason };
+      console.error('[TWILIO PROVISIONING] business_id mismatch:', { businessId, phoneNumberSid });
+      return { consistent: false, mismatchReason: 'business_id mismatch between businesses and twilio_numbers' };
     }
-    
+
     // Check 4: assigned_twilio_number_id must be set and match
     if (!business.assigned_twilio_number_id || business.assigned_twilio_number_id !== twilioNumber.id) {
-      consistencyCheck.mismatchReason = 'assigned_twilio_number_id not set or does not match twilio_numbers.id';
-      console.log('[TWILIO PROVISIONING CONSISTENCY] MISMATCH:', consistencyCheck);
-      return { consistent: false, mismatchReason: consistencyCheck.mismatchReason };
+      console.error('[TWILIO PROVISIONING] assigned_twilio_number_id mismatch:', { businessId, phoneNumberSid });
+      return { consistent: false, mismatchReason: 'assigned_twilio_number_id not set or does not match twilio_numbers.id' };
     }
-    
+
     // Check 5: status must be assigned/active, not available
     if (twilioNumber.status === 'available') {
-      consistencyCheck.mismatchReason = 'twilio_number status is available, should be assigned/active';
-      console.log('[TWILIO PROVISIONING CONSISTENCY] MISMATCH:', consistencyCheck);
-      return { consistent: false, mismatchReason: consistencyCheck.mismatchReason };
+      console.error('[TWILIO PROVISIONING] twilio_number status is available:', { businessId, phoneNumberSid });
+      return { consistent: false, mismatchReason: 'twilio_number status is available, should be assigned/active' };
     }
-    
-    console.log('[TWILIO PROVISIONING CONSISTENCY] ✓ CONSISTENT');
-    console.log('[TWILIO PROVISIONING CONSISTENCY] consistencyCheck:', consistencyCheck);
-    console.log('[TWILIO PROVISIONING CONSISTENCY] ========== COMPLETE ==========');
-    
+
+    console.log('[TWILIO PROVISIONING] Consistency check passed:', { businessId, phoneNumberSid });
+
     return { consistent: true, twilioNumber };
-    
+
   } catch (error: any) {
-    console.error('[TWILIO PROVISIONING CONSISTENCY] Exception:', error);
+    console.error('[TWILIO PROVISIONING] Consistency check exception:', error);
     return { consistent: false, mismatchReason: error.message };
   }
 }
@@ -162,10 +124,6 @@ async function reconcileTwilioNumberRow(
   businessId: string,
   correlationId: string
 ): Promise<{ success: boolean; error?: string }> {
-  console.log('[RECONCILE TWILIO NUMBER] ========== START ==========');
-  console.log('[RECONCILE TWILIO NUMBER] correlation_id:', correlationId);
-  console.log('[RECONCILE TWILIO NUMBER] business_id:', businessId);
-  
   try {
     // Query businesses table
     const { data: business, error: businessError } = await supabase
@@ -173,22 +131,17 @@ async function reconcileTwilioNumberRow(
       .select('id, twilio_phone_number, twilio_phone_number_sid')
       .eq('id', businessId)
       .single();
-    
+
     if (businessError || !business) {
       const error = 'Business not found';
-      console.error('[RECONCILE TWILIO NUMBER] ERROR:', error);
+      console.error('[TWILIO PROVISIONING] Reconciliation failed:', error);
       return { success: false, error };
     }
-    
-    console.log('[RECONCILE TWILIO NUMBER] Business found:', {
-      businessPhoneNumber: business.twilio_phone_number,
-      businessTwilioSid: business.twilio_phone_number_sid
-    });
-    
+
     // Check if twilio_phone_number exists
     if (!business.twilio_phone_number || !business.twilio_phone_number_sid) {
       const error = 'Business has no twilio_phone_number or twilio_phone_number_sid';
-      console.error('[RECONCILE TWILIO NUMBER] ERROR:', error);
+      console.error('[TWILIO PROVISIONING] Reconciliation failed:', error);
       return { success: false, error };
     }
     

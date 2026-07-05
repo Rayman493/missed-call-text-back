@@ -20,8 +20,6 @@ const supabase = createClient(
 
 export async function POST(request: Request) {
   try {
-    console.log('[FOLLOWUP CRON START] Route hit');
-    
     // Verify CRON_SECRET for cron job protection
     // Support both Authorization header and Vercel's x-vercel-cron header
     const authHeader = request.headers.get('authorization')
@@ -39,33 +37,19 @@ export async function POST(request: Request) {
       crypto.timingSafeEqual(Buffer.from(providedSecret), Buffer.from(expectedSecret))
 
     // Check authentication via trusted headers only
-    const isAuthorized = 
+    const isAuthorized =
       cronHeader === '1' || // Vercel cron
       hasValidBearerSecret // Authorization header
 
     if (!isAuthorized) {
-      console.error('[FOLLOWUP CRON] Unauthorized request - missing or invalid credentials')
-      console.error('[FOLLOWUP CRON] Headers:', {
-        hasAuth: !!authHeader,
-        hasCron: !!cronHeader
-      })
+      console.error('[FOLLOWUP CRON] Unauthorized request')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('[FOLLOWUP CRON] Authorized successfully');
-    console.log('[FOLLOWUP CRON START] Processing started');
-    
-    // Add query logs
+    console.log('[FOLLOWUP CRON] Processing started');
+
     const now = new Date().toISOString();
-    console.log('[FOLLOWUP PROCESSOR QUERY] =========================================');
-    console.log('[FOLLOWUP PROCESSOR QUERY] now:', now);
-    console.log('[FOLLOWUP PROCESSOR QUERY] businessIdFilter: none (all businesses)');
-    console.log('[FOLLOWUP PROCESSOR QUERY] statusFilter: pending');
-    console.log('[FOLLOWUP PROCESSOR QUERY] scheduledAtLte:', now);
-    console.log('[FOLLOWUP PROCESSOR QUERY] enabledSettings: N/A (query all pending jobs)');
-    console.log('[FOLLOWUP PROCESSOR QUERY] Timestamp:', new Date().toISOString());
-    console.log('[FOLLOWUP PROCESSOR QUERY] =========================================');
-    
+
     // Fetch up to 10 pending jobs where scheduled_for <= now()
     const { data: jobs, error: jobsError } = await supabase
       .from('follow_up_jobs')
@@ -75,15 +59,8 @@ export async function POST(request: Request) {
       .limit(10)
       .order('scheduled_for', { ascending: true });
 
-    console.log('[FOLLOWUP PROCESSOR RESULT] =========================================');
-    console.log('[FOLLOWUP PROCESSOR RESULT] pendingCount:', jobs?.length || 0);
-    console.log('[FOLLOWUP PROCESSOR RESULT] jobIds:', (jobs || []).map((job: any) => job.id));
-    console.log('[FOLLOWUP PROCESSOR RESULT] queryError:', jobsError?.message || 'none');
-    console.log('[FOLLOWUP PROCESSOR RESULT] Timestamp:', new Date().toISOString());
-    console.log('[FOLLOWUP PROCESSOR RESULT] =========================================');
-
     if (jobsError) {
-      console.error('[SYSTEM] [FOLLOWUP] Error fetching jobs:', jobsError);
+      console.error('[FOLLOWUP CRON] Error fetching jobs:', jobsError);
       return NextResponse.json(
         { error: 'Failed to fetch jobs', details: jobsError },
         { status: 500 }
@@ -91,7 +68,7 @@ export async function POST(request: Request) {
     }
 
     if (!jobs || jobs.length === 0) {
-      console.log('[FOLLOWUP JOBS FOUND] No pending jobs found');
+      console.log('[FOLLOWUP CRON] No pending jobs found');
       return NextResponse.json({
         processed: 0,
         sent: 0,
@@ -100,7 +77,7 @@ export async function POST(request: Request) {
       });
     }
 
-    console.log(`[FOLLOWUP JOBS FOUND] ${jobs.length} pending jobs found`);
+    console.log(`[FOLLOWUP CRON] Processing ${jobs.length} pending jobs`);
 
     let processed = 0;
     let sent = 0;
@@ -112,11 +89,8 @@ export async function POST(request: Request) {
     
     for (const job of jobs) {
       processed++;
-      console.log(`[FOLLOWUP JOB PICKED] Job ${job.id} picked for processing`);
 
       try {
-        console.log(`[FOLLOWUP JOB PICKED] Fetching lead for job ${job.id}`);
-        
         // Fetch the corresponding lead
         const { data: lead, error: leadError } = await supabase
           .from('leads')
@@ -128,26 +102,24 @@ export async function POST(request: Request) {
           throw new Error(`Lead not found for job ${job.id}: ${leadError?.message || 'Unknown error'}`);
         }
 
-        console.log(`[FOLLOWUP LEAD LOADED] Lead ${lead.id} loaded for job ${job.id}`);
-
         // Check if lead has opted out
         if (lead.opted_out) {
-          console.log(`[SYSTEM] [FOLLOWUP] Lead ${lead.id} opted out, skipping job ${job.id}`);
-          
+          console.log(`[FOLLOWUP CRON] Lead opted out, skipping job ${job.id}`);
+
           // Mark job as failed with opt-out reason
           const { error: updateError } = await supabase
             .from('follow_up_jobs')
-            .update({ 
+            .update({
               status: 'failed',
               attempt_count: job.attempt_count + 1,
               last_error_message: 'Lead has opted out of messages',
             })
             .eq('id', job.id);
-          
+
           if (updateError) {
-            console.error(`[SYSTEM] [FOLLOWUP] Failed to update job ${job.id}:`, updateError);
+            console.error(`[FOLLOWUP CRON] Failed to update job ${job.id}:`, updateError);
           }
-          
+
           failed++;
           continue;
         }
@@ -156,8 +128,6 @@ export async function POST(request: Request) {
         if (!lead.caller_phone) {
           throw new Error(`Missing phone number for lead ${lead.id}`);
         }
-
-        console.log(`[SYSTEM] [FOLLOWUP] Phone validated: ${lead.caller_phone}`);
 
         // Fetch conversation for this lead (for proper context)
         const { data: conversation, error: conversationError } = await supabase
@@ -168,10 +138,8 @@ export async function POST(request: Request) {
           .maybeSingle();
 
         if (conversationError && conversationError.code !== 'PGRST116') {
-          console.error(`[SYSTEM] [FOLLOWUP] Error fetching conversation for lead ${job.lead_id}:`, conversationError);
+          console.error(`[FOLLOWUP CRON] Error fetching conversation for lead ${job.lead_id}:`, conversationError);
         }
-
-        console.log(`[FOLLOWUP CONVERSATION LOADED] Conversation ${conversation?.id || 'none'} for job ${job.id}`);
 
         // Fetch business information for Twilio
         const { data: business, error: businessError } = await supabase
@@ -184,8 +152,6 @@ export async function POST(request: Request) {
           throw new Error(`Business not found for job ${job.id}: ${businessError?.message || 'Unknown error'}`);
         }
 
-        console.log(`[FOLLOWUP BUSINESS LOADED] Business ${business.id} loaded for job ${job.id}`);
-
         // Fetch business OOO settings
         let finalMessageBody = job.message_body;
 
@@ -193,20 +159,6 @@ export async function POST(request: Request) {
         if (!business.twilio_messaging_service_sid) {
           throw new Error(`Missing twilio_messaging_service_sid for business ${business.id}`);
         }
-
-        console.log(`[FOLLOWUP MESSAGE CREATED] Message body prepared for job ${job.id}`, {
-          message_length: finalMessageBody.length,
-          message_preview: finalMessageBody.substring(0, 50)
-        });
-
-        console.log(`[FOLLOWUP TWILIO SEND START] Starting Twilio send for job ${job.id}`, {
-          business_id: business.id,
-          business_phone: business.twilio_phone_number,
-          to_phone: lead.caller_phone,
-          message_length: finalMessageBody.length,
-          lead_id: job.lead_id,
-          conversation_id: conversation?.id
-        });
 
         // Send SMS using centralized sendSms function with explicit source
         const smsOptions: any = {

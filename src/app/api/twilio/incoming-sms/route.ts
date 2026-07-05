@@ -5,59 +5,19 @@ import { checkIncomingSmsRateLimit } from '@/lib/rate-limit'
 import { notificationServiceServer } from '@/lib/notifications-server'
 
 export async function POST(req: NextRequest) {
-  // CRITICAL: Log IMMEDIATELY to verify route is being hit
-  const isDevEnvironment = process.env.NODE_ENV === 'development'
-  
-  if (isDevEnvironment) {
-    console.log('[INCOMING SMS WEBHOOK HIT]')
-    console.log('[INCOMING SMS METHOD]', req.method)
-    console.log('[INCOMING SMS URL]', req.url)
-  }
-  
   try {
     // Read raw body BEFORE any processing
     const rawBody = await req.text();
-    
-    if (isDevEnvironment) {
-      console.log('[INCOMING SMS RAW BODY]', rawBody)
-      console.log('[INCOMING SMS HEADERS]', Object.fromEntries(req.headers.entries()))
-    }
-    
     const contentType = req.headers.get('content-type') || '';
-    
-    if (isDevEnvironment) {
-      console.log('[MMS DEBUG] content-type', contentType)
-      console.log('[MMS DEBUG] raw body length', rawBody.length)
-    }
-    
+
     // Parse body using URLSearchParams
     const params = Object.fromEntries(new URLSearchParams(rawBody))
-    
-    if (isDevEnvironment) {
-      console.log('[INCOMING SMS NUMMEDIA]', params['NumMedia'])
-      console.log('[INCOMING SMS MEDIA URL 0]', params['MediaUrl0'])
-      console.log('[INCOMING SMS CONTENT TYPE 0]', params['MediaContentType0'])
-    }
-    
-    // Signature validation
-    // SECURITY: Signature validation is ALWAYS required, even in development
-    // This prevents attacks if NODE_ENV is accidentally set to 'development' in production
-    if (isDevEnvironment) {
-      console.log('[SIGNATURE VALIDATION START]', {
-        url: req.url,
-        contentType,
-        bodyLength: rawBody.length
-      })
-    }
 
+    // Signature validation
     const isValid = requireTwilioAuth(req, params, rawBody.length, contentType);
 
     if (!isValid) {
-      console.error('[INBOUND SMS SIGNATURE VALID] FAILED', {
-        url: req.url,
-        contentType,
-        bodyLength: rawBody.length
-      })
+      console.error('[INBOUND SMS] Signature validation failed');
       const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>Unauthorized: Invalid signature</Message>
@@ -69,8 +29,6 @@ export async function POST(req: NextRequest) {
         },
       })
     }
-
-    console.log('[INBOUND SMS SIGNATURE VALID] SUCCESS')
     
     // Parse body using formData for proper form data handling
     const formData = new FormData()
@@ -86,23 +44,11 @@ export async function POST(req: NextRequest) {
     const Body = formData.get('Body')?.toString() || ''
     const MessageSid = formData.get('MessageSid')?.toString() || ''
     const NumMedia = Number(formData.get('NumMedia') || 0)
-    
-    // Log ALL Twilio parameters for opt-in event detection
-    console.log('[INBOUND SMS ALL PARAMETERS]', params)
-    
+
     // Check for Twilio opt-in event metadata
     const SmsStatus = formData.get('SmsStatus')?.toString() || ''
     const SmsDirection = formData.get('SmsDirection')?.toString() || ''
-    
-    if (isDevEnvironment) {
-      console.log('[MMS DEBUG] From', From)
-      console.log('[MMS DEBUG] To', To)
-      console.log('[MMS DEBUG] Body', Body)
-      console.log('[MMS DEBUG] MessageSid', MessageSid)
-      console.log('[MMS DEBUG] NumMedia', NumMedia)
-      console.log('[OPT-IN METADATA]', { SmsStatus, SmsDirection })
-    }
-    
+
     // Extract MMS media if present
     const media: Array<{ url: string; contentType: string }> = []
     if (NumMedia > 0) {
@@ -111,17 +57,7 @@ export async function POST(req: NextRequest) {
         const mediaContentType = params[`MediaContentType${i}`]
         if (mediaUrl && mediaContentType) {
           media.push({ url: mediaUrl, contentType: mediaContentType })
-          if (isDevEnvironment) {
-            console.log(`[MMS DEBUG] Media ${i}: url=${mediaUrl.substring(0, 30)}..., type=${mediaContentType}`)
-          }
-        } else {
-          if (isDevEnvironment) {
-            console.log(`[MMS DEBUG] Media ${i}: missing url or contentType`)
-          }
         }
-      }
-      if (isDevEnvironment) {
-        console.log('[MMS DEBUG] Total media extracted:', media.length)
       }
     }
     
@@ -146,20 +82,16 @@ export async function POST(req: NextRequest) {
     
     // Validate required fields - allow empty body if media is present
     const hasContent = (Body && Body.length > 0) || (media && media.length > 0)
-    
-    if (isDevEnvironment) {
-      console.log('[MMS DEBUG] hasContent check', { hasContent, BodyLength: Body.length, MediaCount: media.length })
-    }
-    
+
     if (!From || !To || !MessageSid || !hasContent) {
-      console.error('[SYSTEM] [INCOMING-SMS] Missing required fields or no content:', { 
-        From, 
-        To, 
+      console.error('[INBOUND SMS] Missing required fields or no content:', {
+        From,
+        To,
         BodyLength: Body?.length || 0,
         MediaCount: media?.length || 0,
-        MessageSid 
+        MessageSid
       })
-      
+
       const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>Error: Missing required fields or no content</Message>
@@ -170,14 +102,6 @@ export async function POST(req: NextRequest) {
         headers: {
           'Content-Type': 'text/xml',
         },
-      })
-    }
-    
-    if (isDevEnvironment) {
-      console.log('[INBOUND SMS] Processing inbound SMS:', {
-        From,
-        To,
-        BodyLength: Body.length
       })
     }
     
@@ -200,46 +124,33 @@ export async function POST(req: NextRequest) {
         }
       })
     }
-    
-    if (isDevEnvironment) {
-      console.log('[INBOUND SMS] Processing successful')
-    
-      // Add operational logs for successful processing
-      if (result.lead) {
-        console.log('[INBOUND SMS] Lead found/created:', result.lead.id)
-        console.log('[MMS DEBUG] Lead ID for tracing:', result.lead.id)
-      }
-      
-      if (result.conversation) {
-        console.log('[INBOUND SMS] Conversation found/created:', result.conversation.id)
-      }
-      
-      if (result.message) {
-        console.log('[INBOUND SMS] Message inserted:', result.message.id)
-        console.log('[MMS DEBUG] Message ID for tracing:', result.message.id)
-      }
-      
-      // Add debug response with key identifiers
-      console.log('[INBOUND SMS DEBUG]', {
-        businessId: result.lead?.business_id || 'unknown',
-        leadId: result.lead?.id || 'unknown',
-        conversationId: result.conversation?.id || 'unknown',
-        messageId: result.message?.id || 'unknown',
-        numMedia: formData.get('NumMedia') || 0
-      })
+
+    console.log('[INBOUND SMS] Processing successful')
+
+    // Add operational logs for successful processing
+    if (result.lead) {
+      console.log('[INBOUND SMS] Lead found/created:', result.lead.id)
     }
-      
-      // Return the TwiML response
+
+    if (result.conversation) {
+      console.log('[INBOUND SMS] Conversation found/created:', result.conversation.id)
+    }
+
+    if (result.message) {
+      console.log('[INBOUND SMS] Message inserted:', result.message.id)
+    }
+
+    // Return the TwiML response
     return new Response(result.twiml, {
       status: 200,
       headers: {
         'Content-Type': 'text/xml',
       },
     })
-    
+
   } catch (error) {
-    console.error('[SYSTEM] [INCOMING-SMS] Unexpected error:', error)
-    
+    console.error('[INBOUND SMS] Unexpected error:', error)
+
     // Defensive fallback: always respond with 200 to prevent Twilio retries
     return new Response('ok', { status: 200 })
   }

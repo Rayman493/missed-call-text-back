@@ -46,23 +46,7 @@ export async function sendSms(
   const isFollowUpMessage = options?.source === 'follow_up_job';
   const isAutomatedMessage = options?.lead_id && !options.isManual && !message.includes('ReplyFlow Admin') && !message.includes('Manual test') && !isFollowUpMessage;
 
-  console.log('[FOLLOWUP TWILIO SEND START] Checking idempotency for follow-up', {
-    lead_id: options?.lead_id,
-    conversation_id: options?.conversation_id,
-    source: options?.source,
-    isFollowUpMessage,
-    isAutomatedMessage,
-    message_preview: message.substring(0, 50)
-  });
-
   if (isAutomatedMessage) {
-    console.log('[MESSAGE INSERT ATTEMPT] Checking for duplicate automated message', {
-      lead_id: options.lead_id,
-      message_body: message.substring(0, 50),
-      to,
-      isManual: options?.isManual
-    });
-
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const { data: existingMessage, error: duplicateError } = await supabase
       .from('messages')
@@ -74,35 +58,15 @@ export async function sendSms(
       .maybeSingle();
 
     if (existingMessage) {
-      console.log('[MESSAGE DUPLICATE BLOCKED] Found duplicate automated message with same body within 5 minutes', {
-        existing_message_id: existingMessage.id,
-        existing_created_at: existingMessage.created_at,
-        existing_body: existingMessage.body?.substring(0, 50),
-        lead_id: options.lead_id,
-        new_body: message.substring(0, 50)
-      });
-      console.log('[FOLLOWUP TWILIO SEND FAILED] Blocked by idempotency check');
-      console.log('[FOLLOWUP RETURN PATH] Idempotency check - returning null SID');
+      console.log('[SMS] Duplicate blocked (idempotency):', { lead_id: options.lead_id, message_sid: existingMessage.id });
       return { sid: null, messageId: null }; // Block duplicate
     }
 
     if (duplicateError && duplicateError.code !== 'PGRST116') {
-      console.error('[MESSAGE DUPLICATE CHECK] Error checking for duplicates:', duplicateError);
+      console.error('[SMS] Error checking duplicates:', duplicateError);
       // Continue with send if check fails (don't block legitimate messages)
     }
   }
-
-  console.log('[FOLLOWUP TWILIO SEND RESULT] Idempotency check passed, proceeding with send');
-
-  // Compact SMS trace log
-  console.log('[SMS TRACE] =========================================');
-  console.log('[SMS TRACE] callSid: N/A (sendSms function)');
-  console.log('[SMS TRACE] sender: sendSms-function');
-  console.log('[SMS TRACE] reason:', options?.source || 'general_sms');
-  console.log('[SMS TRACE] template selected: N/A (sendSms function)');
-  console.log('[SMS TRACE] why summary skipped: N/A (sendSms function)');
-  console.log('[SMS TRACE] why generic sent: N/A (sendSms function)');
-  console.log('[SMS TRACE] =========================================');
 
   // Check if lead has opted out - block automated messages to opted-out numbers
   if (options?.lead_id && !options.isManual) {
@@ -126,119 +90,51 @@ export async function sendSms(
   // Validate Twilio environment for SMS operations
   const smsValidation = validateTwilioForSms();
 
-  console.log('[FOLLOWUP TWILIO SEND START] Twilio validation check', {
-    isValid: smsValidation.isValid,
-    error: smsValidation.error,
-    method: smsValidation.method
-  });
-
   const maskPhone = (phone: string | null | undefined) => {
     if (!phone) return 'undefined'
     return phone.replace(/\d(?=\d{4})/g, '*')
   }
 
-  console.log('[SMS SEND] Starting sendSms:', {
-    business_id: business.id,
-    business_name: business.name,
-    to: maskPhone(to),
-    message_length: message.length,
-    lead_id: options?.lead_id,
-    conversation_id: options?.conversation_id,
-    twilio_phone_number: maskPhone(business.twilio_phone_number),
-    messaging_service_sid: business.twilio_messaging_service_sid,
-    provisioning_status: business.provisioning_status
-  });
-
   if (!smsValidation.isValid) {
-    console.error('[SMS FAILED] Twilio validation failed:', smsValidation.error);
-    console.error('[FOLLOWUP TWILIO SEND FAILED] Twilio validation failed');
-    console.error('[SMS FAILED] Missing config:', {
-      TWILIO_ACCOUNT_SID: !!process.env.TWILIO_ACCOUNT_SID,
-      TWILIO_AUTH_TOKEN: !!process.env.TWILIO_AUTH_TOKEN,
-      TWILIO_PHONE_NUMBER: !!process.env.TWILIO_PHONE_NUMBER,
-      TWILIO_MESSAGING_SERVICE_SID: !!process.env.TWILIO_MESSAGING_SERVICE_SID,
-      business_twilio_phone_number: !!business.twilio_phone_number,
-      business_twilio_phone_number_sid: !!business.twilio_phone_number_sid
-    });
-    console.log('[FOLLOWUP RETURN PATH] Twilio validation failed - returning null SID');
+    console.error('[SMS] Twilio validation failed:', smsValidation.error);
     // Still log the failed attempt
     await logFailedMessage(business, to, message, options, smsValidation.error || 'Twilio validation failed', 'CONFIG_ERROR', false);
     return { sid: null, messageId: null };
   }
-
-  console.log('[SMS Sender] business_id:', business.id);
-  console.log('[SMS Sender] business twilio_phone_number:', maskPhone(business.twilio_phone_number));
-  console.log('[SMS Sender] business twilio_phone_number_sid:', business.twilio_phone_number_sid ? `${business.twilio_phone_number_sid.substring(0, 8)}...` : 'undefined');
-  console.log('[SMS Sender] business messaging_service_sid:', business.twilio_messaging_service_sid);
-  console.log('[SMS Sender] provisioning_status:', business.provisioning_status);
-
-  console.log('[FOLLOWUP TWILIO SEND START] Business config check', {
-    has_twilio_phone_number: !!business.twilio_phone_number,
-    has_twilio_phone_number_sid: !!business.twilio_phone_number_sid,
-    provisioning_status: business.provisioning_status
-  });
-
-  console.log('[sms] outbound message queued:', {
-    business_id: business.id,
-    business_phone: maskPhone(business.twilio_phone_number),
-    business_phone_sid: business.twilio_phone_number_sid ? `${business.twilio_phone_number_sid.substring(0, 8)}...` : 'undefined',
-    messaging_service_sid: business.twilio_messaging_service_sid,
-    provisioning_status: business.provisioning_status,
-    to_phone: maskPhone(to),
-    message_body: message.substring(0, 50) + '...',
-    lead_id: options?.lead_id,
-    conversation_id: options?.conversation_id
-  });
 
   // Verify business has a canonical number
   // When using Messaging Service, twilio_phone_number_sid is not required (Messaging Service manages sender pool)
   // twilio_phone_number is still required for validation and logging
   const requiresPhoneSid = !business.twilio_messaging_service_sid;
   if (!business.twilio_phone_number || (requiresPhoneSid && !business.twilio_phone_number_sid)) {
-    console.error('[SMS FAILED] No canonical Twilio number assigned to business');
-    console.error('[FOLLOWUP TWILIO SEND FAILED] Missing Twilio number');
-    console.error('[SMS FAILED] Business config:', {
+    console.error('[SMS] No canonical Twilio number assigned to business:', { business_id: business.id });
+    console.error('[SMS] Business config:', {
       business_id: business.id,
-      twilio_phone_number: business.twilio_phone_number,
       twilio_phone_number_sid: business.twilio_phone_number_sid,
       messaging_service_sid: business.twilio_messaging_service_sid,
       requiresPhoneSid
     });
-    console.log('[FOLLOWUP RETURN PATH] Missing Twilio number - returning null SID');
     await logFailedMessage(business, to, message, options, 'No Twilio number assigned to business', 'NO_TWILIO_NUMBER', false);
     return { sid: null, messageId: null };
   }
-
-  console.log('[FOLLOWUP TWILIO SEND RESULT] Business config check passed');
 
   // FAIL-SAFE: Check if number is ready for use before sending
   // Bypass this check for offboarding/system SMS - they can use valid numbers even if not fully provisioned
   const isOffboardingSms = options?.isOffboarding || false;
   
   if (!isOffboardingSms) {
-    console.log('[FOLLOWUP TWILIO SEND START] Number readiness check');
-    console.log('[SMS FAIL-SAFE] Checking if number is ready for use');
     const isReady = await isNumberReadyForUse(business.id);
-    
+
     if (!isReady) {
-      console.error('[SMS FAILED] Number not ready for use - provisioning incomplete');
-      console.error('[FOLLOWUP TWILIO SEND FAILED] Number not ready');
-      console.error('[SMS FAILED] Business provisioning status:', business.provisioning_status);
-      console.log('[FOLLOWUP RETURN PATH] Number not ready - returning null SID');
+      console.error('[SMS] Number not ready for use:', { business_id: business.id, provisioning_status: business.provisioning_status });
       await logFailedMessage(business, to, message, options, 'Number not ready for use - provisioning incomplete', 'NUMBER_NOT_READY', false);
       return { sid: null, messageId: null };
     }
-
-    console.log('[FOLLOWUP TWILIO SEND RESULT] Number readiness check passed');
-    console.log('[SMS FAIL-SAFE] Number is ready for use');
-  } else {
-    console.log('[SMS OFFBOARDING] Skipping number readiness check for offboarding SMS');
   }
 
   // Handle simulation mode
   if (smsValidation.method === 'simulated') {
-    console.log('[SMS] 🧪 Simulated SMS sent:', { to: maskPhone(to), body: message.substring(0, 50) + '...' });
-    console.log('[FOLLOWUP TWILIO SEND RESULT] Simulated mode - returning simulated SID');
+    console.log('[SMS] Simulated SMS sent:', { to: maskPhone(to), body: message.substring(0, 50) + '...' });
     
     // Check if this is a system SMS (no lead_id)
     const isSystemSms = !options?.lead_id;

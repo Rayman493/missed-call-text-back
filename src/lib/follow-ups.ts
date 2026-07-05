@@ -42,51 +42,20 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
   message: string;
 }>> {
   try {
-    console.log('[GET FOLLOWUP SCHEDULE START] =========================================');
-    console.log('[GET FOLLOWUP SCHEDULE START] businessId:', businessId);
-    console.log('[GET FOLLOWUP SCHEDULE START] Timestamp:', new Date().toISOString());
-    console.log('[GET FOLLOWUP SCHEDULE START] =========================================');
-
     const business = await db.getBusiness(businessId)
     if (!business) {
-      console.error('[GET FOLLOWUP SCHEDULE] Business not found:', businessId)
+      console.error('[FOLLOWUP] Business not found:', businessId)
       return []
     }
-
-    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] =========================================');
-    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] businessId:', businessId);
-    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] automation_settings:', JSON.stringify(business.automation_settings, null, 2));
-    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] Timestamp:', new Date().toISOString());
-    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] =========================================');
-
-    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] =========================================');
-    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] businessId:', businessId);
-    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] automation_settings:', JSON.stringify(business.automation_settings, null, 2));
-    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] rawBusinessRow:', JSON.stringify(business, null, 2));
-    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] Timestamp:', new Date().toISOString());
-    console.log('[GET FOLLOWUP SCHEDULE BUSINESS SETTINGS RAW] =========================================');
 
     const automationSettings = business.automation_settings || {}
     const followUpsContainer = automationSettings.followUps || {}
     const followUpSettings = followUpsContainer.followUps
     const followUpsEnabled = followUpsContainer.enabled !== false // Default to enabled if not set
 
-    console.log('[FOLLOWUP SETTINGS LOADED] =========================================');
-    console.log('[FOLLOWUP SETTINGS LOADED] businessId:', businessId);
-    console.log('[FOLLOWUP SETTINGS LOADED] enabled:', followUpsEnabled);
-    console.log('[FOLLOWUP SETTINGS LOADED] followUpsCount:', followUpSettings?.length || 0);
-    console.log('[FOLLOWUP SETTINGS LOADED] Timestamp:', new Date().toISOString());
-    console.log('[FOLLOWUP SETTINGS LOADED] =========================================');
-
     // If no custom settings or disabled, use defaults
     if (!followUpSettings || !followUpSettings.length || !followUpsEnabled) {
-      console.log('[FOLLOWUP SKIP REASON] =========================================');
-      console.log('[FOLLOWUP SKIP REASON] businessId:', businessId);
-      console.log('[FOLLOWUP SKIP REASON] reason:', !followUpSettings ? 'followUpSettings is null/undefined' : !followUpSettings.length ? 'followUpSettings array is empty' : 'followUpsEnabled is false');
-      console.log('[FOLLOWUP SKIP REASON] followUpsEnabled:', followUpsEnabled);
-      console.log('[FOLLOWUP SKIP REASON] followUpSettingsLength:', followUpSettings?.length || 0);
-      console.log('[FOLLOWUP SKIP REASON] Timestamp:', new Date().toISOString());
-      console.log('[FOLLOWUP SKIP REASON] =========================================');
+      console.log('[FOLLOWUP] Using default schedule (no custom settings or disabled):', businessId)
       return []
     }
 
@@ -98,13 +67,6 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
         let delayMinutes: number
         const delayValue = fu.delayDays || fu.delay || 0
         const delayUnit = fu.delayUnit || fu.unit || 'days'
-
-        console.log('[FOLLOWUP DELAY CONVERSION]', {
-          step: fu.step,
-          delayValue,
-          delayUnit,
-          original: { delayDays: fu.delayDays, delay: fu.delay, delayUnit: fu.delayUnit, unit: fu.unit }
-        })
 
         switch (delayUnit) {
           case 'minutes':
@@ -119,30 +81,14 @@ export async function getFollowUpSchedule(businessId: string): Promise<Array<{
             break
         }
 
-        console.log('[FOLLOWUP DELAY CONVERTED]', {
-          step: fu.step,
-          delayMinutes,
-          delayValue,
-          delayUnit,
-          calculation: `${delayValue} ${delayUnit} = ${delayMinutes} minutes`
-        })
-
         const result = {
           step: fu.step,
           delayMinutes,
           message: fu.message.replace('{{business_name}}', business.name || 'My Business')
         }
 
-        console.log('[FOLLOWUP SCHEDULE ITEM]', {
-          step: result.step,
-          delayMinutes: result.delayMinutes,
-          messagePreview: result.message.substring(0, 50)
-        })
-
         return result
-      })
-    
-    console.log('[GET FOLLOWUP SCHEDULE] Converted schedule:', { length: schedule.length, schedule });
+      });
     return schedule
   } catch (error) {
     console.error('[GET FOLLOWUP SCHEDULE] Error getting follow-up schedule:', error)
@@ -177,16 +123,9 @@ export async function createFollowUpJobs(params: {
 }) {
   const { businessId, leadId, conversationId, businessName } = params
 
-  console.log('[FOLLOWUP CREATE CHECK] =========================================');
-  console.log('[FOLLOWUP CREATE CHECK] businessId:', businessId);
-  console.log('[FOLLOWUP CREATE CHECK] leadId:', leadId);
-  console.log('[FOLLOWUP CREATE CHECK] conversationId:', conversationId);
-  console.log('[FOLLOWUP CREATE CHECK] businessName:', businessName);
-  console.log('[FOLLOWUP CREATE CHECK] Timestamp:', new Date().toISOString());
-  console.log('[FOLLOWUP CREATE CHECK] =========================================');
+  console.log('[FOLLOWUP] Creating follow-up jobs:', { businessId, leadId, conversationId })
 
   // Guard: Check if AI intake is complete - skip follow-up creation if so
-  console.log('[FOLLOWUP CREATE CHECK] Checking AI intake completion for lead:', leadId)
   const { data: leadData } = await supabaseAdmin
     .from('leads')
     .select('raw_metadata')
