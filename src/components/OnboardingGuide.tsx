@@ -44,67 +44,67 @@ export default function OnboardingGuide({ isTrialActive = false }: OnboardingGui
 
         {/* Connect your business line */}
         <div
-          className={`flex gap-3 sm:gap-4 p-4 sm:p-5 rounded-xl border transition-all ${
+          className={`flex gap-3 sm:gap-4 p-4 sm:p-5 rounded-xl border transition-all relative ${
             isTrialActive
-              ? 'bg-white dark:bg-slate-800/50 border-blue-200 dark:border-blue-700/50 shadow-sm'
-              : 'bg-transparent border-slate-200 dark:border-slate-700/50'
+              ? 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/40 border-2 border-blue-400 dark:border-blue-500 shadow-lg shadow-blue-200/50 dark:shadow-blue-900/30'
+              : 'bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50'
           }`}
         >
           <div
             className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${
               isTrialActive
-                ? 'bg-blue-100 dark:bg-blue-900/30'
-                : 'bg-slate-100 dark:bg-slate-800'
+                ? 'bg-blue-500 dark:bg-blue-600 shadow-md'
+                : 'bg-slate-200 dark:bg-slate-700'
             }`}
           >
-            <Phone className={`w-5 h-5 sm:w-6 sm:h-6 ${isTrialActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
+            <Phone className={`w-5 h-5 sm:w-6 sm:h-6 ${isTrialActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className={`text-sm sm:text-base font-semibold mb-1 ${isTrialActive ? 'text-foreground' : 'text-muted-foreground'}`}>
-              Connect your business line
-            </h3>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className={`text-sm sm:text-base font-bold ${isTrialActive ? 'text-blue-900 dark:text-blue-100' : 'text-muted-foreground'}`}>
+                Connect your business line
+              </h3>
+              {isTrialActive && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white bg-blue-600 dark:bg-blue-500 rounded-full shadow-sm">
+                  NEXT STEP
+                </span>
+              )}
+            </div>
+            <p className={`text-xs sm:text-sm leading-relaxed ${isTrialActive ? 'text-blue-800/80 dark:text-blue-200/80' : 'text-muted-foreground'}`}>
               Missed calls from your business number are routed to ReplyFlow.
             </p>
           </div>
-          {isTrialActive && (
-            <div className="flex-shrink-0">
-              <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-full">
-                In progress
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Capture missed callers automatically */}
         <div
           className={`flex gap-3 sm:gap-4 p-4 sm:p-5 rounded-xl border transition-all ${
             isTrialActive
-              ? 'bg-white dark:bg-slate-800/50 border-blue-200 dark:border-blue-700/50 shadow-sm'
-              : 'bg-transparent border-slate-200 dark:border-slate-700/50'
+              ? 'bg-slate-50/50 dark:bg-slate-800/20 border-slate-200 dark:border-slate-700/30'
+              : 'bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50'
           }`}
         >
           <div
             className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${
               isTrialActive
-                ? 'bg-blue-100 dark:bg-blue-900/30'
-                : 'bg-slate-100 dark:bg-slate-800'
+                ? 'bg-slate-200 dark:bg-slate-700/50'
+                : 'bg-slate-200 dark:bg-slate-700'
             }`}
           >
-            <MessageSquare className={`w-5 h-5 sm:w-6 sm:h-6 ${isTrialActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
+            <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400 dark:text-slate-500" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className={`text-sm sm:text-base font-semibold mb-1 ${isTrialActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+            <h3 className="text-sm sm:text-base font-medium text-slate-500 dark:text-slate-400 mb-1">
               Capture missed callers automatically
             </h3>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 leading-relaxed">
               ReplyFlow texts missed callers and recovers leads for you.
             </p>
           </div>
           {isTrialActive && (
             <div className="flex-shrink-0">
-              <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-full">
-                Next
+              <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/50 rounded-full">
+                Upcoming
               </span>
             </div>
           )}
