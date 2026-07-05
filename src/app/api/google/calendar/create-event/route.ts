@@ -315,6 +315,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('[Calendar Create] Unexpected error:', error)
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 })
+    return NextResponse.json({ error: 'Unable to create calendar event. Please try again.' }, { status: 500 })
   }
 }

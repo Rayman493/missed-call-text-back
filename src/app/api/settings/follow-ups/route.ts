@@ -63,7 +63,7 @@ export async function GET() {
     return NextResponse.json(followUpSettings)
   } catch (error) {
     console.error('[Follow-ups Settings GET] Unexpected error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Unable to load settings. Please try again.' }, { status: 500 })
   }
 }
 
@@ -133,6 +133,6 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(settings)
   } catch (error) {
     console.error('[Follow-ups Settings PUT] Unexpected error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Unable to save settings. Please try again.' }, { status: 500 })
   }
 }

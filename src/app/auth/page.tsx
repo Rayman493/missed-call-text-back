@@ -209,7 +209,7 @@ function AuthContent() {
       await new Promise(resolve => setTimeout(resolve, 800))
       router.push(redirectTarget)
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in')
+      setError(err.message || 'Unable to sign in. Please check your email and password and try again.')
     } finally {
       setLoading(false)
     }
@@ -375,7 +375,7 @@ function AuthContent() {
         isSubmittingRef.current = false
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to create account')
+      setError(err.message || 'Unable to create account. Please try again or contact support if the issue persists.')
       setLoading(false)
       setIsSubmitting(false)
       isSubmittingRef.current = false
