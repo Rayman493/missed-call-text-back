@@ -1050,6 +1050,7 @@ export async function isNumberReadyForUse(businessId: string): Promise<boolean> 
     if (businessError || !business) {
       console.error('[FAIL-SAFE] Business not found:', businessId);
       console.error('[FAIL-SAFE] Business lookup error:', businessError);
+      console.log('[FAIL-SAFE FAILED because BUSINESS_NOT_FOUND]', { businessId, businessError });
       return false;
     }
     
@@ -1060,6 +1061,7 @@ export async function isNumberReadyForUse(businessId: string): Promise<boolean> 
     
     if (!business.twilio_phone_number_sid) {
       console.error('[FAIL-SAFE] No phone SID assigned to business');
+      console.log('[FAIL-SAFE FAILED because NO_BUSINESS_PHONE_SID]', { businessId, business_provisioning_status: business.provisioning_status });
       return false;
     }
     
@@ -1110,12 +1112,14 @@ export async function isNumberReadyForUse(businessId: string): Promise<boolean> 
           }
           
           console.log('[FAIL-SAFE] ✓ FALLBACK SUCCESS: SMS allowed');
+          console.log('[FAIL-SAFE PASSED]', { reason: 'BUSINESS_COMPLETED_FALLBACK_SELF_HEAL', businessId, business_provisioning_status: business.provisioning_status });
           console.log('[FAIL-SAFE] ===== FALLBACK LOGIC END =====');
           return true;
         } catch (healException) {
           console.error('[FAIL-SAFE] ✗ Self-heal exception:', healException);
           console.warn('[FAIL-SAFE] ⚠ SMS allowed but self-heal failed');
           console.log('[FAIL-SAFE] ✓ FALLBACK SUCCESS: SMS allowed (with warnings)');
+          console.log('[FAIL-SAFE PASSED]', { reason: 'BUSINESS_COMPLETED_FALLBACK_SELF_HEAL_EXCEPTION_IGNORED', businessId, business_provisioning_status: business.provisioning_status });
           console.log('[FAIL-SAFE] ===== FALLBACK LOGIC END =====');
           return true;
         }
@@ -1123,6 +1127,7 @@ export async function isNumberReadyForUse(businessId: string): Promise<boolean> 
         console.log('[FAIL-SAFE] ✗ FALLBACK: Business provisioning not completed, blocking SMS');
         console.log('[FAIL-SAFE] Business provisioning_status:', business.provisioning_status);
         console.log('[FAIL-SAFE] Business twilio_phone_number_sid:', business.twilio_phone_number_sid);
+        console.log('[FAIL-SAFE FAILED because TWILIO_NUMBER_ROW_MISSING_AND_BUSINESS_NOT_COMPLETED]', { businessId, business_provisioning_status: business.provisioning_status, business_twilio_phone_number_sid: business.twilio_phone_number_sid });
         console.log('[FAIL-SAFE] ===== FALLBACK LOGIC END =====');
         return false;
       }
@@ -1136,6 +1141,7 @@ export async function isNumberReadyForUse(businessId: string): Promise<boolean> 
     // Only allow sending from 'ready' numbers
     if (twilioNumber.provisioning_status !== 'ready') {
       console.warn('[FAIL-SAFE] Number not ready for use. Status:', twilioNumber.provisioning_status);
+      console.log('[FAIL-SAFE FAILED because TWILIO_NUMBER_PROVISIONING_STATUS_NOT_READY]', { businessId, twilio_number_provisioning_status: twilioNumber.provisioning_status, business_provisioning_status: business.provisioning_status });
       console.log('[FAIL-SAFE] ===== SMS FAIL-SAFE CHECK END =====');
       return false;
     }
@@ -1153,6 +1159,7 @@ export async function isNumberReadyForUse(businessId: string): Promise<boolean> 
         
         if (!inPool) {
           console.error('[FAIL-SAFE] Number not in sender pool despite ready status');
+          console.log('[FAIL-SAFE FAILED because NUMBER_NOT_IN_SENDER_POOL]', { businessId, business_twilio_phone_number_sid: business.twilio_phone_number_sid, messagingServiceSid });
           console.log('[FAIL-SAFE] ===== SMS FAIL-SAFE CHECK END =====');
           return false;
         }
@@ -1160,6 +1167,7 @@ export async function isNumberReadyForUse(businessId: string): Promise<boolean> 
         console.log('[FAIL-SAFE] ✓ Number verified in sender pool');
       } catch (poolError) {
         console.error('[FAIL-SAFE] Failed to verify sender pool:', poolError);
+        console.log('[FAIL-SAFE FAILED because SENDER_POOL_VERIFICATION_EXCEPTION]', { businessId, error: poolError instanceof Error ? poolError.message : String(poolError), stack: poolError instanceof Error ? poolError.stack : undefined });
         console.log('[FAIL-SAFE] ===== SMS FAIL-SAFE CHECK END =====');
         return false;
       }
@@ -1167,11 +1175,13 @@ export async function isNumberReadyForUse(businessId: string): Promise<boolean> 
     
     console.log('[FAIL-SAFE] ✓ Number is ready for use');
     console.log('[FAIL-SAFE] ✓ SMS ALLOWED - twilio_api_called will be true');
+    console.log('[FAIL-SAFE PASSED]', { businessId, twilio_number_provisioning_status: twilioNumber.provisioning_status, business_provisioning_status: business.provisioning_status, messagingServiceSidPresent: !!messagingServiceSid });
     console.log('[FAIL-SAFE] ===== SMS FAIL-SAFE CHECK END =====');
     return true;
     
   } catch (error: any) {
     console.error('[FAIL-SAFE] Exception during ready check:', error);
+    console.log('[FAIL-SAFE FAILED because UNHANDLED_EXCEPTION]', { businessId, message: error?.message, stack: error?.stack, raw: error });
     console.log('[FAIL-SAFE] ===== SMS FAIL-SAFE CHECK END =====');
     return false;
   }
