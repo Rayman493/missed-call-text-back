@@ -603,13 +603,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       {
         id: 'test',
         title: 'Verify Setup',
-        description: 'Recommended: Place a quick test call now to verify your forwarding is working correctly. If you\'d rather wait, ReplyFlow will automatically verify your setup the first time you naturally miss a call.',
+        description: 'Place a quick test call from your phone to confirm forwarding is working. ReplyFlow will answer and send you a text message.',
         status: testActionNeeded ? 'action-needed' : (step3Complete ? 'complete' : 'needs-action'),
         details: testActionNeeded
           ? 'Verification failed - try again'
           : step3Complete
             ? (realCallDataExists ? 'ReplyFlow is live and monitoring your business line.' : 'ReplyFlow is now monitoring your missed calls.')
-            : (step2Complete ? 'This usually takes less than 30 seconds' : 'Available once forwarding is enabled'),
+            : (step2Complete ? 'This takes less than 30 seconds' : 'Available once forwarding is enabled'),
         buttonText: step2Complete && !step3Complete ? 'Run Test Call' : undefined,
         buttonOnClick: step2Complete && !step3Complete ? () => {
           console.log('[RUN TEST CALL CLICKED]', {

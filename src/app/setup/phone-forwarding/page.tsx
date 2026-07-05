@@ -272,11 +272,11 @@ export default function PhoneForwardingPage() {
             {!isReviewMode && (
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-muted-foreground">Step 3 of 4</p>
+                  <p className="text-xs text-muted-foreground">Step 2 of 3: Connect Your Business Line</p>
                   <p className="text-xs text-muted-foreground">Almost ready — about 1 minute left</p>
                 </div>
                 <div className="w-full bg-muted rounded-full h-2">
-                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: '75%' }}></div>
+                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: '66%' }}></div>
                 </div>
               </div>
             )}
@@ -327,23 +327,23 @@ export default function PhoneForwardingPage() {
                 >
                   <div className="flex items-center gap-2">
                     <Info className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                    <span className="text-sm font-medium text-slate-900 dark:text-foreground">Good to know: Personal vs. business numbers</span>
+                    <span className="text-sm font-medium text-slate-900 dark:text-foreground">Using a personal phone for business?</span>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-slate-600 dark:text-slate-400 transition-transform ${showHelpSection ? 'rotate-180' : ''}`} />
                 </button>
                 {showHelpSection && (
                   <div className="px-4 pb-4 pt-0 animate-in fade-in slide-in-from-top-2 duration-200">
                     <p className="text-xs text-slate-700 dark:text-slate-300 mb-3">
-                      A dedicated business phone number provides the best experience. If you use one phone for both business and personal calls, you can use Ignored Contacts to control which calls ReplyFlow handles.
+                      If you use one phone for both business and personal calls, add personal contacts to Ignored Contacts so ReplyFlow stays out of those conversations.
                     </p>
                     <div className="space-y-2">
                       <div className="flex items-start gap-2">
                         <span className="text-slate-600 dark:text-slate-400 font-semibold text-xs">•</span>
-                        <p className="text-xs text-slate-700 dark:text-slate-300"><strong>Off Ignored Contacts list:</strong> ReplyFlow treats missed calls as potential customers.</p>
+                        <p className="text-xs text-slate-700 dark:text-slate-300"><strong>Not on Ignored Contacts:</strong> ReplyFlow treats missed calls as potential customers.</p>
                       </div>
                       <div className="flex items-start gap-2">
                         <span className="text-slate-600 dark:text-slate-400 font-semibold text-xs">•</span>
-                        <p className="text-xs text-slate-700 dark:text-slate-300"><strong>On Ignored Contacts list:</strong> ReplyFlow stays out of the conversation.</p>
+                        <p className="text-xs text-slate-700 dark:text-slate-300"><strong>On Ignored Contacts:</strong> ReplyFlow stays out of the conversation.</p>
                       </div>
                     </div>
                   </div>
@@ -359,7 +359,7 @@ export default function PhoneForwardingPage() {
                   <p className="font-medium text-foreground">Choose your carrier</p>
                 </div>
                 <p className="text-xs text-muted-foreground mb-4">
-                  Select the provider for your business phone number.
+                  Select the company that provides your business phone service.
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {CARRIERS.map(carrier => {
@@ -406,13 +406,13 @@ export default function PhoneForwardingPage() {
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
                       Step 2
                     </span>
-                    <p className="font-medium text-foreground">Set Up Conditional Call Forwarding</p>
+                    <p className="font-medium text-foreground">Set up call forwarding</p>
                   </div>
                   {hasValidCode ? (
                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-2 border-blue-200 dark:border-blue-700 rounded-2xl p-6 sm:p-8 shadow-lg">
                       <p className="text-sm font-semibold text-foreground mb-1">{CARRIERS.find(c => c.id === selectedCarrier)?.name}</p>
                       <p className="text-sm text-muted-foreground mb-4">
-                        Open your phone's dialer, enter the code below, then press Call. Wait for the confirmation tone or message.
+                        Open your phone's dialer, enter the code below, then press Call. You'll hear a confirmation tone or see a message when it's active.
                       </p>
                       <div 
                         className="bg-white dark:bg-slate-800 border-2 border-blue-300 dark:border-blue-600 rounded-xl px-6 py-8 sm:py-10 mb-4 cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors shadow-sm"

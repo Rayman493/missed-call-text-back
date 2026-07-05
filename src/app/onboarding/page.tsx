@@ -381,27 +381,17 @@ export default function OnboardingPage() {
     <AuthGuard>
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 sm:p-8">
         <div className="max-w-md w-full bg-slate-800 rounded-xl shadow-lg p-5 sm:p-8">
-          <div className="mb-4">
-          {/* Progress bars row */}
-          <div className="flex gap-2 mb-3">
-            <div className="flex-1">
-              <div className="h-1 bg-blue-600 rounded-full"></div>
+          {/* Progress indicator */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-slate-400">Step 1 of 2: Business Information</p>
+              <p className="text-xs text-slate-400">Almost ready — about 2 minutes</p>
             </div>
-            <div className="flex-1">
-              <div className="h-1 bg-blue-600 rounded-full"></div>
-            </div>
-          </div>
-          {/* Labels row */}
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <div className="h-4"></div>
-            </div>
-            <div className="flex-1">
-              <p className="text-xs text-slate-400">Step 2 of 2: Business Information</p>
+            <div className="w-full bg-slate-700 rounded-full h-2">
+              <div className="bg-blue-600 h-2 rounded-full" style={{ width: '50%' }}></div>
             </div>
           </div>
-        </div>
-          
+
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-xl sm:text-2xl font-bold text-slate-100">Welcome to ReplyFlow</h1>
             <button
@@ -432,10 +422,10 @@ export default function OnboardingPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-blue-200 font-medium mb-1">Best experience: Dedicated business number</p>
-                <p className="text-xs text-blue-300 mb-2">A dedicated business phone number provides the best experience. It allows ReplyFlow to automatically handle every missed customer call without affecting personal callers.</p>
-                <p className="text-sm text-blue-200 font-medium mb-1">Still fully supported: Personal business phones</p>
-                <p className="text-xs text-blue-300 leading-relaxed">If you use one phone for both business and personal calls, ReplyFlow still works well. You can use Ignored Contacts to keep known personal callers out of the normal ReplyFlow customer workflow.</p>
+                <p className="text-sm text-blue-200 font-medium mb-1">Dedicated business number works best</p>
+                <p className="text-xs text-blue-300 mb-2">A separate business line lets ReplyFlow handle every missed customer call automatically.</p>
+                <p className="text-sm text-blue-200 font-medium mb-1">Personal phones work too</p>
+                <p className="text-xs text-blue-300 leading-relaxed">If you use one phone for both, you can add personal contacts to Ignored Contacts so ReplyFlow stays out of those conversations.</p>
               </div>
             </div>
           </div>
@@ -476,7 +466,7 @@ export default function OnboardingPage() {
                 className="w-full px-3 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white text-sm"
               />
               <p className="mt-2 text-xs text-slate-400">
-                The phone number customers call to reach you
+                The number your customers already call — ReplyFlow will handle missed calls to this number
               </p>
             </div>
 
