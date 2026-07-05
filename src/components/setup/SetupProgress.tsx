@@ -458,7 +458,7 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
                     : isActionNeeded
                       ? 'bg-amber-50/30 dark:bg-amber-900/10 border-amber-200/40 dark:border-amber-800/20'
                       : isCurrent
-                        ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200/60 dark:border-blue-700/40 hover:border-blue-300 dark:hover:border-blue-600'
+                        ? 'bg-blue-100/60 dark:bg-blue-900/20 border-2 border-blue-500 dark:border-blue-500 shadow-sm shadow-blue-500/10'
                         : 'bg-muted/50 border-border'
                 } ${isForwardingCard && (isComplete || !isComplete && (isCurrent || isActionNeeded)) ? 'cursor-pointer hover:bg-blue-100/60 dark:hover:bg-blue-900/20' : ''}`}
               >
@@ -476,8 +476,8 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
                       </svg>
                     </div>
                   ) : isCurrent ? (
-                    <div className="w-5 sm:w-6 h-5 sm:h-6 rounded-full bg-blue-600 flex items-center justify-center">
-                      <span className="text-white text-xs sm:text-sm font-medium">{stepNum}</span>
+                    <div className="w-6 sm:w-7 h-6 sm:h-7 rounded-full bg-blue-600 border-2 border-blue-400 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                      <span className="text-white text-xs sm:text-sm font-semibold">{stepNum}</span>
                     </div>
                   ) : (
                     <div className="w-5 sm:w-6 h-5 sm:h-6 rounded-full bg-muted border-2 border-muted-foreground/30 flex items-center justify-center">
@@ -488,14 +488,14 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-medium text-foreground">{item.title}</h4>
+                    <h4 className={`font-medium ${isCurrent ? 'text-blue-700 dark:text-blue-300 font-semibold' : 'text-foreground'}`}>{item.title}</h4>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium ${
                       isComplete
                         ? 'bg-green-900/20 dark:bg-green-900/30 border border-green-900/30 dark:border-green-800/30 text-green-700 dark:text-green-300'
                         : isActionNeeded
                           ? 'bg-amber-900/20 dark:bg-amber-900/30 border border-amber-900/30 dark:border-amber-800/30 text-amber-700 dark:text-amber-300'
                           : isCurrent
-                            ? 'bg-blue-900/20 dark:bg-blue-900/30 border border-blue-900/30 dark:border-blue-800/30 text-blue-700 dark:text-blue-300'
+                            ? 'bg-blue-600 dark:bg-blue-500 border border-blue-500 dark:border-blue-400 text-white font-semibold shadow-sm'
                             : 'bg-muted/50 border-border text-muted-foreground'
                     }`}>
                       {isComplete ? 'DONE' : isActionNeeded ? 'ACTION NEEDED' : isCurrent ? 'IN PROGRESS' : 'NOT STARTED'}
