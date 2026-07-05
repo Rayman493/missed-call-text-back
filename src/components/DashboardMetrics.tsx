@@ -45,9 +45,17 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
     messagesSent: 0
   })
   const [loading, setLoading] = useState(true)
+  const [isBackgroundRefresh, setIsBackgroundRefresh] = useState(false)
 
-  const fetchMetrics = useCallback(async () => {
+  const fetchMetrics = useCallback(async (background = false) => {
     if (!business) return
+
+    // Skip loading state for background refresh to prevent flicker
+    if (background) {
+      setIsBackgroundRefresh(true)
+    } else {
+      setLoading(true)
+    }
 
     try {
       const supabase = createBrowserClient()
@@ -185,6 +193,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       console.error('Error fetching dashboard metrics:', error)
     } finally {
       setLoading(false)
+      setIsBackgroundRefresh(false)
     }
   }, [business])
 
@@ -209,7 +218,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           filter: `business_id=eq.${business.id}`
         },
         () => {
-          fetchMetrics()
+          fetchMetrics(true) // Use background refresh to prevent flicker
         }
       )
       .on(
@@ -222,7 +231,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         (payload: any) => {
           // Only refetch if the message belongs to this business's leads
           // We fetch metrics which includes business-scoped queries
-          fetchMetrics()
+          fetchMetrics(true) // Use background refresh to prevent flicker
         }
       )
       .on(
@@ -234,7 +243,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           filter: `business_id=eq.${business.id}`
         },
         () => {
-          fetchMetrics()
+          fetchMetrics(true) // Use background refresh to prevent flicker
         }
       )
       .subscribe()
