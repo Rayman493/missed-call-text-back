@@ -122,6 +122,14 @@ export async function POST(request: Request) {
     try {
       console.log('[complete-signup] Creating business row...')
       
+      // DIAGNOSTICS: Verify client configuration before insert
+      console.log('[complete-signup] ========== CLIENT DIAGNOSTICS ==========')
+      console.log('[complete-signup] Using supabaseAdmin client')
+      console.log('[complete-signup] SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
+      console.log('[complete-signup] NEXT_PUBLIC_SUPABASE_URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
+      console.log('[complete-signup] Client is admin client: true')
+      console.log('[complete-signup] ========== END CLIENT DIAGNOSTICS ==========')
+      
       const insertPayload = {
         user_id: userId,
         name: businessName,
