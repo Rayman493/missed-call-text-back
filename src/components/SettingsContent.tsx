@@ -1889,142 +1889,161 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              {/* Payments Section */}
-              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 scroll-mt-[200px]">
+              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 scroll-mt-[200px]">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Payments</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Request and receive payments from customers directly in ReplyFlow.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
+                  Connect one or more payment methods. When requesting payment from a customer, you'll be able to choose which payment method to send.
+                </p>
                 
-                {/* Stripe Connect Card */}
-                <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 pr-4">
-                      <div className="flex items-center gap-2.5 mb-1.5">
-                        <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 003-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
-                        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Stripe Connect</h3>
-                        {business?.stripe_charges_enabled && business?.stripe_details_submitted && (
-                          <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
-                            <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                            Connected
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                  <div className="flex flex-col h-full p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40">
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                          <svg className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 003-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                          </svg>
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Stripe</h3>
+                          <span className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-full font-medium">
+                            Recommended
                           </span>
-                        )}
+                          {business?.stripe_charges_enabled && business?.stripe_details_submitted ? (
+                            <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
+                              <span className="w-1 h-1 bg-green-500 rounded-full" />
+                              Connected
+                            </span>
+                          ) : (
+                            <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
+                              Not Connected
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                          Accept secure credit and debit card payments directly from customers.
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                        Connect your Stripe account to request and receive payments from customers via text message.
-                      </p>
+                      {!isConnectingStripe && (
+                        <button
+                          onClick={handleConnectStripe}
+                          disabled={isConnectingStripe}
+                          className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                            business?.stripe_charges_enabled && business?.stripe_details_submitted
+                              ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
+                              : 'bg-blue-600 hover:bg-blue-700 text-white'
+                          }`}
+                        >
+                          {business?.stripe_charges_enabled && business?.stripe_details_submitted ? 'Manage' : 'Connect'}
+                        </button>
+                      )}
+                    </div>
+                    <div className="mt-auto space-y-2">
                       {business?.stripe_charges_enabled && business?.stripe_details_submitted && (
-                        <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-500">
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-500">
                           {business.stripe_charges_enabled && <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Charges enabled</div>}
                           {business.stripe_payouts_enabled && <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Payouts enabled</div>}
                           {!business.stripe_payouts_enabled && <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400"><span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>Additional verification required for payouts</div>}
                         </div>
                       )}
+                      {business?.stripe_connect_account_id && !(business?.stripe_charges_enabled && business?.stripe_details_submitted) && (
+                        <div className="p-2.5 sm:p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                          <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300">
+                            <span className="font-semibold">Setup in progress:</span> Complete Stripe onboarding to accept card payments.
+                          </p>
+                        </div>
+                      )}
+                      {(!business?.stripe_connect_status || business.stripe_connect_status === 'not_connected') && (
+                        <div className="p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                          <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-300">
+                            <span className="font-semibold">Best for cards:</span> Stripe provides the most complete payment experience in ReplyFlow.
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    {!isConnectingStripe && (
-                      <button
-                        onClick={handleConnectStripe}
-                        disabled={isConnectingStripe}
-                        className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
-                          business?.stripe_charges_enabled && business?.stripe_details_submitted
-                            ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white'
-                        }`}
-                      >
-                        {business?.stripe_charges_enabled && business?.stripe_details_submitted ? 'Manage' : 'Connect'}
-                      </button>
-                    )}
                   </div>
-                  {business?.stripe_connect_account_id && !(business?.stripe_charges_enabled && business?.stripe_details_submitted) && (
-                    <div className="mt-3 p-2.5 sm:p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                      <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300">
-                        <span className="font-semibold">Setup in progress:</span> Complete the Stripe onboarding to start receiving payments.
-                      </p>
-                    </div>
-                  )}
-                  {!business?.stripe_connect_status || business.stripe_connect_status === 'not_connected' && (
-                    <div className="mt-3 p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                      <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-300">
-                        <span className="font-semibold">Ready to accept payments:</span> Connect your Stripe account to request payments from customers via SMS.
-                      </p>
-                    </div>
-                  )}
-                </div>
 
-                {/* Venmo Configuration Card */}
-                <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40 mt-3">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 pr-4">
-                      <div className="flex items-center gap-2.5 mb-1.5">
-                        <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="currentColor">
+                  <div className="flex flex-col h-full p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40">
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <svg className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
                         </svg>
                         <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Venmo</h3>
-                        {formBusiness.venmo_username && (
+                        {formBusiness.venmo_username ? (
                           <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
-                            <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                            <span className="w-1 h-1 bg-green-500 rounded-full" />
                             Configured
+                          </span>
+                        ) : (
+                          <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
+                            Not Configured
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                        Add your Venmo username to request payments via text message.
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
+                        Let customers pay your business through Venmo using your username.
+                      </p>
+                    </div>
+                    <div className="mt-auto">
+                      <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
+                        Venmo Username
+                      </label>
+                      <input
+                        type="text"
+                        value={formBusiness.venmo_username || ''}
+                        onChange={(e) => updateBusiness({ venmo_username: e.target.value })}
+                        placeholder="joesplumbing"
+                        className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                      />
+                      <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1.5">
+                        Enter your Venmo username (with or without @).
                       </p>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
-                      Venmo Username
-                    </label>
-                    <input
-                      type="text"
-                      value={formBusiness.venmo_username || ''}
-                      onChange={(e) => updateBusiness({ venmo_username: e.target.value })}
-                      placeholder="@joesplumbing"
-                      className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
-                    />
-                    <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1.5">
-                      Enter your Venmo username (with or without @)
-                    </p>
-                  </div>
-                </div>
 
-                {/* PayPal Configuration Card */}
-                <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40 mt-3">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 pr-4">
-                      <div className="flex items-center gap-2.5 mb-1.5">
-                        <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="currentColor">
+                  <div className="flex flex-col h-full p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40">
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <svg className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z"/>
                         </svg>
                         <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">PayPal</h3>
-                        {formBusiness.paypal_payment_link && (
+                        {formBusiness.paypal_payment_link ? (
                           <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
-                            <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                            <span className="w-1 h-1 bg-green-500 rounded-full" />
                             Configured
+                          </span>
+                        ) : (
+                          <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
+                            Not Configured
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                        Add your PayPal payment link to request payments via text message.
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
+                        Let customers pay your business through a PayPal or PayPal.me payment link.
+                      </p>
+                    </div>
+                    <div className="mt-auto">
+                      <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
+                        PayPal Payment Link
+                      </label>
+                      <input
+                        type="text"
+                        value={formBusiness.paypal_payment_link || ''}
+                        onChange={(e) => updateBusiness({ paypal_payment_link: e.target.value })}
+                        placeholder="paypal.me/joesplumbing"
+                        className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                      />
+                      <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1.5">
+                        Enter a paypal.me link or a full PayPal URL.
                       </p>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
-                      PayPal Payment Link
-                    </label>
-                    <input
-                      type="text"
-                      value={formBusiness.paypal_payment_link || ''}
-                      onChange={(e) => updateBusiness({ paypal_payment_link: e.target.value })}
-                      placeholder="paypal.me/joesplumbing"
-                      className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
-                    />
-                    <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1.5">
-                      Enter your PayPal link (paypal.me/... or full URL)
-                    </p>
-                  </div>
+                </div>
+
+                <div className="mt-4 p-3 bg-blue-50/70 dark:bg-blue-900/15 border border-blue-200/70 dark:border-blue-800/60 rounded-lg">
+                  <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                    You can configure multiple payment methods. When sending a payment request, ReplyFlow will let you choose which payment method to send to the customer.
+                  </p>
                 </div>
               </div>
 
