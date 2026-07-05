@@ -7,7 +7,7 @@
 import Twilio from 'twilio';
 import { createClient } from '@supabase/supabase-js';
 
-const MIN_AVAILABLE_WARM_NUMBERS = 3; // Warm buffer target
+const MIN_AVAILABLE_WARM_NUMBERS = parseInt(process.env.WARM_INVENTORY_TARGET || '3', 10); // Warm buffer target
 
 // Duplicate purchase protection flag
 let isReplenishing = false;
@@ -402,6 +402,18 @@ export async function ensureWarmNumberMinimum(): Promise<{ success: boolean; num
 
     const success = numbersAdded === numbersNeeded;
 
+    // Trigger cleanup of excess inventory after replenishment
+    // This handles the case where account deletion recycled numbers back to inventory
+    // and we now have more than the target
+    console.log('[INVENTORY] Triggering excess inventory cleanup after replenishment...');
+    cleanupExcessInventory()
+      .then((cleanupResult) => {
+        console.log('[INVENTORY] Excess inventory cleanup complete:', cleanupResult);
+      })
+      .catch((cleanupError) => {
+        console.error('[INVENTORY] Excess inventory cleanup failed (non-blocking):', cleanupError);
+      });
+
     return {
       success,
       numbersAdded,
@@ -649,7 +661,10 @@ export async function recycleTwilioNumberToInventory(
  * - business_id IS NULL
  * - sms_status='ready'
  * - NOT the protected system number
- * - Oldest created_at (to release newest first, keep oldest)
+ * - Newest created_at (to release newest first, keep oldest)
+ * 
+ * Marks numbers as retired in database with detached_at and detached_reason
+ * instead of deleting them, for audit trail
  */
 export async function cleanupExcessInventory(): Promise<{ success: boolean; numbersReleased: number; error?: string }> {
   console.log('[CLEANUP] ========== START EXCESS INVENTORY CLEANUP ==========');
@@ -661,13 +676,19 @@ export async function cleanupExcessInventory(): Promise<{ success: boolean; numb
 
   try {
     const metrics = await getInventoryMetrics();
+    const availableCount = metrics.availableCount;
+    const targetAvailable = metrics.desiredAvailableBuffer;
     
-    if (metrics.excessCount <= 0) {
+    console.log(`[INVENTORY] target_available: ${targetAvailable}`);
+    console.log(`[INVENTORY] available_ready_count: ${availableCount}`);
+    
+    if (availableCount <= targetAvailable) {
       console.log('[CLEANUP] No excess inventory to clean up');
       return { success: true, numbersReleased: 0 };
     }
 
-    console.log(`[CLEANUP] Excess count: ${metrics.excessCount}`);
+    const excessCount = availableCount - targetAvailable;
+    console.log(`[INVENTORY] excess_count: ${excessCount}`);
     console.log(`[CLEANUP] Total managed: ${metrics.totalManaged}`);
     console.log(`[CLEANUP] Desired total: ${metrics.desiredTotal}`);
 
@@ -675,15 +696,15 @@ export async function cleanupExcessInventory(): Promise<{ success: boolean; numb
     const systemPhoneNumber = process.env.REPLYFLOW_SYSTEM_SMS_NUMBER;
     console.log(`[CLEANUP] Protected system phone: ${systemPhoneNumber || 'none'}`);
 
-    // Fetch excess available numbers (oldest first, to keep newest)
+    // Fetch excess available numbers (newest first, to release newest extras)
     const { data: excessNumbers, error: fetchError } = await supabase
       .from('twilio_numbers')
       .select('*')
       .is('business_id', null)
       .eq('status', 'available')
       .eq('sms_status', 'ready')
-      .order('created_at', { ascending: true }) // Oldest first
-      .limit(metrics.excessCount);
+      .order('created_at', { ascending: false }) // Newest first
+      .limit(excessCount);
 
     if (fetchError) {
       console.error('[CLEANUP] ERROR: Failed to fetch excess numbers:', fetchError);
@@ -715,7 +736,7 @@ export async function cleanupExcessInventory(): Promise<{ success: boolean; numb
         continue;
       }
 
-      console.log(`[CLEANUP] Releasing excess number: ${number.phone_number} (SID: ${number.twilio_sid})`);
+      console.log(`[CLEANUP] Selected number for release: ${number.phone_number} (SID: ${number.twilio_sid})`);
 
       try {
         // Remove from Messaging Service if attached
@@ -732,19 +753,35 @@ export async function cleanupExcessInventory(): Promise<{ success: boolean; numb
         }
 
         // Release from Twilio
-        await client.incomingPhoneNumbers(number.twilio_sid).remove();
-        console.log(`[CLEANUP] Released from Twilio`);
+        try {
+          await client.incomingPhoneNumbers(number.twilio_sid).remove();
+          console.log(`[CLEANUP] Released from Twilio`);
+        } catch (twilioError: any) {
+          // If number is already gone in Twilio, still mark as retired
+          if (twilioError.code === 20404 || twilioError.status === 404) {
+            console.log(`[CLEANUP] Number not found in Twilio (already released), marking as retired`);
+          } else {
+            console.error(`[CLEANUP] Failed to release from Twilio:`, twilioError);
+            // Don't mark as retired if release failed and number still exists
+            continue;
+          }
+        }
 
-        // Delete from database
-        const { error: deleteError } = await supabase
+        // Mark as retired in database instead of deleting
+        const { error: updateError } = await supabase
           .from('twilio_numbers')
-          .delete()
+          .update({
+            status: 'retired',
+            detached_at: new Date().toISOString(),
+            detached_reason: 'excess_inventory_cleanup',
+            updated_at: new Date().toISOString(),
+          })
           .eq('id', number.id);
 
-        if (deleteError) {
-          console.error(`[CLEANUP] ERROR: Failed to delete from database:`, deleteError);
+        if (updateError) {
+          console.error(`[CLEANUP] ERROR: Failed to mark as retired in database:`, updateError);
         } else {
-          console.log(`[CLEANUP] Deleted from database`);
+          console.log(`[CLEANUP] Marked retired in database`);
           numbersReleased++;
         }
       } catch (releaseError: any) {

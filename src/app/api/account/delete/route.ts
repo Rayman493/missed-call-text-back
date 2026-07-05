@@ -892,6 +892,19 @@ If forwarding does not stop immediately, restart your phone or contact your carr
       summary.tablesDeleted.twilio_numbers_recycled = businesses.filter((b: any) => b.twilio_phone_number_sid).length
       console.log('[delete-account] Step 18 completed: recycled assigned Twilio numbers to warm inventory')
 
+      // Trigger cleanup of excess inventory after recycling
+      // This handles the case where recycling numbers back to inventory
+      // creates excess numbers above the target
+      console.log('[delete-account] Triggering excess inventory cleanup after recycling...')
+      const { cleanupExcessInventory } = await import('@/lib/warm-number-manager')
+      cleanupExcessInventory()
+        .then((cleanupResult) => {
+          console.log('[delete-account] Excess inventory cleanup complete:', cleanupResult)
+        })
+        .catch((cleanupError) => {
+          console.error('[delete-account] Excess inventory cleanup failed (non-blocking):', cleanupError)
+        })
+
       // Step 18: Delete leads linked to businesses
       console.log('[delete-account] Step 18: delete leads')
       
