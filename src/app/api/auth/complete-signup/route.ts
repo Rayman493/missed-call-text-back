@@ -1,7 +1,23 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
+
+// Create isolated service-role client for this route
+// This ensures no state pollution from shared instances
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error('Missing required environment variables for service role client')
+}
+
+const supabaseServiceRole = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+})
 
 export async function POST(request: Request) {
   console.log('[complete-signup] route hit')
@@ -36,7 +52,7 @@ export async function POST(request: Request) {
     console.log('[complete-signup] Creating account for email:', email)
 
     // Check if user already exists by trying to get user by email
-    const { data: existingUsers, error: checkError } = await supabaseAdmin.auth.admin.listUsers()
+    const { data: existingUsers, error: checkError } = await supabaseServiceRole.auth.admin.listUsers()
     
     if (checkError) {
       console.error('[complete-signup] Error checking existing user:', checkError)
@@ -51,7 +67,7 @@ export async function POST(request: Request) {
     if (existingUser) {
       console.log('[complete-signup] User already exists for email:', email)
       // Check if user has a business using admin client
-      const { data: existingBusiness, error: businessCheckError } = await supabaseAdmin
+      const { data: existingBusiness, error: businessCheckError } = await supabaseServiceRole
         .from('businesses')
         .select('*')
         .eq('user_id', existingUser.id)
@@ -90,7 +106,7 @@ export async function POST(request: Request) {
 
     // Step 1: Create Supabase Auth user
     console.log('[complete-signup] Creating auth user...')
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authData, error: authError } = await supabaseServiceRole.auth.admin.createUser({
       email,
       password,
       email_confirm: true, // Auto-confirm email for immediate signup
@@ -124,10 +140,11 @@ export async function POST(request: Request) {
       
       // DIAGNOSTICS: Verify client configuration before insert
       console.log('[complete-signup] ========== CLIENT DIAGNOSTICS ==========')
-      console.log('[complete-signup] Using supabaseAdmin client')
+      console.log('[complete-signup] Using isolated supabaseServiceRole client')
       console.log('[complete-signup] SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
       console.log('[complete-signup] NEXT_PUBLIC_SUPABASE_URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
-      console.log('[complete-signup] Client is admin client: true')
+      console.log('[complete-signup] Client is isolated service-role client: true')
+      console.log('[complete-signup] Client has autoRefreshToken: false, persistSession: false')
       console.log('[complete-signup] ========== END CLIENT DIAGNOSTICS ==========')
       
       const insertPayload = {
@@ -146,9 +163,9 @@ export async function POST(request: Request) {
 
       console.log('[complete-signup] Insert payload:', insertPayload)
       
-      // Insert business directly using supabaseAdmin to bypass RLS
+      // Insert business directly using isolated service-role client to bypass RLS
       // Do NOT set trial status yet - user must complete Stripe Checkout first
-      const { data: business, error: businessError } = await supabaseAdmin
+      const { data: business, error: businessError } = await supabaseServiceRole
         .from('businesses')
         .insert(insertPayload)
         .select()
@@ -190,7 +207,7 @@ export async function POST(request: Request) {
       })
       
       try {
-        await supabaseAdmin.auth.admin.deleteUser(userId)
+        await supabaseServiceRole.auth.admin.deleteUser(userId)
         console.log('[complete-signup] Auth user rolled back successfully')
       } catch (rollbackError: any) {
         console.error('[complete-signup] Failed to rollback auth user:', rollbackError)
