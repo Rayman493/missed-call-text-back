@@ -147,6 +147,34 @@ async function processVoiceStatusCallback(params: any, method: string) {
   console.log('[VOICE STATUS AI CALL FOUND] Timestamp:', new Date().toISOString());
   console.log('[VOICE STATUS AI CALL FOUND] =========================================');
 
+  // CRITICAL FALLBACK: If AI call record exists but still has 'incomplete' outcome after all retries,
+  // the AI service likely crashed or failed to finalize. Update outcome to trigger fallback SMS.
+  if (aiCallRecord && aiCallRecord.outcome === 'incomplete') {
+    console.log('[FALLBACK] AI call record still incomplete after retries - AI service likely failed', {
+      callSid: CallSid,
+      aiCallRecordId: aiCallRecord.id,
+      currentOutcome: aiCallRecord.outcome,
+      totalRetries: retryDelays.length,
+      action: 'Updating outcome to ai_connection_failed to trigger fallback SMS'
+    });
+
+    try {
+      const { error: updateError } = await supabase
+        .from('ai_call_records')
+        .update({ outcome: 'ai_connection_failed' })
+        .eq('id', aiCallRecord.id);
+
+      if (updateError) {
+        console.error('[FALLBACK] Failed to update ai_call_records outcome:', updateError);
+      } else {
+        console.log('[FALLBACK] Successfully updated ai_call_records outcome to ai_connection_failed');
+        aiCallRecord.outcome = 'ai_connection_failed';
+      }
+    } catch (updateException) {
+      console.error('[FALLBACK] Exception updating ai_call_records outcome:', updateException);
+    }
+  }
+
   if (!aiCallRecord) {
     console.log('[AI RECORD NOT FOUND AFTER RETRIES]', {
       callSid: CallSid,

@@ -284,24 +284,26 @@ export async function determineSmsTemplate(params: {
       fallbackSmsType: 'none'
     }
   } else if (effectiveOutcome === 'ai_connection_failed') {
-    // AI connection failed - AI service sends the standard missed-call SMS via /api/ai-confirmation-sms
-    console.log('[AUTO SMS DECISION] AI connection failed - AI service is authoritative sender', {
+    // AI connection failed - AI service crashed or failed to start
+    // Voice-status callback detected this and updated outcome
+    // Send generic missed-call SMS as fallback since AI service cannot send it
+    console.log('[FALLBACK] AI connection failed - sending generic missed-call SMS as fallback', {
       callSid,
       leadId,
       aiCallRecordId: aiCallRecord?.id,
       outcome,
-      reason: 'ai_connection_failed_sms_authoritative'
+      reason: 'ai_connection_failed_fallback_sms'
     })
 
     result = {
-      template: 'none',
-      shouldSend: false,
-      reason: 'ai_connection_failed_sms_authoritative',
+      template: 'missed_call',
+      shouldSend: true,
+      reason: 'ai_connection_failed_fallback_sms',
       aiCompleted: false,
       voicemailCompleted: false,
       aiCallRecordId: aiCallRecord?.id,
       aiOutcome: effectiveOutcome,
-      fallbackSmsType: 'none'
+      fallbackSmsType: 'generic_recovery'
     }
   } else if (effectiveOutcome === 'ai_failed_voicemail' || effectiveOutcome === 'ai_failed_sms') {
     // AI failed and fallback (voicemail or SMS) already sent structured summary SMS
