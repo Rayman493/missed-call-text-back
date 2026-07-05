@@ -70,7 +70,9 @@ export function useSettingsFormState({
       'out_of_office_start',
       'out_of_office_end',
       'out_of_office_message',
-      'automation_settings'
+      'automation_settings',
+      'venmo_username',
+      'paypal_payment_link'
     ]
 
     return fieldsToCheck.some(field => {
