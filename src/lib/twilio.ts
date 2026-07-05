@@ -928,6 +928,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
   phoneNumberSid: string;
   messagingServiceAttached: boolean;
   messagingServiceError?: string;
+  fromWarmInventory?: boolean; // Flag to indicate if number came from warm inventory
 } | null> {
   console.log('[Provision Path] ========== provisionTwilioNumber HIT ==========');
   console.log(`[Provision Path] businessId=${businessId} correlation_id=${correlationId}`);
@@ -1063,6 +1064,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
           phoneNumber: warmNumberResult.phoneNumber,
           phoneNumberSid: warmNumberResult.phoneNumberSid,
           messagingServiceAttached: true,
+          fromWarmInventory: true, // Flag to indicate this came from warm inventory
         }
       }
     } else {

@@ -274,36 +274,67 @@ export async function POST(request: Request) {
       console.log('[PROVISIONING FLOW] ✓ Provisioning succeeded, saving to database...')
       console.log('[PROVISIONING FLOW] Phone number to save:', provisioningResult.phoneNumber)
       console.log('[PROVISIONING FLOW] Phone SID to save:', provisioningResult.phoneNumberSid)
+      console.log('[PROVISIONING FLOW] From warm inventory:', provisioningResult.fromWarmInventory)
       
       try {
-        // First, create twilio_numbers row to ensure it exists before updating businesses
-        console.log('[PROVISIONING FLOW] Creating twilio_numbers row...')
-        const { data: twilioNumber, error: twilioNumberError } = await supabaseAdmin
-          .from('twilio_numbers')
-          .insert({
-            business_id: business.id,
-            phone_number: provisioningResult.phoneNumber,
-            twilio_sid: provisioningResult.phoneNumberSid,
-            number_type: 'both',
-            status: 'active',
-            sms_status: 'pending',
-            provisioning_status: 'ready',
-            last_provisioning_attempt_at: new Date().toISOString(),
-            assigned_at: new Date().toISOString(),
-          })
-          .select()
-          .maybeSingle()
+        let twilioNumber: any = null;
+        let twilioNumberError: any = null;
 
-        if (twilioNumberError) {
-          console.error('[PROVISIONING FLOW] ✗ Failed to create twilio_numbers row:', twilioNumberError)
-          console.error('[PROVISIONING FLOW] PostgreSQL error details:', {
-            code: twilioNumberError.code,
-            message: twilioNumberError.message,
-            details: twilioNumberError.details,
-            hint: twilioNumberError.hint
-          })
-        } else if (twilioNumber) {
-          console.log('[PROVISIONING FLOW] ✓ twilio_numbers row created with ID:', twilioNumber.id)
+        // Check if this came from warm inventory
+        if (provisioningResult.fromWarmInventory) {
+          console.log('[PROVISIONING FLOW] Warm inventory assignment - skipping INSERT, fetching existing row')
+          
+          // Fetch the existing twilio_numbers row (it was already assigned by warm inventory)
+          const { data: existingTwilioNumber, error: fetchError } = await supabaseAdmin
+            .from('twilio_numbers')
+            .select('*')
+            .eq('twilio_sid', provisioningResult.phoneNumberSid)
+            .maybeSingle();
+
+          if (fetchError) {
+            console.error('[PROVISIONING FLOW] ✗ Failed to fetch existing twilio_numbers row:', fetchError)
+            twilioNumberError = fetchError;
+          } else if (existingTwilioNumber) {
+            console.log('[PROVISIONING FLOW] ✓ Found existing twilio_numbers row with ID:', existingTwilioNumber.id)
+            console.log('[PROVISIONING FLOW] ✓ Row status:', existingTwilioNumber.status)
+            console.log('[PROVISIONING FLOW] ✓ Row business_id:', existingTwilioNumber.business_id)
+            twilioNumber = existingTwilioNumber;
+          } else {
+            console.error('[PROVISIONING FLOW] ✗ Existing twilio_numbers row not found for warm inventory number')
+            twilioNumberError = { message: 'Existing twilio_numbers row not found' };
+          }
+        } else {
+          // Live provisioning - create new twilio_numbers row
+          console.log('[PROVISIONING FLOW] Live provisioning - creating new twilio_numbers row')
+          const { data: insertedTwilioNumber, error: insertError } = await supabaseAdmin
+            .from('twilio_numbers')
+            .insert({
+              business_id: business.id,
+              phone_number: provisioningResult.phoneNumber,
+              twilio_sid: provisioningResult.phoneNumberSid,
+              number_type: 'both',
+              status: 'active',
+              sms_status: 'pending',
+              provisioning_status: 'ready',
+              last_provisioning_attempt_at: new Date().toISOString(),
+              assigned_at: new Date().toISOString(),
+            })
+            .select()
+            .maybeSingle()
+
+          if (insertError) {
+            console.error('[PROVISIONING FLOW] ✗ Failed to create twilio_numbers row:', insertError)
+            console.error('[PROVISIONING FLOW] PostgreSQL error details:', {
+              code: insertError.code,
+              message: insertError.message,
+              details: insertError.details,
+              hint: insertError.hint
+            })
+            twilioNumberError = insertError;
+          } else if (insertedTwilioNumber) {
+            console.log('[PROVISIONING FLOW] ✓ twilio_numbers row created with ID:', insertedTwilioNumber.id)
+            twilioNumber = insertedTwilioNumber;
+          }
         }
 
         // Save Twilio phone number and SID to business record

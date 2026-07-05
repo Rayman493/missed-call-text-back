@@ -46,6 +46,7 @@ export interface ProvisioningResult {
   phoneNumberSid?: string;
   error?: string;
   status?: ProvisioningStatus;
+  fromWarmInventory?: boolean; // Flag to indicate if number came from warm inventory
 }
 
 /**
@@ -594,7 +595,8 @@ async function purchaseNumber(
           success: true,
           phoneNumber: availableNumber.phone_number,
           phoneNumberSid: availableNumber.twilio_sid,
-          status: 'ready'
+          status: 'ready',
+          fromWarmInventory: true // Flag to indicate this came from warm inventory
         };
       }
     }
