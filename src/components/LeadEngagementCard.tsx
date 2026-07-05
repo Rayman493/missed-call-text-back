@@ -41,20 +41,21 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
         const businessPhone = business.twilio_phone_number || ''
 
         // Get leads with replies (inbound messages to business phone)
-        const { data: leadsWithReplies } = await supabase
+        // Use dual filter for consistency with DashboardMetrics and AnalyticsContent
+        const { data: allMessages } = await supabase
           .from('messages')
-          .select('lead_id')
-          .eq('to_phone', businessPhone)
-          .eq('direction', 'inbound')
+          .select('lead_id, direction, to_phone, created_at')
+          .in('lead_id', allLeads?.map((l: any) => l.id) || [])
+
+        const leadsWithReplies = allMessages?.filter((m: any) => {
+          const isDirectionInbound = m.direction === 'inbound' || m.direction?.startsWith?.('inbound')
+          const isToBusinessPhone = m.to_phone === businessPhone
+          return isDirectionInbound || isToBusinessPhone
+        }) || []
 
         // Get recent replies (last 7 days)
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        const { data: recentReplies } = await supabase
-          .from('messages')
-          .select('lead_id')
-          .eq('to_phone', businessPhone)
-          .eq('direction', 'inbound')
-          .gte('created_at', sevenDaysAgo)
+        const recentReplies = leadsWithReplies.filter((m: any) => new Date(m.created_at) >= new Date(sevenDaysAgo))
 
         const totalLeads = allLeads?.length || 0
         const repliedLeadsSet = new Set(leadsWithReplies?.map((m: any) => m.lead_id) || [])

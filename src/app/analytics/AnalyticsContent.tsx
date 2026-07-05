@@ -128,8 +128,18 @@ export default function AnalyticsContent() {
         const activeLeads = leads?.filter((l: any) => l.status === 'active' || l.status === 'new').length || 0
         const completedLeads = leads?.filter((l: any) => l.status === 'completed' || l.status === 'won').length || 0
 
-        const inboundMessages = messages?.filter((m: any) => m.direction === 'inbound').length || 0
-        const outboundMessages = messages?.filter((m: any) => m.direction === 'outbound').length || 0
+        // Filter messages using dual filter (direction + phone number) to match DashboardMetrics
+        const businessPhone = business.twilio_phone_number || ''
+        const inboundMessages = messages?.filter((m: any) => {
+          const isDirectionInbound = m.direction === 'inbound' || m.direction?.startsWith?.('inbound')
+          const isToBusinessPhone = m.to_phone === businessPhone
+          return isDirectionInbound || isToBusinessPhone
+        }).length || 0
+        const outboundMessages = messages?.filter((m: any) => {
+          const isDirectionOutbound = m.direction === 'outbound' || m.direction?.startsWith?.('outbound')
+          const isFromBusinessPhone = m.from_phone === businessPhone
+          return isDirectionOutbound || isFromBusinessPhone
+        }).length || 0
         const totalMessages = messages?.length || 0
 
         const aiIntakesCompleted = aiCalls?.filter((c: any) => c.outcome === 'completed').length || 0
@@ -150,14 +160,11 @@ export default function AnalyticsContent() {
         const customerReplyRate = totalMessages > 0 ? (inboundMessages / totalMessages) * 100 : 0
         const averageMessagesPerConversation = totalConversations > 0 ? totalMessages / totalConversations : 0
 
-        // Calculate Recovery Rate to match Dashboard: active conversations / missed calls captured
-        // Active conversations = leads with recent activity (last 7 days)
-        const sevenDaysAgoForRecovery = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        const activeConversationsCount = leads?.filter((l: any) => {
-          const leadDate = new Date(l.created_at)
-          return leadDate >= sevenDaysAgoForRecovery
-        }).length || 0
-        const recoveryRate = leadCount > 0 ? Math.min(100, Math.max(0, Math.round((activeConversationsCount / leadCount) * 100))) : 0
+        // Calculate Recovery Rate to match Dashboard: leads with customer replies / total leads
+        // A lead is recovered if it has at least one inbound customer message
+        const recoveredLeadsSet = new Set(inboundMessages?.map((m: any) => m.lead_id) || [])
+        const recoveredLeadsCount = recoveredLeadsSet.size
+        const recoveryRate = leadCount > 0 ? Math.min(100, Math.max(0, Math.round((recoveredLeadsCount / leadCount) * 100))) : 0
 
         const estimatedLeadsSaved = inboundMessages + aiIntakesCompleted
 
@@ -183,7 +190,10 @@ export default function AnalyticsContent() {
         })
 
         messages?.forEach((message: any) => {
-          if (message.direction === 'inbound') {
+          // Use dual filter for consistency with other metrics
+          const isDirectionInbound = message.direction === 'inbound' || message.direction?.startsWith?.('inbound')
+          const isToBusinessPhone = message.to_phone === businessPhone
+          if (isDirectionInbound || isToBusinessPhone) {
             const date = new Date(message.created_at)
             if (date >= sevenDaysAgoForTrends) {
               const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })

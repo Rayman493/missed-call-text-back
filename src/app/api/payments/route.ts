@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     
     const pendingAmount = paymentRequests
-      .filter(p => p.status === 'pending' && !p.expires_at || new Date(p.expires_at) > now)
+      .filter(p => p.status === 'pending' && (!p.expires_at || new Date(p.expires_at) > now))
       .reduce((sum, p) => sum + p.amount_cents, 0)
 
     const paidThisMonth = paymentRequests

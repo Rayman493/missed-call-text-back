@@ -49,9 +49,9 @@ export default function AIActivityCard({ business }: AIActivityCardProps) {
           .gte('created_at', thirtyDaysAgo)
 
         // Calculate stats
-        const intakesCompleted = aiCallRecords?.length || 0
+        const totalIntakes = aiCallRecords?.length || 0
         const completedIntakes = aiCallRecords?.filter((r: any) => r.outcome === 'completed')?.length || 0
-        const completionRate = intakesCompleted > 0 ? Math.round((completedIntakes / intakesCompleted) * 100) : 0
+        const completionRate = totalIntakes > 0 ? Math.round((completedIntakes / totalIntakes) * 100) : 0
 
         // Count urgent leads
         const urgentLeads = leads?.filter((lead: any) => {
@@ -64,7 +64,7 @@ export default function AIActivityCard({ business }: AIActivityCardProps) {
         const correctionsReceived = leads?.filter((lead: any) => lead.raw_metadata?.corrections_count > 0)?.length || 0
 
         setActivity({
-          intakesCompleted,
+          intakesCompleted: totalIntakes,
           urgentLeads,
           correctionsReceived,
           completionRate

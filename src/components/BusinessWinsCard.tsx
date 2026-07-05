@@ -213,7 +213,7 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           .from('follow_up_jobs')
           .select('created_at')
           .eq('business_id', business.id)
-          .eq('status', 'completed')
+          .eq('status', 'sent')
           .order('created_at', { ascending: true })
           .limit(1)
           .maybeSingle()

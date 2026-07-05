@@ -49,20 +49,22 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           .eq('business_id', businessId)
         setConversationsCount(conversationsCountData || 0)
 
-        // Fetch follow-ups count
+        // Fetch follow-ups count (only pending/scheduled follow-ups)
         const supabaseAny = supabase as any
         const { count: followUpsCountData } = await supabaseAny
           .from('follow_up_jobs')
           .select('*', { count: 'exact', head: true })
           .eq('business_id', businessId)
+          .eq('status', 'pending')
         setFollowUpsCount(followUpsCountData || 0)
 
-        // Fetch call events count for missed calls
-        const { count: callEventsCountData } = await supabase
-          .from('call_events')
+        // Fetch leads count for missed calls (leads = missed calls captured)
+        const { count: missedCallsCountData } = await supabase
+          .from('leads')
           .select('*', { count: 'exact', head: true })
           .eq('business_id', businessId)
-        setMissedCallsCount(callEventsCountData || 0)
+          .eq('is_demo', false)
+        setMissedCallsCount(missedCallsCountData || 0)
       } catch (error) {
         console.error('[StatsCards] Error fetching stats:', error)
         // Keep safe defaults of 0
@@ -113,18 +115,6 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           event: '*',
           schema: 'public',
           table: 'follow_up_jobs',
-          filter: `business_id=eq.${businessId}`
-        },
-        () => {
-          fetchStats()
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'call_events',
           filter: `business_id=eq.${businessId}`
         },
         () => {
