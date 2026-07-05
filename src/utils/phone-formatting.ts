@@ -44,17 +44,3 @@ export function generateForwardingCode(template: string, twilioNumber: string): 
   const normalizedTwilioNumber = normalizeForCarrier(twilioNumber)
   return template.replace('{{TWILIO_NUMBER}}', normalizedTwilioNumber)
 }
-
-/**
- * Carrier-specific formatting rules
- */
-export const CARRIER_FORMATTING_RULES = {
-  // Most carriers prefer clean numbers without formatting
-  default: normalizeForCarrier,
-  
-  // Some carriers have special requirements
-  verizon: (phone: string) => normalizeForCarrier(phone),
-  att: (phone: string) => normalizeForCarrier(phone),
-  tmobile: (phone: string) => normalizeForCarrier(phone),
-  comcast: (phone: string) => normalizeForCarrier(phone),
-}
