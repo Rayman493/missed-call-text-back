@@ -48,11 +48,11 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
-        // Fetch messages sent
+        // Fetch messages sent and received
         const { data: messages } = await supabase
           .from('messages')
-          .select('direction, created_at')
-          .eq('from_phone', business.twilio_phone_number || '')
+          .select('direction, created_at, from_phone, to_phone')
+          .or(`from_phone.eq.${business.twilio_phone_number || ''},to_phone.eq.${business.twilio_phone_number || ''}`)
           .gte('created_at', thirtyDaysAgo)
 
         // Fetch active follow-ups
@@ -64,8 +64,21 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
 
         // Calculate KPIs
         const leadsRecovered = leads?.length || 0
-        const textsSent = messages?.filter((m: any) => m.direction === 'outbound').length || 0
-        const repliesReceived = messages?.filter((m: any) => m.direction === 'inbound').length || 0
+
+        // Filter outbound messages more robustly (consistent with DashboardMetrics)
+        const textsSent = messages?.filter((m: any) => {
+          const isDirectionOutbound = m.direction === 'outbound' || m.direction?.startsWith?.('outbound')
+          const isFromBusinessPhone = m.from_phone === business.twilio_phone_number
+          return isDirectionOutbound || isFromBusinessPhone
+        }).length || 0
+
+        // Filter inbound messages (customer replies) more robustly (consistent with DashboardMetrics)
+        const repliesReceived = messages?.filter((m: any) => {
+          const isDirectionInbound = m.direction === 'inbound' || m.direction?.startsWith?.('inbound')
+          const isToBusinessPhone = m.to_phone === business.twilio_phone_number
+          return isDirectionInbound || isToBusinessPhone
+        }).length || 0
+
         const activeFollowUps = followUpJobs?.length || 0
         const missedCallsCaptured = leadsRecovered // Simplified - leads recovered = missed calls captured
         const avgResponseTime = null // Would need more complex query to calculate
