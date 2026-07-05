@@ -94,14 +94,57 @@ export default function NavbarNotifications() {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'notifications',
           filter: `business_id=eq.${business.id}`
         },
-        async () => {
-          // Refresh notifications when changes occur
-          await fetchNotifications()
+        async (payload: any) => {
+          // Optimistically add new notification to state
+          setNotifications(prev => [payload.new, ...prev].slice(0, 10))
+          setNotificationCount(prev => ({ 
+            unread: prev.unread + 1, 
+            total: prev.total + 1 
+          }))
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `business_id=eq.${business.id}`
+        },
+        async (payload: any) => {
+          // Update existing notification in state
+          setNotifications(prev => 
+            prev.map(n => n.id === payload.new.id ? payload.new : n)
+          )
+          if (payload.new.read && !payload.old.read) {
+            setNotificationCount(prev => ({ 
+              ...prev, 
+              unread: Math.max(0, prev.unread - 1) 
+            }))
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `business_id=eq.${business.id}`
+        },
+        async (payload: any) => {
+          // Remove deleted notification from state
+          const deletedNotification = notifications.find(n => n.id === payload.old.id)
+          setNotifications(prev => prev.filter(n => n.id !== payload.old.id))
+          setNotificationCount(prev => ({
+            unread: deletedNotification && !deletedNotification.read ? Math.max(0, prev.unread - 1) : prev.unread,
+            total: Math.max(0, prev.total - 1)
+          }))
         }
       )
       .subscribe()

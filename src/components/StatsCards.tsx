@@ -121,6 +121,18 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           fetchStats()
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `business_id=eq.${businessId}`
+        },
+        () => {
+          fetchStats()
+        }
+      )
       .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
           setRealtimeConnected(true)

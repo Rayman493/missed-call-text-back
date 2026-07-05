@@ -70,12 +70,11 @@ export function useRealtimeLeads(
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'messages'
+          table: 'messages',
+          filter: `business_id=eq.${businessId}`
         },
         (payload: any) => {
           console.log('[Realtime] New message:', payload.new)
-          // Only process messages for this business's leads
-          // We'll need to fetch the lead to verify business ownership
           callbacksRef.current.onNewMessage(payload.new)
         }
       )

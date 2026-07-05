@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { Phone, Users, MessageSquare, Reply, TrendingUp, Activity, PhoneMissed, HelpCircle } from 'lucide-react'
@@ -46,151 +46,203 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   })
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      if (!business) return
+  const fetchMetrics = useCallback(async () => {
+    if (!business) return
 
-      try {
-        const supabase = createBrowserClient()
-        
-        // Get data from the last 30 days
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-        
-        // Get data from today
-        const todayStart = new Date()
-        todayStart.setHours(0, 0, 0, 0)
-        const todayStartISO = todayStart.toISOString()
-        
-        // Fetch leads (missed calls captured) - 30 days
-        const { data: leads } = await supabase
-          .from('leads')
-          .select('id, created_at, caller_phone')
-          .eq('business_id', business.id)
+    try {
+      const supabase = createBrowserClient()
+      
+      // Get data from the last 30 days
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      
+      // Get data from today
+      const todayStart = new Date()
+      todayStart.setHours(0, 0, 0, 0)
+      const todayStartISO = todayStart.toISOString()
+      
+      // Fetch leads (missed calls captured) - 30 days
+      const { data: leads } = await supabase
+        .from('leads')
+        .select('id, created_at, caller_phone')
+        .eq('business_id', business.id)
+        .gte('created_at', thirtyDaysAgo)
+
+      // Fetch leads (missed calls captured) - today
+      const { data: leadsToday } = await supabase
+        .from('leads')
+        .select('created_at')
+        .eq('business_id', business.id)
+        .gte('created_at', todayStartISO)
+
+      // Fetch messages sent - 30 days
+      // First get lead IDs for this business
+      const { data: businessLeads } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('business_id', business.id)
+        .gte('created_at', thirtyDaysAgo)
+
+      const leadIds = businessLeads?.map((l: any) => l.id) || []
+
+      // Then fetch messages for those leads - only if there are leads
+      let messages = []
+      if (leadIds.length > 0) {
+        const { data: messagesData } = await supabase
+          .from('messages')
+          .select('*')
+          .in('lead_id', leadIds)
           .gte('created_at', thirtyDaysAgo)
-
-        // Fetch leads (missed calls captured) - today
-        const { data: leadsToday } = await supabase
-          .from('leads')
-          .select('created_at')
-          .eq('business_id', business.id)
-          .gte('created_at', todayStartISO)
-
-        // Fetch messages sent - 30 days
-        // First get lead IDs for this business
-        const { data: businessLeads } = await supabase
-          .from('leads')
-          .select('id')
-          .eq('business_id', business.id)
-          .gte('created_at', thirtyDaysAgo)
-
-        const leadIds = businessLeads?.map((l: any) => l.id) || []
-
-        // Then fetch messages for those leads - only if there are leads
-        let messages = []
-        if (leadIds.length > 0) {
-          const { data: messagesData } = await supabase
-            .from('messages')
-            .select('*')
-            .in('lead_id', leadIds)
-            .gte('created_at', thirtyDaysAgo)
-          messages = messagesData || []
-        }
-
-        // Filter outbound messages more robustly
-        const outboundMessages = messages?.filter((m: any) => {
-          const isDirectionOutbound = m.direction === 'outbound' || m.direction?.startsWith?.('outbound')
-          const isFromBusinessPhone = m.from_phone === business.twilio_phone_number
-          return isDirectionOutbound || isFromBusinessPhone
-        }) || []
-
-        // Filter inbound messages (customer replies)
-        const inboundMessages = messages?.filter((m: any) => {
-          const isDirectionInbound = m.direction === 'inbound' || m.direction?.startsWith?.('inbound')
-          const isToBusinessPhone = m.to_phone === business.twilio_phone_number
-          return isDirectionInbound || isToBusinessPhone
-        }) || []
-
-        // Fetch messages sent - today
-        const { data: businessLeadsToday } = await supabase
-          .from('leads')
-          .select('id')
-          .eq('business_id', business.id)
-          .gte('created_at', todayStartISO)
-
-        const leadIdsToday = businessLeadsToday?.map((l: any) => l.id) || []
-
-        let messagesToday = []
-        if (leadIdsToday.length > 0) {
-          const { data: messagesTodayData } = await supabase
-            .from('messages')
-            .select('direction, created_at, from_phone')
-            .in('lead_id', leadIdsToday)
-            .gte('created_at', todayStartISO)
-          messagesToday = messagesTodayData || []
-        }
-
-        // Fetch follow-ups sent - 30 days
-        const { data: followUpJobs } = await supabase
-          .from('follow_up_jobs')
-          .select('id, status, cancelled_reason')
-          .eq('business_id', business.id)
-          .gte('created_at', thirtyDaysAgo)
-
-        const followUpsSent = followUpJobs?.filter((f: any) => f.status === 'sent').length || 0
-        const followUpsCancelled = followUpJobs?.filter((f: any) => f.status === 'cancelled' && f.cancelled_reason === 'customer_replied').length || 0
-        
-        // Calculate follow-up response rate: customer replies / (sent + customer replies)
-        const followUpResponseRate = (followUpsSent + followUpsCancelled) > 0 
-          ? Math.round((followUpsCancelled / (followUpsSent + followUpsCancelled)) * 100) 
-          : 0
-
-        // Calculate metrics - 30 days
-        const missedCallsCaptured = leads?.length || 0
-        const leadsGenerated = missedCallsCaptured
-        const messagesSent = outboundMessages.length
-        const customerReplies = inboundMessages.length
-        
-        // Recovery rate: recovered leads / captured leads
-        // A lead is recovered if it has at least one inbound customer message (customer replied)
-        const recoveredLeadsSet = new Set(inboundMessages?.map((m: any) => m.lead_id) || [])
-        const recoveredLeadsCount = recoveredLeadsSet.size
-        const recoveryRate = missedCallsCaptured > 0 ? Math.min(100, Math.max(0, Math.round((recoveredLeadsCount / missedCallsCaptured) * 100))) : 0
-
-        // Calculate metrics - today
-        const missedCallsToday = leadsToday?.length || 0
-        const newLeadsToday = missedCallsToday
-        const messagesSentToday = messagesToday?.filter((m: any) => {
-          const isDirectionOutbound = m.direction === 'outbound' || m.direction?.startsWith?.('outbound')
-          const isFromBusinessPhone = m.from_phone === business.twilio_phone_number
-          return isDirectionOutbound || isFromBusinessPhone
-        }).length || 0
-
-        setMetrics({
-          missedCallsCaptured,
-          leadsGenerated,
-          messagesSent,
-          followUpsSent,
-          customerReplies,
-          recoveredLeads: recoveredLeadsCount,
-          recoveryRate,
-          followUpResponseRate,
-          period: '30 days'
-        })
-        
-        setTodayMetrics({
-          missedCalls: missedCallsToday,
-          newLeads: newLeadsToday,
-          messagesSent: messagesSentToday
-        })
-      } catch (error) {
-        console.error('Error fetching dashboard metrics:', error)
-      } finally {
-        setLoading(false)
+        messages = messagesData || []
       }
-    }
 
-    fetchMetrics()
+      // Filter outbound messages more robustly
+      const outboundMessages = messages?.filter((m: any) => {
+        const isDirectionOutbound = m.direction === 'outbound' || m.direction?.startsWith?.('outbound')
+        const isFromBusinessPhone = m.from_phone === business.twilio_phone_number
+        return isDirectionOutbound || isFromBusinessPhone
+      }) || []
+
+      // Filter inbound messages (customer replies)
+      const inboundMessages = messages?.filter((m: any) => {
+        const isDirectionInbound = m.direction === 'inbound' || m.direction?.startsWith?.('inbound')
+        const isToBusinessPhone = m.to_phone === business.twilio_phone_number
+        return isDirectionInbound || isToBusinessPhone
+      }) || []
+
+      // Fetch messages sent - today
+      const { data: businessLeadsToday } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('business_id', business.id)
+        .gte('created_at', todayStartISO)
+
+      const leadIdsToday = businessLeadsToday?.map((l: any) => l.id) || []
+
+      let messagesToday = []
+      if (leadIdsToday.length > 0) {
+        const { data: messagesTodayData } = await supabase
+          .from('messages')
+          .select('direction, created_at, from_phone')
+          .in('lead_id', leadIdsToday)
+          .gte('created_at', todayStartISO)
+        messagesToday = messagesTodayData || []
+      }
+
+      // Fetch follow-ups sent - 30 days
+      const { data: followUpJobs } = await supabase
+        .from('follow_up_jobs')
+        .select('id, status, cancelled_reason')
+        .eq('business_id', business.id)
+        .gte('created_at', thirtyDaysAgo)
+
+      const followUpsSent = followUpJobs?.filter((f: any) => f.status === 'sent').length || 0
+      const followUpsCancelled = followUpJobs?.filter((f: any) => f.status === 'cancelled' && f.cancelled_reason === 'customer_replied').length || 0
+      
+      // Calculate follow-up response rate: customer replies / (sent + customer replies)
+      const followUpResponseRate = (followUpsSent + followUpsCancelled) > 0 
+        ? Math.round((followUpsCancelled / (followUpsSent + followUpsCancelled)) * 100) 
+        : 0
+
+      // Calculate metrics - 30 days
+      const missedCallsCaptured = leads?.length || 0
+      const leadsGenerated = missedCallsCaptured
+      const messagesSent = outboundMessages.length
+      const customerReplies = inboundMessages.length
+      
+      // Recovery rate: recovered leads / captured leads
+      // A lead is recovered if it has at least one inbound customer message (customer replied)
+      const recoveredLeadsSet = new Set(inboundMessages?.map((m: any) => m.lead_id) || [])
+      const recoveredLeadsCount = recoveredLeadsSet.size
+      const recoveryRate = missedCallsCaptured > 0 ? Math.min(100, Math.max(0, Math.round((recoveredLeadsCount / missedCallsCaptured) * 100))) : 0
+
+      // Calculate metrics - today
+      const missedCallsToday = leadsToday?.length || 0
+      const newLeadsToday = missedCallsToday
+      const messagesSentToday = messagesToday?.filter((m: any) => {
+        const isDirectionOutbound = m.direction === 'outbound' || m.direction?.startsWith?.('outbound')
+        const isFromBusinessPhone = m.from_phone === business.twilio_phone_number
+        return isDirectionOutbound || isFromBusinessPhone
+      }).length || 0
+
+      setMetrics({
+        missedCallsCaptured,
+        leadsGenerated,
+        messagesSent,
+        followUpsSent,
+        customerReplies,
+        recoveredLeads: recoveredLeadsCount,
+        recoveryRate,
+        followUpResponseRate,
+        period: '30 days'
+      })
+      
+      setTodayMetrics({
+        missedCalls: missedCallsToday,
+        newLeads: newLeadsToday,
+        messagesSent: messagesSentToday
+      })
+    } catch (error) {
+      console.error('Error fetching dashboard metrics:', error)
+    } finally {
+      setLoading(false)
+    }
   }, [business])
+
+  // Initial fetch
+  useEffect(() => {
+    fetchMetrics()
+  }, [fetchMetrics])
+
+  // Realtime subscription for live metric updates
+  useEffect(() => {
+    if (!business) return
+
+    const supabase = createBrowserClient()
+    const channel = supabase
+      .channel('dashboard-metrics-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leads',
+          filter: `business_id=eq.${business.id}`
+        },
+        () => {
+          fetchMetrics()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages'
+        },
+        (payload: any) => {
+          // Only refetch if the message belongs to this business's leads
+          // We fetch metrics which includes business-scoped queries
+          fetchMetrics()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'follow_up_jobs',
+          filter: `business_id=eq.${business.id}`
+        },
+        () => {
+          fetchMetrics()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [business, fetchMetrics])
 
   const getMetricIcon = (type: string) => {
     switch (type) {
