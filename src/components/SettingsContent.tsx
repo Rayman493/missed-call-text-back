@@ -159,7 +159,9 @@ export default function SettingsContent() {
         business_hours_end: businessData.business_hours_end,
         business_hours_timezone: businessData.business_hours_timezone,
         after_hours_message: businessData.after_hours_message,
-        automation_settings: automationSettings
+        automation_settings: automationSettings,
+        venmo_username: businessData.venmo_username,
+        paypal_payment_link: businessData.paypal_payment_link
       }
 
       // Log Out of Office save attempt
@@ -1947,6 +1949,82 @@ export default function SettingsContent() {
                       </p>
                     </div>
                   )}
+                </div>
+
+                {/* Venmo Configuration Card */}
+                <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40 mt-3">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 pr-4">
+                      <div className="flex items-center gap-2.5 mb-1.5">
+                        <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+                        </svg>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Venmo</h3>
+                        {formBusiness.venmo_username && (
+                          <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
+                            <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                            Configured
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Add your Venmo username to request payments via text message.
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
+                      Venmo Username
+                    </label>
+                    <input
+                      type="text"
+                      value={formBusiness.venmo_username || ''}
+                      onChange={(e) => updateBusiness({ venmo_username: e.target.value })}
+                      placeholder="@joesplumbing"
+                      className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                    />
+                    <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1.5">
+                      Enter your Venmo username (with or without @)
+                    </p>
+                  </div>
+                </div>
+
+                {/* PayPal Configuration Card */}
+                <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40 mt-3">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 pr-4">
+                      <div className="flex items-center gap-2.5 mb-1.5">
+                        <svg className="w-6 h-6 sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z"/>
+                        </svg>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">PayPal</h3>
+                        {formBusiness.paypal_payment_link && (
+                          <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
+                            <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                            Configured
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Add your PayPal payment link to request payments via text message.
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
+                      PayPal Payment Link
+                    </label>
+                    <input
+                      type="text"
+                      value={formBusiness.paypal_payment_link || ''}
+                      onChange={(e) => updateBusiness({ paypal_payment_link: e.target.value })}
+                      placeholder="paypal.me/joesplumbing"
+                      className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                    />
+                    <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1.5">
+                      Enter your PayPal link (paypal.me/... or full URL)
+                    </p>
+                  </div>
                 </div>
               </div>
 

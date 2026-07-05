@@ -114,6 +114,11 @@ export interface Business {
   stripe_payouts_enabled?: boolean | null;
   stripe_details_submitted?: boolean | null;
 
+  // Multi-provider payment fields
+  venmo_username?: string | null;
+  paypal_payment_link?: string | null;
+  preferred_payment_provider?: 'stripe' | 'venmo' | 'paypal' | string | null;
+
   created_at: string;
   updated_at?: string;
 }

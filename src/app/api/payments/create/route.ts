@@ -7,6 +7,7 @@ import { sendSms } from '@/lib/twilio'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
+import { generatePaymentLink, PaymentProvider, isProviderAvailable } from '@/lib/payment-links'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
 
     // Get request body
     const body = await request.json()
-    const { business_id, lead_id, conversation_id, amount_cents, description } = body
+    const { business_id, lead_id, conversation_id, amount_cents, description, payment_provider } = body
 
     console.log('[PAYMENT REQUEST] Incoming payload:', {
       business_id,
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
       conversation_id,
       amount_cents,
       description,
+      payment_provider,
     })
 
     if (!business_id || !lead_id || !conversation_id || !amount_cents) {
@@ -69,6 +71,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Amount must be greater than 0' }, { status: 400 })
     }
 
+    // Validate payment provider
+    const provider: PaymentProvider = payment_provider || 'stripe'
+    if (!['stripe', 'venmo', 'paypal'].includes(provider)) {
+      return NextResponse.json({ error: 'Invalid payment provider' }, { status: 400 })
+    }
+
     // Verify business exists and user has access (RLS will handle authorization)
     console.log('[PAYMENT REQUEST] Business lookup with RLS:', {
       business_id,
@@ -77,7 +85,7 @@ export async function POST(request: Request) {
 
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('id, user_id, name, stripe_connect_account_id, stripe_connect_status, stripe_charges_enabled, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status')
+      .select('id, user_id, name, stripe_connect_account_id, stripe_connect_status, stripe_charges_enabled, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, venmo_username, paypal_payment_link')
       .eq('id', business_id)
       .maybeSingle()
 
@@ -99,15 +107,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Business not found or unauthorized' }, { status: 404 })
     }
 
-    // Verify Stripe is connected and charges are enabled
-    if (!business.stripe_connect_account_id || business.stripe_connect_status !== 'connected') {
-      console.error('[PAYMENT REQUEST] Stripe not connected for business')
-      return NextResponse.json({ error: 'Stripe Connect not set up' }, { status: 400 })
+    // Verify the selected payment provider is available
+    if (!isProviderAvailable(provider, business)) {
+      console.error('[PAYMENT REQUEST] Payment provider not available:', provider)
+      const providerName = provider.charAt(0).toUpperCase() + provider.slice(1)
+      return NextResponse.json({ 
+        error: `${providerName} is not configured. Please set it up in Settings.` 
+      }, { status: 400 })
     }
 
-    if (!business.stripe_charges_enabled) {
-      console.error('[PAYMENT REQUEST] Stripe charges not enabled')
-      return NextResponse.json({ error: 'Stripe charges not enabled. Please complete onboarding.' }, { status: 400 })
+    // For Stripe, verify it's connected and charges are enabled
+    if (provider === 'stripe') {
+      if (!business.stripe_connect_account_id || business.stripe_connect_status !== 'connected') {
+        console.error('[PAYMENT REQUEST] Stripe not connected for business')
+        return NextResponse.json({ error: 'Stripe Connect not set up' }, { status: 400 })
+      }
+
+      if (!business.stripe_charges_enabled) {
+        console.error('[PAYMENT REQUEST] Stripe charges not enabled')
+        return NextResponse.json({ error: 'Stripe charges not enabled. Please complete onboarding.' }, { status: 400 })
+      }
     }
 
     // Verify lead exists and user has access (RLS will handle authorization)
@@ -191,59 +210,86 @@ export async function POST(request: Request) {
     }
 
     console.log('[PAYMENT REQUEST] Payment description:', paymentDescription)
-    console.log('[PAYMENT REQUEST] Creating Stripe Checkout Session...')
+    console.log('[PAYMENT REQUEST] Payment provider:', provider)
 
-    // Create Stripe Checkout Session with destination charge
-    let checkoutSession
-    try {
-      checkoutSession = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: paymentDescription,
-                description: `Payment from ${business.twilio_phone_number}`,
+    // Generate payment link based on provider
+    let paymentLink = ''
+    let checkoutSession = null
+    let stripePaymentIntentId = null
+
+    if (provider === 'stripe') {
+      console.log('[PAYMENT REQUEST] Creating Stripe Checkout Session...')
+      // Create Stripe Checkout Session with destination charge
+      try {
+        checkoutSession = await stripe.checkout.sessions.create({
+          payment_method_types: ['card'],
+          line_items: [
+            {
+              price_data: {
+                currency: 'usd',
+                product_data: {
+                  name: paymentDescription,
+                  description: `Payment from ${business.twilio_phone_number}`,
+                },
+                unit_amount: amount_cents,
               },
-              unit_amount: amount_cents,
+              quantity: 1,
             },
-            quantity: 1,
+          ],
+          mode: 'payment',
+          success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/cancelled`,
+          payment_intent_data: {
+            metadata: {
+              payment_request_id: '', // Will be filled after creating payment_request record
+              business_id: business_id,
+              lead_id: lead_id,
+              conversation_id: conversation_id,
+            },
           },
-        ],
-        mode: 'payment',
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/cancelled`,
-        payment_intent_data: {
-          metadata: {
-            payment_request_id: '', // Will be filled after creating payment_request record
-            business_id: business_id,
-            lead_id: lead_id,
-            conversation_id: conversation_id,
-          },
-        },
-        customer_email: undefined, // Don't require email for payments
-      }, {
-        stripeAccount: business.stripe_connect_account_id, // Destination charge
-      })
-      console.log('[PAYMENT REQUEST] Stripe Checkout Session created successfully:', checkoutSession.id)
-      console.log('[PAYMENT REQUEST] Checkout Session URL:', checkoutSession.url)
-    } catch (stripeError) {
-      console.error('[PAYMENT REQUEST] Stripe Checkout Session creation failed:', stripeError)
-      console.error('[PAYMENT REQUEST] Stripe error details:', JSON.stringify(stripeError, null, 2))
-      throw stripeError
+          customer_email: undefined, // Don't require email for payments
+        }, {
+          stripeAccount: business.stripe_connect_account_id, // Destination charge
+        })
+        console.log('[PAYMENT REQUEST] Stripe Checkout Session created successfully:', checkoutSession.id)
+        console.log('[PAYMENT REQUEST] Checkout Session URL:', checkoutSession.url)
+        stripePaymentIntentId = checkoutSession.payment_intent as string
+      } catch (stripeError) {
+        console.error('[PAYMENT REQUEST] Stripe Checkout Session creation failed:', stripeError)
+        console.error('[PAYMENT REQUEST] Stripe error details:', JSON.stringify(stripeError, null, 2))
+        throw stripeError
+      }
+    } else if (provider === 'venmo') {
+      console.log('[PAYMENT REQUEST] Generating Venmo payment link...')
+      const venmoResult = generatePaymentLink('venmo', business)
+      if (venmoResult.error) {
+        return NextResponse.json({ error: venmoResult.error }, { status: 400 })
+      }
+      paymentLink = venmoResult.link
+      console.log('[PAYMENT REQUEST] Venmo link generated:', paymentLink)
+    } else if (provider === 'paypal') {
+      console.log('[PAYMENT REQUEST] Generating PayPal payment link...')
+      const paypalResult = generatePaymentLink('paypal', business)
+      if (paypalResult.error) {
+        return NextResponse.json({ error: paypalResult.error }, { status: 400 })
+      }
+      paymentLink = paypalResult.link
+      console.log('[PAYMENT REQUEST] PayPal link generated:', paymentLink)
     }
 
-    // Generate secure token for branded payment link
-    console.log('[PAYMENT REQUEST] Generating secure token...')
-    const token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('')
-    console.log('[PAYMENT REQUEST] Token generated:', token)
+    // Generate secure token for branded payment link (only for Stripe)
+    let token = null
+    if (provider === 'stripe') {
+      console.log('[PAYMENT REQUEST] Generating secure token...')
+      token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('')
+      console.log('[PAYMENT REQUEST] Token generated:', token)
+    }
 
     // Create payment_request record
-    console.log('[PAYMENT REQUEST] Inserting payment_request record with token...')
-    const insertPayload = {
+    console.log('[PAYMENT REQUEST] Inserting payment_request record...')
+    const insertPayload: any = {
       business_id: business_id,
       lead_id: lead_id,
       conversation_id: conversation_id,
@@ -251,14 +297,23 @@ export async function POST(request: Request) {
       currency: 'usd',
       description: paymentDescription,
       status: 'pending',
-      stripe_checkout_session_id: checkoutSession.id,
-      stripe_payment_intent_id: checkoutSession.payment_intent as string,
-      stripe_connect_account_id: business.stripe_connect_account_id,
-      checkout_url: checkoutSession.url,
-      token: token,
+      payment_provider: provider,
       requested_by: user.id,
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
     }
+
+    // Add Stripe-specific fields only for Stripe
+    if (provider === 'stripe' && checkoutSession) {
+      insertPayload.stripe_checkout_session_id = checkoutSession.id
+      insertPayload.stripe_payment_intent_id = stripePaymentIntentId
+      insertPayload.stripe_connect_account_id = business.stripe_connect_account_id
+      insertPayload.checkout_url = checkoutSession.url
+      insertPayload.token = token
+    } else {
+      // For Venmo/PayPal, use the direct payment link
+      insertPayload.checkout_url = paymentLink
+    }
+
     console.log('[PAYMENT REQUEST] Insert payload:', JSON.stringify(insertPayload, null, 2))
 
     let paymentRequest, paymentRequestError
@@ -275,13 +330,13 @@ export async function POST(request: Request) {
       paymentRequestError = insertException
     }
 
-    // If insert failed due to missing token column, retry without token
+    // If insert failed due to missing token column, retry without token (only for Stripe)
     const errorCode = (paymentRequestError as any)?.code
     const errorMessage = (paymentRequestError as any)?.message || ''
     const isMissingTokenColumnError = errorCode === '42703' || 
                                      (errorCode === 'PGRST204' && errorMessage.includes('token') && errorMessage.includes('payment_requests'))
     
-    if (paymentRequestError && isMissingTokenColumnError) {
+    if (paymentRequestError && isMissingTokenColumnError && provider === 'stripe') {
       console.log('[PAYMENT REQUEST] Token column missing from schema/cache, retrying insert without token')
       console.log('[PAYMENT REQUEST] Error code:', errorCode)
       console.log('[PAYMENT REQUEST] Error message:', errorMessage)
@@ -315,8 +370,8 @@ export async function POST(request: Request) {
     console.log('[PAYMENT REQUEST] Payment request token:', paymentRequest.token)
     console.log('[PAYMENT REQUEST] Token persisted to database:', !!paymentRequest.token)
 
-    // Update Stripe Payment Intent metadata with payment_request_id
-    if (checkoutSession.payment_intent) {
+    // Update Stripe Payment Intent metadata with payment_request_id (only for Stripe)
+    if (provider === 'stripe' && checkoutSession?.payment_intent) {
       try {
         await stripe.paymentIntents.update(
           checkoutSession.payment_intent as string,
@@ -356,22 +411,29 @@ export async function POST(request: Request) {
       .update(leadStatusUpdate)
       .eq('id', lead_id)
 
-    // Send SMS with branded ReplyFlow payment link only if token was persisted
+    // Send SMS with payment link
     console.log('[PAYMENT REQUEST] Preparing SMS...')
     const businessName = business.name || 'our business'
     const amount = (amount_cents / 100).toFixed(2)
     
-    // Only use branded link if token was actually persisted to database
-    const tokenPersisted = !!paymentRequest.token
-    const paymentUrl = tokenPersisted 
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/pay/${paymentRequest.token}`
-      : checkoutSession.url
+    // Determine payment URL based on provider
+    let paymentUrl = ''
+    if (provider === 'stripe') {
+      // For Stripe, use branded link if token was persisted, otherwise use Stripe checkout URL
+      const tokenPersisted = !!paymentRequest.token
+      paymentUrl = tokenPersisted 
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/pay/${paymentRequest.token}`
+        : (checkoutSession?.url || paymentRequest.checkout_url)
+    } else {
+      // For Venmo/PayPal, use the direct payment link
+      paymentUrl = paymentRequest.checkout_url || paymentLink
+    }
     
     console.log('[PAYMENT REQUEST SMS LINK LOGIC] =========================================')
     console.log('[PAYMENT REQUEST SMS LINK LOGIC] Payment request ID:', paymentRequest.id)
-    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Token persisted to database:', tokenPersisted)
+    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Payment provider:', provider)
+    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Token persisted to database:', !!paymentRequest.token)
     console.log('[PAYMENT REQUEST SMS LINK LOGIC] Token from database:', paymentRequest.token)
-    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Link mode:', tokenPersisted ? 'branded' : 'stripe_fallback')
     console.log('[PAYMENT REQUEST SMS LINK LOGIC] Final payment link:', paymentUrl)
     console.log('[PAYMENT REQUEST SMS LINK LOGIC] Timestamp:', new Date().toISOString())
     console.log('[PAYMENT REQUEST SMS LINK LOGIC] =========================================')
@@ -404,7 +466,7 @@ Thank you! If you have any questions, simply reply to this message.`
       // Payment request was created but SMS failed - return partial success
       return NextResponse.json({
         payment_request_id: paymentRequest.id,
-        checkout_url: checkoutSession.url,
+        checkout_url: paymentRequest.checkout_url,
         status: 'pending',
         sms_sent: false,
         warning: 'Payment request created, but SMS failed to send. The customer can still pay using the checkout URL.',
@@ -416,7 +478,7 @@ Thank you! If you have any questions, simply reply to this message.`
       // Payment request was created but SMS failed - return partial success
       return NextResponse.json({
         payment_request_id: paymentRequest.id,
-        checkout_url: checkoutSession.url,
+        checkout_url: paymentRequest.checkout_url,
         status: 'pending',
         sms_sent: false,
         warning: 'Payment request created, but SMS failed to send. The customer can still pay using the checkout URL.',
@@ -453,7 +515,7 @@ Thank you! If you have any questions, simply reply to this message.`
 
     return NextResponse.json({
       payment_request_id: paymentRequest.id,
-      checkout_url: checkoutSession.url,
+      checkout_url: paymentRequest.checkout_url,
       status: 'pending',
       sms_sent: true,
     })
