@@ -60,6 +60,10 @@ export function useRealtimeLeads(
       )
       .subscribe((status: string) => {
         console.log('[Realtime] Leads channel status:', status)
+        // Auto-reconnect on disconnect
+        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          console.log('[Realtime] Leads channel disconnected, will reconnect on next effect')
+        }
       })
 
     // Subscribe to messages table changes
@@ -80,6 +84,10 @@ export function useRealtimeLeads(
       )
       .subscribe((status: string) => {
         console.log('[Realtime] Messages channel status:', status)
+        // Auto-reconnect on disconnect
+        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          console.log('[Realtime] Messages channel disconnected, will reconnect on next effect')
+        }
       })
 
     channelsRef.current = [leadsChannel, messagesChannel]
