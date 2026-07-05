@@ -59,7 +59,7 @@ function HomepageFooter() {
               <span className="text-xl sm:text-2xl font-bold text-foreground">ReplyFlowHQ</span>
             </div>
             <p className="text-muted-foreground mb-3 sm:mb-4 md:mb-6 max-w-md text-sm sm:text-base leading-relaxed">
-              AI Voice, missed call recovery, lead management, appointment scheduling, payments, and follow-up automation — built for businesses that can't afford to miss a customer.
+              AI Voice, missed call recovery, lead management, appointment scheduling, and payments — built for local businesses that can't afford to miss a customer.
             </p>
             <div className="flex items-center gap-4">
               <a
@@ -215,7 +215,7 @@ export default async function Home() {
                 Never Miss a Lead Again
               </h1>
               <p className="text-sm sm:text-base md:text-xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed mt-1 sm:mt-1.5">
-                AI Voice answers your missed calls, collects customer information, and keeps the opportunity moving — from first response to booked appointment to payment.
+                AI Voice answers missed calls, captures leads, and helps you book more jobs — all while you focus on running your business.
               </p>
 
               {/* Primary CTA - Only shown for non-authenticated users */}
@@ -525,10 +525,10 @@ export default async function Home() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-6 sm:mb-8 md:mb-10">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">
-                Turn Missed Calls Into Booked Jobs and Paid Invoices
+                Capture Every Missed Call. Book More Jobs.
               </h2>
               <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-muted-foreground max-w-2xl mx-auto">
-                One platform to capture leads, continue conversations, schedule appointments, and collect payments
+                AI Voice answers missed calls, captures leads, and helps you schedule appointments and collect payments — all in one place.
               </p>
             </div>
 
@@ -605,10 +605,10 @@ export default async function Home() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-6 sm:mb-8 md:mb-10">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">
-                Why Businesses Choose ReplyFlow
+                Why Local Businesses Choose ReplyFlow
               </h2>
               <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-muted-foreground max-w-2xl mx-auto">
-                The trusted solution for missed call recovery and lead capture
+                Trusted by businesses that need to capture every opportunity
               </p>
             </div>
 
@@ -808,10 +808,10 @@ export default async function Home() {
           <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
             <div>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-4 sm:mb-5 md:mb-6">
-                Don't Let Another Missed Call Slip Away
+                Start Capturing Missed Calls Today
               </h2>
               <p className="text-base sm:text-lg md:text-xl text-slate-700 dark:text-muted-foreground mb-6 sm:mb-8 md:mb-10 leading-relaxed">
-                When you can't answer, ReplyFlow keeps the opportunity moving — from AI intake through scheduling and payment.
+                When you can't answer, ReplyFlow captures the lead, starts the conversation, and helps you book the job.
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 md:gap-4">

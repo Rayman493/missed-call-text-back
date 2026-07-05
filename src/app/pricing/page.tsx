@@ -39,10 +39,10 @@ export default function PricingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <div className="text-center">
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-3">
-              One price. Everything included.
+              Simple Pricing. Everything Included.
             </h1>
             <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              AI Voice, lead management, appointment scheduling, and payments — for one simple monthly price.
+              AI Voice, lead management, appointment scheduling, and payments — one flat monthly price.
             </p>
           </div>
         </div>
@@ -145,12 +145,12 @@ export default function PricingPage() {
                   {/* Reassurance */}
                   <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
                     <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                      ReplyFlow works seamlessly alongside your existing business phone number.
+                      Works with your existing business phone number.
                     </p>
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                       <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">Best experience: Dedicated business number</p>
                       <p className="text-[10px] text-blue-700 dark:text-blue-300">
-                        A dedicated business phone number provides the best experience. Personal business phones are still fully supported using Ignored Contacts.
+                        A dedicated business phone number provides the best experience. Personal business phones are fully supported using Ignored Contacts.
                       </p>
                     </div>
                   </div>
@@ -160,7 +160,7 @@ export default function PricingPage() {
                 <div className="mt-8 space-y-3">
                   <Link
                     href="/auth?mode=signup"
-                    className="w-full flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
+                    className="w-full flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
                   >
                     Start Your 14-Day Free Trial
                   </Link>
