@@ -334,6 +334,26 @@ function AuthContent() {
 
       console.log('[Auth] Client signed in successfully')
       
+      // Verify business row exists before calling checkout
+      console.log('[Auth] Verifying business row exists before checkout...')
+      const { data: business, error: businessError } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('user_id', signInData.session.user.id)
+        .maybeSingle()
+      
+      console.log('[Auth] Business verification result:', { business: !!business, businessId: business?.id, error: businessError })
+      
+      if (!business || businessError) {
+        console.error('[Auth] Business row not found after signup - redirecting to onboarding')
+        setError('Account created! Please complete your business profile to continue.')
+        setIsSignIn(true)
+        setLoading(false)
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
+        return
+      }
+      
       // Create Stripe Checkout session for trial
       console.log('[Auth] Creating Stripe Checkout session...')
       try {
@@ -352,6 +372,17 @@ function AuthContent() {
 
         if (!checkoutResponse.ok || !checkoutData.url) {
           console.error('[Auth] Failed to create checkout session:', checkoutData)
+          
+          // If checkout failed due to missing business, redirect to onboarding
+          if (checkoutData.reason === 'no_business_row' && checkoutData.redirect) {
+            console.log('[Auth] Redirecting to onboarding due to missing business row')
+            setLoading(false)
+            setIsSubmitting(false)
+            isSubmittingRef.current = false
+            router.replace(checkoutData.redirect)
+            return
+          }
+          
           setError('Account created! Please sign in to complete your trial setup.')
           setIsSignIn(true)
           setLoading(false)

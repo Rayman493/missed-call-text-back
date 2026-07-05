@@ -75,10 +75,12 @@ export async function POST(request: Request) {
 
     if (!business) {
       console.error('[stripe-checkout] Failed to resolve business for user:', user.id);
-      console.error('[stripe-checkout] This should not happen - db.getOrCreateBusiness should always return a business');
+      console.error('[stripe-checkout] User is authenticated but has no business row - redirecting to complete profile');
       return NextResponse.json({ 
-        error: 'Unable to set up your account. Please refresh the page and try again. If the issue persists, contact support.' 
-      }, { status: 500 })
+        error: 'Please complete your business profile before starting checkout.',
+        redirect: '/onboarding',
+        reason: 'no_business_row'
+      }, { status: 400 })
     }
 
     console.log('[stripe-checkout] Business resolved successfully:', { 
