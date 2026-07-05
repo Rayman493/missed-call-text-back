@@ -1,12 +1,13 @@
 /**
  * Warm Number Manager
  * Lightweight automatic warm-number replenishment for onboarding reliability
+ * Dynamic inventory management: total = assigned_count + warm_buffer (3)
  */
 
 import Twilio from 'twilio';
 import { createClient } from '@supabase/supabase-js';
 
-const MIN_AVAILABLE_WARM_NUMBERS = 3;
+const MIN_AVAILABLE_WARM_NUMBERS = 3; // Warm buffer target
 
 // Duplicate purchase protection flag
 let isReplenishing = false;
@@ -24,6 +25,17 @@ interface WarmNumberStats {
   assignedCount: number;
   failedCount: number;
   quarantinedCount: number;
+  totalManaged: number;
+}
+
+interface InventoryMetrics {
+  assignedCount: number;
+  availableCount: number;
+  desiredAvailableBuffer: number;
+  desiredTotal: number;
+  totalManaged: number;
+  purchaseNeeded: number;
+  excessCount: number;
 }
 
 /**
@@ -78,6 +90,7 @@ export async function getWarmNumberStats(): Promise<WarmNumberStats> {
       assignedCount: 0,
       failedCount: 0,
       quarantinedCount: 0,
+      totalManaged: 0,
     };
   }
 
@@ -119,11 +132,14 @@ export async function getWarmNumberStats(): Promise<WarmNumberStats> {
     console.log(`[Warm Inventory] Quarantined count: ${quarantined?.length || 0} (status=quarantined)`);
     console.log('[Warm Inventory] ========== STATS COMPLETE ==========');
 
+    const totalManaged = (available?.length || 0) + (assigned?.length || 0) + (failed?.length || 0) + (quarantined?.length || 0);
+
     return {
       availableCount: available?.length || 0,
       assignedCount: assigned?.length || 0,
       failedCount: failed?.length || 0,
       quarantinedCount: quarantined?.length || 0,
+      totalManaged,
     };
   } catch (error) {
     console.error('[Warm Inventory] Exception fetching warm number stats:', error);
@@ -132,6 +148,69 @@ export async function getWarmNumberStats(): Promise<WarmNumberStats> {
       assignedCount: 0,
       failedCount: 0,
       quarantinedCount: 0,
+      totalManaged: 0,
+    };
+  }
+}
+
+/**
+ * Calculate dynamic inventory metrics
+ * Returns information about current inventory state and purchase/cleanup needs
+ */
+export async function getInventoryMetrics(): Promise<InventoryMetrics> {
+  if (!supabase) {
+    console.error('[INVENTORY] Supabase client not configured');
+    return {
+      assignedCount: 0,
+      availableCount: 0,
+      desiredAvailableBuffer: MIN_AVAILABLE_WARM_NUMBERS,
+      desiredTotal: MIN_AVAILABLE_WARM_NUMBERS,
+      totalManaged: 0,
+      purchaseNeeded: 0,
+      excessCount: 0,
+    };
+  }
+
+  try {
+    const stats = await getWarmNumberStats();
+    
+    const assignedCount = stats.assignedCount;
+    const availableCount = stats.availableCount;
+    const desiredAvailableBuffer = MIN_AVAILABLE_WARM_NUMBERS;
+    const desiredTotal = assignedCount + desiredAvailableBuffer;
+    const totalManaged = stats.totalManaged;
+    const purchaseNeeded = Math.max(0, desiredAvailableBuffer - availableCount);
+    const excessCount = Math.max(0, totalManaged - desiredTotal);
+
+    console.log('[INVENTORY] ========== INVENTORY METRICS ==========');
+    console.log(`[INVENTORY] assigned_count: ${assignedCount}`);
+    console.log(`[INVENTORY] available_count: ${availableCount}`);
+    console.log(`[INVENTORY] desired_available_buffer: ${desiredAvailableBuffer}`);
+    console.log(`[INVENTORY] desired_total: ${desiredTotal}`);
+    console.log(`[INVENTORY] total_managed_numbers: ${totalManaged}`);
+    console.log(`[INVENTORY] purchase_needed: ${purchaseNeeded}`);
+    console.log(`[INVENTORY] excess_count: ${excessCount}`);
+    console.log('[INVENTORY] ========== METRICS COMPLETE ==========');
+
+    return {
+      assignedCount,
+      availableCount,
+      desiredAvailableBuffer,
+      desiredTotal,
+      totalManaged,
+      purchaseNeeded,
+      excessCount,
+    };
+  } catch (error) {
+    console.error('[INVENTORY] Exception calculating inventory metrics:', error);
+    return {
+      assignedCount: 0,
+      availableCount: 0,
+      desiredAvailableBuffer: MIN_AVAILABLE_WARM_NUMBERS,
+      desiredTotal: MIN_AVAILABLE_WARM_NUMBERS,
+      totalManaged: 0,
+      purchaseNeeded: 0,
+      excessCount: 0,
     };
   }
 }
@@ -268,6 +347,7 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
 /**
  * Ensure minimum number of available warm numbers
  * Provisions additional numbers if below minimum
+ * Uses dynamic inventory metrics to determine exact purchase needs
  */
 export async function ensureWarmNumberMinimum(): Promise<{ success: boolean; numbersAdded: number; availableBefore: number; availableAfter: number }> {
   // Duplicate purchase protection
@@ -284,9 +364,13 @@ export async function ensureWarmNumberMinimum(): Promise<{ success: boolean; num
   isReplenishing = true;
 
   try {
-    const availableBefore = await getAvailableWarmNumberCount();
+    const metrics = await getInventoryMetrics();
+    const availableBefore = metrics.availableCount;
 
-    if (availableBefore >= MIN_AVAILABLE_WARM_NUMBERS) {
+    console.log(`[INVENTORY] Current available: ${availableBefore}, Buffer target: ${metrics.desiredAvailableBuffer}`);
+
+    if (availableBefore >= metrics.desiredAvailableBuffer) {
+      console.log('[INVENTORY] Sufficient inventory, no purchase needed');
       return {
         success: true,
         numbersAdded: 0,
@@ -295,8 +379,8 @@ export async function ensureWarmNumberMinimum(): Promise<{ success: boolean; num
       };
     }
 
-    const numbersNeeded = MIN_AVAILABLE_WARM_NUMBERS - availableBefore;
-    console.log(`[INVENTORY] Purchasing replacement number...`);
+    const numbersNeeded = metrics.purchaseNeeded;
+    console.log(`[INVENTORY] Purchasing ${numbersNeeded} number(s) to restore buffer...`);
 
     let numbersAdded = 0;
     let lastError: string | undefined;
@@ -306,13 +390,15 @@ export async function ensureWarmNumberMinimum(): Promise<{ success: boolean; num
 
       if (result.success) {
         numbersAdded++;
+        console.log(`[PURCHASE] Purchased new Twilio number: ${result.phoneNumber}`);
       } else {
         lastError = result.error;
+        console.error(`[PURCHASE] Failed to purchase number ${i + 1}/${numbersNeeded}:`, lastError);
       }
     }
 
     const availableAfter = await getAvailableWarmNumberCount();
-    console.log(`[INVENTORY] Inventory restored: ${availableAfter}/${MIN_AVAILABLE_WARM_NUMBERS}`);
+    console.log(`[INVENTORY] Inventory restored: ${availableAfter}/${metrics.desiredAvailableBuffer}`);
 
     const success = numbersAdded === numbersNeeded;
 
@@ -460,7 +546,7 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
     }
 
     console.log(`[Warm Inventory] SUCCESS: Assignment DB update successful`);
-    console.log(`[Warm Inventory] Assigned warm number to business: ${warmNumber.phone_number}`);
+    console.log(`[ASSIGN] Assigned recycled warm number to business: ${warmNumber.phone_number}`);
     console.log(`[Warm Inventory] ========== END WARM INVENTORY ASSIGNMENT (SUCCESS) ==========`);
     return {
       success: true,
@@ -473,5 +559,208 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
     console.error('[Warm Inventory] EXCEPTION Details:', JSON.stringify(error, null, 2));
     console.error('[Warm Inventory] ========== END WARM INVENTORY ASSIGNMENT (EXCEPTION) ==========');    
     return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Recycle a Twilio number back to warm inventory
+ * Detaches from business, clears references, marks as available
+ * Used during account deletion instead of releasing from Twilio
+ */
+export async function recycleTwilioNumberToInventory(
+  phoneNumber: string,
+  phoneNumberSid: string,
+  businessId: string
+): Promise<{ success: boolean; error?: string }> {
+  console.log('[RECYCLE] ========== START NUMBER RECYCLING ==========');
+  console.log(`[RECYCLE] Recycling number: ${phoneNumber}`);
+  console.log(`[RECYCLE] Phone SID: ${phoneNumberSid}`);
+  console.log(`[RECYCLE] From business: ${businessId}`);
+
+  if (!supabase) {
+    console.error('[RECYCLE] ERROR: Supabase client not configured');
+    return { success: false, error: 'Supabase client not configured' };
+  }
+
+  try {
+    // STEP 1: Detach from business in twilio_numbers table
+    console.log('[RECYCLE] STEP 1: Detaching number from business...');
+    const { error: detachError } = await supabase
+      .from('twilio_numbers')
+      .update({
+        business_id: null,
+        status: 'available',
+        sms_status: 'ready',
+        assigned_at: null,
+        detached_at: new Date().toISOString(),
+        detached_reason: 'account_deletion',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('twilio_sid', phoneNumberSid)
+      .eq('business_id', businessId);
+
+    if (detachError) {
+      console.error('[RECYCLE] ERROR: Failed to detach number from business:', detachError);
+      console.error('[RECYCLE] ERROR Details:', JSON.stringify(detachError, null, 2));
+      return { success: false, error: 'Failed to detach number from business' };
+    }
+
+    console.log('[RECYCLE] SUCCESS: Number detached from business');
+
+    // STEP 2: Clear assigned_twilio_number_id in businesses table
+    console.log('[RECYCLE] STEP 2: Clearing assigned_twilio_number_id in businesses table...');
+    const { error: businessUpdateError } = await supabase
+      .from('businesses')
+      .update({
+        assigned_twilio_number_id: null,
+        twilio_phone_number: null,
+        twilio_phone_number_sid: null,
+        twilio_messaging_service_sid: null,
+        provisioning_status: null,
+        provisioning_error: null,
+        provisioned_at: null,
+      })
+      .eq('id', businessId);
+
+    if (businessUpdateError) {
+      console.error('[RECYCLE] WARNING: Failed to clear business references:', businessUpdateError);
+      console.error('[RECYCLE] WARNING Details:', JSON.stringify(businessUpdateError, null, 2));
+      // Don't fail - number is already recycled, this is cleanup
+    } else {
+      console.log('[RECYCLE] SUCCESS: Business references cleared');
+    }
+
+    console.log(`[RECYCLE] Number recycled to warm inventory: ${phoneNumber}`);
+    console.log('[RECYCLE] ========== END NUMBER RECYCLING (SUCCESS) ==========');
+    return { success: true };
+
+  } catch (error: any) {
+    console.error('[RECYCLE] EXCEPTION: Exception recycling number');
+    console.error('[RECYCLE] EXCEPTION Details:', JSON.stringify(error, null, 2));
+    console.error('[RECYCLE] ========== END NUMBER RECYCLING (EXCEPTION) ==========');
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Clean up excess inventory by releasing/retiring safe extra unused numbers
+ * Only releases numbers that are:
+ * - status='available'
+ * - business_id IS NULL
+ * - sms_status='ready'
+ * - NOT the protected system number
+ * - Oldest created_at (to release newest first, keep oldest)
+ */
+export async function cleanupExcessInventory(): Promise<{ success: boolean; numbersReleased: number; error?: string }> {
+  console.log('[CLEANUP] ========== START EXCESS INVENTORY CLEANUP ==========');
+
+  if (!supabase) {
+    console.error('[CLEANUP] ERROR: Supabase client not configured');
+    return { success: false, numbersReleased: 0, error: 'Supabase client not configured' };
+  }
+
+  try {
+    const metrics = await getInventoryMetrics();
+    
+    if (metrics.excessCount <= 0) {
+      console.log('[CLEANUP] No excess inventory to clean up');
+      return { success: true, numbersReleased: 0 };
+    }
+
+    console.log(`[CLEANUP] Excess count: ${metrics.excessCount}`);
+    console.log(`[CLEANUP] Total managed: ${metrics.totalManaged}`);
+    console.log(`[CLEANUP] Desired total: ${metrics.desiredTotal}`);
+
+    // Get protected system phone number (if configured)
+    const systemPhoneNumber = process.env.REPLYFLOW_SYSTEM_SMS_NUMBER;
+    console.log(`[CLEANUP] Protected system phone: ${systemPhoneNumber || 'none'}`);
+
+    // Fetch excess available numbers (oldest first, to keep newest)
+    const { data: excessNumbers, error: fetchError } = await supabase
+      .from('twilio_numbers')
+      .select('*')
+      .is('business_id', null)
+      .eq('status', 'available')
+      .eq('sms_status', 'ready')
+      .order('created_at', { ascending: true }) // Oldest first
+      .limit(metrics.excessCount);
+
+    if (fetchError) {
+      console.error('[CLEANUP] ERROR: Failed to fetch excess numbers:', fetchError);
+      return { success: false, numbersReleased: 0, error: 'Failed to fetch excess numbers' };
+    }
+
+    if (!excessNumbers || excessNumbers.length === 0) {
+      console.log('[CLEANUP] No excess numbers found to release');
+      return { success: true, numbersReleased: 0 };
+    }
+
+    console.log(`[CLEANUP] Found ${excessNumbers.length} excess numbers to potentially release`);
+
+    let numbersReleased = 0;
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+    if (!accountSid || !authToken) {
+      console.error('[CLEANUP] ERROR: Missing Twilio credentials');
+      return { success: false, numbersReleased: 0, error: 'Missing Twilio credentials' };
+    }
+
+    const client = Twilio(accountSid, authToken);
+
+    for (const number of excessNumbers) {
+      // Skip protected system number
+      if (systemPhoneNumber && number.phone_number === systemPhoneNumber) {
+        console.log(`[PROTECTED] Skipping protected system phone: ${number.phone_number}`);
+        continue;
+      }
+
+      console.log(`[CLEANUP] Releasing excess number: ${number.phone_number} (SID: ${number.twilio_sid})`);
+
+      try {
+        // Remove from Messaging Service if attached
+        const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+        if (messagingServiceSid) {
+          try {
+            await client.messaging.v1.services(messagingServiceSid)
+              .phoneNumbers(number.twilio_sid)
+              .remove();
+            console.log(`[CLEANUP] Removed from Messaging Service`);
+          } catch (msError) {
+            console.warn(`[CLEANUP] Failed to remove from Messaging Service (continuing):`, msError);
+          }
+        }
+
+        // Release from Twilio
+        await client.incomingPhoneNumbers(number.twilio_sid).remove();
+        console.log(`[CLEANUP] Released from Twilio`);
+
+        // Delete from database
+        const { error: deleteError } = await supabase
+          .from('twilio_numbers')
+          .delete()
+          .eq('id', number.id);
+
+        if (deleteError) {
+          console.error(`[CLEANUP] ERROR: Failed to delete from database:`, deleteError);
+        } else {
+          console.log(`[CLEANUP] Deleted from database`);
+          numbersReleased++;
+        }
+      } catch (releaseError: any) {
+        console.error(`[CLEANUP] ERROR: Failed to release number ${number.phone_number}:`, releaseError);
+        // Continue with next number
+      }
+    }
+
+    console.log(`[CLEANUP] Released ${numbersReleased} excess numbers`);
+    console.log('[CLEANUP] ========== END EXCESS INVENTORY CLEANUP ==========');
+    return { success: true, numbersReleased };
+
+  } catch (error: any) {
+    console.error('[CLEANUP] EXCEPTION: Exception during cleanup');
+    console.error('[CLEANUP] EXCEPTION Details:', JSON.stringify(error, null, 2));
+    console.error('[CLEANUP] ========== END EXCESS INVENTORY CLEANUP (EXCEPTION) ==========');
+    return { success: false, numbersReleased: 0, error: error.message };
   }
 }
