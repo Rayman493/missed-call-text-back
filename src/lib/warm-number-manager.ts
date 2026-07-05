@@ -269,6 +269,7 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
     console.log(`[Warm Inventory] Purchased number: ${purchasedNumber.phoneNumber}, SID: ${purchasedNumber.sid}`);
 
     // Step 3: Add to Messaging Service if configured
+    let senderPoolAttachedAt: string | null = null;
     if (messagingServiceSid) {
       console.log(`[Warm Inventory] Adding number to Messaging Service: ${messagingServiceSid}`);
       
@@ -304,6 +305,7 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
           return { success: false, error: 'Failed to verify sender pool membership' };
         }
 
+        senderPoolAttachedAt = new Date().toISOString();
         console.log('[Warm Inventory] Sender pool membership verified');
       } catch (error) {
         console.error('[Warm Inventory] Failed to add to Messaging Service:', error);
@@ -323,6 +325,9 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
         number_type: 'both',
         status: 'available',
         sms_status: 'ready',
+        provisioning_status: 'ready',
+        provisioning_error: null,
+        sender_pool_attached_at: senderPoolAttachedAt,
         business_id: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -444,6 +449,12 @@ export async function assignWarmNumberToBusiness(phoneNumber: string, businessId
         status: 'assigned',
         business_id: businessId,
         assigned_at: new Date().toISOString(),
+        sms_status: 'ready',
+        provisioning_status: 'ready',
+        provisioning_error: null,
+        detached_at: null,
+        detached_reason: null,
+        last_error: null,
         updated_at: new Date().toISOString(),
       })
       .eq('phone_number', phoneNumber)
@@ -573,8 +584,27 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
       return { success: false, error: 'Number not owned by Twilio' };
     }
 
-    // STEP 4: Update twilio_numbers table
-    console.log(`[Warm Inventory] STEP 4: Assigning number to business...`);
+    const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+    let senderPoolAttachedAt = warmNumber.sender_pool_attached_at || null;
+
+    if (messagingServiceSid) {
+      console.log(`[Warm Inventory] STEP 4: Verifying sender pool attachment...`);
+      const senderPool = await client.messaging.v1.services(messagingServiceSid)
+        .phoneNumbers
+        .list({ limit: 100 });
+      const isInSenderPool = senderPool.some(pn => pn.sid === warmNumber.twilio_sid);
+
+      if (!isInSenderPool) {
+        console.error('[Warm Inventory] ERROR: Warm number is not attached to sender pool');
+        return { success: false, error: 'Warm number is not attached to sender pool' };
+      }
+
+      senderPoolAttachedAt = senderPoolAttachedAt || new Date().toISOString();
+      console.log(`[Warm Inventory] Sender pool attachment verified: ${warmNumber.phone_number}`);
+    }
+
+    // STEP 5: Update twilio_numbers table
+    console.log(`[Warm Inventory] STEP 5: Assigning number to business...`);
     console.log(`[Warm Inventory] Business ID: ${businessId}`);
     console.log(`[Warm Inventory] Phone Number: ${warmNumber.phone_number}`);
     console.log(`[Warm Inventory] Phone SID: ${warmNumber.twilio_sid}`);
@@ -586,6 +616,8 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
         business_id: businessId,
         assigned_at: new Date().toISOString(),
         sms_status: 'ready',
+        provisioning_status: 'ready',
+        sender_pool_attached_at: senderPoolAttachedAt,
         detached_at: null,
         detached_reason: null,
         last_error: null,
@@ -602,9 +634,8 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
 
     console.log(`[Warm Inventory] SUCCESS: Assignment DB update successful`);
 
-    // STEP 5: Update businesses table to mark provisioning as ready
-    console.log(`[Warm Inventory] STEP 5: Updating business provisioning status to ready...`);
-    const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+    // STEP 6: Update businesses table to mark provisioning as ready
+    console.log(`[Warm Inventory] STEP 6: Updating business provisioning status to ready...`);
     const { error: businessUpdateError } = await supabase
       .from('businesses')
       .update({

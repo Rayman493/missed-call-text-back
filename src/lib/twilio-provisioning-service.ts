@@ -1039,146 +1039,137 @@ export async function isNumberReadyForUse(businessId: string): Promise<boolean> 
   try {
     console.log('[FAIL-SAFE] ===== SMS FAIL-SAFE CHECK START =====')
     console.log('[FAIL-SAFE] Business ID:', businessId)
-    
-    // Query businesses for phone SID and provisioning status
+
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('twilio_phone_number_sid, twilio_phone_number, provisioning_status')
       .eq('id', businessId)
       .single();
-    
+
     if (businessError || !business) {
       console.error('[FAIL-SAFE] Business not found:', businessId);
       console.error('[FAIL-SAFE] Business lookup error:', businessError);
       console.log('[FAIL-SAFE FAILED because BUSINESS_NOT_FOUND]', { businessId, businessError });
       return false;
     }
-    
+
     console.log('[FAIL-SAFE] Business lookup successful');
     console.log('[FAIL-SAFE] Business phone SID:', business.twilio_phone_number_sid);
     console.log('[FAIL-SAFE] Business phone number:', business.twilio_phone_number);
     console.log('[FAIL-SAFE] Business provisioning_status:', business.provisioning_status);
-    
-    if (!business.twilio_phone_number_sid) {
-      console.error('[FAIL-SAFE] No phone SID assigned to business');
-      console.log('[FAIL-SAFE FAILED because NO_BUSINESS_PHONE_SID]', { businessId, business_provisioning_status: business.provisioning_status });
+
+    if (!business.twilio_phone_number_sid || !business.twilio_phone_number) {
+      console.error('[FAIL-SAFE] Missing business Twilio number fields');
+      console.log('[FAIL-SAFE FAILED because MISSING_BUSINESS_TWILIO_FIELDS]', { businessId, hasPhoneSid: !!business.twilio_phone_number_sid, hasPhoneNumber: !!business.twilio_phone_number });
       return false;
     }
-    
-    // Query twilio_numbers for provisioning status
+
     console.log('[FAIL-SAFE] ===== TWILIO_NUMBERS LOOKUP =====')
     console.log('[FAIL-SAFE] Lookup criteria: twilio_sid =', business.twilio_phone_number_sid);
-    
+
     const { data: twilioNumber, error: twilioError } = await supabase
       .from('twilio_numbers')
-      .select('provisioning_status, campaign_registered_at, sender_pool_attached_at')
+      .select('id, phone_number, twilio_sid, business_id, status, sms_status, provisioning_status, campaign_registered_at, sender_pool_attached_at, detached_at, detached_reason, last_error')
       .eq('twilio_sid', business.twilio_phone_number_sid)
-      .single();
-    
+      .maybeSingle();
+
     console.log('[FAIL-SAFE] twilio_numbers lookup result:', { twilioNumber, twilioError });
-    
+
     if (twilioError || !twilioNumber) {
       console.error('[FAIL-SAFE] Twilio number not found in twilio_numbers table');
-      console.log('[FAIL-SAFE] ===== FALLBACK LOGIC START =====');
-      console.log('[FAIL-SAFE] Checking business provisioning status for fallback');
-      
-      // Fallback: Allow SMS if business provisioning is completed and SID exists
-      if (business.provisioning_status === 'completed' && business.twilio_phone_number_sid) {
-        console.log('[FAIL-SAFE] ✓ FALLBACK: Business provisioning completed, allowing SMS with self-heal');
-        console.log('[FAIL-SAFE] Self-healing: Inserting missing twilio_numbers row');
-        
-        try {
-          const { error: healError } = await supabase
-            .from('twilio_numbers')
-            .upsert({
-              twilio_sid: business.twilio_phone_number_sid,
-              phone_number: business.twilio_phone_number,
-              business_id: businessId,
-              provisioning_status: 'ready',
-              campaign_registered_at: new Date().toISOString(),
-              sender_pool_attached_at: new Date().toISOString(),
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }, {
-              onConflict: 'twilio_sid',
-              ignoreDuplicates: false
-            });
-
-          if (healError) {
-            console.error('[FAIL-SAFE] ✗ Self-heal failed:', healError);
-            console.warn('[FAIL-SAFE] ⚠ SMS allowed but twilio_numbers row still missing');
-          } else {
-            console.log('[FAIL-SAFE] ✓ Self-heal successful: twilio_numbers row inserted');
-          }
-          
-          console.log('[FAIL-SAFE] ✓ FALLBACK SUCCESS: SMS allowed');
-          console.log('[FAIL-SAFE PASSED]', { reason: 'BUSINESS_COMPLETED_FALLBACK_SELF_HEAL', businessId, business_provisioning_status: business.provisioning_status });
-          console.log('[FAIL-SAFE] ===== FALLBACK LOGIC END =====');
-          return true;
-        } catch (healException) {
-          console.error('[FAIL-SAFE] ✗ Self-heal exception:', healException);
-          console.warn('[FAIL-SAFE] ⚠ SMS allowed but self-heal failed');
-          console.log('[FAIL-SAFE] ✓ FALLBACK SUCCESS: SMS allowed (with warnings)');
-          console.log('[FAIL-SAFE PASSED]', { reason: 'BUSINESS_COMPLETED_FALLBACK_SELF_HEAL_EXCEPTION_IGNORED', businessId, business_provisioning_status: business.provisioning_status });
-          console.log('[FAIL-SAFE] ===== FALLBACK LOGIC END =====');
-          return true;
-        }
-      } else {
-        console.log('[FAIL-SAFE] ✗ FALLBACK: Business provisioning not completed, blocking SMS');
-        console.log('[FAIL-SAFE] Business provisioning_status:', business.provisioning_status);
-        console.log('[FAIL-SAFE] Business twilio_phone_number_sid:', business.twilio_phone_number_sid);
-        console.log('[FAIL-SAFE FAILED because TWILIO_NUMBER_ROW_MISSING_AND_BUSINESS_NOT_COMPLETED]', { businessId, business_provisioning_status: business.provisioning_status, business_twilio_phone_number_sid: business.twilio_phone_number_sid });
-        console.log('[FAIL-SAFE] ===== FALLBACK LOGIC END =====');
-        return false;
-      }
-    }
-    
-    console.log('[FAIL-SAFE] Checking provisioning status for business:', businessId);
-    console.log('[FAIL-SAFE] provisioning_status from twilio_numbers:', twilioNumber.provisioning_status);
-    console.log('[FAIL-SAFE] campaign_registered_at:', twilioNumber.campaign_registered_at);
-    console.log('[FAIL-SAFE] sender_pool_attached_at:', twilioNumber.sender_pool_attached_at);
-    
-    // Only allow sending from 'ready' numbers
-    if (twilioNumber.provisioning_status !== 'ready') {
-      console.warn('[FAIL-SAFE] Number not ready for use. Status:', twilioNumber.provisioning_status);
-      console.log('[FAIL-SAFE FAILED because TWILIO_NUMBER_PROVISIONING_STATUS_NOT_READY]', { businessId, twilio_number_provisioning_status: twilioNumber.provisioning_status, business_provisioning_status: business.provisioning_status });
-      console.log('[FAIL-SAFE] ===== SMS FAIL-SAFE CHECK END =====');
+      console.log('[FAIL-SAFE FAILED because TWILIO_NUMBER_ROW_MISSING]', { businessId, twilioError });
       return false;
     }
-    
-    // Additional check: verify sender pool membership
-    if (messagingServiceSid && business.twilio_phone_number_sid) {
-      const client = Twilio(accountSid, authToken);
-      
+
+    const assignedOrActive = twilioNumber.status === 'assigned' || twilioNumber.status === 'active';
+    if (!assignedOrActive) {
+      console.log('[FAIL-SAFE FAILED because NUMBER_STATUS_NOT_ASSIGNED_OR_ACTIVE]', { businessId, status: twilioNumber.status });
+      return false;
+    }
+
+    if (twilioNumber.sms_status !== 'ready') {
+      console.log('[FAIL-SAFE FAILED because SMS_STATUS_NOT_READY]', { businessId, sms_status: twilioNumber.sms_status });
+      return false;
+    }
+
+    if (twilioNumber.detached_at || twilioNumber.detached_reason) {
+      console.log('[FAIL-SAFE FAILED because NUMBER_DETACHED]', { businessId, detached_at: twilioNumber.detached_at, detached_reason: twilioNumber.detached_reason });
+      return false;
+    }
+
+    const client = Twilio(accountSid, authToken);
+
+    try {
+      await client.incomingPhoneNumbers(business.twilio_phone_number_sid).fetch();
+      console.log('[FAIL-SAFE] ✓ Twilio ownership verified');
+    } catch (ownershipError: any) {
+      console.error('[FAIL-SAFE] Twilio ownership verification failed:', ownershipError);
+      console.log('[FAIL-SAFE FAILED because TWILIO_OWNERSHIP_VERIFICATION_FAILED]', { businessId, status: ownershipError?.status, code: ownershipError?.code, message: ownershipError?.message });
+      return false;
+    }
+
+    let senderPoolVerified = false;
+    if (messagingServiceSid) {
       try {
         const senderPool = await client.messaging.v1.services(messagingServiceSid)
           .phoneNumbers
           .list({ limit: 100 });
-        
-        const inPool = senderPool.some(pn => pn.sid === business.twilio_phone_number_sid);
-        
-        if (!inPool) {
-          console.error('[FAIL-SAFE] Number not in sender pool despite ready status');
+
+        senderPoolVerified = senderPool.some(pn => pn.sid === business.twilio_phone_number_sid);
+
+        if (!senderPoolVerified) {
+          console.error('[FAIL-SAFE] Number not in sender pool');
           console.log('[FAIL-SAFE FAILED because NUMBER_NOT_IN_SENDER_POOL]', { businessId, business_twilio_phone_number_sid: business.twilio_phone_number_sid, messagingServiceSid });
-          console.log('[FAIL-SAFE] ===== SMS FAIL-SAFE CHECK END =====');
           return false;
         }
-        
+
         console.log('[FAIL-SAFE] ✓ Number verified in sender pool');
       } catch (poolError) {
         console.error('[FAIL-SAFE] Failed to verify sender pool:', poolError);
         console.log('[FAIL-SAFE FAILED because SENDER_POOL_VERIFICATION_EXCEPTION]', { businessId, error: poolError instanceof Error ? poolError.message : String(poolError), stack: poolError instanceof Error ? poolError.stack : undefined });
-        console.log('[FAIL-SAFE] ===== SMS FAIL-SAFE CHECK END =====');
         return false;
       }
     }
-    
+
+    const updateData: any = {};
+    if (senderPoolVerified && !twilioNumber.sender_pool_attached_at) {
+      updateData.sender_pool_attached_at = new Date().toISOString();
+    }
+    if (twilioNumber.provisioning_status !== 'ready') {
+      updateData.provisioning_status = 'ready';
+      updateData.provisioning_error = null;
+      updateData.last_provisioning_attempt_at = new Date().toISOString();
+    }
+    if (twilioNumber.status === 'assigned' && twilioNumber.sms_status === 'ready' && twilioNumber.provisioning_status === 'purchasing') {
+      console.log('[FAIL-SAFE] Self-healing impossible assigned+ready+purchasing state');
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      updateData.updated_at = new Date().toISOString();
+      const { error: healError } = await supabase
+        .from('twilio_numbers')
+        .update(updateData)
+        .eq('id', twilioNumber.id);
+
+      if (healError) {
+        console.error('[FAIL-SAFE] Self-heal update failed:', healError);
+      } else {
+        console.log('[FAIL-SAFE] Self-healed twilio_numbers readiness fields:', updateData);
+      }
+    }
+
     console.log('[FAIL-SAFE] ✓ Number is ready for use');
     console.log('[FAIL-SAFE] ✓ SMS ALLOWED - twilio_api_called will be true');
-    console.log('[FAIL-SAFE PASSED]', { businessId, twilio_number_provisioning_status: twilioNumber.provisioning_status, business_provisioning_status: business.provisioning_status, messagingServiceSidPresent: !!messagingServiceSid });
+    console.log('[FAIL-SAFE PASSED]', {
+      businessId,
+      status: twilioNumber.status,
+      sms_status: twilioNumber.sms_status,
+      previous_provisioning_status: twilioNumber.provisioning_status,
+      senderPoolVerified,
+      messagingServiceSidPresent: !!messagingServiceSid
+    });
     console.log('[FAIL-SAFE] ===== SMS FAIL-SAFE CHECK END =====');
     return true;
-    
   } catch (error: any) {
     console.error('[FAIL-SAFE] Exception during ready check:', error);
     console.log('[FAIL-SAFE FAILED because UNHANDLED_EXCEPTION]', { businessId, message: error?.message, stack: error?.stack, raw: error });
