@@ -837,95 +837,61 @@ If forwarding does not stop immediately, restart your phone or contact your carr
         summary.offboardingSmsSkippedReason = 'dry_run'
       }
 
-      // Step 18: Reserve Twilio numbers for 30-day grace period
-      console.log('[OFFBOARDING SMS ORDER] numberReservationStarted')
-      console.log('[delete-account] Step 17: reserve twilio_numbers for 30-day grace period')
-
-      const thirtyDaysFromNow = new Date()
-      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
+      // Step 18: Release Twilio numbers immediately (no 30-day hold for account deletion)
+      console.log('[delete-account] Step 18: release assigned Twilio numbers immediately')
 
       for (const business of businesses as any[]) {
         if (business.twilio_phone_number_sid) {
-          // Protect against reserving the dedicated system phone
+          // Protect against releasing the dedicated system phone
           if (isSystemPhoneNumber(business.twilio_phone_number)) {
-            console.log('[SYSTEM PHONE] Skipping reservation for dedicated system number:', business.twilio_phone_number)
-            console.log('[delete-account] System phone will not be reserved during account deletion')
+            console.log('[ACCOUNT DELETE] Skipping protected system phone:', business.twilio_phone_number)
+            console.log('[ACCOUNT DELETE] System phone will not be released during account deletion')
             continue
           }
 
-          console.log('[delete-account] Reserving Twilio number for 30-day grace period', {
+          console.log('[ACCOUNT DELETE] Releasing assigned Twilio number immediately', {
             businessId: business.id,
             phoneNumber: business.twilio_phone_number,
             sid: business.twilio_phone_number_sid,
           })
 
           if (!dryRun) {
-            // Get current status for logging
-            const { data: currentNumber } = await supabaseAdmin
-              .from('twilio_numbers')
-              .select('phone_number, status, business_id')
-              .eq('business_id', business.id)
-              .single()
+            try {
+              // Release the number from Twilio
+              console.log('[ACCOUNT DELETE] Releasing number from Twilio API')
+              if (!twilioClient) {
+                throw new Error('Twilio client not available')
+              }
+              await twilioClient.incomingPhoneNumbers(business.twilio_phone_number_sid).remove()
+              console.log('[ACCOUNT DELETE] Number released from Twilio API successfully')
 
-            // Prepare reservation data (schema-safe: only include columns that exist in production)
-            const reservationData = {
-              status: 'reserved',
-              business_id: null, // Clear business_id
-              reserved_for_business_id: business.id,
-              reserved_at: new Date().toISOString(),
-              reserved_expires_at: thirtyDaysFromNow.toISOString(),
-              reservation_reason: 'account_deletion',
-              reserved_owner_email: user.email,
-              reserved_business_phone: business.business_phone_number || business.twilio_phone_number,
-              reserved_stripe_customer_id: business.stripe_customer_id,
-              reserved_user_id: user.id,
-              // Note: detached_at and detached_reason are not included as they don't exist in production schema
+              // Remove from inventory tracking (delete the twilio_numbers row)
+              console.log('[ACCOUNT DELETE] Removing number from inventory tracking')
+              const { error: twilioDeleteError } = await supabaseAdmin
+                .from('twilio_numbers')
+                .delete()
+                .eq('business_id', business.id)
+
+              if (twilioDeleteError) {
+                console.error('[ACCOUNT DELETE] Failed to remove number from inventory tracking (continuing with deletion):', twilioDeleteError)
+                summary.twilioReleaseFailed = true
+                summary.twilioReleaseError = twilioDeleteError.message
+              } else {
+                console.log('[ACCOUNT DELETE] Number released and removed from inventory tracking')
+              }
+            } catch (twilioError: any) {
+              console.error('[ACCOUNT DELETE] Failed to release number from Twilio (continuing with deletion):', twilioError)
+              summary.twilioReleaseFailed = true
+              summary.twilioReleaseError = twilioError?.message || String(twilioError)
             }
-            console.log('[delete-account] Reservation data:', reservationData)
-
-            const { error: twilioReserveError, data: reserveData, count: reserveCount } = await supabaseAdmin
-              .from('twilio_numbers')
-              .update(reservationData)
-              .eq('business_id', business.id)
-
-            console.log('[delete-account] Twilio reservation UPDATE result:', {
-              error: twilioReserveError,
-              data: reserveData,
-              count: reserveCount,
-            })
-
-            if (twilioReserveError) {
-              console.error('[delete-account] Failed to reserve Twilio number in DB (continuing with deletion):', twilioReserveError)
-              // Don't fail the entire deletion - continue to delete auth user
-              // This ensures the user cannot sign back in even if Twilio reservation fails
-              summary.twilioReservationFailed = true
-              summary.twilioReservationError = twilioReserveError.message
-            }
-
-            // Log the status change
-            console.log('[delete-account] Twilio number reserved for 30-day grace period', {
-              previous_business_id: business.id,
-              phone_number: business.twilio_phone_number,
-              old_status: currentNumber?.status || 'unknown',
-              new_status: 'reserved',
-              reserved_for_business_id: business.id,
-              reserved_owner_email: user.email,
-              reserved_business_phone: business.business_phone_number || business.twilio_phone_number,
-              reserved_stripe_customer_id: business.stripe_customer_id,
-              reserved_user_id: user.id,
-              reserved_at: new Date().toISOString(),
-              reserved_expires_at: thirtyDaysFromNow.toISOString(),
-              reservation_reason: 'account_deletion',
-            })
           }
 
           summary.twilioNumberReleased = business.twilio_phone_number
-          console.log('[delete-account] Twilio number reserved:', business.twilio_phone_number)
+          console.log('[ACCOUNT DELETE] Twilio number released:', business.twilio_phone_number)
         }
       }
       summary.tablesDeleted.twilio_numbers_released = businesses.filter((b: any) => b.twilio_phone_number_sid).length
-      console.log('[OFFBOARDING SMS ORDER] numberReservationCompleted')
-      console.log('[delete-account] Step 17 completed: reserved twilio_numbers for 30-day grace period')
+      console.log('[delete-account] Step 18 completed: released assigned Twilio numbers immediately')
 
       // Step 18: Delete leads linked to businesses
       console.log('[delete-account] Step 18: delete leads')
