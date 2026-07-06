@@ -37,14 +37,21 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
 
       try {
         const supabase = createBrowserClient()
-        
+
         // Get data from the last 30 days
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-        
+
         // Fetch leads (leads recovered)
         const { data: leads } = await supabase
           .from('leads')
           .select('created_at')
+          .eq('business_id', business.id)
+          .gte('created_at', thirtyDaysAgo)
+
+        // Fetch missed calls from call_events (actual missed calls, not leads)
+        const { count: missedCallsCount } = await supabase
+          .from('call_events')
+          .select('*', { count: 'exact', head: true })
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
@@ -64,6 +71,7 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
 
         // Calculate KPIs
         const leadsRecovered = leads?.length || 0
+        const missedCallsCaptured = missedCallsCount || 0
 
         // Filter outbound messages more robustly (consistent with DashboardMetrics)
         const textsSent = messages?.filter((m: any) => {
@@ -80,7 +88,6 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
         }).length || 0
 
         const activeFollowUps = followUpJobs?.length || 0
-        const missedCallsCaptured = leadsRecovered // Simplified - leads recovered = missed calls captured
         const avgResponseTime = null // Would need more complex query to calculate
 
         setKpiData({
@@ -148,16 +155,16 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
   const kpiItems = [
     {
       type: 'leads',
-      label: 'Leads Recovered',
+      label: 'Total Leads',
       value: kpiData.leadsRecovered,
-      description: 'Customers engaged',
+      description: 'Leads generated',
       trend: null
     },
     {
       type: 'missed',
       label: 'Missed Calls',
       value: kpiData.missedCallsCaptured,
-      description: 'Calls captured',
+      description: 'Calls handled',
       trend: null
     },
     {
@@ -171,7 +178,7 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
       type: 'response',
       label: 'Avg Response',
       value: kpiData.avgResponseTime ? `${Math.round(kpiData.avgResponseTime / 60)}m` : '--',
-      description: kpiData.avgResponseTime ? 'Response time' : 'Not enough data',
+      description: kpiData.avgResponseTime ? 'Response time' : 'Not available',
       trend: null
     }
   ]

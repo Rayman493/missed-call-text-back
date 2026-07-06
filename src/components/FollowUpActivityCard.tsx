@@ -40,12 +40,12 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
         weekStart.setHours(0, 0, 0, 0)
         const weekStartISO = weekStart.toISOString()
 
-        // Fetch scheduled follow-ups
-        const { data: scheduledFollowUps } = await supabase
+        // Fetch pending follow-ups (scheduled but not yet sent)
+        const { data: pendingFollowUps } = await supabase
           .from('follow_up_jobs')
           .select('id')
           .eq('business_id', business.id)
-          .eq('status', 'pending')
+          .in('status', ['pending', 'scheduled', 'in_progress'])
 
         // Fetch follow-ups sent this week
         const { data: sentThisWeek } = await supabase
@@ -55,13 +55,6 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
           .eq('status', 'sent')
           .gte('created_at', weekStartISO)
 
-        // Fetch pending follow-ups
-        const { data: pendingFollowUps } = await supabase
-          .from('follow_up_jobs')
-          .select('id')
-          .eq('business_id', business.id)
-          .eq('status', 'pending')
-
         // Fetch failed follow-ups
         const { data: failedFollowUps } = await supabase
           .from('follow_up_jobs')
@@ -70,7 +63,7 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
           .eq('status', 'failed')
 
         setMetrics({
-          scheduled: scheduledFollowUps?.length || 0,
+          scheduled: pendingFollowUps?.length || 0,
           sentThisWeek: sentThisWeek?.length || 0,
           pending: pendingFollowUps?.length || 0,
           failed: failedFollowUps?.length || 0

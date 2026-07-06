@@ -404,7 +404,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
             <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
               Recovery Rate
             </div>
-            <span className="inline-flex items-center cursor-help" title="Percentage of missed callers successfully engaged by ReplyFlow">
+            <span className="inline-flex items-center cursor-help" title="Percentage of leads that replied to your messages">
               <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
             </span>
           </div>
@@ -416,10 +416,70 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         </div>
       </div>
 
-      {/* Follow-Ups Sent - Automation effectiveness metric */}
+      {/* Missed Calls Captured - Lead generation metric */}
+      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
+        <div className="flex items-start justify-between mb-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-center shadow-sm">
+            <PhoneMissed className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+          <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+            {metrics.period}
+          </div>
+        </div>
+        <div className="space-y-1.5 flex-1">
+          <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
+            {metrics.missedCallsCaptured}
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
+              Missed Calls Captured
+            </div>
+            <span className="inline-flex items-center cursor-help" title="Calls missed by your business that ReplyFlow converted to leads">
+              <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
+            </span>
+          </div>
+          {metrics.missedCallsCaptured === 0 && (
+            <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
+              No missed calls yet
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Messages Sent - Communication volume metric */}
       <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
         <div className="flex items-start justify-between mb-3">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-lg flex items-center justify-center shadow-sm">
+            <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
+          </div>
+          <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+            {metrics.period}
+          </div>
+        </div>
+        <div className="space-y-1.5 flex-1">
+          <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
+            {metrics.messagesSent}
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
+              Messages Sent
+            </div>
+            <span className="inline-flex items-center cursor-help" title="Automated and manual messages sent to leads">
+              <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
+            </span>
+          </div>
+          {metrics.messagesSent === 0 && (
+            <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
+              No messages sent yet
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Customer Replies - Engagement metric */}
+      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
+        <div className="flex items-start justify-between mb-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg flex items-center justify-center shadow-sm">
             <Reply className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
@@ -428,49 +488,19 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         </div>
         <div className="space-y-1.5 flex-1">
           <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
-            {metrics.followUpsSent}
+            {metrics.customerReplies}
           </div>
           <div className="flex items-center gap-1">
             <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
-              Follow-Ups Sent
+              Customer Replies
             </div>
-            <span className="inline-flex items-center cursor-help" title="Automated follow-up messages sent to leads">
+            <span className="inline-flex items-center cursor-help" title="Inbound messages received from leads">
               <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
             </span>
           </div>
-          {metrics.followUpsSent === 0 && (
+          {metrics.customerReplies === 0 && (
             <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
-              No follow-ups sent yet
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Follow-Up Response Rate - Engagement quality metric */}
-      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
-        <div className="flex items-start justify-between mb-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800 rounded-lg flex items-center justify-center shadow-sm">
-            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
-          </div>
-          <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
-            {metrics.period}
-          </div>
-        </div>
-        <div className="space-y-1.5 flex-1">
-          <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
-            {metrics.followUpResponseRate}%
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
-              Follow-Up Response Rate
-            </div>
-            <span className="inline-flex items-center cursor-help" title="Percentage of follow-ups that received customer replies">
-              <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
-            </span>
-          </div>
-          {metrics.followUpResponseRate === 0 && (
-            <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
-              No follow-up responses yet
+              No customer replies yet
             </div>
           )}
         </div>
