@@ -58,6 +58,32 @@ async function processVoiceStatusCallback(params: any, method: string) {
   const Duration = params.Duration || params.CallDuration
   const Direction = params.Direction
 
+  // EARLY GUARD: Ignore Twilio Media Stream status callbacks
+  // StreamEvent callbacks (start/stop) are NOT final call-status callbacks
+  // They should NOT trigger SMS dispatch, lead creation, or follow-up jobs
+  if (params.StreamEvent || !CallStatus) {
+    console.log('[VOICE STATUS] =========================================');
+    console.log('[VOICE STATUS] Ignoring Twilio stream status callback');
+    console.log('[VOICE STATUS] StreamEvent:', params.StreamEvent || 'not present');
+    console.log('[VOICE STATUS] CallStatus:', CallStatus || 'undefined');
+    console.log('[VOICE STATUS] CallSid:', CallSid);
+    console.log('[VOICE STATUS] Reason: StreamEvent callbacks are not final call-status callbacks');
+    console.log('[VOICE STATUS] =========================================');
+    return { success: true, reason: 'stream_event_ignored' };
+  }
+
+  // Only process final call lifecycle callbacks
+  const allowedCallStatuses = ['completed', 'busy', 'failed', 'no-answer', 'canceled'];
+  if (CallStatus && !allowedCallStatuses.includes(CallStatus)) {
+    console.log('[VOICE STATUS] =========================================');
+    console.log('[VOICE STATUS] Ignoring non-final call status');
+    console.log('[VOICE STATUS] CallStatus:', CallStatus);
+    console.log('[VOICE STATUS] CallSid:', CallSid);
+    console.log('[VOICE STATUS] Reason: Only final call statuses trigger processing');
+    console.log('[VOICE STATUS] =========================================');
+    return { success: true, reason: 'non_final_call_status_ignored' };
+  }
+
   // Rate limiting check (CallSid-based to allow Twilio retries)
   const rateLimitResult = await checkVoiceStatusRateLimit(CallSid);
   if (!rateLimitResult.success) {
