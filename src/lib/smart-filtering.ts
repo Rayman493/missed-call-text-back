@@ -75,6 +75,12 @@ export async function shouldSendAutoText(context: FilteringContext): Promise<Fil
     for (const check of checks) {
       const result = await check()
       if (!result.allowed) {
+        console.log('[SPAM FILTER]', {
+          reason: result.reason,
+          caller: context.callerPhone,
+          action: 'ignored',
+          details: result.details
+        })
         await logFilteringDecision(context.businessId, context.callerPhone, context.callSid, 'blocked', result.reason, result.details)
         console.log('[Smart Filtering] Blocked:', result.reason, result.details)
         return result
