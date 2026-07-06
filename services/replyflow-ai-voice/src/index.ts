@@ -5240,6 +5240,17 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     silentCloseMarkReceived: false,
     silentCloseHangupTimeout: null as NodeJS.Timeout | null,
     cachedPlaybackInterrupted: false,
+    // SMS DISPATCH CODE PATH OWNERSHIP:
+    // - Complete AI intake: AI voice service sends SMS via sendAIConfirmationSMS ONLY after stream closes
+    // - Incomplete AI intake: voice-status webhook sends SMS via dispatchAutomaticCustomerSms after call ends
+    // - Voicemail fallback: voice-status webhook sends SMS after call ends
+    // - Non-AI missed calls: voice-status webhook sends SMS after call ends
+    // Idempotency flag ensures SMS is only sent once per call, preventing duplicates from retry/close/status callbacks
+    summarySmsSent: false,
+    // Store lead and conversation IDs for SMS sending after stream closes
+    leadId: null as string | null,
+    conversationId: null as string | null,
+    intakeCompleted: false,
   };
 
   const simpleModeStageToTemplateStage: Record<string, IntakeStage> = {
@@ -5891,6 +5902,11 @@ Reply to this message if you'd like to update or add any information.
           console.log('[SIMPLE MODE] conversationId:', conversation.id);
           console.log('[SIMPLE MODE] =========================================');
 
+          // Store lead and conversation IDs for SMS sending after stream closes
+          state.leadId = lead.id;
+          state.conversationId = conversation.id;
+          state.intakeCompleted = true;
+
           // Create ai_call_record with exact call_sid
           // Store canonical field names that match getLeadAIIntake expectations.
           const aiCallRecordPayload = {
@@ -5997,31 +6013,9 @@ Reply to this message if you'd like to update or add any information.
           console.log('[SIMPLE MODE] finalIntakeData:', finalIntakeData);
           console.log('[SIMPLE MODE] =========================================');
 
-          // Generate SMS summary using the helper function
-          const smsBody = formatAiIntakeSummary(state.intakeData, state.callerPhone || 'Unknown');
-
-          console.log('[SIMPLE MODE] =========================================');
-          console.log('[SIMPLE MODE] event: simple_mode_summary_generated');
-          console.log('[SIMPLE MODE] smsBody:', smsBody.substring(0, 200));
-          console.log('[SIMPLE MODE] =========================================');
-
-          // Send SMS using the legacy function
-          console.log('[SIMPLE MODE] =========================================');
-          console.log('[SIMPLE MODE] event: simple_mode_summary_sms_send_start');
-          console.log('[SIMPLE MODE] =========================================');
-
-          await sendAIConfirmationSMS(
-            state.businessId,
-            lead.id,
-            conversation.id,
-            state.callSid || 'unknown',
-            state.callerPhone || 'unknown',
-            state.intakeData
-          );
-
-          console.log('[SIMPLE MODE] =========================================');
-          console.log('[SIMPLE MODE] event: simple_mode_summary_sms_send_success');
-          console.log('[SIMPLE MODE] =========================================');
+          // SMS DISPATCH: SMS is now sent AFTER stream closes in ws.on('close') handler
+          // This ensures SMS is never sent mid-call, only after the call ends or stream closes
+          // Idempotency guard (state.summarySmsSent) prevents duplicate SMS from retry/close/status callbacks
 
           // ── B: Fire notification (ai_intake_completed) ────────────────────
           if (process.env.MAIN_APP_URL && process.env.INTERNAL_API_SECRET) {
@@ -7042,6 +7036,32 @@ Reply to this message if you'd like to update or add any information.
     clearSilentTimeout('websocket_closed');
     console.log('[SIMPLE MODE] WebSocket closed');
     if (state.openAiWs) state.openAiWs.close();
+
+    // SMS DISPATCH: Send summary SMS after stream closes (never mid-call)
+    // Only send if intake was completed and SMS hasn't been sent yet (idempotency guard)
+    if (state.intakeCompleted && !state.summarySmsSent && state.leadId && state.conversationId) {
+      console.log('[SIMPLE MODE] =========================================');
+      console.log('[SIMPLE MODE] event: stream_close_sending_summary_sms');
+      console.log('[SIMPLE MODE] leadId:', state.leadId);
+      console.log('[SIMPLE MODE] conversationId:', state.conversationId);
+      console.log('[SIMPLE MODE] =========================================');
+
+      sendAIConfirmationSMS(
+        state.businessId,
+        state.leadId,
+        state.conversationId,
+        state.callSid || 'unknown',
+        state.callerPhone || 'unknown',
+        state.intakeData
+      ).then(() => {
+        state.summarySmsSent = true;
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] event: stream_close_summary_sms_sent');
+        console.log('[SIMPLE MODE] =========================================');
+      }).catch(err => {
+        console.log('[SIMPLE MODE] Summary SMS send failed after stream close:', err);
+      });
+    }
   });
 
   ws.on('error', (error) => {
