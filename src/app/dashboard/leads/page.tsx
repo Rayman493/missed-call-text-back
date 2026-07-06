@@ -932,9 +932,9 @@ export default function LeadsPage() {
                   Customer Leads
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {statusFilter === 'all' 
-                    ? `${leads.length} ${leads.length === 1 ? 'lead' : 'leads'} total`
-                    : `${leads.filter(l => getLeadLifecycleStatus(l) === statusFilter).length} ${statusFilter} ${leads.filter(l => getLeadLifecycleStatus(l) === statusFilter).length === 1 ? 'lead' : 'leads'}`
+                  {statusFilter === 'all'
+                    ? `${leads.filter(l => !l.deleted_at).length} ${leads.filter(l => !l.deleted_at).length === 1 ? 'lead' : 'leads'} total`
+                    : `${leads.filter(l => getLeadLifecycleStatus(l) === statusFilter && (String(statusFilter) === 'deleted' ? l.deleted_at : !l.deleted_at)).length} ${statusFilter} ${leads.filter(l => getLeadLifecycleStatus(l) === statusFilter && (String(statusFilter) === 'deleted' ? l.deleted_at : !l.deleted_at)).length === 1 ? 'lead' : 'leads'}`
                   }
                 </p>
                 {statusFilter === 'ignored' && (
