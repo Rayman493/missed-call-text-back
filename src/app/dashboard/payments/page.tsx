@@ -105,6 +105,14 @@ export default function PaymentsPage() {
   const hasAnyPaymentMethod = configuredPaymentMethods.length > 0
 
   // Auto-switch to first configured method if current selection is unavailable
+  // Auto-select first available method when modal opens
+  useEffect(() => {
+    if (showPaymentModal && configuredPaymentMethods.length > 0) {
+      setPaymentProvider(configuredPaymentMethods[0])
+    }
+  }, [showPaymentModal, configuredPaymentMethods])
+
+  // Auto-switch if current selection becomes unavailable
   useEffect(() => {
     if (paymentProvider === 'stripe' && !isStripeConfigured && configuredPaymentMethods.length > 0) {
       setPaymentProvider(configuredPaymentMethods[0])
@@ -713,70 +721,74 @@ export default function PaymentsPage() {
                   <label className="block text-sm font-medium text-white mb-2">
                     Payment Method
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => isStripeConfigured && setPaymentProvider('stripe')}
-                      disabled={!isStripeConfigured}
-                      className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                        paymentProvider === 'stripe' && isStripeConfigured
-                          ? 'bg-blue-600 border-blue-600 text-white'
-                          : !isStripeConfigured
-                          ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
-                          : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
-                      }`}
-                    >
-                      Stripe
-                      {!isStripeConfigured && (
-                        <div className="text-xs text-slate-500 mt-0.5">Configure first</div>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => isVenmoConfigured && setPaymentProvider('venmo')}
-                      disabled={!isVenmoConfigured}
-                      className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                        paymentProvider === 'venmo' && isVenmoConfigured
-                          ? 'bg-blue-600 border-blue-600 text-white'
-                          : !isVenmoConfigured
-                          ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
-                          : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
-                      }`}
-                    >
-                      Venmo
-                      {!isVenmoConfigured && (
-                        <div className="text-xs text-slate-500 mt-0.5">Configure first</div>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => isPaypalConfigured && setPaymentProvider('paypal')}
-                      disabled={!isPaypalConfigured}
-                      className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                        paymentProvider === 'paypal' && isPaypalConfigured
-                          ? 'bg-blue-600 border-blue-600 text-white'
-                          : !isPaypalConfigured
-                          ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
-                          : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
-                      }`}
-                    >
-                      PayPal
-                      {!isPaypalConfigured && (
-                        <div className="text-xs text-slate-500 mt-0.5">Configure first</div>
-                      )}
-                    </button>
-                  </div>
-                  {!hasAnyPaymentMethod && (
-                    <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-lg">
-                      <p className="text-sm text-yellow-200 mb-2">
-                        No payment methods are configured yet. Set up Stripe, Venmo, or PayPal in Settings → Payments before sending payment requests.
+                  {hasAnyPaymentMethod ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => isStripeConfigured && setPaymentProvider('stripe')}
+                        disabled={!isStripeConfigured}
+                        className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                          paymentProvider === 'stripe' && isStripeConfigured
+                            ? 'bg-blue-600 border-blue-600 text-white'
+                            : !isStripeConfigured
+                            ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
+                            : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
+                        }`}
+                      >
+                        Stripe
+                        {!isStripeConfigured && (
+                          <div className="text-xs text-slate-500 mt-0.5">Configure first</div>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => isVenmoConfigured && setPaymentProvider('venmo')}
+                        disabled={!isVenmoConfigured}
+                        className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                          paymentProvider === 'venmo' && isVenmoConfigured
+                            ? 'bg-blue-600 border-blue-600 text-white'
+                            : !isVenmoConfigured
+                            ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
+                            : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
+                        }`}
+                      >
+                        Venmo
+                        {!isVenmoConfigured && (
+                          <div className="text-xs text-slate-500 mt-0.5">Configure first</div>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => isPaypalConfigured && setPaymentProvider('paypal')}
+                        disabled={!isPaypalConfigured}
+                        className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                          paymentProvider === 'paypal' && isPaypalConfigured
+                            ? 'bg-blue-600 border-blue-600 text-white'
+                            : !isPaypalConfigured
+                            ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
+                            : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
+                        }`}
+                      >
+                        PayPal
+                        {!isPaypalConfigured && (
+                          <div className="text-xs text-slate-500 mt-0.5">Configure first</div>
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-yellow-900/20 border border-yellow-700/50 rounded-lg">
+                      <p className="text-sm text-yellow-200 mb-3">
+                        No payment methods have been configured yet.
+                      </p>
+                      <p className="text-sm text-yellow-200 mb-3">
+                        Connect Stripe, Venmo, or PayPal in Settings → Payments before sending payment requests.
                       </p>
                       <button
                         onClick={() => {
                           router.push('/dashboard/settings')
                           setShowPaymentModal(false)
                         }}
-                        className="text-sm font-medium text-blue-300 hover:text-blue-200 underline"
+                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                       >
                         Go to Payment Settings
                       </button>
