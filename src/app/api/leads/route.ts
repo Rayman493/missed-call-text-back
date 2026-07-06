@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     console.log('[API LEADS GET] Fetching leads for business:', business.id)
     let query = supabase
       .from('leads')
-      .select('id, business_id, caller_phone, name, status, created_at, updated_at, raw_metadata, deleted_at, deleted_by, restored_at, deletion_reason')
+      .select('id, business_id, caller_phone, status, created_at, updated_at, raw_metadata, deleted_at, deleted_by, restored_at, deletion_reason')
       .eq('business_id', business.id)
 
     // Apply deleted filter
@@ -126,7 +126,10 @@ export async function GET(request: NextRequest) {
       id: lead.id,
       business_id: lead.business_id,
       caller_phone: lead.caller_phone,
-      name: lead.name,
+      name: lead.raw_metadata?.customerName || 
+             lead.raw_metadata?.callerName || 
+             lead.raw_metadata?.name || 
+             null,
       status: lead.status,
       created_at: lead.created_at,
       updated_at: lead.updated_at,
