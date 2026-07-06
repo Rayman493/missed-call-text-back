@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface AddCustomerModalProps {
   isOpen: boolean
@@ -14,6 +15,7 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
   const router = useRouter()
   const { business } = useBusiness()
   const supabase = createBrowserClient()
+  useBodyScrollLock(isOpen)
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -113,9 +115,9 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 shadow-[0_1px_0_rgba(255,255,255,0.06),0_28px_90px_rgba(2,6,23,0.65)] backdrop-blur-xl">
+      <div className="relative w-full max-w-lg max-h-[calc(100dvh-2rem)] md:max-h-[90vh] overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 shadow-[0_1px_0_rgba(255,255,255,0.06),0_28px_90px_rgba(2,6,23,0.65)] backdrop-blur-xl flex flex-col">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/40 to-transparent" />
-        <div className="max-h-[90vh] overflow-y-auto">
+        <div className="overflow-y-auto flex-1" style={{ maxHeight: 'calc(100dvh-8rem)' }}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/[0.025]">
           <h2 className="text-xl font-semibold text-white">Add Customer</h2>

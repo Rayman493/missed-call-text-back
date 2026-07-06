@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface ContactPreview {
   name: string | null
@@ -26,6 +27,7 @@ interface ImportContactsModalProps {
 }
 
 export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }: ImportContactsModalProps) {
+  useBodyScrollLock(isOpen)
   const [activeTab, setActiveTab] = useState<'paste' | 'csv'>('paste')
   const [pasteContent, setPasteContent] = useState('')
   const [csvFile, setCsvFile] = useState<File | null>(null)
@@ -188,8 +190,8 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-slate-700">
+      <div className="bg-slate-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[calc(100dvh-2rem)] md:max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-6 border-b border-slate-700 shrink-0">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-white">Import Contacts</h2>
             <button
@@ -236,7 +238,7 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
           </div>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="p-6 overflow-y-auto flex-1" style={{ maxHeight: 'calc(100dvh-10rem)' }}>
           {!preview ? (
             <div className="space-y-4">
               {activeTab === 'paste' ? (
