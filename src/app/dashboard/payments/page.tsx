@@ -92,6 +92,29 @@ export default function PaymentsPage() {
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
 
+  // Determine which payment methods are configured
+  const isStripeConfigured = business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled === true
+  const isVenmoConfigured = business?.venmo_username && business.venmo_username.length > 0
+  const isPaypalConfigured = business?.paypal_payment_link && business.paypal_payment_link.length > 0
+
+  const configuredPaymentMethods: Array<'stripe' | 'venmo' | 'paypal'> = []
+  if (isStripeConfigured) configuredPaymentMethods.push('stripe')
+  if (isVenmoConfigured) configuredPaymentMethods.push('venmo')
+  if (isPaypalConfigured) configuredPaymentMethods.push('paypal')
+
+  const hasAnyPaymentMethod = configuredPaymentMethods.length > 0
+
+  // Auto-switch to first configured method if current selection is unavailable
+  useEffect(() => {
+    if (paymentProvider === 'stripe' && !isStripeConfigured && configuredPaymentMethods.length > 0) {
+      setPaymentProvider(configuredPaymentMethods[0])
+    } else if (paymentProvider === 'venmo' && !isVenmoConfigured && configuredPaymentMethods.length > 0) {
+      setPaymentProvider(configuredPaymentMethods[0])
+    } else if (paymentProvider === 'paypal' && !isPaypalConfigured && configuredPaymentMethods.length > 0) {
+      setPaymentProvider(configuredPaymentMethods[0])
+    }
+  }, [isStripeConfigured, isVenmoConfigured, isPaypalConfigured, configuredPaymentMethods, paymentProvider])
+
   useEffect(() => {
     fetchPayments()
   }, [])
@@ -693,38 +716,72 @@ export default function PaymentsPage() {
                   <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
-                      onClick={() => setPaymentProvider('stripe')}
+                      onClick={() => isStripeConfigured && setPaymentProvider('stripe')}
+                      disabled={!isStripeConfigured}
                       className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                        paymentProvider === 'stripe'
+                        paymentProvider === 'stripe' && isStripeConfigured
                           ? 'bg-blue-600 border-blue-600 text-white'
+                          : !isStripeConfigured
+                          ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
                           : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
                       }`}
                     >
                       Stripe
+                      {!isStripeConfigured && (
+                        <div className="text-xs text-slate-500 mt-0.5">Configure first</div>
+                      )}
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPaymentProvider('venmo')}
+                      onClick={() => isVenmoConfigured && setPaymentProvider('venmo')}
+                      disabled={!isVenmoConfigured}
                       className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                        paymentProvider === 'venmo'
+                        paymentProvider === 'venmo' && isVenmoConfigured
                           ? 'bg-blue-600 border-blue-600 text-white'
+                          : !isVenmoConfigured
+                          ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
                           : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
                       }`}
                     >
                       Venmo
+                      {!isVenmoConfigured && (
+                        <div className="text-xs text-slate-500 mt-0.5">Configure first</div>
+                      )}
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPaymentProvider('paypal')}
+                      onClick={() => isPaypalConfigured && setPaymentProvider('paypal')}
+                      disabled={!isPaypalConfigured}
                       className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                        paymentProvider === 'paypal'
+                        paymentProvider === 'paypal' && isPaypalConfigured
                           ? 'bg-blue-600 border-blue-600 text-white'
+                          : !isPaypalConfigured
+                          ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
                           : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
                       }`}
                     >
                       PayPal
+                      {!isPaypalConfigured && (
+                        <div className="text-xs text-slate-500 mt-0.5">Configure first</div>
+                      )}
                     </button>
                   </div>
+                  {!hasAnyPaymentMethod && (
+                    <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-lg">
+                      <p className="text-sm text-yellow-200 mb-2">
+                        No payment methods are configured yet. Set up Stripe, Venmo, or PayPal in Settings → Payments before sending payment requests.
+                      </p>
+                      <button
+                        onClick={() => {
+                          router.push('/dashboard/settings')
+                          setShowPaymentModal(false)
+                        }}
+                        className="text-sm font-medium text-blue-300 hover:text-blue-200 underline"
+                      >
+                        Go to Payment Settings
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -743,18 +800,7 @@ export default function PaymentsPage() {
 
               {error && (
                 <div className="mt-4 p-4 bg-red-900/30 border border-red-700 rounded-lg">
-                  <p className="text-sm text-red-200 mb-3">{error}</p>
-                  {(error.includes('Venmo') || error.includes('PayPal') || error.includes('Stripe')) && (
-                    <button
-                      onClick={() => {
-                        router.push('/dashboard/settings')
-                        setShowPaymentModal(false)
-                      }}
-                      className="text-sm font-medium text-blue-300 hover:text-blue-200 underline"
-                    >
-                      Go to Payment Settings
-                    </button>
-                  )}
+                  <p className="text-sm text-red-200">{error}</p>
                 </div>
               )}
 
@@ -777,7 +823,7 @@ export default function PaymentsPage() {
                 </button>
                 <button
                   onClick={handleCreatePayment}
-                  disabled={isCreatingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || (recipientType === 'lead' && !selectedLeadId) || (recipientType === 'manual' && !manualPhone)}
+                  disabled={isCreatingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || (recipientType === 'lead' && !selectedLeadId) || (recipientType === 'manual' && !manualPhone) || !hasAnyPaymentMethod}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isCreatingPayment ? 'Creating...' : 'Send Payment Request'}
