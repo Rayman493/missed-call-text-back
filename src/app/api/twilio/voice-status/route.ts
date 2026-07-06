@@ -756,7 +756,7 @@ async function processVoiceStatusCallback(params: any, method: string) {
 
   let autoReplySent = false
 
-  if (lead && conversation && From) {
+  if (lead && conversation && From && aiCallRecord?.outcome) {
     const dispatchResult = await dispatchAutomaticCustomerSms({
       trigger: 'call_finished',
       callSid: CallSid,
@@ -783,10 +783,11 @@ async function processVoiceStatusCallback(params: any, method: string) {
       twilioMessageSid: dispatchResult.twilioMessageSid
     })
   } else {
-    console.log('[Twilio Voice Status Webhook] Automatic SMS dispatch skipped - missing required call context', {
+    console.log('[Twilio Voice Status Webhook] Automatic SMS dispatch skipped - waiting for AI confirmation or missing required call context', {
       hasLead: !!lead,
       hasConversation: !!conversation,
       hasFrom: !!From,
+      hasAiOutcome: !!aiCallRecord?.outcome,
       callSid: CallSid
     })
   }

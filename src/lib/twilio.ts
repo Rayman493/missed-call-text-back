@@ -33,6 +33,7 @@ export async function sendSms(
     conversation_id?: string;
     isManual?: boolean; // Flag to distinguish manual user messages from automated
     source?: string; // Explicit source to identify message type (e.g., 'follow_up_job')
+    reason?: string;
     isOffboarding?: boolean; // Flag to bypass number readiness check for offboarding/system SMS
   }
 ): Promise<{ sid: string | null; messageId: string | null }> {
@@ -45,6 +46,7 @@ export async function sendSms(
     conversation_id: options?.conversation_id,
     isManual: options?.isManual,
     source: options?.source,
+    reason: options?.reason,
     isOffboarding: options?.isOffboarding,
     business_twilio_phone_number: business?.twilio_phone_number,
     business_twilio_phone_number_sid: business?.twilio_phone_number_sid,
@@ -298,7 +300,8 @@ export async function sendSms(
             messaging_service_sid: globalMessagingServiceSid,
             twilio_phone_number: business.twilio_phone_number,
             twilio_phone_number_sid: business.twilio_phone_number_sid,
-            source: options?.lead_id ? 'missed_call_auto_reply' : 'manual',
+            source: options?.source || (options?.isManual ? 'manual' : options?.lead_id ? 'automated' : 'manual'),
+            reason: options?.reason,
           });
           
           // Safety assertion: verify sender matches business
@@ -405,7 +408,8 @@ export async function sendSms(
         messaging_service_sid: null,
         twilio_phone_number: business.twilio_phone_number,
         twilio_phone_number_sid: business.twilio_phone_number_sid,
-        source: options?.lead_id ? 'missed_call_auto_reply' : 'manual',
+        source: options?.source || (options?.isManual ? 'manual' : options?.lead_id ? 'automated' : 'manual'),
+        reason: options?.reason,
       });
       
       // Safety assertion: verify sender matches business

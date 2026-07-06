@@ -73,7 +73,7 @@ async function hasAutomaticSmsForCall(callSid: string, leadId: string): Promise<
     .maybeSingle()
 
   const metadata = lead?.raw_metadata || {}
-  if (metadata.auto_sms_dispatch_call_sid === callSid || metadata.ai_summary_sms_call_sid === callSid || metadata.ai_confirmation_sms_call_sid === callSid) {
+  if (metadata.ai_confirmation_sms_sent === true || metadata.auto_sms_dispatch_call_sid === callSid || metadata.ai_summary_sms_call_sid === callSid || metadata.ai_confirmation_sms_call_sid === callSid) {
     return true
   }
 
@@ -197,6 +197,8 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   const sendResult = await sendSms(business, callerPhone, messageBody, {
     lead_id: leadId,
     conversation_id: conversationId,
+    source: template === 'ai_summary' ? 'ai_summary' : 'auto_sms_dispatcher',
+    reason,
   })
 
   const twilioMessageSid = sendResult.sid
@@ -218,6 +220,7 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
       auto_sms_dispatch_sent_at: dispatchedAt,
       ...(template === 'ai_summary' ? {
         ai_summary_sms_sent: true,
+        ai_confirmation_sms_sent: true,
         ai_summary_sms_call_sid: callSid,
         ai_summary_sms_message_sid: twilioMessageSid,
         ai_summary_sms_sent_at: dispatchedAt,
