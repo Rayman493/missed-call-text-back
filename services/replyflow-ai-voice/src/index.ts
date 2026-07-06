@@ -5283,8 +5283,230 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       return null;
     }
 
-    const capturedAnswer = rawTranscript.trim();
-    state.intakeData[extractedField] = capturedAnswer;
+    let capturedAnswer = rawTranscript.trim();
+    let parserRuleMatched = 'none';
+    let parseNameAndServiceCalled = false;
+
+    // Special handling for ask_name_reason: parse name and service from combined response
+    if (stage === 'ask_name_reason') {
+      const stateCustomerNameBefore = state.intakeData.customerName;
+      const stateServiceRequestedBefore = state.intakeData.serviceRequested;
+
+      // Helper function to parse caller name and service from name/reason answer
+      const parseNameAndService = (text: string, existingService?: string): { customerName: string; serviceRequested: string } => {
+        if (!text || typeof text !== 'string') {
+          return { customerName: '', serviceRequested: existingService ?? '' };
+        }
+
+        const trimmed = text.trim();
+        let customerName = trimmed;
+        let serviceRequested = existingService ?? '';
+
+        // Common prefixes to strip from a name candidate
+        const stripNamePrefix = (s: string): string =>
+          s
+            .replace(/^(?:hi|hello|hey)[,\s]+/i, '')
+            .replace(/^(?:my name is|my name's|name is|i am|i'm|this is|it is|it's)\s+/i, '')
+            .replace(/\s+here$/i, '')
+            .trim();
+
+        const normalizeNameCandidate = (s: string): string => {
+          let normalized = stripNamePrefix(s)
+            .replace(/\s+(?:and\s+)?(?:i\s+(?:need|want|would like|am looking for|am looking to)|i'm\s+(?:looking for|looking to|trying to)|calling about)\b.*$/i, '')
+            .replace(/[.,;:]\s*$/i, '')
+            .trim();
+          normalized = stripNamePrefix(normalized);
+          return normalized;
+        };
+
+        // Common prefixes to strip from a service candidate
+        const stripServicePrefix = (s: string): string =>
+          s
+            .replace(/^(?:i want to|i would like to|i'd like to|i need to|i need|i'm looking to|i am looking to|looking to|calling about|i'm calling about|i am calling about|need someone to|to get my|get my)\s+/i, '')
+            .replace(/^[.,;:]\s*/, '')
+            .trim();
+
+        // If service was already extracted, only clean the name portion.
+        if (existingService) {
+          const existingLower = existingService.toLowerCase();
+          const serviceIdx = trimmed.toLowerCase().indexOf(existingLower);
+          const nameCandidate = serviceIdx > 0
+            ? trimmed.slice(0, serviceIdx).trim()
+            : trimmed;
+          customerName = normalizeNameCandidate(nameCandidate) || trimmed;
+          return { customerName, serviceRequested };
+        }
+
+        // Try explicit combined patterns first (name + reason in one pattern)
+        const combinedPatterns = [
+          // "Name is X. I need Y" / "Name is X, I need Y" / "Name is X and I need Y"
+          /(?:name is|my name is|my name's)\s+(.+?)\s*(?:\.|,|;|\band\s+i\s+(?:need|want|would like|am looking|would like)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)\s*(?:i\s+(?:need|want|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
+          // "I'm X and I need Y" / "I am X and I need Y"
+          /(?:i'm|i am)\s+(.+?)\s*(?:\.|,|;|\band\s+i\s+(?:need|want|would like|am looking|would like)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)\s*(?:i\s+(?:need|want|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
+          // "This is X. I need Y" / "This is X and I need Y"
+          /(?:this is)\s+(.+?)\s*(?:\.|,|;|\band\s+i\s+(?:need|want|would like|am looking|would like)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)\s*(?:i\s+(?:need|want|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
+          // "X here. Looking for Y" / "X here and looking for Y"
+          /^([a-z][a-z' -]{1,40}?)\s+here(?:\.|,|;|\band\b|$)\s*(?:looking for|looking to|calling about)\s+(.+)/i,
+          // "X. Need someone to Y"
+          /^([a-z][a-z' -]{1,40}?)\.\s*(?:need someone to|looking for|looking to|calling about)\s+(.+)/i,
+          // "Name's X. Calling about Y"
+          /(?:name's)\s+(.+?)\.\s*(?:calling about|looking for|looking to)\s+(.+)/i,
+        ];
+        for (const pattern of combinedPatterns) {
+          const match = trimmed.match(pattern);
+          if (match) {
+            const namePart = normalizeNameCandidate(match[1].trim());
+            const servicePart = stripServicePrefix(match[2].trim()).replace(/[.,;]\s*$/, '');
+            if (namePart) customerName = namePart;
+            if (servicePart) serviceRequested = servicePart;
+            if (namePart && servicePart) return { customerName, serviceRequested };
+          }
+        }
+
+        // Extract name first using explicit name patterns
+        const namePatterns = [
+          /^(?:hi|hello|hey)[,\s]+my name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^my name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^my name's\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^i am\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^i'm\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^this is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^it is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^([a-z][a-z' -]{1,40}?)\s+here(?:\.|,|;|\band\b|$)/i,
+          /^([a-z][a-z' -]{1,40}?)\.(?:\s|$)/i,
+        ];
+        let nameMatch: RegExpMatchArray | null = null;
+        for (const pattern of namePatterns) {
+          nameMatch = trimmed.match(pattern);
+          if (nameMatch) break;
+        }
+
+        // If name matched, extract service from the remaining text after the name
+        let remainingText = trimmed;
+        if (nameMatch) {
+          const namePart = normalizeNameCandidate(nameMatch[1].trim());
+          if (namePart) {
+            customerName = namePart;
+            // Extract the text after the name match
+            const matchIndex = trimmed.indexOf(nameMatch[0]);
+            if (matchIndex >= 0) {
+              remainingText = trimmed.slice(matchIndex + nameMatch[0].length).trim();
+            }
+          }
+        }
+
+        // Extract service from the remaining text (or full text if no name match)
+        const servicePatterns = [
+          /(?:i want to|i need to|i'd like to|i would like to|i'm looking to|i am looking to)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /(?:i need|i want)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /(?:i'm calling about|i am calling about|calling about)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /(?:looking for|looking to get|trying to get|need someone to)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /(?:to get my|get my)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        ];
+        let serviceMatch: RegExpMatchArray | null = null;
+        for (const pattern of servicePatterns) {
+          serviceMatch = remainingText.match(pattern);
+          if (serviceMatch) break;
+        }
+
+        // Determine name and service from matches
+        if (nameMatch && !serviceMatch) {
+          parserRuleMatched = 'name_only';
+        } else if (!nameMatch && serviceMatch) {
+          parserRuleMatched = 'service_only';
+        } else if (nameMatch && serviceMatch) {
+          parserRuleMatched = 'name_then_service';
+        }
+
+        if (nameMatch) {
+          const namePart = normalizeNameCandidate(nameMatch[1].trim());
+          if (namePart) customerName = namePart;
+        }
+        if (serviceMatch) {
+          const servicePart = stripServicePrefix(serviceMatch[1].trim()).replace(/[.,;]\s*$/, '');
+          if (servicePart) serviceRequested = servicePart;
+        }
+
+        // If we have a name but no service, and the name contains a service phrase, split it.
+        if (customerName && !serviceRequested && customerName !== trimmed) {
+          const serviceFromName = stripServicePrefix(customerName);
+          if (serviceFromName && serviceFromName !== customerName) {
+            serviceRequested = serviceFromName;
+            parserRuleMatched = 'name_contains_service';
+          }
+        }
+
+        // Final fallback: if still no service, try sentence splitting
+        if (!serviceRequested && remainingText.length > 0) {
+          const sentences = remainingText.split(/\.(?:\s+|$)/).filter(s => s.trim());
+          if (sentences.length > 0) {
+            // Use the first remaining sentence as service
+            const serviceFromSentence = stripServicePrefix(sentences[0].trim()).replace(/[.,;]\s*$/, '');
+            if (serviceFromSentence && serviceFromSentence !== customerName) {
+              serviceRequested = serviceFromSentence;
+              parserRuleMatched = 'sentence_split';
+            }
+          }
+        }
+
+        // If after all attempts we still have no service, default only if we couldn't find anything
+        if (!serviceRequested) {
+          serviceRequested = '';
+          parserRuleMatched = parserRuleMatched === 'none' ? 'default_fallback' : parserRuleMatched;
+        }
+
+        // If customerName is still the full text and we extracted a service, remove the service portion
+        if (customerName === trimmed && serviceRequested && serviceRequested !== '') {
+          const serviceIdx = trimmed.toLowerCase().indexOf(serviceRequested.toLowerCase());
+          if (serviceIdx > 0) {
+            const nameCandidate = normalizeNameCandidate(trimmed.slice(0, serviceIdx).trim());
+            if (nameCandidate) {
+              customerName = nameCandidate;
+              parserRuleMatched = 'remove_service_from_full_text';
+            }
+          }
+        }
+
+        return { customerName, serviceRequested };
+      };
+
+      parseNameAndServiceCalled = true;
+      const parseResult = parseNameAndService(rawTranscript, state.intakeData.serviceRequested);
+
+      // Store parsed name and service
+      if (parseResult.customerName) {
+        state.intakeData.customerName = parseResult.customerName;
+      }
+      if (parseResult.serviceRequested) {
+        state.intakeData.serviceRequested = parseResult.serviceRequested;
+      }
+
+      const stateCustomerNameAfter = state.intakeData.customerName;
+      const stateServiceRequestedAfter = state.intakeData.serviceRequested;
+
+      console.log('[ASK_NAME_REASON TRACE] =========================================');
+      console.log('[ASK_NAME_REASON TRACE] callSid:', state.callSid);
+      console.log('[ASK_NAME_REASON TRACE] rawTranscript:', rawTranscript);
+      console.log('[ASK_NAME_REASON TRACE] handlerEntered:', true);
+      console.log('[ASK_NAME_REASON TRACE] extractMultipleAnswersCalled:', false);
+      console.log('[ASK_NAME_REASON TRACE] parseNameAndServiceCalled:', parseNameAndServiceCalled);
+      console.log('[ASK_NAME_REASON TRACE] parseResultCustomerName:', parseResult.customerName);
+      console.log('[ASK_NAME_REASON TRACE] parseResultServiceRequested:', parseResult.serviceRequested);
+      console.log('[ASK_NAME_REASON TRACE] storeStageCaptureNameCalled:', true);
+      console.log('[ASK_NAME_REASON TRACE] storeStageCaptureServiceCalled:', true);
+      console.log('[ASK_NAME_REASON TRACE] stateCustomerNameBefore:', stateCustomerNameBefore);
+      console.log('[ASK_NAME_REASON TRACE] stateServiceRequestedBefore:', stateServiceRequestedBefore);
+      console.log('[ASK_NAME_REASON TRACE] stateCustomerNameAfter:', stateCustomerNameAfter);
+      console.log('[ASK_NAME_REASON TRACE] stateServiceRequestedAfter:', stateServiceRequestedAfter);
+      console.log('[ASK_NAME_REASON TRACE] parserRuleMatched:', parserRuleMatched);
+      console.log('[ASK_NAME_REASON TRACE] =========================================');
+
+      capturedAnswer = parseResult.customerName;
+    } else {
+      state.intakeData[extractedField] = capturedAnswer;
+    }
+
     const capture = {
       stage,
       rawTranscript,
