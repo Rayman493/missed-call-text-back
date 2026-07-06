@@ -174,31 +174,105 @@ async function processVoiceStatusCallback(params: any, method: string) {
   console.log('[VOICE STATUS AI CALL FOUND] Timestamp:', new Date().toISOString());
   console.log('[VOICE STATUS AI CALL FOUND] =========================================');
 
-  // CRITICAL FALLBACK: If AI call record exists but still has 'incomplete' outcome after all retries,
-  // the AI service likely crashed or failed to finalize. Update outcome to trigger fallback SMS.
+  // CRITICAL: Perform final refresh before declaring ai_failed
+  // The AI service may have finished persisting data during the retry window
+  // Check BOTH ai_call_records AND lead.raw_metadata for extracted info
   if (aiCallRecord && aiCallRecord.outcome === 'incomplete') {
-    console.log('[FALLBACK] AI call record still incomplete after retries - AI service likely failed', {
+    console.log('[FINAL REFRESH] AI call record still incomplete after retries - performing final refresh', {
       callSid: CallSid,
       aiCallRecordId: aiCallRecord.id,
       currentOutcome: aiCallRecord.outcome,
-      totalRetries: retryDelays.length,
-      action: 'Updating outcome to ai_failed to trigger fallback SMS'
+      totalRetries: retryDelays.length
     });
 
-    try {
-      const { error: updateError } = await supabase
-        .from('ai_call_records')
-        .update({ outcome: 'ai_failed' })
-        .eq('id', aiCallRecord.id);
+    // Final refresh: Reload ai_call_records
+    const { data: refreshedAiCallRecord } = await supabase
+      .from('ai_call_records')
+      .select('id, lead_id, conversation_id, caller_phone, call_sid, business_id, outcome, extracted_info, summary')
+      .eq('call_sid', CallSid)
+      .maybeSingle();
 
-      if (updateError) {
-        console.error('[FALLBACK] Failed to update ai_call_records outcome:', updateError);
-      } else {
-        console.log('[FALLBACK] Successfully updated ai_call_records outcome to ai_failed');
-        aiCallRecord.outcome = 'ai_failed';
+    if (refreshedAiCallRecord) {
+      aiCallRecord = refreshedAiCallRecord;
+      console.log('[FINAL REFRESH] Reloaded ai_call_records', {
+        callSid: CallSid,
+        newOutcome: aiCallRecord.outcome,
+        hasExtractedInfo: !!aiCallRecord.extracted_info,
+        extractedInfoKeys: aiCallRecord.extracted_info ? Object.keys(aiCallRecord.extracted_info) : []
+      });
+    }
+
+    // Final refresh: Reload lead to check raw_metadata for extracted info
+    if (aiCallRecord?.lead_id) {
+      const { data: refreshedLead } = await supabase
+        .from('leads')
+        .select('id, raw_metadata')
+        .eq('id', aiCallRecord.lead_id)
+        .maybeSingle();
+
+      if (refreshedLead?.raw_metadata) {
+        const leadExtractedInfo = refreshedLead.raw_metadata.extracted_info || refreshedLead.raw_metadata;
+        const hasLeadExtractedInfo = leadExtractedInfo && Object.keys(leadExtractedInfo).length > 0;
+
+        console.log('[FINAL REFRESH] Reloaded lead metadata', {
+          callSid: CallSid,
+          leadId: aiCallRecord.lead_id,
+          hasRawMetadata: !!refreshedLead.raw_metadata,
+          hasExtractedInfo: hasLeadExtractedInfo,
+          leadExtractedInfoKeys: hasLeadExtractedInfo ? Object.keys(leadExtractedInfo) : []
+        });
+
+        // If lead metadata has extracted info but ai_call_records doesn't, merge it
+        if (hasLeadExtractedInfo && (!aiCallRecord.extracted_info || Object.keys(aiCallRecord.extracted_info).length === 0)) {
+          console.log('[FINAL REFRESH] Merging extracted info from lead metadata into ai_call_records');
+          aiCallRecord.extracted_info = leadExtractedInfo;
+          // Update ai_call_records with the merged extracted_info for consistency
+          try {
+            await supabase
+              .from('ai_call_records')
+              .update({ extracted_info: leadExtractedInfo })
+              .eq('id', aiCallRecord.id);
+            console.log('[FINAL REFRESH] Updated ai_call_records with merged extracted info');
+          } catch (mergeError) {
+            console.error('[FINAL REFRESH] Failed to update ai_call_records with merged extracted info:', mergeError);
+          }
+        }
       }
-    } catch (updateException) {
-      console.error('[FALLBACK] Exception updating ai_call_records outcome:', updateException);
+    }
+
+    // Only mark ai_failed if BOTH sources are still empty
+    const hasAiCallRecordExtractedInfo = aiCallRecord.extracted_info && Object.keys(aiCallRecord.extracted_info).length > 0;
+    const aiCallRecordStillIncomplete = aiCallRecord.outcome === 'incomplete';
+
+    if (aiCallRecordStillIncomplete && !hasAiCallRecordExtractedInfo) {
+      console.log('[FALLBACK] Both ai_call_records and lead metadata are empty after final refresh - marking ai_failed', {
+        callSid: CallSid,
+        aiCallRecordId: aiCallRecord.id,
+        action: 'Updating outcome to ai_failed to trigger fallback SMS'
+      });
+
+      try {
+        const { error: updateError } = await supabase
+          .from('ai_call_records')
+          .update({ outcome: 'ai_failed' })
+          .eq('id', aiCallRecord.id);
+
+        if (updateError) {
+          console.error('[FALLBACK] Failed to update ai_call_records outcome:', updateError);
+        } else {
+          console.log('[FALLBACK] Successfully updated ai_call_records outcome to ai_failed');
+          aiCallRecord.outcome = 'ai_failed';
+        }
+      } catch (updateException) {
+        console.error('[FALLBACK] Exception updating ai_call_records outcome:', updateException);
+      }
+    } else {
+      console.log('[FINAL REFRESH] Extracted info found after final refresh - NOT marking ai_failed', {
+        callSid: CallSid,
+        aiCallRecordId: aiCallRecord.id,
+        hasExtractedInfo: hasAiCallRecordExtractedInfo,
+        outcome: aiCallRecord.outcome
+      });
     }
   }
 

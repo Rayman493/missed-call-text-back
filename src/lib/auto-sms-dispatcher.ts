@@ -64,6 +64,44 @@ async function getAiCallRecord(callSid: string, leadId: string) {
   return data
 }
 
+async function getLeadMetadata(leadId: string) {
+  const { data } = await supabaseAdmin
+    .from('leads')
+    .select('raw_metadata')
+    .eq('id', leadId)
+    .maybeSingle()
+
+  return data
+}
+
+// Merge extracted info from multiple sources with priority
+// Priority: params.extractedInfo > aiCallRecord.extracted_info > lead.raw_metadata
+function mergeExtractedInfo(params: any, aiCallRecord: any, leadMetadata: any): any {
+  const paramsExtracted = params.extractedInfo || {};
+  const aiCallRecordExtracted = aiCallRecord?.extracted_info || {};
+  const leadRawMetadata = leadMetadata?.raw_metadata || {};
+  const leadExtracted = leadRawMetadata.extracted_info || leadRawMetadata;
+
+  // Start with params (highest priority)
+  const merged = { ...paramsExtracted };
+
+  // Merge from ai_call_record
+  Object.keys(aiCallRecordExtracted).forEach(key => {
+    if (!merged[key] || merged[key] === 'Not collected') {
+      merged[key] = aiCallRecordExtracted[key];
+    }
+  });
+
+  // Merge from lead metadata (lowest priority)
+  Object.keys(leadExtracted).forEach(key => {
+    if (!merged[key] || merged[key] === 'Not collected') {
+      merged[key] = leadExtracted[key];
+    }
+  });
+
+  return merged;
+}
+
 async function hasAutomaticSmsForCall(callSid: string, leadId: string): Promise<boolean> {
   const { data: lead } = await supabaseAdmin
     .from('leads')
@@ -102,7 +140,12 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
 
   const businessName = params.businessName || business.name || 'My Business'
   const aiCallRecord = await getAiCallRecord(callSid, leadId)
-  const extracted = normalizeExtractedInfo(params.extractedInfo || aiCallRecord?.extracted_info || {})
+  const leadMetadata = await getLeadMetadata(leadId)
+  
+  // Merge extracted info from multiple sources to handle race conditions
+  // Priority: params.extractedInfo > aiCallRecord.extracted_info > lead.raw_metadata
+  const mergedExtractedInfo = mergeExtractedInfo(params, aiCallRecord, leadMetadata)
+  const extracted = normalizeExtractedInfo(mergedExtractedInfo)
   const aiOutcome = params.aiOutcome || aiCallRecord?.outcome || null
   const intakeComplete = isCompleteAIIntake(extracted)
   const outcome: AutoSmsOutcome = 'SUMMARY'
