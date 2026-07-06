@@ -563,7 +563,66 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     
     // Only log timeline event if NOT ignored
     await timelineEvents.callReceived(business.id, '', '', From, To);
-    
+
+    // SMART FILTERING CHECK: Run spam/repeat filtering BEFORE lead/conversation creation
+    console.log('[SPAM FILTER] ==========================================')
+    console.log('[SPAM FILTER] enabled:', (business as any).smart_filtering_enabled)
+    console.log('[SPAM FILTER] caller:', From)
+    console.log('[SPAM FILTER] timestamp:', new Date().toISOString())
+    console.log('[SPAM FILTER] ==========================================')
+
+    let isSpamFiltered = false
+    let spamFilterReason = ''
+
+    if ((business as any).smart_filtering_enabled) {
+      console.log('[SPAM FILTER] Running smart filtering before lead creation')
+      const filteringResult = await shouldSendAutoText({
+        businessId: business.id,
+        callerPhone: From,
+        callSid: CallSid || undefined,
+        business: business
+      })
+
+      if (!filteringResult.allowed) {
+        isSpamFiltered = true
+        spamFilterReason = filteringResult.reason
+
+        console.log('[SPAM FILTER] ==========================================')
+        console.log('[SPAM FILTER] enabled=true')
+        console.log('[SPAM FILTER] reason=', spamFilterReason)
+        console.log('[SPAM FILTER] action=ignored_before_lead_creation')
+        console.log('[SPAM FILTER] caller=', From)
+        console.log('[SPAM FILTER] ==========================================')
+
+        // Return short message and hangup, similar to ignored contacts
+        // Do NOT create lead, conversation, SMS, follow-ups, or notifications
+        const twiml = generateIgnoredContactResponse()
+        console.log('[FINAL TWIML PATH] SPAM_FILTERED - smart filtering blocked lead creation', {
+          callSid: CallSid,
+          businessId: business.id,
+          reason: spamFilterReason
+        })
+        console.log('[VOICE ROUTE RETURN]', {
+          path: 'SPAM_FILTERED',
+          reason: 'Smart filtering blocked lead creation',
+          callSid: CallSid || 'unknown',
+          phoneNumber: normalizedFrom
+        })
+        return new NextResponse(twiml, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/xml",
+            "X-ReplyFlow-Voice-Version": "v2",
+            "X-ReplyFlow-Spam-Filtered": "true"
+          },
+        })
+      } else {
+        console.log('[SPAM FILTER] Caller allowed by smart filtering:', filteringResult.reason)
+      }
+    } else {
+      console.log('[SPAM FILTER] Smart filtering disabled, allowing all calls')
+    }
+
     console.log('[Voice] Business twilio_phone_number:', business.twilio_phone_number);
     console.log('[Voice] Business business_phone_number:', business.business_phone_number);
     
@@ -1592,14 +1651,14 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     // Send auto-reply SMS if appropriate
     if (shouldSendSms && lead) {
       console.log('[Twilio Voice] Preparing auto-reply SMS for lead:', lead.id);
-      
+
       // QA LOGGING: Business hours evaluation
       const now = new Date();
       const businessHoursEnabled = business.business_hours_enabled || false;
       const businessTimezone = business.business_hours_timezone || 'America/New_York';
       const autoReplyMessage = business.auto_reply_message || '';
       const afterHoursMessage = business.after_hours_message || '';
-      
+
       console.log('[QA - Business Hours] Evaluation:', {
         businessId: business.id,
         businessHoursEnabled,
@@ -1609,26 +1668,10 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         currentTimeUTC: now.toISOString(),
         currentTimeLocal: now.toLocaleString('en-US', { timeZone: businessTimezone })
       });
-      
-      // Run smart filtering before sending SMS
-      console.log('[Twilio Voice] Running smart filtering for caller:', From);
-      const filteringResult = await shouldSendAutoText({
-        businessId: business.id,
-        callerPhone: From,
-        callSid: CallSid || undefined,
-        business: business
-      });
-      
-      if (!filteringResult.allowed) {
-        console.log('[Twilio Voice] SMS blocked by smart filtering:', {
-          reason: filteringResult.reason,
-          details: filteringResult.details
-        });
-        shouldSendSms = false;
-      } else {
-        console.log('[Twilio Voice] SMS allowed by smart filtering:', filteringResult.reason);
-      }
-      
+
+      // Note: Smart filtering already checked earlier in the voice webhook (before lead creation)
+      // No need to check again here - if we reach this point, the caller passed spam filtering
+
       // BUSINESS HOURS ENFORCEMENT
       if (businessHoursEnabled && shouldSendSms) {
         console.log('[QA - Business Hours] Business hours enabled, checking current time...');
