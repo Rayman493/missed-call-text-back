@@ -277,15 +277,12 @@ export async function POST(request: Request) {
       console.log('[PAYMENT REQUEST] PayPal link generated:', paymentLink)
     }
 
-    // Generate secure token for branded payment link (only for Stripe)
-    let token = null
-    if (provider === 'stripe') {
-      console.log('[PAYMENT REQUEST] Generating secure token...')
-      token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')
-      console.log('[PAYMENT REQUEST] Token generated:', token)
-    }
+    // Generate secure token for branded payment link (for all providers)
+    console.log('[PAYMENT REQUEST] Generating secure token...')
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+    console.log('[PAYMENT REQUEST] Token generated:', token)
 
     // Create payment_request record
     console.log('[PAYMENT REQUEST] Inserting payment_request record...')
@@ -300,6 +297,7 @@ export async function POST(request: Request) {
       payment_provider: provider,
       requested_by: user.id,
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      token: token,
     }
 
     // Add Stripe-specific fields only for Stripe
@@ -308,7 +306,6 @@ export async function POST(request: Request) {
       insertPayload.stripe_payment_intent_id = stripePaymentIntentId
       insertPayload.stripe_connect_account_id = business.stripe_connect_account_id
       insertPayload.checkout_url = checkoutSession.url
-      insertPayload.token = token
     } else {
       // For Venmo/PayPal, use the direct payment link
       insertPayload.checkout_url = paymentLink

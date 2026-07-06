@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     console.log('[API LEADS GET] Fetching leads for business:', business.id)
     let query = supabase
       .from('leads')
-      .select('id, business_id, caller_phone, status, created_at, updated_at, raw_metadata, deleted_at, deleted_by, restored_at, deletion_reason')
+      .select('id, business_id, caller_phone, status, created_at, raw_metadata, deleted_at, deleted_by, restored_at, deletion_reason')
       .eq('business_id', business.id)
 
     // Apply deleted filter
@@ -132,8 +132,8 @@ export async function GET(request: NextRequest) {
              null,
       status: lead.status,
       created_at: lead.created_at,
-      updated_at: lead.updated_at,
-      last_activity_at: lead.updated_at,
+      updated_at: lead.created_at, // Use created_at as fallback since updated_at doesn't exist in live schema
+      last_activity_at: lead.created_at, // Use created_at as fallback
       conversation_id: conversationMap[lead.id] || null,
       raw_metadata: lead.raw_metadata,
     }))
