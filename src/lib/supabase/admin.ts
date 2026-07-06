@@ -980,7 +980,34 @@ export const db = {
     return hoursSinceCreation <= 24
   },
 
-  async createLead(lead: Omit<Lead, 'id' | 'created_at' | 'updated_at'>): Promise<Lead | null> {
+  // Helper function to check if lead exists for a Call SID (idempotency guard)
+  async getLeadByCallSid(callSid: string): Promise<Lead | null> {
+    if (!callSid) return null
+
+    const { data, error } = await supabaseAdmin
+      .from('leads')
+      .select('*')
+      .eq('raw_metadata->>callSid', callSid)
+      .maybeSingle()
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('[IDEMPOTENCY] Error checking lead by Call SID:', error)
+    }
+
+    return data || null
+  },
+
+  // Helper function to check if lead is a transient database error
+  isTransientDatabaseError(error: any): boolean {
+    if (!error) return false
+    const transientCodes = ['PGRST116', '23505', '40001', '40P01'] // Not found, unique violation, serialization failure, deadlock
+    return transientCodes.includes(error.code) || 
+           error.message?.includes('timeout') ||
+           error.message?.includes('connection') ||
+           error.message?.includes('network')
+  },
+
+  async createLead(lead: Omit<Lead, 'id' | 'created_at' | 'updated_at'>, callSid?: string): Promise<Lead | null> {
     // DEFENSIVE GUARD: Validate required fields
     if (!lead.business_id || !lead.caller_phone) {
       console.error('[LEAD CREATION BLOCKED] Missing required fields:', {
@@ -989,18 +1016,32 @@ export const db = {
       })
       return null
     }
-    
+
     const normalizedLead = {
       ...lead,
       caller_phone: normalizePhoneNumberForStorage(lead.caller_phone || '')
     }
-    
+
+    // IDEMPOTENCY GUARD: Check if lead already exists for this Call SID
+    if (callSid) {
+      const existingLead = await this.getLeadByCallSid(callSid)
+      if (existingLead) {
+        console.log('[IDEMPOTENCY]', {
+          existingLeadFound: true,
+          callSid,
+          leadId: existingLead.id,
+          action: 'reusing_existing_lead'
+        })
+        return existingLead
+      }
+    }
+
     console.log('[PHONE NORMALIZED]', {
       rawPhone: lead.caller_phone,
       normalizedPhone: normalizedLead.caller_phone,
       source: 'createLead'
     })
-    
+
     // DEFENSIVE GUARD: Log all lead creation attempts with full context
     console.log('[LEAD CREATION ATTEMPT]', {
       source: 'createLead',
@@ -1008,34 +1049,81 @@ export const db = {
       caller_phone: normalizedLead.caller_phone,
       status: lead.status,
       raw_metadata_source: lead.raw_metadata?.source,
+      callSid,
       timestamp: new Date().toISOString()
     })
-    
-    const { data, error } = await supabaseAdmin
-      .from('leads')
-      .insert(normalizedLead)
-      .select()
-      .single()
-    
-    if (error) {
-      console.error('[LEAD CREATION FAILED]', {
+
+    // RETRY LOGIC: Bounded retry for transient database failures
+    const retryDelays = [1000, 3000, 10000] // 1s, 3s, 10s
+    const maxRetries = retryDelays.length
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const { data, error } = await supabaseAdmin
+        .from('leads')
+        .insert(normalizedLead)
+        .select()
+        .single()
+
+      if (!error) {
+        console.log('[LEAD CREATED]', {
+          lead_id: data.id,
+          business_id: data.business_id,
+          caller_phone: data.caller_phone,
+          status: data.status,
+          timestamp: new Date().toISOString()
+        })
+        return data
+      }
+
+      // Check if this is a transient error worth retrying
+      const isTransient = this.isTransientDatabaseError(error)
+
+      if (!isTransient || attempt === maxRetries) {
+        // Non-transient error or max retries reached
+        console.error('[LEAD CREATION FAILED]', {
+          business_id: lead.business_id,
+          caller_phone: normalizedLead.caller_phone,
+          callSid,
+          error: error.message,
+          code: error.code,
+          attempt: attempt + 1,
+          maxRetries: maxRetries + 1,
+          isTransient,
+          timestamp: new Date().toISOString()
+        })
+        return null
+      }
+
+      // Log retry attempt
+      console.log('[LEAD RETRY]', {
+        attempt: attempt + 1,
+        callSid,
         business_id: lead.business_id,
         caller_phone: normalizedLead.caller_phone,
-        error: error.message,
-        code: error.code
+        reason: error.message,
+        code: error.code,
+        nextRetryDelay: retryDelays[attempt]
       })
-      return null
+
+      // Wait before retry
+      await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]))
+
+      // Re-check idempotency after delay (lead may have been created by another process)
+      if (callSid) {
+        const existingLead = await this.getLeadByCallSid(callSid)
+        if (existingLead) {
+          console.log('[IDEMPOTENCY]', {
+            existingLeadFound: true,
+            callSid,
+            leadId: existingLead.id,
+            action: 'reusing_lead_created_during_retry'
+          })
+          return existingLead
+        }
+      }
     }
-    
-    console.log('[LEAD CREATED]', {
-      lead_id: data.id,
-      business_id: data.business_id,
-      caller_phone: data.caller_phone,
-      status: data.status,
-      timestamp: new Date().toISOString()
-    })
-    
-    return data
+
+    return null
   },
 
   async updateLead(leadId: string, updates: Partial<Lead>): Promise<Lead | null> {
@@ -1286,19 +1374,15 @@ export const db = {
       }
 
       console.log('[CALL INTAKE] Creating new lead')
-      const { data: newLead, error: leadError } = await supabaseAdmin
-        .from('leads')
-        .insert({
-          business_id: params.businessId,
-          caller_phone: normalizedPhone,
-          status: 'new',
-          raw_metadata: { source: 'call_intake', callSid: params.callSid }
-        })
-        .select()
-        .single()
+      const newLead = await this.createLead({
+        business_id: params.businessId,
+        caller_phone: normalizedPhone,
+        status: 'new',
+        raw_metadata: { source: 'call_intake', callSid: params.callSid }
+      }, params.callSid)
 
-      if (leadError || !newLead) {
-        console.error('[CALL INTAKE] Failed to create lead:', leadError)
+      if (!newLead) {
+        console.error('[CALL INTAKE] Failed to create lead')
         return { leadId: null, conversationId: null, isNew: false }
       }
 
@@ -1469,17 +1553,39 @@ export const db = {
   },
 
   async createConversation(conversation: Omit<Conversation, 'id' | 'created_at'>): Promise<Conversation | null> {
+    // IDEMPOTENCY GUARD: Check if conversation already exists for this lead
+    const { data: existingConversation } = await supabaseAdmin
+      .from('conversations')
+      .select('*')
+      .eq('lead_id', conversation.lead_id)
+      .eq('business_id', conversation.business_id)
+      .in('status', ['active', 'open'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existingConversation) {
+      console.log('[IDEMPOTENCY]', {
+        existingConversationFound: true,
+        leadId: conversation.lead_id,
+        businessId: conversation.business_id,
+        conversationId: existingConversation.id,
+        action: 'reusing_existing_conversation'
+      })
+      return existingConversation
+    }
+
     const { data, error } = await supabaseAdmin
       .from('conversations')
       .insert(conversation)
       .select()
       .single()
-    
+
     if (error) {
       console.error('Error creating conversation:', error)
       return null
     }
-    
+
     console.log('[CONVERSATION CREATE TRACE]', {
       route: 'db.createConversation',
       file: 'admin.ts',
@@ -1490,7 +1596,7 @@ export const db = {
       conversationId: data.id,
       reason: 'Direct conversation creation via db.createConversation'
     })
-    
+
     return data
   },
 

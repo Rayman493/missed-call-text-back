@@ -1372,8 +1372,8 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         business_id: business.id,
         caller_phone: normalizedCallerPhone,
         status: 'new',
-        raw_metadata: { source: 'voice' },
-      });
+        raw_metadata: { source: 'voice', callSid: CallSid },
+      }, CallSid);
       
       if (lead) {
         console.log('[Voice] Lead created:', lead.id);

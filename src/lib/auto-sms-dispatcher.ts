@@ -117,6 +117,37 @@ async function hasAutomaticSmsForCall(callSid: string, leadId: string): Promise<
   return false
 }
 
+// Helper function to check if SMS error is transient (worth retrying)
+function isTransientSmsError(error: any): boolean {
+  if (!error) return false
+  const permanentErrors = [
+    '21610', // Unsubscribed number
+    '21611', // Invalid phone number
+    '21612', // Cannot route to this number
+    '21614', // 'To' number is not a valid mobile number
+    '21615', // Phone number is incapable of receiving SMS
+    '21408', // Permission denied
+  ]
+  const errorCode = error.code || error.status
+  const errorMessage = error.message || ''
+  
+  // Check for permanent error codes
+  if (permanentErrors.includes(String(errorCode))) {
+    return false
+  }
+  
+  // Check for permanent error messages
+  if (errorMessage.includes('unsubscribed') || 
+      errorMessage.includes('invalid number') ||
+      errorMessage.includes('blocked') ||
+      errorMessage.includes('permission denied')) {
+    return false
+  }
+  
+  // Assume all other errors are transient (network, timeout, rate limit, etc.)
+  return true
+}
+
 export async function dispatchAutomaticCustomerSms(params: DispatchParams): Promise<DispatchResult> {
   const { trigger, callSid, businessId, leadId, callerPhone } = params
 
@@ -176,14 +207,66 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
 
   console.log(`[AUTO SMS DISPATCH] Sending template: ${template}`)
 
-  const sendResult = await sendSms(business, callerPhone, messageBody, {
-    lead_id: leadId,
-    conversation_id: conversationId,
-    source: 'ai_summary',
-    reason,
-  })
+  // RETRY LOGIC: Bounded retry for transient Twilio failures
+  const retryDelays = [60000, 300000, 1800000] // 1min, 5min, 30min
+  const maxRetries = retryDelays.length
+  let twilioMessageSid: string | null = null
+  let messageId: string | null = null
 
-  const twilioMessageSid = sendResult.sid
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const sendResult = await sendSms(business, callerPhone, messageBody, {
+      lead_id: leadId,
+      conversation_id: conversationId,
+      source: 'ai_summary',
+      reason,
+    })
+
+    twilioMessageSid = sendResult.sid
+    messageId = sendResult.messageId
+
+    if (twilioMessageSid) {
+      // SMS sent successfully
+      break
+    }
+
+    // SMS failed, check if we should retry
+    if (attempt === maxRetries) {
+      // Max retries reached
+      console.error('[SMS SEND FAILED]', {
+        leadId,
+        callSid,
+        attempt: attempt + 1,
+        maxRetries: maxRetries + 1,
+        timestamp: new Date().toISOString()
+      })
+      break
+    }
+
+    // Log retry attempt
+    console.log('[SMS RETRY]', {
+      attempt: attempt + 1,
+      leadId,
+      callSid,
+      reason: 'SMS sending returned null sid',
+      nextRetryDelay: retryDelays[attempt]
+    })
+
+    // Wait before retry
+    await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]))
+
+    // Re-check idempotency after delay (SMS may have been sent by another process)
+    if (await hasAutomaticSmsForCall(callSid, leadId)) {
+      console.log('[IDEMPOTENCY]', {
+        existingSmsFound: true,
+        callSid,
+        leadId,
+        action: 'skipping_sms_already_sent'
+      })
+      // Mark as success since SMS was already sent
+      twilioMessageSid = 'already_sent'
+      break
+    }
+  }
 
   if (twilioMessageSid) {
     const { data: leadForMetadata } = await supabaseAdmin
@@ -234,6 +317,6 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     outcome,
     template,
     twilioMessageSid,
-    messageId: sendResult.messageId,
+    messageId,
   }
 }
