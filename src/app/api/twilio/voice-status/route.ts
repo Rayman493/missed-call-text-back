@@ -9,6 +9,7 @@ import { createFollowUpJobs } from '@/lib/follow-ups'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { hasAiSummaryBeenSent, hasRecentAutomatedSms } from '@/lib/sms-decision'
 import { dispatchAutomaticCustomerSms } from '@/lib/auto-sms-dispatcher'
+import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 
 console.log('[VOICE STATUS MODULE LOADED] =========================================');
 console.log('[VOICE STATUS MODULE LOADED] timestamp:', new Date().toISOString());
@@ -273,6 +274,58 @@ async function processVoiceStatusCallback(params: any, method: string) {
         hasExtractedInfo: hasAiCallRecordExtractedInfo,
         outcome: aiCallRecord.outcome
       });
+    }
+
+    // AI OUTCOME SYNC: Check if intake is complete after final refresh
+    // If complete, update outcome to 'completed' for internal state consistency
+    if (aiCallRecord.outcome === 'incomplete' && hasAiCallRecordExtractedInfo) {
+      const normalizedExtractedInfo = normalizeExtractedInfo(aiCallRecord.extracted_info || {});
+      const isComplete = isCompleteAIIntake(normalizedExtractedInfo);
+
+      console.log('[AI OUTCOME SYNC] =========================================');
+      console.log('[AI OUTCOME SYNC] Checking completion after final refresh');
+      console.log('[AI OUTCOME SYNC] callSid:', CallSid);
+      console.log('[AI OUTCOME SYNC] previousOutcome:', aiCallRecord.outcome);
+      console.log('[AI OUTCOME SYNC] completionCheck:', isComplete);
+      console.log('[AI OUTCOME SYNC] extractedInfoKeys:', Object.keys(normalizedExtractedInfo));
+      console.log('[AI OUTCOME SYNC] =========================================');
+
+      if (isComplete) {
+        console.log('[AI OUTCOME SYNC] Intake is complete - updating outcome to completed');
+        
+        try {
+          const { error: outcomeUpdateError } = await supabase
+            .from('ai_call_records')
+            .update({ 
+              outcome: 'completed',
+              extraction_failed: false
+            })
+            .eq('id', aiCallRecord.id);
+
+          if (outcomeUpdateError) {
+            console.error('[AI OUTCOME SYNC] Failed to update outcome to completed:', outcomeUpdateError);
+          } else {
+            console.log('[AI OUTCOME SYNC] =========================================');
+            console.log('[AI OUTCOME SYNC] previousOutcome: incomplete');
+            console.log('[AI OUTCOME SYNC] completionCheck: true');
+            console.log('[AI OUTCOME SYNC] newOutcome: completed');
+            console.log('[AI OUTCOME SYNC] reason: final_refresh_detected_complete_intake');
+            console.log('[AI OUTCOME SYNC] =========================================');
+            aiCallRecord.outcome = 'completed';
+          }
+        } catch (outcomeUpdateException) {
+          console.error('[AI OUTCOME SYNC] Exception updating outcome to completed:', outcomeUpdateException);
+        }
+      } else {
+        console.log('[AI OUTCOME SYNC] =========================================');
+        console.log('[AI OUTCOME SYNC] outcome remains incomplete');
+        const missingFields = Object.keys(normalizedExtractedInfo).filter(k => {
+          const value = (normalizedExtractedInfo as any)[k];
+          return !value || value === 'Not collected';
+        });
+        console.log('[AI OUTCOME SYNC] missingFields:', missingFields);
+        console.log('[AI OUTCOME SYNC] =========================================');
+      }
     }
   }
 
