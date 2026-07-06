@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { CreditCard, Copy, ExternalLink, User } from 'lucide-react'
+import { CreditCard, Copy, ExternalLink, User, X } from 'lucide-react'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface PaymentRequest {
   id: string
@@ -91,6 +92,7 @@ export default function PaymentsPage() {
   const [paymentProvider, setPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
+  useBodyScrollLock(showPaymentModal)
 
   // Determine which payment methods are configured
   const isStripeConfigured = business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled === true
@@ -622,18 +624,39 @@ export default function PaymentsPage() {
 
         {/* New Payment Request Modal */}
         {showPaymentModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-700">
-              <h3 className="text-lg font-semibold text-white mb-2">
-                New Payment Request
-              </h3>
-              <p className="text-sm text-gray-400 mb-6">
-                Send a secure payment link by text message.
-              </p>
-
-              <div className="space-y-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm md:items-center md:justify-center">
+            <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full max-h-[calc(100dvh-1rem)] md:max-h-[90vh] overflow-hidden flex flex-col border border-slate-700">
+              {/* Header - shrink-0 */}
+              <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-700 shrink-0">
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
+                  <h3 className="text-lg font-semibold text-white">
+                    New Payment Request
+                  </h3>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Send a secure payment link by text message.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPaymentModal(false)
+                    setSelectedLeadId('')
+                    setManualPhone('')
+                    setManualName('')
+                    setPaymentAmount('')
+                    setPaymentDescription('')
+                    setPaymentProvider('stripe')
+                    setError('')
+                  }}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-700 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content - flex-1 overflow-y-auto */}
+              <div className="overflow-y-auto flex-1 overscroll-contain p-4 md:p-6 space-y-3 md:space-y-4" style={{ maxHeight: 'calc(100dvh-12rem)' }}>
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
                     Recipient
                   </label>
                   <select
@@ -648,7 +671,7 @@ export default function PaymentsPage() {
 
                 {recipientType === 'lead' ? (
                   <div>
-                    <label className="block text-sm font-medium text-white mb-2">
+                    <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
                       Select Lead
                     </label>
                     <select
@@ -673,7 +696,7 @@ export default function PaymentsPage() {
                 ) : (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-white mb-2">
+                      <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
                         Phone Number
                       </label>
                       <input
@@ -685,7 +708,7 @@ export default function PaymentsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-white mb-2">
+                      <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
                         Customer Name (Optional)
                       </label>
                       <input
@@ -700,7 +723,7 @@ export default function PaymentsPage() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
+                  <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
                     Amount (USD)
                   </label>
                   <div className="relative">
@@ -718,7 +741,7 @@ export default function PaymentsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
+                  <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
                     Payment Method
                   </label>
                   {hasAnyPaymentMethod ? (
@@ -727,7 +750,7 @@ export default function PaymentsPage() {
                         type="button"
                         onClick={() => isStripeConfigured && setPaymentProvider('stripe')}
                         disabled={!isStripeConfigured}
-                        className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                        className={`px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm font-medium rounded-lg border transition-colors ${
                           paymentProvider === 'stripe' && isStripeConfigured
                             ? 'bg-blue-600 border-blue-600 text-white'
                             : !isStripeConfigured
@@ -737,14 +760,14 @@ export default function PaymentsPage() {
                       >
                         Stripe
                         {!isStripeConfigured && (
-                          <div className="text-xs text-slate-500 mt-0.5">Configure first</div>
+                          <div className="text-[10px] md:text-xs text-slate-500 mt-0.5">Configure first</div>
                         )}
                       </button>
                       <button
                         type="button"
                         onClick={() => isVenmoConfigured && setPaymentProvider('venmo')}
                         disabled={!isVenmoConfigured}
-                        className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                        className={`px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm font-medium rounded-lg border transition-colors ${
                           paymentProvider === 'venmo' && isVenmoConfigured
                             ? 'bg-blue-600 border-blue-600 text-white'
                             : !isVenmoConfigured
@@ -754,14 +777,14 @@ export default function PaymentsPage() {
                       >
                         Venmo
                         {!isVenmoConfigured && (
-                          <div className="text-xs text-slate-500 mt-0.5">Configure first</div>
+                          <div className="text-[10px] md:text-xs text-slate-500 mt-0.5">Configure first</div>
                         )}
                       </button>
                       <button
                         type="button"
                         onClick={() => isPaypalConfigured && setPaymentProvider('paypal')}
                         disabled={!isPaypalConfigured}
-                        className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                        className={`px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm font-medium rounded-lg border transition-colors ${
                           paymentProvider === 'paypal' && isPaypalConfigured
                             ? 'bg-blue-600 border-blue-600 text-white'
                             : !isPaypalConfigured
@@ -771,16 +794,16 @@ export default function PaymentsPage() {
                       >
                         PayPal
                         {!isPaypalConfigured && (
-                          <div className="text-xs text-slate-500 mt-0.5">Configure first</div>
+                          <div className="text-[10px] md:text-xs text-slate-500 mt-0.5">Configure first</div>
                         )}
                       </button>
                     </div>
                   ) : (
-                    <div className="p-4 bg-yellow-900/20 border border-yellow-700/50 rounded-lg">
-                      <p className="text-sm text-yellow-200 mb-3">
+                    <div className="p-3 md:p-4 bg-yellow-900/20 border border-yellow-700/50 rounded-lg">
+                      <p className="text-sm text-yellow-200 mb-2 md:mb-3">
                         No payment methods have been configured yet.
                       </p>
-                      <p className="text-sm text-yellow-200 mb-3">
+                      <p className="text-sm text-yellow-200 mb-2 md:mb-3">
                         Connect Stripe, Venmo, or PayPal in Settings → Payments before sending payment requests.
                       </p>
                       <button
@@ -788,7 +811,7 @@ export default function PaymentsPage() {
                           router.push('/dashboard/settings')
                           setShowPaymentModal(false)
                         }}
-                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                        className="px-3 py-1.5 md:px-4 md:py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                       >
                         Go to Payment Settings
                       </button>
@@ -797,26 +820,27 @@ export default function PaymentsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
+                  <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
                     Description
                   </label>
                   <textarea
                     value={paymentDescription}
                     onChange={(e) => setPaymentDescription(e.target.value)}
                     placeholder="Service payment"
-                    rows={3}
+                    rows={2}
                     className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white resize-none"
                   />
                 </div>
+
+                {error && (
+                  <div className="p-3 bg-red-900/30 border border-red-700 rounded-lg">
+                    <p className="text-sm text-red-200">{error}</p>
+                  </div>
+                )}
               </div>
 
-              {error && (
-                <div className="mt-4 p-4 bg-red-900/30 border border-red-700 rounded-lg">
-                  <p className="text-sm text-red-200">{error}</p>
-                </div>
-              )}
-
-              <div className="flex gap-3 justify-end mt-6">
+              {/* Footer/Actions - shrink-0 */}
+              <div className="flex gap-3 justify-end p-4 md:p-6 border-t border-slate-700 shrink-0 pb-safe">
                 <button
                   onClick={() => {
                     setShowPaymentModal(false)
