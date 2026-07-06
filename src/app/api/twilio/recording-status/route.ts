@@ -6,7 +6,6 @@ import { normalizePhoneNumber } from '@/lib/twilio';
 import { extractFromVoicemailTranscript, safeMergeVoicemailExtraction } from '@/lib/voicemail-extraction';
 import { transcribeVoicemail } from '@/lib/voicemail-transcription';
 import { getLeadAIIntake } from '@/lib/ai-field-mapping';
-import { formatAiIntakeSummary } from '@/lib/ai-intake-formatter';
 import { timelineEvents } from '@/lib/event-timeline';
 import { createFollowUpJobs } from '@/lib/follow-ups';
 import { testFallbacks, warnIfTestFallbacksActive } from '@/lib/testing/test-fallbacks';

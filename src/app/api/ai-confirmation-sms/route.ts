@@ -4,10 +4,9 @@ import { dispatchAutomaticCustomerSms } from '@/lib/auto-sms-dispatcher'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizePunctuation } from '@/lib/utils'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
-import { generateSummaryFromExtractedInfo } from '@/lib/sms-processing'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 import { cancelPendingFollowUpsForLead } from '@/lib/follow-ups'
-import { getOutOfOfficeNotice, formatReturnDate } from '@/lib/out-of-office'
+import { formatReturnDate } from '@/lib/out-of-office'
 
 
 export const dynamic = 'force-dynamic'
@@ -497,75 +496,11 @@ export async function POST(request: NextRequest) {
                             extracted.preferredCallbackTime?.trim() ||
                             extracted.importantDetails?.trim();
 
-    let messageBody: string;
-    let selectedTemplate: string;
-    let selectionReason: string;
-    
-    // Use canonical Out of Office notice function
-    const outOfOfficeAppend = getOutOfOfficeNotice(business) || '';
+    const selectedTemplate = 'ai_summary';
+    const selectionReason = intakeComplete || aiOutcome === 'completed_intake' || aiOutcome === 'completed'
+      ? 'ai_intake_completed'
+      : 'post_call_structured_summary';
 
-    const isFinalFallback = aiOutcome === 'ai_failed_voicemail' || aiOutcome === 'ai_failed_sms';
-
-    if (intakeComplete || isFinalFallback) {
-      selectedTemplate = 'ai_summary';
-      selectionReason = isFinalFallback ? 'final_fallback_structured_summary' : 'canonical_completion_check';
-    console.log('[AI SMS TEMPLATE DECISION CANONICAL]', {
-      callSid,
-      aiOutcome,
-      intakeComplete,
-      isFinalFallback,
-      overrideReason: isFinalFallback ? 'final_fallback_forces_structured_summary' : 'canonical_completion_true_overrides_aiOutcome'
-    });
-      if (isFinalFallback) {
-        console.log('[FINAL SMS FALLBACK] Using structured summary formatter with all fields Not collected', { callSid, aiOutcome });
-      }
-      console.log('[AI SMS ROUTE USING CENTRALIZED FORMATTER] formatAiIntakeSummary via generateSummaryFromExtractedInfo');
-      messageBody = generateSummaryFromExtractedInfo(extracted, callerPhone, businessName, '');
-    } else if (isPartialIntake) {
-      selectedTemplate = 'partial_intake';
-      selectionReason = 'partial_intake';
-      const collectedParts: string[] = [];
-      if (extracted.callerName?.trim()) collectedParts.push(`Name: ${extracted.callerName.trim()}`);
-      if (extracted.reasonForCalling?.trim()) collectedParts.push(`Service: ${extracted.reasonForCalling.trim()}`);
-      if (extracted.addressOrLocation?.trim()) collectedParts.push(`Address: ${extracted.addressOrLocation.trim()}`);
-      if (extracted.desiredCompletionTime?.trim()) collectedParts.push(`When: ${extracted.desiredCompletionTime.trim()}`);
-      if (extracted.preferredCallbackTime?.trim()) collectedParts.push(`Best callback: ${extracted.preferredCallbackTime.trim()}`);
-      if (extracted.importantDetails?.trim()) collectedParts.push(`Details: ${extracted.importantDetails.trim()}`);
-
-      const partialInfo = collectedParts.length > 0 ? `\n\nWe got: ${collectedParts.join('; ')}` : '';
-      messageBody = `Hi, this is ${businessName}. We just missed your call.${partialInfo} Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`;
-    } else if (aiOutcome === 'no_speech') {
-      selectedTemplate = 'silent_caller';
-      selectionReason = 'no_speech';
-      messageBody = `Thanks for calling ${businessName}. We weren't able to hear you during your call. Reply to this text with what you need, and we'll make sure the business receives your message.${outOfOfficeAppend}`;
-    } else if (isIncompleteOrEarlyHangup && !hasAnyIntakeInfo) {
-      // Incomplete or early hangup with no information collected - use intake-oriented guided message
-      selectedTemplate = 'early_hangup_no_info';
-      selectionReason = 'incomplete_no_info';
-      messageBody = `Hi, this is ${businessName}. We noticed the call ended before we could collect your information.
-
-Please reply with:
-
-• Your name
-• What you need help with
-• Service address (if applicable)
-• When you'd like the work completed
-• Best time for us to call you back
-
-We'll pass this to the business and they'll get back to you soon.
-
-Reply STOP to opt out.`;
-    } else {
-      // Standard missed-call fallback for no useful info or unknown outcome
-      selectedTemplate = 'missed_call';
-      selectionReason = isIncompleteOrEarlyHangup ? 'incomplete_with_info' : 'standard_missed_call';
-      const autoReplyMessage = business.auto_reply_message && business.auto_reply_message.trim()
-        ? business.auto_reply_message.replace(/\{\{business_name\}\}/gi, businessName)
-        : `Hi, this is ${businessName}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`;
-      messageBody = autoReplyMessage;
-    }
-
-    // Temporary debug logs for decision logic
     console.log('[AI SMS TEMPLATE DECISION]', {
       callSid,
       outcome: aiOutcome,
@@ -577,19 +512,11 @@ Reply STOP to opt out.`;
       intakeComplete
     });
 
-    console.log('[AI SMS FINAL BODY PREVIEW] =========================================');
-    console.log('[AI SMS FINAL BODY PREVIEW] Template:', selectedTemplate);
-    console.log('[AI SMS FINAL BODY PREVIEW] First 300 characters:', messageBody.substring(0, 300));
-    console.log('[AI SMS FINAL BODY PREVIEW] Total length:', messageBody.length);
-    console.log('[AI SMS FINAL BODY PREVIEW] Timestamp:', new Date().toISOString());
-    console.log('[AI SMS FINAL BODY PREVIEW] =========================================');
-
     console.log('[AI SMS FINAL BODY]', {
       route: '/api/ai-confirmation-sms',
       businessName,
       template: selectedTemplate,
       aiOutcome,
-      messageBodyLength: messageBody.length,
       isComplete,
       missingFields
     })

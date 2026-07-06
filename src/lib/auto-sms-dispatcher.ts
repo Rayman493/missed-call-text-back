@@ -4,12 +4,11 @@ import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 import { generateSummaryFromExtractedInfo } from '@/lib/sms-processing'
-import { formatAiIntakeSummary } from '@/lib/ai-intake-formatter'
 import { getOutOfOfficeNotice } from '@/lib/out-of-office'
 
 export type AutoSmsTrigger = 'call_finished' | 'ai_confirmation' | 'voicemail_completed' | 'recording_fallback'
-export type AutoSmsOutcome = 'AI_COMPLETE' | 'VOICEMAIL_COMPLETE' | 'GENERIC_FALLBACK'
-export type AutoSmsTemplate = 'ai_summary' | 'voicemail_summary' | 'generic_missed_call'
+export type AutoSmsOutcome = 'SUMMARY'
+export type AutoSmsTemplate = 'ai_summary'
 
 interface DispatchParams {
   trigger: AutoSmsTrigger
@@ -80,51 +79,6 @@ async function hasAutomaticSmsForCall(callSid: string, leadId: string): Promise<
   return false
 }
 
-function getGenericMissedCallMessage(business: any, businessName: string): string {
-  const staleDefaultTemplate = 'Sorry we missed your call—how can we help?'
-  const configuredMessage = business.auto_reply_message && business.auto_reply_message.trim()
-    ? business.auto_reply_message
-    : ''
-  const template = configuredMessage && !configuredMessage.includes(staleDefaultTemplate)
-    ? configuredMessage
-    : `Hi, this is {{business_name}}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`
-
-  return template.replace(/\{\{business_name\}\}/gi, businessName)
-}
-
-function getAiMessage(params: { extracted: any; callerPhone: string; businessName: string; aiOutcome?: string | null; intakeComplete: boolean }) {
-  const { extracted, callerPhone, businessName, aiOutcome, intakeComplete } = params
-  const isPartialIntake = aiOutcome === 'partial_intake'
-  const isIncompleteOrEarlyHangup = aiOutcome === 'incomplete' || aiOutcome === 'early_hangup' || aiOutcome === 'no_speech' || aiOutcome === 'ai_connection_failed' || aiOutcome === 'caller_hung_up'
-  const hasAnyIntakeInfo = extracted.callerName?.trim() || extracted.reasonForCalling?.trim() || extracted.addressOrLocation?.trim() || extracted.desiredCompletionTime?.trim() || extracted.preferredCallbackTime?.trim() || extracted.importantDetails?.trim()
-
-  if (intakeComplete || aiOutcome === 'ai_failed_voicemail' || aiOutcome === 'ai_failed_sms') {
-    return generateSummaryFromExtractedInfo(extracted, callerPhone, businessName, '')
-  }
-
-  if (isPartialIntake) {
-    const collectedParts: string[] = []
-    if (extracted.callerName?.trim()) collectedParts.push(`Name: ${extracted.callerName.trim()}`)
-    if (extracted.reasonForCalling?.trim()) collectedParts.push(`Service: ${extracted.reasonForCalling.trim()}`)
-    if (extracted.addressOrLocation?.trim()) collectedParts.push(`Address: ${extracted.addressOrLocation.trim()}`)
-    if (extracted.desiredCompletionTime?.trim()) collectedParts.push(`When: ${extracted.desiredCompletionTime.trim()}`)
-    if (extracted.preferredCallbackTime?.trim()) collectedParts.push(`Best callback: ${extracted.preferredCallbackTime.trim()}`)
-    if (extracted.importantDetails?.trim()) collectedParts.push(`Details: ${extracted.importantDetails.trim()}`)
-    const partialInfo = collectedParts.length > 0 ? `\n\nWe got: ${collectedParts.join('; ')}` : ''
-    return `Hi, this is ${businessName}. We just missed your call.${partialInfo} Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`
-  }
-
-  if (aiOutcome === 'no_speech') {
-    return `Thanks for calling ${businessName}. We weren't able to hear you during your call. Reply to this text with what you need, and we'll make sure the business receives your message.`
-  }
-
-  if (isIncompleteOrEarlyHangup && !hasAnyIntakeInfo) {
-    return `Hi, this is ${businessName}. We noticed the call ended before we could collect your information.\n\nPlease reply with:\n\n• Your name\n• What you need help with\n• Service address (if applicable)\n• When you'd like the work completed\n• Best time for us to call you back\n\nWe'll pass this to the business and they'll get back to you soon.\n\nReply STOP to opt out.`
-  }
-
-  return null
-}
-
 export async function dispatchAutomaticCustomerSms(params: DispatchParams): Promise<DispatchResult> {
   const { trigger, callSid, businessId, leadId, callerPhone } = params
 
@@ -151,32 +105,17 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   const extracted = normalizeExtractedInfo(params.extractedInfo || aiCallRecord?.extracted_info || {})
   const aiOutcome = params.aiOutcome || aiCallRecord?.outcome || null
   const intakeComplete = isCompleteAIIntake(extracted)
-  const aiCompleted = intakeComplete || aiOutcome === 'completed_intake' || aiOutcome === 'completed'
-
-  let outcome: AutoSmsOutcome
-  let template: AutoSmsTemplate
-  let reason: string
-  let messageBody: string
-
-  if (aiCompleted) {
-    outcome = 'AI_COMPLETE'
-    template = 'ai_summary'
-    reason = 'ai_intake_completed'
-    messageBody = generateSummaryFromExtractedInfo(extracted, callerPhone, businessName, '')
-  } else if (params.voicemailCompleted || trigger === 'voicemail_completed') {
-    outcome = 'VOICEMAIL_COMPLETE'
-    template = 'voicemail_summary'
-    reason = 'voicemail_completed'
-    messageBody = `${formatAiIntakeSummary(extracted, callerPhone, businessName)}\n\nReply STOP to opt out.`
-  } else {
-    outcome = 'GENERIC_FALLBACK'
-    template = 'generic_missed_call'
-    reason = 'no_ai_or_voicemail_completion'
-    messageBody = getGenericMissedCallMessage(business, businessName)
-  }
+  const outcome: AutoSmsOutcome = 'SUMMARY'
+  const template: AutoSmsTemplate = 'ai_summary'
+  const reason = intakeComplete || aiOutcome === 'completed_intake' || aiOutcome === 'completed'
+    ? 'ai_intake_completed'
+    : params.voicemailCompleted || trigger === 'voicemail_completed'
+      ? 'post_call_structured_summary'
+      : 'post_call_structured_summary'
+  let messageBody = generateSummaryFromExtractedInfo(extracted, callerPhone, businessName, '')
 
   const outOfOfficeAppend = getOutOfOfficeNotice(business) || ''
-  if (template !== 'generic_missed_call' && outOfOfficeAppend && !messageBody.includes(outOfOfficeAppend.trim())) {
+  if (outOfOfficeAppend && !messageBody.includes(outOfOfficeAppend.trim())) {
     messageBody = `${messageBody}${outOfOfficeAppend}`
   }
 
@@ -197,7 +136,7 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   const sendResult = await sendSms(business, callerPhone, messageBody, {
     lead_id: leadId,
     conversation_id: conversationId,
-    source: template === 'ai_summary' ? 'ai_summary' : 'auto_sms_dispatcher',
+    source: 'ai_summary',
     reason,
   })
 
