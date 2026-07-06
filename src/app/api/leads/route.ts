@@ -50,14 +50,25 @@ export async function GET(request: NextRequest) {
     // Get query parameters for filtering
     const { searchParams } = new URL(request.url)
     const statusFilter = searchParams.get('status')
-    console.log('[API LEADS GET] Query params - statusFilter:', statusFilter)
+    const includeDeleted = searchParams.get('include_deleted') === 'true'
+    const deletedOnly = searchParams.get('deleted_only') === 'true'
+    console.log('[API LEADS GET] Query params - statusFilter:', statusFilter, 'includeDeleted:', includeDeleted, 'deletedOnly:', deletedOnly)
 
     // Fetch leads for this business (only select columns that exist in the schema)
     console.log('[API LEADS GET] Fetching leads for business:', business.id)
     let query = supabase
       .from('leads')
-      .select('id, business_id, phone, name, status, created_at, updated_at, raw_metadata')
+      .select('id, business_id, phone, name, status, created_at, updated_at, raw_metadata, deleted_at, deleted_by, restored_at, deletion_reason')
       .eq('business_id', business.id)
+
+    // Apply deleted filter
+    if (deletedOnly) {
+      query = query.not('deleted_at', 'is', null)
+      console.log('[API LEADS GET] Applied deleted_only filter')
+    } else if (!includeDeleted) {
+      query = query.is('deleted_at', null)
+      console.log('[API LEADS GET] Excluding deleted leads')
+    }
 
     // Apply status filter if provided
     if (statusFilter && statusFilter !== 'all') {

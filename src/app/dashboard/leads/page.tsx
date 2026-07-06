@@ -201,6 +201,9 @@ export default function LeadsPage() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const { checkoutMode, isLoading: eligibilityLoading } = useTrialEligibility()
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [leadToDelete, setLeadToDelete] = useState<string | null>(null)
+  const [deletedFilter, setDeletedFilter] = useState(false)
 
   const supabase = createBrowserClient()
 
@@ -224,7 +227,7 @@ export default function LeadsPage() {
       }
       setError(null)
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('leads')
         .select(`
           id,
@@ -256,7 +259,17 @@ export default function LeadsPage() {
           )
         `)
         .eq('business_id', business.id)
-        .order('created_at', { ascending: false })
+
+      // Apply deleted filter
+      if (deletedFilter) {
+        query = query.not('deleted_at', 'is', null)
+      } else {
+        query = query.is('deleted_at', null)
+      }
+
+      query = query.order('created_at', { ascending: false })
+
+      const { data, error } = await query
 
       if (error) throw error
 
@@ -297,7 +310,7 @@ export default function LeadsPage() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [business?.id, supabase, loading])
+  }, [business?.id, supabase, loading, deletedFilter])
 
   // Handle lead status change from overview page
   const handleLeadStatusChange = async (leadId: string, newStatus: LeadLifecycleStatus) => {
@@ -404,14 +417,61 @@ export default function LeadsPage() {
       }
 
       // Update local state
-      setLeads(prev => prev.map(lead => 
-        lead.id === leadId 
+      setLeads(prev => prev.map(lead =>
+        lead.id === leadId
           ? { ...lead, deleted_at: null, deleted_by: null, deletion_reason: null }
           : lead
       ))
     } catch (error) {
       console.error('Error restoring lead:', error)
       alert('Failed to restore lead. Please try again.')
+    }
+  }
+
+  // Handle delete lead confirmation
+  const handleDeleteLeadClick = (leadId: string) => {
+    setLeadToDelete(leadId)
+    setShowDeleteModal(true)
+    setCardOverflowMenu(null)
+  }
+
+  // Handle delete lead
+  const handleDeleteLead = async () => {
+    if (!leadToDelete) return
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch(`/api/leads/${leadToDelete}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete lead')
+      }
+
+      // Update local state
+      setLeads(prev => prev.map(lead =>
+        lead.id === leadToDelete
+          ? { ...lead, deleted_at: new Date().toISOString(), deleted_by: user?.id, deletion_reason: 'user_deleted' }
+          : lead
+      ))
+
+      setShowDeleteModal(false)
+      setLeadToDelete(null)
+    } catch (error) {
+      console.error('Error deleting lead:', error)
+      alert('Failed to delete lead. Please try again.')
     }
   }
 
@@ -968,6 +1028,18 @@ export default function LeadsPage() {
                       <option value="deleted">Deleted</option>
                     </select>
                   </div>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="deletedFilter"
+                      checked={deletedFilter}
+                      onChange={(e) => setDeletedFilter(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="deletedFilter" className="ml-2 text-sm text-foreground">
+                      Show Deleted
+                    </label>
+                  </div>
                 </div>
               </div>
             )}
@@ -1223,11 +1295,17 @@ export default function LeadsPage() {
                               </p>
                             </div>
                             <div onClick={(e) => e.stopPropagation()}>
-                              <LeadStatusDropdown
-                                currentStatus={getLeadLifecycleStatus(lead)}
-                                onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
-                                size="sm"
-                              />
+                              {lead.deleted_at ? (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-900/30 text-red-400 border border-red-700/50">
+                                  Deleted
+                                </span>
+                              ) : (
+                                <LeadStatusDropdown
+                                  currentStatus={getLeadLifecycleStatus(lead)}
+                                  onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
+                                  size="sm"
+                                />
+                              )}
                             </div>
                           </div>
 
@@ -1398,6 +1476,21 @@ export default function LeadsPage() {
                                         Restore Lead
                                       </button>
                                     )}
+                                    {!lead.deleted_at && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault()
+                                          e.stopPropagation()
+                                          handleDeleteLeadClick(lead.id)
+                                        }}
+                                        className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Delete Lead
+                                      </button>
+                                    )}
                                   </div>
                                 </>
                               )}
@@ -1451,11 +1544,17 @@ export default function LeadsPage() {
                                   </p>
                                 </div>
                                 <div onClick={(e) => e.stopPropagation()}>
-                                  <LeadStatusDropdown
-                                    currentStatus={getLeadLifecycleStatus(lead)}
-                                    onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
-                                    size="sm"
-                                  />
+                                  {lead.deleted_at ? (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-900/30 text-red-400 border border-red-700/50">
+                                      Deleted
+                                    </span>
+                                  ) : (
+                                    <LeadStatusDropdown
+                                      currentStatus={getLeadLifecycleStatus(lead)}
+                                      onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
+                                      size="sm"
+                                    />
+                                  )}
                                 </div>
                               </div>
 
@@ -1648,10 +1747,39 @@ export default function LeadsPage() {
       </BusinessGuard>
     </AuthGuard>
     <BottomNavigation />
-    <AddCustomerModal 
-      isOpen={showAddCustomerModal} 
-      onClose={() => setShowAddCustomerModal(false)} 
+    <AddCustomerModal
+      isOpen={showAddCustomerModal}
+      onClose={() => setShowAddCustomerModal(false)}
     />
+    {showDeleteModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-700">
+          <h3 className="text-lg font-semibold text-white mb-2">
+            Delete this lead?
+          </h3>
+          <p className="text-sm text-gray-400 mb-6">
+            This will move the lead to Deleted. You can restore it later.
+          </p>
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => {
+                setShowDeleteModal(false)
+                setLeadToDelete(null)
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-slate-700 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteLead}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+            >
+              Delete Lead
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </DashboardErrorBoundary>
   )
 }
