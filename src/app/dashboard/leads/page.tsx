@@ -266,6 +266,12 @@ export default function LeadsPage() {
         query = query.is('deleted_at', null)
       }
 
+      // Filter out ignored leads (automated robocalls) from normal customer workflow
+      // This prevents spam calls from cluttering the lead list while preserving audit visibility
+      if (!deletedFilter) {
+        query = query.neq('status', 'ignored')
+      }
+
       query = query.order('created_at', { ascending: false })
 
       const { data, error } = await query
