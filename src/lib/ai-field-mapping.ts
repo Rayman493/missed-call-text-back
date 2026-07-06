@@ -163,6 +163,76 @@ export function canonicalizeExtractedInfo(extractedInfo: any): {
 }
 
 /**
+ * Canonical AI intake status values
+ */
+export type AIIntakeStatus = 'not_started' | 'partial' | 'complete' | 'failed'
+
+/**
+ * Get canonical AI intake status from ai_call_records outcome
+ * This is the single source of truth for AI intake status across the application
+ */
+export function getAIIntakeStatus(lead: any): AIIntakeStatus {
+  const aiCallRecord = lead?.aiCallRecords?.[0] || lead?.ai_call_records?.[0]
+  
+  if (!aiCallRecord) {
+    return 'not_started'
+  }
+
+  const outcome = aiCallRecord.outcome?.toLowerCase()
+
+  switch (outcome) {
+    case 'completed_intake':
+    case 'completed':
+      return 'complete'
+    case 'partial_intake':
+      return 'partial'
+    case 'ai_failed':
+    case 'ai_connection_failed':
+      return 'failed'
+    case 'early_hangup':
+    case 'no_speech':
+    case 'caller_hung_up':
+    case 'voicemail_fallback':
+      // These are not intakes, return not_started
+      return 'not_started'
+    default:
+      return 'not_started'
+  }
+}
+
+/**
+ * Get human-readable label for AI intake status
+ */
+export function getAIIntakeStatusLabel(status: AIIntakeStatus): string {
+  switch (status) {
+    case 'complete':
+      return 'Complete'
+    case 'partial':
+      return 'Partial'
+    case 'failed':
+      return 'Failed'
+    case 'not_started':
+      return 'Not Started'
+  }
+}
+
+/**
+ * Get color class for AI intake status badge
+ */
+export function getAIIntakeStatusColor(status: AIIntakeStatus): string {
+  switch (status) {
+    case 'complete':
+      return 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+    case 'partial':
+      return 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300'
+    case 'failed':
+      return 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+    case 'not_started':
+      return 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+  }
+}
+
+/**
  * Canonical AI intake fields resolved from a lead record.
  * Supports both Simple Mode field names and legacy aliases.
  */
