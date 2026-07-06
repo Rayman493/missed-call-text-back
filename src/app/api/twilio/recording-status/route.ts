@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin, db } from '@/lib/supabase/admin';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
-import { normalizePhoneNumber, sendSms } from '@/lib/twilio';
+import { normalizePhoneNumber } from '@/lib/twilio';
 import { extractFromVoicemailTranscript, safeMergeVoicemailExtraction } from '@/lib/voicemail-extraction';
 import { transcribeVoicemail } from '@/lib/voicemail-transcription';
 import { getLeadAIIntake } from '@/lib/ai-field-mapping';
@@ -10,6 +10,7 @@ import { formatAiIntakeSummary } from '@/lib/ai-intake-formatter';
 import { timelineEvents } from '@/lib/event-timeline';
 import { createFollowUpJobs } from '@/lib/follow-ups';
 import { testFallbacks, warnIfTestFallbacksActive } from '@/lib/testing/test-fallbacks';
+import { dispatchAutomaticCustomerSms } from '@/lib/auto-sms-dispatcher';
 
 export async function POST(request: NextRequest) {
   warnIfTestFallbacksActive();
@@ -300,49 +301,31 @@ export async function POST(request: NextRequest) {
                             preferredCallbackTime: leadIntake.callbackTime || undefined,
                           };
 
-                          const aiSummary = formatAiIntakeSummary(
-                            extractedInfo,
+                          const conversation = await db.getOpenConversationForLead(voicemail.lead_id, voicemail.business_id);
+                          const dispatchResult = await dispatchAutomaticCustomerSms({
+                            trigger: 'voicemail_completed',
+                            callSid: voicemail.call_sid,
+                            businessId: voicemail.business_id,
+                            leadId: voicemail.lead_id,
+                            conversationId: conversation?.id,
                             callerPhone,
-                            businessDetails.name || 'My Business'
-                          );
-
-                          let smsBody = `${aiSummary}\n\nReply STOP to opt out.`;
-
-                          let conversation = await db.getOpenConversationForLead(voicemail.lead_id, voicemail.business_id);
-                          if (!conversation) {
-                            conversation = await db.createConversation({
-                              lead_id: voicemail.lead_id,
-                              business_id: voicemail.business_id,
-                              status: 'open',
-                              source: 'missed_call',
-                              started_at: new Date().toISOString(),
-                              last_activity_at: new Date().toISOString(),
-                            });
-                          }
-
-                          const result = await sendSms(businessDetails, callerPhone, smsBody, {
-                            lead_id: voicemail.lead_id,
-                            conversation_id: conversation?.id,
+                            businessName: businessDetails.name || 'My Business',
+                            extractedInfo,
+                            voicemailCompleted: true
                           });
 
-                          const messageSid = result?.sid || null;
-                          console.log('[RECORDING STATUS SMS] Structured SMS sent after extraction', {
+                          const messageSid = dispatchResult.twilioMessageSid || null;
+                          console.log('[RECORDING STATUS SMS] Centralized dispatch after extraction', {
                             messageSid,
                             leadId: voicemail.lead_id,
                             extractedName: leadIntake.customerName,
-                            extractedService: leadIntake.serviceRequested
+                            extractedService: leadIntake.serviceRequested,
+                            outcome: dispatchResult.outcome,
+                            template: dispatchResult.template,
+                            reason: dispatchResult.reason
                           });
 
                           if (messageSid) {
-                            await supabaseAdmin
-                              .from('call_events')
-                              .update({
-                                sms_sent_at: new Date().toISOString(),
-                                sms_message_sid: messageSid,
-                                sms_pending: false
-                              })
-                              .eq('twilio_call_sid', voicemail.call_sid);
-
                             await timelineEvents.messageSent(voicemail.business_id, voicemail.lead_id, conversation?.id || '', '', messageSid);
 
                             try {
@@ -420,52 +403,28 @@ export async function POST(request: NextRequest) {
             .single();
 
           if (fallbackBusiness && voicemail.caller_phone) {
-            // Populate all fields as "Not collected" - phone from caller ID
-            const emptyExtractedInfo = {};
-
-            const aiSummary = formatAiIntakeSummary(
-              emptyExtractedInfo,
-              voicemail.caller_phone,
-              fallbackBusiness.name || 'My Business'
-            );
-
-            let smsBody = `${aiSummary}\n\nReply STOP to opt out.`;
-
-            let fallbackConversation = await db.getOpenConversationForLead(voicemail.lead_id, voicemail.business_id);
-            if (!fallbackConversation) {
-              fallbackConversation = await db.createConversation({
-                lead_id: voicemail.lead_id,
-                business_id: voicemail.business_id,
-                status: 'open',
-                source: 'missed_call',
-                started_at: new Date().toISOString(),
-                last_activity_at: new Date().toISOString(),
-              });
-            }
-
-            const fallbackResult = await sendSms(fallbackBusiness, voicemail.caller_phone, smsBody, {
-              lead_id: voicemail.lead_id,
-              conversation_id: fallbackConversation?.id,
+            const fallbackConversation = await db.getOpenConversationForLead(voicemail.lead_id, voicemail.business_id);
+            const dispatchResult = await dispatchAutomaticCustomerSms({
+              trigger: 'recording_fallback',
+              callSid: voicemail.call_sid,
+              businessId: voicemail.business_id,
+              leadId: voicemail.lead_id,
+              conversationId: fallbackConversation?.id,
+              callerPhone: voicemail.caller_phone,
+              businessName: fallbackBusiness.name || 'My Business'
             });
 
-            const fallbackMessageSid = fallbackResult?.sid || null;
-            console.log('[FINAL SMS FALLBACK] Structured fallback SMS sent', {
+            const fallbackMessageSid = dispatchResult.twilioMessageSid || null;
+            console.log('[FINAL SMS FALLBACK] Centralized dispatch result', {
               messageSid: fallbackMessageSid,
               leadId: voicemail.lead_id,
               callerPhone: voicemail.caller_phone,
-              allFieldsNotCollected: true
+              outcome: dispatchResult.outcome,
+              template: dispatchResult.template,
+              reason: dispatchResult.reason
             });
 
             if (fallbackMessageSid) {
-              await supabaseAdmin
-                .from('call_events')
-                .update({
-                  sms_sent_at: new Date().toISOString(),
-                  sms_message_sid: fallbackMessageSid,
-                  sms_pending: false
-                })
-                .eq('twilio_call_sid', voicemail.call_sid);
-
               await timelineEvents.messageSent(voicemail.business_id, voicemail.lead_id, fallbackConversation?.id || '', '', fallbackMessageSid);
 
               try {

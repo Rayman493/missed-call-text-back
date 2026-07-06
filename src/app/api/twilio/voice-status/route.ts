@@ -1,13 +1,14 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { db } from '@/lib/supabase/admin'
-import { sendSms, normalizePhoneNumber } from '@/lib/twilio'
+import { normalizePhoneNumber } from '@/lib/twilio'
 import { requireTwilioAuth } from '@/lib/twilio/webhook'
 import { checkVoiceStatusRateLimit } from '@/lib/rate-limit'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { createFollowUpJobs } from '@/lib/follow-ups'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
-import { determineSmsTemplate, hasAiSummaryBeenSent, hasRecentAutomatedSms } from '@/lib/sms-decision'
+import { hasAiSummaryBeenSent, hasRecentAutomatedSms } from '@/lib/sms-decision'
+import { dispatchAutomaticCustomerSms } from '@/lib/auto-sms-dispatcher'
 
 console.log('[VOICE STATUS MODULE LOADED] =========================================');
 console.log('[VOICE STATUS MODULE LOADED] timestamp:', new Date().toISOString());
@@ -753,254 +754,41 @@ async function processVoiceStatusCallback(params: any, method: string) {
     return { success: false, reason: 'no_conversation' };
   }
 
-  // Check for recent outbound messages to avoid spam
-  let hasRecentOutbound = false
-  if (lead) {
-    try {
-      hasRecentOutbound = await db.hasRecentOutboundMessage(lead.id, 10)
-      console.log(`[Twilio Voice Status Webhook] Lead ID: ${lead.id}`)
-      console.log(`[Twilio Voice Status Webhook] Recent outbound message found (last 10 min): ${hasRecentOutbound}`)
-    } catch (recentOutboundError) {
-      console.error('[Twilio Voice Status Webhook] Error checking recent outbound messages:', recentOutboundError)
-      hasRecentOutbound = false // Default to no recent outbound on error
-    }
-  } else {
-    console.log('[Twilio Voice Status Webhook] No lead available for recent outbound check')
-  }
-
-  // Use centralized SMS decision logic
-  let smsDecision = null
-  if (!hasRecentOutbound && lead && conversation) {
-    try {
-      smsDecision = await determineSmsTemplate({
-        callSid: CallSid,
-        leadId: lead.id,
-        conversationId: conversation.id,
-        businessId: business.id,
-        aiCallRecord: aiCallRecord || undefined
-      })
-    } catch (decisionError) {
-      console.error('[Twilio Voice Status Webhook] Error determining SMS template:', decisionError)
-      // Fallback to safe default
-      smsDecision = {
-        template: 'missed_call',
-        shouldSend: true,
-        reason: 'decision_error_fallback',
-        aiCompleted: false,
-        voicemailCompleted: false
-      }
-    }
-  }
-
   let autoReplySent = false
-  let messageSid = null
 
-  // Send auto-reply SMS based on centralized decision
-  if (smsDecision && smsDecision.shouldSend && lead) {
-    console.log(`[Twilio Voice Status Webhook] Sending SMS based on centralized decision`)
-    console.log('[AFTER HOURS DECISION] SMS Decision returned:', {
-      template: smsDecision.template,
-      shouldSend: smsDecision.shouldSend,
-      reason: smsDecision.reason,
-      aiCompleted: smsDecision.aiCompleted
-    })
-
-    // Compact SMS trace log
-    console.log('[SMS TRACE] =========================================');
-    console.log('[SMS TRACE] callSid:', CallSid);
-    console.log('[SMS TRACE] sender: voice-status-callback');
-    console.log('[SMS TRACE] reason:', smsDecision.reason);
-    console.log('[SMS TRACE] template selected:', smsDecision.template);
-    console.log('[SMS TRACE] why summary skipped:', smsDecision.aiCompleted ? 'ai_completed_true' : 'ai_completed_false');
-    console.log('[SMS TRACE] why generic sent:', smsDecision.template !== 'none' ? 'template_not_none' : 'template_is_none');
-    console.log('[SMS TRACE] =========================================');
-
-    // Business hours check
-    const businessHoursEnabled = business.business_hours_enabled || false
-    const businessHoursStart = business.business_hours_start || '09:00'
-    const businessHoursEnd = business.business_hours_end || '17:00'
-    const businessTimezone = business.business_hours_timezone || 'America/New_York'
-    const afterHoursMessage = business.after_hours_message || ''
-
-    let withinBusinessHours = true
-    let nowLocal = ''
-    let dayOfWeek = ''
-
-    if (businessHoursEnabled) {
-      const now = new Date()
-      const nowInTimezone = new Date(now.toLocaleString('en-US', { timeZone: businessTimezone }))
-
-      nowLocal = nowInTimezone.toISOString()
-      dayOfWeek = nowInTimezone.toLocaleDateString('en-US', { weekday: 'long' })
-
-      const [startHour, startMin] = businessHoursStart.split(':').map(Number)
-      const [endHour, endMin] = businessHoursEnd.split(':').map(Number)
-
-      const currentHour = nowInTimezone.getHours()
-      const currentMin = nowInTimezone.getMinutes()
-      const currentTimeInMinutes = currentHour * 60 + currentMin
-      const startTimeInMinutes = startHour * 60 + startMin
-      const endTimeInMinutes = endHour * 60 + endMin
-
-      const dayIndex = nowInTimezone.getDay()
-      const isWeekday = dayIndex >= 1 && dayIndex <= 5
-
-      withinBusinessHours = isWeekday && currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes
-
-      console.log('[BUSINESS HOURS CHECK]', {
-        businessId: business.id,
-        timezone: businessTimezone,
-        openTime: businessHoursStart,
-        closeTime: businessHoursEnd,
-        nowLocal,
-        dayOfWeek,
-        businessHoursEnabled,
-        withinBusinessHours,
-        isWeekday,
-        currentTimeInMinutes,
-        startTimeInMinutes,
-        endTimeInMinutes
-      })
-    } else {
-      console.log('[BUSINESS HOURS CHECK]', {
-        businessId: business.id,
-        businessHoursEnabled,
-        withinBusinessHours: true,
-        reason: 'Business hours disabled'
-      })
-    }
-
-    // Log after-hours message selection details
-    console.log('[AFTER HOURS CHECK]', {
-      businessHoursOnly: businessHoursEnabled,
-      isWithinBusinessHours: withinBusinessHours,
-      selectedMessageType: businessHoursEnabled && !withinBusinessHours ? 'after_hours' : 'normal',
-      afterHoursMessagePresent: !!(afterHoursMessage && afterHoursMessage.trim()),
-      usingDefaultAfterHoursMessage: businessHoursEnabled && !withinBusinessHours && !(afterHoursMessage && afterHoursMessage.trim())
-    })
-
-    // Select message based on business hours and out of office status
-    let autoReplyMessage
-    let messageTemplate = smsDecision.template
-    let templateSource: 'custom' | 'stale_default_replaced' | 'missed_call_default'
-
-    // Define old stale default template
-    const staleDefaultTemplate = 'Sorry we missed your call—how can we help?'
-
-    // Note: Out of Office and After Hours availability notes are now handled centrally
-    // by appendBusinessAvailabilityNote in sendSms/sendMms. This route only handles
-    // the normal missed_call template.
-
-    console.log('[VOICE STATUS] Message template selection', {
-      messageTemplate,
-      businessHoursEnabled,
-      withinBusinessHours
-    })
-
-    // Handle normal missed call template (OOO/after-hours notes appended by sendSms)
-    if (business.auto_reply_message && business.auto_reply_message.trim()) {
-      // Check if the custom message is actually the old stale default
-      if (business.auto_reply_message.includes(staleDefaultTemplate)) {
-        console.log('[VOICE STATUS] Detected stale default auto_reply_message, replacing with new missed call template')
-        autoReplyMessage = `Hi, this is {{business_name}}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`
-        templateSource = 'stale_default_replaced'
-      } else {
-        autoReplyMessage = business.auto_reply_message
-        templateSource = 'custom'
-      }
-    } else {
-      autoReplyMessage = `Hi, this is {{business_name}}. We just missed your call. Reply here with what you need help with, and we'll get back to you soon. Reply STOP to opt out.`
-      templateSource = 'missed_call_default'
-    }
-
-    messageTemplate = 'missed_call'
-    console.log('[NORMAL MISSED CALL MESSAGE SELECTED]', {
-      template: messageTemplate,
+  if (lead && conversation && From) {
+    const dispatchResult = await dispatchAutomaticCustomerSms({
+      trigger: 'call_finished',
+      callSid: CallSid,
       businessId: business.id,
-      messageBody: autoReplyMessage?.substring(0, 100),
-      templateSource
+      leadId: lead.id,
+      conversationId: conversation.id,
+      callerPhone: From,
+      businessName: business.name,
+      extractedInfo: aiCallRecord?.extracted_info,
+      aiOutcome: aiCallRecord?.outcome
     })
 
-    // Substitute {{business_name}} token
-    const personalizedMessage = autoReplyMessage ? autoReplyMessage.replace('{{business_name}}', business.name || 'My Business') : null
+    autoReplySent = !!dispatchResult.twilioMessageSid
 
-    let finalMessage = personalizedMessage;
-
-    console.log(`[Twilio Voice Status Webhook] Auto-reply message: ${finalMessage?.substring(0, 100)}...`)
-    console.log(`[Twilio Voice Status Webhook] Business phone: ${business.twilio_phone_number}`)
-
-    // Log explicit SMS decision before sending
-    console.log('[AUTO SMS DECISION BEFORE SEND]', {
+    console.log('[Twilio Voice Status Webhook] Automatic SMS dispatch result', {
       callSid: CallSid,
       leadId: lead.id,
-      conversationId: conversation?.id,
-      businessId: business.id,
-      template: messageTemplate,
-      templateSource,
-      reason: smsDecision.reason,
-      aiCompleted: smsDecision.aiCompleted,
-      voicemailCompleted: smsDecision.voicemailCompleted,
-      generic_sms_suppressed: smsDecision.template === 'none',
-      messageBody: personalizedMessage?.substring(0, 100)
+      conversationId: conversation.id,
+      success: dispatchResult.success,
+      skipped: dispatchResult.skipped,
+      reason: dispatchResult.reason,
+      outcome: dispatchResult.outcome,
+      template: dispatchResult.template,
+      twilioMessageSid: dispatchResult.twilioMessageSid
     })
-
-    if (!finalMessage) {
-      console.log('[SMS SEND SKIPPED]', {
-        reason: 'finalMessage is null',
-        messageTemplate
-      })
-    } else {
-      try {
-        messageSid = await sendSms(business, From, finalMessage, {
-          lead_id: lead.id,
-          conversation_id: conversation?.id,
-        })
-
-        if (messageSid) {
-          console.log(`[Twilio Voice Status Webhook] Auto-reply SMS sent successfully - Twilio SID: ${messageSid}`)
-          autoReplySent = true
-
-          console.log('[VOICE STATUS SMS SEND]', {
-            conversationId: conversation?.id,
-            leadId: lead.id,
-            template: messageTemplate,
-            twilioSid: messageSid
-          })
-
-          // Update lead status to contacted after SMS sent
-          try {
-            const { error: updateError } = await supabase
-              .from('leads')
-              .update({ status: 'contacted' })
-              .eq('id', lead.id)
-
-            if (updateError) {
-              console.error('[Twilio Voice Status Webhook] Failed to update lead status:', updateError)
-            } else {
-              console.log(`[Twilio Voice Status Webhook] Lead status updated to 'contacted': ${lead.id}`)
-            }
-          } catch (statusUpdateError) {
-            console.error('[Twilio Voice Status Webhook] Exception updating lead status:', statusUpdateError)
-          }
-        } else {
-          console.error('[Twilio Voice Status Webhook] Failed to send auto-reply SMS - no SID returned')
-        }
-      } catch (smsError) {
-        console.error('[Twilio Voice Status Webhook] Exception during SMS send:', smsError)
-      }
-    }
   } else {
-    if (hasRecentOutbound) {
-      console.log(`[Twilio Voice Status Webhook] Auto-reply skipped - recent outbound message found for lead: ${lead?.id}`)
-    } else if (!lead) {
-      console.log(`[Twilio Voice Status Webhook] Auto-reply skipped - no lead available`)
-    } else if (smsDecision && !smsDecision.shouldSend) {
-      console.log(`[Twilio Voice Status Webhook] Auto-reply skipped - SMS decision says should not send`, {
-        reason: smsDecision.reason,
-        template: smsDecision.template,
-        aiCompleted: smsDecision.aiCompleted
-      })
-    }
+    console.log('[Twilio Voice Status Webhook] Automatic SMS dispatch skipped - missing required call context', {
+      hasLead: !!lead,
+      hasConversation: !!conversation,
+      hasFrom: !!From,
+      callSid: CallSid
+    })
   }
 
   // ========================================

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { sendSms } from '@/lib/twilio'
+import { dispatchAutomaticCustomerSms } from '@/lib/auto-sms-dispatcher'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizePunctuation } from '@/lib/utils'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
@@ -594,198 +594,43 @@ Reply STOP to opt out.`;
       missingFields
     })
 
-    // Send SMS using sendSms (which handles message insertion and idempotency)
-    console.log('[AI CONFIRMATION SMS TWILIO SEND START]', {
-      to: callerPhone,
-      from: business.twilio_phone_number,
-      messagingServiceSid: business.twilio_messaging_service_sid,
-      template: selectedTemplate,
+    const dispatchResult = await dispatchAutomaticCustomerSms({
+      trigger: 'ai_confirmation',
+      callSid,
+      businessId,
+      leadId,
+      conversationId,
+      callerPhone,
+      businessName,
+      extractedInfo: extracted,
       aiOutcome
     })
 
-    // Log explicit SMS decision before sending
-    console.log('[AUTO SMS DECISION BEFORE SEND]', {
-      callSid,
-      leadId,
-      conversationId,
-      businessId,
-      template: selectedTemplate,
-      aiOutcome,
-      reason: intakeComplete ? 'ai_intake_completed' : isPartialIntake ? 'partial_intake' : 'early_hangup_fallback',
-      aiCompleted: intakeComplete,
-      voicemailCompleted: false,
-      generic_sms_suppressed: intakeComplete,
-      messageBody: messageBody.substring(0, 100),
-      source: 'external_ai_voice_service'
-    })
-
-    // Compact SMS trace log
-    console.log('[SMS TRACE] =========================================');
-    console.log('[SMS TRACE] callSid:', callSid);
-    console.log('[SMS TRACE] sender: ai-confirmation-sms');
-    console.log('[SMS TRACE] reason:', selectionReason);
-    console.log('[SMS TRACE] template selected:', selectedTemplate);
-    console.log('[SMS TRACE] why summary skipped: N/A (this is the summary sender)');
-    console.log('[SMS TRACE] why generic sent: N/A (this sends summary, not generic)');
-    console.log('[SMS TRACE] =========================================');
-
-    try {
-      const sendResult = await sendSms(
-        business,
-        callerPhone,
-        messageBody,
-        {
-          lead_id: leadId,
-          conversation_id: conversationId
+    if (dispatchResult.success) {
+      if (intakeComplete) {
+        console.log('[AI CONFIRMATION SMS] Canceling pending follow-ups for completed AI intake', { leadId })
+        try {
+          const cancelled = await cancelPendingFollowUpsForLead(leadId, 'ai_intake_complete')
+          console.log('[AI CONFIRMATION SMS] Cancelled follow-ups:', cancelled)
+        } catch (cancelError) {
+          console.error('[AI CONFIRMATION SMS] Error cancelling follow-ups:', cancelError)
         }
-      )
-
-      const twilioMessageSid = sendResult.sid
-
-      if (twilioMessageSid) {
-        console.log('[AI SUMMARY SMS SENT]', {
-          callSid,
-          messageSid: twilioMessageSid,
-          leadId,
-          conversationId
-        })
-      } else {
-        console.log('[AI SUMMARY SMS FAILED_TO_SEND]', {
-          callSid,
-          messageSid: null,
-          leadId,
-          conversationId,
-          reason: 'sendSms returned null'
-        })
       }
 
-      if (twilioMessageSid) {
-        console.log('[AI CONFIRMATION SMS SUCCESS]', {
-          twilioMessageSid,
-          conversationId,
-          leadId
-        })
-
-        // Update lead metadata with AI summary SMS sent flag (normalized key)
-        const { error: metadataUpdateError } = await supabaseAdmin
-          .from('leads')
-          .update({
-            raw_metadata: {
-              ...(lead?.raw_metadata || {}),
-              ai_summary_sms_sent: true,
-              ai_summary_sms_sent_at: new Date().toISOString(),
-              ai_summary_sms_message_sid: twilioMessageSid,
-              ai_summary_sms_call_sid: callSid
-            }
-          })
-          .eq('id', leadId)
-
-        if (metadataUpdateError) {
-          console.error('[AI CONFIRMATION SMS METADATA UPDATE ERROR]', {
-            leadId,
-            error: metadataUpdateError
-          })
-        } else {
-          console.log('[AI CONFIRMATION SMS METADATA UPDATED]', {
-            leadId,
-            ai_confirmation_sms_sent: true,
-            ai_confirmation_sms_sent_at: new Date().toISOString()
-          })
-        }
-
-        // Check for pending correction acknowledgement
-        const pendingAcknowledgement = lead?.raw_metadata?.pending_correction_acknowledgement
-        if (pendingAcknowledgement) {
-          console.log('[PENDING CORRECTION ACKNOWLEDGEMENT FOUND]', {
-            leadId,
-            pendingAcknowledgement
-          })
-
-          // Send the pending correction acknowledgement
-          const acknowledgementMessage = `Thanks! We've updated your ${pendingAcknowledgement.field_changed.replace(/([A-Z])/g, ' $1').toLowerCase().trim()} to "${pendingAcknowledgement.new_value}".`
-          const acknowledgementResult = await sendSms(business, callerPhone, acknowledgementMessage, {
-            lead_id: leadId,
-          })
-          const acknowledgementSid = acknowledgementResult.sid
-
-          if (acknowledgementSid) {
-            console.log('[PENDING CORRECTION ACKNOWLEDGEMENT SENT]', {
-              leadId,
-              acknowledgementSid,
-              fieldChanged: pendingAcknowledgement.field_changed,
-              newValue: pendingAcknowledgement.new_value
-            })
-
-            // Clear pending acknowledgement from metadata
-            const { error: clearPendingError } = await supabaseAdmin
-              .from('leads')
-              .update({
-                raw_metadata: {
-                  ...((lead?.raw_metadata || {})),
-                  ai_confirmation_sms_sent: true,
-                  ai_confirmation_sms_sent_at: (lead?.raw_metadata || {}).ai_confirmation_sms_sent_at,
-                  ai_confirmation_sms_message_sid: (lead?.raw_metadata || {}).ai_confirmation_sms_message_sid,
-                  pending_correction_acknowledgement: null
-                }
-              })
-              .eq('id', leadId)
-
-            if (clearPendingError) {
-              console.error('[PENDING CORRECTION ACKNOWLEDGEMENT CLEAR ERROR]', {
-                leadId,
-                error: clearPendingError
-              })
-            } else {
-              console.log('[PENDING CORRECTION ACKNOWLEDGEMENT CLEARED]', {
-                leadId
-              })
-            }
-          } else {
-            console.error('[PENDING CORRECTION ACKNOWLEDGEMENT SEND FAILED]', {
-              leadId,
-              pendingAcknowledgement
-            })
-          }
-        }
-
-        // Cancel any pending follow-up jobs since AI intake is complete
-        if (intakeComplete) {
-          console.log('[AI CONFIRMATION SMS] Canceling pending follow-ups for completed AI intake', { leadId })
-          try {
-            const cancelled = await cancelPendingFollowUpsForLead(leadId, 'ai_intake_complete')
-            console.log('[AI CONFIRMATION SMS] Cancelled follow-ups:', cancelled)
-          } catch (cancelError) {
-            console.error('[AI CONFIRMATION SMS] Error cancelling follow-ups:', cancelError)
-          }
-        }
-
-        return NextResponse.json({
-          success: true,
-          twilioMessageSid,
-          skipped: false
-        })
-      } else {
-        console.log('[AI CONFIRMATION SMS SEND FAILED]', {
-          reason: 'sendSms returned null',
-          conversationId
-        })
-        return NextResponse.json({
-          error: 'Failed to send SMS',
-          reason: 'sendSms returned null'
-        }, { status: 500 })
-      }
-    } catch (error) {
-      const smsError = error as Error
-      console.log('[AI CONFIRMATION SMS SEND FAILED]', {
-        reason: smsError.message,
-        stack: smsError.stack,
-        conversationId
-      })
       return NextResponse.json({
-        error: 'Failed to send SMS',
-        reason: smsError.message
-      }, { status: 500 })
+        success: true,
+        twilioMessageSid: dispatchResult.twilioMessageSid,
+        skipped: dispatchResult.skipped || false,
+        reason: dispatchResult.reason,
+        template: dispatchResult.template,
+        outcome: dispatchResult.outcome
+      })
     }
+
+    return NextResponse.json({
+      error: 'Failed to dispatch automatic SMS',
+      reason: dispatchResult.reason
+    }, { status: 500 })
 
   } catch (error) {
     console.error('[AI CONFIRMATION SMS ERROR]', {
