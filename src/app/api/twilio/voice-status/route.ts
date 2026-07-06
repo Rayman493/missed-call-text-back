@@ -757,60 +757,47 @@ async function processVoiceStatusCallback(params: any, method: string) {
   let autoReplySent = false
 
   // SMS DISPATCH CODE PATH OWNERSHIP:
-  // - Complete AI intake (outcome='completed' or 'completed_intake'): AI voice service sends SMS directly via sendAIConfirmationSMS
-  // - Incomplete AI intake (outcome='incomplete', 'ai_failed', etc.): voice-status webhook sends SMS via dispatchAutomaticCustomerSms (fallback)
-  // - Voicemail fallback: voice-status webhook sends SMS via dispatchAutomaticCustomerSms
-  // - Non-AI missed calls: voice-status webhook sends SMS via dispatchAutomaticCustomerSms
+  // - ALL automatic customer SMS messages are sent from this voice-status webhook after the call ends
+  // - This is the centralized post-call dispatch point for complete, incomplete, and failed AI intakes
+  // - Complete AI intake: sends summary with all captured fields
+  // - Incomplete AI intake: sends summary with partial captured fields (missing fields show "Not collected")
+  // - Immediate hangup/no info: sends summary-style SMS with mostly "Not collected" fields
+  // - Idempotency guard (hasAutomaticSmsForCall) prevents duplicate SMS from retry/close/status callbacks
   //
-  // This webhook should ONLY send SMS for incomplete/failed AI intakes and non-AI scenarios.
-  // Successful AI intakes are handled by the AI voice service to ensure SMS is sent AFTER all data is finalized.
+  // The AI voice service does NOT send SMS - it only handles the call and persists data.
+  // SMS timing is centralized here to ensure consistent behavior across all call outcomes.
 
-  if (lead && conversation && From && aiCallRecord?.outcome) {
-    // Skip SMS dispatch for completed AI intakes - AI voice service handles this
-    const isCompletedIntake = aiCallRecord.outcome === 'completed' || aiCallRecord.outcome === 'completed_intake'
-    
-    if (isCompletedIntake) {
-      console.log('[Twilio Voice Status Webhook] SMS dispatch skipped for completed AI intake - handled by AI voice service', {
-        callSid: CallSid,
-        leadId: lead.id,
-        conversationId: conversation.id,
-        outcome: aiCallRecord.outcome,
-        reason: 'AI voice service sends SMS for completed intakes to ensure data finalization'
-      })
-    } else {
-      // Send SMS for incomplete/failed AI intakes (fallback behavior)
-      const dispatchResult = await dispatchAutomaticCustomerSms({
-        trigger: 'call_finished',
-        callSid: CallSid,
-        businessId: business.id,
-        leadId: lead.id,
-        conversationId: conversation.id,
-        callerPhone: From,
-        businessName: business.name,
-        extractedInfo: aiCallRecord?.extracted_info,
-        aiOutcome: aiCallRecord?.outcome
-      })
+  if (lead && conversation && From) {
+    const dispatchResult = await dispatchAutomaticCustomerSms({
+      trigger: 'call_finished',
+      callSid: CallSid,
+      businessId: business.id,
+      leadId: lead.id,
+      conversationId: conversation.id,
+      callerPhone: From,
+      businessName: business.name,
+      extractedInfo: aiCallRecord?.extracted_info,
+      aiOutcome: aiCallRecord?.outcome
+    })
 
-      autoReplySent = !!dispatchResult.twilioMessageSid
+    autoReplySent = !!dispatchResult.twilioMessageSid
 
-      console.log('[Twilio Voice Status Webhook] Automatic SMS dispatch result', {
-        callSid: CallSid,
-        leadId: lead.id,
-        conversationId: conversation.id,
-        success: dispatchResult.success,
-        skipped: dispatchResult.skipped,
-        reason: dispatchResult.reason,
-        outcome: dispatchResult.outcome,
-        template: dispatchResult.template,
-        twilioMessageSid: dispatchResult.twilioMessageSid
-      })
-    }
+    console.log('[Twilio Voice Status Webhook] Automatic SMS dispatch result', {
+      callSid: CallSid,
+      leadId: lead.id,
+      conversationId: conversation.id,
+      success: dispatchResult.success,
+      skipped: dispatchResult.skipped,
+      reason: dispatchResult.reason,
+      outcome: dispatchResult.outcome,
+      template: dispatchResult.template,
+      twilioMessageSid: dispatchResult.twilioMessageSid
+    })
   } else {
-    console.log('[Twilio Voice Status Webhook] Automatic SMS dispatch skipped - waiting for AI confirmation or missing required call context', {
+    console.log('[Twilio Voice Status Webhook] Automatic SMS dispatch skipped - missing required call context', {
       hasLead: !!lead,
       hasConversation: !!conversation,
       hasFrom: !!From,
-      hasAiOutcome: !!aiCallRecord?.outcome,
       callSid: CallSid
     })
   }
