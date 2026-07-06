@@ -11,6 +11,28 @@
  * Version: ai-record-post-insert-hooks-v2
  * Updated: 2026-06-03
  * Rollback state: c5acba53
+ *
+ * IMPORTANT: SMS DISPATCH OWNERSHIP
+ * =================================
+ * Automatic customer summary SMS is owned EXCLUSIVELY by the voice-status webhook
+ * in the Next.js application (src/app/api/twilio/voice-status/route.ts).
+ *
+ * The AI voice service MUST NEVER send customer SMS.
+ *
+ * AI voice service responsibilities ONLY:
+ * - Collect intake data from caller
+ * - Save extracted_info to ai_call_records
+ * - Update lead and conversation records
+ * - Determine complete/incomplete outcome
+ *
+ * SMS dispatch flow:
+ * 1. Call ends or customer hangs up
+ * 2. Twilio fires voice-status webhook
+ * 3. Webhook fetches latest ai_call_records and lead
+ * 4. Webhook generates summary and sends ONE customer SMS
+ *
+ * DO NOT add any SMS sending logic to this file.
+ * Doing so causes premature SMS dispatch before the call ends.
  */
 
 // VERSION PROOF CONSTANTS - Hardcoded to prove deployment
@@ -3687,24 +3709,13 @@ async function finalizeIncompleteIntake(
   }
   console.log('[INCOMPLETE FINALIZATION] AI record created/updated successfully');
 
-  // Send fallback SMS (even with minimal data)
-  console.log('[INCOMPLETE FINALIZATION] Sending fallback SMS to callerPhone:', callerPhone);
+  // SMS DISPATCH REMOVED: AI voice service must NEVER send customer SMS.
+  // Automatic customer summary SMS is owned exclusively by the voice-status webhook.
+  // The voice-status webhook fetches the latest ai_call_records after call ends
+  // and sends the summary SMS with complete or partial information.
+  //
+  // DO NOT re-add SMS sending here - it causes premature SMS dispatch before call ends.
 
-  try {
-    await sendAIConfirmationSMS(
-      businessId,
-      lead.id,
-      conversation.id,
-      callSid,
-      callerPhone,
-      extractedFields
-    );
-    console.log('[INCOMPLETE FINALIZATION] SMS sent successfully');
-  } catch (smsError) {
-    console.error('[INCOMPLETE FINALIZATION] SMS failed:', smsError, 'callSid:', callSid);
-    // Continue despite SMS failure
-  }
-  
   // Create follow-up jobs (idempotent via API)
   console.log('[INCOMPLETE FINALIZATION] Creating follow-up jobs for leadId:', lead.id);
 
@@ -4365,46 +4376,12 @@ async function createFallbackLead(
 
     console.log('[LEAD CREATED FROM FALLBACK] All fallback data saved successfully');
 
-    // === FINAL TEXT-MESSAGE FALLBACK ===
-    // AI failed and the Twilio redirect to voicemail also failed.
-    // Send the structured summary SMS with all intake fields "Not collected"
-    // so the customer still gets a reply they can respond to.
-    // Uses sendAIConfirmationSMS with empty extractedInfo; the ai-confirmation-sms
-    // route detects outcome 'ai_failed_voicemail' and forces the structured formatter.
-    if (lead?.id && conversation?.id) {
-      try {
-        console.log('[FINAL SMS FALLBACK] Sending structured summary SMS after voicemail redirect failure', {
-          callSid,
-          businessId,
-          leadId: lead.id,
-          conversationId: conversation.id,
-          callerPhone,
-          reason: 'ai_failed_and_voicemail_redirect_also_failed'
-        });
-
-        await sendAIConfirmationSMS(
-          businessId,
-          lead.id,
-          conversation.id,
-          callSid || 'unknown',
-          callerPhone || 'unknown',
-          {} // empty extractedInfo - all fields will show "Not collected"
-        );
-
-        console.log('[FINAL SMS FALLBACK] Structured summary SMS dispatched successfully', {
-          callSid,
-          leadId: lead.id
-        });
-      } catch (smsFallbackError) {
-        console.log('[FINAL SMS FALLBACK] Error sending structured summary SMS:', smsFallbackError);
-      }
-    } else {
-      console.log('[FINAL SMS FALLBACK] Skipping SMS - missing lead or conversation', {
-        hasLead: !!lead?.id,
-        hasConversation: !!conversation?.id
-      });
-    }
-    // === END FINAL TEXT-MESSAGE FALLBACK ===
+    // SMS DISPATCH REMOVED: AI voice service must NEVER send customer SMS.
+    // Automatic customer summary SMS is owned exclusively by the voice-status webhook.
+    // The voice-status webhook fetches the latest ai_call_records after call ends
+    // and sends the summary SMS with complete or partial information.
+    //
+    // DO NOT re-add SMS sending here - it causes premature SMS dispatch before call ends.
 
   } catch (error) {
     console.log('[LEAD CREATED FROM FALLBACK] Fallback lead creation failed:', error);
@@ -6152,17 +6129,16 @@ Reply to this message if you'd like to update or add any information.
       }
 
       console.log('[SILENT AI RECORD SAVED]');
-      await sendAIConfirmationSMS(
-        state.businessId,
-        lead.id,
-        conversation.id,
-        state.callSid || 'unknown',
-        state.callerPhone || 'unknown',
-        undefined
-      );
 
-      console.log('[SILENT SMS SENT]');
-      console.log('[SIMPLE MODE] event: silent_sms_sent');
+      // SMS DISPATCH REMOVED: AI voice service must NEVER send customer SMS.
+      // Automatic customer summary SMS is owned exclusively by the voice-status webhook.
+      // The voice-status webhook fetches the latest ai_call_records after call ends
+      // and sends the summary SMS with complete or partial information.
+      //
+      // DO NOT re-add SMS sending here - it causes premature SMS dispatch before call ends.
+
+      console.log('[SILENT SMS SKIPPED - OWNED BY VOICE-STATUS WEBHOOK]');
+      console.log('[SIMPLE MODE] event: silent_sms_skipped');
     } catch (error) {
       console.log('[SILENT SMS FAILED] reason: exception -', error instanceof Error ? error.message : String(error));
     }
@@ -8449,42 +8425,16 @@ Return only JSON, no other text.`;
         console.log('[AI INGEST INSERT SUCCESS] AI record linking completed successfully');
         console.log('[AI INGEST INSERT SUCCESS] ingestion completed successfully');
 
-        // Send confirmation SMS after successful AI intake
+        // SMS DISPATCH REMOVED: AI voice service must NEVER send customer SMS.
+        // Automatic customer summary SMS is owned exclusively by the voice-status webhook.
+        // The voice-status webhook fetches the latest ai_call_records after call ends
+        // and sends the summary SMS with complete or partial information.
+        //
+        // DO NOT re-add SMS sending here - it causes premature SMS dispatch before call ends.
         console.log('[COMPLETE FINALIZATION STEP 9] =========================================');
-        console.log('[COMPLETE FINALIZATION STEP 9] Sending AI confirmation SMS');
+        console.log('[COMPLETE FINALIZATION STEP 9] SMS dispatch skipped - owned by voice-status webhook');
         console.log('[COMPLETE FINALIZATION STEP 9] Timestamp:', new Date().toISOString());
         console.log('[COMPLETE FINALIZATION STEP 9] =========================================');
-        
-        console.log('[SUMMARY SMS START] Starting AI summary SMS');
-        console.log('[AI CONFIRMATION SMS CALL SITE]', {
-          businessId: sessionBusinessId,
-          leadId: lead.id,
-          conversationId: conversation.id,
-          callSid: sessionCallSid,
-          callerPhone: sessionCallerPhone,
-          hasExtractedInfo: !!extractedFields,
-          extractedInfoKeys: extractedFields ? Object.keys(extractedFields) : []
-        });
-        
-        await sendAIConfirmationSMS(
-          sessionBusinessId,
-          lead.id,
-          conversation.id,
-          sessionCallSid || 'unknown',
-          sessionCallerPhone || 'unknown',
-          extractedFields
-        );
-
-        console.log('[SUMMARY SMS SUCCESS] AI summary SMS sent successfully');
-        console.log('[AI CONFIRMATION SMS CALL SITE COMPLETE]', {
-          businessId: sessionBusinessId,
-          leadId: lead.id
-        });
-
-        console.log('[COMPLETE FINALIZATION STEP 9 SUCCESS] =========================================');
-        console.log('[COMPLETE FINALIZATION STEP 9 SUCCESS] AI confirmation SMS sent successfully');
-        console.log('[COMPLETE FINALIZATION STEP 9 SUCCESS] Timestamp:', new Date().toISOString());
-        console.log('[COMPLETE FINALIZATION STEP 9 SUCCESS] =========================================');
 
         console.log('[INGEST CALL DATA COMPLETE] Post-call persistence completed successfully');
         console.log('[INGEST CALL DATA EXIT] =========================================');
@@ -8704,38 +8654,17 @@ Return only JSON, no other text.`;
             console.log('[INCOMPLETE MESSAGE INSERT SUCCESS] =========================================');
           }
 
-          // Send customer-facing SMS via centralized AI confirmation endpoint
-          // The endpoint will use the ai_call_record outcome to choose between standard missed-call,
-          // partial-intake, or AI-summary templates and applies business-hours/OOO/duplicate rules.
-          console.log('[INCOMPLETE SMS SEND START] =========================================');
-          console.log('[INCOMPLETE SMS SEND START] to:', sessionCallerPhone);
-          console.log('[INCOMPLETE SMS SEND START] businessId:', sessionBusinessId);
-          console.log('[INCOMPLETE SMS SEND START] leadId:', fallbackLead.id);
-          console.log('[INCOMPLETE SMS SEND START] conversationId:', fallbackConversationId);
-          console.log('[INCOMPLETE SMS SEND START] outcome:', fallbackOutcome);
-          console.log('[INCOMPLETE SMS SEND START] Timestamp:', new Date().toISOString());
-          console.log('[INCOMPLETE SMS SEND START] =========================================');
-
-          try {
-            await sendAIConfirmationSMS(
-              sessionBusinessId,
-              fallbackLead.id,
-              fallbackConversationId,
-              sessionCallSid || 'unknown',
-              sessionCallerPhone || 'unknown',
-              intakeData || undefined
-            );
-            console.log('[INCOMPLETE SMS SEND SUCCESS] =========================================');
-            console.log('[INCOMPLETE SMS SEND SUCCESS] Centralized SMS sent via /api/ai-confirmation-sms');
-            console.log('[INCOMPLETE SMS SEND SUCCESS] outcome:', fallbackOutcome);
-            console.log('[INCOMPLETE SMS SEND SUCCESS] Timestamp:', new Date().toISOString());
-            console.log('[INCOMPLETE SMS SEND SUCCESS] =========================================');
-          } catch (smsError) {
-            console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
-            console.log('[INCOMPLETE SMS SEND FAILED] error:', String(smsError));
-            console.log('[INCOMPLETE SMS SEND FAILED] Timestamp:', new Date().toISOString());
-            console.log('[INCOMPLETE SMS SEND FAILED] =========================================');
-          }
+          // SMS DISPATCH REMOVED: AI voice service must NEVER send customer SMS.
+          // Automatic customer summary SMS is owned exclusively by the voice-status webhook.
+          // The voice-status webhook fetches the latest ai_call_records after call ends
+          // and sends the summary SMS with complete or partial information.
+          //
+          // DO NOT re-add SMS sending here - it causes premature SMS dispatch before call ends.
+          console.log('[INCOMPLETE SMS SEND SKIPPED] =========================================');
+          console.log('[INCOMPLETE SMS SEND SKIPPED] SMS dispatch skipped - owned by voice-status webhook');
+          console.log('[INCOMPLETE SMS SEND SKIPPED] outcome:', fallbackOutcome);
+          console.log('[INCOMPLETE SMS SEND SKIPPED] Timestamp:', new Date().toISOString());
+          console.log('[INCOMPLETE SMS SEND SKIPPED] =========================================');
 
           // Create follow-up jobs using the proper API
           console.log('[INCOMPLETE FOLLOWUP STEP 3] =========================================');
