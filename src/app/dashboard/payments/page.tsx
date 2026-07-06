@@ -165,6 +165,22 @@ export default function PaymentsPage() {
       return
     }
 
+    // Client-side validation for payment method configuration
+    if (paymentProvider === 'venmo' && !business?.venmo_username) {
+      setError('Venmo hasn\'t been connected yet. Connect Venmo in Settings → Payments before sending Venmo payment requests.')
+      return
+    }
+
+    if (paymentProvider === 'paypal' && !business?.paypal_payment_link) {
+      setError('PayPal hasn\'t been connected yet. Connect PayPal in Settings → Payments before sending PayPal payment requests.')
+      return
+    }
+
+    if (paymentProvider === 'stripe' && (!business?.stripe_connect_account_id || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled)) {
+      setError('Stripe hasn\'t been connected yet. Connect Stripe in Settings → Payments before sending Stripe payment requests.')
+      return
+    }
+
     setIsCreatingPayment(true)
     setError('')
     setSuccessMessage('')
@@ -724,6 +740,23 @@ export default function PaymentsPage() {
                   />
                 </div>
               </div>
+
+              {error && (
+                <div className="mt-4 p-4 bg-red-900/30 border border-red-700 rounded-lg">
+                  <p className="text-sm text-red-200 mb-3">{error}</p>
+                  {(error.includes('Venmo') || error.includes('PayPal') || error.includes('Stripe')) && (
+                    <button
+                      onClick={() => {
+                        router.push('/dashboard/settings')
+                        setShowPaymentModal(false)
+                      }}
+                      className="text-sm font-medium text-blue-300 hover:text-blue-200 underline"
+                    >
+                      Go to Payment Settings
+                    </button>
+                  )}
+                </div>
+              )}
 
               <div className="flex gap-3 justify-end mt-6">
                 <button
