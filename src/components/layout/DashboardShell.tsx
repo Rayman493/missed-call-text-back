@@ -5,14 +5,12 @@ import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import AppHeader from '@/components/AppHeader'
-import MobileMenu from '@/components/MobileMenu'
 import BottomNavigation from '@/components/BottomNavigation'
 
 interface DashboardShellProps {
   children: React.ReactNode
   title?: string
   showNavigation?: boolean
-  showMobileMenu?: boolean
   showBottomNavigation?: boolean
   withGuards?: boolean
   withErrorBoundary?: boolean
@@ -27,7 +25,6 @@ function DashboardShellFrame({
   children,
   title,
   showNavigation = true,
-  showMobileMenu = true,
   showBottomNavigation = true,
   className = '',
   contentClassName = 'flex-1 pt-3 sm:pt-4 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-24 md:pb-8 relative z-10',
@@ -37,7 +34,6 @@ function DashboardShellFrame({
   return (
     <div className={`min-h-screen bg-background dark:bg-background flex flex-col relative overflow-x-hidden ${className}`}>
       <AppHeader title={title} showNavigation={showNavigation} />
-      {showMobileMenu && <MobileMenu />}
       <main className={contentClassName}>
         <div className={`${maxWidthClassName} ${innerClassName}`}>
           {children}

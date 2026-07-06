@@ -10,7 +10,6 @@ import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
-import MobileMenu from '@/components/MobileMenu'
 import AppHeader from '@/components/AppHeader'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 

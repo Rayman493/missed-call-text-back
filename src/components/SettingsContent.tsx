@@ -17,7 +17,6 @@ import { formatPhoneNumber } from '@/lib/utils'
 import Navigation from '@/components/Navigation'
 import PageBackground from '@/components/PageBackground'
 import UserDropdown from '@/components/UserDropdown'
-import MobileMenu from '@/components/MobileMenu'
 import AppHeader from '@/components/AppHeader'
 import BottomNavigation from '@/components/BottomNavigation'
 import {

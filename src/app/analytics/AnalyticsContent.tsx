@@ -5,7 +5,6 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import AppHeader from '@/components/AppHeader'
 import Navigation from '@/components/Navigation'
-import MobileMenu from '@/components/MobileMenu'
 import UserDropdown from '@/components/UserDropdown'
 import Footer from '@/components/Footer'
 import {
