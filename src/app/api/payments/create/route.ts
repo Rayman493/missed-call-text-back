@@ -59,11 +59,15 @@ export async function POST(request: Request) {
       payment_provider,
     })
 
-    if (!business_id || !lead_id || !conversation_id || !amount_cents) {
-      return NextResponse.json(
-        { error: 'Missing required fields: business_id, lead_id, conversation_id, amount_cents' },
-        { status: 400 }
-      )
+    // Validate required fields with specific error messages
+    if (!business_id) {
+      return NextResponse.json({ error: 'Missing business_id' }, { status: 400 })
+    }
+    if (!lead_id) {
+      return NextResponse.json({ error: 'Missing lead_id' }, { status: 400 })
+    }
+    if (!amount_cents) {
+      return NextResponse.json({ error: 'Missing amount_cents' }, { status: 400 })
     }
 
     // Validate amount
@@ -165,32 +169,76 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Lead not found or unauthorized' }, { status: 403 })
     }
 
-    // Verify conversation exists and user has access (RLS will handle authorization)
-    console.log('[PAYMENT REQUEST] Conversation lookup with RLS:', {
-      conversation_id,
-    })
+    // Handle conversation_id - look it up automatically if missing
+    let finalConversationId = conversation_id
+    let conversation
 
-    const { data: conversation, error: conversationError } = await supabase
-      .from('conversations')
-      .select('id, business_id, lead_id')
-      .eq('id', conversation_id)
-      .maybeSingle()
+    if (!conversation_id) {
+      console.log('[PAYMENT REQUEST] No conversation_id provided, looking up conversation for lead')
+      // Automatically look up conversation for this lead
+      const { data: existingConversation, error: lookupError } = await supabase
+        .from('conversations')
+        .select('id, business_id, lead_id')
+        .eq('lead_id', lead_id)
+        .eq('business_id', business.id)
+        .maybeSingle()
 
-    console.log('[PAYMENT REQUEST] Conversation lookup result:', {
-      found: !!conversation,
-      errorCode: conversationError?.code,
-      errorMessage: conversationError?.message
-    })
+      if (existingConversation) {
+        finalConversationId = existingConversation.id
+        conversation = existingConversation
+        console.log('[PAYMENT REQUEST] Found existing conversation for lead:', finalConversationId)
+      } else {
+        console.log('[PAYMENT REQUEST] No existing conversation found for lead, creating one')
+        // Create a new conversation for this lead
+        const { data: newConversation, error: createError } = await supabase
+          .from('conversations')
+          .insert({
+            business_id: business.id,
+            lead_id: lead.id,
+            status: 'active',
+          })
+          .select('id, business_id, lead_id')
+          .single()
 
-    if (conversationError || !conversation) {
-      console.error('[PAYMENT REQUEST] Conversation not found or unauthorized')
-      console.error('[PAYMENT REQUEST] Exact reason for 404:', {
-        conversationError: conversationError?.message,
-        conversationErrorCode: conversationError?.code,
-        conversationExists: !!conversation,
-        conversationId: conversation_id,
+        if (createError || !newConversation) {
+          console.error('[PAYMENT REQUEST] Failed to create conversation:', createError)
+          return NextResponse.json({ error: 'Missing conversation for selected lead. Could not create conversation.' }, { status: 400 })
+        }
+
+        finalConversationId = newConversation.id
+        conversation = newConversation
+        console.log('[PAYMENT REQUEST] Created new conversation for lead:', finalConversationId)
+      }
+    } else {
+      // Verify conversation exists and user has access (RLS will handle authorization)
+      console.log('[PAYMENT REQUEST] Conversation lookup with RLS:', {
+        conversation_id,
       })
-      return NextResponse.json({ error: 'Conversation not found or unauthorized' }, { status: 404 })
+
+      const { data: conversationData, error: conversationError } = await supabase
+        .from('conversations')
+        .select('id, business_id, lead_id')
+        .eq('id', conversation_id)
+        .maybeSingle()
+
+      console.log('[PAYMENT REQUEST] Conversation lookup result:', {
+        found: !!conversationData,
+        errorCode: conversationError?.code,
+        errorMessage: conversationError?.message
+      })
+
+      if (conversationError || !conversationData) {
+        console.error('[PAYMENT REQUEST] Conversation not found or unauthorized')
+        console.error('[PAYMENT REQUEST] Exact reason for 404:', {
+          conversationError: conversationError?.message,
+          conversationErrorCode: conversationError?.code,
+          conversationExists: !!conversationData,
+          conversationId: conversation_id,
+        })
+        return NextResponse.json({ error: 'Conversation not found or unauthorized' }, { status: 404 })
+      }
+
+      conversation = conversationData
     }
 
     if (conversation.business_id !== business.id || conversation.lead_id !== lead.id) {
@@ -284,12 +332,31 @@ export async function POST(request: Request) {
       .join('')
     console.log('[PAYMENT REQUEST] Token generated:', token)
 
+    // Check for duplicate payment requests (same lead, amount, provider within 5 minutes)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    const { data: duplicateCheck, error: duplicateError } = await supabase
+      .from('payment_requests')
+      .select('id, created_at')
+      .eq('lead_id', lead_id)
+      .eq('amount_cents', amount_cents)
+      .eq('payment_provider', provider)
+      .eq('status', 'pending')
+      .gte('created_at', fiveMinutesAgo)
+      .maybeSingle()
+
+    if (duplicateCheck) {
+      console.log('[PAYMENT REQUEST] Duplicate payment request detected:', duplicateCheck.id)
+      return NextResponse.json({ 
+        error: 'A payment request for this amount has already been sent to this lead. Please wait a few minutes before trying again.' 
+      }, { status: 409 })
+    }
+
     // Create payment_request record
     console.log('[PAYMENT REQUEST] Inserting payment_request record...')
     const insertPayload: any = {
       business_id: business_id,
       lead_id: lead_id,
-      conversation_id: conversation_id,
+      conversation_id: finalConversationId,
       amount_cents: amount_cents,
       currency: 'usd',
       description: paymentDescription,
@@ -495,12 +562,17 @@ Thank you! If you have any questions, simply reply to this message.`
 
     // Create notification for payment request
     try {
+      const customerName = lead.raw_metadata?.customerName || 
+                          lead.raw_metadata?.callerName || 
+                          lead.raw_metadata?.name || 
+                          null
       await notificationServiceServer.notifyPaymentRequested(
         business_id,
         lead_id,
         lead.caller_phone,
         amount_cents,
-        paymentDescription
+        paymentDescription,
+        customerName
       )
       console.log('[PAYMENT REQUEST] Notification created successfully')
     } catch (notificationError) {

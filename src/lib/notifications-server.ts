@@ -329,12 +329,12 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifyPaymentRequested(businessId: string, leadId: string, leadPhone: string, amountCents: number, description?: string): Promise<boolean> {
+  async notifyPaymentRequested(businessId: string, leadId: string, leadPhone: string, amountCents: number, description?: string, leadName?: string): Promise<boolean> {
     return await this.createNotification(
       businessId,
       'payment_requested',
       '',
-      { leadName: leadPhone, leadPhone, leadId, amountCents, description }
+      { leadName: leadName || leadPhone, leadPhone, leadId, amountCents, description }
     )
   }
 
