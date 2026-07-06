@@ -10,6 +10,7 @@ import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { hasAiSummaryBeenSent, hasRecentAutomatedSms } from '@/lib/sms-decision'
 import { dispatchAutomaticCustomerSms } from '@/lib/auto-sms-dispatcher'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
+import { isAutomatedTranscriptSpam } from '@/lib/smart-filtering'
 
 console.log('[VOICE STATUS MODULE LOADED] =========================================');
 console.log('[VOICE STATUS MODULE LOADED] timestamp:', new Date().toISOString());
@@ -909,6 +910,119 @@ async function processVoiceStatusCallback(params: any, method: string) {
 
   let autoReplySent = false
 
+  // TRANSCRIPT SPAM FILTERING: Check for automated robocall transcripts before SMS dispatch
+  let isTranscriptSpam = false
+  let transcriptSpamReason = ''
+  let transcriptSpamMatchedPhrases: string[] = []
+
+  if (aiCallRecord && (aiCallRecord.extracted_info || aiCallRecord.summary)) {
+    // Extract transcript from AI call record
+    const extractedInfo = aiCallRecord.extracted_info || {}
+    const summary = aiCallRecord.summary || ''
+    
+    // Build combined transcript from available sources
+    const transcriptParts: string[] = []
+    
+    // Check for transcript in extracted_info
+    if (extractedInfo.rawTranscript) {
+      transcriptParts.push(extractedInfo.rawTranscript)
+    }
+    if (extractedInfo.capturedAnswer) {
+      transcriptParts.push(extractedInfo.capturedAnswer)
+    }
+    if (extractedInfo.transcript) {
+      transcriptParts.push(extractedInfo.transcript)
+    }
+    
+    // Add summary if available
+    if (summary) {
+      transcriptParts.push(summary)
+    }
+    
+    const combinedTranscript = transcriptParts.join(' ')
+    
+    if (combinedTranscript) {
+      console.log('[TRANSCRIPT SPAM FILTER] Checking transcript for automated robocall patterns', {
+        callSid: CallSid,
+        transcriptLength: combinedTranscript.length,
+        transcriptPreview: combinedTranscript.substring(0, 200)
+      })
+      
+      const spamResult = isAutomatedTranscriptSpam(combinedTranscript)
+      
+      if (spamResult.isSpam) {
+        isTranscriptSpam = true
+        transcriptSpamReason = spamResult.reason || 'automated_prompt'
+        transcriptSpamMatchedPhrases = spamResult.matchedPhrases || []
+        
+        console.log('[TRANSCRIPT SPAM FILTER] ==========================================')
+        console.log('[TRANSCRIPT SPAM FILTER] callSid=', CallSid)
+        console.log('[TRANSCRIPT SPAM FILTER] caller=', From)
+        console.log('[TRANSCRIPT SPAM FILTER] isSpam=true')
+        console.log('[TRANSCRIPT SPAM FILTER] reason=', transcriptSpamReason)
+        console.log('[TRANSCRIPT SPAM FILTER] matchedPhrases=', transcriptSpamMatchedPhrases)
+        console.log('[TRANSCRIPT SPAM FILTER] action=suppressed_lead_sms_followups')
+        console.log('[TRANSCRIPT SPAM FILTER] ==========================================')
+        
+        // Mark lead as ignored/spam using raw_metadata flags
+        if (lead) {
+          try {
+            const { error: updateError } = await supabase
+              .from('leads')
+              .update({
+                status: 'ignored',
+                raw_metadata: {
+                  ...((lead as any).raw_metadata || {}),
+                  ai_intake_ignored: true,
+                  ignored_reason: 'automated_transcript',
+                  automated_spam_detected: true,
+                  automated_spam_matched_phrases: transcriptSpamMatchedPhrases,
+                  automated_spam_reason: transcriptSpamReason,
+                  automated_spam_detected_at: new Date().toISOString()
+                }
+              })
+              .eq('id', lead.id)
+            
+            if (updateError) {
+              console.error('[TRANSCRIPT SPAM FILTER] Failed to mark lead as ignored:', updateError)
+            } else {
+              console.log('[TRANSCRIPT SPAM FILTER] Successfully marked lead as ignored:', lead.id)
+            }
+          } catch (updateException) {
+            console.error('[TRANSCRIPT SPAM FILTER] Exception marking lead as ignored:', updateException)
+          }
+        }
+        
+        // Update AI call record with spam detection
+        if (aiCallRecord) {
+          try {
+            const { error: aiUpdateError } = await supabase
+              .from('ai_call_records')
+              .update({
+                raw_metadata: {
+                  ...((aiCallRecord as any).raw_metadata || {}),
+                  automated_spam_detected: true,
+                  automated_spam_reason: transcriptSpamReason,
+                  automated_spam_matched_phrases: transcriptSpamMatchedPhrases
+                }
+              })
+              .eq('id', aiCallRecord.id)
+            
+            if (aiUpdateError) {
+              console.error('[TRANSCRIPT SPAM FILTER] Failed to update ai_call_record:', aiUpdateError)
+            } else {
+              console.log('[TRANSCRIPT SPAM FILTER] Successfully updated ai_call_record')
+            }
+          } catch (aiUpdateException) {
+            console.error('[TRANSCRIPT SPAM FILTER] Exception updating ai_call_record:', aiUpdateException)
+          }
+        }
+      } else {
+        console.log('[TRANSCRIPT SPAM FILTER] Transcript does not contain automated robocall patterns')
+      }
+    }
+  }
+
   // SMS DISPATCH CODE PATH OWNERSHIP:
   // - ALL automatic customer SMS messages are sent from this voice-status webhook after the call ends
   // - This is the centralized post-call dispatch point for complete, incomplete, and failed AI intakes
@@ -921,31 +1035,41 @@ async function processVoiceStatusCallback(params: any, method: string) {
   // SMS timing is centralized here to ensure consistent behavior across all call outcomes.
 
   if (lead && conversation && From) {
-    const dispatchResult = await dispatchAutomaticCustomerSms({
-      trigger: 'call_finished',
-      callSid: CallSid,
-      businessId: business.id,
-      leadId: lead.id,
-      conversationId: conversation.id,
-      callerPhone: From,
-      businessName: business.name,
-      extractedInfo: aiCallRecord?.extracted_info,
-      aiOutcome: aiCallRecord?.outcome
-    })
+    // Skip SMS if transcript spam was detected
+    if (isTranscriptSpam) {
+      console.log('[TRANSCRIPT SPAM FILTER] SMS dispatch skipped - automated robocall detected', {
+        callSid: CallSid,
+        leadId: lead.id,
+        reason: transcriptSpamReason,
+        matchedPhrases: transcriptSpamMatchedPhrases
+      })
+    } else {
+      const dispatchResult = await dispatchAutomaticCustomerSms({
+        trigger: 'call_finished',
+        callSid: CallSid,
+        businessId: business.id,
+        leadId: lead.id,
+        conversationId: conversation.id,
+        callerPhone: From,
+        businessName: business.name,
+        extractedInfo: aiCallRecord?.extracted_info,
+        aiOutcome: aiCallRecord?.outcome
+      })
 
-    autoReplySent = !!dispatchResult.twilioMessageSid
+      autoReplySent = !!dispatchResult.twilioMessageSid
 
-    console.log('[Twilio Voice Status Webhook] Automatic SMS dispatch result', {
-      callSid: CallSid,
-      leadId: lead.id,
-      conversationId: conversation.id,
-      success: dispatchResult.success,
-      skipped: dispatchResult.skipped,
-      reason: dispatchResult.reason,
-      outcome: dispatchResult.outcome,
-      template: dispatchResult.template,
-      twilioMessageSid: dispatchResult.twilioMessageSid
-    })
+      console.log('[Twilio Voice Status Webhook] Automatic SMS dispatch result', {
+        callSid: CallSid,
+        leadId: lead.id,
+        conversationId: conversation.id,
+        success: dispatchResult.success,
+        skipped: dispatchResult.skipped,
+        reason: dispatchResult.reason,
+        outcome: dispatchResult.outcome,
+        template: dispatchResult.template,
+        twilioMessageSid: dispatchResult.twilioMessageSid
+      })
+    }
   } else {
     console.log('[Twilio Voice Status Webhook] Automatic SMS dispatch skipped - missing required call context', {
       hasLead: !!lead,
@@ -975,6 +1099,14 @@ async function processVoiceStatusCallback(params: any, method: string) {
   if (!lead?.id) {
     console.error("[Twilio Voice Status Webhook] No valid lead id, skipping follow-up creation");
     // Continue to final summary instead of returning early
+  } else if (isTranscriptSpam) {
+    // Skip follow-up creation for automated robocall transcripts
+    console.log('[TRANSCRIPT SPAM FILTER] Follow-up creation skipped - automated robocall detected', {
+      callSid: CallSid,
+      leadId: lead.id,
+      reason: transcriptSpamReason,
+      matchedPhrases: transcriptSpamMatchedPhrases
+    })
   } else {
     // Check lead status before creating follow-up jobs
     // Only create follow-ups for new or active leads

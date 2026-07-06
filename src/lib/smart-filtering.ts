@@ -15,6 +15,13 @@ export interface FilteringContext {
   business?: any // Business record with filtering settings
 }
 
+// Transcript spam detection result
+export interface TranscriptSpamResult {
+  isSpam: boolean
+  reason?: string
+  matchedPhrases?: string[]
+}
+
 // Spam detection patterns
 const SPAM_PATTERNS = {
   INVALID_LENGTH: /^(\d{1,4}|\d{12,})$/, // Too short or too long numbers
@@ -315,11 +322,11 @@ async function checkUnknownCallersOnly(businessId: string, phoneNumber: string, 
  * Log filtering decisions for debugging and analytics
  */
 async function logFilteringDecision(
-  businessId: string, 
-  callerPhone: string, 
-  callSid: string | undefined, 
-  decision: string, 
-  reason: string, 
+  businessId: string,
+  callerPhone: string,
+  callSid: string | undefined,
+  decision: string,
+  reason: string,
   details?: any
 ): Promise<void> {
   try {
@@ -331,7 +338,7 @@ async function logFilteringDecision(
       reason,
       filter_details: details || {}
     })
-    
+
     console.log('[Smart Filtering] Decision logged:', {
       businessId,
       callerPhone,
@@ -343,4 +350,119 @@ async function logFilteringDecision(
     console.error('[Smart Filtering] Error logging decision:', error)
     // Don't throw - logging failure shouldn't break the flow
   }
+}
+
+/**
+ * Detect automated robocall transcripts using deterministic phrase rules
+ * Uses conservative matching to avoid false positives
+ */
+export function isAutomatedTranscriptSpam(transcript: string): TranscriptSpamResult {
+  if (!transcript || typeof transcript !== 'string') {
+    return { isSpam: false }
+  }
+
+  const lowerTranscript = transcript.toLowerCase()
+  const matchedPhrases: string[] = []
+
+  // Very strong automated call indicators (single phrase is enough)
+  const veryStrongPhrases = [
+    'this is an automated',
+    'this is a prerecorded',
+    'this is a pre-recorded',
+    'pre-recorded message',
+    'prerecorded message',
+    'do not hang up'
+  ]
+
+  // Strong robocall phrases
+  const strongPhrases = [
+    'press 1',
+    'press one',
+    'press 2',
+    'press two',
+    'press 3',
+    'press three',
+    'to opt out',
+    'opt out',
+    'stay on the line',
+    'to speak with a representative',
+  ]
+
+  // Google/business listing phrases
+  const googleListingPhrases = [
+    'your google business profile',
+    'google voice searches',
+    'your business not displayed',
+    'business not displayed on google',
+    'your listing',
+    'verify your listing',
+    'claim your listing'
+  ]
+
+  // Check for very strong phrases (single match is enough)
+  for (const phrase of veryStrongPhrases) {
+    if (lowerTranscript.includes(phrase)) {
+      matchedPhrases.push(phrase)
+      return {
+        isSpam: true,
+        reason: 'automated_prompt_very_strong',
+        matchedPhrases
+      }
+    }
+  }
+
+  // Check for strong phrases
+  for (const phrase of strongPhrases) {
+    if (lowerTranscript.includes(phrase)) {
+      matchedPhrases.push(phrase)
+    }
+  }
+
+  // Check for Google listing phrases
+  for (const phrase of googleListingPhrases) {
+    if (lowerTranscript.includes(phrase)) {
+      matchedPhrases.push(phrase)
+    }
+  }
+
+  // Check for "representative" alone (not enough by itself)
+  if (lowerTranscript.includes('representative')) {
+    matchedPhrases.push('representative')
+  }
+
+  // Determine if spam based on matched phrases
+  if (matchedPhrases.length === 0) {
+    return { isSpam: false }
+  }
+
+  // Rule A: Very strong phrase already handled above
+
+  // Rule B: At least two robocall indicators
+  if (matchedPhrases.length >= 2) {
+    return {
+      isSpam: true,
+      reason: 'automated_prompt_multiple_indicators',
+      matchedPhrases
+    }
+  }
+
+  // Rule C: Google listing phrase + opt-out/press phrase
+  const hasGooglePhrase = googleListingPhrases.some(phrase => lowerTranscript.includes(phrase))
+  const hasOptOutOrPress = strongPhrases.some(phrase => lowerTranscript.includes(phrase))
+
+  if (hasGooglePhrase && hasOptOutOrPress) {
+    return {
+      isSpam: true,
+      reason: 'automated_prompt_google_listing',
+      matchedPhrases
+    }
+  }
+
+  // Single "representative" alone is not enough
+  if (matchedPhrases.length === 1 && matchedPhrases[0] === 'representative') {
+    return { isSpam: false }
+  }
+
+  // Single strong phrase is not enough (unless it's very strong, handled above)
+  return { isSpam: false }
 }
