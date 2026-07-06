@@ -1121,28 +1121,6 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Beta Feedback Card - Simplified with mobile padding */}
-                    <SectionErrorBoundary sectionName="BetaFeedbackCard">
-                      <div className="bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-700/40 rounded-lg p-3 sm:p-4">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-                          <div className="flex-1">
-                            <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2">
-                              💬 Beta Feedback
-                            </h3>
-                            <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 sm:mt-1">
-                              Found a bug or have an idea? We'd love to hear your feedback.
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => setShowBetaFeedbackModal(true)}
-                            className="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 text-xs font-medium rounded-lg transition-colors border border-slate-200 dark:border-slate-600"
-                          >
-                            Share Feedback
-                          </button>
-                        </div>
-                      </div>
-                    </SectionErrorBoundary>
-
                     {/* Payments Shortcut Card - Simplified with mobile padding */}
                     <SectionErrorBoundary sectionName="PaymentsShortcutCard">
                       <Link href="/dashboard/payments" className="block">
@@ -1165,6 +1143,28 @@ export default function DashboardContent() {
                           </div>
                         </div>
                       </Link>
+                    </SectionErrorBoundary>
+
+                    {/* Beta Feedback Card - Simplified with mobile padding */}
+                    <SectionErrorBoundary sectionName="BetaFeedbackCard">
+                      <div className="bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-700/40 rounded-lg p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                          <div className="flex-1">
+                            <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2">
+                              💬 Beta Feedback
+                            </h3>
+                            <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 sm:mt-1">
+                              Found a bug or have an idea? We'd love to hear your feedback.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => setShowBetaFeedbackModal(true)}
+                            className="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 text-xs font-medium rounded-lg transition-colors border border-slate-200 dark:border-slate-600"
+                          >
+                            Share Feedback
+                          </button>
+                        </div>
+                      </div>
                     </SectionErrorBoundary>
                   </>
                 ) : null}
