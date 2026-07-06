@@ -88,6 +88,7 @@ export default function PaymentsPage() {
   const [manualName, setManualName] = useState('')
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentDescription, setPaymentDescription] = useState('')
+  const [paymentProvider, setPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
 
@@ -246,6 +247,7 @@ export default function PaymentsPage() {
         conversation_id: conversationId,
         amount_cents: Math.round(parseFloat(paymentAmount) * 100),
         description: paymentDescription || undefined,
+        payment_provider: paymentProvider,
       }
 
       const response = await fetch('/api/payments/create', {
@@ -268,6 +270,7 @@ export default function PaymentsPage() {
       setManualName('')
       setPaymentAmount('')
       setPaymentDescription('')
+      setPaymentProvider('stripe')
       setSuccessMessage('Payment request sent successfully')
       
       // Refresh payments
@@ -669,6 +672,47 @@ export default function PaymentsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
+                    Payment Method
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentProvider('stripe')}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                        paymentProvider === 'stripe'
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
+                      }`}
+                    >
+                      Stripe
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentProvider('venmo')}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                        paymentProvider === 'venmo'
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
+                      }`}
+                    >
+                      Venmo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentProvider('paypal')}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                        paymentProvider === 'paypal'
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
+                      }`}
+                    >
+                      PayPal
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
                     Description
                   </label>
                   <textarea
@@ -690,6 +734,7 @@ export default function PaymentsPage() {
                     setManualName('')
                     setPaymentAmount('')
                     setPaymentDescription('')
+                    setPaymentProvider('stripe')
                     setError('')
                   }}
                   disabled={isCreatingPayment}
