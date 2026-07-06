@@ -8,11 +8,11 @@
 // Background tokens
 export const bgTokens = {
   app: 'bg-slate-950 dark:bg-slate-950',
-  card: 'bg-slate-900 dark:bg-slate-900',
-  cardHover: 'bg-slate-800 dark:bg-slate-800',
+  card: 'bg-slate-900/60 dark:bg-slate-900/60',
+  cardHover: 'bg-slate-900/75 dark:bg-slate-900/75',
   muted: 'bg-slate-950 dark:bg-slate-950',
-  input: 'bg-slate-800 dark:bg-slate-800',
-  modal: 'bg-slate-900 dark:bg-slate-900',
+  input: 'bg-slate-950/40 dark:bg-slate-950/40',
+  modal: 'bg-slate-900/96 dark:bg-slate-900/96',
   banner: 'bg-blue-900/20 dark:bg-blue-900/20',
   error: 'bg-red-900/20 dark:bg-red-900/20',
   success: 'bg-green-900/20 dark:bg-green-900/20',
@@ -33,9 +33,9 @@ export const textTokens = {
 
 // Border tokens
 export const borderTokens = {
-  default: 'border-slate-200 dark:border-slate-700',
-  light: 'border-slate-100 dark:border-slate-800',
-  heavy: 'border-slate-300 dark:border-slate-600',
+  default: 'border-white/10 dark:border-white/10',
+  light: 'border-white/10 dark:border-white/10',
+  heavy: 'border-white/15 dark:border-white/15',
   focus: 'border-blue-500 dark:border-blue-400',
   error: 'border-red-300 dark:border-red-600',
   success: 'border-green-300 dark:border-green-600',
@@ -53,16 +53,16 @@ export const buttonTokens = {
 
 // Shadow tokens
 export const shadowTokens = {
-  card: 'shadow-sm dark:shadow-lg dark:shadow-black/20',
-  modal: 'shadow-lg dark:shadow-xl dark:shadow-black/30',
-  dropdown: 'shadow-md dark:shadow-lg dark:shadow-black/20',
+  card: 'shadow-[0_1px_0_rgba(255,255,255,0.05),0_20px_60px_rgba(2,6,23,0.28)]',
+  modal: 'shadow-[0_1px_0_rgba(255,255,255,0.07),0_30px_100px_rgba(2,6,23,0.72)]',
+  dropdown: 'shadow-[0_1px_0_rgba(255,255,255,0.05),0_18px_52px_rgba(2,6,23,0.34)]',
 }
 
 // Combined utility classes
 export const themeClasses = {
   // Card styles
-  card: `${bgTokens.card} ${borderTokens.default} ${shadowTokens.card}`,
-  cardInteractive: `${bgTokens.card} ${borderTokens.default} ${shadowTokens.card} hover:${bgTokens.cardHover} transition-colors`,
+  card: `${bgTokens.card} ${borderTokens.default} ${shadowTokens.card} backdrop-blur-xl`,
+  cardInteractive: `${bgTokens.card} ${borderTokens.default} ${shadowTokens.card} backdrop-blur-xl hover:${bgTokens.cardHover} transition-all duration-300 hover:-translate-y-[2px]`,
   
   // Input styles
   input: `${bgTokens.input} ${borderTokens.default} ${textTokens.primary} focus:${borderTokens.focus} outline-none`,

@@ -29,13 +29,13 @@ export default function AppHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-50 flex-shrink-0 border-b border-white/10 bg-slate-950/75 shadow-[0_1px_0_rgba(255,255,255,0.04),0_16px_40px_rgba(2,6,23,0.28)] backdrop-blur-xl supports-[backdrop-filter]:bg-slate-950/65">
-        <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 py-3 border-0">
-          <div className="flex items-center justify-between h-10">
+      <header className="sticky top-0 z-50 flex-shrink-0 border-b border-white/10 bg-slate-950/82 shadow-[0_1px_0_rgba(255,255,255,0.06),0_18px_52px_rgba(2,6,23,0.34)] backdrop-blur-2xl supports-[backdrop-filter]:bg-slate-950/72">
+        <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 border-0">
+          <div className="flex items-center justify-between h-11">
             {/* Left side - Logo and navigation */}
             <div className="flex items-center gap-2 md:gap-8">
               {/* Logo */}
-              <Link href={isPublicPage ? '/' : '/dashboard'} className="group flex items-center gap-2 rounded-full px-1.5 py-1 hover:bg-white/[0.03] transition-all duration-200">
+              <Link href={isPublicPage ? '/' : '/dashboard'} className="group flex items-center gap-2 rounded-full px-1.5 py-1 hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 transition-all duration-200">
                 <BrandIcon size={56} />
                 <span className="text-[15px] md:text-lg lg:text-xl font-semibold tracking-tight">
                   <span className="text-white">ReplyFlow</span>
@@ -50,7 +50,7 @@ export default function AppHeader({
             </div>
             
             {/* Right side - Utility actions grouped together */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {/* Notifications - visible on all screen sizes */}
               <NavbarNotifications />
               

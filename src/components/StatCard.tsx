@@ -28,16 +28,17 @@ export default function StatCard({
   const baseClasses = `
     relative overflow-hidden
     border border-white/10
-    bg-slate-900/55
-    shadow-[0_1px_0_rgba(255,255,255,0.04),0_18px_50px_rgba(2,6,23,0.22)]
+    bg-slate-900/60
+    shadow-[0_1px_0_rgba(255,255,255,0.05),0_20px_60px_rgba(2,6,23,0.28)]
     backdrop-blur-xl
     rounded-2xl
     p-3 sm:p-4 md:p-5
     h-full
     transition-all duration-300
     hover:-translate-y-[2px]
-    hover:border-blue-400/25
-    hover:bg-slate-900/70
+    hover:border-blue-400/30
+    hover:bg-slate-900/75
+    hover:shadow-[0_1px_0_rgba(255,255,255,0.07),0_26px_76px_rgba(37,99,235,0.12)]
   `
 
   // Interactive hover states
@@ -69,8 +70,9 @@ export default function StatCard({
 
   const cardContent = (
     <div className={`${baseClasses} ${interactiveClasses} ${className}`}>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-blue-500/12 blur-2xl" />
+      <div className="pointer-events-none absolute -left-10 bottom-0 h-20 w-20 rounded-full bg-cyan-500/5 blur-2xl" />
       {/* Icon and Label Header */}
       {(icon || label) && (
         <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
@@ -81,7 +83,7 @@ export default function StatCard({
               rounded-lg sm:rounded-xl 
               flex items-center justify-center 
               text-sm sm:text-lg md:text-xl 
-              shadow-[0_10px_24px_rgba(2,6,23,0.25)] border
+              shadow-[0_10px_24px_rgba(2,6,23,0.25)] border ring-1 ring-white/5
               ${isInteractive && href ? '' : ''}
             `}>
               {icon}

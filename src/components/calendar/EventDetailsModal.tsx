@@ -24,11 +24,11 @@ interface EventDetailsModalProps {
 }
 
 export default function EventDetailsModal({ isOpen, onClose, event, onDelete }: EventDetailsModalProps) {
-  if (!isOpen || !event) return null
-
   const [isDeleting, setIsDeleting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  if (!isOpen || !event) return null
 
   const formatDate = (dateTime?: string, date?: string) => {
     if (date) {

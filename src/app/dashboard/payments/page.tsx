@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { CreditCard, Copy, ExternalLink, User } from 'lucide-react'
-import AppHeader from '@/components/AppHeader'
-import MobileMenu from '@/components/MobileMenu'
+import DashboardShell from '@/components/layout/DashboardShell'
+import Button from '@/components/ui/Button'
+import PageHeader from '@/components/ui/PageHeader'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -293,25 +294,22 @@ export default function PaymentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b1220] dark:bg-[#0b1220]">
-      <AppHeader showNavigation={true} />
-      <MobileMenu />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Payments</h1>
-            <p className="text-gray-400">Request and track customer payments.</p>
-          </div>
-          <button
-            onClick={() => setShowPaymentModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
-          >
-            <CreditCard className="h-5 w-5" />
-            New Payment Request
-          </button>
-        </div>
+    <DashboardShell
+      title="Payments"
+      maxWidthClassName="max-w-7xl mx-auto"
+      contentClassName="flex-1 px-3 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24 md:pb-8 relative z-10"
+      innerClassName="space-y-8"
+    >
+        <PageHeader
+          title="Payments"
+          description="Request and track customer payments."
+          actions={(
+            <Button onClick={() => setShowPaymentModal(true)}>
+              <CreditCard className="h-5 w-5" />
+              New Payment Request
+            </Button>
+          )}
+        />
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -366,34 +364,121 @@ export default function PaymentsPage() {
               </div>
             </div>
 
-            {/* Payment Requests Table */}
+            {/* Payment Requests Table - Mobile cards, Desktop table */}
             <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg border border-slate-700 overflow-hidden">
-              <div className="overflow-x-auto -mx-4 px-4">
-                  <table className="w-full min-w-[800px]">
+              {/* Mobile card view */}
+              <div className="md:hidden space-y-3 p-4">
+                {paymentRequests.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <CreditCard className="h-12 w-12 text-gray-600 mx-auto mb-3" />
+                    <p>No payment requests yet</p>
+                    <button
+                      onClick={() => router.push('/dashboard/leads')}
+                      className="text-blue-400 hover:text-blue-300 font-medium mt-2"
+                    >
+                      Create your first payment request
+                    </button>
+                  </div>
+                ) : (
+                  paymentRequests.map((payment) => (
+                    <div key={payment.id} className="bg-[#0f172a] dark:bg-[#0f172a] rounded-lg p-4 border border-slate-700">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-gray-400" />
+                          <span className="text-white font-medium text-sm">
+                            {getCustomerName(payment.leads)}
+                          </span>
+                        </div>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(payment.status)}`}>
+                          {getStatusLabel(payment.status)}
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Phone</span>
+                          <span className="text-gray-300">{formatPhoneNumber(payment.leads.caller_phone)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Amount</span>
+                          <span className="text-white font-semibold">{formatCurrency(payment.amount_cents / 100)}</span>
+                        </div>
+                        {payment.description && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Description</span>
+                            <span className="text-gray-300 truncate max-w-[150px]">{payment.description}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Requested</span>
+                          <span className="text-gray-300">{new Date(payment.created_at).toLocaleDateString()}</span>
+                        </div>
+                        {payment.paid_at && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Paid</span>
+                            <span className="text-gray-300">{new Date(payment.paid_at).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-700">
+                        <button
+                          onClick={() => router.push(`/dashboard/leads/${payment.leads.id}`)}
+                          className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
+                        >
+                          View Lead
+                        </button>
+                        {payment.status === 'pending' && payment.checkout_url && (
+                          <>
+                            <button
+                              onClick={() => copyPaymentLink(payment.checkout_url!)}
+                              className="p-1.5 text-blue-400 hover:text-blue-300"
+                              title="Copy payment link"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </button>
+                            <a
+                              href={payment.checkout_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 text-blue-400 hover:text-blue-300"
+                              title="Open payment link"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop table view */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
                   <thead className="bg-[#0f172a] dark:bg-[#0f172a]">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Customer
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Phone Number
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Amount
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Description
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Requested
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Paid
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -401,7 +486,7 @@ export default function PaymentsPage() {
                   <tbody className="divide-y divide-slate-700">
                     {paymentRequests.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
+                        <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
                           <div className="flex flex-col items-center gap-3">
                             <CreditCard className="h-12 w-12 text-gray-600" />
                             <p>No payment requests yet</p>
@@ -417,39 +502,39 @@ export default function PaymentsPage() {
                     ) : (
                       paymentRequests.map((payment) => (
                         <tr key={payment.id} className="hover:bg-[#1a2235] dark:hover:bg-[#1a2235] transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             <div className="flex items-center">
-                              <User className="h-5 w-5 text-gray-400 mr-2" />
-                              <span className="text-white font-medium">
+                              <User className="h-4 w-4 text-gray-400 mr-2" />
+                              <span className="text-white font-medium text-sm">
                                 {getCustomerName(payment.leads)}
                               </span>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-gray-400">
+                          <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
                             {formatPhoneNumber(payment.leads.caller_phone)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-white font-semibold">
+                          <td className="px-4 py-3 whitespace-nowrap text-white font-semibold text-sm">
                             {formatCurrency(payment.amount_cents / 100)}
                           </td>
-                          <td className="px-6 py-4 text-gray-400">
+                          <td className="px-4 py-3 text-gray-400 text-sm">
                             {payment.description}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(payment.status)}`}>
                               {getStatusLabel(payment.status)}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-gray-400 text-sm">
+                          <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
                             {new Date(payment.created_at).toLocaleDateString()}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-gray-400 text-sm">
+                          <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
                             {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '-'}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
                               <button
                                 onClick={() => router.push(`/dashboard/leads/${payment.leads.id}`)}
-                                className="text-gray-400 hover:text-white text-sm font-medium"
+                                className="text-gray-400 hover:text-white text-xs font-medium"
                               >
                                 View Lead
                               </button>
@@ -460,7 +545,7 @@ export default function PaymentsPage() {
                                     className="text-blue-400 hover:text-blue-300 p-1"
                                     title="Copy payment link"
                                   >
-                                    <Copy className="h-4 w-4" />
+                                    <Copy className="h-3.5 w-3.5" />
                                   </button>
                                   <a
                                     href={payment.checkout_url}
@@ -469,7 +554,7 @@ export default function PaymentsPage() {
                                     className="text-blue-400 hover:text-blue-300 p-1"
                                     title="Open payment link"
                                   >
-                                    <ExternalLink className="h-4 w-4" />
+                                    <ExternalLink className="h-3.5 w-3.5" />
                                   </a>
                                 </>
                               )}
@@ -623,7 +708,6 @@ export default function PaymentsPage() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+    </DashboardShell>
   )
 }

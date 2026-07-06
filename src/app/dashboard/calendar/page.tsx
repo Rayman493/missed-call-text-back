@@ -5,12 +5,8 @@ import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import AuthGuard from '@/components/AuthGuard'
-import BusinessGuard from '@/components/BusinessGuard'
-import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
-import AppHeader from '@/components/AppHeader'
+import DashboardShell from '@/components/layout/DashboardShell'
 import Toast, { ToastContainer } from '@/components/Toast'
-import BottomNavigation from '@/components/BottomNavigation'
 import Link from 'next/link'
 import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
@@ -560,33 +556,25 @@ export default function SchedulePage() {
 
   if (!business) {
     return (
-      <AuthGuard>
-        <BusinessGuard>
-          <div className="min-h-screen bg-background dark:bg-background flex flex-col relative">
-            <AppHeader title="Schedule" />
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-slate-600 dark:text-muted-foreground">Loading...</p>
-              </div>
-            </div>
-          </div>
-        </BusinessGuard>
-      </AuthGuard>
+      <DashboardShell
+        title="Schedule"
+        contentClassName="flex-1 flex items-center justify-center px-3 sm:px-4 lg:px-6 pb-24 md:pb-8 relative z-10"
+        innerClassName=""
+      >
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600 dark:text-muted-foreground">Loading...</p>
+        </div>
+      </DashboardShell>
     )
   }
 
   return (
-    <DashboardErrorBoundary>
-      <AuthGuard>
-      <BusinessGuard>
-        <div className="min-h-screen bg-background dark:bg-background flex flex-col relative">
-          {/* Header */}
-          <AppHeader title="Schedule" />
-
-          {/* Main Content */}
-          <div className="flex-1 pt-0 lg:pt-2 px-2 sm:px-3 lg:px-4 pb-36 md:pb-6">
-            <div className="max-w-[1400px] mx-auto">
+    <DashboardShell
+      title="Schedule"
+      contentClassName="flex-1 pt-0 lg:pt-2 px-2 sm:px-3 lg:px-4 pb-36 md:pb-6 relative z-10"
+      innerClassName=""
+    >
               {/* Loading State */}
               {isLoading ? (
                 <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[340px_1fr] gap-4 xl:gap-5 items-start py-4">
@@ -1184,16 +1172,9 @@ export default function SchedulePage() {
                   </div>{/* end 2-col grid */}
                 </>
               )}
-            </div>
-          </div>
-
           {/* Toast Container */}
           <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
-        </div>
-      </BusinessGuard>
-      <BottomNavigation />
-    </AuthGuard>
-    </DashboardErrorBoundary>
+    </DashboardShell>
   )
 }
 

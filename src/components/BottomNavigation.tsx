@@ -54,7 +54,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       {/* Bottom Navigation Bar - Mobile Only - Improved touch targets */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe md:hidden">
         <div className="mx-auto max-w-7xl px-2 pb-2 sm:px-4" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-          <div className="flex h-16 items-center justify-around rounded-3xl border border-white/10 bg-slate-950/82 px-1 shadow-[0_1px_0_rgba(255,255,255,0.06),0_-18px_60px_rgba(2,6,23,0.55)] backdrop-blur-xl">
+          <div className="flex h-16 items-center justify-around rounded-3xl border border-white/10 bg-slate-950/88 px-1 shadow-[0_1px_0_rgba(255,255,255,0.07),0_-20px_70px_rgba(2,6,23,0.62)] backdrop-blur-2xl">
             {primaryNavItems.map((item) => {
               const Icon = item.icon
               return (
@@ -63,8 +63,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   href={item.href}
                   className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
                     isActive(item.href)
-                      ? 'text-white bg-white/10 scale-105 shadow-inner shadow-white/5'
-                      : 'text-slate-400 hover:text-white hover:bg-white/[0.06] hover:scale-105'
+                      ? 'text-white bg-white/12 scale-105 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(37,99,235,0.16)]'
+                      : 'text-slate-400 hover:text-white hover:bg-white/[0.07] active:scale-95'
                   }`}
                 >
                   {isActive(item.href) && <span className="absolute top-1 h-1 w-5 rounded-full bg-gradient-to-r from-blue-400 to-cyan-300" />}
@@ -81,8 +81,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
               onClick={() => setIsMoreMenuOpen(true)}
               className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
                 isMoreMenuOpen
-                  ? 'text-white bg-white/10 scale-105 shadow-inner shadow-white/5'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.06] hover:scale-105'
+                  ? 'text-white bg-white/12 scale-105 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(37,99,235,0.16)]'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.07] active:scale-95'
               }`}
             >
               {isMoreMenuOpen && <span className="absolute top-1 h-1 w-5 rounded-full bg-gradient-to-r from-blue-400 to-cyan-300" />}
@@ -102,7 +102,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 md:hidden"
             onClick={() => setIsMoreMenuOpen(false)}
           />
-          <div className="fixed bottom-0 left-0 right-0 rounded-t-[2rem] border-t border-white/10 bg-slate-900/95 shadow-[0_1px_0_rgba(255,255,255,0.06),0_-28px_90px_rgba(2,6,23,0.65)] backdrop-blur-xl z-50 md:hidden animate-in slide-in-from-bottom duration-300">
+          <div className="fixed bottom-0 left-0 right-0 rounded-t-[2rem] border-t border-white/10 bg-slate-900/96 shadow-[0_1px_0_rgba(255,255,255,0.07),0_-30px_100px_rgba(2,6,23,0.72)] backdrop-blur-2xl z-50 md:hidden animate-in slide-in-from-bottom duration-300">
             <div className="p-4 pb-8" style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))' }}>
               {/* Drag Handle */}
               <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4" />
@@ -141,7 +141,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   }
                   
                   const content = (
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
                         isDanger
                           ? 'bg-red-100 dark:bg-red-900/30'
@@ -157,11 +157,11 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                             : 'text-blue-600 dark:text-blue-400'
                         }`} />
                       </div>
-                      <div className="flex-1">
-                        <div className={`font-medium ${isDanger ? 'text-red-400' : 'text-white'}`}>
+                      <div className="flex-1 min-w-0">
+                        <div className={`font-medium truncate ${isDanger ? 'text-red-400' : 'text-white'}`}>
                           {item.label}
                         </div>
-                        <div className="text-sm text-slate-400">
+                        <div className="text-sm text-slate-400 truncate">
                           {isDanger ? 'Sign out of your account' : isBilling ? 'Manage your subscription' : item.label === 'View Homepage' ? 'Go to homepage' : 'Configure your account'}
                         </div>
                       </div>
@@ -174,7 +174,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                         key={item.label}
                         href={item.href}
                         onClick={() => setIsMoreMenuOpen(false)}
-                        className="flex items-center gap-4 p-4 hover:bg-white/[0.06] rounded-2xl transition-colors active:scale-[0.98]"
+                        className="flex items-center gap-4 p-4 hover:bg-white/[0.07] rounded-2xl transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                       >
                         {content}
                       </Link>
@@ -185,7 +185,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                     <button
                       key={item.label}
                       onClick={handleClick}
-                      className="flex items-center gap-4 p-4 hover:bg-white/[0.06] rounded-2xl transition-colors w-full active:scale-[0.98]"
+                      className="flex items-center gap-4 p-4 hover:bg-white/[0.07] rounded-2xl transition-all w-full active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                     >
                       {content}
                     </button>

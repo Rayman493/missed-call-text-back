@@ -16,7 +16,7 @@ export default function Navigation() {
   // Show loading skeleton matching exact navigation dimensions to prevent layout shift
   if (loading) {
     return (
-      <nav className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1 shadow-inner shadow-black/20">
+      <nav className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_10px_30px_rgba(2,6,23,0.18)]">
         <div className="h-9 w-20 bg-muted rounded-full animate-pulse"></div>
         <div className="h-9 w-16 bg-muted rounded-full animate-pulse"></div>
         <div className="h-9 w-20 bg-muted rounded-full animate-pulse"></div>
@@ -39,13 +39,13 @@ export default function Navigation() {
 
   // Navigation uses fixed colors for dark header (works in both light and dark modes)
   return (
-    <nav className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1 shadow-inner shadow-black/20">
+    <nav className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_10px_30px_rgba(2,6,23,0.18)]">
       <Link
         href="/dashboard"
-        className={`px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 text-center relative ${
+        className={`px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 text-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
           pathname === '/dashboard'
-            ? 'text-white bg-white/10 shadow-sm ring-1 ring-white/10'
-            : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+            ? 'text-white bg-white/12 shadow-[0_8px_24px_rgba(37,99,235,0.16)] ring-1 ring-white/15'
+            : 'text-slate-400 hover:text-white hover:bg-white/[0.07]'
         }`}
       >
         Dashboard
@@ -55,10 +55,10 @@ export default function Navigation() {
       </Link>
       <Link
         href="/dashboard/leads"
-        className={`px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 text-center relative ${
+        className={`px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 text-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
           isActive('/dashboard/leads')
-            ? 'text-white bg-white/10 shadow-sm ring-1 ring-white/10'
-            : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+            ? 'text-white bg-white/12 shadow-[0_8px_24px_rgba(37,99,235,0.16)] ring-1 ring-white/15'
+            : 'text-slate-400 hover:text-white hover:bg-white/[0.07]'
         }`}
       >
         Leads
@@ -68,10 +68,10 @@ export default function Navigation() {
       </Link>
       <Link
         href="/dashboard/calendar"
-        className={`px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 text-center relative ${
+        className={`px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 text-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
           isActive('/dashboard/calendar')
-            ? 'text-white bg-white/10 shadow-sm ring-1 ring-white/10'
-            : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+            ? 'text-white bg-white/12 shadow-[0_8px_24px_rgba(37,99,235,0.16)] ring-1 ring-white/15'
+            : 'text-slate-400 hover:text-white hover:bg-white/[0.07]'
         }`}
       >
         Schedule
@@ -81,10 +81,10 @@ export default function Navigation() {
       </Link>
       <Link
         href="/dashboard/payments"
-        className={`px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 text-center relative ${
+        className={`px-4 py-2 text-sm font-semibold rounded-full transition-all duration-200 text-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
           isActive('/dashboard/payments')
-            ? 'text-white bg-white/10 shadow-sm ring-1 ring-white/10'
-            : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+            ? 'text-white bg-white/12 shadow-[0_8px_24px_rgba(37,99,235,0.16)] ring-1 ring-white/15'
+            : 'text-slate-400 hover:text-white hover:bg-white/[0.07]'
         }`}
       >
         Payments
