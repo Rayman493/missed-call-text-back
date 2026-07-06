@@ -136,7 +136,7 @@ export async function POST(request: Request) {
 
     const { data: lead, error: leadError } = await supabase
       .from('leads')
-      .select('id, business_id, phone, raw_metadata, status')
+      .select('id, business_id, caller_phone, raw_metadata, status')
       .eq('id', lead_id)
       .maybeSingle()
 
@@ -450,11 +450,11 @@ ${paymentUrl}
 Thank you! If you have any questions, simply reply to this message.`
 
     console.log('[PAYMENT REQUEST] SMS message prepared:', smsMessage)
-    console.log('[PAYMENT REQUEST] Sending SMS to:', lead.phone)
+    console.log('[PAYMENT REQUEST] Sending SMS to:', lead.caller_phone)
 
     let smsResult
     try {
-      smsResult = await sendSms(business, lead.phone, smsMessage, {
+      smsResult = await sendSms(business, lead.caller_phone, smsMessage, {
         lead_id: lead_id,
         conversation_id: conversation_id,
         source: 'payment_request',
@@ -501,7 +501,7 @@ Thank you! If you have any questions, simply reply to this message.`
       await notificationServiceServer.notifyPaymentRequested(
         business_id,
         lead_id,
-        lead.phone,
+        lead.caller_phone,
         amount_cents,
         paymentDescription
       )
