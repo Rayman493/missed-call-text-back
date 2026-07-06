@@ -748,7 +748,7 @@ export default function PaymentsPage() {
                     <div className="grid grid-cols-3 gap-2">
                       <button
                         type="button"
-                        onClick={() => isStripeConfigured && setPaymentProvider('stripe')}
+                        onClick={() => setPaymentProvider('stripe')}
                         disabled={!isStripeConfigured}
                         className={`px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm font-medium rounded-lg border transition-colors ${
                           paymentProvider === 'stripe' && isStripeConfigured
@@ -765,7 +765,7 @@ export default function PaymentsPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => isVenmoConfigured && setPaymentProvider('venmo')}
+                        onClick={() => setPaymentProvider('venmo')}
                         disabled={!isVenmoConfigured}
                         className={`px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm font-medium rounded-lg border transition-colors ${
                           paymentProvider === 'venmo' && isVenmoConfigured
@@ -782,7 +782,7 @@ export default function PaymentsPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => isPaypalConfigured && setPaymentProvider('paypal')}
+                        onClick={() => setPaymentProvider('paypal')}
                         disabled={!isPaypalConfigured}
                         className={`px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm font-medium rounded-lg border transition-colors ${
                           paymentProvider === 'paypal' && isPaypalConfigured
