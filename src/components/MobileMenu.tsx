@@ -138,25 +138,25 @@ export default function MobileMenu() {
                   <button
                     key="account"
                     onClick={handleAccountAction}
-                    className="block w-full px-4 py-3 text-sm text-left transition-colors text-slate-200 hover:bg-white/[0.06]"
+                    className="mx-2 block rounded-xl px-4 py-3 text-sm text-left transition-colors text-slate-200 hover:bg-white/[0.06]"
                   >
                     Account
                   </button>
                 )
               }
-              
+
               if (item.href === '#' && item.label === 'Logout') {
                 return (
                   <button
                     key="logout"
                     onClick={handleLogout}
-                    className="block w-full px-4 py-3 text-sm text-left transition-colors text-red-400 hover:bg-red-500/10"
+                    className="mx-2 block rounded-xl px-4 py-3 text-sm text-left transition-colors text-red-400 hover:bg-red-500/10"
                   >
                     Logout
                   </button>
                 )
               }
-              
+
               return (
                 <Link
                   key={item.href}
