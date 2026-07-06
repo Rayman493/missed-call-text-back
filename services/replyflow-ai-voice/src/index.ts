@@ -5545,6 +5545,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       const trimmed = text.trim();
       let customerName = trimmed;
       let serviceRequested = existingService ?? '';
+      let parserRuleMatched = 'none';
 
       // Common prefixes to strip from a name candidate
       const stripNamePrefix = (s: string): string =>
@@ -5566,7 +5567,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       // Common prefixes to strip from a service candidate
       const stripServicePrefix = (s: string): string =>
         s
-          .replace(/^(?:i want to|i would like to|i'd like to|i need to|i need|i'm looking to|i am looking to|looking to|calling about|i'm calling about|i am calling about)\s+/i, '')
+          .replace(/^(?:i want to|i would like to|i'd like to|i need to|i need|i'm looking to|i am looking to|looking to|calling about|i'm calling about|i am calling about|need someone to|to get my|get my)\s+/i, '')
           .replace(/^[.,;:]\s*/, '')
           .trim();
 
@@ -5578,14 +5579,31 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           ? trimmed.slice(0, serviceIdx).trim()
           : trimmed;
         customerName = normalizeNameCandidate(nameCandidate) || trimmed;
+        parserRuleMatched = 'existing_service';
+        console.log('[NAME PARSE] =========================================');
+        console.log('[NAME PARSE] rawInput:', trimmed);
+        console.log('[NAME PARSE] normalizedInput:', trimmed);
+        console.log('[NAME PARSE] parsedName:', customerName);
+        console.log('[NAME PARSE] parsedReason:', serviceRequested);
+        console.log('[NAME PARSE] parserRuleMatched:', parserRuleMatched);
+        console.log('[NAME PARSE] =========================================');
         return { customerName, serviceRequested };
       }
 
-      // Try explicit "My name is X ... I want Y" combined patterns first
+      // Try explicit combined patterns first (name + reason in one pattern)
       const combinedPatterns = [
-        /my name is\s+(.+?)\s*(?:\.|,|;|\band\b|$)\s*(?:i\s+(?:want|need|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
-        /(?:i'm|i am)\s+(.+?)\s*(?:\.|,|;|\band\b|$)\s*(?:i\s+(?:want|need|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
-        /this is\s+(.+?)\s*(?:\.|,|;|\band\b|$)\s*(?:i\s+(?:want|need|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
+        // "Name is X. I need Y" / "Name is X, I need Y" / "Name is X and I need Y"
+        /(?:name is|my name is|my name's)\s+(.+?)\s*(?:\.|,|;|\band\s+i\s+(?:need|want|would like|am looking|would like)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)\s*(?:i\s+(?:need|want|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
+        // "I'm X and I need Y" / "I am X and I need Y"
+        /(?:i'm|i am)\s+(.+?)\s*(?:\.|,|;|\band\s+i\s+(?:need|want|would like|am looking|would like)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)\s*(?:i\s+(?:need|want|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
+        // "This is X. I need Y" / "This is X and I need Y"
+        /(?:this is)\s+(.+?)\s*(?:\.|,|;|\band\s+i\s+(?:need|want|would like|am looking|would like)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)\s*(?:i\s+(?:need|want|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
+        // "X here. Looking for Y" / "X here and looking for Y"
+        /^([a-z][a-z' -]{1,40}?)\s+here(?:\.|,|;|\band\b|$)\s*(?:looking for|looking to|calling about)\s+(.+)/i,
+        // "X. Need someone to Y"
+        /^([a-z][a-z' -]{1,40}?)\.\s*(?:need someone to|looking for|looking to|calling about)\s+(.+)/i,
+        // "Name's X. Calling about Y"
+        /(?:name's)\s+(.+?)\.\s*(?:calling about|looking for|looking to)\s+(.+)/i,
       ];
       for (const pattern of combinedPatterns) {
         const match = trimmed.match(pattern);
@@ -5594,21 +5612,32 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           const servicePart = stripServicePrefix(match[2].trim()).replace(/[.,;]\s*$/, '');
           if (namePart) customerName = namePart;
           if (servicePart) serviceRequested = servicePart;
-          if (namePart && servicePart) return { customerName, serviceRequested };
+          if (namePart && servicePart) {
+            parserRuleMatched = 'combined_pattern';
+            console.log('[NAME PARSE] =========================================');
+            console.log('[NAME PARSE] rawInput:', trimmed);
+            console.log('[NAME PARSE] normalizedInput:', trimmed);
+            console.log('[NAME PARSE] parsedName:', customerName);
+            console.log('[NAME PARSE] parsedReason:', serviceRequested);
+            console.log('[NAME PARSE] parserRuleMatched:', parserRuleMatched);
+            console.log('[NAME PARSE] =========================================');
+            return { customerName, serviceRequested };
+          }
         }
       }
 
-      // Extract name first
+      // Extract name first using explicit name patterns
       const namePatterns = [
-        /^(?:hi|hello|hey)[,\s]+my name is\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
-        /^my name is\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
-        /^my name's\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
-        /^name is\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
-        /^i am\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
-        /^i'm\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
-        /^this is\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
-        /^it is\s+(.+?)(?:\.|,|;|\band\s+i\s+(?:want|need|would like|am looking)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)/i,
+        /^(?:hi|hello|hey)[,\s]+my name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /^my name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /^my name's\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /^name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /^i am\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /^i'm\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /^this is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /^it is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
         /^([a-z][a-z' -]{1,40}?)\s+here(?:\.|,|;|\band\b|$)/i,
+        /^([a-z][a-z' -]{1,40}?)\.(?:\s|$)/i,
       ];
       let nameMatch: RegExpMatchArray | null = null;
       for (const pattern of namePatterns) {
@@ -5616,20 +5645,43 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         if (nameMatch) break;
       }
 
-      // Extract service from the full text
+      // If name matched, extract service from the remaining text after the name
+      let remainingText = trimmed;
+      if (nameMatch) {
+        const namePart = normalizeNameCandidate(nameMatch[1].trim());
+        if (namePart) {
+          customerName = namePart;
+          // Extract the text after the name match
+          const matchIndex = trimmed.indexOf(nameMatch[0]);
+          if (matchIndex >= 0) {
+            remainingText = trimmed.slice(matchIndex + nameMatch[0].length).trim();
+          }
+        }
+      }
+
+      // Extract service from the remaining text (or full text if no name match)
       const servicePatterns = [
         /(?:i want to|i need to|i'd like to|i would like to|i'm looking to|i am looking to)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
         /(?:i need|i want)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
         /(?:i'm calling about|i am calling about|calling about)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-        /(?:looking for|looking to get|trying to get)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /(?:looking for|looking to get|trying to get|need someone to)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /(?:to get my|get my)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
       ];
       let serviceMatch: RegExpMatchArray | null = null;
       for (const pattern of servicePatterns) {
-        serviceMatch = trimmed.match(pattern);
+        serviceMatch = remainingText.match(pattern);
         if (serviceMatch) break;
       }
 
       // Determine name and service from matches
+      if (nameMatch && !serviceMatch) {
+        parserRuleMatched = 'name_only';
+      } else if (!nameMatch && serviceMatch) {
+        parserRuleMatched = 'service_only';
+      } else if (nameMatch && serviceMatch) {
+        parserRuleMatched = 'name_then_service';
+      }
+
       if (nameMatch) {
         const namePart = normalizeNameCandidate(nameMatch[1].trim());
         if (namePart) customerName = namePart;
@@ -5644,25 +5696,19 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         const serviceFromName = stripServicePrefix(customerName);
         if (serviceFromName && serviceFromName !== customerName) {
           serviceRequested = serviceFromName;
+          parserRuleMatched = 'name_contains_service';
         }
       }
 
       // Final fallback: if still no service, try sentence splitting
-      if (!serviceRequested) {
-        const sentences = trimmed.split(/\.(?:\s+|$)/).filter(s => s.trim());
-        if (sentences.length > 1) {
-          // Use the first sentence as name if it's short (<= 4 words) or starts with a name phrase
-          const first = sentences[0].trim();
-          const firstClean = normalizeNameCandidate(first);
-          if (firstClean.split(/\s+/).length <= 4) {
-            customerName = firstClean;
-            serviceRequested = stripServicePrefix(sentences.slice(1).join('. ').trim()).replace(/[.,;]\s*$/, '');
-          } else {
-            // If first sentence is too long, it probably contains both; try to extract service from it
-            const firstServiceMatch = first.match(servicePatterns[0]);
-            if (firstServiceMatch) {
-              serviceRequested = stripServicePrefix(firstServiceMatch[1].trim()).replace(/[.,;]\s*$/, '');
-            }
+      if (!serviceRequested && remainingText.length > 0) {
+        const sentences = remainingText.split(/\.(?:\s+|$)/).filter(s => s.trim());
+        if (sentences.length > 0) {
+          // Use the first remaining sentence as service
+          const serviceFromSentence = stripServicePrefix(sentences[0].trim()).replace(/[.,;]\s*$/, '');
+          if (serviceFromSentence && serviceFromSentence !== customerName) {
+            serviceRequested = serviceFromSentence;
+            parserRuleMatched = 'sentence_split';
           }
         }
       }
@@ -5670,6 +5716,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       // If after all attempts we still have no service, default only if we couldn't find anything
       if (!serviceRequested) {
         serviceRequested = 'General inquiry';
+        parserRuleMatched = parserRuleMatched === 'none' ? 'default_fallback' : parserRuleMatched;
       }
 
       // If customerName is still the full text and we extracted a service, remove the service portion
@@ -5677,9 +5724,20 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         const serviceIdx = trimmed.toLowerCase().indexOf(serviceRequested.toLowerCase());
         if (serviceIdx > 0) {
           const nameCandidate = normalizeNameCandidate(trimmed.slice(0, serviceIdx).trim());
-          if (nameCandidate) customerName = nameCandidate;
+          if (nameCandidate) {
+            customerName = nameCandidate;
+            parserRuleMatched = 'remove_service_from_full_text';
+          }
         }
       }
+
+      console.log('[NAME PARSE] =========================================');
+      console.log('[NAME PARSE] rawInput:', trimmed);
+      console.log('[NAME PARSE] normalizedInput:', trimmed);
+      console.log('[NAME PARSE] parsedName:', customerName);
+      console.log('[NAME PARSE] parsedReason:', serviceRequested);
+      console.log('[NAME PARSE] parserRuleMatched:', parserRuleMatched);
+      console.log('[NAME PARSE] =========================================');
 
       return { customerName, serviceRequested };
     };
