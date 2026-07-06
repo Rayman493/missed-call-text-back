@@ -5306,7 +5306,156 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[AI INTAKE CAPTURE AUDIT] Timestamp:', capture.timestamp);
     console.log('[AI INTAKE CAPTURE AUDIT] =========================================');
 
+    // Persist partial data incrementally after each field capture
+    persistPartialIntake(stage, extractedField).catch(err => {
+      console.log('[PARTIAL INTAKE PERSIST] error:', err);
+    });
+
     return extractedField;
+  };
+
+  // Partial intake persistence function - persists captured data incrementally
+  const persistPartialIntake = async (stage: string, field: string) => {
+    if (!state.callSid || !state.businessId || !state.callerPhone) {
+      console.log('[PARTIAL INTAKE PERSIST] =========================================');
+      console.log('[PARTIAL INTAKE PERSIST] callSid:', state.callSid);
+      console.log('[PARTIAL INTAKE PERSIST] businessId:', state.businessId);
+      console.log('[PARTIAL INTAKE PERSIST] callerPhone:', state.callerPhone);
+      console.log('[PARTIAL INTAKE PERSIST] reason: missing_required_context');
+      console.log('[PARTIAL INTAKE PERSIST] success: false');
+      console.log('[PARTIAL INTAKE PERSIST] =========================================');
+      return;
+    }
+
+    const canonicalExtractedInfo = buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '');
+    const extractedInfoKeys = Object.keys(canonicalExtractedInfo).filter(k => canonicalExtractedInfo[k as keyof typeof canonicalExtractedInfo]);
+
+    console.log('[PARTIAL INTAKE PERSIST] =========================================');
+    console.log('[PARTIAL INTAKE PERSIST] callSid:', state.callSid);
+    console.log('[PARTIAL INTAKE PERSIST] stage:', stage);
+    console.log('[PARTIAL INTAKE PERSIST] field:', field);
+    console.log('[PARTIAL INTAKE PERSIST] valuePresent:', !!state.intakeData[field as keyof typeof state.intakeData]);
+    console.log('[PARTIAL INTAKE PERSIST] extractedInfoKeys:', extractedInfoKeys);
+    console.log('[PARTIAL INTAKE PERSIST] =========================================');
+
+    try {
+      // First, ensure lead exists
+      const { data: lead } = await supabase
+        .from('leads')
+        .upsert({
+          business_id: state.businessId,
+          caller_phone: state.callerPhone || '',
+          status: 'new',
+          raw_metadata: {
+            ...canonicalExtractedInfo,
+            extracted_info: canonicalExtractedInfo,
+            ai_intake_completed: false,
+            ai_intake_partial: true,
+          }
+        }, {
+          onConflict: 'business_id,caller_phone',
+        })
+        .select()
+        .single();
+
+      if (!lead) {
+        console.log('[PARTIAL INTAKE PERSIST] =========================================');
+        console.log('[PARTIAL INTAKE PERSIST] reason: lead_creation_failed');
+        console.log('[PARTIAL INTAKE PERSIST] success: false');
+        console.log('[PARTIAL INTAKE PERSIST] =========================================');
+        return;
+      }
+
+      // Update lead metadata with partial intake data
+      const { error: metaUpdateError } = await supabase
+        .from('leads')
+        .update({
+          raw_metadata: {
+            ...canonicalExtractedInfo,
+            extracted_info: canonicalExtractedInfo,
+            ai_intake_completed: false,
+            ai_intake_partial: true,
+            ai_intake_partial_updated_at: new Date().toISOString(),
+          }
+        })
+        .eq('id', lead.id);
+
+      if (metaUpdateError) {
+        console.log('[PARTIAL INTAKE PERSIST] =========================================');
+        console.log('[PARTIAL INTAKE PERSIST] writeTarget: lead.raw_metadata');
+        console.log('[PARTIAL INTAKE PERSIST] success: false');
+        console.log('[PARTIAL INTAKE PERSIST] error:', metaUpdateError.message);
+        console.log('[PARTIAL INTAKE PERSIST] =========================================');
+      } else {
+        console.log('[PARTIAL INTAKE PERSIST] =========================================');
+        console.log('[PARTIAL INTAKE PERSIST] writeTarget: lead.raw_metadata');
+        console.log('[PARTIAL INTAKE PERSIST] success: true');
+        console.log('[PARTIAL INTAKE PERSIST] leadId:', lead.id);
+        console.log('[PARTIAL INTAKE PERSIST] =========================================');
+      }
+
+      // Ensure conversation exists
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select()
+        .eq('lead_id', lead.id)
+        .eq('business_id', state.businessId)
+        .maybeSingle();
+
+      let conversationId = conversation?.id;
+      if (!conversation) {
+        const { data: newConversation } = await supabase
+          .from('conversations')
+          .insert({
+            lead_id: lead.id,
+            business_id: state.businessId,
+            status: 'active',
+          })
+          .select()
+          .single();
+        conversationId = newConversation?.id;
+      }
+
+      // Upsert ai_call_record with partial data
+      const aiCallRecordPayload = {
+        lead_id: lead.id,
+        conversation_id: conversationId,
+        business_id: state.businessId,
+        call_sid: state.callSid,
+        caller_phone: state.callerPhone,
+        transcript: state.transcript,
+        extracted_info: canonicalExtractedInfo,
+        summary: canonicalExtractedInfo.additionalDetails || '',
+        outcome: 'incomplete',
+      };
+
+      const { error: callRecordError } = await supabase
+        .from('ai_call_records')
+        .upsert(aiCallRecordPayload, {
+          onConflict: 'call_sid',
+        });
+
+      if (callRecordError) {
+        console.log('[PARTIAL INTAKE PERSIST] =========================================');
+        console.log('[PARTIAL INTAKE PERSIST] writeTarget: ai_call_records');
+        console.log('[PARTIAL INTAKE PERSIST] success: false');
+        console.log('[PARTIAL INTAKE PERSIST] error:', callRecordError.message);
+        console.log('[PARTIAL INTAKE PERSIST] =========================================');
+      } else {
+        console.log('[PARTIAL INTAKE PERSIST] =========================================');
+        console.log('[PARTIAL INTAKE PERSIST] writeTarget: ai_call_records');
+        console.log('[PARTIAL INTAKE PERSIST] success: true');
+        console.log('[PARTIAL INTAKE PERSIST] leadId:', lead.id);
+        console.log('[PARTIAL INTAKE PERSIST] conversationId:', conversationId);
+        console.log('[PARTIAL INTAKE PERSIST] =========================================');
+      }
+    } catch (error) {
+      console.log('[PARTIAL INTAKE PERSIST] =========================================');
+      console.log('[PARTIAL INTAKE PERSIST] reason: exception');
+      console.log('[PARTIAL INTAKE PERSIST] error:', error);
+      console.log('[PARTIAL INTAKE PERSIST] success: false');
+      console.log('[PARTIAL INTAKE PERSIST] =========================================');
+    }
   };
 
   // --- Audio buffering constants ---
@@ -5880,7 +6029,6 @@ Reply to this message if you'd like to update or add any information.
             extracted_info: canonicalExtractedInfo,
             summary: canonicalExtractedInfo.additionalDetails || '',
             outcome: 'completed',
-            status: 'completed',
           };
           console.log('[SIMPLE MODE] ai_call_record insert payload:', {
             callSid: aiCallRecordPayload.call_sid,
@@ -6992,10 +7140,41 @@ Reply to this message if you'd like to update or add any information.
     }
   };
 
-  ws.on('close', () => {
+  ws.on('close', async () => {
     clearSilentTimeout('websocket_closed');
     console.log('[SIMPLE MODE] WebSocket closed');
     if (state.openAiWs) state.openAiWs.close();
+
+    // INCOMPLETE FINALIZE: If completion hasn't been processed, persist latest in-memory data
+    // This ensures partial intake data is available for voice-status webhook
+    if (!state.completionPersistenceStarted && (state.stageCaptures.length > 0 || Object.keys(state.intakeData).some(k => state.intakeData[k as keyof typeof state.intakeData]))) {
+      console.log('[INCOMPLETE FINALIZE] =========================================');
+      console.log('[INCOMPLETE FINALIZE] callSid:', state.callSid);
+      console.log('[INCOMPLETE FINALIZE] reason: websocket_closed');
+      console.log('[INCOMPLETE FINALIZE] stageCaptures:', state.stageCaptures.length);
+      console.log('[INCOMPLETE FINALIZE] intakeDataKeys:', Object.keys(state.intakeData).filter(k => state.intakeData[k as keyof typeof state.intakeData]));
+      
+      const canonicalExtractedInfo = buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '');
+      const extractedInfoKeys = Object.keys(canonicalExtractedInfo).filter(k => canonicalExtractedInfo[k as keyof typeof canonicalExtractedInfo]);
+      
+      console.log('[INCOMPLETE FINALIZE] finalExtractedInfoKeys:', extractedInfoKeys);
+      
+      try {
+        if (state.callSid && state.businessId && state.callerPhone) {
+          await persistPartialIntake('websocket_close', 'finalize');
+          console.log('[INCOMPLETE FINALIZE] persistedBeforeVoiceStatus: true');
+        } else {
+          console.log('[INCOMPLETE FINALIZE] persistedBeforeVoiceStatus: false');
+          console.log('[INCOMPLETE FINALIZE] reason: missing_required_context');
+        }
+      } catch (error) {
+        console.log('[INCOMPLETE FINALIZE] persistedBeforeVoiceStatus: false');
+        console.log('[INCOMPLETE FINALIZE] reason: exception');
+        console.log('[INCOMPLETE FINALIZE] error:', error);
+      }
+      
+      console.log('[INCOMPLETE FINALIZE] =========================================');
+    }
   });
 
   ws.on('error', (error) => {
