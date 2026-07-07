@@ -38,8 +38,14 @@ export default function CompleteSetupPage() {
 
   // If business has active subscription, redirect to dashboard
   useEffect(() => {
-    if (!businessLoading && business && business.subscription_status) {
-      router.replace('/dashboard')
+    if (!businessLoading && business) {
+      const subscriptionActive = business.subscription_status === 'trialing' || business.subscription_status === 'active'
+      const provisioningPending = business.provisioning_status === 'pending' || business.provisioning_status === 'provisioning'
+      const destination = provisioningPending ? '/dashboard?setup=1' : '/dashboard'
+
+      if (subscriptionActive) {
+        router.replace(destination)
+      }
     }
   }, [businessLoading, business, router])
 
@@ -49,6 +55,48 @@ export default function CompleteSetupPage() {
       router.replace('/onboarding')
     }
   }, [businessLoading, business, user, router])
+
+  useEffect(() => {
+    const routeFromFreshBusinessState = async () => {
+      if (authLoading || !user) return
+
+      const { data: freshBusiness, error: freshBusinessError } = await supabase
+        .from('businesses')
+        .select('id, name, business_phone_number, subscription_status, provisioning_status')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle()
+
+      if (freshBusinessError) {
+        console.error('[CompleteSetup] Failed to fetch fresh business state:', freshBusinessError)
+        return
+      }
+
+      if (!freshBusiness) {
+        router.replace('/onboarding')
+        return
+      }
+
+      const hasName = Boolean(freshBusiness.name && freshBusiness.name.trim())
+      const hasPhone = Boolean(freshBusiness.business_phone_number && freshBusiness.business_phone_number.trim())
+
+      if (!hasName || !hasPhone) {
+        router.replace('/onboarding')
+        return
+      }
+
+      const subscriptionActive = freshBusiness.subscription_status === 'trialing' || freshBusiness.subscription_status === 'active'
+
+      if (subscriptionActive) {
+        await refreshBusiness(true)
+
+        const provisioningPending = freshBusiness.provisioning_status === 'pending' || freshBusiness.provisioning_status === 'provisioning'
+        router.replace(provisioningPending ? '/dashboard?setup=1' : '/dashboard')
+      }
+    }
+
+    routeFromFreshBusinessState()
+  }, [authLoading, user, router, refreshBusiness])
 
   // If business exists but profile is incomplete, redirect to onboarding
   useEffect(() => {
