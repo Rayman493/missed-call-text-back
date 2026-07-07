@@ -75,16 +75,20 @@ export default function AnalyticsContent() {
           console.error('[Analytics] Failed to fetch leads:', leadsError.message)
         }
 
+        // Normalize to array - Supabase may return null or object in some cases
+        const leadsArray = Array.isArray(leads) ? leads : []
+
         // Fetch messages for reply rate calculation - query by lead_id to match DashboardMetrics
-        const leadIds = leads?.map((l: any) => l.id) || []
+        // IMPORTANT: Must select from_phone and to_phone for dual filter to work
+        const leadIds = leadsArray.map((l: any) => l.id) || []
         let messages = []
         if (leadIds.length > 0) {
           const { data: messagesData, error: messagesError } = await supabase
             .from('messages')
-            .select('id, direction, created_at, conversation_id, lead_id')
+            .select('id, direction, created_at, conversation_id, lead_id, from_phone, to_phone')
             .in('lead_id', leadIds)
             .gte('created_at', thirtyDaysAgo)
-          messages = messagesData || []
+          messages = Array.isArray(messagesData) ? messagesData : []
           if (messagesError) {
             console.error('[Analytics] Failed to fetch messages:', messagesError.message)
           }
@@ -101,6 +105,9 @@ export default function AnalyticsContent() {
           console.error('[Analytics] Failed to fetch AI call records:', aiCallsError.message)
         }
 
+        // Normalize to array
+        const aiCallsArray = Array.isArray(aiCalls) ? aiCalls : []
+
         // Fetch follow-ups from follow_up_jobs table (not follow_ups)
         const { data: followUps, error: followUpsError } = await supabase
           .from('follow_up_jobs')
@@ -111,6 +118,9 @@ export default function AnalyticsContent() {
         if (followUpsError) {
           console.error('[Analytics] Failed to fetch follow-ups:', followUpsError.message)
         }
+
+        // Normalize to array
+        const followUpsArray = Array.isArray(followUps) ? followUps : []
 
         // Fetch conversations for accurate conversation count
         const { data: conversations, error: conversationsError } = await supabase
@@ -123,46 +133,50 @@ export default function AnalyticsContent() {
           console.error('[Analytics] Failed to fetch conversations:', conversationsError.message)
         }
 
+        // Normalize to array
+        const conversationsArray = Array.isArray(conversations) ? conversations : []
+
         // Calculate metrics
-        const leadCount = leads?.length || 0
-        const activeLeads = leads?.filter((l: any) => l.status === 'active' || l.status === 'new').length || 0
-        const completedLeads = leads?.filter((l: any) => l.status === 'completed' || l.status === 'won').length || 0
+        const leadCount = leadsArray.length
+        const activeLeads = leadsArray.filter((l: any) => l.status === 'active' || l.status === 'new').length || 0
+        const completedLeads = leadsArray.filter((l: any) => l.status === 'completed' || l.status === 'won').length || 0
 
         // Filter messages using dual filter (direction + phone number) to match DashboardMetrics
         const businessPhone = business.twilio_phone_number || ''
-        const inboundMessages = messages?.filter((m: any) => {
+        const inboundMessagesArray = messages?.filter((m: any) => {
           const isDirectionInbound = m.direction === 'inbound' || m.direction?.startsWith?.('inbound')
           const isToBusinessPhone = m.to_phone === businessPhone
           return isDirectionInbound || isToBusinessPhone
-        }).length || 0
-        const outboundMessages = messages?.filter((m: any) => {
+        }) || []
+        const outboundMessagesArray = messages?.filter((m: any) => {
           const isDirectionOutbound = m.direction === 'outbound' || m.direction?.startsWith?.('outbound')
           const isFromBusinessPhone = m.from_phone === businessPhone
           return isDirectionOutbound || isFromBusinessPhone
-        }).length || 0
+        }) || []
+        const inboundMessages = inboundMessagesArray.length
+        const outboundMessages = outboundMessagesArray.length
         const totalMessages = messages?.length || 0
 
-        const aiIntakesCompleted = aiCalls?.filter((c: any) => c.outcome === 'completed').length || 0
-        const aiIntakesIncomplete = aiCalls?.filter((c: any) => c.outcome === 'incomplete').length || 0
-        console.log('[analytics_ai_intake_count_query]', { totalAiCalls: aiCalls?.length ?? 0, aiIntakesCompleted, aiIntakesIncomplete, outcomes: aiCalls?.map((c: any) => c.outcome) })
-        const totalAiCalls = aiCalls?.length || 0
+        const aiIntakesCompleted = aiCallsArray.filter((c: any) => c.outcome === 'completed').length || 0
+        const aiIntakesIncomplete = aiCallsArray.filter((c: any) => c.outcome === 'incomplete').length || 0
+        const totalAiCalls = aiCallsArray.length
         const aiCompletionRate = totalAiCalls > 0 ? (aiIntakesCompleted / totalAiCalls) * 100 : 0
 
-        const followUpsSent = followUps?.filter((f: any) => f.status === 'sent').length || 0
-        const followUpsCancelled = followUps?.filter((f: any) => f.status === 'cancelled' && f.cancelled_reason === 'customer_replied').length || 0
+        const followUpsSent = followUpsArray.filter((f: any) => f.status === 'sent').length || 0
+        const followUpsCancelled = followUpsArray.filter((f: any) => f.status === 'cancelled' && f.cancelled_reason === 'customer_replied').length || 0
 
         // Calculate follow-up response rate: customer replies / (sent + customer replies)
         const followUpResponseRate = (followUpsSent + followUpsCancelled) > 0 
           ? Math.round((followUpsCancelled / (followUpsSent + followUpsCancelled)) * 100) 
           : 0
 
-        const totalConversations = conversations?.length || 0
+        const totalConversations = conversationsArray.length
         const customerReplyRate = totalMessages > 0 ? (inboundMessages / totalMessages) * 100 : 0
         const averageMessagesPerConversation = totalConversations > 0 ? totalMessages / totalConversations : 0
 
         // Calculate Recovery Rate to match Dashboard: leads with customer replies / total leads
         // A lead is recovered if it has at least one inbound customer message
-        const recoveredLeadsSet = new Set(inboundMessages?.map((m: any) => m.lead_id) || [])
+        const recoveredLeadsSet = new Set(inboundMessagesArray.map((m: any) => m.lead_id))
         const recoveredLeadsCount = recoveredLeadsSet.size
         const recoveryRate = leadCount > 0 ? Math.min(100, Math.max(0, Math.round((recoveredLeadsCount / leadCount) * 100))) : 0
 
@@ -181,7 +195,7 @@ export default function AnalyticsContent() {
           dailyReplies[dateStr] = 0
         }
 
-        leads?.forEach((lead: any) => {
+        leadsArray.forEach((lead: any) => {
           const date = new Date(lead.created_at)
           if (date >= sevenDaysAgoForTrends) {
             const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -189,7 +203,7 @@ export default function AnalyticsContent() {
           }
         })
 
-        messages?.forEach((message: any) => {
+        messages.forEach((message: any) => {
           // Use dual filter for consistency with other metrics
           const isDirectionInbound = message.direction === 'inbound' || message.direction?.startsWith?.('inbound')
           const isToBusinessPhone = message.to_phone === businessPhone
@@ -205,7 +219,7 @@ export default function AnalyticsContent() {
         const leadTrendData = Object.entries(dailyLeads).map(([date, value]) => ({ date, value }))
         const replyTrendData = Object.entries(dailyReplies).map(([date, value]) => ({ date, value }))
 
-        setMetrics({
+        const finalMetrics = {
           missedCallsCaptured: leadCount,
           leadsCreated: leadCount,
           customerReplies: inboundMessages,
@@ -213,7 +227,7 @@ export default function AnalyticsContent() {
           completedLeads,
           aiIntakesCompleted,
           aiIntakesIncomplete,
-          voicemailsCaptured: aiCalls?.filter((c: any) => c.outcome === 'no_speech').length || 0,
+          voicemailsCaptured: aiCallsArray.filter((c: any) => c.outcome === 'no_speech').length || 0,
           aiCompletionRate,
           followUpsSent,
           followUpsCancelled,
@@ -224,7 +238,9 @@ export default function AnalyticsContent() {
           estimatedLeadsSaved,
           recoveryRate,
           messagesSent: outboundMessages
-        })
+        }
+
+        setMetrics(finalMetrics)
 
         setLeadTrend(leadTrendData)
         setReplyTrend(replyTrendData)
