@@ -5307,6 +5307,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     ])
   );
 
+  // Retry prompts for validation failures - natural clarification instead of robotic repetition
+  prompts['ask_completion_time_retry'] = "Sorry, I didn't quite catch when you'd like the work completed. For example, today, tomorrow, next week, or another time that works for you.";
+  prompts['ask_callback_time_retry'] = "Sorry, I didn't quite catch the callback time. Could you tell me something like tomorrow morning, this afternoon, or after 5 PM?";
+
   // Cached PCMU audio for each prompt (pre-generated for deterministic speech)
   state.sessionId = url.searchParams.get('sessionId') || '';
   state.businessId = url.searchParams.get('businessId') || '';
@@ -6901,9 +6905,15 @@ Reply to this message if you'd like to update or add any information.
 
   // Helper to send prompt using cached PCMU audio or Realtime response.create
   const sendPrompt = async (stage: string) => {
-    const prompt = prompts[stage];
+    // Use retry prompt if this is a validation failure reprompt
+    let promptKey = stage;
+    if (state.stageRepromptSent && (stage === 'ask_completion_time' || stage === 'ask_callback_time')) {
+      promptKey = `${stage}_retry`;
+    }
+    
+    const prompt = prompts[promptKey];
     if (!prompt) {
-      console.log('[SIMPLE MODE] No prompt for stage:', stage);
+      console.log('[SIMPLE MODE] No prompt for stage:', stage, 'promptKey:', promptKey);
       return;
     }
 
@@ -6915,11 +6925,12 @@ Reply to this message if you'd like to update or add any information.
     console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_intake_templates');
     console.log('[SIMPLE MODE] business_id:', state.businessId);
     console.log('[SIMPLE MODE] currentStage:', stage);
-    console.log('[SIMPLE MODE] promptKey:', stage);
+    console.log('[SIMPLE MODE] promptKey:', promptKey);
     console.log('[SIMPLE MODE] promptText:', prompt);
+    console.log('[SIMPLE MODE] isRetryPrompt:', promptKey !== stage);
     console.log('[SIMPLE MODE] =========================================');
 
-    logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
+    logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...', isRetry: promptKey !== stage });
 
     const cachedAudio = cachedPromptAudio[stage as keyof typeof cachedPromptAudio];
 
