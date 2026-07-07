@@ -13,7 +13,7 @@ import { useOperationalMetrics } from '@/hooks/useOperationalMetrics'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
 import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { isAdminUserById } from '@/lib/admin'
-import { CalendarOff } from 'lucide-react'
+import { ArrowRight, CalendarOff, MessageCircle, X } from 'lucide-react'
 import { 
   formatPhoneNumber, 
   formatRelativeTime, 
@@ -67,6 +67,7 @@ import DashboardMetrics from '@/components/DashboardMetrics'
 import OperationalStatusCard from '@/components/OperationalStatusCard'
 import RecentActivityCard from '@/components/RecentActivityCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
+import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 import ReplyFlowPerformanceCard from '@/components/ReplyFlowPerformanceCard'
 import BetaFeedbackModal from '@/components/BetaFeedbackModal'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
@@ -256,6 +257,7 @@ export default function DashboardContent() {
   const [isRecoveringSession, setIsRecoveringSession] = useState(false)
   const [troubleshootingOpen, setTroubleshootingOpen] = useState(false)
   const [showBetaFeedbackModal, setShowBetaFeedbackModal] = useState(false)
+  const [showMobileAssistant, setShowMobileAssistant] = useState(false)
   const autoCompleteInProgress = useRef(false)
   const autoCompleteCompleted = useRef(false)
   
@@ -1076,6 +1078,28 @@ export default function DashboardContent() {
 
                 {/* Trial/billing blockers now handled by SetupStatusCard */}
 
+                {/* Mobile ReplyFlow Assistant Access */}
+                <SectionErrorBoundary sectionName="MobileReplyFlowAssistantCard">
+                  <div className="md:hidden rounded-xl border border-slate-800/70 bg-slate-950/80 p-3.5 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400 ring-1 ring-blue-400/20">
+                        <MessageCircle className="h-4.5 w-4.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-semibold leading-tight text-slate-100">Ask ReplyFlow</h3>
+                        <p className="mt-0.5 text-xs leading-snug text-slate-400">Need help understanding your leads, schedule, payments, or setup?</p>
+                      </div>
+                      <button
+                        onClick={() => setShowMobileAssistant(true)}
+                        className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-blue-400/20 bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-300 transition-colors hover:bg-blue-500/15 active:bg-blue-500/20"
+                      >
+                        Open Assistant
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </SectionErrorBoundary>
+
                 {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
                 {hasActiveSubscription(business) ? (
                   <>
@@ -1354,6 +1378,36 @@ export default function DashboardContent() {
               isOpen={showBetaFeedbackModal}
               onClose={() => setShowBetaFeedbackModal(false)}
             />
+
+            {showMobileAssistant && (
+              <div className="fixed inset-0 z-[100] flex items-end justify-center p-3 md:hidden">
+                <div className="absolute inset-0 bg-black/55" onClick={() => setShowMobileAssistant(false)} />
+                <div className="relative mb-20 w-full max-w-lg">
+                  <button
+                    onClick={() => setShowMobileAssistant(false)}
+                    className="absolute -top-11 right-0 rounded-full bg-blue-600/90 p-2 text-white backdrop-blur-sm transition-colors hover:text-slate-200"
+                    aria-label="Close ReplyFlow Assistant"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                  <div className="max-h-[70vh] overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-slate-800">
+                    <div className="max-h-[70vh] overflow-y-auto pb-safe">
+                      <ReplyFlowAssistant
+                        context={{
+                          currentPage: 'dashboard',
+                          hasLeads: processedLeads.length > 0,
+                          hasRecentActivity: processedLeads.length > 0,
+                          forwardingVerified: business?.forwarding_verified ?? false,
+                          calendarConnected: undefined,
+                          isTrial: business?.subscription_status === 'trial'
+                        }}
+                        onClose={() => setShowMobileAssistant(false)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Footer */}
             <SectionErrorBoundary sectionName="Footer">

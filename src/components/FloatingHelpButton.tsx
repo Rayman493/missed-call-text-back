@@ -24,21 +24,11 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
     '/stripe',
   ]
 
-  // Routes where mobile bottom navigation is present (hide mobile button)
-  const hideMobileOnRoutes = [
-    '/dashboard',
-    '/leads',
-    '/calendar',
-  ]
-
   // Check if current route should hide the button
   useEffect(() => {
     const shouldHide = hideOnRoutes.some(route => pathname?.startsWith(route))
     setIsVisible(!shouldHide)
   }, [pathname])
-
-  // Check if mobile button should be hidden
-  const shouldHideMobile = hideMobileOnRoutes.some(route => pathname?.startsWith(route))
 
   // Don't render if hidden
   if (!isVisible) {
@@ -55,17 +45,6 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
         <MessageCircle className="w-5 h-5" />
         <span className="font-semibold">Ask ReplyFlow</span>
       </button>
-
-      {/* Mobile Floating Button - Hidden on pages with bottom navigation */}
-      {!shouldHideMobile && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="md:hidden fixed bottom-6 right-6 z-50 flex items-center justify-center w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 pb-safe"
-          aria-label="Ask ReplyFlow for help"
-        >
-          <MessageCircle className="w-5 h-5" />
-        </button>
-      )}
 
       {/* Modal */}
       {isOpen && (
