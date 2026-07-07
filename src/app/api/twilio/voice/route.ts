@@ -141,16 +141,13 @@ function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): strin
   return voicemailTwiml;
 }
 
-// Helper to generate short informational message for ignored contacts
+// Helper to generate clean hangup for ignored contacts
 function generateIgnoredContactResponse(): string {
-  // Short message followed by immediate hangup
-  // Sounds natural for intentional call termination
-  // No voicemail recording since ReplyFlow skips persistence for ignored contacts
-  const message = "Sorry, we're unable to take your call right now. Please try calling again later.";
-  
+  // Silent hangup - no message, no voicemail
+  // Clean UX for intentionally blocked calls
+  // No persistence, no AI, no lead, no conversation, no SMS, no follow-ups
   const responseTwiml = `
 <Response>
-  <Say voice="Polly.Joanna">${message}</Say>
   <Hangup/>
 </Response>
 `.trim();
@@ -524,7 +521,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] =========================================');
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] businessId:', business.id);
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] normalizedFrom:', normalizedFrom);
-      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] action: return short message and hangup / no AI / no persistence');
+      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] action: silent hangup / no AI / no persistence');
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] timestamp:', new Date().toISOString());
       console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] =========================================');
 
@@ -538,16 +535,15 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         businessId: business.id
       })
 
-      // Return short informational message followed by immediate hangup
-      // Sounds natural for intentional call termination
+      // Return silent hangup
       // No voicemail recording, no persistence, no AI, no lead, no conversation, no SMS, no follow-ups
       const twiml = generateIgnoredContactResponse()
-      console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-message')
+      console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-hangup')
       console.log('[AI POC FINAL TWIML]', twiml)
-      console.log('[VOICE PATH] IGNORED_CONTACT_MESSAGE')
+      console.log('[VOICE PATH] IGNORED_CONTACT_HANGUP')
       console.log('[VOICE ROUTE RETURN]', {
-        path: 'IGNORED_CONTACT_MESSAGE',
-        reason: 'Caller is in ignored contacts list - using short message and hangup',
+        path: 'IGNORED_CONTACT_HANGUP',
+        reason: 'Caller is in ignored contacts list - silent hangup',
         callSid: CallSid || 'unknown',
         phoneNumber: normalizedFrom
       });
@@ -594,7 +590,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         console.log('[SPAM FILTER] caller=', From)
         console.log('[SPAM FILTER] ==========================================')
 
-        // Return short message and hangup, similar to ignored contacts
+        // Return silent hangup, similar to ignored contacts
         // Do NOT create lead, conversation, SMS, follow-ups, or notifications
         const twiml = generateIgnoredContactResponse()
         console.log('[FINAL TWIML PATH] SPAM_FILTERED - smart filtering blocked lead creation', {
@@ -604,7 +600,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         })
         console.log('[VOICE ROUTE RETURN]', {
           path: 'SPAM_FILTERED',
-          reason: 'Smart filtering blocked lead creation',
+          reason: 'Smart filtering blocked lead creation - silent hangup',
           callSid: CallSid || 'unknown',
           phoneNumber: normalizedFrom
         })
