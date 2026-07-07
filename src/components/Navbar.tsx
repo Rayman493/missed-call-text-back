@@ -69,7 +69,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           {/* Mobile Home/Dashboard Button - Only on mobile */}
           <Link
             href={isLoggedIn ? '/dashboard' : '/auth?mode=signin'}
-            className={`sm:hidden flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200 ${
+            className={`sm:hidden flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-200 ${
               pathname === '/dashboard' && isLoggedIn
                 ? 'bg-blue-600/20 text-blue-400'
                 : isPublicPage && !forceDark
@@ -84,9 +84,9 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           {/* Logo */}
           <Link 
             href={isLoggedIn && !isPublicPage ? '/dashboard' : '/'} 
-            className="flex items-center gap-0.5 sm:gap-1.5 hover:opacity-90 transition"
+            className="flex h-10 w-10 items-center justify-center gap-0.5 hover:opacity-90 transition sm:h-auto sm:w-auto sm:gap-1.5 sm:justify-start"
           >
-            <BrandIcon size={56} className="sm:hidden" />
+            <BrandIcon size={40} className="block sm:hidden" />
             <BrandIcon size={56} className="hidden sm:block" />
             <span className="hidden sm:block text-base sm:text-lg md:text-xl font-semibold tracking-tight">
               <span className={`${isPublicPage && !forceDark ? 'text-slate-800 dark:text-white' : 'text-white'}`}>ReplyFlow</span>
