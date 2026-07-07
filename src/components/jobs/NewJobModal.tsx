@@ -20,15 +20,15 @@ export default function NewJobModal({
   return (
     <>
       <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 shadow-[0_1px_0_rgba(255,255,255,0.06),0_28px_90px_rgba(2,6,23,0.65)] backdrop-blur-xl w-full max-w-sm max-h-[calc(100dvh-5rem)]">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-[env(safe-area-inset-bottom)]">
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 shadow-[0_1px_0_rgba(255,255,255,0.06),0_28px_90px_rgba(2,6,23,0.65)] backdrop-blur-xl w-full max-w-sm max-h-[85dvh] flex flex-col">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/40 to-transparent" />
           {/* Header */}
-          <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/10 bg-white/[0.025]">
+          <div className="flex items-center justify-between p-4 sm:p-4 border-b border-white/10 bg-white/[0.025] flex-shrink-0">
             <h2 className="text-base font-semibold text-white">Create Job</h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
             >
               <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             </button>

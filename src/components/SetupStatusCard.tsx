@@ -524,32 +524,32 @@ export default function SetupStatusCard({
   
   // Render expanded state
   return (
-    <div className="bg-slate-900/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-200/10 dark:border-slate-800/50">
-      <div className="flex flex-col gap-8">
+    <div className="bg-slate-900/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-2xl p-4 sm:p-5 shadow-xl border border-slate-200/10 dark:border-slate-800/50">
+      <div className="flex flex-col gap-4">
         {/* Header */}
-        <div className="flex flex-col gap-2 pb-6 border-b border-blue-500/20">
+        <div className="flex flex-col gap-1.5 pb-4 border-b border-blue-500/20">
           {cardState === 'needs-forwarding' ? (
             <>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">Complete these three steps to activate ReplyFlow</h1>
-              <p className="text-slate-400 text-base sm:text-lg">Step 2 of 3 • Set up call forwarding to start capturing missed calls.</p>
+              <h1 className="text-lg sm:text-xl font-bold text-white">Complete these three steps to activate ReplyFlow</h1>
+              <p className="text-slate-400 text-sm">Step 2 of 3 • Set up call forwarding to start capturing missed calls.</p>
             </>
           ) : cardState === 'needs-verification' ? (
             <>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">Complete these three steps to activate ReplyFlow</h1>
-              <p className="text-slate-400 text-base sm:text-lg">Step 3 of 3 • Make a test call to verify your setup.</p>
+              <h1 className="text-lg sm:text-xl font-bold text-white">Complete these three steps to activate ReplyFlow</h1>
+              <p className="text-slate-400 text-sm">Step 3 of 3 • Make a test call to verify your setup.</p>
             </>
           ) : (
             <>
               <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-white">ReplyFlow Active</h1>
-                  <p className="text-slate-400 text-base sm:text-lg">All systems operational and ReplyFlow is actively monitoring your missed calls.</p>
+                  <h1 className="text-lg sm:text-xl font-bold text-white">ReplyFlow Active</h1>
+                  <p className="text-slate-400 text-sm">All systems operational and ReplyFlow is actively monitoring your missed calls.</p>
                 </div>
                 <button
                   onClick={() => setIsExpanded(false)}
-                  className="flex-shrink-0 p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors"
+                  className="flex-shrink-0 p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors"
                 >
-                  <ChevronUp className="w-5 h-5" />
+                  <ChevronUp className="w-4 h-4" />
                 </button>
               </div>
             </>
@@ -558,12 +558,12 @@ export default function SetupStatusCard({
 
         {/* Setup Progress - Always show all three steps with collapsible sections */}
         {(cardState === 'needs-forwarding' || cardState === 'needs-verification') && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Step 1: Always Complete */}
             <div className="bg-slate-800/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden">
               <button
                 onClick={() => setExpandedStep(expandedStep === 1 ? null : 1)}
-                className="w-full flex items-center gap-3 p-4 hover:bg-slate-700/30 transition-colors"
+                className="w-full flex items-center gap-2.5 p-3 hover:bg-slate-700/30 transition-colors"
               >
                 <div className="flex items-center gap-2 flex-1">
                   <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
@@ -576,8 +576,8 @@ export default function SetupStatusCard({
                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedStep === 1 ? 'rotate-180' : ''}`} />
               </button>
               {expandedStep === 1 && (
-                <div className="p-4 pt-0 border-t border-white/10">
-                  <div className="space-y-3">
+                <div className="p-3 pt-0 border-t border-white/10">
+                  <div className="space-y-2.5">
                     <div>
                       <span className="text-blue-200 text-xs block mb-1">ReplyFlow Number</span>
                       <span className="text-white font-mono text-sm">
@@ -608,7 +608,7 @@ export default function SetupStatusCard({
             }`}>
               <button
                 onClick={() => setExpandedStep(expandedStep === 2 ? null : 2)}
-                className="w-full flex items-center gap-3 p-4 hover:bg-slate-700/30 transition-colors"
+                className="w-full flex items-center gap-2.5 p-3 hover:bg-slate-700/30 transition-colors"
               >
                 <div className="flex items-center gap-2 flex-1">
                   {cardState === 'needs-verification' ? (
@@ -635,8 +635,8 @@ export default function SetupStatusCard({
                 <ChevronDown className={`w-4 h-4 transition-transform ${cardState === 'needs-forwarding' ? 'text-blue-300' : 'text-slate-400'} ${expandedStep === 2 ? 'rotate-180' : ''}`} />
               </button>
               {expandedStep === 2 && (
-                <div className="p-4 pt-0 border-t border-white/10">
-                  <div className="space-y-3">
+                <div className="p-3 pt-0 border-t border-white/10">
+                  <div className="space-y-2.5">
                     <p className="text-white text-sm">
                       Set up call forwarding on your business phone to route missed calls to your ReplyFlow number.
                     </p>
@@ -668,7 +668,7 @@ export default function SetupStatusCard({
             }`}>
               <button
                 onClick={() => setExpandedStep(expandedStep === 3 ? null : 3)}
-                className="w-full flex items-center gap-3 p-4 hover:bg-slate-700/30 transition-colors"
+                className="w-full flex items-center gap-2.5 p-3 hover:bg-slate-700/30 transition-colors"
               >
                 <div className="flex items-center gap-2 flex-1">
                   {hasCompletedTestCall ? (
@@ -706,8 +706,8 @@ export default function SetupStatusCard({
                 } ${expandedStep === 3 ? 'rotate-180' : ''}`} />
               </button>
               {expandedStep === 3 && (
-                <div className="p-4 pt-0 border-t border-white/10">
-                  <div className="space-y-3">
+                <div className="p-3 pt-0 border-t border-white/10">
+                  <div className="space-y-2.5">
                     <p className="text-white text-sm">
                       Make a test call to your business number to verify that ReplyFlow is working correctly.
                     </p>
@@ -746,8 +746,8 @@ export default function SetupStatusCard({
 
         {/* Phone Numbers - Always show in expanded state */}
         {(cardState === 'setup-complete' || cardState === 'healthy') && (
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/20">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Call Forwarding - Check actual state */}
               <div className="flex items-center gap-3">
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${business?.forwarding_verified === true ? 'bg-green-500' : 'bg-gray-500'}`}>
@@ -810,7 +810,7 @@ export default function SetupStatusCard({
 
         {/* CTA Buttons - Only show for setup-complete and healthy states */}
         {(cardState === 'setup-complete' || cardState === 'healthy') && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             <div className="flex gap-3">
               <Link
                 href="/setup/phone-forwarding?mode=review"

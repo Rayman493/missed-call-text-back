@@ -95,7 +95,7 @@ export default function AIIntakeSummaryMessage({ body }: AIIntakeSummaryMessageP
           )}
           {callTime && (
             <div className="flex items-center gap-1">
-              <span>☎</span>
+              <span>📞</span>
               <span>{callTime}</span>
             </div>
           )}

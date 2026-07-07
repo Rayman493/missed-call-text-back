@@ -415,7 +415,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-3.5 border border-purple-100 dark:border-purple-800">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 text-[14px] leading-none">🛠️</span>
+                <span className="w-3.5 h-3.5 text-[14px] leading-none">�</span>
                 <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider">Reason</span>
               </div>
               {manualFields.has('reasonForCalling') && !isEditMode && (

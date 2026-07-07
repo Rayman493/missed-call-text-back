@@ -147,10 +147,10 @@ export default function JobComposer({
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
         onClick={onClose}
       />
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4">
-        <div className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg max-h-[calc(100dvh-5rem)] sm:max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg max-h-[85dvh] sm:max-h-[90vh] flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+          <div className="flex items-center justify-between p-4 sm:p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
                 <Briefcase className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -161,7 +161,7 @@ export default function JobComposer({
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0"
             >
               <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             </button>
