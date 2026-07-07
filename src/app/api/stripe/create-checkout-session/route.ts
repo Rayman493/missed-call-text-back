@@ -259,7 +259,7 @@ export async function POST(request: Request) {
     }
 
     const trialEndTimestamp = finalCheckoutMode === 'trial'
-      ? Math.floor(Date.now() / 1000) + (14 * 24 * 60 * 60)
+      ? Math.floor(Date.now() / 1000) + (15 * 24 * 60 * 60)
       : undefined
 
     console.log('[STRIPE CHECKOUT] Creating checkout session with:', {
@@ -274,6 +274,7 @@ export async function POST(request: Request) {
       action: 'checkout',
       checkoutMode: finalCheckoutMode,
       trialPeriodDays: finalCheckoutMode === 'trial' ? 14 : undefined,
+      trialEndBufferDays: finalCheckoutMode === 'trial' ? 1 : undefined,
       trialEndTimestamp,
       trialEndIso: trialEndTimestamp ? new Date(trialEndTimestamp * 1000).toISOString() : undefined
     });
