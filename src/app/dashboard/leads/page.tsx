@@ -931,12 +931,12 @@ export default function LeadsPage() {
             </div>
 
             {/* Leads Header - Simplified */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3">
               <div>
-                <h2 className="text-2xl font-semibold text-foreground tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">
                   Customer Leads
                 </h2>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                   {statusFilter === 'all'
                     ? `${leads.filter(l => !l.deleted_at).length} ${leads.filter(l => !l.deleted_at).length === 1 ? 'lead' : 'leads'} total`
                     : `${leads.filter(l => getLeadLifecycleStatus(l) === statusFilter && (String(statusFilter) === 'deleted' ? l.deleted_at : !l.deleted_at)).length} ${statusFilter} ${leads.filter(l => getLeadLifecycleStatus(l) === statusFilter && (String(statusFilter) === 'deleted' ? l.deleted_at : !l.deleted_at)).length === 1 ? 'lead' : 'leads'}`
@@ -1275,7 +1275,7 @@ export default function LeadsPage() {
 
                   return (
                     <div className="flex flex-col items-center">
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-3.5">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
                         {statusFilter === 'all' 
                           ? `${filteredLeads.length} ${filteredLeads.length === 1 ? 'lead' : 'leads'}`
                           : `${filteredLeads.length} ${statusFilter} ${filteredLeads.length === 1 ? 'lead' : 'leads'}`
@@ -1283,25 +1283,25 @@ export default function LeadsPage() {
                       </p>
                       <div
                         key={lead.id}
-                        className="w-full max-w-2xl h-full flex flex-col bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 group cursor-pointer"
+                        className="w-full max-w-2xl h-full flex flex-col bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 hover:shadow-sm transition-all duration-200 group cursor-pointer"
                         onClick={() => handleConversationClick(lead.id)}
                       >
                         {/* Status Accent Bar */}
                         <div className={`h-1 rounded-t-lg ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
-                        <div className="p-4 sm:p-5 flex-1 flex flex-col">
+                        <div className="p-4 flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
-                          <div className="flex items-start justify-between mb-3 sm:mb-4">
+                          <div className="flex items-start justify-between gap-3 mb-2.5">
                             <div className="flex-1 min-w-0">
-                              <h3 className={`text-base sm:text-lg font-semibold text-white mb-1 truncate tracking-tight ${isNewLead ? 'text-orange-400' : ''}`}>
+                              <h3 className={`text-base font-semibold text-white mb-0.5 truncate tracking-tight ${isNewLead ? 'text-orange-400' : ''}`}>
                                 {getLeadDisplayName(lead)}
                               </h3>
-                              <p className="text-sm text-slate-400">
+                              <p className="text-xs text-slate-400">
                                 {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                               </p>
                             </div>
                             <div onClick={(e) => e.stopPropagation()}>
                               {lead.deleted_at ? (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-900/30 text-red-400 border border-red-700/50">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-900/25 text-red-400 border border-red-700/40">
                                   Deleted
                                 </span>
                               ) : (
@@ -1315,27 +1315,27 @@ export default function LeadsPage() {
                           </div>
 
                           {/* Compact Preview */}
-                          <div className="mb-3 sm:mb-4 space-y-1.5 sm:space-y-2 flex-1">
+                          <div className="mb-2.5 space-y-1 flex-1">
                             {aiData.reason && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">📋</span>
-                                <p className="text-sm text-slate-300">
+                              <div className="flex items-start gap-1.5">
+                                <span className="mt-0.5 text-[11px]">📋</span>
+                                <p className="line-clamp-1 text-xs text-slate-300 leading-relaxed">
                                   {sentenceCase(aiData.reason)}
                                 </p>
                               </div>
                             )}
                             {aiData.details && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">📝</span>
-                                <p className="text-sm text-slate-300">
+                              <div className="flex items-start gap-1.5">
+                                <span className="mt-0.5 text-[11px]">📝</span>
+                                <p className="line-clamp-2 text-xs text-slate-300 leading-relaxed">
                                   {sentenceCase(aiData.details)}
                                 </p>
                               </div>
                             )}
                             {aiData.urgency && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">🔥</span>
-                                <span className={`text-sm font-medium ${
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px]">🔥</span>
+                                <span className={`text-xs font-medium ${
                                   aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
                                     ? 'text-red-400'
                                     : 'text-slate-300'
@@ -1345,22 +1345,22 @@ export default function LeadsPage() {
                               </div>
                             )}
                             {!aiData.reason && !aiData.details && !aiData.urgency && (
-                              <p className="text-sm text-slate-300">
+                              <p className="line-clamp-2 text-xs text-slate-300 leading-relaxed">
                                 {getCompactSummary(lead)}
                               </p>
                             )}
                           </div>
 
                           {/* Metadata */}
-                          <div className="flex items-center justify-between mb-3 sm:mb-4">
-                            <div className="flex items-center gap-2 sm:gap-2.5">
+                          <div className="flex items-center justify-between mb-2.5">
+                            <div className="flex items-center gap-2">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   const status = isNewLead ? 'new' : getLeadLifecycleStatus(lead)
                                   setStatusFilter(statusFilter === status ? 'all' : status)
                                 }}
-                                className={`px-2.5 py-1 text-xs font-medium rounded-full transition-all duration-200 ${
+                                className={`px-2 py-0.5 text-[10px] font-medium rounded-full transition-all duration-200 ${
                                   isNewLead ? 'bg-orange-600/20 text-orange-300' :
                                   getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-600/20 text-blue-300' :
                                   getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-600/20 text-green-300' :
@@ -1371,24 +1371,24 @@ export default function LeadsPage() {
                               >
                                 {isNewLead ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
                               </button>
-                              <span className="text-sm text-slate-400">
+                              <span className="text-[11px] text-slate-500">
                                 {formatRelativeTime(lead.created_at)}
                               </span>
                             </div>
                             {isNewLead && (
-                              <span className="px-2.5 py-1 bg-orange-600/20 text-orange-300 text-xs font-semibold rounded-full">
+                              <span className="px-2 py-0.5 bg-orange-600/20 text-orange-300 text-[10px] font-semibold rounded-full">
                                 New
                               </span>
                             )}
                           </div>
 
                           {/* Action Buttons - Improved mobile touch targets */}
-                          <div className="flex items-center gap-2 sm:gap-3 pt-3 border-t border-slate-700/50 mt-auto">
+                          <div className="flex items-center gap-2 pt-2.5 border-t border-slate-700/40 mt-auto">
                             {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
                               <a
                                 href={`tel:${lead.caller_phone}`}
                                 onClick={(e) => e.stopPropagation()}
-                                className="flex sm:hidden flex-1 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-lg transition-colors group-hover:bg-blue-900/20 group-hover:text-blue-400"
+                                className="flex sm:hidden flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg transition-colors group-hover:bg-blue-900/20 group-hover:text-blue-400"
                                 title="Call"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1397,7 +1397,7 @@ export default function LeadsPage() {
                                 Call
                               </a>
                             )}
-                            <div className="flex-1 sm:flex-1 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
+                            <div className="flex-1 sm:flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 router.push(`/dashboard/leads/${lead.id}`)
@@ -1511,7 +1511,7 @@ export default function LeadsPage() {
                 } else {
                   // Multiple leads: grid layout
                   return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
                       {filteredLeads.map((lead: any, index: number) => {
                         const latestMessage = lead.messages && lead.messages.length > 0
                           ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]     
@@ -1535,25 +1535,25 @@ export default function LeadsPage() {
                         return (
                           <div
                             key={lead.id}
-                            className="bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 transition-all duration-200 group cursor-pointer"
+                            className="bg-card rounded-lg border border-slate-700/40 hover:border-slate-600 hover:shadow-sm transition-all duration-200 group cursor-pointer"
                             onClick={() => handleConversationClick(lead.id)}
                           >
                             {/* Status Accent Bar */}
                             <div className={`h-1 rounded-t-lg ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
-                            <div className="p-3 sm:p-4">
+                            <div className="p-3">
                               {/* Header: Name, Phone, Status */}
-                              <div className="flex items-start justify-between mb-2 sm:mb-3">
+                              <div className="flex items-start justify-between gap-3 mb-2">
                                 <div className="flex-1 min-w-0">
-                                  <h3 className={`text-sm sm:text-base font-semibold text-white mb-1 truncate tracking-tight ${isNewLead ? 'text-orange-400' : ''}`}>
+                                  <h3 className={`text-base font-semibold text-white mb-0.5 truncate tracking-tight ${isNewLead ? 'text-orange-400' : ''}`}>
                                     {getLeadDisplayName(lead)}
                                   </h3>
-                                  <p className="text-xs sm:text-sm text-slate-400">
+                                  <p className="text-xs text-slate-400">
                                     {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                                   </p>
                                 </div>
                                 <div onClick={(e) => e.stopPropagation()}>
                                   {lead.deleted_at ? (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-900/30 text-red-400 border border-red-700/50">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-900/25 text-red-400 border border-red-700/40">
                                       Deleted
                                     </span>
                                   ) : (
@@ -1567,27 +1567,27 @@ export default function LeadsPage() {
                               </div>
 
                               {/* Compact Preview */}
-                              <div className="mb-2 sm:mb-3 space-y-1 sm:space-y-1.5">
+                              <div className="mb-2 space-y-1">
                                 {aiData.reason && (
-                                  <div className="flex items-center gap-1.5 sm:gap-2">
-                                    <span className="text-xs sm:text-sm">📋</span>
-                                    <p className="text-xs sm:text-sm text-slate-300">
+                                  <div className="flex items-start gap-1.5">
+                                    <span className="mt-0.5 text-[11px]">📋</span>
+                                    <p className="line-clamp-1 text-xs text-slate-300 leading-relaxed">
                                       {aiData.reason}
                                     </p>
                                   </div>
                                 )}
                                 {aiData.details && (
-                                  <div className="flex items-center gap-1.5 sm:gap-2">
-                                    <span className="text-xs sm:text-sm">📝</span>
-                                    <p className="text-xs sm:text-sm text-slate-300">
+                                  <div className="flex items-start gap-1.5">
+                                    <span className="mt-0.5 text-[11px]">📝</span>
+                                    <p className="line-clamp-2 text-xs text-slate-300 leading-relaxed">
                                       {aiData.details}
                                     </p>
                                   </div>
                                 )}
                                 {aiData.urgency && (
-                                  <div className="flex items-center gap-1.5 sm:gap-2">
-                                    <span className="text-xs sm:text-sm">🔥</span>
-                                    <span className={`text-xs sm:text-sm font-medium ${
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[11px]">🔥</span>
+                                    <span className={`text-xs font-medium ${
                                       aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
                                         ? 'text-red-400'
                                         : 'text-slate-300'
@@ -1597,14 +1597,14 @@ export default function LeadsPage() {
                                   </div>
                                 )}
                                 {!aiData.reason && !aiData.details && !aiData.urgency && (
-                                  <p className="text-xs sm:text-sm text-slate-300">
+                                  <p className="line-clamp-2 text-xs text-slate-300 leading-relaxed">
                                     {getCompactSummary(lead)}
                                   </p>
                                 )}
                               </div>
 
                               {/* Metadata */}
-                              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                              <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-1.5 sm:gap-2">
                                   <button
                                     onClick={(e) => {
@@ -1623,7 +1623,7 @@ export default function LeadsPage() {
                                   >
                                     {isNewLead ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
                                   </button>
-                                  <span className="text-xs text-slate-400">
+                                  <span className="text-[11px] text-slate-500">
                                     {formatRelativeTime(lead.created_at)}
                                   </span>
                                 </div>
@@ -1635,12 +1635,12 @@ export default function LeadsPage() {
                               </div>
 
                               {/* Action Buttons - Improved mobile touch targets */}
-                              <div className="flex items-center gap-1.5 sm:gap-2 pt-2 sm:pt-3 border-t border-slate-700/50">
+                              <div className="flex items-center gap-1.5 pt-2 border-t border-slate-700/40">
                                 {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
                                   <a
                                     href={`tel:${lead.caller_phone}`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="flex sm:hidden flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg transition-colors group-hover:bg-blue-900/20 group-hover:text-blue-400"
+                                    className="flex sm:hidden flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg transition-colors group-hover:bg-blue-900/20 group-hover:text-blue-400"
                                     title="Call"
                                   >
                                     <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1649,7 +1649,7 @@ export default function LeadsPage() {
                                     Call
                                   </a>
                                 )}
-                                <div className="flex-1 inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer"
+                                <div className="flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation()
                                     router.push(`/dashboard/leads/${lead.id}`)

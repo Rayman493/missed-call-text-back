@@ -1917,11 +1917,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Conversation Sub-Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 py-1.5 sm:py-3">
+        <div className="max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 py-1 sm:py-2">
           {/* Mobile Layout: Enhanced Information Header */}
           <div className="md:hidden">
             {/* Back to Leads link for mobile */}
-            <div className="mb-3">
+            <div className="mb-2">
               <button
                 type="button"
                 onClick={() => {
@@ -1939,7 +1939,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {/* Enhanced Lead Info */}
               <div className="flex-1 min-w-0">
                 {/* Row 1: Customer name with actions */}
-                <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center justify-between mb-1">
                   <h1 className="font-semibold text-slate-900 dark:text-white text-sm leading-tight truncate">
                     {getLeadDisplayName(leadData || lead)}
                   </h1>
@@ -2124,7 +2124,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Layout: Simplified */}
           <div className="hidden md:block">
             {/* Back to Leads */}
-            <div className="mb-2">
+            <div className="mb-1.5">
               <button
                 type="button"
                 onClick={() => {
@@ -2140,15 +2140,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Lead Identity Section - Simplified */}
-            <div className="flex items-center gap-8 mb-2">
+            <div className="flex items-center gap-6 mb-1.5">
               {/* Customer Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-5 mb-1">
                   <div className="flex-1 min-w-0">
-                    <h1 className="text-3xl font-semibold text-foreground tracking-tight">
+                    <h1 className="text-2xl font-semibold text-foreground tracking-tight">
                       {getLeadDisplayName(leadData || lead)}
                     </h1>
-                    <p className="text-sm text-muted-foreground mt-0">
+                    <p className="text-xs text-muted-foreground mt-0">
                       {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                     </p>
                   </div>
@@ -2243,7 +2243,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
 
                 {/* Compact Metadata - Reduced Visual Weight */}
-                <div className="flex items-center gap-4 text-sm text-slate-400 dark:text-slate-500">
+                <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
                   <span>Created {formatRelativeTime(lead?.created_at)}</span>
                   {lead?.last_message_at && (
                     <span>Last Activity {formatRelativeTime(lead.last_message_at)}</span>
@@ -2257,7 +2257,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCreateJobClick}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm font-medium"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M12 2a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2V4a2 2 0 012-2z" />
@@ -2266,7 +2266,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </button>
               <button
                 onClick={handleScheduleClick}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm font-medium"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -2276,7 +2276,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 onClick={() => setShowPaymentModal(true)}
                 disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 title={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' ? 'Connect Stripe in Settings to request payments' : 'Request payment'}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2325,7 +2325,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Desktop Message Composer - Fixed to Bottom */}
-            <div className="shrink-0 border-t border-border/40 pt-1">
+            <div className="shrink-0 pt-2">
               <ConversationComposer
                 message={message}
                 setMessage={setMessage}
@@ -2490,7 +2490,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         <div className="lg:hidden space-y-3">
           {/* Lead Overview Card - Unified AI Intake + Lead Status - Mobile optimized */}
           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id ? (
-            <div className="bg-card border border-border/50 rounded-xl p-3">
+            <div className="bg-card border border-border/50 rounded-xl p-2.5">
               <div className="flex items-center justify-between mb-2">
                 <button
                   onClick={() => setCollapsedSections((prev: any) => ({ ...prev, aiIntake: !prev.aiIntake }))}
@@ -2521,7 +2521,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               )}
               {!collapsedSections.aiIntake && (
-                <div className="mt-2 transition-all duration-200">
+                <div className="mt-1.5 transition-all duration-200">
                   <AICallDetails
                     leadId={params.id}
                     businessId={business.id}
@@ -2533,7 +2533,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   />
                 </div>
               )}
-              <div className="flex flex-wrap gap-1.5 mt-3">
+              <div className="flex flex-wrap gap-1 mt-2">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
                   {leadData?.status || lead?.status || 'New'}
                 </span>
@@ -2577,8 +2577,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             </div>
           ) : (
-            <div className="bg-card border border-border/50 rounded-xl p-3">
-              <div className="flex items-center justify-between mb-2">
+            <div className="bg-card border border-border/50 rounded-xl p-2.5">
+              <div className="flex items-center justify-between mb-1.5">
                 <h3 className="text-sm font-medium text-foreground">Lead Overview</h3>
                 {(followUpSettings?.enabled || (followUpJobs && followUpJobs.length > 0)) && (
                   <button
@@ -2589,7 +2589,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </button>
                 )}
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1 mt-2">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
                   {leadData?.status || lead?.status || 'New'}
                 </span>
