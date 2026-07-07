@@ -147,8 +147,8 @@ export default function JobComposer({
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
         onClick={onClose}
       />
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <div className="fixed bottom-0 left-0 right-0 sm:relative sm:bottom-auto sm:left-auto sm:right-auto bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg max-h-[92dvh] sm:max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-4">
+        <div className="relative bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg max-h-[80dvh] sm:max-h-[90vh] flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
             <div className="flex items-center gap-2.5">
@@ -322,7 +322,7 @@ export default function JobComposer({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 p-4 sm:p-5 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-5 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex-shrink-0">
+          <div className="flex items-center justify-end gap-3 p-4 sm:p-5 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex-shrink-0">
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
