@@ -6085,6 +6085,59 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     const stripTrailingPeriod = (s: string): string =>
       s.replace(/\.\s*$/, '').trim();
 
+    const logFieldValidation = (field: string, rawTranscript: string | undefined, extractedValue: string, accepted: boolean, reason: string, storedValue: string) => {
+      console.log('[FIELD VALIDATION] =========================================');
+      console.log('[FIELD VALIDATION] field:', field);
+      console.log('[FIELD VALIDATION] rawTranscript:', rawTranscript || '');
+      console.log('[FIELD VALIDATION] extractedValue:', extractedValue || '');
+      console.log('[FIELD VALIDATION] accepted:', accepted);
+      console.log('[FIELD VALIDATION] reason:', reason);
+      console.log('[FIELD VALIDATION] storedValue:', storedValue || 'Not collected');
+      console.log('[FIELD VALIDATION] =========================================');
+    };
+
+    const validateNameField = (s: string, rawTranscript?: string): string => {
+      const normalized = collapseWhitespace(stripTrailingPeriod(stripLeadingFiller(s)));
+      const lower = normalized.toLowerCase();
+      const wordCount = normalized.split(/\s+/).filter(Boolean).length;
+      const invalid = !normalized || normalized.length < 2 || normalized.length > 60 || wordCount > 4 || /\d/.test(normalized) || /[?]/.test(normalized) || /\b(need|want|looking|calling|service|appointment|address|street|road|avenue|tomorrow|morning|afternoon|evening|callback|call back|text back|not sure|hello|hi|hey)\b/i.test(lower);
+      if (invalid) {
+        logFieldValidation('customerName', rawTranscript, s, false, 'does_not_resemble_realistic_human_name', '');
+        return '';
+      }
+      const stored = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+      logFieldValidation('customerName', rawTranscript, s, true, 'accepted', stored);
+      return stored;
+    };
+
+    const validateServiceField = (s: string, rawTranscript?: string): string => {
+      const normalized = collapseWhitespace(stripTrailingPeriod(stripLeadingFiller(normalizeAmPm(s))));
+      const lower = normalized.toLowerCase();
+      const wordCount = normalized.split(/\s+/).filter(Boolean).length;
+      const invalid = !normalized || normalized.length < 3 || normalized.length > 140 || wordCount > 18 || /\b(hi|hello|hey|thanks|thank you|morning|afternoon|evening|tomorrow|today|tonight|asap|address|street|road|avenue|drive|boulevard|call me|call back|callback|anytime|after work|before noon)\b/i.test(lower) || /^\d/.test(normalized);
+      if (invalid) {
+        logFieldValidation('serviceRequested', rawTranscript, s, false, 'does_not_resemble_legitimate_service_request', '');
+        return '';
+      }
+      const stored = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+      logFieldValidation('serviceRequested', rawTranscript, s, true, 'accepted', stored);
+      return stored;
+    };
+
+    const validateAddressField = (s: string, rawTranscript?: string): string => {
+      const normalized = collapseWhitespace(stripTrailingPeriod(stripAddressWrapper(stripLeadingFiller(s))));
+      const lower = normalized.toLowerCase();
+      const hasAddressShape = /\d{1,6}\s+[a-z0-9' .-]+\b(street|st|road|rd|avenue|ave|drive|dr|lane|ln|court|ct|circle|cir|boulevard|blvd|way|place|pl|terrace|ter)\b/i.test(normalized) || /\b(apartment|apt|suite|unit|floor|building|near|corner of|intersection|downtown|online|remote|virtual|at my house|at my home|my house|my home|business location|your location)\b/i.test(lower);
+      const invalid = !normalized || normalized.length < 4 || normalized.length > 180 || /\b(morning|afternoon|evening|tomorrow|today|tonight|asap|callback|call back|anytime|after work|before noon)\b/i.test(lower) || !hasAddressShape;
+      if (invalid) {
+        logFieldValidation('serviceAddress', rawTranscript, s, false, 'does_not_resemble_address_or_location', '');
+        return '';
+      }
+      const stored = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+      logFieldValidation('serviceAddress', rawTranscript, s, true, 'accepted', stored);
+      return stored;
+    };
+
     // Remove conversational address wrappers ONLY — does not touch the address itself
     const stripAddressWrapper = (s: string): string => {
       const wrappers = [
@@ -6131,7 +6184,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Apply the full normalization pipeline to a field value
     const normalizeCrmField = (
       value: string | undefined,
-      fieldType: 'name' | 'service' | 'address' | 'time' | 'details'
+      fieldType: 'name' | 'service' | 'address' | 'time' | 'details',
+      fieldName: string = fieldType
     ): string => {
       if (!value || value.trim() === '') return '';
       let s = value.trim();
@@ -6141,28 +6195,21 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       s = collapseWhitespace(s);
 
       if (fieldType === 'address') {
-        s = stripLeadingFiller(s);
-        s = stripAddressWrapper(s);
-        s = stripTrailingPeriod(s);
-        s = collapseWhitespace(s);
+        s = validateAddressField(s, value);
       } else if (fieldType === 'time') {
-        s = validateTimeField(s, 'time_field');
+        s = validateTimeField(s, fieldName);
       } else if (fieldType === 'details') {
         s = stripLeadingFiller(s);
         s = normalizeAmPm(s);
         s = compressLongText(s);
         s = collapseWhitespace(s);
+        logFieldValidation(fieldName, value, value, true, 'accepted_permissive_details_field', s);
       } else if (fieldType === 'service') {
-        s = stripLeadingFiller(s);
-        s = normalizeAmPm(s);
-        s = collapseWhitespace(s);
+        s = validateServiceField(s, value);
       } else if (fieldType === 'name') {
-        s = stripLeadingFiller(s);
-        s = collapseWhitespace(s);
+        s = validateNameField(s, value);
       }
 
-      // Capitalize first letter
-      s = s.charAt(0).toUpperCase() + s.slice(1);
       return s;
     };
 
@@ -6223,28 +6270,19 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         }
       }
       
-      // Also accept very short reasonable answers (1-3 words that aren't nonsense)
-      const words = lowerNormalized.split(/\s+/);
-      if (!isValid && words.length >= 1 && words.length <= 3) {
-        // Check if it's not obviously nonsense (very short or very long)
-        if (normalized.length >= 2 && normalized.length <= 50) {
-          isValid = true;
-        }
+      if (!isValid && /\b(around lunch|lunch|lunchtime|before noon|noon|midday|end of day|this month|next month|this weekend|next weekend|within (one|two|three|four|five|six|seven) (day|days|hour|hours|week|weeks)|in (one|two|three|four|five|six|seven) (day|days|hour|hours|week|weeks))\b/i.test(lowerNormalized)) {
+        isValid = true;
       }
       
       if (!isValid) {
-        console.log('[FIELD VALIDATION] =========================================');
-        console.log('[FIELD VALIDATION] field:', fieldName);
-        console.log('[FIELD VALIDATION] rawTranscript:', s);
-        console.log('[FIELD VALIDATION] accepted:', false);
-        console.log('[FIELD VALIDATION] reason:', 'does_not_resemble_legitimate_time_phrase');
-        console.log('[FIELD VALIDATION] =========================================');
+        logFieldValidation(fieldName, s, s, false, 'does_not_resemble_legitimate_time_phrase', '');
         return '';
       }
       
       // Capitalize first letter
       normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1);
       
+      logFieldValidation(fieldName, s, s, true, 'accepted', normalized);
       return normalized;
     };
     // ─────────────────────────────────────────────────────────────────────────
@@ -6370,12 +6408,12 @@ Reply to this message if you'd like to update or add any information.
       // Preserve natural callback answers and service descriptions
 
       // Apply per-field CRM normalization after minimal cleanup
-      state.intakeData.customerName        = normalizeCrmField(state.intakeData.customerName,                           'name');
-      state.intakeData.serviceRequested    = normalizeCrmField(serviceRequested,                       'service');
-      state.intakeData.serviceAddress      = normalizeCrmField(state.intakeData.serviceAddress,        'address');
-      state.intakeData.desiredCompletionTime = validateTimeField(state.intakeData.desiredCompletionTime, 'desiredCompletionTime');
-      state.intakeData.callbackTime        = validateTimeField(state.intakeData.callbackTime,          'callbackTime');
-      state.intakeData.issueDescription    = normalizeCrmField(state.intakeData.issueDescription,     'details');
+      state.intakeData.customerName        = normalizeCrmField(state.intakeData.customerName,          'name',    'customerName');
+      state.intakeData.serviceRequested    = normalizeCrmField(serviceRequested,                       'service', 'serviceRequested');
+      state.intakeData.serviceAddress      = normalizeCrmField(state.intakeData.serviceAddress,        'address', 'serviceAddress');
+      state.intakeData.desiredCompletionTime = validateTimeField(state.intakeData.desiredCompletionTime || '', 'desiredCompletionTime');
+      state.intakeData.callbackTime        = validateTimeField(state.intakeData.callbackTime || '',    'callbackTime');
+      state.intakeData.issueDescription    = normalizeCrmField(state.intakeData.issueDescription,     'details', 'issueDescription');
 
       // Log normalized values for diagnostics
       console.log('[CRM NORMALIZATION OUTPUT]', {
