@@ -2238,31 +2238,64 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
         }
         break;
       case 'ask_details':
-        intake.issueDescription = transcript.trim();
-        console.log('[SCRIPTED FLOW] =========================================');
-        console.log('[SCRIPTED FLOW] field saved');
-        console.log('[SCRIPTED FLOW] field: issueDescription');
-        console.log('[SCRIPTED FLOW] value:', transcript.trim());
-        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-        console.log('[SCRIPTED FLOW] =========================================');
+        // Only set if field is not already captured - prevent overwriting valid answers
+        if (!intake.issueDescription) {
+          intake.issueDescription = transcript.trim();
+          console.log('[SCRIPTED FLOW] =========================================');
+          console.log('[SCRIPTED FLOW] field saved');
+          console.log('[SCRIPTED FLOW] field: issueDescription');
+          console.log('[SCRIPTED FLOW] value:', transcript.trim());
+          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+          console.log('[SCRIPTED FLOW] =========================================');
+        } else {
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+          console.log('[FIELD LOCK PROTECTION] field: issueDescription');
+          console.log('[FIELD LOCK PROTECTION] current value:', intake.issueDescription);
+          console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
+          console.log('[FIELD LOCK PROTECTION] reason: field already captured, overwrite prevented');
+          console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+        }
         break;
       case 'ask_location_or_context':
-        intake.serviceAddress = transcript.trim();
-        console.log('[SCRIPTED FLOW] =========================================');
-        console.log('[SCRIPTED FLOW] field saved');
-        console.log('[SCRIPTED FLOW] field: serviceAddress');
-        console.log('[SCRIPTED FLOW] value:', transcript.trim());
-        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-        console.log('[SCRIPTED FLOW] =========================================');
+        // Only set if field is not already captured - prevent overwriting valid answers
+        if (!intake.serviceAddress) {
+          intake.serviceAddress = transcript.trim();
+          console.log('[SCRIPTED FLOW] =========================================');
+          console.log('[SCRIPTED FLOW] field saved');
+          console.log('[SCRIPTED FLOW] field: serviceAddress');
+          console.log('[SCRIPTED FLOW] value:', transcript.trim());
+          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+          console.log('[SCRIPTED FLOW] =========================================');
+        } else {
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+          console.log('[FIELD LOCK PROTECTION] field: serviceAddress');
+          console.log('[FIELD LOCK PROTECTION] current value:', intake.serviceAddress);
+          console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
+          console.log('[FIELD LOCK PROTECTION] reason: field already captured, overwrite prevented');
+          console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+        }
         break;
       case 'ask_timing':
-        intake.desiredCompletionTime = transcript.trim();
-        console.log('[SCRIPTED FLOW] =========================================');
-        console.log('[SCRIPTED FLOW] after timing save');
-        console.log('[SCRIPTED FLOW] field: desiredCompletionTime');
-        console.log('[SCRIPTED FLOW] value:', transcript.trim());
-        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-        console.log('[SCRIPTED FLOW] =========================================');
+        // Only set if field is not already captured - prevent overwriting valid answers
+        if (!intake.desiredCompletionTime) {
+          intake.desiredCompletionTime = transcript.trim();
+          console.log('[SCRIPTED FLOW] =========================================');
+          console.log('[SCRIPTED FLOW] after timing save');
+          console.log('[SCRIPTED FLOW] field: desiredCompletionTime');
+          console.log('[SCRIPTED FLOW] value:', transcript.trim());
+          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+          console.log('[SCRIPTED FLOW] =========================================');
+        } else {
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+          console.log('[FIELD LOCK PROTECTION] field: desiredCompletionTime');
+          console.log('[FIELD LOCK PROTECTION] current value:', intake.desiredCompletionTime);
+          console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
+          console.log('[FIELD LOCK PROTECTION] reason: field already captured, overwrite prevented');
+          console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+        }
         break;
       case 'ask_callback_time':
         const callbackValidation = validateCallbackTimeTranscript(transcript);
@@ -2286,13 +2319,24 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
           };
         }
 
-        intake.callbackTime = transcript.trim();
-        console.log('[SCRIPTED FLOW] =========================================');
-        console.log('[SCRIPTED FLOW] callback time saved');
-        console.log('[SCRIPTED FLOW] field: callbackTime');
-        console.log('[SCRIPTED FLOW] value:', transcript.trim());
-        console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-        console.log('[SCRIPTED FLOW] =========================================');
+        // Only set if field is not already captured - prevent overwriting valid answers
+        if (!intake.callbackTime) {
+          intake.callbackTime = transcript.trim();
+          console.log('[SCRIPTED FLOW] =========================================');
+          console.log('[SCRIPTED FLOW] callback time saved');
+          console.log('[SCRIPTED FLOW] field: callbackTime');
+          console.log('[SCRIPTED FLOW] value:', transcript.trim());
+          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+          console.log('[SCRIPTED FLOW] =========================================');
+        } else {
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+          console.log('[FIELD LOCK PROTECTION] field: callbackTime');
+          console.log('[FIELD LOCK PROTECTION] current value:', intake.callbackTime);
+          console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
+          console.log('[FIELD LOCK PROTECTION] reason: field already captured, overwrite prevented');
+          console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+        }
         break;
     }
   }

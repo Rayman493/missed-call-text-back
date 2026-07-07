@@ -994,21 +994,27 @@ async function updateProvisioningStatus(
         provisioning_status: status,
         last_provisioning_attempt_at: new Date().toISOString(),
       };
-      
+
       if (error) {
         updateData.provisioning_error = error;
       } else {
         updateData.provisioning_error = null;
       }
-      
+
       if (setCampaignRegisteredAt) {
         updateData.campaign_registered_at = new Date().toISOString();
       }
-      
+
       if (setSenderPoolAttachedAt) {
         updateData.sender_pool_attached_at = new Date().toISOString();
       }
-      
+
+      // Transition sms_status to ready when provisioning is complete
+      if (status === 'ready') {
+        updateData.sms_status = 'ready';
+        console.log('[UPDATE STATUS] Transitioning sms_status to ready');
+      }
+
       console.log('[UPDATE STATUS] Updating twilio_numbers table with data:', updateData);
       
       const { error: twilioError } = await supabase
