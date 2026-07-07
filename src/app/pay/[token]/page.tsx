@@ -40,7 +40,7 @@ export default async function PayPage({ params }: PayPageProps) {
   if (error || !paymentRequest) {
     console.log('[PAY TOKEN] redirect=false, reason=missing')
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
           <div className="text-red-500 mb-4">
             <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,7 +60,7 @@ export default async function PayPage({ params }: PayPageProps) {
   if (paymentRequest.expires_at && new Date(paymentRequest.expires_at) < new Date()) {
     console.log('[PAY TOKEN] redirect=false, reason=expired')
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
           <div className="text-yellow-500 mb-4">
             <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,7 +80,7 @@ export default async function PayPage({ params }: PayPageProps) {
   if (paymentRequest.status === 'paid') {
     console.log('[PAY TOKEN] redirect=false, reason=paid')
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
           <div className="text-green-500 mb-4">
             <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -103,7 +103,7 @@ export default async function PayPage({ params }: PayPageProps) {
   if (paymentRequest.status === 'cancelled' || paymentRequest.status === 'canceled') {
     console.log('[PAY TOKEN] redirect=false, reason=cancelled, status=', paymentRequest.status)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
           <div className="text-red-500 mb-4">
             <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,7 +156,7 @@ export default async function PayPage({ params }: PayPageProps) {
     }
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
           <div className="text-center mb-6">
             <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${providerColor} mb-4`}>
@@ -219,7 +219,7 @@ export default async function PayPage({ params }: PayPageProps) {
 
   // Fallback if no checkout URL exists
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
         <div className="text-red-500 mb-4">
           <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">

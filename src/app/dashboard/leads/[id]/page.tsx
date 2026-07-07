@@ -847,6 +847,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [paymentDescription, setPaymentDescription] = useState('')
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
+  const paymentAmountRef = useRef<HTMLInputElement>(null)
 
   // Set default payment provider when modal opens
   useEffect(() => {
@@ -864,6 +865,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           setSelectedPaymentProvider('paypal')
         }
       }
+      // Autofocus amount field
+      setTimeout(() => {
+        paymentAmountRef.current?.focus()
+      }, 100)
     }
   }, [showPaymentModal, business])
 
@@ -3152,8 +3157,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     {/* Payment Request Modal */}
     {showPaymentModal && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800">
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowPaymentModal(false)
+            setPaymentAmount('')
+            setPaymentDescription('')
+          }
+        }}
+      >
+        <div 
+          className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setShowPaymentModal(false)
+              setPaymentAmount('')
+              setPaymentDescription('')
+            }
+          }}
+        >
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
             Request Payment
           </h3>
@@ -3169,6 +3192,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">$</span>
                 <input
+                  ref={paymentAmountRef}
                   type="number"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}

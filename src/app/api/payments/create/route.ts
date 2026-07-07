@@ -500,16 +500,12 @@ export async function POST(request: Request) {
     console.log('[PAYMENT REQUEST SMS LINK LOGIC] Timestamp:', new Date().toISOString())
     console.log('[PAYMENT REQUEST SMS LINK LOGIC] =========================================')
     
-    const smsMessage = `Thanks for choosing ${businessName}!
-
-Your payment request of $${amount} is ready.
-
-${paymentDescription || ''}
+    const smsMessage = `${businessName} has sent you a payment request of $${amount}${paymentDescription ? ` for ${paymentDescription}` : ''}.
 
 Pay securely here:
 ${paymentUrl}
 
-Thank you! If you have any questions, simply reply to this message.`
+If you have questions, reply to this message.`
 
     console.log('[PAYMENT REQUEST] SMS message prepared:', smsMessage)
     console.log('[PAYMENT REQUEST] Sending SMS to:', lead.caller_phone)
