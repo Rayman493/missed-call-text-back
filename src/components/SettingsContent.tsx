@@ -1157,17 +1157,17 @@ export default function SettingsContent() {
               </div>
             </div>
             {/* Spacer to maintain consistent spacing */}
-            <div className="mb-4"></div>
+            <div className="mb-3"></div>
 
             {/* Settings Sections */}
-            <div className="space-y-4 sm:space-y-5 pb-40">
+            <div className="space-y-3 sm:space-y-4 pb-32">
               {/* Business Info Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6 scroll-mt-[200px]">
-                <div className="mb-5">
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-1">Business Info</h2>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Your business identity and contact information.</p>
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[200px]">
+                <div className="mb-4">
+                  <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Business Info</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Your business identity and contact details.</p>
                 </div>
-                <div className="space-y-4 sm:space-y-5">
+                <div className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
                       Business Name
@@ -1230,39 +1230,22 @@ export default function SettingsContent() {
                       )}
                       
                       {!phoneCooldown?.inCooldown && (
-                        <div className="space-y-3">
-                          <p className="text-xs text-slate-600 dark:text-slate-400">
-                            {business?.forwarding_verified ? (
-                              <>
-                                Phone forwarding is verified and working correctly. No action is needed unless you change your carrier or forwarding settings.
-                              </>
-                            ) : (
-                              <>
-                                Changing your business phone number requires updating your call forwarding settings. After saving, ReplyFlow will guide you through re-verifying forwarding so missed calls continue to be captured.
-                              </>
-                            )}
+                        <div className="space-y-2">
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {business?.forwarding_verified
+                              ? 'Phone forwarding is verified.'
+                              : 'Changing your phone number requires re-verifying forwarding.'}
                           </p>
-                          {/* Personal/Business Number Guidance */}
-                          <div className="bg-blue-50/60 dark:bg-blue-900/15 border border-blue-200/60 dark:border-blue-800/60 rounded-md p-3">
-                            <div className="flex items-start gap-2.5">
-                              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                              </svg>
-                              <div>
-                                <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Best experience: Dedicated business number</p>
-                                <p className="text-xs text-blue-700 dark:text-blue-300 mb-1.5 leading-relaxed">
-                                  A dedicated business phone number provides the best experience. It allows ReplyFlow to automatically handle every missed customer call without affecting personal callers.
-                                </p>
-                                <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Still fully supported: Personal business phones</p>
-                                <p className="text-xs text-blue-700 dark:text-blue-300 mb-1.5 leading-relaxed">
-                                  If you use one phone for both business and personal calls, ReplyFlow still works well. You can use Ignored Contacts to keep known personal callers out of the normal ReplyFlow customer workflow.
-                                </p>
-                                <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                                  See the Ignored Contacts section below for more information.
-                                </p>
-                              </div>
+                          <details className="group rounded-md border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/70 dark:bg-slate-800/30 px-3 py-2">
+                            <summary className="cursor-pointer list-none text-xs font-medium text-slate-700 dark:text-slate-300">
+                              <span className="group-open:hidden">▸ Number guidance</span>
+                              <span className="hidden group-open:inline">▾ Number guidance</span>
+                            </summary>
+                            <div className="mt-2 space-y-1.5 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                              <p>A dedicated business number gives the cleanest experience.</p>
+                              <p>Personal business phones are supported. Use Ignored Contacts to keep known personal callers out of ReplyFlow.</p>
                             </div>
-                          </div>
+                          </details>
                         </div>
                       )}
                       
@@ -1296,11 +1279,11 @@ export default function SettingsContent() {
               ) : (
               <>
               {/* Messaging Settings */}
-              <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4">
-                <div className="flex items-center justify-between mb-3">
+              <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4">
+                <div className="flex items-center justify-between mb-2">
                   <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Text Message Settings</h2>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Customize automatic text responses for missed calls.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Customize missed-call replies.</p>
                 <div className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
@@ -1317,15 +1300,15 @@ export default function SettingsContent() {
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 scroll-mt-[200px]">
-                <div className="mb-4">
+              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[200px]">
+                <div className="mb-3">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Instant Response Settings</h2>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Control when ReplyFlow sends instant responses to missed calls.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Control automatic missed-call responses.</p>
                 </div>
                 
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {/* Spam & Repeat Call Filtering */}
                   <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40">
                     <div className="flex items-start justify-between mb-3">
@@ -1333,12 +1316,9 @@ export default function SettingsContent() {
                         <div className="flex items-center gap-2 mb-1.5">
                           <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Spam & Repeat Call Filtering</h3>
                         </div>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
-                          Control which callers receive instant text responses and which calls ReplyFlow should ignore.
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Ignore spam and repeat callers before they become leads.
                         </p>
-                        <div className="text-xs text-slate-500 dark:text-slate-500">
-                          Filtered calls will not create leads, trigger automations, or appear in your inbox.
-                        </div>
                       </div>
                       <button
                         onClick={handleToggleSpamFiltering}
@@ -1358,15 +1338,15 @@ export default function SettingsContent() {
 
                     {/* Filtering Options - Only show when enabled */}
                     {spamFilteringEnabled && (
-                      <div className="space-y-3 sm:space-y-4 border-t border-border pt-3 sm:pt-4">
+                      <div className="space-y-2 border-t border-border/70 pt-3">
                         {/* Repeat Call Protection */}
-                        <div className="flex items-start justify-between p-3 sm:p-4 bg-white/60 dark:bg-slate-800/30 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
+                        <div className="flex items-start justify-between p-3 bg-white/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/40 dark:border-slate-700/30">
                           <div className="flex-1 pr-3 sm:pr-4">
                             <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                               <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Prevent duplicate instant replies</h4>
                             </div>
                             <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
-                              Avoid sending repeated texts if the same person calls multiple times.
+                              Avoid repeated texts to the same caller.
                             </p>
                           </div>
                           <button
@@ -1390,7 +1370,7 @@ export default function SettingsContent() {
                         </div>
 
                         {/* Private/Blocked Numbers */}
-                        <div className="flex items-start justify-between p-3 sm:p-4 bg-white/60 dark:bg-slate-800/30 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
+                        <div className="flex items-start justify-between p-3 bg-white/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/40 dark:border-slate-700/30">
                           <div className="flex-1 pr-3 sm:pr-4">
                             <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
                               <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Skip blocked or hidden callers</h4>
@@ -1426,7 +1406,7 @@ export default function SettingsContent() {
                               <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Skip suspected spam callers</h4>
                             </div>
                             <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
-                              Automatically skip calls from suspected spam or robocall numbers.
+                              Skip obvious spam and robocall numbers.
                             </p>
                           </div>
                           <button
@@ -1453,8 +1433,8 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Business Hours */}
-                  <div className="p-2 sm:p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
-                    <div className="flex items-start justify-between mb-2 sm:mb-3">
+                  <div className="p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
+                    <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 pr-3 sm:pr-4">
                         <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
                           <h3 className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">Business Hours Only</h3>
@@ -1466,7 +1446,7 @@ export default function SettingsContent() {
                           )}
                         </div>
                         <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground mb-0.5 sm:mb-1">
-                          During business hours ReplyFlow sends your standard instant response. Outside business hours it sends your After Hours message.
+                          Send different replies inside and outside business hours.
                         </p>
                       </div>
                       <button
@@ -1488,7 +1468,7 @@ export default function SettingsContent() {
                     
                     {/* Timezone and Hours Selector */}
                     {formBusiness.business_hours_enabled && (
-                      <div className="mt-3 pt-3 border-t border-border space-y-3">
+                      <div className="mt-3 pt-3 border-t border-border/70 space-y-3">
                         <div>
                           <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                             Timezone
@@ -1563,8 +1543,8 @@ export default function SettingsContent() {
                             </div>
                           </div>
                         )}
-                        <p className="text-xs text-slate-600 dark:text-muted-foreground">
-                          Automated texts will only be sent during these hours, Monday through Friday.
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Applies Monday through Friday.
                         </p>
                         <div className="mt-3 pt-3 border-t border-border">
                           <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
@@ -1576,8 +1556,8 @@ export default function SettingsContent() {
                             rows={2}
                             className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
                           />
-                          <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1.5">
-                            {`{{business_name}}`} is automatically replaced with your business name when messages are sent.
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                            {`{{business_name}}`} inserts your business name.
                           </p>
                           {formBusiness.business_hours_enabled && !formBusiness.after_hours_message?.trim() && (
                             <div className="flex items-start gap-2 mt-2 px-2 py-1.5 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -1595,8 +1575,8 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Out of Office Mode */}
-                  <div className="p-2 sm:p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-700/40">
-                    <div className="flex items-start justify-between mb-2 sm:mb-3">
+                  <div className="p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
+                    <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 pr-3 sm:pr-4">
                         <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
                           <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Out of Office Mode</h3>
@@ -1649,7 +1629,7 @@ export default function SettingsContent() {
 
                     {/* Date Range and Message - Only show when enabled */}
                     {formBusiness.out_of_office_enabled && (
-                      <div className="space-y-2 sm:space-y-3 border-t border-border pt-2 sm:pt-3">
+                      <div className="space-y-2 border-t border-border/70 pt-3">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                           {/* Start Date/Time */}
                           <div>
@@ -1703,12 +1683,12 @@ export default function SettingsContent() {
                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                               </svg>
                               <div className="text-xs text-amber-800 dark:text-amber-200">
-                                <span className="font-semibold">No out-of-office message configured.</span> The default out-of-office response will be used.
+                                Default out-of-office response will be used.
                               </div>
                             </div>
                           )}
                           <p className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                            Use {'{'}{'{'}business_name{'}'}{'}'} to automatically insert your business name. Use {'{'}{'{'}return_date{'}'}{'}'} to automatically insert your return date.
+                            Supports {'{'}{'{'}business_name{'}'}{'}'} and {'{'}{'{'}return_date{'}'}{'}'}.
                           </p>
                         </div>
 
@@ -1733,8 +1713,8 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Automatic Follow-Ups */}
-                  <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
-                    <div className="flex items-start justify-between mb-3">
+                  <div className="p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 pr-4">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Automatic Follow-Ups</h3>
@@ -1742,15 +1722,9 @@ export default function SettingsContent() {
                             New
                           </span>
                         </div>
-                        <p className="text-sm text-slate-600 dark:text-muted-foreground mb-1">
-                          Configure automated follow-up messages to re-engage leads.
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Schedule follow-up texts for quiet leads.
                         </p>
-                        <div className="text-xs text-slate-600 dark:text-muted-foreground">
-                          📅 Schedule up to 3 follow-ups with custom timing and messages.
-                        </div>
-                        <div className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          Follow-ups are automatic text messages sent when a customer doesn't respond to your initial message.
-                        </div>
                       </div>
                       <Link
                         href="/dashboard/settings/follow-ups"
@@ -1817,9 +1791,9 @@ export default function SettingsContent() {
               </div>
 
               {/* Integrations Section */}
-              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 scroll-mt-[200px]">
+              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[200px]">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Integrations</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Connect third-party services to extend ReplyFlow's capabilities.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Connect services you already use.</p>
                 
                 {/* Google Calendar Card */}
                 <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40">
@@ -1841,7 +1815,7 @@ export default function SettingsContent() {
                         )}
                       </div>
                       <p className="text-xs text-slate-600 dark:text-slate-400">
-                        Connect Google Calendar to view and manage appointments on the Schedule page alongside your ReplyFlow jobs.
+                        View appointments alongside ReplyFlow jobs.
                       </p>
                       {calendarConnected && calendarEmail && (
                         <p className="text-xs text-slate-500 dark:text-slate-500 mt-1.5">
@@ -1879,19 +1853,19 @@ export default function SettingsContent() {
                     )}
                   </div>
                   {!calendarConnected && (
-                    <div className="mt-3 p-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="mt-3 p-2.5 bg-blue-50/70 dark:bg-blue-900/15 border border-blue-200/70 dark:border-blue-800/60 rounded-lg">
                       <p className="text-xs text-blue-700 dark:text-blue-300">
-                        <span className="font-semibold">Coming soon:</span> Automatic calendar event creation for scheduled follow-ups and appointment reminders.
+                        Coming soon: automatic event creation.
                       </p>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 scroll-mt-[200px]">
+              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[200px]">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Payments</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
-                  Connect one or more payment methods. When requesting payment from a customer, you'll be able to choose which payment method to send.
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                  Connect payment methods for customer requests.
                 </p>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
@@ -1918,7 +1892,7 @@ export default function SettingsContent() {
                           )}
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                          Accept secure credit and debit card payments directly from customers.
+                          Accept secure card payments.
                         </p>
                       </div>
                       {!isConnectingStripe && (
@@ -1979,7 +1953,7 @@ export default function SettingsContent() {
                         )}
                       </div>
                       <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
-                        Let customers pay your business through Venmo using your username.
+                        Accept Venmo payments by username.
                       </p>
                     </div>
                     <div className="mt-auto">
@@ -1993,8 +1967,8 @@ export default function SettingsContent() {
                         placeholder="joesplumbing"
                         className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                       />
-                      <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1.5">
-                        Enter your Venmo username (with or without @).
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                        With or without @.
                       </p>
                     </div>
                   </div>
@@ -2018,7 +1992,7 @@ export default function SettingsContent() {
                         )}
                       </div>
                       <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
-                        Let customers pay your business through a PayPal or PayPal.me payment link.
+                        Accept PayPal payments by link.
                       </p>
                     </div>
                     <div className="mt-auto">
@@ -2032,29 +2006,26 @@ export default function SettingsContent() {
                         placeholder="https://paypal.me/yourbusiness"
                         className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                       />
-                      <p className="text-xs text-slate-600 dark:text-muted-foreground mt-1.5">
-                        Paste your PayPal.Me link. Customers will receive payment links using this address.
-                      </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-500 mt-1">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
                         Example: https://paypal.me/joesplumbing
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 p-3 bg-blue-50/70 dark:bg-blue-900/15 border border-blue-200/70 dark:border-blue-800/60 rounded-lg">
-                  <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                    You can configure multiple payment methods. When sending a payment request, ReplyFlow will let you choose which payment method to send to the customer.
+                <div className="mt-3 p-2.5 bg-blue-50/70 dark:bg-blue-900/15 border border-blue-200/70 dark:border-blue-800/60 rounded-lg">
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                    Choose a payment method when sending a request.
                   </p>
                 </div>
               </div>
 
               {/* Ignored Contacts Section */}
-              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 scroll-mt-[200px]">
-                <div className="flex items-center justify-between mb-3">
+              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[200px]">
+                <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Ignored Contacts</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Prevent employee, personal, vendor, or spam numbers from becoming leads.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Keep non-customer calls out of ReplyFlow.</p>
                   </div>
                   <div className="flex items-center gap-2">
                   <button
@@ -2071,62 +2042,32 @@ export default function SettingsContent() {
                   </button>
                 </div>
                 </div>
-                {/* Personal/Business Number Guidance */}
-                <div className="bg-blue-50/60 dark:bg-blue-900/15 border border-blue-200/60 dark:border-blue-800/60 rounded-md p-3 mb-3">
-                  <div className="flex items-start gap-2.5">
-                    <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
+                <details className="group rounded-md border border-blue-200/60 dark:border-blue-800/60 bg-blue-50/50 dark:bg-blue-900/10 px-3 py-2 mb-2">
+                  <summary className="cursor-pointer list-none text-xs font-medium text-blue-800 dark:text-blue-200">
+                    <span className="group-open:hidden">▸ Personal phone guidance</span>
+                    <span className="hidden group-open:inline">▾ Personal phone guidance</span>
+                  </summary>
+                  <div className="mt-2 space-y-1.5 text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                    <p>Personal business phones are supported.</p>
+                    <p>Add personal callers here when you want ReplyFlow to stay out.</p>
+                  </div>
+                </details>
+                <details className="group rounded-md border border-slate-200/60 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/30 px-3 py-2 mb-3">
+                  <summary className="cursor-pointer list-none text-xs font-medium text-slate-700 dark:text-slate-300">
+                    <span className="group-open:hidden">▸ When to use ignored contacts</span>
+                    <span className="hidden group-open:inline">▾ When to use ignored contacts</span>
+                  </summary>
+                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                     <div>
-                      <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1.5">Using your personal phone as your business number?</p>
-                      <p className="text-xs text-blue-700 dark:text-blue-300 mb-2 leading-relaxed">
-                        Many small business owners use one phone for both business and personal calls, and ReplyFlow fully supports this.
-                      </p>
-                      <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">You have complete control:</p>
-                      <div className="space-y-1.5 mt-1.5">
-                        <div className="flex items-start gap-2">
-                          <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs mt-0.5">•</span>
-                          <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed"><strong>Leave off Ignored Contacts:</strong> ReplyFlow treats it like a customer (AI Voice, lead creation, automated texts, follow-ups).</p>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs mt-0.5">•</span>
-                          <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed"><strong>Add to Ignored Contacts:</strong> ReplyFlow stays out (no AI Voice, no automated texts, no lead, no follow-ups).</p>
-                        </div>
-                      </div>
+                      <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">On the list</p>
+                      <p>No AI Voice, texts, lead, or follow-ups.</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Off the list</p>
+                      <p>Treated like a customer.</p>
                     </div>
                   </div>
-                </div>
-                {/* When should I use Ignored Contacts */}
-                <div className="bg-slate-50/60 dark:bg-slate-800/30 border border-slate-200/60 dark:border-slate-700/60 rounded-md p-3 mb-3">
-                  <div className="flex items-start gap-2.5">
-                    <svg className="w-4 h-4 text-slate-600 dark:text-slate-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1.5">When should I use Ignored Contacts?</p>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 mb-2 leading-relaxed">
-                        Add people here when you never want ReplyFlow to respond to their missed calls.
-                      </p>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 mb-2 leading-relaxed">
-                        Common examples: friends, family, schools, doctors, and other personal contacts.
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200/60 dark:border-slate-600/60">
-                        <div>
-                          <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1">On the list:</p>
-                          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-                            No AI Voice, no automated texts, no lead is created.
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 mb-1">Off the list:</p>
-                          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-                            Treated like a customer (AI Voice, texts, follow-ups).
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                </details>
                 <div className="space-y-2 sm:space-y-2.5">
                   {isLoadingIgnored ? (
                     <div className="flex items-center justify-center py-4 sm:py-6">
@@ -2141,7 +2082,7 @@ export default function SettingsContent() {
                       </div>
                       <h3 className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">No ignored contacts yet</h3>
                       <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 max-w-[220px] sm:max-w-[280px] mx-auto leading-relaxed">
-                        Add employees, family members, vendors, or other personal contacts that ReplyFlow should ignore.
+                        Add numbers ReplyFlow should ignore.
                       </p>
                     </div>
                   ) : (
