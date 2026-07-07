@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
-import { Clock, User, Phone, MapPin, MessageCircle, ChevronDown, ChevronUp, Briefcase, FileText, TriangleAlert, Pencil, X, Check, Loader2 } from 'lucide-react'
+import { MessageCircle, ChevronDown, ChevronUp, Pencil, X, Check, Loader2 } from 'lucide-react'
 import { normalizeExtractedInfo, getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { isCompleteAIIntake, determineAIOutcomeFromExtractedInfo } from '@/lib/ai-intake-completion'
 
@@ -389,7 +389,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-3 border border-blue-100 dark:border-blue-800">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
-                <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span className="w-3.5 h-3.5 text-[14px] leading-none">👤</span>
                 <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Name</span>
               </div>
               {manualFields.has('callerName') && !isEditMode && (
@@ -415,7 +415,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-3 border border-purple-100 dark:border-purple-800">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
-                <Briefcase className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                <span className="w-3.5 h-3.5 text-[14px] leading-none">🛠️</span>
                 <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider">Reason</span>
               </div>
               {manualFields.has('reasonForCalling') && !isEditMode && (
@@ -442,7 +442,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             <div className="bg-card rounded-xl p-3 border border-border/50">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="w-3.5 h-3.5 text-[14px] leading-none">📝</span>
                   <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Details</span>
                 </div>
                 {manualFields.has('importantDetails') && !isEditMode && (
@@ -484,7 +484,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <div className="space-y-1">
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-muted-foreground" />
+                      <span className="w-3 h-3 text-[12px] leading-none">📍</span>
                       <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Location</span>
                     </div>
                     {manualFields.has('addressOrLocation') && !isEditMode && (
@@ -512,7 +512,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <div className="space-y-1">
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="w-3 h-3 text-[12px] leading-none">☎️</span>
                       <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Callback Time</span>
                     </div>
                     {manualFields.has('preferredCallbackTime') && !isEditMode && (
@@ -539,7 +539,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-muted-foreground" />
+                    <span className="w-3 h-3 text-[12px] leading-none">📅</span>
                     <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Desired Completion Time</span>
                   </div>
                   {manualFields.has('desiredCompletionTime') && !isEditMode && (
@@ -625,7 +625,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2.5">
-                <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="w-4 h-4 text-base leading-none">👤</span>
                 <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Name</span>
               </div>
               {manualFields.has('callerName') && !isEditMode && (
@@ -651,7 +651,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 border border-purple-100 dark:border-purple-800">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2.5">
-                <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span className="w-4 h-4 text-base leading-none">🛠️</span>
                 <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider">Reason</span>
               </div>
               {manualFields.has('reasonForCalling') && !isEditMode && (
@@ -678,7 +678,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             <div className="bg-card rounded-xl p-4 border border-border/50">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2.5">
-                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <span className="w-4 h-4 text-base leading-none">📝</span>
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Details</span>
                 </div>
                 {manualFields.has('importantDetails') && !isEditMode && (
@@ -720,7 +720,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <div className="space-y-1">
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-muted-foreground" />
+                      <span className="w-3 h-3 text-[12px] leading-none">📍</span>
                       <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Location</span>
                     </div>
                     {manualFields.has('addressOrLocation') && !isEditMode && (
@@ -748,7 +748,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <div className="space-y-1">
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="w-3 h-3 text-[12px] leading-none">☎️</span>
                       <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Callback Time</span>
                     </div>
                     {manualFields.has('preferredCallbackTime') && !isEditMode && (
@@ -775,7 +775,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-muted-foreground" />
+                    <span className="w-3 h-3 text-[12px] leading-none">📅</span>
                     <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Desired Completion Time</span>
                   </div>
                   {manualFields.has('desiredCompletionTime') && !isEditMode && (

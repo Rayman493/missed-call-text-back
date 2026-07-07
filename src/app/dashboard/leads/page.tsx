@@ -1318,7 +1318,7 @@ export default function LeadsPage() {
                           <div className="mb-2.5 space-y-1 flex-1">
                             {aiData.reason && (
                               <div className="flex items-start gap-1.5">
-                                <span className="mt-0.5 text-[11px]">📋</span>
+                                <span className="mt-0.5 text-[11px]">�️</span>
                                 <p className="line-clamp-1 text-xs text-slate-300 leading-relaxed">
                                   {sentenceCase(aiData.reason)}
                                 </p>
@@ -1334,7 +1334,7 @@ export default function LeadsPage() {
                             )}
                             {aiData.urgency && (
                               <div className="flex items-center gap-1.5">
-                                <span className="text-[11px]">🔥</span>
+                                <span className="text-[11px]">�</span>
                                 <span className={`text-xs font-medium ${
                                   aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
                                     ? 'text-red-400'
@@ -1570,7 +1570,7 @@ export default function LeadsPage() {
                               <div className="mb-2 space-y-1">
                                 {aiData.reason && (
                                   <div className="flex items-start gap-1.5">
-                                    <span className="mt-0.5 text-[11px]">📋</span>
+                                    <span className="mt-0.5 text-[11px]">�️</span>
                                     <p className="line-clamp-1 text-xs text-slate-300 leading-relaxed">
                                       {aiData.reason}
                                     </p>
@@ -1586,7 +1586,7 @@ export default function LeadsPage() {
                                 )}
                                 {aiData.urgency && (
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-[11px]">🔥</span>
+                                    <span className="text-[11px]">�</span>
                                     <span className={`text-xs font-medium ${
                                       aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
                                         ? 'text-red-400'

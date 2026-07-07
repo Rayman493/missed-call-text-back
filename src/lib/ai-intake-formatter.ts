@@ -72,7 +72,7 @@ ${customerName}
 📞 Phone
 ${callerPhone}
 
-🛠 Service Requested
+🛠️ Service Requested
 ${serviceRequested}
 
 📍 Service Address
