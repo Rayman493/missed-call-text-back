@@ -5128,7 +5128,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Stage timeout tracking
     stageStartTime: 0 as number,
     stageTimeout: null as NodeJS.Timeout | null,
-    stageRepromptSent: false,
+    silenceRetryCountByStage: {} as Record<string, number>,
     // Audio buffering state
     audioAccumulator: [] as Buffer[],
     audioAccumulatorBytes: 0,
@@ -5617,7 +5617,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
   // --- Stage timeout logic ---
   const STAGE_TIMEOUT_MS = 15000; // 15 seconds initial timeout
-  const STAGE_REPROMPT_TIMEOUT_MS = 10000; // 10 seconds after reprompt
 
   const startStageTimeout = () => {
     // Clear any existing timeout
@@ -5626,8 +5625,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       state.stageTimeout = null;
     }
 
-    // Reset reprompt flag for new stage
-    state.stageRepromptSent = false;
     state.stageStartTime = Date.now();
 
     // Set initial timeout
@@ -5647,35 +5644,34 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       return; // Don't timeout if we're already completing
     }
 
-    if (!state.stageRepromptSent) {
-      // First timeout: send reprompt
-      state.stageRepromptSent = true;
+    const stage = state.currentStage;
+    const retryCount = state.silenceRetryCountByStage[stage] || 0;
+
+    if (retryCount === 0) {
+      state.silenceRetryCountByStage[stage] = 1;
       
       console.log('[STAGE TIMEOUT] =========================================');
       console.log('[STAGE TIMEOUT] event: reprompt_triggered');
-      console.log('[STAGE TIMEOUT] stage:', state.currentStage);
+      console.log('[STAGE TIMEOUT] stage:', stage);
+      console.log('[STAGE TIMEOUT] retryCountBefore:', retryCount);
+      console.log('[STAGE TIMEOUT] retryCountAfter:', state.silenceRetryCountByStage[stage]);
       console.log('[STAGE TIMEOUT] elapsedMs:', Date.now() - state.stageStartTime);
       console.log('[STAGE TIMEOUT] =========================================');
       
-      logSimple('stage_timeout_reprompt', { stage: state.currentStage });
+      logSimple('stage_timeout_reprompt', { stage });
       
-      // Send short reprompt for current stage
-      sendPrompt(state.currentStage);
-      
-      // Set second timeout for finalization
-      state.stageTimeout = setTimeout(() => {
-        handleStageTimeout();
-      }, STAGE_REPROMPT_TIMEOUT_MS);
+      sendPrompt(stage);
     } else {
       // Second timeout: finalize with partial info
       console.log('[STAGE TIMEOUT] =========================================');
       console.log('[STAGE TIMEOUT] event: finalization_triggered');
-      console.log('[STAGE TIMEOUT] stage:', state.currentStage);
+      console.log('[STAGE TIMEOUT] stage:', stage);
+      console.log('[STAGE TIMEOUT] retryCount:', retryCount);
       console.log('[STAGE TIMEOUT] totalElapsedMs:', Date.now() - state.stageStartTime);
       console.log('[STAGE TIMEOUT] finalizingWithPartialInfo: true');
       console.log('[STAGE TIMEOUT] =========================================');
       
-      logSimple('stage_timeout_finalization', { stage: state.currentStage });
+      logSimple('stage_timeout_finalization', { stage });
       
       // Clear timeout
       if (state.stageTimeout) {
@@ -6572,10 +6568,17 @@ Reply to this message if you'd like to update or add any information.
         return;
       }
 
-      if (!state.silentRepromptSent) {
+      const stage = state.currentStage;
+      const retryCount = state.silenceRetryCountByStage[stage] || 0;
+
+      if (retryCount === 0) {
+        state.silenceRetryCountByStage[stage] = 1;
         state.silentRepromptSent = true;
         console.log('[SILENCE REPROMPT SENT]');
         console.log('[SIMPLE MODE] event: silent_reprompt_sent');
+        console.log('[SIMPLE MODE] stage:', stage);
+        console.log('[SIMPLE MODE] retryCountBefore:', retryCount);
+        console.log('[SIMPLE MODE] retryCountAfter:', state.silenceRetryCountByStage[stage]);
         sendSimpleModeLivePrompt("Are you still there? If you can hear me, please let me know your name and what you're calling about.", true, false);
         startInitialSilentTimeout();
         return;
