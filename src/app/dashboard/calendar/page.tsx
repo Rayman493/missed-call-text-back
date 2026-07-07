@@ -572,7 +572,7 @@ export default function SchedulePage() {
   return (
     <DashboardShell
       title="Schedule"
-      contentClassName="flex-1 pt-0 px-3 sm:px-4 lg:px-5 pb-40 md:pb-8 relative z-10"
+      contentClassName="flex-1 pt-3 sm:pt-4 lg:pt-8 px-3 sm:px-4 lg:px-5 pb-40 md:pb-8 relative z-10"
       innerClassName=""
     >
               {/* Loading State */}

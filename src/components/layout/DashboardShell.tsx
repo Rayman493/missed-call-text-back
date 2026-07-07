@@ -27,7 +27,7 @@ function DashboardShellFrame({
   showNavigation = true,
   showBottomNavigation = true,
   className = '',
-  contentClassName = 'flex-1 pt-3 sm:pt-4 lg:pt-6 px-3 sm:px-4 lg:px-6 pb-24 md:pb-8 relative z-10',
+  contentClassName = 'flex-1 pt-3 sm:pt-4 lg:pt-8 px-3 sm:px-4 lg:px-6 pb-24 md:pb-8 relative z-10',
   innerClassName = 'space-y-4 lg:space-y-6',
   maxWidthClassName = 'max-w-[1400px] mx-auto',
 }: Omit<DashboardShellProps, 'withGuards' | 'withErrorBoundary' | 'debugInfo'>) {
