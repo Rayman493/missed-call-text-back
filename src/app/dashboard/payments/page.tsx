@@ -69,6 +69,20 @@ function getStatusLabel(status: string): string {
   }
 }
 
+function formatManualPhoneInput(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 10)
+
+  if (digits.length <= 3) {
+    return digits
+  }
+
+  if (digits.length <= 6) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+  }
+
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+}
+
 export default function PaymentsPage() {
   const router = useRouter()
   const { business } = useBusiness()
@@ -349,8 +363,8 @@ export default function PaymentsPage() {
     <DashboardShell
       title="Payments"
       maxWidthClassName="max-w-7xl mx-auto"
-      contentClassName="flex-1 px-3 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24 md:pb-8 relative z-10"
-      innerClassName="space-y-8"
+      contentClassName="flex-1 px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 md:pb-8 relative z-10"
+      innerClassName="space-y-5 sm:space-y-6"
     >
         <PageHeader
           title="Payments"
@@ -374,43 +388,43 @@ export default function PaymentsPage() {
         ) : (
           <>
             {/* Overview Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg p-6 border border-slate-700">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+              <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg p-4 sm:p-5 border border-slate-700/80">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-sm font-medium">Pending Amount</span>
-                  <CreditCard className="h-5 w-5 text-blue-400" />
+                  <CreditCard className="h-4 w-4 text-blue-400" />
                 </div>
-                <div className="text-2xl font-bold text-white">
+                <div className="text-xl sm:text-2xl font-bold text-white">
                   {formatCurrency(stats.pendingAmount / 100)}
                 </div>
               </div>
 
-              <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg p-6 border border-slate-700">
+              <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg p-4 sm:p-5 border border-slate-700/80">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-sm font-medium">Paid This Month</span>
-                  <CreditCard className="h-5 w-5 text-green-400" />
+                  <CreditCard className="h-4 w-4 text-green-400" />
                 </div>
-                <div className="text-2xl font-bold text-white">
+                <div className="text-xl sm:text-2xl font-bold text-white">
                   {formatCurrency(stats.paidThisMonth / 100)}
                 </div>
               </div>
 
-              <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg p-6 border border-slate-700">
+              <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg p-4 sm:p-5 border border-slate-700/80">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-sm font-medium">Pending Requests</span>
-                  <CreditCard className="h-5 w-5 text-yellow-400" />
+                  <CreditCard className="h-4 w-4 text-yellow-400" />
                 </div>
-                <div className="text-2xl font-bold text-white">
+                <div className="text-xl sm:text-2xl font-bold text-white">
                   {stats.pendingRequests}
                 </div>
               </div>
 
-              <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg p-6 border border-slate-700">
+              <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg p-4 sm:p-5 border border-slate-700/80">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-sm font-medium">Collection Rate</span>
-                  <CreditCard className="h-5 w-5 text-purple-400" />
+                  <CreditCard className="h-4 w-4 text-purple-400" />
                 </div>
-                <div className="text-2xl font-bold text-white">
+                <div className="text-xl sm:text-2xl font-bold text-white">
                   {stats.collectionRate}%
                 </div>
               </div>
@@ -419,22 +433,23 @@ export default function PaymentsPage() {
             {/* Payment Requests Table - Mobile cards, Desktop table */}
             <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg border border-slate-700 overflow-hidden">
               {/* Mobile card view */}
-              <div className="md:hidden space-y-3 p-4">
+              <div className="md:hidden space-y-2.5 p-3">
                 {paymentRequests.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <CreditCard className="h-12 w-12 text-gray-600 mx-auto mb-3" />
-                    <p>No payment requests yet</p>
-                    <button
-                      onClick={() => router.push('/dashboard/leads')}
-                      className="text-blue-400 hover:text-blue-300 font-medium mt-2"
-                    >
-                      Create your first payment request
-                    </button>
+                  <div className="text-center py-10 px-4 text-gray-400">
+                    <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-slate-800/80 border border-slate-700">
+                      <CreditCard className="h-5 w-5 text-blue-400" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-white mb-1">No payment requests yet.</h3>
+                    <p className="text-xs text-gray-400 max-w-xs mx-auto mb-4">Send your first payment request to start tracking customer payments.</p>
+                    <Button onClick={() => setShowPaymentModal(true)} size="sm">
+                      <CreditCard className="h-4 w-4" />
+                      New Payment Request
+                    </Button>
                   </div>
                 ) : (
                   paymentRequests.map((payment) => (
-                    <div key={payment.id} className="bg-[#0f172a] dark:bg-[#0f172a] rounded-lg p-4 border border-slate-700">
-                      <div className="flex items-start justify-between mb-3">
+                    <div key={payment.id} className="bg-[#0f172a] dark:bg-[#0f172a] rounded-lg p-3 border border-slate-700">
+                      <div className="flex items-start justify-between gap-3 mb-2.5">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-gray-400" />
                           <span className="text-white font-medium text-sm">
@@ -471,7 +486,7 @@ export default function PaymentsPage() {
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-700">
+                      <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-slate-700">
                         <button
                           onClick={() => router.push(`/dashboard/leads/${payment.leads.id}`)}
                           className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
@@ -540,14 +555,17 @@ export default function PaymentsPage() {
                       <tr>
                         <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
                           <div className="flex flex-col items-center gap-3">
-                            <CreditCard className="h-12 w-12 text-gray-600" />
-                            <p>No payment requests yet</p>
-                            <button
-                              onClick={() => router.push('/dashboard/leads')}
-                              className="text-blue-400 hover:text-blue-300 font-medium"
-                            >
-                              Create your first payment request
-                            </button>
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-800/80 border border-slate-700">
+                              <CreditCard className="h-5 w-5 text-blue-400" />
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-semibold text-white mb-1">No payment requests yet.</h3>
+                              <p className="text-xs text-gray-400">Send your first payment request to start tracking customer payments.</p>
+                            </div>
+                            <Button onClick={() => setShowPaymentModal(true)} size="sm">
+                              <CreditCard className="h-4 w-4" />
+                              New Payment Request
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -568,7 +586,7 @@ export default function PaymentsPage() {
                           <td className="px-4 py-3 whitespace-nowrap text-white font-semibold text-sm">
                             {formatCurrency(payment.amount_cents / 100)}
                           </td>
-                          <td className="px-4 py-3 text-gray-400 text-sm">
+                          <td className="px-4 py-3 text-gray-400 text-sm max-w-[220px] truncate">
                             {payment.description}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
@@ -583,7 +601,7 @@ export default function PaymentsPage() {
                             {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '-'}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 whitespace-nowrap">
                               <button
                                 onClick={() => router.push(`/dashboard/leads/${payment.leads.id}`)}
                                 className="text-gray-400 hover:text-white text-xs font-medium"
@@ -624,16 +642,16 @@ export default function PaymentsPage() {
 
         {/* New Payment Request Modal */}
         {showPaymentModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm md:items-center md:justify-center">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm md:items-center md:justify-center">
             <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full max-h-[calc(100dvh-1rem)] md:max-h-[90vh] overflow-hidden flex flex-col border border-slate-700">
               {/* Header - shrink-0 */}
-              <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-700 shrink-0">
-                <div>
-                  <h3 className="text-lg font-semibold text-white">
+              <div className="flex items-center justify-between px-4 py-3.5 md:px-5 md:py-4 border-b border-slate-700 shrink-0">
+                <div className="min-w-0 pr-3">
+                  <h3 className="text-lg font-semibold text-white leading-tight">
                     New Payment Request
                   </h3>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Send a secure payment link by text message.
+                  <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
+                    Send a secure payment link by text.
                   </p>
                 </div>
                 <button
@@ -654,15 +672,16 @@ export default function PaymentsPage() {
               </div>
 
               {/* Content - flex-1 overflow-y-auto */}
-              <div className="overflow-y-auto flex-1 overscroll-contain p-4 md:p-6 space-y-3 md:space-y-4" style={{ maxHeight: 'calc(100dvh-12rem)' }}>
+              <div data-scroll-lock-allow className="overflow-y-auto flex-1 overscroll-contain px-4 py-3 md:px-5 md:py-4 space-y-2.5 md:space-y-3" style={{ maxHeight: 'calc(100dvh-10rem)', WebkitOverflowScrolling: 'touch' }}>
                 <div>
-                  <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
+                  <label className="block text-sm font-medium text-slate-100 mb-1.5">
                     Recipient
                   </label>
                   <select
                     value={recipientType}
                     onChange={(e) => setRecipientType(e.target.value as 'lead' | 'manual')}
-                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white"
+                    disabled={isCreatingPayment}
+                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <option value="lead">Select existing lead</option>
                     <option value="manual">Enter phone number</option>
@@ -671,13 +690,14 @@ export default function PaymentsPage() {
 
                 {recipientType === 'lead' ? (
                   <div>
-                    <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
+                    <label className="block text-sm font-medium text-slate-100 mb-1.5">
                       Select Lead
                     </label>
                     <select
                       value={selectedLeadId}
                       onChange={(e) => setSelectedLeadId(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white"
+                      disabled={isCreatingPayment}
+                      className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       <option value="">Select a lead</option>
                       {leads.map((lead) => {
@@ -696,27 +716,29 @@ export default function PaymentsPage() {
                 ) : (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
+                      <label className="block text-sm font-medium text-slate-100 mb-1.5">
                         Phone Number
                       </label>
                       <input
                         type="tel"
                         value={manualPhone}
-                        onChange={(e) => setManualPhone(e.target.value)}
+                        onChange={(e) => setManualPhone(formatManualPhoneInput(e.target.value))}
                         placeholder="(555) 123-4567"
-                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white"
+                        disabled={isCreatingPayment}
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
-                        Customer Name (Optional)
+                      <label className="block text-sm font-medium text-slate-100 mb-1.5">
+                        Customer Name
                       </label>
                       <input
                         type="text"
                         value={manualName}
                         onChange={(e) => setManualName(e.target.value)}
-                        placeholder="John Doe"
-                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white"
+                        placeholder="Optional"
+                        disabled={isCreatingPayment}
+                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </div>
                   </>
@@ -735,7 +757,8 @@ export default function PaymentsPage() {
                       placeholder="0.00"
                       step="0.01"
                       min="0.01"
-                      className="w-full pl-8 pr-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white"
+                      disabled={isCreatingPayment}
+                      className="w-full pl-8 pr-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -745,16 +768,16 @@ export default function PaymentsPage() {
                     Payment Method
                   </label>
                   {hasAnyPaymentMethod ? (
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-2.5 pt-0.5">
                       <button
                         type="button"
                         onClick={() => setPaymentProvider('stripe')}
-                        disabled={!isStripeConfigured}
-                        className={`px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm font-medium rounded-lg border transition-colors ${
+                        disabled={!isStripeConfigured || isCreatingPayment}
+                        className={`min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
                           paymentProvider === 'stripe' && isStripeConfigured
-                            ? 'bg-blue-600 border-blue-600 text-white'
+                            ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
                             : !isStripeConfigured
-                            ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
+                            ? 'bg-slate-800/60 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
                             : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
                         }`}
                       >
@@ -766,12 +789,12 @@ export default function PaymentsPage() {
                       <button
                         type="button"
                         onClick={() => setPaymentProvider('venmo')}
-                        disabled={!isVenmoConfigured}
-                        className={`px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm font-medium rounded-lg border transition-colors ${
+                        disabled={!isVenmoConfigured || isCreatingPayment}
+                        className={`min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
                           paymentProvider === 'venmo' && isVenmoConfigured
-                            ? 'bg-blue-600 border-blue-600 text-white'
+                            ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
                             : !isVenmoConfigured
-                            ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
+                            ? 'bg-slate-800/60 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
                             : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
                         }`}
                       >
@@ -783,12 +806,12 @@ export default function PaymentsPage() {
                       <button
                         type="button"
                         onClick={() => setPaymentProvider('paypal')}
-                        disabled={!isPaypalConfigured}
-                        className={`px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm font-medium rounded-lg border transition-colors ${
+                        disabled={!isPaypalConfigured || isCreatingPayment}
+                        className={`min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
                           paymentProvider === 'paypal' && isPaypalConfigured
-                            ? 'bg-blue-600 border-blue-600 text-white'
+                            ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
                             : !isPaypalConfigured
-                            ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
+                            ? 'bg-slate-800/60 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
                             : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
                         }`}
                       >
@@ -828,7 +851,8 @@ export default function PaymentsPage() {
                     onChange={(e) => setPaymentDescription(e.target.value)}
                     placeholder="Service payment"
                     rows={2}
-                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white resize-none"
+                    disabled={isCreatingPayment}
+                    className="w-full px-3 py-2 min-h-[76px] border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white resize-none disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -840,7 +864,7 @@ export default function PaymentsPage() {
               </div>
 
               {/* Footer/Actions - shrink-0 */}
-              <div className="flex gap-3 justify-end p-4 md:p-6 border-t border-slate-700 shrink-0 pb-safe">
+              <div className="flex gap-2.5 justify-end px-4 py-3 md:px-5 md:py-4 border-t border-slate-700 shrink-0 pb-safe bg-[#1e293b]">
                 <button
                   onClick={() => {
                     setShowPaymentModal(false)
@@ -853,7 +877,7 @@ export default function PaymentsPage() {
                     setError('')
                   }}
                   disabled={isCreatingPayment}
-                  className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
@@ -862,7 +886,7 @@ export default function PaymentsPage() {
                   disabled={isCreatingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || (recipientType === 'lead' && !selectedLeadId) || (recipientType === 'manual' && !manualPhone) || !hasAnyPaymentMethod}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isCreatingPayment ? 'Creating...' : 'Send Payment Request'}
+                  {isCreatingPayment ? 'Sending Request...' : 'Send Payment Request'}
                 </button>
               </div>
             </div>
