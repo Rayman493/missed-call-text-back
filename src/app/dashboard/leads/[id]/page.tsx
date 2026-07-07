@@ -28,6 +28,7 @@ import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
 import EventComposer from '@/components/calendar/EventComposer'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
+import { CalendarDays, ClipboardPlus, CreditCard } from 'lucide-react'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -1995,9 +1996,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             }}
                             className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M12 2a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2V4a2 2 0 012-2z" />
-                            </svg>
+                            <ClipboardPlus className="w-4 h-4 stroke-[1.8]" />
                             Create Job
                           </button>
                           <button
@@ -2007,9 +2006,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             }}
                             className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
+                            <CalendarDays className="w-4 h-4 stroke-[1.8]" />
                             Schedule
                           </button>
                           <button
@@ -2020,9 +2017,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
                             className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                            </svg>
+                            <CreditCard className="w-4 h-4 stroke-[1.8]" />
                             Request Payment
                           </button>
                           <button
@@ -2257,32 +2252,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCreateJobClick}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium"
+                className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M12 2a2 2 0 012 2v2a2 2 0 01-2 2 2 2 0 01-2-2V4a2 2 0 012-2z" />
-                </svg>
-                Create Job
+                <ClipboardPlus className="w-4 h-4 stroke-[1.8]" />
+                <span className="leading-none">Create Job</span>
               </button>
               <button
                 onClick={handleScheduleClick}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium"
+                className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Schedule
+                <CalendarDays className="w-4 h-4 stroke-[1.8]" />
+                <span className="leading-none">Schedule</span>
               </button>
               <button
                 onClick={() => setShowPaymentModal(true)}
                 disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 title={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' ? 'Connect Stripe in Settings to request payments' : 'Request payment'}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-                Request Payment
+                <CreditCard className="w-4 h-4 stroke-[1.8]" />
+                <span className="leading-none">Request Payment</span>
               </button>
             </div>
           </div>

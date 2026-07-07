@@ -384,9 +384,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               )}
 
               {/* Structured Information */}
-              <div className="space-y-3">
+              <div className="space-y-3.5">
           {/* Customer Information - Prominent */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-3 border border-blue-100 dark:border-blue-800">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-3.5 border border-blue-100 dark:border-blue-800">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
                 <span className="w-3.5 h-3.5 text-[14px] leading-none">👤</span>
@@ -412,7 +412,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </div>
 
           {/* Service Requested - Prominent */}
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-3 border border-purple-100 dark:border-purple-800">
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-3.5 border border-purple-100 dark:border-purple-800">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
                 <span className="w-3.5 h-3.5 text-[14px] leading-none">🛠️</span>
@@ -439,7 +439,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
           {/* Details - Truncated with expansion */}
           {isEditMode || (extractedInfo?.importantDetails || correctedFields?.details) ? (
-            <div className="bg-card rounded-xl p-3 border border-border/50">
+            <div className="bg-card rounded-xl p-3.5 border border-border/50">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
                   <span className="w-3.5 h-3.5 text-[14px] leading-none">📝</span>
@@ -477,15 +477,15 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           ) : null}
 
           {/* Compact Row: Location, Callback, Urgency */}
-          <div className="bg-card rounded-xl p-3 border border-border/50">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          <div className="bg-card rounded-xl p-3.5 border border-border/50">
+            <div className="grid grid-cols-3 gap-2.5">
               {/* Location */}
               {isEditMode || (extractedInfo?.addressOrLocation || correctedFields?.address) ? (
-                <div className="space-y-1">
+                <div className="min-h-[58px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-2.5">
                   <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1">
-                      <span className="w-3 h-3 text-[12px] leading-none">📍</span>
-                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Location</span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-3.5 h-3.5 text-[13px] leading-none flex-shrink-0">📍</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Location</span>
                     </div>
                     {manualFields.has('addressOrLocation') && !isEditMode && (
                       <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -500,7 +500,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                       placeholder="Service address"
                     />
                   ) : (
-                    <p className="text-[11px] text-foreground leading-snug line-clamp-2">
+                    <p className="text-[12px] text-foreground leading-snug line-clamp-2">
                       {correctedFields?.address || extractedInfo?.addressOrLocation}
                     </p>
                   )}
@@ -509,11 +509,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
               {/* Callback Time */}
               {isEditMode || extractedInfo?.preferredCallbackTime ? (
-                <div className="space-y-1">
+                <div className="min-h-[58px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-2.5">
                   <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1">
-                      <span className="w-3 h-3 text-[12px] leading-none">☎️</span>
-                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Callback Time</span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-3.5 h-3.5 text-[13px] leading-none flex-shrink-0">☎️</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Callback</span>
                     </div>
                     {manualFields.has('preferredCallbackTime') && !isEditMode && (
                       <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -528,7 +528,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                       placeholder="Best time to call"
                     />
                   ) : (
-                    <p className="text-[11px] text-foreground leading-snug line-clamp-2">
+                    <p className="text-[12px] text-foreground leading-snug line-clamp-2">
                       {sentenceCase(extractedInfo.preferredCallbackTime)}
                     </p>
                   )}
@@ -536,11 +536,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               ) : null}
 
               {/* Desired Completion Time */}
-              <div className="space-y-1">
+              <div className="min-h-[58px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-2.5">
                 <div className="flex items-center justify-between gap-1">
-                  <div className="flex items-center gap-1">
-                    <span className="w-3 h-3 text-[12px] leading-none">📅</span>
-                    <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Desired Completion Time</span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="w-3.5 h-3.5 text-[13px] leading-none flex-shrink-0">📅</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Completion</span>
                   </div>
                   {manualFields.has('desiredCompletionTime') && !isEditMode && (
                     <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -555,7 +555,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     placeholder="Desired completion"
                   />
                 ) : (
-                  <p className="text-[11px] text-foreground leading-snug line-clamp-2">
+                  <p className="text-[12px] text-foreground leading-snug line-clamp-2">
                     {sentenceCase(extractedInfo.desiredCompletionTime) || 'Not Provided'}
                   </p>
                 )}
@@ -714,14 +714,14 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
           {/* Compact Row: Location, Callback, Urgency */}
           <div className="bg-card rounded-xl p-4 border border-border/50">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {/* Location */}
               {isEditMode || (extractedInfo?.addressOrLocation || correctedFields?.address) ? (
-                <div className="space-y-1">
+                <div className="min-h-[64px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
                   <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1">
-                      <span className="w-3 h-3 text-[12px] leading-none">📍</span>
-                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Location</span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-3.5 h-3.5 text-[13px] leading-none flex-shrink-0">📍</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Location</span>
                     </div>
                     {manualFields.has('addressOrLocation') && !isEditMode && (
                       <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -736,7 +736,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                       placeholder="Service address"
                     />
                   ) : (
-                    <p className="text-[11px] text-foreground leading-snug line-clamp-2">
+                    <p className="text-[12px] text-foreground leading-snug line-clamp-2">
                       {correctedFields?.address || extractedInfo?.addressOrLocation}
                     </p>
                   )}
@@ -745,11 +745,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
               {/* Callback Time */}
               {isEditMode || extractedInfo?.preferredCallbackTime ? (
-                <div className="space-y-1">
+                <div className="min-h-[64px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
                   <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1">
-                      <span className="w-3 h-3 text-[12px] leading-none">☎️</span>
-                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Callback Time</span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-3.5 h-3.5 text-[13px] leading-none flex-shrink-0">☎️</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Callback</span>
                     </div>
                     {manualFields.has('preferredCallbackTime') && !isEditMode && (
                       <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -764,7 +764,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                       placeholder="Best time to call"
                     />
                   ) : (
-                    <p className="text-[11px] text-foreground leading-snug line-clamp-2">
+                    <p className="text-[12px] text-foreground leading-snug line-clamp-2">
                       {sentenceCase(extractedInfo.preferredCallbackTime)}
                     </p>
                   )}
@@ -772,11 +772,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               ) : null}
 
               {/* Desired Completion Time */}
-              <div className="space-y-1">
+              <div className="min-h-[64px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
                 <div className="flex items-center justify-between gap-1">
-                  <div className="flex items-center gap-1">
-                    <span className="w-3 h-3 text-[12px] leading-none">📅</span>
-                    <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Desired Completion Time</span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="w-3.5 h-3.5 text-[13px] leading-none flex-shrink-0">📅</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Completion</span>
                   </div>
                   {manualFields.has('desiredCompletionTime') && !isEditMode && (
                     <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -791,7 +791,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     placeholder="Desired completion"
                   />
                 ) : (
-                  <p className="text-[11px] text-foreground leading-snug line-clamp-2">
+                  <p className="text-[12px] text-foreground leading-snug line-clamp-2">
                     {sentenceCase(extractedInfo.desiredCompletionTime) || 'Not Provided'}
                   </p>
                 )}

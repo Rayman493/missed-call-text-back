@@ -40,25 +40,25 @@ export default function MobileConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-2" data-mobile-layout data-active-conversation-list>
+    <div className="space-y-2.5" data-mobile-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle system events
         if (item.type === 'system_event') {
           const event = item.data
           if (event.isDivider) {
             return (
-              <div key={item.id} className="flex items-center justify-center my-4">
-                <div className="flex-1 border-t border-slate-200 dark:border-slate-700"></div>
+              <div key={item.id} className="flex items-center justify-center my-3.5">
+                <div className="flex-1 border-t border-slate-200/70 dark:border-slate-800"></div>
                 <div className="px-3 text-[10px] font-medium text-slate-500 dark:text-slate-400">
                   {event.message}
                 </div>
-                <div className="flex-1 border-t border-slate-200 dark:border-slate-700"></div>
+                <div className="flex-1 border-t border-slate-200/70 dark:border-slate-800"></div>
               </div>
             )
           }
           return (
-            <div key={item.id} className="flex items-center justify-center my-4">
-              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700">
+            <div key={item.id} className="flex items-center justify-center my-3.5">
+              <div className="flex items-center gap-2 bg-slate-50/80 dark:bg-slate-900/50 px-3 py-1.5 rounded-full border border-slate-200/80 dark:border-slate-800 shadow-sm">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                 <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">
                   {event.message}
@@ -98,7 +98,7 @@ export default function MobileConversationMessageList({
             return (
               <div
                 key={item.id}
-                className={`flex items-start gap-2 mb-3 flex-row`}
+                className={`flex items-start gap-2.5 mb-3.5 flex-row`}
               >
                 {/* Avatar for voicemail */}
                 {index === 0 || conversationTimeline[index - 1]?.type !== 'voicemail' ? (
@@ -111,7 +111,7 @@ export default function MobileConversationMessageList({
                 
                 {/* Voicemail Content */}
                 <div className="flex flex-col items-start max-w-[75%] sm:max-w-[75%] max-sm:max-w-[85%]">
-                  <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 shadow-sm">
+                  <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-800/80 rounded-xl p-3 shadow-sm">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
                         <span className="text-xs">📞</span>
@@ -163,11 +163,11 @@ export default function MobileConversationMessageList({
         return (
           <div
             key={msg.id}
-            className={`flex items-start gap-2.5 ${msg.media && msg.media.length > 0 ? 'mb-2' : 'mb-2'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-2.5 ${msg.media && msg.media.length > 0 ? 'mb-3' : 'mb-2.5'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Avatar - Only show customer avatar for inbound messages */}
             {shouldShowAvatar && isInbound && (
-              <div className={`flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-medium shadow-md ${msg.media && msg.media.length > 0 ? 'w-7 h-7 text-[10px]' : 'w-8 h-8 text-xs'}`}>
+              <div className={`flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-medium shadow-sm ${msg.media && msg.media.length > 0 ? 'w-7 h-7 text-[10px]' : 'w-8 h-8 text-xs'}`}>
                 👤
               </div>
             )}
@@ -176,18 +176,18 @@ export default function MobileConversationMessageList({
             <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} max-w-[72%] sm:max-w-[68%] ${!isInbound && !shouldShowAvatar ? 'ml-11' : ''}`}>
               {/* Message Bubble - Modern messaging app styling */}
               <div
-                className={`rounded-2xl shadow-sm transition-all duration-200 overflow-hidden ${
+                className={`rounded-2xl shadow-sm transition-colors duration-200 overflow-hidden ${
                   isInbound
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200 dark:border-slate-700/50 hover:shadow-md'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200/80 dark:border-slate-700/70'
                     : isOptimistic && isSending
-                    ? 'bg-blue-600 text-white rounded-br-md opacity-90 shadow-sm border border-blue-700'
-                    : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 shadow-sm hover:shadow-md border border-blue-700'
+                    ? 'bg-blue-600 text-white rounded-br-md opacity-90 border border-blue-700/80'
+                    : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 border border-blue-700/80'
                 }`}
               >
-                <div className={`${msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-2.5 py-1 sm:px-2.5 sm:py-1.5'}`}>
+                <div className={`${msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-3 py-1.5 sm:px-3.5 sm:py-2'}`}>
                   {msg.body && !isAISummary && (
                     <p 
-                      className="text-[11px] sm:text-sm leading-snug sm:leading-snug break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full"
+                      className="text-xs sm:text-sm leading-snug sm:leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full"
                       style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
                     >
                       {msg.body}
@@ -208,7 +208,7 @@ export default function MobileConversationMessageList({
               </div>
 
               {/* Message Status/Timestamp - Beneath bubble, aligned with bubble */}
-              <div className={`mt-0 flex items-center gap-1.5 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+              <div className={`mt-1 flex items-center gap-1.5 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                 {isOutbound && (
                   <>
                     {msg.status === 'delivered' && (
@@ -237,7 +237,7 @@ export default function MobileConversationMessageList({
                     )}
                   </>
                 )}
-                <span className="text-[11px] text-muted-foreground/60" title={new Date(msg.created_at).toLocaleString()}>
+                <span className="text-[10px] text-muted-foreground/60" title={new Date(msg.created_at).toLocaleString()}>
                   {formatRelativeTime(msg.created_at)}
                 </span>
               </div>

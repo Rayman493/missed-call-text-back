@@ -37,27 +37,27 @@ export default function DesktopConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-8 pb-24" data-desktop-layout data-active-conversation-list>
+    <div className="space-y-6 pb-24" data-desktop-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle system events
         if (item.type === 'system_event') {
           const event = item.data
           if (event.isDivider) {
             return (
-              <div key={item.id} className="flex items-center justify-center my-5">
-                <div className="flex-1 border-t border-slate-200 dark:border-slate-700"></div>
-                <div className="px-4 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <div key={item.id} className="flex items-center justify-center my-4">
+                <div className="flex-1 border-t border-slate-200/70 dark:border-slate-800"></div>
+                <div className="px-4 text-[11px] font-medium text-slate-500 dark:text-slate-400">
                   {event.message}
                 </div>
-                <div className="flex-1 border-t border-slate-200 dark:border-slate-700"></div>
+                <div className="flex-1 border-t border-slate-200/70 dark:border-slate-800"></div>
               </div>
             )
           }
           return (
-            <div key={item.id} className="flex items-center justify-center my-5">
-              <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700">
-                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+            <div key={item.id} className="flex items-center justify-center my-4">
+              <div className="flex items-center gap-2.5 bg-slate-50/80 dark:bg-slate-900/50 px-3.5 py-1.5 rounded-full border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
                   {event.message}
                 </span>
                 <span className="text-[10px] text-slate-500 dark:text-slate-500">
@@ -116,11 +116,11 @@ export default function DesktopConversationMessageList({
         return (
           <div
             key={msg.id}
-            className={`flex items-start gap-4 ${msg.media && msg.media.length > 0 ? 'mb-8' : 'mb-6'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-3.5 ${msg.media && msg.media.length > 0 ? 'mb-6' : 'mb-4'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Avatar - Only show customer avatar for inbound messages */}
             {shouldShowAvatar && isInbound && (
-              <div className={`flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-medium shadow-md ${msg.media && msg.media.length > 0 ? 'w-8 h-8 text-xs' : 'w-11 h-11 text-sm'}`}>
+              <div className={`flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-medium shadow-sm ${msg.media && msg.media.length > 0 ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm'}`}>
                 👤
               </div>
             )}
@@ -129,18 +129,18 @@ export default function DesktopConversationMessageList({
             <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isOutbound ? 'max-w-[75%]' : 'max-w-[85%]'} ${!isInbound && !shouldShowAvatar ? 'ml-11' : ''}`}>
               {/* Message Bubble - Desktop styling */}
               <div
-                className={`rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md overflow-hidden ${
+                className={`rounded-2xl shadow-sm transition-colors duration-200 overflow-hidden ${
                   isInbound
-                    ? 'bg-white dark:bg-slate-800/95 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200 dark:border-slate-700'
+                    ? 'bg-white dark:bg-slate-800/95 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200/80 dark:border-slate-700/80'
                     : isOptimistic && isSending
-                    ? 'bg-blue-600 text-white rounded-br-md opacity-90 shadow-md border border-blue-700'
-                    : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 shadow-md border border-blue-700'
+                    ? 'bg-blue-600 text-white rounded-br-md opacity-90 border border-blue-700/80'
+                    : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 border border-blue-700/80'
                 }`}
               >
-                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : 'px-6 py-3'}`}>
+                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : 'px-5 py-3'}`}>
                   {msg.body && (
                     <p 
-                      className="text-base leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full"
+                      className="text-[15px] leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full"
                       style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
                     >
                       {msg.body}
@@ -158,7 +158,7 @@ export default function DesktopConversationMessageList({
               </div>
               
               {/* Message Status/Timestamp - Beneath bubble, aligned with bubble */}
-              <div className={`mt-1.5 flex items-center gap-2 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+              <div className={`mt-1.5 flex items-center gap-1.5 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                 {isOutbound && (
                   <>
                     {msg.status === 'delivered' && (
