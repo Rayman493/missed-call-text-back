@@ -13,6 +13,10 @@ export async function POST(request: Request) {
     
     const stripe = getStripe()
     
+    // Parse request body to get optional return URL
+    const body = await request.json().catch(() => ({}))
+    const returnUrlParam = body.returnUrl as string | undefined
+    
     if (!stripe) {
       console.error('[stripe-portal] Stripe is not configured')
       return NextResponse.json(
@@ -138,8 +142,36 @@ export async function POST(request: Request) {
 
     console.log('[stripe-portal] stripe_customer_id is valid, proceeding to Stripe API call')
 
-    // Create billing portal session with canonical URL and billing return parameter
-    const returnUrl = `${getDashboardUrl()}?billing=returned`
+    // Validate and use return URL from request if provided
+    let returnUrl: string
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || getDashboardUrl()
+    
+    if (returnUrlParam) {
+      // Security: Ensure return URL is within the application
+      try {
+        const returnUrlObj = new URL(returnUrlParam, appUrl)
+        const appUrlObj = new URL(appUrl)
+        
+        // Allow return only if same origin (same protocol, host, port)
+        if (returnUrlObj.origin === appUrlObj.origin) {
+          returnUrl = returnUrlParam
+          console.log('[stripe-portal] Using custom return URL from request:', returnUrl)
+        } else {
+          console.warn('[stripe-portal] Return URL has different origin, using default:', {
+            returnUrlOrigin: returnUrlObj.origin,
+            appOrigin: appUrlObj.origin
+          })
+          returnUrl = `${getDashboardUrl()}?billing=returned`
+        }
+      } catch (error) {
+        console.error('[stripe-portal] Invalid return URL format, using default:', error)
+        returnUrl = `${getDashboardUrl()}?billing=returned`
+      }
+    } else {
+      // Fall back to default dashboard URL
+      returnUrl = `${getDashboardUrl()}?billing=returned`
+    }
+    
     logUrlResolution('stripe-portal-return-url', returnUrl, user.id, business.id)
 
     console.log('[stripe-portal] Calling Stripe billingPortal.sessions.create for customer:', normalizedCustomerId)

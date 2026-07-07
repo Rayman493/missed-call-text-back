@@ -63,7 +63,9 @@ export async function handleBillingAction(): Promise<BillingActionResult> {
     
     if (hasStripeAccount) {
       console.log('[Billing Action] Selected action: portal (has Stripe account)')
-      return await openBillingPortal(session.access_token)
+      // Pass current URL as return URL for better UX
+      const currentUrl = typeof window !== 'undefined' ? window.location.href : undefined
+      return await openBillingPortal(session.access_token, currentUrl)
     } else {
       console.log('[Billing Action] Selected action: checkout (no Stripe account)')
       return await openCheckout()
@@ -77,7 +79,7 @@ export async function handleBillingAction(): Promise<BillingActionResult> {
   }
 }
 
-async function openBillingPortal(accessToken: string): Promise<BillingActionResult> {
+async function openBillingPortal(accessToken: string, returnUrl?: string): Promise<BillingActionResult> {
   console.log('[Billing Action] Opening billing portal')
   
   try {
@@ -86,7 +88,8 @@ async function openBillingPortal(accessToken: string): Promise<BillingActionResu
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`
-      }
+      },
+      body: JSON.stringify({ returnUrl })
     })
 
     const data = await response.json()
