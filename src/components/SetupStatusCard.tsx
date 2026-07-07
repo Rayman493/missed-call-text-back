@@ -524,56 +524,56 @@ export default function SetupStatusCard({
   
   // Render expanded state
   return (
-    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-700 dark:to-indigo-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-blue-500/30">
-      <div className="flex flex-col gap-6">
+    <div className="bg-slate-900/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-200/10 dark:border-slate-800/50">
+      <div className="flex flex-col gap-8">
         {/* Header */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1">
-            {cardState === 'needs-forwarding' ? (
-              <>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Complete these three steps to activate ReplyFlow</h1>
-                <p className="text-blue-100 text-base sm:text-lg">Step 2 of 3 — Set up call forwarding to start capturing missed calls.</p>
-              </>
-            ) : cardState === 'needs-verification' ? (
-              <>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Complete these three steps to activate ReplyFlow</h1>
-                <p className="text-blue-100 text-base sm:text-lg">Step 3 of 3 — Make a test call to verify your setup.</p>
-              </>
-            ) : (
-              <>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">ReplyFlow Active</h1>
-                <p className="text-blue-100 text-base sm:text-lg">All systems operational and ReplyFlow is actively monitoring your missed calls.</p>
-              </>
-            )}
-          </div>
-          {(cardState === 'setup-complete' || cardState === 'healthy') && (
-            <button
-              onClick={() => setIsExpanded(false)}
-              className="flex-shrink-0 p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-            >
-              <ChevronUp className="w-5 h-5" />
-            </button>
+        <div className="flex flex-col gap-2 pb-6 border-b border-blue-500/20">
+          {cardState === 'needs-forwarding' ? (
+            <>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">Complete these three steps to activate ReplyFlow</h1>
+              <p className="text-slate-400 text-base sm:text-lg">Step 2 of 3 • Set up call forwarding to start capturing missed calls.</p>
+            </>
+          ) : cardState === 'needs-verification' ? (
+            <>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">Complete these three steps to activate ReplyFlow</h1>
+              <p className="text-slate-400 text-base sm:text-lg">Step 3 of 3 • Make a test call to verify your setup.</p>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-white">ReplyFlow Active</h1>
+                  <p className="text-slate-400 text-base sm:text-lg">All systems operational and ReplyFlow is actively monitoring your missed calls.</p>
+                </div>
+                <button
+                  onClick={() => setIsExpanded(false)}
+                  className="flex-shrink-0 p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors"
+                >
+                  <ChevronUp className="w-5 h-5" />
+                </button>
+              </div>
+            </>
           )}
         </div>
 
         {/* Setup Progress - Always show all three steps with collapsible sections */}
         {(cardState === 'needs-forwarding' || cardState === 'needs-verification') && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {/* Step 1: Always Complete */}
-            <div className="bg-green-950/30 backdrop-blur-sm rounded-xl border border-green-800/50 overflow-hidden">
+            <div className="bg-slate-800/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden">
               <button
                 onClick={() => setExpandedStep(expandedStep === 1 ? null : 1)}
-                className="w-full flex items-center gap-3 p-4 hover:bg-green-900/20 transition-colors"
+                className="w-full flex items-center gap-3 p-4 hover:bg-slate-700/30 transition-colors"
               >
                 <div className="flex items-center gap-2 flex-1">
-                  <div className="w-5 h-5 rounded-full bg-green-700/50 flex items-center justify-center flex-shrink-0">
+                  <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
                     <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <span className="text-green-200/70 text-sm font-medium flex-1 text-left">Step 1 — Your ReplyFlow number is ready</span>
+                  <span className="text-white text-sm font-medium flex-1 text-left">Step 1 — Your ReplyFlow number is ready</span>
                 </div>
-                <ChevronDown className={`w-4 h-4 text-green-400/50 transition-transform ${expandedStep === 1 ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedStep === 1 ? 'rotate-180' : ''}`} />
               </button>
               {expandedStep === 1 && (
                 <div className="p-4 pt-0 border-t border-white/10">
@@ -601,24 +601,24 @@ export default function SetupStatusCard({
             {/* Step 2: Complete or Current */}
             <div className={`backdrop-blur-sm rounded-xl border overflow-hidden transition-all ${
               cardState === 'needs-verification' 
-                ? 'bg-green-950/30 border-green-800/50' 
+                ? 'bg-slate-800/50 dark:bg-slate-900/50 border-slate-700/50' 
                 : cardState === 'needs-forwarding'
-                  ? 'bg-slate-900/80 border-blue-400/40 shadow-xl shadow-black/20'
-                  : 'bg-white/10 border-white/20'
+                  ? 'bg-slate-800/50 dark:bg-slate-900/50 border-l-4 border-l-blue-500 border-y border-r border-slate-700/50 shadow-lg'
+                  : 'bg-slate-800/50 dark:bg-slate-900/50 border-slate-700/50'
             }`}>
               <button
                 onClick={() => setExpandedStep(expandedStep === 2 ? null : 2)}
-                className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors"
+                className="w-full flex items-center gap-3 p-4 hover:bg-slate-700/30 transition-colors"
               >
                 <div className="flex items-center gap-2 flex-1">
                   {cardState === 'needs-verification' ? (
                     <div className="flex items-center gap-2 flex-1">
-                      <div className="w-5 h-5 rounded-full bg-green-700/50 flex items-center justify-center flex-shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
                         <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       </div>
-                      <span className="text-green-200/70 text-sm font-medium flex-1 text-left">Step 2 — Set up call forwarding</span>
+                      <span className="text-white text-sm font-medium flex-1 text-left">Step 2 — Set up call forwarding</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 flex-1">
@@ -632,7 +632,7 @@ export default function SetupStatusCard({
                     </div>
                   )}
                 </div>
-                <ChevronDown className={`w-4 h-4 transition-transform ${cardState === 'needs-forwarding' ? 'text-blue-300' : 'text-green-400/50'} ${expandedStep === 2 ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 transition-transform ${cardState === 'needs-forwarding' ? 'text-blue-300' : 'text-slate-400'} ${expandedStep === 2 ? 'rotate-180' : ''}`} />
               </button>
               {expandedStep === 2 && (
                 <div className="p-4 pt-0 border-t border-white/10">
@@ -661,24 +661,24 @@ export default function SetupStatusCard({
             {/* Step 3: Upcoming or Current */}
             <div className={`backdrop-blur-sm rounded-xl border overflow-hidden transition-all ${
               cardState === 'needs-verification' && !hasCompletedTestCall
-                ? 'bg-slate-900/80 border-blue-400/40 shadow-xl shadow-black/20'
+                ? 'bg-slate-800/50 dark:bg-slate-900/50 border-l-4 border-l-blue-500 border-y border-r border-slate-700/50 shadow-lg'
                 : cardState === 'needs-verification' && hasCompletedTestCall
-                  ? 'bg-green-950/30 border-green-800/50'
-                  : 'bg-gray-900/30 border-gray-700/50'
+                  ? 'bg-slate-800/50 dark:bg-slate-900/50 border-slate-700/50'
+                  : 'bg-slate-800/50 dark:bg-slate-900/50 border-slate-700/50'
             }`}>
               <button
                 onClick={() => setExpandedStep(expandedStep === 3 ? null : 3)}
-                className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors"
+                className="w-full flex items-center gap-3 p-4 hover:bg-slate-700/30 transition-colors"
               >
                 <div className="flex items-center gap-2 flex-1">
                   {hasCompletedTestCall ? (
                     <div className="flex items-center gap-2 flex-1">
-                      <div className="w-5 h-5 rounded-full bg-green-700/50 flex items-center justify-center flex-shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
                         <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       </div>
-                      <span className="text-green-200/70 text-sm font-medium flex-1 text-left">Step 3 — Make a test call</span>
+                      <span className="text-white text-sm font-medium flex-1 text-left">Step 3 — Make a test call</span>
                     </div>
                   ) : cardState === 'needs-verification' ? (
                     <div className="flex items-center gap-2 flex-1">
@@ -692,19 +692,17 @@ export default function SetupStatusCard({
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 flex-1">
-                      <div className="w-5 h-5 rounded-full bg-gray-600/50 flex items-center justify-center flex-shrink-0">
-                        <span className="text-gray-400 text-xs font-semibold">3</span>
+                      <div className="w-5 h-5 rounded-full bg-slate-600/50 flex items-center justify-center flex-shrink-0">
+                        <span className="text-slate-400 text-xs font-semibold">3</span>
                       </div>
-                      <span className="text-gray-400/70 text-sm font-medium flex-1 text-left">Make a test call</span>
+                      <span className="text-slate-400 text-sm font-medium flex-1 text-left">Make a test call</span>
                     </div>
                   )}
                 </div>
                 <ChevronDown className={`w-4 h-4 transition-transform ${
                   cardState === 'needs-verification' && !hasCompletedTestCall
                     ? 'text-blue-300'
-                    : hasCompletedTestCall
-                      ? 'text-green-400/50'
-                      : 'text-gray-500/50'
+                    : 'text-slate-400'
                 } ${expandedStep === 3 ? 'rotate-180' : ''}`} />
               </button>
               {expandedStep === 3 && (
