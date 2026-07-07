@@ -7,12 +7,47 @@
 
 import OpenAI from 'openai'
 
+let loggedSemanticAiConfig = false
+
+function resolveOpenAIApiKey(): { apiKey: string | undefined; source: string } {
+  const candidates = [
+    { source: 'OPENAI_API_KEY', value: process.env.OPENAI_API_KEY },
+    { source: 'OPENAI_SERVER_API_KEY', value: process.env.OPENAI_SERVER_API_KEY },
+    { source: 'OPENAI_VOICE_API_KEY', value: process.env.OPENAI_VOICE_API_KEY },
+  ]
+
+  for (const candidate of candidates) {
+    const sanitized = candidate.value?.trim().replace(/^['"]|['"]$/g, '')
+    if (sanitized) {
+      return { apiKey: sanitized, source: candidate.source }
+    }
+  }
+
+  return { apiKey: undefined, source: 'none' }
+}
+
 /**
  * Get OpenAI client (lazy initialization to avoid build-time errors)
  */
 function getOpenAIClient() {
+  const config = resolveOpenAIApiKey()
+
+  if (!loggedSemanticAiConfig) {
+    console.log('[SMS SEMANTIC AI]', {
+      message: 'OpenAI client initialized',
+      apiKeyPresent: !!config.apiKey,
+      provider: 'OpenAI',
+      source: config.source
+    })
+    loggedSemanticAiConfig = true
+  }
+
+  if (!config.apiKey) {
+    throw new Error('OpenAI API key is not configured for semantic SMS correction')
+  }
+
   return new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: config.apiKey,
   })
 }
 
@@ -163,6 +198,9 @@ Analyze this message and determine if it contains corrections or additions.`
   } catch (error: any) {
     console.error('[SEMANTIC ANALYSIS ERROR]', {
       error: error.message,
+      status: error.status,
+      code: error.code,
+      type: error.type,
       stack: error.stack
     })
 

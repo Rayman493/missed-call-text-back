@@ -2078,6 +2078,53 @@ const STAGE_PROMPTS: Record<IntakeStage, string> = {
  * Simple scripted stage progression - deterministic, no GPT decisions
  * The app follows a fixed sequence: ask_name_reason → ask_details → ask_location_or_context → ask_timing → ask_callback_time → complete
  */
+function validateCallbackTimeTranscript(transcript: string): { accepted: boolean; reason: string } {
+  const raw = transcript.trim();
+  const normalized = raw.toLowerCase().replace(/[.,!?;:]$/g, '').replace(/\s+/g, ' ').trim();
+  const words = normalized.split(' ').filter(Boolean);
+
+  if (!normalized) {
+    return { accepted: false, reason: 'empty transcript' };
+  }
+
+  const commonPhrases = [
+    'morning', 'mornings', 'in the morning', 'in the mornings', 'the morning', 'the mornings',
+    'afternoon', 'afternoons', 'in the afternoon', 'in the afternoons', 'the afternoon', 'the afternoons',
+    'evening', 'evenings', 'in the evening', 'in the evenings', 'the evening', 'the evenings',
+    'anytime', 'any time', 'anytime is fine', 'any time is fine',
+    'after work', 'before work', 'during work',
+    'weekdays', 'week days', 'weekends', 'week ends',
+    'tomorrow morning', 'tomorrow afternoon', 'tomorrow evening',
+    'today', 'tomorrow', 'tonight', 'later today', 'later tomorrow'
+  ];
+
+  if (commonPhrases.includes(normalized)) {
+    return { accepted: true, reason: 'recognized callback phrase' };
+  }
+
+  if (/\b(morning|mornings|afternoon|afternoons|evening|evenings|anytime|weekdays|weekends|tomorrow|today|tonight)\b/.test(normalized)) {
+    return { accepted: true, reason: 'contains recognized callback keyword' };
+  }
+
+  if (/\b(after|before|around|about|by|at|between)\s+(work|\d{1,2}(?::\d{2})?\s*(?:am|pm)?|noon|midnight)\b/.test(normalized)) {
+    return { accepted: true, reason: 'recognized relative or specific time phrase' };
+  }
+
+  if (/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/.test(normalized) || /\b(?:around|about|at)\s+\d{1,2}\b/.test(normalized)) {
+    return { accepted: true, reason: 'recognized specific time' };
+  }
+
+  if (words.length === 1 && !/\d/.test(normalized)) {
+    return { accepted: false, reason: 'single non-time word does not resemble callback time' };
+  }
+
+  if (normalized.length < 4) {
+    return { accepted: false, reason: 'too short to be reliable callback time' };
+  }
+
+  return { accepted: false, reason: 'no recognized callback-time pattern' };
+}
+
 function getNextStage(currentStage: IntakeStage): IntakeStage {
   console.log('[SCRIPTED FLOW] =========================================');
   console.log('[SCRIPTED FLOW] stage advanced');
@@ -2218,6 +2265,27 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
         console.log('[SCRIPTED FLOW] =========================================');
         break;
       case 'ask_callback_time':
+        const callbackValidation = validateCallbackTimeTranscript(transcript);
+        console.log('[CALLBACK VALIDATION]', {
+          transcript: transcript.trim(),
+          accepted: callbackValidation.accepted,
+          reason: callbackValidation.reason,
+          reprompting: !callbackValidation.accepted
+        });
+
+        if (!callbackValidation.accepted) {
+          console.log('[SCRIPTED FLOW] =========================================');
+          console.log('[SCRIPTED FLOW] callback time validation failed, repeating callback prompt');
+          console.log('[SCRIPTED FLOW] valueRejected:', transcript.trim());
+          console.log('[SCRIPTED FLOW] reason:', callbackValidation.reason);
+          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+          console.log('[SCRIPTED FLOW] =========================================');
+          return {
+            response: STAGE_PROMPTS.ask_callback_time,
+            nextStage: 'ask_callback_time'
+          };
+        }
+
         intake.callbackTime = transcript.trim();
         console.log('[SCRIPTED FLOW] =========================================');
         console.log('[SCRIPTED FLOW] callback time saved');
