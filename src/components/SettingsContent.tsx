@@ -40,7 +40,7 @@ import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock
 
 export default function SettingsContent() {
   const router = useRouter()
-  const { business, refreshBusiness } = useBusiness()
+  const { business, setBusiness, refreshBusiness } = useBusiness()
   const { user, signOut } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -190,19 +190,17 @@ export default function SettingsContent() {
       // Return the confirmed database record
       return data
     },
-    onBusinessUpdated: async (updatedBusiness) => {
-      // Force refresh from database to get confirmed persisted values
-      await refreshBusiness(true)
-      // Set save success state after business is refreshed
+    onBusinessUpdated: (updatedBusiness) => {
+      setBusiness(updatedBusiness)
       setSaveSuccess(true)
-      showToast('Settings saved successfully', 'success')
+      showToast('✓ Settings saved', 'success')
     }
   })
 
   // Toast functions
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     // Use stable ID for settings success toast to prevent duplicates
-    const stableId = message === 'Settings saved successfully' && type === 'success' 
+    const stableId = message === '✓ Settings saved' && type === 'success' 
       ? 'settings-saved-success' 
       : Date.now().toString()
     

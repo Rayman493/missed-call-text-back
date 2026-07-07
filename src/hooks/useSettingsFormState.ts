@@ -13,7 +13,7 @@ interface SettingsFormState {
 
 interface UseSettingsFormStateProps {
   initialBusiness: Business | null
-  onSaveBusiness: (business: Business) => Promise<void>
+  onSaveBusiness: (business: Business) => Promise<Business>
   onBusinessUpdated: (business: Business) => void
 }
 
@@ -122,19 +122,20 @@ export function useSettingsFormState({
     setState(prev => ({ ...prev, isSaving: true, saveError: null }))
 
     try {
-      await onSaveBusiness(state.business)
+      const savedBusiness = await onSaveBusiness(state.business)
       
       // Update original business to reflect saved state
       setState(prev => ({
         ...prev,
-        originalBusiness: { ...state.business! },
+        business: { ...savedBusiness },
+        originalBusiness: { ...savedBusiness },
         hasUnsavedChanges: false,
         isSaving: false,
         saveError: null
       }))
       
       // Notify parent of successful update
-      onBusinessUpdated(state.business)
+      onBusinessUpdated(savedBusiness)
       
     } catch (error) {
       setState(prev => ({
