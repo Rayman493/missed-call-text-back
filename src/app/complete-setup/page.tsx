@@ -50,9 +50,46 @@ export default function CompleteSetupPage() {
     }
   }, [businessLoading, business, user, router])
 
+  // If business exists but profile is incomplete, redirect to onboarding
+  useEffect(() => {
+    if (!businessLoading && business && user) {
+      const hasName = Boolean(business.name && business.name.trim())
+      const hasPhone = Boolean(business.business_phone_number && business.business_phone_number.trim())
+      
+      if (!hasName || !hasPhone) {
+        console.log('[CompleteSetup] Business profile incomplete, redirecting to onboarding', {
+          hasName,
+          hasPhone,
+          businessId: business.id
+        })
+        router.replace('/onboarding')
+      }
+    }
+  }, [businessLoading, business, user, router])
+
   const handleContinueToStripe = async () => {
     setIsRedirectingToStripe(true)
     setError(null)
+
+    // Guard: Ensure business profile is complete before allowing Stripe checkout
+    if (!business) {
+      console.error('[CompleteSetup] No business found, redirecting to onboarding')
+      router.replace('/onboarding')
+      return
+    }
+
+    const hasName = Boolean(business.name && business.name.trim())
+    const hasPhone = Boolean(business.business_phone_number && business.business_phone_number.trim())
+
+    if (!hasName || !hasPhone) {
+      console.error('[CompleteSetup] Business profile incomplete, redirecting to onboarding', {
+        hasName,
+        hasPhone,
+        businessId: business.id
+      })
+      router.replace('/onboarding')
+      return
+    }
 
     try {
       const response = await fetch('/api/stripe/create-checkout-session', {
