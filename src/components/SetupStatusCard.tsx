@@ -603,7 +603,7 @@ export default function SetupStatusCard({
               cardState === 'needs-verification' 
                 ? 'bg-green-950/30 border-green-800/50' 
                 : cardState === 'needs-forwarding'
-                  ? 'bg-blue-500/20 border-blue-400/50 shadow-lg shadow-blue-500/20 ring-2 ring-blue-400/30'
+                  ? 'bg-slate-900/80 border-blue-400/40 shadow-xl shadow-black/20'
                   : 'bg-white/10 border-white/20'
             }`}>
               <button
@@ -622,11 +622,11 @@ export default function SetupStatusCard({
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 flex-1">
-                      <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/50">
+                      <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/30">
                         <span className="text-white text-sm font-bold">2</span>
                       </div>
                       <span className="text-white text-sm font-semibold flex-1 text-left">Set up call forwarding</span>
-                      <span className="inline-flex items-center px-2.5 py-1 bg-blue-400 text-blue-950 text-xs font-bold rounded-full shadow-md">
+                      <span className="inline-flex items-center px-2.5 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-full border border-blue-400/30">
                         Current
                       </span>
                     </div>
@@ -661,7 +661,7 @@ export default function SetupStatusCard({
             {/* Step 3: Upcoming or Current */}
             <div className={`backdrop-blur-sm rounded-xl border overflow-hidden transition-all ${
               cardState === 'needs-verification' && !hasCompletedTestCall
-                ? 'bg-blue-500/20 border-blue-400/50 shadow-lg shadow-blue-500/20 ring-2 ring-blue-400/30'
+                ? 'bg-slate-900/80 border-blue-400/40 shadow-xl shadow-black/20'
                 : cardState === 'needs-verification' && hasCompletedTestCall
                   ? 'bg-green-950/30 border-green-800/50'
                   : 'bg-gray-900/30 border-gray-700/50'
@@ -682,11 +682,11 @@ export default function SetupStatusCard({
                     </div>
                   ) : cardState === 'needs-verification' ? (
                     <div className="flex items-center gap-2 flex-1">
-                      <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/50">
+                      <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/30">
                         <span className="text-white text-sm font-bold">3</span>
                       </div>
                       <span className="text-white text-sm font-semibold flex-1 text-left">Make a test call</span>
-                      <span className="inline-flex items-center px-2.5 py-1 bg-blue-400 text-blue-950 text-xs font-bold rounded-full shadow-md">
+                      <span className="inline-flex items-center px-2.5 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-full border border-blue-400/30">
                         Current
                       </span>
                     </div>
