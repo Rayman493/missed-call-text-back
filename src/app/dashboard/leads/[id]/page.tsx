@@ -2014,7 +2014,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               setShowPaymentModal(true)
                               setShowMobileOverflow(false)
                             }}
-                            disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
+                            disabled={!business || getAvailableProviders(business).length === 0}
                             className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                           >
                             <CreditCard className="w-4 h-4 stroke-[1.8]" />
@@ -2266,9 +2266,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </button>
               <button
                 onClick={() => setShowPaymentModal(true)}
-                disabled={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled}
+                disabled={!business || getAvailableProviders(business).length === 0}
                 className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                title={!business?.stripe_connect_status || business.stripe_connect_status !== 'connected' ? 'Connect Stripe in Settings to request payments' : 'Request payment'}
+                title={!business || getAvailableProviders(business).length === 0 ? 'Configure a payment method in Settings to request payments' : 'Request payment'}
               >
                 <CreditCard className="w-4 h-4 stroke-[1.8]" />
                 <span className="leading-none">Request Payment</span>
