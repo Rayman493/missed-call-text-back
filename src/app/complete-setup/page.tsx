@@ -18,6 +18,7 @@ export default function CompleteSetupPage() {
   const [password, setPassword] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
   const [isRedirectingToStripe, setIsRedirectingToStripe] = useState(false)
+  const [isResolvingCheckoutState, setIsResolvingCheckoutState] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
@@ -69,6 +70,23 @@ export default function CompleteSetupPage() {
 
       if (freshBusinessError) {
         console.error('[CompleteSetup] Failed to fetch fresh business state:', freshBusinessError)
+
+        if (!businessLoading && business) {
+          const hasName = Boolean(business.name && business.name.trim())
+          const hasPhone = Boolean(business.business_phone_number && business.business_phone_number.trim())
+          const subscriptionActive = business.subscription_status === 'trialing' || business.subscription_status === 'active'
+
+          if (subscriptionActive) {
+            const provisioningPending = business.provisioning_status === 'pending' || business.provisioning_status === 'provisioning'
+            router.replace(provisioningPending ? '/dashboard?setup=1' : '/dashboard')
+            return
+          }
+
+          if (hasName && hasPhone) {
+            setIsResolvingCheckoutState(false)
+          }
+        }
+
         return
       }
 
@@ -92,11 +110,14 @@ export default function CompleteSetupPage() {
 
         const provisioningPending = freshBusiness.provisioning_status === 'pending' || freshBusiness.provisioning_status === 'provisioning'
         router.replace(provisioningPending ? '/dashboard?setup=1' : '/dashboard')
+        return
       }
+
+      setIsResolvingCheckoutState(false)
     }
 
     routeFromFreshBusinessState()
-  }, [authLoading, user, router, refreshBusiness])
+  }, [authLoading, user, router, refreshBusiness, businessLoading, business])
 
   // If business exists but profile is incomplete, redirect to onboarding
   useEffect(() => {
@@ -246,10 +267,12 @@ export default function CompleteSetupPage() {
     }
   }
 
-  if (authLoading || businessLoading) {
+  if (authLoading || businessLoading || isResolvingCheckoutState) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="w-14 h-14 border-4 border-blue-600/30 border-t-blue-600 border-solid rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-14 h-14 border-4 border-blue-600/30 border-t-blue-600 border-solid rounded-full animate-spin mb-6"></div>
+        <h1 className="text-xl font-semibold text-white mb-2">Finalizing your account...</h1>
+        <p className="text-sm text-slate-400">Setting up ReplyFlow. This should only take a moment.</p>
       </div>
     )
   }
