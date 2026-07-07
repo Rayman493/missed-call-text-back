@@ -21,7 +21,7 @@ export default async function PayPage({ params }: PayPageProps) {
   // Look up payment request by token
   const { data: paymentRequest, error } = await supabase
     .from('payment_requests')
-    .select('id, status, checkout_url, expires_at, amount_cents, description')
+    .select('id, status, checkout_url, expires_at, amount_cents, description, payment_provider')
     .eq('token', token)
     .single()
 
@@ -78,6 +78,25 @@ export default async function PayPage({ params }: PayPageProps) {
           </p>
           <p className="text-sm text-gray-500">
             If you have any questions, please reply to the original message or contact the business directly.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Check if payment is cancelled
+  if (paymentRequest.status === 'cancelled') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
+          <div className="text-red-500 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Request Canceled</h1>
+          <p className="text-gray-600 mb-6">
+            This payment request has been canceled by the business. Please contact the business for assistance.
           </p>
         </div>
       </div>

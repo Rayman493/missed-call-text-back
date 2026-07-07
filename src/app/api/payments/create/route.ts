@@ -482,16 +482,12 @@ export async function POST(request: Request) {
     const businessName = business.name || 'our business'
     const amount = (amount_cents / 100).toFixed(2)
     
-    // Determine payment URL based on provider
+    // Use ReplyFlow token URL for all providers to enable cancellation
     let paymentUrl = ''
-    if (provider === 'stripe') {
-      // For Stripe, use branded link if token was persisted, otherwise use Stripe checkout URL
-      const tokenPersisted = !!paymentRequest.token
-      paymentUrl = tokenPersisted 
-        ? `${process.env.NEXT_PUBLIC_APP_URL}/pay/${paymentRequest.token}`
-        : (checkoutSession?.url || paymentRequest.checkout_url)
+    if (paymentRequest.token) {
+      paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL}/pay/${paymentRequest.token}`
     } else {
-      // For Venmo/PayPal, use the direct payment link
+      // Fallback to direct checkout URL if token not available
       paymentUrl = paymentRequest.checkout_url || paymentLink
     }
     

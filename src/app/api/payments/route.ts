@@ -55,7 +55,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Failed to fetch payment requests' }, { status: 500 })
     }
 
-    // Calculate stats
+    // Calculate stats - exclude canceled requests
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
 
     const pendingRequests = paymentRequests.filter(p => p.status === 'pending').length
 
-    const totalRequests = paymentRequests.length
+    const totalRequests = paymentRequests.filter(p => p.status !== 'cancelled').length
     const paidRequests = paymentRequests.filter(p => p.status === 'paid').length
     const collectionRate = totalRequests > 0 ? Math.round((paidRequests / totalRequests) * 100) : 0
 
