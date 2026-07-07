@@ -25,7 +25,14 @@ export default async function PayPage({ params }: PayPageProps) {
     .eq('token', token)
     .single()
 
+  console.log('[PAY TOKEN] token=', token)
+  console.log('[PAY TOKEN] paymentId=', paymentRequest?.id)
+  console.log('[PAY TOKEN] status=', paymentRequest?.status)
+  console.log('[PAY TOKEN] provider=', paymentRequest?.payment_provider)
+  console.log('[PAY TOKEN] checkout_url=', paymentRequest?.checkout_url)
+
   if (error || !paymentRequest) {
+    console.log('[PAY TOKEN] redirect=false, reason=missing')
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
@@ -45,6 +52,7 @@ export default async function PayPage({ params }: PayPageProps) {
 
   // Check if payment has expired
   if (paymentRequest.expires_at && new Date(paymentRequest.expires_at) < new Date()) {
+    console.log('[PAY TOKEN] redirect=false, reason=expired')
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
@@ -64,6 +72,7 @@ export default async function PayPage({ params }: PayPageProps) {
 
   // Check if payment is already paid
   if (paymentRequest.status === 'paid') {
+    console.log('[PAY TOKEN] redirect=false, reason=paid')
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
@@ -86,6 +95,7 @@ export default async function PayPage({ params }: PayPageProps) {
 
   // Check if payment is cancelled
   if (paymentRequest.status === 'cancelled') {
+    console.log('[PAY TOKEN] redirect=false, reason=cancelled')
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
@@ -105,6 +115,7 @@ export default async function PayPage({ params }: PayPageProps) {
 
   // Redirect to Stripe Checkout Session
   if (paymentRequest.checkout_url) {
+    console.log('[PAY TOKEN] redirect=true, reason=pending, url=', paymentRequest.checkout_url)
     redirect(paymentRequest.checkout_url)
   }
 
