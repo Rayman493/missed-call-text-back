@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { CreditCard, Copy, ExternalLink, User, X } from 'lucide-react'
@@ -113,10 +113,13 @@ export default function PaymentsPage() {
   const isVenmoConfigured = business?.venmo_username && business.venmo_username.length > 0
   const isPaypalConfigured = business?.paypal_payment_link && business.paypal_payment_link.length > 0
 
-  const configuredPaymentMethods: Array<'stripe' | 'venmo' | 'paypal'> = []
-  if (isStripeConfigured) configuredPaymentMethods.push('stripe')
-  if (isVenmoConfigured) configuredPaymentMethods.push('venmo')
-  if (isPaypalConfigured) configuredPaymentMethods.push('paypal')
+  const configuredPaymentMethods = useMemo<Array<'stripe' | 'venmo' | 'paypal'>>(() => {
+    const methods: Array<'stripe' | 'venmo' | 'paypal'> = []
+    if (isStripeConfigured) methods.push('stripe')
+    if (isVenmoConfigured) methods.push('venmo')
+    if (isPaypalConfigured) methods.push('paypal')
+    return methods
+  }, [isStripeConfigured, isVenmoConfigured, isPaypalConfigured])
 
   const hasAnyPaymentMethod = configuredPaymentMethods.length > 0
 
