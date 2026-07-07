@@ -5194,6 +5194,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     simpleModeFinalTimeout: null as NodeJS.Timeout | null,
     completionPersistenceStarted: false,
     completionPersistenceFinished: false,
+    // Per-stage reprompt tracking
+    stagePromptAttempts: new Map<string, number>(),
+    maxRepromptsPerStage: 1,
     // Audio buffering state
     audioAccumulator: [] as Buffer[],
     audioAccumulatorBytes: 0,
@@ -5259,6 +5262,88 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     });
     console.log('[SIMPLE MODE] Timestamp:', new Date().toISOString());
     console.log('[SIMPLE MODE] =========================================');
+  };
+
+  // Helper to validate transcript and reject bot scripts/unusable responses
+  const isValidTranscript = (transcript: string, stage: string): { valid: boolean; reason: string } => {
+    if (!transcript || typeof transcript !== 'string') {
+      return { valid: false, reason: 'no_transcript' };
+    }
+
+    const trimmed = transcript.trim().toLowerCase();
+
+    // Reject if too short (likely silence or noise)
+    if (trimmed.length < 2) {
+      return { valid: false, reason: 'too_short' };
+    }
+
+    // Reject if too long for a name (likely bot script)
+    if (stage === 'ask_name_reason' && trimmed.length > 150) {
+      return { valid: false, reason: 'too_long_for_name' };
+    }
+
+    // Bot script / IVR spam phrases
+    const botPhrases = [
+      'press 1',
+      'press one',
+      'press 2',
+      'press two',
+      'press 3',
+      'press three',
+      'automated message',
+      'to speak with a representative',
+      'to be removed from our list',
+      'google business profile',
+      'vehicle warranty',
+      'medicare',
+      'social security',
+      'irs',
+      'credit card',
+      'extended warranty',
+      'debt relief',
+      'student loan',
+      'lower your interest rate',
+      'your final notice',
+      'this is your last chance',
+      'act now',
+      'limited time offer',
+      'congratulations you\'ve been selected',
+      'you have been chosen',
+      'prize',
+      'winner',
+      'claim your reward',
+    ];
+
+    for (const phrase of botPhrases) {
+      if (trimmed.includes(phrase)) {
+        return { valid: false, reason: 'bot_phrase_detected' };
+      }
+    }
+
+    // Reject obviously invalid names for ask_name_reason
+    if (stage === 'ask_name_reason') {
+      // Reject multi-sentence answers as name
+      const sentenceCount = (trimmed.match(/[.!?]/g) || []).length;
+      if (sentenceCount > 2) {
+        return { valid: false, reason: 'too_many_sentences' };
+      }
+
+      // Reject names containing bot/spam keywords
+      const spamKeywords = ['press', 'automated', 'representative', 'verification', 'warranty', 'medicare', 'social security', 'irs', 'credit card', 'debt', 'loan', 'interest rate', 'prize', 'winner', 'reward'];
+      for (const keyword of spamKeywords) {
+        if (trimmed.includes(keyword)) {
+          return { valid: false, reason: 'spam_keyword_in_name' };
+        }
+      }
+
+      // Reject if transcript is the full bot script (very long with multiple sentences)
+      const words = trimmed.split(/\s+/);
+      if (words.length > 20) {
+        return { valid: false, reason: 'too_many_words' };
+      }
+    }
+
+    return { valid: true, reason: 'valid' };
   };
 
   const storeStageCapture = (stage: string, rawTranscript: string, source: string): string | null => {
@@ -7202,12 +7287,19 @@ Reply to this message if you'd like to update or add any information.
             const timeSinceTtsCompleteMs = state.ttsCompleteTime ? Date.now() - state.ttsCompleteTime : -1;
             const meaningfulTranscript = transcript.trim();
 
-            let accepted = !state.assistantSpeaking && isValidStage && !!meaningfulTranscript;
+            // Validate transcript for bot scripts and unusable responses
+            const validation = isValidTranscript(meaningfulTranscript, state.currentStage);
+            const isTranscriptValid = validation.valid;
+
+            let accepted = !state.assistantSpeaking && isValidStage && !!meaningfulTranscript && isTranscriptValid;
             let ignoredReason = '';
 
             if (!meaningfulTranscript) {
               accepted = false;
               ignoredReason = 'no_meaningful_transcript';
+            } else if (!isTranscriptValid) {
+              accepted = false;
+              ignoredReason = validation.reason;
             } else if (state.assistantSpeaking) {
               // Queue transcript for processing after tts_complete
               state.queuedTranscript = transcript;
@@ -7223,16 +7315,63 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SIMPLE MODE] currentStage:', state.currentStage);
             console.log('[SIMPLE MODE] transcript:', transcript);
             console.log('[SIMPLE MODE] assistantSpeaking:', state.assistantSpeaking);
+            console.log('[SIMPLE MODE] isTranscriptValid:', isTranscriptValid);
+            console.log('[SIMPLE MODE] validationReason:', validation.reason);
             console.log('[SIMPLE MODE] accepted:', accepted);
             console.log('[SIMPLE MODE] ignoredReason:', ignoredReason);
             console.log('[SIMPLE MODE] timeSinceTtsCompleteMs:', timeSinceTtsCompleteMs);
             console.log('[SIMPLE MODE] =========================================');
 
-            logSimple('user_transcription', { transcript: transcript.substring(0, 50), stage: state.currentStage });
+            logSimple('user_transcription', { transcript: transcript.substring(0, 50), stage: state.currentStage, valid: isTranscriptValid, validationReason: validation.reason });
+
+            // Handle reprompt logic for invalid/no response
+            if (!accepted && isValidStage && !state.assistantSpeaking) {
+              const currentAttempts = state.stagePromptAttempts.get(state.currentStage) || 0;
+              
+              if (currentAttempts < state.maxRepromptsPerStage) {
+                // Reprompt the same stage
+                state.stagePromptAttempts.set(state.currentStage, currentAttempts + 1);
+                
+                console.log('[STAGE REPROMPT] =========================================');
+                console.log('[STAGE REPROMPT] stage:', state.currentStage);
+                console.log('[STAGE REPROMPT] attempt:', currentAttempts + 1);
+                console.log('[STAGE REPROMPT] reason:', ignoredReason || validation.reason);
+                console.log('[STAGE REPROMPT] =========================================');
+                
+                logSimple('stage_reprompt', { stage: state.currentStage, attempt: currentAttempts + 1, reason: ignoredReason || validation.reason });
+                
+                // Reprompt the same stage
+                sendPrompt(state.currentStage);
+                return; // Skip normal advancement
+              } else {
+                // Reprompt limit exhausted - finalize with partial info
+                console.log('[STAGE REPROMPT EXHAUSTED] =========================================');
+                console.log('[STAGE REPROMPT EXHAUSTED] stage:', state.currentStage);
+                console.log('[STAGE REPROMPT EXHAUSTED] reason:', ignoredReason || validation.reason);
+                console.log('[STAGE REPROMPT EXHAUSTED] finalizingWithPartialInfo: true');
+                console.log('[STAGE REPROMPT EXHAUSTED] =========================================');
+                
+                logSimple('stage_reprompt_exhausted', { stage: state.currentStage, reason: ignoredReason || validation.reason });
+                
+                // Cancel any active silence timers
+                if (state.silentTimeout) {
+                  clearTimeout(state.silentTimeout);
+                  state.silentTimeout = null;
+                }
+                
+                // Finalize with partial info and hang up
+                state.currentStage = 'complete';
+                sendPrompt('complete');
+                processSimpleModeCompletion().catch(console.error);
+                return;
+              }
+            }
 
             const fieldName = accepted ? storeStageCapture(state.currentStage, meaningfulTranscript, 'openai_transcription_completed') : null;
             if (fieldName) {
               clearSilentTimeout('valid_transcript_accepted');
+              // Reset reprompt counter on successful answer
+              state.stagePromptAttempts.set(state.currentStage, 0);
             }
 
             if (accepted) {
