@@ -2298,27 +2298,6 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
         }
         break;
       case 'ask_callback_time':
-        const callbackValidation = validateCallbackTimeTranscript(transcript);
-        console.log('[CALLBACK VALIDATION]', {
-          transcript: transcript.trim(),
-          accepted: callbackValidation.accepted,
-          reason: callbackValidation.reason,
-          reprompting: !callbackValidation.accepted
-        });
-
-        if (!callbackValidation.accepted) {
-          console.log('[SCRIPTED FLOW] =========================================');
-          console.log('[SCRIPTED FLOW] callback time validation failed, repeating callback prompt');
-          console.log('[SCRIPTED FLOW] valueRejected:', transcript.trim());
-          console.log('[SCRIPTED FLOW] reason:', callbackValidation.reason);
-          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-          console.log('[SCRIPTED FLOW] =========================================');
-          return {
-            response: STAGE_PROMPTS.ask_callback_time,
-            nextStage: 'ask_callback_time'
-          };
-        }
-
         // Only set if field is not already captured - prevent overwriting valid answers
         if (!intake.callbackTime) {
           intake.callbackTime = transcript.trim();
@@ -3178,50 +3157,6 @@ function isValidCustomerName(name: string): boolean {
   }
   
   return true;
-}
-
-// Helper function to validate callback time answer
-function isValidCallbackTimeAnswer(transcript: string): boolean {
-  const lowerTranscript = transcript.toLowerCase().trim();
-  
-  // Valid callback time patterns
-  const validPatterns = [
-    // Time of day
-    'morning', 'mornings', 'afternoon', 'afternoons', 'evening', 'evenings', 'noon',
-    // General timing
-    'anytime', 'whenever', 'today', 'tomorrow',
-    // Specific day combinations
-    'tomorrow morning', 'tomorrow afternoon', 'tomorrow evening',
-    'this morning', 'this afternoon', 'this evening',
-    // Days of week
-    'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-    // Relative timing
-    'next week', 'as soon as possible', 'asap', 'after work', 'before noon', 'around lunch',
-    // Time ranges
-    'between', 'after', 'before',
-    // Time with AM/PM
-    'am', 'pm',
-    // Common time indicators
-    'call', 'reach', 'contact', 'speak'
-  ];
-  
-  // Check if transcript contains any valid pattern
-  const hasValidPattern = validPatterns.some(pattern => lowerTranscript.includes(pattern));
-  
-  // Check for explicit time mentions (e.g., "3 PM", "10 AM")
-  const timePattern = /\d+\s*(am|pm|o'clock|:00|:30)/i;
-  const hasTimeMention = timePattern.test(lowerTranscript);
-  
-  // Reject if transcript is too short (likely invalid)
-  if (lowerTranscript.length < 3) {
-    return false;
-  }
-  
-  // Reject if transcript contains only random words (check against common invalid words)
-  const invalidWords = ['moon', 'banana', 'purple', 'dog', 'piano', 'cat', 'apple', 'car', 'house', 'tree', 'book', 'computer', 'phone'];
-  const isOnlyInvalidWord = invalidWords.includes(lowerTranscript);
-  
-  return hasValidPattern || hasTimeMention || !isOnlyInvalidWord;
 }
 
 // Helper function to normalize extracted field names to session intake field names
