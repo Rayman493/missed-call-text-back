@@ -5117,6 +5117,11 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     openAiWs: null as WebSocket | null,
     queuedTranscript: null as string | null,
     ttsCompleteTime: 0 as number,
+    promptAudioStartedAt: 0 as number,
+    promptAudioSentAt: 0 as number,
+    firstSpeechStartedAfterPromptAt: 0 as number,
+    firstAudioForwardedAfterPromptAt: 0 as number,
+    firstAudioBlockedAfterPromptAt: 0 as number,
     simpleModeFinalTimeout: null as NodeJS.Timeout | null,
     completionPersistenceStarted: false,
     completionPersistenceFinished: false,
@@ -6593,6 +6598,17 @@ Reply to this message if you'd like to update or add any information.
     }
 
     state.assistantSpeaking = true;
+    state.promptAudioStartedAt = Date.now();
+    state.promptAudioSentAt = 0;
+    state.firstSpeechStartedAfterPromptAt = 0;
+    state.firstAudioForwardedAfterPromptAt = 0;
+    state.firstAudioBlockedAfterPromptAt = 0;
+    state.audioAppendBlockedLogged = false;
+    console.log('[AUDIO TIMING] =========================================');
+    console.log('[AUDIO TIMING] event: assistantSpeaking_set_true');
+    console.log('[AUDIO TIMING] stage:', stage);
+    console.log('[AUDIO TIMING] timestamp:', state.promptAudioStartedAt);
+    console.log('[AUDIO TIMING] =========================================');
 
     console.log('[SIMPLE MODE] =========================================');
     console.log('[SIMPLE MODE] event: stage_prompt_mapping');
@@ -6624,7 +6640,18 @@ Reply to this message if you'd like to update or add any information.
         // Send cached PCMU audio to Twilio
         const chunkSize = 160; // 20ms at 8kHz mu-law (160 bytes)
         const audioBuffer = Buffer.from(cachedAudio, 'base64');
+        const expectedChunks = Math.ceil(audioBuffer.length / chunkSize);
         let totalChunks = 0;
+
+        console.log('[AUDIO TIMING] =========================================');
+        console.log('[AUDIO TIMING] event: prompt_audio_started');
+        console.log('[AUDIO TIMING] stage:', stage);
+        console.log('[AUDIO TIMING] promptAudioStartedAt:', state.promptAudioStartedAt);
+        console.log('[AUDIO TIMING] promptBytes:', audioBuffer.length);
+        console.log('[AUDIO TIMING] expectedChunks:', expectedChunks);
+        console.log('[AUDIO TIMING] expectedDurationMs:', expectedChunks * 20);
+        console.log('[AUDIO TIMING] assistantSpeaking:', state.assistantSpeaking);
+        console.log('[AUDIO TIMING] =========================================');
 
         for (let i = 0; i < audioBuffer.length; i += chunkSize) {
           if (state.cachedPlaybackInterrupted) {
@@ -6655,41 +6682,48 @@ Reply to this message if you'd like to update or add any information.
         }
 
         console.log('[SIMPLE MODE] =========================================');
+        state.promptAudioSentAt = Date.now();
         console.log('[SIMPLE MODE] event: cached_prompt_audio_sent');
         console.log('[SIMPLE MODE] cached_prompt_key:', stage);
         console.log('[SIMPLE MODE] chunk_count:', totalChunks);
         console.log('[SIMPLE MODE] =========================================');
 
-        // Mark speaking as false after audio is sent
-        setTimeout(() => {
-          state.assistantSpeaking = false;
-          state.ttsCompleteTime = Date.now();
-          logSimple('cached_prompt_complete', { stage });
+        state.assistantSpeaking = false;
+        state.ttsCompleteTime = state.promptAudioSentAt;
+        console.log('[AUDIO TIMING] =========================================');
+        console.log('[AUDIO TIMING] event: prompt_audio_completed');
+        console.log('[AUDIO TIMING] stage:', stage);
+        console.log('[AUDIO TIMING] promptAudioStartedAt:', state.promptAudioStartedAt);
+        console.log('[AUDIO TIMING] promptAudioSentAt:', state.promptAudioSentAt);
+        console.log('[AUDIO TIMING] actualDurationMs:', state.promptAudioSentAt - state.promptAudioStartedAt);
+        console.log('[AUDIO TIMING] chunkCount:', totalChunks);
+        console.log('[AUDIO TIMING] assistantSpeaking:', state.assistantSpeaking);
+        console.log('[AUDIO TIMING] =========================================');
+        logSimple('cached_prompt_complete', { stage });
 
-          if (stage === 'ask_name_reason') {
-            startInitialSilentTimeout();
-          }
+        if (stage === 'ask_name_reason') {
+          startInitialSilentTimeout();
+        }
 
-          // Start stage timeout for regular intake stages
-          if (stage !== 'complete' && stage !== 'ask_name_reason') {
-            startStageTimeout();
-          }
+        // Start stage timeout for regular intake stages
+        if (stage !== 'complete' && stage !== 'ask_name_reason') {
+          startStageTimeout();
+        }
 
-          // Handle final complete stage close
-          if (stage === 'complete') {
-            console.log('[SIMPLE MODE] =========================================');
-            console.log('[SIMPLE MODE] event: final_cached_prompt_complete_close_scheduled');
-            console.log('[SIMPLE MODE] delayMs:', 2000);
-            console.log('[SIMPLE MODE] =========================================');
-            setTimeout(() => {
-              logSimple('call_complete');
-              ws.close();
-              if (state.openAiWs) {
-                state.openAiWs.close();
-              }
-            }, 2000);
-          }
-        }, 1000);
+        // Handle final complete stage close
+        if (stage === 'complete') {
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: final_cached_prompt_complete_close_scheduled');
+          console.log('[SIMPLE MODE] delayMs:', 2000);
+          console.log('[SIMPLE MODE] =========================================');
+          setTimeout(() => {
+            logSimple('call_complete');
+            ws.close();
+            if (state.openAiWs) {
+              state.openAiWs.close();
+            }
+          }, 2000);
+        }
 
       } catch (error) {
         console.log('[SIMPLE MODE] Error sending cached audio:', error);
@@ -6922,11 +6956,19 @@ Reply to this message if you'd like to update or add any information.
 
           // Log key OpenAI events with full details
           if (message.type === 'input_audio_buffer.speech_started') {
+            const speechStartedAt = Date.now();
+            if (!state.firstSpeechStartedAfterPromptAt) {
+              state.firstSpeechStartedAfterPromptAt = speechStartedAt;
+            }
             console.log('[AUDIO PIPELINE] =========================================');
             console.log('[AUDIO PIPELINE] event: input_audio_buffer.speech_started');
-            console.log('[AUDIO PIPELINE] timestamp:', Date.now());
+            console.log('[AUDIO PIPELINE] timestamp:', speechStartedAt);
             console.log('[AUDIO PIPELINE] assistantSpeaking:', state.assistantSpeaking);
             console.log('[AUDIO PIPELINE] audioBufferAppendCount:', state.audioBufferAppendCount || 0);
+            console.log('[AUDIO PIPELINE] promptAudioStartedAt:', state.promptAudioStartedAt || 0);
+            console.log('[AUDIO PIPELINE] promptAudioSentAt:', state.promptAudioSentAt || 0);
+            console.log('[AUDIO PIPELINE] elapsedMsSincePromptComplete:', state.promptAudioSentAt ? speechStartedAt - state.promptAudioSentAt : null);
+            console.log('[AUDIO PIPELINE] elapsedMsSincePromptStart:', state.promptAudioStartedAt ? speechStartedAt - state.promptAudioStartedAt : null);
             console.log('[AUDIO PIPELINE] =========================================');
             state.inSpeechSegment = true;
             state.audioAppendBlockedLogged = false;
@@ -6962,6 +7004,11 @@ Reply to this message if you'd like to update or add any information.
             console.log('[AUDIO PIPELINE] transcript:', message.transcript);
             console.log('[AUDIO PIPELINE] assistantSpeaking:', state.assistantSpeaking);
             console.log('[AUDIO PIPELINE] audioBufferAppendCount:', state.audioBufferAppendCount || 0);
+            console.log('[AUDIO PIPELINE] promptAudioSentAt:', state.promptAudioSentAt || 0);
+            console.log('[AUDIO PIPELINE] firstSpeechStartedAfterPromptAt:', state.firstSpeechStartedAfterPromptAt || 0);
+            console.log('[AUDIO PIPELINE] firstAudioForwardedAfterPromptAt:', state.firstAudioForwardedAfterPromptAt || 0);
+            console.log('[AUDIO PIPELINE] elapsedMsPromptCompleteToSpeechStarted:', state.promptAudioSentAt && state.firstSpeechStartedAfterPromptAt ? state.firstSpeechStartedAfterPromptAt - state.promptAudioSentAt : null);
+            console.log('[AUDIO PIPELINE] elapsedMsSpeechStartedToFirstAudioForwarded:', state.firstSpeechStartedAfterPromptAt && state.firstAudioForwardedAfterPromptAt ? state.firstAudioForwardedAfterPromptAt - state.firstSpeechStartedAfterPromptAt : null);
             console.log('[AUDIO PIPELINE] =========================================');
           } else if (message.type === 'conversation.item.input_audio_transcription.failed') {
             console.log('[AUDIO PIPELINE] =========================================');
@@ -7292,6 +7339,19 @@ Reply to this message if you'd like to update or add any information.
             audio: message.media.payload
           };
           state.openAiWs.send(JSON.stringify(audioMessage));
+          const audioForwardedAt = Date.now();
+          if (!state.firstAudioForwardedAfterPromptAt) {
+            state.firstAudioForwardedAfterPromptAt = audioForwardedAt;
+            console.log('[AUDIO TIMING] =========================================');
+            console.log('[AUDIO TIMING] event: first_audio_forwarded_after_prompt');
+            console.log('[AUDIO TIMING] stage:', state.currentStage);
+            console.log('[AUDIO TIMING] timestamp:', audioForwardedAt);
+            console.log('[AUDIO TIMING] promptAudioSentAt:', state.promptAudioSentAt || 0);
+            console.log('[AUDIO TIMING] firstSpeechStartedAfterPromptAt:', state.firstSpeechStartedAfterPromptAt || 0);
+            console.log('[AUDIO TIMING] elapsedMsSincePromptComplete:', state.promptAudioSentAt ? audioForwardedAt - state.promptAudioSentAt : null);
+            console.log('[AUDIO TIMING] elapsedMsSinceSpeechStarted:', state.firstSpeechStartedAfterPromptAt ? audioForwardedAt - state.firstSpeechStartedAfterPromptAt : null);
+            console.log('[AUDIO TIMING] =========================================');
+          }
           state.audioBufferAppendCount = (state.audioBufferAppendCount || 0) + 1
           if (state.audioBufferAppendCount % 50 === 0) {
             console.log('[AUDIO PIPELINE] Audio forwarded to OpenAI', {
@@ -7315,9 +7375,16 @@ Reply to this message if you'd like to update or add any information.
             console.log('[AUDIO PIPELINE] =========================================');
             console.log('[AUDIO PIPELINE] event: audio_append_blocked');
             console.log('[AUDIO PIPELINE] reason: assistant_speaking');
-            console.log('[AUDIO PIPELINE] timestamp:', Date.now());
+            const audioBlockedAt = Date.now();
+            if (!state.firstAudioBlockedAfterPromptAt) {
+              state.firstAudioBlockedAfterPromptAt = audioBlockedAt;
+            }
+            console.log('[AUDIO PIPELINE] timestamp:', audioBlockedAt);
             console.log('[AUDIO PIPELINE] currentStage:', state.currentStage);
             console.log('[AUDIO PIPELINE] audioBufferAppendCount:', state.audioBufferAppendCount || 0);
+            console.log('[AUDIO PIPELINE] promptAudioSentAt:', state.promptAudioSentAt || 0);
+            console.log('[AUDIO PIPELINE] elapsedMsSincePromptComplete:', state.promptAudioSentAt ? audioBlockedAt - state.promptAudioSentAt : null);
+            console.log('[AUDIO PIPELINE] elapsedMsSincePromptStart:', state.promptAudioStartedAt ? audioBlockedAt - state.promptAudioStartedAt : null);
             console.log('[AUDIO PIPELINE] =========================================');
             state.audioAppendBlockedLogged = true;
           }
