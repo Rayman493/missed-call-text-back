@@ -63,9 +63,9 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   
   return (
     <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-[#0b1220] backdrop-blur-sm border-b border-white/10 dark:border-slate-700' : 'bg-[#0b1220] border-b border-slate-800 dark:border-slate-700'}`}>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5 flex items-center justify-between">
+      <div className="mx-auto grid max-w-7xl grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 px-4 py-1.5 sm:flex sm:justify-between sm:px-6 sm:py-2.5 lg:px-8">
         {/* Group Home button and logo together on the left */}
-        <div className="flex items-center gap-1">
+        <div className="contents sm:flex sm:items-center sm:gap-1">
           {/* Mobile Home/Dashboard Button - Only on mobile */}
           <Link
             href={isLoggedIn ? '/dashboard' : '/auth?mode=signin'}
@@ -84,11 +84,11 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           {/* Logo */}
           <Link 
             href={isLoggedIn && !isPublicPage ? '/dashboard' : '/'} 
-            className="flex h-10 w-10 items-center justify-center gap-0.5 hover:opacity-90 transition sm:h-auto sm:w-auto sm:gap-1.5 sm:justify-start"
+            className="flex h-10 min-w-0 items-center justify-center gap-1.5 justify-self-center hover:opacity-90 transition sm:h-auto sm:w-auto sm:justify-start sm:gap-1.5"
           >
-            <BrandIcon size={40} className="block sm:hidden" />
+            <BrandIcon size={28} className="block flex-shrink-0 sm:hidden" />
             <BrandIcon size={56} className="hidden sm:block" />
-            <span className="hidden sm:block text-base sm:text-lg md:text-xl font-semibold tracking-tight">
+            <span className="block min-w-0 truncate text-sm font-semibold tracking-tight sm:text-lg md:text-xl">
               <span className={`${isPublicPage && !forceDark ? 'text-slate-800 dark:text-white' : 'text-white'}`}>ReplyFlow</span>
               <span className="text-blue-400">HQ</span>
             </span>
@@ -96,7 +96,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex items-center gap-1.5 sm:gap-3">
+        <nav className="flex items-center justify-self-end gap-1.5 sm:gap-3">
           {isLoggedIn ? (
             // Logged-in navigation
             <>
