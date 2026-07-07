@@ -524,7 +524,7 @@ export default function SetupStatusCard({
   
   // Render expanded state
   return (
-    <div className="bg-slate-900/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-2xl p-4 sm:p-5 shadow-xl border border-slate-200/10 dark:border-slate-800/50">
+    <div className="bg-slate-900/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-2xl p-3 sm:p-5 shadow-xl border border-slate-200/10 dark:border-slate-800/50">
       <div className="flex flex-col gap-4">
         {/* Header */}
         <div className="flex flex-col gap-1.5 pb-4 border-b border-blue-500/20">
