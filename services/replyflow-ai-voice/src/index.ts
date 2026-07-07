@@ -2680,62 +2680,37 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[CUSTOMER NAME EXTRACTION END] Timestamp:', new Date().toISOString());
       console.log('[CUSTOMER NAME EXTRACTION END] =========================================');
 
-      // Extract service requested with heuristic fallback
+      // Extract service requested - accept verbatim answer
       if (!intake.serviceRequested) {
         const oldService = intake.serviceRequested;
-        const serviceKeywords = ['plumbing', 'hvac', 'electrical', 'landscaping', 'roofing', 'cleaning', 'pest control', 'painting', 'carpentry', 'masonry', 'excavation', 'concrete', 'windows', 'doors', 'insulation', 'solar', 'security', 'fencing', 'deck', 'pool', 'moving', 'storage', 'junk removal', 'grass cutting', 'mowing', 'lawn care', 'toilet', 'toilet installation', 'toilet plumbing', 'grass cut', 'cut grass', 'mow lawn', 'lawn mowing'];
-        const foundService = serviceKeywords.find(keyword => lowerTranscript.includes(keyword));
-        if (foundService) {
-          intake.serviceRequested = foundService.charAt(0).toUpperCase() + foundService.slice(1);
+        const trimmedTranscript = transcript.trim();
+
+        // Reject only truly unusable answers
+        const unusableAnswers = [
+          '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
+        ];
+        const isUnusable = unusableAnswers.includes(lowerTranscript) || trimmedTranscript.length < 2;
+
+        if (!isUnusable) {
+          // Accept the exact transcript as the answer
+          intake.serviceRequested = trimmedTranscript;
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[FIELD ASSIGNMENT] field: serviceRequested');
           console.log('[FIELD ASSIGNMENT] oldValue:', oldService);
           console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceRequested);
           console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (keyword match)');
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (verbatim capture)');
           console.log('[FIELD ASSIGNMENT] transcript:', transcript);
           console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[LIVE EXTRACTION MAPPED] serviceRequested:', intake.serviceRequested);
         } else {
-          // Heuristic fallback: infer service from common phrases
-          if (lowerTranscript.includes('grass') || lowerTranscript.includes('lawn') || lowerTranscript.includes('mow')) {
-            intake.serviceRequested = 'Lawn care';
-            console.log('[FIELD ASSIGNMENT] =========================================');
-            console.log('[FIELD ASSIGNMENT] field: serviceRequested');
-            console.log('[FIELD ASSIGNMENT] oldValue:', oldService);
-            console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceRequested);
-            console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-            console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (heuristic fallback - grass/lawn/mow)');
-            console.log('[FIELD ASSIGNMENT] transcript:', transcript);
-            console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
-            console.log('[FIELD ASSIGNMENT] =========================================');
-            console.log('[FIELD MAPPING FALLBACK APPLIED] serviceRequested inferred as "Lawn care" from:', transcript);
-          } else if (lowerTranscript.includes('plumbing') || lowerTranscript.includes('plumb') || lowerTranscript.includes('pipe') || lowerTranscript.includes('toilet') || lowerTranscript.includes('drain')) {
-            intake.serviceRequested = 'Plumbing';
-            console.log('[FIELD ASSIGNMENT] =========================================');
-            console.log('[FIELD ASSIGNMENT] field: serviceRequested');
-            console.log('[FIELD ASSIGNMENT] oldValue:', oldService);
-            console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceRequested);
-            console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-            console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (heuristic fallback - plumbing/toilet)');
-            console.log('[FIELD ASSIGNMENT] transcript:', transcript);
-            console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
-            console.log('[FIELD ASSIGNMENT] =========================================');
-            console.log('[FIELD MAPPING FALLBACK APPLIED] serviceRequested inferred as "Plumbing" from:', transcript);
-          } else if (lowerTranscript.includes('install') || lowerTranscript.includes('installed')) {
-            intake.serviceRequested = 'Installation';
-            console.log('[FIELD ASSIGNMENT] =========================================');
-            console.log('[FIELD ASSIGNMENT] field: serviceRequested');
-            console.log('[FIELD ASSIGNMENT] oldValue:', oldService);
-            console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceRequested);
-            console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-            console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (heuristic fallback - install)');
-            console.log('[FIELD ASSIGNMENT] transcript:', transcript);
-            console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
-            console.log('[FIELD ASSIGNMENT] =========================================');
-            console.log('[FIELD MAPPING FALLBACK APPLIED] serviceRequested inferred as "Installation" from:', transcript);
-          }
+          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+          console.log('[FIELD EXTRACTION SKIPPED] field: serviceRequested');
+          console.log('[FIELD EXTRACTION SKIPPED] reason: Unusable answer (too short or filler)');
+          console.log('[FIELD EXTRACTION SKIPPED] transcript:', transcript);
+          console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
         }
       }
 
@@ -2780,25 +2755,38 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[AI DETAILS STAGE ANSWER RECEIVED] Timestamp:', new Date().toISOString());
       console.log('[AI DETAILS STAGE ANSWER RECEIVED] =========================================');
 
-      // Extract issue description - use entire transcript if meaningful
+      // Extract issue description - accept verbatim answer
       if (!intake.issueDescription) {
         const oldDescription = intake.issueDescription;
-        // Use entire transcript if it's meaningful (not empty, not just "yes"/"no"/"okay"/"thanks")
-        const meaningfulResponses = ['yes', 'no', 'okay', 'ok', 'thanks', 'thank you', 'that\'s it', 'nothing else', 'no details', 'none', ''];
-        const isMeaningful = !meaningfulResponses.some(response => lowerTranscript === response || lowerTranscript === response + ' ');
+        const trimmedTranscript = transcript.trim();
 
-        if (isMeaningful && transcript.trim().length > 3) {
-          intake.issueDescription = transcript.trim();
+        // Reject only truly unusable answers
+        const unusableAnswers = [
+          '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea',
+          'yes', 'no', 'okay', 'ok', 'thanks', 'thank you', 'that\'s it', 'nothing else', 'no details', 'none'
+        ];
+        const isUnusable = unusableAnswers.includes(lowerTranscript) || trimmedTranscript.length < 2;
+
+        if (!isUnusable) {
+          // Accept the exact transcript as the answer
+          intake.issueDescription = trimmedTranscript;
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[FIELD ASSIGNMENT] field: issueDescription');
           console.log('[FIELD ASSIGNMENT] oldValue:', oldDescription);
           console.log('[FIELD ASSIGNMENT] newValue:', intake.issueDescription);
           console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (meaningful transcript)');
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (verbatim capture)');
           console.log('[FIELD ASSIGNMENT] transcript:', transcript);
           console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[LIVE EXTRACTION MAPPED] issueDescription:', intake.issueDescription);
+        } else {
+          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+          console.log('[FIELD EXTRACTION SKIPPED] field: issueDescription');
+          console.log('[FIELD EXTRACTION SKIPPED] reason: Unusable answer (too short or filler)');
+          console.log('[FIELD EXTRACTION SKIPPED] transcript:', transcript);
+          console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
         }
       }
 
@@ -2842,91 +2830,38 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
     case 'ask_location_or_context':
       // Allowed: serviceAddress
       // Forbidden: customerName, serviceRequested, issueDescription, desiredCompletionTime, callbackTime
-      
-      // Extract location/service address (REMOVED: dangerous entire transcript fallback)
+
+      // Extract location/service address - accept verbatim answer
       if (!intake.serviceAddress) {
         const oldAddress = intake.serviceAddress;
-        // Check for online/virtual/remote responses
-        const onlineKeywords = ['online', 'virtual', 'remote', 'zoom', 'google meet', 'discord', 'over the phone', 'phone', 'phone call'];
-        const hasOnlineKeyword = onlineKeywords.some(keyword => lowerTranscript.includes(keyword));
-        if (hasOnlineKeyword) {
-          intake.serviceAddress = 'Virtual / Online';
-          intake.locationType = 'online';
+        const trimmedTranscript = transcript.trim();
+
+        // Reject only truly unusable answers
+        const unusableAnswers = [
+          '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
+        ];
+        const isUnusable = unusableAnswers.includes(lowerTranscript) || trimmedTranscript.length < 2;
+
+        if (!isUnusable) {
+          // Accept the exact transcript as the answer
+          intake.serviceAddress = trimmedTranscript;
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[FIELD ASSIGNMENT] field: serviceAddress');
           console.log('[FIELD ASSIGNMENT] oldValue:', oldAddress);
           console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceAddress);
           console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (online keyword)');
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (verbatim capture)');
           console.log('[FIELD ASSIGNMENT] transcript:', transcript);
           console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
           console.log('[FIELD ASSIGNMENT] =========================================');
-          console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
+          console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress);
         } else {
-          // Check for business location responses (expanded list)
-          const businessLocationKeywords = ['at the business', 'at your business', 'at your shop', 'at your office', 'at your place', 'at your facility', 'at your location', 'your business', 'your shop', 'your office', 'your facility', 'your location', "i'll come to you", 'come to you', 'at the studio', 'at the shop'];
-          const hasBusinessLocationKeyword = businessLocationKeywords.some(keyword => lowerTranscript.includes(keyword));
-          if (hasBusinessLocationKeyword) {
-            intake.serviceAddress = 'Business location';
-            intake.locationType = 'business_location';
-            console.log('[FIELD ASSIGNMENT] =========================================');
-            console.log('[FIELD ASSIGNMENT] field: serviceAddress');
-            console.log('[FIELD ASSIGNMENT] oldValue:', oldAddress);
-            console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceAddress);
-            console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-            console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (business keyword)');
-            console.log('[FIELD ASSIGNMENT] transcript:', transcript);
-            console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
-            console.log('[FIELD ASSIGNMENT] =========================================');
-            console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
-          } else {
-            // Check for residential responses
-            const residentialKeywords = ['at my house', 'my house', 'my home', 'at my home', 'my place'];
-            const hasResidentialKeyword = residentialKeywords.some(keyword => lowerTranscript.includes(keyword));
-            if (hasResidentialKeyword) {
-              intake.serviceAddress = 'At caller\'s residence';
-              intake.locationType = 'caller_location';
-              console.log('[FIELD ASSIGNMENT] =========================================');
-              console.log('[FIELD ASSIGNMENT] field: serviceAddress');
-              console.log('[FIELD ASSIGNMENT] oldValue:', oldAddress);
-              console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceAddress);
-              console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-              console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (residential keyword)');
-              console.log('[FIELD ASSIGNMENT] transcript:', transcript);
-              console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
-              console.log('[FIELD ASSIGNMENT] =========================================');
-              console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
-            } else {
-              // Check for location indicators (street, ave, etc.)
-              const locationIndicators = ['street', 'ave', 'avenue', 'road', 'lane', 'drive', 'blvd', 'boulevard', 'at', 'near', 'in', 'on', 'suite', 'unit', '#'];
-              const hasLocationIndicator = locationIndicators.some(indicator => lowerTranscript.includes(indicator));
-              
-              if (hasLocationIndicator && transcript.trim().length > 5) {
-                // Only set serviceAddress if it contains location indicators
-                intake.serviceAddress = transcript.trim();
-                intake.locationType = 'service_address';
-                console.log('[FIELD ASSIGNMENT] =========================================');
-                console.log('[FIELD ASSIGNMENT] field: serviceAddress');
-                console.log('[FIELD ASSIGNMENT] oldValue:', oldAddress);
-                console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceAddress);
-                console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-                console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (location indicator match)');
-                console.log('[FIELD ASSIGNMENT] transcript:', transcript);
-                console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
-                console.log('[FIELD ASSIGNMENT] =========================================');
-                console.log('[LIVE EXTRACTION MAPPED] serviceAddress:', intake.serviceAddress, 'locationType:', intake.locationType);
-              } else {
-                // Skip if no location indicators - do NOT copy entire transcript
-                console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-                console.log('[FIELD EXTRACTION SKIPPED] field: serviceAddress');
-                console.log('[FIELD EXTRACTION SKIPPED] reason: No location indicators found in transcript');
-                console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-                console.log('[FIELD EXTRACTION SKIPPED] transcript:', transcript);
-                console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-                console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-              }
-            }
-          }
+          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+          console.log('[FIELD EXTRACTION SKIPPED] field: serviceAddress');
+          console.log('[FIELD EXTRACTION SKIPPED] reason: Unusable answer (too short or filler)');
+          console.log('[FIELD EXTRACTION SKIPPED] transcript:', transcript);
+          console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
         }
       }
 
@@ -2970,52 +2905,38 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
     case 'ask_timing':
       // Allowed: desiredCompletionTime
       // Forbidden: customerName, serviceRequested, issueDescription, serviceAddress, callbackTime
-      
-      // Extract desired completion time
+
+      // Extract desired completion time - accept verbatim answer
       if (!intake.desiredCompletionTime) {
         const oldTime = intake.desiredCompletionTime;
-        const completionTimePatterns = [
-          'today',
-          'tomorrow',
-          'this week',
-          'next week',
-          'as soon as possible',
-          'asap',
-          'as soon as you can',
-          'right away',
-          'immediately',
-          'soon',
-          'by the end of the week',
-          'by the end of the month',
-          'within a few days',
-          'within a week',
-          'monday',
-          'tuesday',
-          'wednesday',
-          'thursday',
-          'friday',
-          'saturday',
-          'sunday',
-          'next monday',
-          'next tuesday',
-          'next wednesday',
-          'next thursday',
-          'next friday'
-        ];
+        const trimmedTranscript = transcript.trim();
 
-        const foundTime = completionTimePatterns.find(pattern => lowerTranscript.includes(pattern));
-        if (foundTime) {
-          intake.desiredCompletionTime = foundTime.charAt(0).toUpperCase() + foundTime.slice(1);
+        // Reject only truly unusable answers
+        const unusableAnswers = [
+          '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
+        ];
+        const isUnusable = unusableAnswers.includes(lowerTranscript) || trimmedTranscript.length < 2;
+
+        if (!isUnusable) {
+          // Accept the exact transcript as the answer
+          intake.desiredCompletionTime = trimmedTranscript;
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[FIELD ASSIGNMENT] field: desiredCompletionTime');
           console.log('[FIELD ASSIGNMENT] oldValue:', oldTime);
           console.log('[FIELD ASSIGNMENT] newValue:', intake.desiredCompletionTime);
           console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (pattern match)');
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (verbatim capture)');
           console.log('[FIELD ASSIGNMENT] transcript:', transcript);
           console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[LIVE EXTRACTION MAPPED] desiredCompletionTime:', intake.desiredCompletionTime);
+        } else {
+          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+          console.log('[FIELD EXTRACTION SKIPPED] field: desiredCompletionTime');
+          console.log('[FIELD EXTRACTION SKIPPED] reason: Unusable answer (too short or filler)');
+          console.log('[FIELD EXTRACTION SKIPPED] transcript:', transcript);
+          console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
         }
       }
 
@@ -3059,33 +2980,38 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
     case 'ask_callback_time':
       // Allowed: callbackTime
       // Forbidden: customerName, serviceRequested, issueDescription, serviceAddress, desiredCompletionTime
-      
-      // Extract callback time
+
+      // Extract callback time - accept verbatim answer
       if (!intake.callbackTime) {
         const oldCallbackTime = intake.callbackTime;
-        const callbackTimePatterns = [
-          'morning', 'afternoon', 'evening', 'noon',
-          'anytime', 'any time', 'whenever',
-          'today', 'tomorrow',
-          'tomorrow morning', 'tomorrow afternoon', 'tomorrow evening',
-          'this morning', 'this afternoon', 'this evening',
-          'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-          'next week', 'as soon as possible', 'asap', 'after work', 'before noon', 'around lunch'
-        ];
+        const trimmedTranscript = transcript.trim();
 
-        const foundCallbackTime = callbackTimePatterns.find(pattern => lowerTranscript.includes(pattern));
-        if (foundCallbackTime) {
-          intake.callbackTime = foundCallbackTime.charAt(0).toUpperCase() + foundCallbackTime.slice(1);
+        // Reject only truly unusable answers
+        const unusableAnswers = [
+          '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
+        ];
+        const isUnusable = unusableAnswers.includes(lowerTranscript) || trimmedTranscript.length < 2;
+
+        if (!isUnusable) {
+          // Accept the exact transcript as the answer
+          intake.callbackTime = trimmedTranscript;
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[FIELD ASSIGNMENT] field: callbackTime');
           console.log('[FIELD ASSIGNMENT] oldValue:', oldCallbackTime);
           console.log('[FIELD ASSIGNMENT] newValue:', intake.callbackTime);
           console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (pattern match)');
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (verbatim capture)');
           console.log('[FIELD ASSIGNMENT] transcript:', transcript);
           console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[LIVE EXTRACTION MAPPED] callbackTime:', intake.callbackTime);
+        } else {
+          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
+          console.log('[FIELD EXTRACTION SKIPPED] field: callbackTime');
+          console.log('[FIELD EXTRACTION SKIPPED] reason: Unusable answer (too short or filler)');
+          console.log('[FIELD EXTRACTION SKIPPED] transcript:', transcript);
+          console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
+          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
         }
       } else {
         // Field is already locked - prevent overwriting with trivial farewell utterances
