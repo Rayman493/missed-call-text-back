@@ -103,15 +103,33 @@ function mergeExtractedInfo(params: any, aiCallRecord: any, leadMetadata: any): 
 }
 
 async function hasAutomaticSmsForCall(callSid: string, leadId: string): Promise<boolean> {
-  const { data: lead } = await supabaseAdmin
-    .from('leads')
-    .select('raw_metadata')
-    .eq('id', leadId)
+  // Verify a message with a valid Twilio SID exists for this call
+  // This prevents false positives from failed attempts that set metadata flags
+  const { data: existingMessage } = await supabaseAdmin
+    .from('messages')
+    .select('id, twilio_message_sid, status, error_code')
+    .eq('lead_id', leadId)
+    .eq('direction', 'outbound')
+    .not('twilio_message_sid', 'is', null)
+    .not('twilio_message_sid', 'eq', 'NOT_CALLED')
+    .not('twilio_message_sid', 'like', 'SIM_%')
     .maybeSingle()
 
-  const metadata = lead?.raw_metadata || {}
-  if (metadata.ai_confirmation_sms_sent === true || metadata.auto_sms_dispatch_call_sid === callSid || metadata.ai_summary_sms_call_sid === callSid || metadata.ai_confirmation_sms_call_sid === callSid) {
-    return true
+  if (existingMessage) {
+    // Only block if the message was actually sent to Twilio (valid SID) and not failed
+    const wasTwilioCalled = existingMessage.twilio_message_sid && existingMessage.twilio_message_sid !== 'NOT_CALLED'
+    const hasError = existingMessage.error_code
+    const isFailedStatus = existingMessage.status === 'failed' || existingMessage.status === 'undelivered'
+
+    if (wasTwilioCalled && !hasError && !isFailedStatus) {
+      console.log('[AUTO SMS IDEMPOTENCY] Valid SMS already sent for lead:', {
+        leadId,
+        messageId: existingMessage.id,
+        twilioMessageSid: existingMessage.twilio_message_sid,
+        status: existingMessage.status
+      })
+      return true
+    }
   }
 
   return false
