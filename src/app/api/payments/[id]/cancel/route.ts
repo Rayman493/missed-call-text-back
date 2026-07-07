@@ -37,7 +37,7 @@ export async function POST(
     // Get payment request
     const { data: paymentRequest, error: paymentError } = await supabase
       .from('payment_requests')
-      .select('id, business_id, lead_id, amount_cents, description, status, payment_provider, stripe_checkout_session_id, stripe_connect_account_id')
+      .select('id, business_id, lead_id, amount_cents, description, status, payment_provider, stripe_checkout_session_id, stripe_connect_account_id, token, checkout_url, cancelled_at')
       .eq('id', params.id)
       .single()
 
@@ -45,6 +45,15 @@ export async function POST(
       console.error('[PAYMENT CANCEL] Payment request not found:', paymentError)
       return NextResponse.json({ error: 'Payment request not found' }, { status: 404 })
     }
+
+    console.log('[PAYMENT CANCEL] ============================================')
+    console.log('[PAYMENT CANCEL] Payment ID:', paymentRequest.id)
+    console.log('[PAYMENT CANCEL] Token:', paymentRequest.token)
+    console.log('[PAYMENT CANCEL] Previous Status:', paymentRequest.status)
+    console.log('[PAYMENT CANCEL] Payment Provider:', paymentRequest.payment_provider)
+    console.log('[PAYMENT CANCEL] Checkout URL:', paymentRequest.checkout_url)
+    console.log('[PAYMENT CANCEL] Cancelled At (before):', paymentRequest.cancelled_at)
+    console.log('[PAYMENT CANCEL] ============================================')
 
     // Verify user owns the business
     const { data: business, error: businessError } = await supabase
@@ -58,12 +67,12 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    // Check if already cancelled (idempotent)
-    if (paymentRequest.status === 'cancelled') {
-      console.log('[PAYMENT CANCEL] Payment request already cancelled, returning success')
+    // Check if already cancelled (idempotent - defensive: handle both spellings)
+    if (paymentRequest.status === 'cancelled' || paymentRequest.status === 'canceled') {
+      console.log('[PAYMENT CANCEL] Payment request already cancelled, returning success, status=', paymentRequest.status)
       return NextResponse.json({
         id: paymentRequest.id,
-        status: 'cancelled',
+        status: paymentRequest.status,
         message: 'Payment request already cancelled'
       })
     }
@@ -102,6 +111,21 @@ export async function POST(
       console.error('[PAYMENT CANCEL] Failed to update payment request:', updateError)
       return NextResponse.json({ error: 'Failed to cancel payment request' }, { status: 500 })
     }
+
+    // Fetch updated row to verify
+    const { data: updatedPayment, error: fetchError } = await supabase
+      .from('payment_requests')
+      .select('id, status, cancelled_at, token')
+      .eq('id', params.id)
+      .single()
+
+    console.log('[PAYMENT CANCEL] ============================================')
+    console.log('[PAYMENT CANCEL] New Status:', updatedPayment?.status)
+    console.log('[PAYMENT CANCEL] Cancelled At (after):', updatedPayment?.cancelled_at)
+    console.log('[PAYMENT CANCEL] Token (verified):', updatedPayment?.token)
+    console.log('[PAYMENT CANCEL] Update Error:', updateError)
+    console.log('[PAYMENT CANCEL] Fetch Error:', fetchError)
+    console.log('[PAYMENT CANCEL] ============================================')
 
     // Update lead payment status
     await supabase

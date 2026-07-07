@@ -8,6 +8,7 @@ interface PayPageProps {
 }
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default async function PayPage({ params }: PayPageProps) {
   const { token } = params
@@ -21,15 +22,20 @@ export default async function PayPage({ params }: PayPageProps) {
   // Look up payment request by token with business name
   const { data: paymentRequest, error } = await supabase
     .from('payment_requests')
-    .select('id, status, checkout_url, expires_at, amount_cents, description, payment_provider, businesses!inner(name)')
+    .select('id, status, checkout_url, expires_at, amount_cents, description, payment_provider, cancelled_at, businesses!inner(name)')
     .eq('token', token)
     .single()
 
-  console.log('[PAY TOKEN] token=', token)
-  console.log('[PAY TOKEN] paymentId=', paymentRequest?.id)
-  console.log('[PAY TOKEN] status=', paymentRequest?.status)
-  console.log('[PAY TOKEN] provider=', paymentRequest?.payment_provider)
-  console.log('[PAY TOKEN] checkout_url=', paymentRequest?.checkout_url)
+  console.log('[PAY TOKEN] ============================================')
+  console.log('[PAY TOKEN] Token:', token)
+  console.log('[PAY TOKEN] Payment ID:', paymentRequest?.id)
+  console.log('[PAY TOKEN] Status:', paymentRequest?.status)
+  console.log('[PAY TOKEN] Provider:', paymentRequest?.payment_provider)
+  console.log('[PAY TOKEN] Checkout URL:', paymentRequest?.checkout_url)
+  console.log('[PAY TOKEN] Cancelled At:', paymentRequest?.cancelled_at)
+  console.log('[PAY TOKEN] Expires At:', paymentRequest?.expires_at)
+  console.log('[PAY TOKEN] Query Error:', error)
+  console.log('[PAY TOKEN] ============================================')
 
   if (error || !paymentRequest) {
     console.log('[PAY TOKEN] redirect=false, reason=missing')
@@ -93,9 +99,9 @@ export default async function PayPage({ params }: PayPageProps) {
     )
   }
 
-  // Check if payment is cancelled
-  if (paymentRequest.status === 'cancelled') {
-    console.log('[PAY TOKEN] redirect=false, reason=cancelled')
+  // Check if payment is cancelled (defensive: handle both spellings)
+  if (paymentRequest.status === 'cancelled' || paymentRequest.status === 'canceled') {
+    console.log('[PAY TOKEN] redirect=false, reason=cancelled, status=', paymentRequest.status)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
