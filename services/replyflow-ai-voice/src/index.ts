@@ -5194,6 +5194,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     simpleModeFinalTimeout: null as NodeJS.Timeout | null,
     completionPersistenceStarted: false,
     completionPersistenceFinished: false,
+    // Stage timeout tracking
+    stageStartTime: 0 as number,
+    stageTimeout: null as NodeJS.Timeout | null,
+    stageRepromptSent: false,
     // Audio buffering state
     audioAccumulator: [] as Buffer[],
     audioAccumulatorBytes: 0,
@@ -5680,6 +5684,99 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     }
   };
 
+  // --- Stage timeout logic ---
+  const STAGE_TIMEOUT_MS = 15000; // 15 seconds initial timeout
+  const STAGE_REPROMPT_TIMEOUT_MS = 10000; // 10 seconds after reprompt
+
+  const startStageTimeout = () => {
+    // Clear any existing timeout
+    if (state.stageTimeout) {
+      clearTimeout(state.stageTimeout);
+      state.stageTimeout = null;
+    }
+
+    // Reset reprompt flag for new stage
+    state.stageRepromptSent = false;
+    state.stageStartTime = Date.now();
+
+    // Set initial timeout
+    state.stageTimeout = setTimeout(() => {
+      handleStageTimeout();
+    }, STAGE_TIMEOUT_MS);
+
+    console.log('[STAGE TIMEOUT] =========================================');
+    console.log('[STAGE TIMEOUT] event: timeout_started');
+    console.log('[STAGE TIMEOUT] stage:', state.currentStage);
+    console.log('[STAGE TIMEOUT] timeoutMs:', STAGE_TIMEOUT_MS);
+    console.log('[STAGE TIMEOUT] =========================================');
+  };
+
+  const handleStageTimeout = () => {
+    if (state.currentStage === 'complete' || state.completionPersistenceStarted) {
+      return; // Don't timeout if we're already completing
+    }
+
+    if (!state.stageRepromptSent) {
+      // First timeout: send reprompt
+      state.stageRepromptSent = true;
+      
+      console.log('[STAGE TIMEOUT] =========================================');
+      console.log('[STAGE TIMEOUT] event: reprompt_triggered');
+      console.log('[STAGE TIMEOUT] stage:', state.currentStage);
+      console.log('[STAGE TIMEOUT] elapsedMs:', Date.now() - state.stageStartTime);
+      console.log('[STAGE TIMEOUT] =========================================');
+      
+      logSimple('stage_timeout_reprompt', { stage: state.currentStage });
+      
+      // Send short reprompt for current stage
+      sendPrompt(state.currentStage);
+      
+      // Set second timeout for finalization
+      state.stageTimeout = setTimeout(() => {
+        handleStageTimeout();
+      }, STAGE_REPROMPT_TIMEOUT_MS);
+    } else {
+      // Second timeout: finalize with partial info
+      console.log('[STAGE TIMEOUT] =========================================');
+      console.log('[STAGE TIMEOUT] event: finalization_triggered');
+      console.log('[STAGE TIMEOUT] stage:', state.currentStage);
+      console.log('[STAGE TIMEOUT] totalElapsedMs:', Date.now() - state.stageStartTime);
+      console.log('[STAGE TIMEOUT] finalizingWithPartialInfo: true');
+      console.log('[STAGE TIMEOUT] =========================================');
+      
+      logSimple('stage_timeout_finalization', { stage: state.currentStage });
+      
+      // Clear timeout
+      if (state.stageTimeout) {
+        clearTimeout(state.stageTimeout);
+        state.stageTimeout = null;
+      }
+      
+      // Cancel any active silence timers
+      if (state.silentTimeout) {
+        clearTimeout(state.silentTimeout);
+        state.silentTimeout = null;
+      }
+      
+      // Finalize with partial info and hang up
+      state.currentStage = 'complete';
+      sendPrompt('complete');
+      processSimpleModeCompletion().catch(console.error);
+    }
+  };
+
+  const clearStageTimeout = () => {
+    if (state.stageTimeout) {
+      clearTimeout(state.stageTimeout);
+      state.stageTimeout = null;
+      console.log('[STAGE TIMEOUT] =========================================');
+      console.log('[STAGE TIMEOUT] event: timeout_cleared');
+      console.log('[STAGE TIMEOUT] stage:', state.currentStage);
+      console.log('[STAGE TIMEOUT] elapsedMs:', Date.now() - state.stageStartTime);
+      console.log('[STAGE TIMEOUT] =========================================');
+    }
+  };
+
   // --- Audio buffering constants ---
   // Minimum payload size before flushing a media packet to Twilio.
   // 3200 bytes = 400ms of PCMU audio at 8000 samples/s (1 byte/sample).
@@ -6049,10 +6146,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         s = stripTrailingPeriod(s);
         s = collapseWhitespace(s);
       } else if (fieldType === 'time') {
-        s = stripLeadingFiller(s);
-        s = normalizeAmPm(s);
-        s = stripTrailingPeriod(s);
-        s = collapseWhitespace(s);
+        s = normalizeTimeField(s);
       } else if (fieldType === 'details') {
         s = stripLeadingFiller(s);
         s = normalizeAmPm(s);
@@ -6070,6 +6164,97 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       // Capitalize first letter
       s = s.charAt(0).toUpperCase() + s.slice(1);
       return s;
+    };
+
+    // Improved time field normalization to handle speech recognition errors
+    const normalizeTimeField = (s: string): string => {
+      let normalized = s.trim();
+      
+      // Strip leading filler
+      normalized = stripLeadingFiller(normalized);
+      
+      // Normalize AM/PM
+      normalized = normalizeAmPm(normalized);
+      
+      // Strip trailing period
+      normalized = stripTrailingPeriod(normalized);
+      
+      // Collapse whitespace
+      normalized = collapseWhitespace(normalized);
+      
+      // Fix common speech recognition errors for time phrases
+      const timeCorrections: Record<string, string> = {
+        'oro': 'tomorrow',
+        'amaze': 'in the morning',
+        'amazing': 'in the morning',
+        'tomato': 'tomorrow',
+        'tomorrowo': 'tomorrow',
+        'tomarrow': 'tomorrow',
+        'tommorrow': 'tomorrow',
+        'tommorow': 'tomorrow',
+        'morrow': 'tomorrow',
+        'in the mourning': 'in the morning',
+        'in the mornin': 'in the morning',
+        'this mornin': 'this morning',
+        'tomorrow mornin': 'tomorrow morning',
+        'tomorrow morn': 'tomorrow morning',
+        'after noon': 'afternoon',
+        'afternun': 'afternoon',
+        'after none': 'afternoon',
+        'this after noon': 'this afternoon',
+        'this afternun': 'this afternoon',
+        'evening': 'evening',
+        'evenin': 'evening',
+        'tonight': 'tonight',
+        'to night': 'tonight',
+        'to nite': 'tonight',
+        'today': 'today',
+        'to day': 'today',
+        'asap': 'ASAP',
+        'a sap': 'ASAP',
+        'as soon as possible': 'ASAP',
+        'right away': 'ASAP',
+        'immediately': 'ASAP',
+        'anytime': 'anytime',
+        'any time': 'anytime',
+        'after work': 'after work',
+        'after 3': 'after 3 PM',
+        'after 3pm': 'after 3 PM',
+        'after 3 pm': 'after 3 PM',
+        'after 5': 'after 5 PM',
+        'after 5pm': 'after 5 PM',
+        'after 5 pm': 'after 5 PM',
+        'next week': 'next week',
+        'this week': 'this week',
+        'monday': 'Monday',
+        'tuesday': 'Tuesday',
+        'wednesday': 'Wednesday',
+        'thursday': 'Thursday',
+        'friday': 'Friday',
+        'saturday': 'Saturday',
+        'sunday': 'Sunday',
+        'mon': 'Monday',
+        'tue': 'Tuesday',
+        'wed': 'Wednesday',
+        'thu': 'Thursday',
+        'fri': 'Friday',
+        'sat': 'Saturday',
+        'sun': 'Sunday',
+      };
+      
+      // Apply corrections (case-insensitive)
+      const lowerNormalized = normalized.toLowerCase();
+      for (const [error, correction] of Object.entries(timeCorrections)) {
+        if (lowerNormalized === error) {
+          normalized = correction;
+          break;
+        }
+      }
+      
+      // Capitalize first letter
+      normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+      
+      return normalized;
     };
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -6712,6 +6897,11 @@ Reply to this message if you'd like to update or add any information.
             startInitialSilentTimeout();
           }
 
+          // Start stage timeout for regular intake stages
+          if (stage !== 'complete' && stage !== 'ask_name_reason') {
+            startStageTimeout();
+          }
+
           // Handle final complete stage close
           if (stage === 'complete') {
             console.log('[SIMPLE MODE] =========================================');
@@ -7233,6 +7423,7 @@ Reply to this message if you'd like to update or add any information.
             const fieldName = accepted ? storeStageCapture(state.currentStage, meaningfulTranscript, 'openai_transcription_completed') : null;
             if (fieldName) {
               clearSilentTimeout('valid_transcript_accepted');
+              clearStageTimeout(); // Clear timeout on valid response
             }
 
             if (accepted) {
