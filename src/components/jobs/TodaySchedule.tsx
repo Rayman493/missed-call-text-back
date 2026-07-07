@@ -136,9 +136,9 @@ export default function TodaySchedule({
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-800/60 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-900/10 dark:to-transparent">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/20">
         <div>
           <h2 className="text-base font-semibold text-slate-900 dark:text-foreground leading-tight">Today's Schedule</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{getTodayLabel()}</p>
@@ -185,12 +185,12 @@ export default function TodaySchedule({
             ))}
           </div>
         ) : todayJobs.length === 0 ? (
-          <div className="py-5 text-center">
-            <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
+          <div className="py-4 text-center">
+            <div className="w-9 h-9 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-2.5">
               <CheckCircle2 className="w-5 h-5 text-slate-400 dark:text-slate-500" />
             </div>
             <p className="text-sm font-semibold text-slate-900 dark:text-foreground">No jobs scheduled today</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Enjoy your free day, or get ahead by creating one.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Nothing scheduled. Add a job when you're ready.</p>
             <button
               onClick={onNewJob}
               className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors active:scale-95 shadow-sm"
@@ -209,7 +209,7 @@ export default function TodaySchedule({
               return (
                 <div
                   key={job.id}
-                  className={`group flex items-center gap-3 pl-3 pr-2 py-3 rounded-lg border-l-2 ${cfg.row} bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors`}
+                  className={`group flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-lg border-l-2 ${cfg.row} bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors`}
                 >
                   {/* Status icon */}
                   <Icon className={`w-4 h-4 flex-shrink-0 ${

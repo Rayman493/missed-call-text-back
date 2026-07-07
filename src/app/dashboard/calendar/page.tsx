@@ -572,7 +572,7 @@ export default function SchedulePage() {
   return (
     <DashboardShell
       title="Schedule"
-      contentClassName="flex-1 pt-0 lg:pt-2 px-2 sm:px-3 lg:px-4 pb-36 md:pb-6 relative z-10"
+      contentClassName="flex-1 pt-0 px-3 sm:px-4 lg:px-5 pb-40 md:pb-8 relative z-10"
       innerClassName=""
     >
               {/* Loading State */}
@@ -608,7 +608,7 @@ export default function SchedulePage() {
               ) : (
                 <>
                   {/* Today's Schedule + Main Content: 2-col on lg+, stacked on mobile */}
-                  <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[340px_1fr] gap-4 xl:gap-5 items-start">
+                  <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[300px_1fr] gap-3 lg:gap-5 items-start">
 
                   {/* LEFT: Today's Schedule — sticky on desktop */}
                   <div className="lg:sticky lg:top-4 order-1">
@@ -625,7 +625,7 @@ export default function SchedulePage() {
                   <div className="order-2 min-w-0">
 
                   {/* Schedule Tab Toggle */}
-                  <div className="hidden md:flex mb-4">
+                  <div className="hidden md:flex mb-3">
                     <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit">
                       <button
                         onClick={() => setScheduleTab('calendar')}
@@ -744,9 +744,9 @@ export default function SchedulePage() {
                       )}
 
                       {/* Compact Status Bar - Desktop: Simplified */}
-                      <div className="hidden md:flex items-center justify-between gap-4 mb-4 p-4 bg-slate-800/40 border border-slate-700/40 rounded-lg">
+                      <div className="hidden md:flex items-center justify-between gap-4 mb-3 p-3 bg-slate-900/50 border border-slate-700/50 rounded-xl shadow-sm">
                         {/* Metrics - Appointments + Jobs */}
-                        <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-5">
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                             <div>
@@ -835,7 +835,7 @@ export default function SchedulePage() {
                       </div>
 
                       {/* View Mode Toggle - Desktop - Simplified */}
-                      <div className="hidden md:block mb-4">
+                      <div className="hidden md:block mb-3">
                         <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit">
                           <button
                             onClick={() => setViewMode('month')}
@@ -861,7 +861,7 @@ export default function SchedulePage() {
                       </div>
 
                       {/* Mobile: View Mode Toggle - Simplified */}
-                      <div className="md:hidden mb-4 mt-2">
+                      <div className="md:hidden mb-3">
                         <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
                           <button
                             onClick={() => setViewMode('month')}
@@ -887,8 +887,8 @@ export default function SchedulePage() {
                       </div>
 
                       {/* Mobile: Compact Metrics - shown above calendar */}
-                      <div className="md:hidden mb-4">
-                        <div className="flex items-center justify-around p-3 sm:p-4 bg-slate-800/40 border border-slate-700/40 rounded-lg">
+                      <div className="md:hidden mb-3">
+                        <div className="grid grid-cols-3 gap-2 p-2.5 bg-slate-900/50 border border-slate-700/50 rounded-xl">
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                             <div>
@@ -929,7 +929,7 @@ export default function SchedulePage() {
                       </div>
 
                       {/* Calendar Header with Sync Button - mobile only; desktop uses Compact Status Bar */}
-                      <div className="flex md:hidden items-center justify-between gap-4 mb-4">
+                      <div className="flex md:hidden items-center justify-between gap-3 mb-3 p-2.5 bg-slate-900/40 border border-slate-700/40 rounded-xl">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-green-500 rounded-full"></div>
                           <div>
@@ -943,7 +943,7 @@ export default function SchedulePage() {
                           <button
                             onClick={handleSync}
                             disabled={isSyncing || isDisconnecting}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                           >
                             {isSyncing ? (
                               <>
@@ -960,7 +960,7 @@ export default function SchedulePage() {
                           <button
                             onClick={handleDisconnectCalendar}
                             disabled={isDisconnecting || isSyncing}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-red-600/80 hover:bg-red-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                           >
                             {isDisconnecting ? (
                               <>
@@ -1042,27 +1042,28 @@ export default function SchedulePage() {
                         </div>
                       )}
 
-                      {/* Floating Add Event button for mobile */}
-                      <button
-                        onClick={() => handleAddEvent()}
-                        className="md:hidden fixed bottom-20 sm:bottom-24 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40 pb-safe"
-                        aria-label="Add event"
-                      >
-                        <Plus className="w-6 h-6" />
-                      </button>
+                      <div className="md:hidden mt-4 pb-2">
+                        <button
+                          onClick={() => handleAddEvent()}
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors active:scale-[0.99]"
+                        >
+                          <Plus className="w-4 h-4" />
+                          New Appointment
+                        </button>
+                      </div>
                     </div>
                   )}
 
                   {/* Disconnected state but showing Jobs tab is still available */}
                   {!calendarConnected && !isInitialLoad && scheduleTab === 'calendar' && (
                     <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-8 sm:p-12 text-center">
-                      <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <CalendarIcon className="w-8 h-8 text-slate-400" />
+                      <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CalendarIcon className="w-6 h-6 text-slate-400" />
                       </div>
-                      <h2 className="text-2xl font-semibold text-slate-900 dark:text-foreground mb-3">
+                      <h2 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-2">
                         Connect Google Calendar
                       </h2>
-                      <p className="text-slate-600 dark:text-muted-foreground mb-8 max-w-md mx-auto">
+                      <p className="text-sm text-slate-600 dark:text-muted-foreground mb-6 max-w-md mx-auto">
                         Connect your Google Calendar to view your schedule from ReplyFlow.
                       </p>
                       <button
@@ -1279,16 +1280,16 @@ function JobsTab({
   return (
     <div>
       {/* Toolbar */}
-      <div className="flex items-start justify-between mb-5">
+      <div className="flex items-center justify-between gap-3 mb-4">
         <div>
           <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">Jobs</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 max-w-sm">
-            Track work created from ReplyFlow or add your own jobs manually.
+            Track scheduled work from leads or manual jobs.
           </p>
         </div>
         <button
           onClick={onNewJob}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-95 flex-shrink-0"
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-95 flex-shrink-0"
         >
           <Briefcase className="w-4 h-4" />
           New Job
@@ -1296,13 +1297,13 @@ function JobsTab({
       </div>
 
       {jobs.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-10 text-center">
-          <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Briefcase className="w-7 h-7 text-slate-400" />
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6 sm:p-8 text-center">
+          <div className="w-11 h-11 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Briefcase className="w-5 h-5 text-slate-400" />
           </div>
           <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">No jobs yet</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-xs mx-auto leading-relaxed">
-            Jobs created from ReplyFlow leads, or jobs you create manually, will appear here.
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 max-w-xs mx-auto leading-relaxed">
+            Create jobs manually or prefill one from a ReplyFlow lead.
           </p>
           <button
             onClick={onNewJob}
@@ -1361,14 +1362,15 @@ function JobsTab({
         </div>
       )}
 
-      {/* Mobile FAB for new job when on jobs tab */}
-      <button
-        onClick={onNewJob}
-        className="md:hidden fixed bottom-20 sm:bottom-24 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors active:scale-95 z-40 pb-safe"
-        aria-label="New job"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
+      <div className="md:hidden mt-4 pb-2">
+        <button
+          onClick={onNewJob}
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors active:scale-[0.99]"
+        >
+          <Plus className="w-4 h-4" />
+          New Job
+        </button>
+      </div>
     </div>
   )
 }

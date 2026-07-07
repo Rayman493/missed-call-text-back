@@ -25,15 +25,15 @@ export default function CalendarDayCell({
     <div
       onClick={onClick}
       className={`
-        min-h-[56px] sm:min-h-[63px] md:min-h-[81px] p-1.5 sm:p-1.5 md:p-2.5 rounded-sm border transition-all duration-150 cursor-pointer active:scale-95
+        min-h-[54px] sm:min-h-[64px] md:min-h-[86px] p-1 sm:p-1.5 md:p-2.5 rounded-lg border transition-all duration-150 cursor-pointer active:scale-95
         ${isCurrentMonth
           ? isWeekend
-            ? 'bg-slate-100 dark:bg-slate-800/80 border-slate-300 dark:border-slate-600/80 hover:bg-slate-200 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 hover:shadow-md hover:scale-[1.02]'
-            : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md hover:scale-[1.02]'
-          : 'bg-slate-50 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800/50 opacity-50'
+            ? 'bg-slate-50 dark:bg-slate-900/50 border-slate-200/70 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/70'
+            : 'bg-white dark:bg-slate-900/35 border-slate-200/70 dark:border-slate-800/70 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+          : 'bg-slate-50/70 dark:bg-slate-950/30 border-slate-100 dark:border-slate-900 opacity-45'
         }
         ${isToday
-          ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-background dark:ring-offset-slate-900'
+          ? 'ring-1 ring-blue-500/80 ring-offset-1 ring-offset-background dark:ring-offset-slate-900'
           : ''
         }
         ${isSelected
@@ -42,16 +42,16 @@ export default function CalendarDayCell({
         }
       `}
     >
-      <div className="flex items-center justify-between mb-0.5 sm:mb-0.5 md:mb-2">
+      <div className="flex items-center justify-between mb-0.5 md:mb-2">
         <span
           className={`
-            text-[9px] sm:text-[10px] md:text-sm font-medium
+            text-[10px] md:text-sm font-medium
             ${isCurrentMonth 
               ? 'text-slate-900 dark:text-foreground' 
               : 'text-slate-400 dark:text-slate-600'
             }
             ${isToday 
-              ? 'bg-blue-500 text-white w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-6 md:h-6 rounded-full flex items-center justify-center' 
+              ? 'bg-blue-500 text-white w-4 h-4 md:w-6 md:h-6 rounded-full flex items-center justify-center' 
               : ''
             }
           `}
@@ -59,7 +59,7 @@ export default function CalendarDayCell({
           {day}
         </span>
       </div>
-      <div className="space-y-0.5 sm:space-y-0.5 sm:space-y-1">
+      <div className="space-y-0.5 md:space-y-1">
         {events}
         {typeof overflowCount === 'number' && overflowCount > 0 && (
           <div className="text-[8px] sm:text-[9px] md:text-[10px] text-slate-500 dark:text-slate-400 pl-0.5 sm:pl-1 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors">

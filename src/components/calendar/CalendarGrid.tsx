@@ -155,22 +155,22 @@ export default function CalendarGrid({
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm">
-      <div className="sticky top-0 z-10 bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-t-xl p-1 sm:p-2 md:p-4 md:p-6 border-b border-slate-200/70 dark:border-slate-700/50">
+    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm overflow-hidden">
+      <div className="sticky top-0 z-10 bg-white dark:bg-slate-900/60 backdrop-blur-sm p-2 sm:p-3 md:p-4 border-b border-slate-200/70 dark:border-slate-700/50">
         <div className="flex items-center justify-between gap-2">
           <button
             onClick={onPreviousMonth}
-            className="w-8 h-8 sm:w-8 sm:h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
+            className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
             aria-label="Previous month"
           >
             <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
           </button>
-          <h2 className="text-xs sm:text-xl md:text-2xl font-semibold text-slate-900 dark:text-foreground">
+          <h2 className="text-sm sm:text-xl md:text-2xl font-semibold text-slate-900 dark:text-foreground">
             {month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </h2>
           <button
             onClick={onNextMonth}
-            className="w-8 h-8 sm:w-8 sm:h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
+            className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
             aria-label="Next month"
           >
             <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
@@ -188,11 +188,11 @@ export default function CalendarGrid({
         </div>
       </div>
       
-      <div className="p-2 sm:p-3 md:p-4 pt-0 sm:pt-0 md:pt-0">
+      <div className="p-2 sm:p-3 md:p-4 pt-0">
         {/* Day headers */}
-        <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 mb-1 sm:mb-1.5 md:mb-2">
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 mb-1 md:mb-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="text-[10px] sm:text-[11px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 text-center py-2 sm:py-2.5 md:py-3">
+            <div key={day} className="text-[10px] sm:text-[11px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 text-center py-1.5 md:py-2.5">
               {day}
             </div>
           ))}

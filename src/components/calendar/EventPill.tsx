@@ -14,7 +14,7 @@ export default function EventPill({ title, time, endTime, onClick, isHoliday = f
   const getEventColors = () => {
     if (isHoliday || eventType === 'holiday') {
       return {
-        bg: 'bg-green-500/20 hover:bg-green-500/30 dark:bg-green-500/30 dark:hover:bg-green-500/40',
+        bg: 'bg-emerald-500/10 hover:bg-emerald-500/15 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/15 border border-emerald-500/15',
         dot: 'bg-green-600 dark:bg-green-400',
         text: 'text-green-800 dark:text-green-200',
         timeText: 'text-green-700 dark:text-green-300'
@@ -24,28 +24,28 @@ export default function EventPill({ title, time, endTime, onClick, isHoliday = f
     switch (eventType) {
       case 'client':
         return {
-          bg: 'bg-blue-500/20 hover:bg-blue-500/30 dark:bg-blue-500/30 dark:hover:bg-blue-500/40',
+          bg: 'bg-blue-500/10 hover:bg-blue-500/15 dark:bg-blue-500/10 dark:hover:bg-blue-500/15 border border-blue-500/15',
           dot: 'bg-blue-600 dark:bg-blue-400',
           text: 'text-blue-800 dark:text-blue-200',
           timeText: 'text-blue-700 dark:text-blue-300'
         }
       case 'personal':
         return {
-          bg: 'bg-purple-500/20 hover:bg-purple-500/30 dark:bg-purple-500/30 dark:hover:bg-purple-500/40',
+          bg: 'bg-purple-500/10 hover:bg-purple-500/15 dark:bg-purple-500/10 dark:hover:bg-purple-500/15 border border-purple-500/15',
           dot: 'bg-purple-600 dark:bg-purple-400',
           text: 'text-purple-800 dark:text-purple-200',
           timeText: 'text-purple-700 dark:text-purple-300'
         }
       case 'task':
         return {
-          bg: 'bg-orange-500/20 hover:bg-orange-500/30 dark:bg-orange-500/30 dark:hover:bg-orange-500/40',
+          bg: 'bg-orange-500/10 hover:bg-orange-500/15 dark:bg-orange-500/10 dark:hover:bg-orange-500/15 border border-orange-500/15',
           dot: 'bg-orange-600 dark:bg-orange-400',
           text: 'text-orange-800 dark:text-orange-200',
           timeText: 'text-orange-700 dark:text-orange-300'
         }
       default:
         return {
-          bg: 'bg-blue-500/20 hover:bg-blue-500/30 dark:bg-blue-500/30 dark:hover:bg-blue-500/40',
+          bg: 'bg-blue-500/10 hover:bg-blue-500/15 dark:bg-blue-500/10 dark:hover:bg-blue-500/15 border border-blue-500/15',
           dot: 'bg-blue-600 dark:bg-blue-400',
           text: 'text-blue-800 dark:text-blue-200',
           timeText: 'text-blue-700 dark:text-blue-300'
@@ -71,24 +71,24 @@ export default function EventPill({ title, time, endTime, onClick, isHoliday = f
     <div
       onClick={onClick}
       className={`
-        px-1.5 py-1 sm:px-1.5 sm:py-1 rounded-sm cursor-pointer transition-all duration-200 group flex items-start gap-0.5 sm:gap-1 hover:scale-[1.02] active:scale-95 hover:shadow-sm
+        px-1 py-0.5 md:px-1.5 md:py-1 rounded-md cursor-pointer transition-colors duration-150 group flex items-center gap-1 active:scale-95
         ${colors.bg}
       `}
     >
       <div className={`
-        w-1 h-1 sm:w-1 sm:h-1 rounded-full mt-1 sm:mt-1.5 flex-shrink-0
+        w-1 h-1 rounded-full flex-shrink-0
         ${colors.dot}
       `} />
       <div className="flex-1 min-w-0">
         <div className={`
-          text-[10px] sm:text-[10px] md:text-xs font-semibold truncate leading-tight
+          text-[9px] md:text-[11px] font-medium truncate leading-tight
           ${colors.text}
         `}>
           {title}
         </div>
-        {source && (
+        {source && source !== 'primary' && (
           <div className={`
-            inline-flex items-center px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-medium mt-0.5
+            hidden md:inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-medium mt-0.5
             ${getSourceColor()}
           `}>
             {getSourceLabel()}

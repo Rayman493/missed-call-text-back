@@ -139,11 +139,11 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
   return (
     <>
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md flex flex-col max-h-[85vh]">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4">
+        <div className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md flex flex-col max-h-[calc(100dvh-5rem)] sm:max-h-[85vh] overflow-hidden">
 
           {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+          <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
             <div>
               <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">Select a Lead</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Customer info will be prefilled automatically.</p>
@@ -154,7 +154,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
           </div>
 
           {/* Search */}
-          <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
+          <div className="p-3 sm:p-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
@@ -163,7 +163,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Search by name, phone, or service..."
-                className="w-full pl-9 pr-3 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-foreground placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-foreground placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -213,7 +213,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
                     <button
                       key={lead.id}
                       onClick={() => handleSelect(lead)}
-                      className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left group"
+                      className="w-full flex items-center gap-3 px-4 sm:px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left group active:bg-slate-100 dark:active:bg-slate-800"
                     >
                       {/* Avatar */}
                       <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
@@ -259,7 +259,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
 
           {/* Footer count */}
           {!isLoading && !error && filtered.length > 0 && (
-            <div className="px-5 py-2.5 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
+            <div className="px-4 sm:px-5 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:pb-2 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
               <p className="text-[11px] text-slate-400 dark:text-slate-500">
                 {query ? `${filtered.length} of ${leads.length} leads` : `${leads.length} lead${leads.length !== 1 ? 's' : ''}`}
               </p>
