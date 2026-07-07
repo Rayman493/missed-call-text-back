@@ -51,6 +51,7 @@ import StatCard from '@/components/StatCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AddCustomerModal from '@/components/AddCustomerModal'
+import { Wrench, FileText, Clock } from 'lucide-react'
 
 // Helper to get compact summary for lead card
 // [simple_mode_structured_preview_generated]
@@ -1318,7 +1319,7 @@ export default function LeadsPage() {
                           <div className="mb-2.5 space-y-1 flex-1">
                             {aiData.reason && (
                               <div className="flex items-start gap-1.5">
-                                <span className="mt-0.5 text-[11px]">�️</span>
+                                <Wrench className="w-3 h-3 text-slate-400 flex-shrink-0 mt-0.5" />
                                 <p className="line-clamp-1 text-xs text-slate-300 leading-relaxed">
                                   {sentenceCase(aiData.reason)}
                                 </p>
@@ -1326,7 +1327,7 @@ export default function LeadsPage() {
                             )}
                             {aiData.details && (
                               <div className="flex items-start gap-1.5">
-                                <span className="mt-0.5 text-[11px]">📝</span>
+                                <FileText className="w-3 h-3 text-slate-400 flex-shrink-0 mt-0.5" />
                                 <p className="line-clamp-2 text-xs text-slate-300 leading-relaxed">
                                   {sentenceCase(aiData.details)}
                                 </p>
@@ -1334,7 +1335,7 @@ export default function LeadsPage() {
                             )}
                             {aiData.urgency && (
                               <div className="flex items-center gap-1.5">
-                                <span className="text-[11px]">�</span>
+                                <Clock className="w-3 h-3 text-slate-400 flex-shrink-0" />
                                 <span className={`text-xs font-medium ${
                                   aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
                                     ? 'text-red-400'

@@ -322,7 +322,7 @@ export default function JobComposer({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 p-4 sm:p-5 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-5 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex-shrink-0">
+          <div className="flex items-center justify-end gap-3 p-4 sm:p-5 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-5 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex-shrink-0">
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"

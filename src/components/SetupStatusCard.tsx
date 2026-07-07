@@ -695,7 +695,7 @@ export default function SetupStatusCard({
 
         {/* Phone Numbers - Compact on mobile */}
         {(cardState === 'setup-complete' || cardState === 'healthy') && (
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 sm:p-3 border border-white/20">
+          <div className="bg-slate-800/30 rounded-xl p-2.5 sm:p-3 border border-slate-700/30">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
               {/* Call Forwarding - Check actual state */}
               <div className="flex items-center gap-2 sm:gap-3">

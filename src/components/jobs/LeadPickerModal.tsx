@@ -259,7 +259,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
 
           {/* Footer count */}
           {!isLoading && !error && filtered.length > 0 && (
-            <div className="px-4 sm:px-5 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:pb-2 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
+            <div className="px-4 sm:px-5 py-2 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-2 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
               <p className="text-[11px] text-slate-400 dark:text-slate-500">
                 {query ? `${filtered.length} of ${leads.length} leads` : `${leads.length} lead${leads.length !== 1 ? 's' : ''}`}
               </p>
