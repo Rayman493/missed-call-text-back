@@ -39,6 +39,7 @@ interface AnalyticsMetrics {
   averageMessagesPerConversation: number
   estimatedLeadsSaved: number
   recoveryRate: number
+  messagesSent: number
 }
 
 interface TrendData {
@@ -221,7 +222,8 @@ export default function AnalyticsContent() {
           customerReplyRate,
           averageMessagesPerConversation,
           estimatedLeadsSaved,
-          recoveryRate
+          recoveryRate,
+          messagesSent: outboundMessages
         })
 
         setLeadTrend(leadTrendData)
@@ -239,7 +241,9 @@ export default function AnalyticsContent() {
   const hasData = metrics && (
     metrics.missedCallsCaptured > 0 ||
     metrics.customerReplies > 0 ||
-    metrics.aiIntakesCompleted > 0
+    metrics.aiIntakesCompleted > 0 ||
+    metrics.leadsCreated > 0 ||
+    metrics.messagesSent > 0
   )
 
   return (
