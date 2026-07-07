@@ -25,10 +25,15 @@ export function normalizeVenmoUsername(username: string | null | undefined): str
 }
 
 /**
- * Generate Venmo payment link from username
- * Format: https://venmo.com/u/{username}
+ * Generate Venmo payment link with optional amount and note
+ * Format: https://venmo.com/u/{username}?amount={amount}&note={note}
+ * Also supports deep link: venmo://paycharge?recipients={username}&amount={amount}&note={note}
  */
-export function generateVenmoLink(username: string | null | undefined): PaymentLinkResult {
+export function generateVenmoLink(
+  username: string | null | undefined,
+  amountCents?: number | null,
+  note?: string | null
+): PaymentLinkResult {
   const normalized = normalizeVenmoUsername(username);
   
   if (!normalized) {
@@ -38,11 +43,34 @@ export function generateVenmoLink(username: string | null | undefined): PaymentL
       error: 'Invalid Venmo username'
     };
   }
-  
-  return {
-    link: `https://venmo.com/u/${normalized}`,
-    provider: 'venmo'
-  };
+
+  try {
+    const url = new URL(`https://venmo.com/u/${normalized}`);
+    
+    // Add amount if provided (convert cents to dollars)
+    if (amountCents && amountCents > 0) {
+      const amountDollars = (amountCents / 100).toFixed(2);
+      url.searchParams.set('amount', amountDollars);
+    }
+    
+    // Add note if provided (URL encode automatically)
+    if (note) {
+      url.searchParams.set('note', note);
+    }
+    
+    return {
+      link: url.toString(),
+      provider: 'venmo'
+    };
+  } catch (error) {
+    console.error('[VENMO LINK] Failed to generate dynamic link:', error);
+    // Fallback to simple profile link
+    return {
+      link: `https://venmo.com/u/${normalized}`,
+      provider: 'venmo',
+      error: 'Failed to generate dynamic link, using profile link'
+    };
+  }
 }
 
 /**
@@ -73,10 +101,14 @@ export function normalizePaypalLink(link: string | null | undefined): string | n
 }
 
 /**
- * Generate PayPal payment link
- * Preserves full URLs if already provided, otherwise converts paypal.me/... format
+ * Generate PayPal payment link with optional amount
+ * Format: https://paypal.me/{username}/{amount}
+ * Note: PayPal.Me does not support note/description in URL
  */
-export function generatePaypalLink(link: string | null | undefined): PaymentLinkResult {
+export function generatePaypalLink(
+  link: string | null | undefined,
+  amountCents?: number | null
+): PaymentLinkResult {
   const normalized = normalizePaypalLink(link);
   
   if (!normalized) {
@@ -86,11 +118,39 @@ export function generatePaypalLink(link: string | null | undefined): PaymentLink
       error: 'Invalid PayPal payment link'
     };
   }
-  
-  return {
-    link: normalized,
-    provider: 'paypal'
-  };
+
+  try {
+    // If amount is provided, append it to the PayPal.Me link
+    if (amountCents && amountCents > 0) {
+      const amountDollars = (amountCents / 100).toFixed(2);
+      
+      // Parse the URL to extract the username/handle
+      const url = new URL(normalized);
+      const pathname = url.pathname;
+      
+      // Remove trailing slash and append amount
+      const cleanPathname = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+      const newUrl = `${url.origin}${cleanPathname}/${amountDollars}`;
+      
+      return {
+        link: newUrl,
+        provider: 'paypal'
+      };
+    }
+    
+    return {
+      link: normalized,
+      provider: 'paypal'
+    };
+  } catch (error) {
+    console.error('[PAYPAL LINK] Failed to generate dynamic link:', error);
+    // Fallback to original link
+    return {
+      link: normalized,
+      provider: 'paypal',
+      error: 'Failed to generate dynamic link, using original link'
+    };
+  }
 }
 
 /**
@@ -158,21 +218,23 @@ export function getAvailableProviders(
 }
 
 /**
- * Generate payment link for a specific provider
+ * Generate payment link for a specific provider with optional amount and note
  */
 export function generatePaymentLink(
   provider: PaymentProvider,
   business: {
     venmo_username?: string | null;
     paypal_payment_link?: string | null;
-  }
+  },
+  amountCents?: number | null,
+  note?: string | null
 ): PaymentLinkResult {
   switch (provider) {
     case 'venmo':
-      return generateVenmoLink(business.venmo_username);
+      return generateVenmoLink(business.venmo_username, amountCents, note);
     
     case 'paypal':
-      return generatePaypalLink(business.paypal_payment_link);
+      return generatePaypalLink(business.paypal_payment_link, amountCents);
     
     case 'stripe':
       // Stripe links are generated dynamically via checkout sessions

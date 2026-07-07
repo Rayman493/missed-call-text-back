@@ -308,18 +308,20 @@ export async function POST(request: Request) {
         throw stripeError
       }
     } else if (provider === 'venmo') {
-      console.log('[PAYMENT REQUEST] Generating Venmo payment link...')
-      const venmoResult = generatePaymentLink('venmo', business)
+      console.log('[PAYMENT REQUEST] Generating Venmo payment link with amount and note...')
+      const venmoResult = generatePaymentLink('venmo', business, amount_cents, paymentDescription)
       if (venmoResult.error) {
-        return NextResponse.json({ error: venmoResult.error }, { status: 400 })
+        console.warn('[PAYMENT REQUEST] Venmo link generation warning:', venmoResult.error)
+        // Continue with the link even if there's a warning (fallback behavior)
       }
       paymentLink = venmoResult.link
       console.log('[PAYMENT REQUEST] Venmo link generated:', paymentLink)
     } else if (provider === 'paypal') {
-      console.log('[PAYMENT REQUEST] Generating PayPal payment link...')
-      const paypalResult = generatePaymentLink('paypal', business)
+      console.log('[PAYMENT REQUEST] Generating PayPal payment link with amount...')
+      const paypalResult = generatePaymentLink('paypal', business, amount_cents)
       if (paypalResult.error) {
-        return NextResponse.json({ error: paypalResult.error }, { status: 400 })
+        console.warn('[PAYMENT REQUEST] PayPal link generation warning:', paypalResult.error)
+        // Continue with the link even if there's a warning (fallback behavior)
       }
       paymentLink = paypalResult.link
       console.log('[PAYMENT REQUEST] PayPal link generated:', paymentLink)
