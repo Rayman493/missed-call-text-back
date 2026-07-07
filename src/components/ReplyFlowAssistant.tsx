@@ -98,10 +98,13 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
     [defaultCategory, context]
   )
 
-  // Auto-focus search input when assistant opens.
+  // Auto-focus search input when assistant opens (desktop only to avoid keyboard on mobile).
   useEffect(() => {
-    const timer = setTimeout(() => inputRef.current?.focus(), 50)
-    return () => clearTimeout(timer)
+    const isMobile = window.innerWidth < 768
+    if (!isMobile) {
+      const timer = setTimeout(() => inputRef.current?.focus(), 50)
+      return () => clearTimeout(timer)
+    }
   }, [])
 
   const reset = useCallback(() => {
@@ -113,7 +116,10 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
     setHasSearched(false)
     setSelectedIndex(-1)
     setRelatedQuestions([])
-    inputRef.current?.focus()
+    const isMobile = window.innerWidth < 768
+    if (!isMobile) {
+      inputRef.current?.focus()
+    }
   }, [])
 
   const performSearch = useCallback((searchQuery: string) => {
