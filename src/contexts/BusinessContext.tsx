@@ -21,17 +21,51 @@ interface BusinessContextType {
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined)
 
-// Revalidation configuration
-const REVALIDATION_THRESHOLD_MS = 60 * 1000 // 60 seconds
-const FOCUS_DEBOUNCE_MS = 1000 // 1 second debounce
+const BUSINESS_CACHE_KEY = 'replyflow_business_display_cache'
+const BUSINESS_CACHE_TTL_MS = 6 * 60 * 60 * 1000
+const FOCUS_REVALIDATION_THRESHOLD_MS = 10 * 60 * 1000
+const FOCUS_DEBOUNCE_MS = 1000
+
+type BusinessCachePayload = {
+  business: Business
+  verifiedAt: number
+  userId?: string | null
+}
+
+function readBusinessCache(): BusinessCachePayload | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(BUSINESS_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as BusinessCachePayload
+    if (!parsed?.business?.id || !parsed.verifiedAt) return null
+    if (Date.now() - parsed.verifiedAt > BUSINESS_CACHE_TTL_MS) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeBusinessCache(business: Business, userId?: string | null) {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(BUSINESS_CACHE_KEY, JSON.stringify({ business, verifiedAt: Date.now(), userId }))
+  sessionStorage.setItem('replyflow_business_verified', 'true')
+}
+
+function clearBusinessCache() {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(BUSINESS_CACHE_KEY)
+  sessionStorage.removeItem('replyflow_business_verified')
+}
 
 export function BusinessProvider({ children }: { children: ReactNode }) {
-  const [business, setBusiness] = useState<Business | null>(null)
-  const [loading, setLoading] = useState(true)
+  const cachedBusinessPayload = readBusinessCache()
+  const [business, setBusinessState] = useState<Business | null>(cachedBusinessPayload?.business ?? null)
+  const [loading, setLoading] = useState(!cachedBusinessPayload?.business)
   const [error, setError] = useState<string | null>(null)
-  const [fetchComplete, setFetchComplete] = useState(false)
+  const [fetchComplete, setFetchComplete] = useState(!!cachedBusinessPayload?.business)
   const [businessMissingConfirmed, setBusinessMissingConfirmed] = useState(false)
-  const [lastFetchTimestamp, setLastFetchTimestamp] = useState<number>(0)
+  const [lastFetchTimestamp, setLastFetchTimestamp] = useState<number>(cachedBusinessPayload?.verifiedAt ?? 0)
   const userIdRef = useRef<string | null>(null)
   const authSubscriptionRef = useRef<any>(null)
   const hasInitialFetchRef = useRef(false)
@@ -42,11 +76,20 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
   // Initialize businessVerified from sessionStorage immediately to prevent loading flash
   const [businessVerified, setBusinessVerified] = useState(() => {
+    if (cachedBusinessPayload?.business) return true
     if (typeof window !== 'undefined') {
       return sessionStorage.getItem('replyflow_business_verified') === 'true'
     }
     return false
   })
+
+  const setBusiness = useCallback((nextBusiness: Business | null) => {
+    setBusinessState(nextBusiness)
+    if (nextBusiness) {
+      setBusinessVerified(true)
+      writeBusinessCache(nextBusiness, nextBusiness.user_id)
+    }
+  }, [])
 
   const fetchBusiness = useCallback(async (force: boolean = false) => {
     if (!supabase) return
@@ -54,7 +97,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     
     // Check if we need to revalidate based on timestamp
     const now = Date.now()
-    const shouldRevalidate = force || (now - lastFetchTimestamp > REVALIDATION_THRESHOLD_MS)
+    const shouldRevalidate = force || (now - lastFetchTimestamp > BUSINESS_CACHE_TTL_MS)
     
     // Skip loading if business is already verified, we have cached data, and not forcing revalidation
     if (!shouldRevalidate && businessVerified && business) {
@@ -68,8 +111,10 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     const shouldShowLoading = !businessVerified || !business
     if (shouldShowLoading) {
       setLoading(true)
+      setFetchComplete(false)
+    } else {
+      setFetchComplete(true)
     }
-    setFetchComplete(false)
     setError(null)
 
     try {
@@ -80,7 +125,9 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         setBusiness(null)
         setBusinessMissingConfirmed(false)
         userIdRef.current = null
-        if (shouldShowLoading) setLoading(false)
+        clearBusinessCache()
+        setBusinessVerified(false)
+        setLoading(false)
         setFetchComplete(true)
         return
       }
@@ -90,6 +137,8 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         log('[BusinessContext] User changed, clearing old business data')
         setBusiness(null)
         setBusinessMissingConfirmed(false)
+        clearBusinessCache()
+        setBusinessVerified(false)
       }
       userIdRef.current = user.id
 
@@ -109,14 +158,16 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           log('[BusinessContext] Orphan auth recovery triggered for user:', user.id)
           setBusiness(null)
           setBusinessMissingConfirmed(true) // Confirmed no business
-          if (shouldShowLoading) setLoading(false)
+          clearBusinessCache()
+          setBusinessVerified(false)
+          setLoading(false)
           setFetchComplete(true)
         } else {
           // For other errors, do NOT assume no business - keep business null but mark fetch as complete
           // This prevents sending existing users to onboarding due to transient failures
           log('[BusinessContext] Business query failed (non-PGRST116 error), treating as unknown state')
           log('[BusinessContext] Error:', fetchError.message, 'for user:', user.id)
-          setBusiness(null)
+          if (!business) setBusiness(null)
           setBusinessMissingConfirmed(false) // Not confirmed, could be error
           if (shouldShowLoading) setLoading(false)
           setFetchComplete(true)
@@ -126,10 +177,8 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         setBusiness(businessData)
         setBusinessMissingConfirmed(false)
         setBusinessVerified(true)
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('replyflow_business_verified', 'true')
-        }
-        if (shouldShowLoading) setLoading(false)
+        if (businessData) writeBusinessCache(businessData, user.id)
+        setLoading(false)
         setFetchComplete(true)
       }
       
@@ -155,9 +204,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           userIdRef.current = null
           setLoading(false)
           setFetchComplete(false) // Reset fetch complete on logout
-          if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('replyflow_business_verified')
-          }
+          clearBusinessCache()
         } else if (event === 'SIGNED_IN') {
           // Only refetch if user actually changed (avoids redundant refetch on initial mount)
           const newUserId = session?.user?.id
@@ -202,7 +249,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       // Debounce the revalidation
       focusTimeoutRef.current = setTimeout(() => {
         const now = Date.now()
-        const shouldRevalidate = now - lastFetchTimestamp > REVALIDATION_THRESHOLD_MS
+        const shouldRevalidate = now - lastFetchTimestamp > FOCUS_REVALIDATION_THRESHOLD_MS
         
         if (shouldRevalidate && !isRevalidatingRef.current && businessVerified) {
           log('[BusinessContext] App resumed after idle, revalidating business data')

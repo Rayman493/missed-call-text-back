@@ -854,10 +854,11 @@ export default function DashboardContent() {
     return <StripeReturnLoadingScreen />
   }
 
-  // FULL-SCREEN LOADING GATE: Prevent any UI from rendering until state is resolved
-  // This prevents flash of previous setup/onboarding screens during dashboard load
-  // Release loading gate when: auth resolved, business fetch resolved, AND (business exists OR no business profile)
-  if (authLoading || businessLoading || webhookConfirming || !businessFetchComplete) {
+  const hasUsableBusinessState = Boolean(business?.id)
+
+  // FULL-SCREEN LOADING GATE: only block when there is no usable cached/current business state.
+  // Background auth/business revalidation should not blank an already usable dashboard.
+  if ((authLoading || businessLoading || webhookConfirming || !businessFetchComplete) && !hasUsableBusinessState) {
     logRouteFlashDebug({
       source: 'DashboardContent',
       pathname,
@@ -870,7 +871,7 @@ export default function DashboardContent() {
       missedCallCount,
       derivedSetupState: setupState,
       renderBranch: 'loading',
-      reason: `authLoading=${authLoading}, businessLoading=${businessLoading}, webhookConfirming=${webhookConfirming}, businessFetchComplete=${businessFetchComplete}; rendering AppLoadingScreen`,
+      reason: `authLoading=${authLoading}, businessLoading=${businessLoading}, webhookConfirming=${webhookConfirming}, businessFetchComplete=${businessFetchComplete}; no usable business state; rendering AppLoadingScreen`,
     })
     return <AppLoadingScreen />
   }
