@@ -1305,13 +1305,9 @@ function JobsTab({
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 max-w-xs mx-auto leading-relaxed">
             Create jobs manually or prefill one from a ReplyFlow lead.
           </p>
-          <button
-            onClick={onNewJob}
-            className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Create your first job
-          </button>
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs mx-auto leading-relaxed">
+            Use the New Job button above to create your first job.
+          </p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -1362,15 +1358,6 @@ function JobsTab({
         </div>
       )}
 
-      <div className="md:hidden mt-4 pb-2">
-        <button
-          onClick={onNewJob}
-          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors active:scale-[0.99]"
-        >
-          <Plus className="w-4 h-4" />
-          New Job
-        </button>
-      </div>
     </div>
   )
 }

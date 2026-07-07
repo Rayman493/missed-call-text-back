@@ -145,7 +145,7 @@ export default function TodaySchedule({
         </div>
         <button
           onClick={onNewJob}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors active:scale-95 shadow-sm"
+          className="md:hidden inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors active:scale-95 shadow-sm"
         >
           <Plus className="w-3 h-3" />
           New Job
@@ -190,14 +190,8 @@ export default function TodaySchedule({
               <CheckCircle2 className="w-5 h-5 text-slate-400 dark:text-slate-500" />
             </div>
             <p className="text-sm font-semibold text-slate-900 dark:text-foreground">No jobs scheduled today</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Nothing scheduled. Add a job when you're ready.</p>
-            <button
-              onClick={onNewJob}
-              className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors active:scale-95 shadow-sm"
-            >
-              <Plus className="w-3 h-3" />
-              Create a job
-            </button>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 md:mt-2">Nothing scheduled. Add a job when you're ready.</p>
+            <p className="md:hidden text-xs text-slate-500 dark:text-slate-400 mt-2">Use the New Job button above to create your first job.</p>
           </div>
         ) : (
           <div className="space-y-1.5 py-1">
