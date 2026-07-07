@@ -84,11 +84,11 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           {/* Logo */}
           <Link 
             href={isLoggedIn && !isPublicPage ? '/dashboard' : '/'} 
-            className="flex h-10 min-w-0 items-center justify-center gap-1.5 justify-self-center hover:opacity-90 transition sm:h-auto sm:w-auto sm:justify-start sm:gap-1.5"
+            className="flex h-10 min-w-0 items-center justify-center gap-2 justify-self-center hover:opacity-90 transition sm:h-auto sm:w-auto sm:justify-start sm:gap-1.5"
           >
-            <BrandIcon size={28} className="block flex-shrink-0 sm:hidden" />
+            <BrandIcon size={32} className="block flex-shrink-0 sm:hidden" />
             <BrandIcon size={56} className="hidden sm:block" />
-            <span className="block min-w-0 truncate text-sm font-semibold tracking-tight sm:text-lg md:text-xl">
+            <span className="block min-w-0 truncate text-base font-semibold tracking-tight sm:text-lg md:text-xl">
               <span className={`${isPublicPage && !forceDark ? 'text-slate-800 dark:text-white' : 'text-white'}`}>ReplyFlow</span>
               <span className="text-blue-400">HQ</span>
             </span>
