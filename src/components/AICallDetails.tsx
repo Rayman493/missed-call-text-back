@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
-import { MessageCircle, ChevronDown, ChevronUp, Pencil, X, Check, Loader2 } from 'lucide-react'
+import { MessageCircle, ChevronDown, ChevronUp, Pencil, X, Check, Loader2, User, FileText, MapPin, Calendar, Phone } from 'lucide-react'
 import { normalizeExtractedInfo, getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { isCompleteAIIntake, determineAIOutcomeFromExtractedInfo } from '@/lib/ai-intake-completion'
 
@@ -389,7 +389,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-3.5 border border-blue-100 dark:border-blue-800">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 text-[14px] leading-none">👤</span>
+                <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Name</span>
               </div>
               {manualFields.has('callerName') && !isEditMode && (
@@ -415,7 +415,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-3.5 border border-purple-100 dark:border-purple-800">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 text-[14px] leading-none">�</span>
+                <FileText className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                 <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider">Reason</span>
               </div>
               {manualFields.has('reasonForCalling') && !isEditMode && (
@@ -484,7 +484,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <div className="min-h-[58px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-2.5">
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="w-3.5 h-3.5 text-[13px] leading-none flex-shrink-0">📍</span>
+                      <MapPin className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 flex-shrink-0" />
                       <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Location</span>
                     </div>
                     {manualFields.has('addressOrLocation') && !isEditMode && (
@@ -512,7 +512,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <div className="min-h-[58px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-2.5">
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="w-3.5 h-3.5 text-[13px] leading-none flex-shrink-0">☎️</span>
+                      <Phone className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 flex-shrink-0" />
                       <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Callback</span>
                     </div>
                     {manualFields.has('preferredCallbackTime') && !isEditMode && (
@@ -539,7 +539,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               <div className="min-h-[58px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-2.5">
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="w-3.5 h-3.5 text-[13px] leading-none flex-shrink-0">📅</span>
+                    <Calendar className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 flex-shrink-0" />
                     <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Completion</span>
                   </div>
                   {manualFields.has('desiredCompletionTime') && !isEditMode && (

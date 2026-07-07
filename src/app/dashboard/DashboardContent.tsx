@@ -1383,13 +1383,6 @@ export default function DashboardContent() {
               <div className="fixed inset-0 z-[100] flex items-end justify-center p-3 md:hidden">
                 <div className="absolute inset-0 bg-black/55" onClick={() => setShowMobileAssistant(false)} />
                 <div className="relative mb-20 w-full max-w-lg">
-                  <button
-                    onClick={() => setShowMobileAssistant(false)}
-                    className="absolute -top-11 right-0 rounded-full bg-blue-600/90 p-2 text-white backdrop-blur-sm transition-colors hover:text-slate-200"
-                    aria-label="Close ReplyFlow Assistant"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
                   <div className="max-h-[70vh] overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-slate-800">
                     <div className="max-h-[70vh] overflow-y-auto pb-safe">
                       <ReplyFlowAssistant

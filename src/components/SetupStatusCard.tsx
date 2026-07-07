@@ -527,7 +527,7 @@ export default function SetupStatusCard({
     <div className="bg-slate-900/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-2xl p-3 sm:p-5 shadow-xl border border-slate-200/10 dark:border-slate-800/50">
       <div className="flex flex-col gap-2 sm:gap-4">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 pb-2 sm:pb-4 border-b border-blue-500/20">
+        <div className="flex items-center justify-between gap-3 pb-2 sm:pb-4">
           <div className="flex-1 min-w-0">
             <h1 className="text-base sm:text-xl font-bold text-white truncate">
               {cardState === 'needs-forwarding' || cardState === 'needs-verification' 
