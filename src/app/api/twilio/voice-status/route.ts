@@ -1346,9 +1346,16 @@ export async function GET(req: NextRequest) {
     CallStatus: params.CallStatus || 'not_present'
   });
 
-  // For actual callback GETs with CallSid and CallStatus, process them
-  // For simple health/debug GETs without these params, return OK
+  // For actual callback GETs with CallSid and CallStatus, validate signature before processing.
+  // For simple health/debug GETs without these params, return OK.
   if (params.CallSid && params.CallStatus) {
+    const isValid = requireTwilioAuth(req, params, 0, 'querystring');
+
+    if (!isValid) {
+      console.error('[VOICE STATUS WEBHOOK GET] Invalid Twilio signature');
+      return new Response('Unauthorized', { status: 401 });
+    }
+
     console.log('[VOICE STATUS WEBHOOK GET] Processing callback with shared function');
     await processVoiceStatusCallback(params, 'GET');
   } else {

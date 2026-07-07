@@ -48,10 +48,10 @@ export async function POST(
 
     console.log('[PAYMENT CANCEL] ============================================')
     console.log('[PAYMENT CANCEL] Payment ID:', paymentRequest.id)
-    console.log('[PAYMENT CANCEL] Token:', paymentRequest.token)
+    console.log('[PAYMENT CANCEL] Token:', paymentRequest.token ? '[REDACTED]' : null)
     console.log('[PAYMENT CANCEL] Previous Status:', paymentRequest.status)
     console.log('[PAYMENT CANCEL] Payment Provider:', paymentRequest.payment_provider)
-    console.log('[PAYMENT CANCEL] Checkout URL:', paymentRequest.checkout_url)
+    console.log('[PAYMENT CANCEL] Checkout URL:', paymentRequest.checkout_url ? '[REDACTED]' : null)
     console.log('[PAYMENT CANCEL] Cancelled At (before):', paymentRequest.cancelled_at)
     console.log('[PAYMENT CANCEL] ============================================')
 
@@ -122,7 +122,7 @@ export async function POST(
     console.log('[PAYMENT CANCEL] ============================================')
     console.log('[PAYMENT CANCEL] New Status:', updatedPayment?.status)
     console.log('[PAYMENT CANCEL] Cancelled At (after):', updatedPayment?.cancelled_at)
-    console.log('[PAYMENT CANCEL] Token (verified):', updatedPayment?.token)
+    console.log('[PAYMENT CANCEL] Token (verified):', updatedPayment?.token ? '[REDACTED]' : null)
     console.log('[PAYMENT CANCEL] Update Error:', updateError)
     console.log('[PAYMENT CANCEL] Fetch Error:', fetchError)
     console.log('[PAYMENT CANCEL] ============================================')
