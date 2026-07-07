@@ -6146,7 +6146,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         s = stripTrailingPeriod(s);
         s = collapseWhitespace(s);
       } else if (fieldType === 'time') {
-        s = normalizeTimeField(s);
+        s = validateTimeField(s, 'time_field');
       } else if (fieldType === 'details') {
         s = stripLeadingFiller(s);
         s = normalizeAmPm(s);
@@ -6166,8 +6166,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       return s;
     };
 
-    // Improved time field normalization to handle speech recognition errors
-    const normalizeTimeField = (s: string): string => {
+    // Deterministic time field validation - only accept legitimate time phrases
+    const validateTimeField = (s: string, fieldName: string): string => {
       let normalized = s.trim();
       
       // Strip leading filler
@@ -6182,73 +6182,64 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       // Collapse whitespace
       normalized = collapseWhitespace(normalized);
       
-      // Fix common speech recognition errors for time phrases
-      const timeCorrections: Record<string, string> = {
-        'oro': 'tomorrow',
-        'amaze': 'in the morning',
-        'amazing': 'in the morning',
-        'tomato': 'tomorrow',
-        'tomorrowo': 'tomorrow',
-        'tomarrow': 'tomorrow',
-        'tommorrow': 'tomorrow',
-        'tommorow': 'tomorrow',
-        'morrow': 'tomorrow',
-        'in the mourning': 'in the morning',
-        'in the mornin': 'in the morning',
-        'this mornin': 'this morning',
-        'tomorrow mornin': 'tomorrow morning',
-        'tomorrow morn': 'tomorrow morning',
-        'after noon': 'afternoon',
-        'afternun': 'afternoon',
-        'after none': 'afternoon',
-        'this after noon': 'this afternoon',
-        'this afternun': 'this afternoon',
-        'evening': 'evening',
-        'evenin': 'evening',
-        'tonight': 'tonight',
-        'to night': 'tonight',
-        'to nite': 'tonight',
-        'today': 'today',
-        'to day': 'today',
-        'asap': 'ASAP',
-        'a sap': 'ASAP',
-        'as soon as possible': 'ASAP',
-        'right away': 'ASAP',
-        'immediately': 'ASAP',
-        'anytime': 'anytime',
-        'any time': 'anytime',
-        'after work': 'after work',
-        'after 3': 'after 3 PM',
-        'after 3pm': 'after 3 PM',
-        'after 3 pm': 'after 3 PM',
-        'after 5': 'after 5 PM',
-        'after 5pm': 'after 5 PM',
-        'after 5 pm': 'after 5 PM',
-        'next week': 'next week',
-        'this week': 'this week',
-        'monday': 'Monday',
-        'tuesday': 'Tuesday',
-        'wednesday': 'Wednesday',
-        'thursday': 'Thursday',
-        'friday': 'Friday',
-        'saturday': 'Saturday',
-        'sunday': 'Sunday',
-        'mon': 'Monday',
-        'tue': 'Tuesday',
-        'wed': 'Wednesday',
-        'thu': 'Thursday',
-        'fri': 'Friday',
-        'sat': 'Saturday',
-        'sun': 'Sunday',
-      };
-      
-      // Apply corrections (case-insensitive)
       const lowerNormalized = normalized.toLowerCase();
-      for (const [error, correction] of Object.entries(timeCorrections)) {
-        if (lowerNormalized === error) {
-          normalized = correction;
+      
+      // Check if the transcript resembles a legitimate time phrase
+      // Patterns for valid completion times and callback times
+      const validTimePatterns = [
+        // Days
+        /\b(today|tomorrow|tonight)\b/i,
+        /\b(this week|next week)\b/i,
+        /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
+        /\b(mon|tue|wed|thu|fri|sat|sun)\b/i,
+        // Time of day
+        /\b(morning|afternoon|evening|night)\b/i,
+        /\b(am|pm)\b/i,
+        // Urgency
+        /\b(asap|as soon as possible|right away|immediately|urgently)\b/i,
+        /\b(anytime|any time)\b/i,
+        // Relative time
+        /\b(after work|before work|during work)\b/i,
+        /\b(after \d+[\s:]*\d*\s*(am|pm)?)\b/i,
+        /\b(before \d+[\s:]*\d*\s*(am|pm)?)\b/i,
+        /\b(around \d+[\s:]*\d*\s*(am|pm)?)\b/i,
+        /\b(by \d+[\s:]*\d*\s*(am|pm)?)\b/i,
+        // Time ranges
+        /\b(within \d+\s+(day|days|hour|hours|week|weeks))\b/i,
+        /\b(in \d+\s+(day|days|hour|hours|week|weeks))\b/i,
+        // Common phrases
+        /\b(this (morning|afternoon|evening))\b/i,
+        /\b(tomorrow (morning|afternoon|evening))\b/i,
+        /\b(next (monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/i,
+        /\b(later today|later this week)\b/i,
+      ];
+      
+      // Check if any valid pattern matches
+      let isValid = false;
+      for (const pattern of validTimePatterns) {
+        if (pattern.test(lowerNormalized)) {
+          isValid = true;
           break;
         }
+      }
+      
+      // Also accept very short reasonable answers (1-3 words that aren't nonsense)
+      const words = lowerNormalized.split(/\s+/);
+      if (!isValid && words.length >= 1 && words.length <= 3) {
+        // Check if it's not obviously nonsense (very short or very long)
+        if (normalized.length >= 2 && normalized.length <= 50) {
+          isValid = true;
+        }
+      }
+      
+      if (!isValid) {
+        console.log('[FIELD VALIDATION] =========================================');
+        console.log('[FIELD VALIDATION] field:', fieldName);
+        console.log('[FIELD VALIDATION] rawTranscript:', s);
+        console.log('[FIELD VALIDATION] accepted:', false);
+        console.log('[FIELD VALIDATION] reason:', 'does_not_resemble_legitimate_time_phrase');
+        console.log('[FIELD VALIDATION] =========================================');
+        return '';
       }
       
       // Capitalize first letter
@@ -6257,33 +6248,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       return normalized;
     };
     // ─────────────────────────────────────────────────────────────────────────
-
-    // Helper function to normalize time phrases
-    const normalizeTime = (text: string) => {
-      if (!text) return 'Not collected';
-      
-      let normalized = text.trim();
-      
-      // Remove filler phrases
-      const fillerPatterns = [
-        /^i said\s+/i,
-        /^i need\s+/i,
-        /^probably\s+/i,
-        /^maybe\s+/i,
-        /^um\s+/i,
-        /^uh\s+/i,
-        /^\s+|\s+$/g,
-      ];
-      
-      for (const pattern of fillerPatterns) {
-        normalized = normalized.replace(pattern, '');
-      }
-      
-      // Capitalize first letter
-      normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1);
-      
-      return normalized || text;
-    };
 
     // Helper function to normalize text for display
     const normalizeText = (text: string | undefined): string => {
@@ -6409,8 +6373,8 @@ Reply to this message if you'd like to update or add any information.
       state.intakeData.customerName        = normalizeCrmField(state.intakeData.customerName,                           'name');
       state.intakeData.serviceRequested    = normalizeCrmField(serviceRequested,                       'service');
       state.intakeData.serviceAddress      = normalizeCrmField(state.intakeData.serviceAddress,        'address');
-      state.intakeData.desiredCompletionTime = normalizeCrmField(state.intakeData.desiredCompletionTime, 'time');
-      state.intakeData.callbackTime        = normalizeCrmField(state.intakeData.callbackTime,          'time');
+      state.intakeData.desiredCompletionTime = validateTimeField(state.intakeData.desiredCompletionTime, 'desiredCompletionTime');
+      state.intakeData.callbackTime        = validateTimeField(state.intakeData.callbackTime,          'callbackTime');
       state.intakeData.issueDescription    = normalizeCrmField(state.intakeData.issueDescription,     'details');
 
       // Log normalized values for diagnostics
