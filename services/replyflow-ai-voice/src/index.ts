@@ -2078,53 +2078,6 @@ const STAGE_PROMPTS: Record<IntakeStage, string> = {
  * Simple scripted stage progression - deterministic, no GPT decisions
  * The app follows a fixed sequence: ask_name_reason → ask_details → ask_location_or_context → ask_timing → ask_callback_time → complete
  */
-function validateCallbackTimeTranscript(transcript: string): { accepted: boolean; reason: string } {
-  const raw = transcript.trim();
-  const normalized = raw.toLowerCase().replace(/[.,!?;:]$/g, '').replace(/\s+/g, ' ').trim();
-  const words = normalized.split(' ').filter(Boolean);
-
-  if (!normalized) {
-    return { accepted: false, reason: 'empty transcript' };
-  }
-
-  const commonPhrases = [
-    'morning', 'mornings', 'in the morning', 'in the mornings', 'the morning', 'the mornings',
-    'afternoon', 'afternoons', 'in the afternoon', 'in the afternoons', 'the afternoon', 'the afternoons',
-    'evening', 'evenings', 'in the evening', 'in the evenings', 'the evening', 'the evenings',
-    'anytime', 'any time', 'anytime is fine', 'any time is fine',
-    'after work', 'before work', 'during work',
-    'weekdays', 'week days', 'weekends', 'week ends',
-    'tomorrow morning', 'tomorrow afternoon', 'tomorrow evening',
-    'today', 'tomorrow', 'tonight', 'later today', 'later tomorrow'
-  ];
-
-  if (commonPhrases.includes(normalized)) {
-    return { accepted: true, reason: 'recognized callback phrase' };
-  }
-
-  if (/\b(morning|mornings|afternoon|afternoons|evening|evenings|anytime|weekdays|weekends|tomorrow|today|tonight)\b/.test(normalized)) {
-    return { accepted: true, reason: 'contains recognized callback keyword' };
-  }
-
-  if (/\b(after|before|around|about|by|at|between)\s+(work|\d{1,2}(?::\d{2})?\s*(?:am|pm)?|noon|midnight)\b/.test(normalized)) {
-    return { accepted: true, reason: 'recognized relative or specific time phrase' };
-  }
-
-  if (/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/.test(normalized) || /\b(?:around|about|at)\s+\d{1,2}\b/.test(normalized)) {
-    return { accepted: true, reason: 'recognized specific time' };
-  }
-
-  if (words.length === 1 && !/\d/.test(normalized)) {
-    return { accepted: false, reason: 'single non-time word does not resemble callback time' };
-  }
-
-  if (normalized.length < 4) {
-    return { accepted: false, reason: 'too short to be reliable callback time' };
-  }
-
-  return { accepted: false, reason: 'no recognized callback-time pattern' };
-}
-
 function getNextStage(currentStage: IntakeStage): IntakeStage {
   console.log('[SCRIPTED FLOW] =========================================');
   console.log('[SCRIPTED FLOW] stage advanced');
@@ -5212,10 +5165,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     ])
   );
 
-  // Retry prompts for validation failures - natural clarification instead of robotic repetition
-  prompts['ask_completion_time_retry'] = "Sorry, I didn't quite catch when you'd like the work completed. For example, today, tomorrow, next week, or another time that works for you.";
-  prompts['ask_callback_time_retry'] = "Sorry, I didn't quite catch the callback time. Could you tell me something like tomorrow morning, this afternoon, or after 5 PM?";
-
   // Cached PCMU audio for each prompt (pre-generated for deterministic speech)
   state.sessionId = url.searchParams.get('sessionId') || '';
   state.businessId = url.searchParams.get('businessId') || '';
@@ -5822,94 +5771,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   const stripTrailingPeriod = (s: string): string =>
     s.replace(/\.\s*$/, '').trim();
 
-  const logFieldValidation = (field: string, rawTranscript: string | undefined, extractedValue: string, accepted: boolean, reason: string, storedValue: string) => {
-    console.log('[FIELD VALIDATION] =========================================');
-    console.log('[FIELD VALIDATION] field:', field);
-    console.log('[FIELD VALIDATION] rawTranscript:', rawTranscript || '');
-    console.log('[FIELD VALIDATION] extractedValue:', extractedValue || '');
-    console.log('[FIELD VALIDATION] accepted:', accepted);
-    console.log('[FIELD VALIDATION] reason:', reason);
-    console.log('[FIELD VALIDATION] storedValue:', storedValue || 'Not collected');
-    console.log('[FIELD VALIDATION] =========================================');
-  };
-
-  // Deterministic time field validation - only accept legitimate time phrases
-  const validateTimeField = (s: string, fieldName: string): string => {
-    let normalized = s.trim();
-    
-    // Strip leading filler
-    normalized = stripLeadingFiller(normalized);
-    
-    // Normalize AM/PM
-    normalized = normalizeAmPm(normalized);
-    
-    // Strip trailing period
-    normalized = stripTrailingPeriod(normalized);
-    
-    // Collapse whitespace
-    normalized = collapseWhitespace(normalized);
-    
-    const lowerNormalized = normalized.toLowerCase();
-    
-    // Check if the transcript resembles a legitimate time phrase
-    // Patterns for valid completion times and callback times
-    const validTimePatterns = [
-      // Days
-      /\b(today|tomorrow|tonight)\b/i,
-      /\b(this week|next week)\b/i,
-      /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
-      /\b(mon|tue|wed|thu|fri|sat|sun)\b/i,
-      // Time of day
-      /\b(morning|mornings|afternoon|afternoons|evening|evenings|night|nights)\b/i,
-      /\b(am|pm)\b/i,
-      // Urgency
-      /\b(asap|as soon as possible|right away|immediately|urgently)\b/i,
-      /\b(anytime|any time)\b/i,
-      // Relative time
-      /\b(after work|before work|during work)\b/i,
-      /\b(after \d{1,2}(?::\d{2})?\s*(am|pm)?)\b/i,
-      /\b(before \d{1,2}(?::\d{2})?\s*(am|pm)?)\b/i,
-      /\b(around \d{1,2}(?::\d{2})?\s*(am|pm)?)\b/i,
-      /\b(by \d{1,2}(?::\d{2})?\s*(am|pm)?)\b/i,
-      /^\d{1,2}(?::\d{2})?\s*(am|pm)$/i,
-      // Time ranges
-      /\b(within \d+\s+(day|days|hour|hours|week|weeks))\b/i,
-      /\b(in \d+\s+(day|days|hour|hours|week|weeks))\b/i,
-      // Common phrases
-      /\b(this (morning|afternoon|evening))\b/i,
-      /\b(tomorrow (morning|afternoon|evening))\b/i,
-      /\b(next (monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/i,
-      /\b(later today|later this week)\b/i,
-    ];
-    
-    // Check if any valid pattern matches
-    let isValid = false;
-    for (const pattern of validTimePatterns) {
-      if (pattern.test(lowerNormalized)) {
-        isValid = true;
-        break;
-      }
-    }
-    
-    if (!isValid && /\b(around lunch|lunch|lunchtime|before noon|noon|midday|end of day|this month|next month|this weekend|next weekend|within (one|two|three|four|five|six|seven) (day|days|hour|hours|week|weeks)|in (one|two|three|four|five|six|seven) (day|days|hour|hours|week|weeks))\b/i.test(lowerNormalized)) {
-      isValid = true;
-    }
-
-    const blockedCategory = /\b(us|thing|things|okay|ok|yes|yeah|yep|nope|ryan|grass|lawn|quarter acre|address|street|road|avenue|drive|plumbing|electrical|repair|install|installation|name is|my name|hello|hi|hey|thanks|thank you)\b/i.test(lowerNormalized);
-    if (blockedCategory) {
-      isValid = false;
-    }
-    
-    if (!isValid) {
-      logFieldValidation(fieldName, s, s, false, `rejected_because_value_does_not_resemble_a_valid_${fieldName === 'callbackTime' ? 'callback_time' : 'time_or_date'}`, '');
-      return '';
-    }
-    
-    // Capitalize first letter
-    normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1);
-    
-    logFieldValidation(fieldName, s, s, true, `accepted_valid_${fieldName === 'callbackTime' ? 'callback_time' : 'time_or_date'}`, normalized);
-    return normalized;
+  const logFieldCapture = (field: string, rawTranscript: string | undefined, extractedValue: string, accepted: boolean, reason: string, storedValue: string) => {
+    console.log('[FIELD CAPTURE] =========================================');
+    console.log('[FIELD CAPTURE] field:', field);
+    console.log('[FIELD CAPTURE] rawTranscript:', rawTranscript || '');
+    console.log('[FIELD CAPTURE] extractedValue:', extractedValue || '');
+    console.log('[FIELD CAPTURE] accepted:', accepted);
+    console.log('[FIELD CAPTURE] reason:', reason);
+    console.log('[FIELD CAPTURE] storedValue:', storedValue || 'Not collected');
+    console.log('[FIELD CAPTURE] =========================================');
   };
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -6153,81 +6023,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       return { customerName, serviceRequested };
     };
 
-    // ─── CRM normalization helpers (local to processSimpleModeCompletion) ────────────────────────────────────────────
-    // Rule: lightly clean customer responses without changing meaning or intent.
-    // When in doubt, preserve the customer's original wording.
-
-    const validateNameField = (s: string, rawTranscript?: string): string => {
-      const normalized = collapseWhitespace(stripTrailingPeriod(stripLeadingFiller(s)));
-      const lower = normalized.toLowerCase();
-      const words = normalized.split(/\s+/).filter(Boolean);
-      const wordCount = words.length;
-      const blockedCategory = /\b(need|want|looking|calling|service|appointment|address|street|road|avenue|drive|boulevard|tomorrow|today|tonight|morning|mornings|afternoon|afternoons|evening|evenings|callback|call back|text back|not sure|hello|hi|hey|okay|ok|yes|yeah|yep|nope|thanks|thank you|grass|lawn|plumbing|electrical|hvac|cleaning|roof|repair|install|installation)\b/i.test(lower);
-      const invalid = !normalized || normalized.length < 2 || normalized.length > 60 || wordCount > 4 || /\d/.test(normalized) || /[?]/.test(normalized) || blockedCategory;
-      if (invalid) {
-        logFieldValidation('customerName', rawTranscript, s, false, 'rejected_because_value_does_not_resemble_a_valid_customer_name', '');
-        return '';
-      }
-      const stored = normalized.charAt(0).toUpperCase() + normalized.slice(1);
-      logFieldValidation('customerName', rawTranscript, s, true, 'accepted_valid_customer_name', stored);
-      return stored;
-    };
-
-    const validateServiceField = (s: string, rawTranscript?: string): string => {
-      const normalized = collapseWhitespace(stripTrailingPeriod(stripLeadingFiller(normalizeAmPm(s))));
-      const lower = normalized.toLowerCase();
-      const words = normalized.split(/\s+/).filter(Boolean);
-      const wordCount = words.length;
-      const blockedCategory = /\b(hi|hello|hey|thanks|thank you|okay|ok|yes|yeah|yep|nope|morning|mornings|afternoon|afternoons|evening|evenings|tomorrow|today|tonight|asap|address|street|road|avenue|drive|boulevard|call me|call back|callback|anytime|after work|before noon)\b/i.test(lower) || /^\d/.test(normalized);
-      const hasServiceShape = /\b(service|repair|fix|install|installation|replace|replacement|remove|removal|clean|cleaning|wash|washing|paint|painting|mow|mowing|cut|trim|plumb|plumbing|electric|electrical|hvac|heat|heating|cooling|roof|roofing|lawn|grass|landscap|tree|gutter|window|door|floor|tile|concrete|pest|junk|moving|move|appointment|estimate|quote|consultation)\b/i.test(lower) || /\b(need|want|looking for|looking to|get|someone to|help with)\b/i.test(lower);
-      const looksLikeSinglePersonName = wordCount === 1 && /^[A-Z][a-z'-]{2,}$/.test(normalized);
-      const invalid = !normalized || normalized.length < 3 || normalized.length > 140 || wordCount > 18 || blockedCategory || looksLikeSinglePersonName || !hasServiceShape;
-      if (invalid) {
-        logFieldValidation('serviceRequested', rawTranscript, s, false, 'rejected_because_value_does_not_resemble_a_valid_service_request', '');
-        return '';
-      }
-      const stored = normalized.charAt(0).toUpperCase() + normalized.slice(1);
-      logFieldValidation('serviceRequested', rawTranscript, s, true, 'accepted_valid_service_request', stored);
-      return stored;
-    };
-
-    const validateAddressField = (s: string, rawTranscript?: string): string => {
-      const normalized = collapseWhitespace(stripTrailingPeriod(stripAddressWrapper(stripLeadingFiller(s))));
-      const lower = normalized.toLowerCase();
-      const hasAddressShape = /\d{1,6}\s+[a-z0-9' .-]+\b(street|st|road|rd|avenue|ave|drive|dr|lane|ln|court|ct|circle|cir|boulevard|blvd|way|place|pl|terrace|ter)\b/i.test(normalized) || /\b(apartment|apt|suite|unit|floor|building|near|corner of|intersection|downtown|online|remote|virtual|at my house|at my home|my house|my home|business location|your location|their location|your office|our office)\b/i.test(lower);
-      const blockedCategory = /\b(morning|mornings|afternoon|afternoons|evening|evenings|tomorrow|today|tonight|asap|callback|call back|anytime|after work|before noon|grass cut|lawn care|plumbing|electrical|repair|install|okay|ok|yes|yeah)\b/i.test(lower);
-      const invalid = !normalized || normalized.length < 4 || normalized.length > 180 || blockedCategory || !hasAddressShape;
-      if (invalid) {
-        logFieldValidation('serviceAddress', rawTranscript, s, false, 'rejected_because_value_does_not_resemble_a_valid_address_or_location', '');
-        return '';
-      }
-      const stored = normalized.charAt(0).toUpperCase() + normalized.slice(1);
-      logFieldValidation('serviceAddress', rawTranscript, s, true, 'accepted_valid_address_or_location', stored);
-      return stored;
-    };
-
-    // Remove conversational address wrappers ONLY — does not touch the address itself
-    const stripAddressWrapper = (s: string): string => {
-      const wrappers = [
-        /^(?:my\s+)?(?:home\s+)?address\s+(?:is|will be)\s+/i,
-        /^the\s+address\s+(?:is|will be)\s+/i,
-        /^it(?:'s|'ll be|\s+is|\s+will be)\s+(?:at\s+)?(?:my\s+(?:house|home|place)\s+at\s+)?/i,
-        /^it(?:'s|'ll be)\s+located\s+at\s+/i,
-        /^(?:located\s+)?at\s+(?:my\s+(?:house|home|place)\s+at\s+)?/i,
-        /^(?:my\s+(?:house|home|place)\s+is\s+(?:at\s+)?)/i,
-      ];
-      let result = s;
-      for (const w of wrappers) {
-        const stripped = result.replace(w, '').trim();
-        // Only accept strip if something remains after removing the wrapper
-        if (stripped.length > 0) {
-          result = stripped;
-          break;
-        }
-      }
-      return result;
-    };
-
     // Compress long free-form text: collapse repetition, keep all facts.
     // Only triggers for responses that are clearly multi-sentence (3+ sentences).
     const compressLongText = (s: string): string => {
@@ -6256,29 +6051,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       fieldName: string = fieldType
     ): string => {
       if (!value || value.trim() === '') return '';
-      let s = value.trim();
-
-      // Universal passes
-      s = dedupeWords(s);
-      s = collapseWhitespace(s);
-
-      if (fieldType === 'address') {
-        s = validateAddressField(s, value);
-      } else if (fieldType === 'time') {
-        s = validateTimeField(s, fieldName);
-      } else if (fieldType === 'details') {
-        s = stripLeadingFiller(s);
-        s = normalizeAmPm(s);
-        s = compressLongText(s);
-        s = collapseWhitespace(s);
-        logFieldValidation(fieldName, value, value, true, 'accepted_permissive_details_field', s);
-      } else if (fieldType === 'service') {
-        s = validateServiceField(s, value);
-      } else if (fieldType === 'name') {
-        s = validateNameField(s, value);
-      }
-
-      return s;
+      const stored = value.trim();
+      logFieldCapture(fieldName, value, value, true, 'accepted_spoken_answer_verbatim', stored);
+      return stored;
     };
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -6317,12 +6092,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
     // Helper function to format AI intake summary (used by SMS and dashboard)
     const formatAiIntakeSummary = (intakeData: any, callerPhone: string, businessName?: string): string => {
-      const customerName = sanitizeEnglishIntakeField('customerName', intakeData.customerName || '');
-      const serviceRequested = sanitizeEnglishIntakeField('serviceRequested', intakeData.serviceRequested || '');
-      const serviceAddress = sanitizeEnglishIntakeField('serviceAddress', intakeData.serviceAddress || '');
-      const desiredCompletionTime = sanitizeEnglishIntakeField('desiredCompletion', intakeData.desiredCompletionTime || '');
-      const callbackTime = sanitizeEnglishIntakeField('callbackTime', intakeData.callbackTime || '');
-      const issueDescription = sanitizeEnglishIntakeField('additionalDetails', intakeData.issueDescription || '');
+      const customerName = sanitizeEnglishIntakeField('customerName', intakeData.customerName || '') || 'Not collected';
+      const serviceRequested = sanitizeEnglishIntakeField('serviceRequested', intakeData.serviceRequested || '') || 'Not collected';
+      const serviceAddress = sanitizeEnglishIntakeField('serviceAddress', intakeData.serviceAddress || '') || 'Not collected';
+      const desiredCompletionTime = sanitizeEnglishIntakeField('desiredCompletion', intakeData.desiredCompletionTime || '') || 'Not collected';
+      const callbackTime = sanitizeEnglishIntakeField('callbackTime', intakeData.callbackTime || '') || 'Not collected';
+      const issueDescription = sanitizeEnglishIntakeField('additionalDetails', intakeData.issueDescription || '') || 'Not collected';
       
       const displayName = businessName || 'us';
       
@@ -6406,8 +6181,8 @@ Reply to this message if you'd like to update or add any information.
       state.intakeData.customerName        = normalizeCrmField(state.intakeData.customerName,          'name',    'customerName');
       state.intakeData.serviceRequested    = normalizeCrmField(serviceRequested,                       'service', 'serviceRequested');
       state.intakeData.serviceAddress      = normalizeCrmField(state.intakeData.serviceAddress,        'address', 'serviceAddress');
-      state.intakeData.desiredCompletionTime = validateTimeField(state.intakeData.desiredCompletionTime || '', 'desiredCompletionTime');
-      state.intakeData.callbackTime        = validateTimeField(state.intakeData.callbackTime || '',    'callbackTime');
+      state.intakeData.desiredCompletionTime = normalizeCrmField(state.intakeData.desiredCompletionTime, 'time', 'desiredCompletionTime');
+      state.intakeData.callbackTime        = normalizeCrmField(state.intakeData.callbackTime,        'time',    'callbackTime');
       state.intakeData.issueDescription    = normalizeCrmField(state.intakeData.issueDescription,     'details', 'issueDescription');
 
       // Log normalized values for diagnostics
@@ -6810,12 +6585,7 @@ Reply to this message if you'd like to update or add any information.
 
   // Helper to send prompt using cached PCMU audio or Realtime response.create
   const sendPrompt = async (stage: string) => {
-    // Use retry prompt if this is a validation failure reprompt
-    let promptKey = stage;
-    if (state.stageRepromptSent && (stage === 'ask_completion_time' || stage === 'ask_callback_time')) {
-      promptKey = `${stage}_retry`;
-    }
-    
+    const promptKey = stage;
     const prompt = prompts[promptKey];
     if (!prompt) {
       console.log('[SIMPLE MODE] No prompt for stage:', stage, 'promptKey:', promptKey);
@@ -6832,10 +6602,9 @@ Reply to this message if you'd like to update or add any information.
     console.log('[SIMPLE MODE] currentStage:', stage);
     console.log('[SIMPLE MODE] promptKey:', promptKey);
     console.log('[SIMPLE MODE] promptText:', prompt);
-    console.log('[SIMPLE MODE] isRetryPrompt:', promptKey !== stage);
     console.log('[SIMPLE MODE] =========================================');
 
-    logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...', isRetry: promptKey !== stage });
+    logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
     const cachedAudio = cachedPromptAudio[stage as keyof typeof cachedPromptAudio];
 
@@ -7314,83 +7083,23 @@ Reply to this message if you'd like to update or add any information.
               }
 
               if (isValidStage) {
-                // Validate time-based fields before stage advancement
-                let validationPassed = true;
-                let validationReason = '';
-                
-                if (state.currentStage === 'ask_completion_time') {
-                  const validated = validateTimeField(queuedTranscript, 'desiredCompletionTime');
-                  validationPassed = !!validated;
-                  validationReason = validationPassed ? 'accepted_valid_time_or_date' : 'rejected_because_value_does_not_resemble_a_valid_time_or_date';
+                if (currentIndex < stages.length - 1) {
+                  // Normal stage advancement
+                  state.currentStage = stages[currentIndex + 1];
+                  sendPrompt(state.currentStage);
+                } else if (isFinalStage) {
+                  // Final stage (ask_callback_time) completed - advance to complete
+                  console.log('[SIMPLE MODE] =========================================');
+                  console.log('[SIMPLE MODE] event: final_callback_answer_accepted');
+                  console.log('[SIMPLE MODE] previousStage:', state.currentStage);
+                  console.log('[SIMPLE MODE] transcript:', state.queuedTranscript);
+                  console.log('[SIMPLE MODE] advancingTo:', 'complete');
+                  console.log('[SIMPLE MODE] =========================================');
+                  state.currentStage = 'complete';
+                  sendPrompt('complete');
                   
-                  console.log('[COMPLETION TIME VALIDATION] =========================================');
-                  console.log('[COMPLETION TIME VALIDATION] transcript:', queuedTranscript);
-                  console.log('[COMPLETION TIME VALIDATION] accepted:', validationPassed);
-                  console.log('[COMPLETION TIME VALIDATION] reason:', validationReason);
-                  console.log('[COMPLETION TIME VALIDATION] =========================================');
-                  
-                  if (!validationPassed) {
-                    // Clear the invalid field value
-                    state.intakeData.desiredCompletionTime = '';
-                  }
-                } else if (state.currentStage === 'ask_callback_time') {
-                  const validated = validateTimeField(queuedTranscript, 'callbackTime');
-                  validationPassed = !!validated;
-                  validationReason = validationPassed ? 'accepted_valid_callback_time' : 'rejected_because_value_does_not_resemble_a_valid_callback_time';
-                  
-                  console.log('[CALLBACK VALIDATION] =========================================');
-                  console.log('[CALLBACK VALIDATION] transcript:', queuedTranscript);
-                  console.log('[CALLBACK VALIDATION] accepted:', validationPassed);
-                  console.log('[CALLBACK VALIDATION] reason:', validationReason);
-                  console.log('[CALLBACK VALIDATION] =========================================');
-                  
-                  if (!validationPassed) {
-                    // Clear the invalid field value
-                    state.intakeData.callbackTime = '';
-                  }
-                }
-                
-                if (validationPassed) {
-                  if (currentIndex < stages.length - 1) {
-                    // Normal stage advancement
-                    state.currentStage = stages[currentIndex + 1];
-                    sendPrompt(state.currentStage);
-                  } else if (isFinalStage) {
-                    // Final stage (ask_callback_time) completed - advance to complete
-                    console.log('[SIMPLE MODE] =========================================');
-                    console.log('[SIMPLE MODE] event: final_callback_answer_accepted');
-                    console.log('[SIMPLE MODE] previousStage:', state.currentStage);
-                    console.log('[SIMPLE MODE] transcript:', state.queuedTranscript);
-                    console.log('[SIMPLE MODE] advancingTo:', 'complete');
-                    console.log('[SIMPLE MODE] =========================================');
-                    state.currentStage = 'complete';
-                    sendPrompt('complete');
-                    
-                    // Run completion persistence immediately after setting stage to complete
-                    processSimpleModeCompletion().catch(console.error);
-                  }
-                } else {
-                  // Validation failed - reprompt the same question once
-                  if (!state.stageRepromptSent) {
-                    state.stageRepromptSent = true;
-                    console.log('[SIMPLE MODE] =========================================');
-                    console.log('[SIMPLE MODE] event: validation_failed_reprompting');
-                    console.log('[SIMPLE MODE] stage:', state.currentStage);
-                    console.log('[SIMPLE MODE] transcript:', queuedTranscript);
-                    console.log('[SIMPLE MODE] reprompting: true');
-                    console.log('[SIMPLE MODE] =========================================');
-                    sendPrompt(state.currentStage);
-                  } else {
-                    // Reprompt already sent, finalize with partial info
-                    console.log('[SIMPLE MODE] =========================================');
-                    console.log('[SIMPLE MODE] event: validation_failed_after_reprompt');
-                    console.log('[SIMPLE MODE] stage:', state.currentStage);
-                    console.log('[SIMPLE MODE] finalizingWithPartialInfo: true');
-                    console.log('[SIMPLE MODE] =========================================');
-                    state.currentStage = 'complete';
-                    sendPrompt('complete');
-                    processSimpleModeCompletion().catch(console.error);
-                  }
+                  // Run completion persistence immediately after setting stage to complete
+                  processSimpleModeCompletion().catch(console.error);
                 }
               }
               state.queuedTranscript = null;
@@ -7514,88 +7223,28 @@ Reply to this message if you'd like to update or add any information.
 
             // Only advance immediately if assistant is not speaking and stage is valid
             if (accepted && !state.assistantSpeaking) {
-              // Validate time-based fields before stage advancement
-              let validationPassed = true;
-              let validationReason = '';
-              
-              if (state.currentStage === 'ask_completion_time') {
-                const validated = validateTimeField(meaningfulTranscript, 'desiredCompletionTime');
-                validationPassed = !!validated;
-                validationReason = validationPassed ? 'accepted_valid_time_or_date' : 'rejected_because_value_does_not_resemble_a_valid_time_or_date';
+              if (currentIndex < stages.length - 1) {
+                // Normal stage advancement
+                state.currentStage = stages[currentIndex + 1];
+                sendPrompt(state.currentStage);
+              } else if (isFinalStage) {
+                // Final stage (ask_callback_time) completed - advance to complete
+                console.log('[SIMPLE MODE] =========================================');
+                console.log('[SIMPLE MODE] event: final_callback_answer_accepted');
+                console.log('[SIMPLE MODE] previousStage:', state.currentStage);
+                console.log('[SIMPLE MODE] transcript:', transcript);
+                console.log('[SIMPLE MODE] advancingTo:', 'complete');
+                console.log('[SIMPLE MODE] =========================================');
+                state.currentStage = 'complete';
+                sendPrompt('complete');
                 
-                console.log('[COMPLETION TIME VALIDATION] =========================================');
-                console.log('[COMPLETION TIME VALIDATION] transcript:', meaningfulTranscript);
-                console.log('[COMPLETION TIME VALIDATION] accepted:', validationPassed);
-                console.log('[COMPLETION TIME VALIDATION] reason:', validationReason);
-                console.log('[COMPLETION TIME VALIDATION] =========================================');
+                console.log('[SIMPLE MODE] =========================================');
+                console.log('[SIMPLE MODE] event: final_callback_stage_advanced_to_complete');
+                console.log('[SIMPLE MODE] currentStage:', state.currentStage);
+                console.log('[SIMPLE MODE] =========================================');
                 
-                if (!validationPassed) {
-                  // Clear the invalid field value
-                  state.intakeData.desiredCompletionTime = '';
-                }
-              } else if (state.currentStage === 'ask_callback_time') {
-                const validated = validateTimeField(meaningfulTranscript, 'callbackTime');
-                validationPassed = !!validated;
-                validationReason = validationPassed ? 'accepted_valid_callback_time' : 'rejected_because_value_does_not_resemble_a_valid_callback_time';
-                
-                console.log('[CALLBACK VALIDATION] =========================================');
-                console.log('[CALLBACK VALIDATION] transcript:', meaningfulTranscript);
-                console.log('[CALLBACK VALIDATION] accepted:', validationPassed);
-                console.log('[CALLBACK VALIDATION] reason:', validationReason);
-                console.log('[CALLBACK VALIDATION] =========================================');
-                
-                if (!validationPassed) {
-                  // Clear the invalid field value
-                  state.intakeData.callbackTime = '';
-                }
-              }
-              
-              if (validationPassed) {
-                if (currentIndex < stages.length - 1) {
-                  // Normal stage advancement
-                  state.currentStage = stages[currentIndex + 1];
-                  sendPrompt(state.currentStage);
-                } else if (isFinalStage) {
-                  // Final stage (ask_callback_time) completed - advance to complete
-                  console.log('[SIMPLE MODE] =========================================');
-                  console.log('[SIMPLE MODE] event: final_callback_answer_accepted');
-                  console.log('[SIMPLE MODE] previousStage:', state.currentStage);
-                  console.log('[SIMPLE MODE] transcript:', transcript);
-                  console.log('[SIMPLE MODE] advancingTo:', 'complete');
-                  console.log('[SIMPLE MODE] =========================================');
-                  state.currentStage = 'complete';
-                  sendPrompt('complete');
-                  
-                  console.log('[SIMPLE MODE] =========================================');
-                  console.log('[SIMPLE MODE] event: final_callback_stage_advanced_to_complete');
-                  console.log('[SIMPLE MODE] currentStage:', state.currentStage);
-                  console.log('[SIMPLE MODE] =========================================');
-                  
-                  // Run completion persistence immediately after setting stage to complete
-                  processSimpleModeCompletion().catch(console.error);
-                }
-              } else {
-                // Validation failed - reprompt the same question once
-                if (!state.stageRepromptSent) {
-                  state.stageRepromptSent = true;
-                  console.log('[SIMPLE MODE] =========================================');
-                  console.log('[SIMPLE MODE] event: validation_failed_reprompting');
-                  console.log('[SIMPLE MODE] stage:', state.currentStage);
-                  console.log('[SIMPLE MODE] transcript:', meaningfulTranscript);
-                  console.log('[SIMPLE MODE] reprompting: true');
-                  console.log('[SIMPLE MODE] =========================================');
-                  sendPrompt(state.currentStage);
-                } else {
-                  // Reprompt already sent, finalize with partial info
-                  console.log('[SIMPLE MODE] =========================================');
-                  console.log('[SIMPLE MODE] event: validation_failed_after_reprompt');
-                  console.log('[SIMPLE MODE] stage:', state.currentStage);
-                  console.log('[SIMPLE MODE] finalizingWithPartialInfo: true');
-                  console.log('[SIMPLE MODE] =========================================');
-                  state.currentStage = 'complete';
-                  sendPrompt('complete');
-                  processSimpleModeCompletion().catch(console.error);
-                }
+                // Run completion persistence immediately after setting stage to complete
+                processSimpleModeCompletion().catch(console.error);
               }
             } else if (isFinalStage) {
                 // Log when final callback answer is ignored
