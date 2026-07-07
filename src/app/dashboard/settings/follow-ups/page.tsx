@@ -26,7 +26,7 @@ export default function FollowUpsSettingsPage() {
         enabled: true,
         delayDays: 1,
         delayUnit: 'days',
-        message: 'Just checking in from {{businessName}} - would you still like help?'
+        message: 'Hi, this is {{businessName}}. Just checking in — do you still need help with this?'
       },
       {
         step: 2,
@@ -40,7 +40,7 @@ export default function FollowUpsSettingsPage() {
         enabled: false,
         delayDays: 7,
         delayUnit: 'days',
-        message: 'Final follow-up from {{businessName}}. Let us know if we can help with anything!'
+        message: 'Final follow-up from {{businessName}}. Let us know if we can still help.'
       }
     ]
   })

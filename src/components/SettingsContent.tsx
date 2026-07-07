@@ -123,6 +123,8 @@ export default function SettingsContent() {
   // Time input refs for better UX
   const openTimeInputRef = useRef<HTMLInputElement>(null)
   const closeTimeInputRef = useRef<HTMLInputElement>(null)
+  const outOfOfficeStartRef = useRef<HTMLInputElement>(null)
+  const outOfOfficeEndRef = useRef<HTMLInputElement>(null)
 
   // Form state management
   const {
@@ -1667,7 +1669,15 @@ export default function SettingsContent() {
                               </div>
                             </div>
                             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                              <label className="group relative cursor-pointer rounded-xl border border-slate-200/70 bg-white/80 p-3 shadow-sm transition-all hover:border-blue-300 hover:bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700/60 dark:bg-slate-900/40 dark:hover:border-blue-700">
+                              <label 
+                                className="group relative cursor-pointer rounded-xl border border-slate-200/70 bg-white/80 p-3 shadow-sm transition-all hover:border-blue-300 hover:bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700/60 dark:bg-slate-900/40 dark:hover:border-blue-700"
+                                onClick={() => {
+                                  outOfOfficeStartRef.current?.focus()
+                                  if (outOfOfficeStartRef.current && 'showPicker' in outOfOfficeStartRef.current) {
+                                    (outOfOfficeStartRef.current as any).showPicker()
+                                  }
+                                }}
+                              >
                                 <span className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
                                   <span>📅</span>
                                   Starts
@@ -1679,6 +1689,7 @@ export default function SettingsContent() {
                                   {formatOutOfOfficeTime(formBusiness.out_of_office_start) || 'Select a time'}
                                 </span>
                                 <input
+                                  ref={outOfOfficeStartRef}
                                   type="datetime-local"
                                   value={toDateTimeLocal(formBusiness.out_of_office_start)}
                                   onChange={(e) => updateBusiness({ out_of_office_start: e.target.value || null })}
@@ -1687,7 +1698,15 @@ export default function SettingsContent() {
                                 />
                               </label>
 
-                              <label className="group relative cursor-pointer rounded-xl border border-slate-200/70 bg-white/80 p-3 shadow-sm transition-all hover:border-blue-300 hover:bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700/60 dark:bg-slate-900/40 dark:hover:border-blue-700">
+                              <label 
+                                className="group relative cursor-pointer rounded-xl border border-slate-200/70 bg-white/80 p-3 shadow-sm transition-all hover:border-blue-300 hover:bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700/60 dark:bg-slate-900/40 dark:hover:border-blue-700"
+                                onClick={() => {
+                                  outOfOfficeEndRef.current?.focus()
+                                  if (outOfOfficeEndRef.current && 'showPicker' in outOfOfficeEndRef.current) {
+                                    (outOfOfficeEndRef.current as any).showPicker()
+                                  }
+                                }}
+                              >
                                 <span className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
                                   <span>📅</span>
                                   Ends
@@ -1699,6 +1718,7 @@ export default function SettingsContent() {
                                   {formatOutOfOfficeTime(formBusiness.out_of_office_end) || 'Select a time'}
                                 </span>
                                 <input
+                                  ref={outOfOfficeEndRef}
                                   type="datetime-local"
                                   value={toDateTimeLocal(formBusiness.out_of_office_end)}
                                   onChange={(e) => updateBusiness({ out_of_office_end: e.target.value || null })}
