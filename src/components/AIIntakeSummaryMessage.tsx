@@ -1,4 +1,5 @@
 import React from 'react'
+import { MapPin, Calendar, Phone } from 'lucide-react'
 
 interface AIIntakeSummaryMessageProps {
   body: string
@@ -83,19 +84,19 @@ export default function AIIntakeSummaryMessage({ body }: AIIntakeSummaryMessageP
         <div className="space-y-0.5 text-[10px] text-blue-800 dark:text-blue-200">
           {address && (
             <div className="flex items-center gap-1">
-              <span>📍</span>
+              <MapPin className="w-3 h-3 flex-shrink-0" />
               <span>{address}</span>
             </div>
           )}
           {completionTime && (
             <div className="flex items-center gap-1">
-              <span>📅</span>
+              <Calendar className="w-3 h-3 flex-shrink-0" />
               <span>{completionTime}</span>
             </div>
           )}
           {callTime && (
             <div className="flex items-center gap-1">
-              <span>📞</span>
+              <Phone className="w-3 h-3 flex-shrink-0" />
               <span>{callTime}</span>
             </div>
           )}

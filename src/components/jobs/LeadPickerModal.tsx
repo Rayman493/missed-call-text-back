@@ -140,7 +140,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
     <>
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <div className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md flex flex-col max-h-[85dvh] sm:max-h-[85vh] overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md flex flex-col max-h-[90dvh] sm:max-h-[85vh] overflow-hidden">
 
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
