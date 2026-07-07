@@ -68,7 +68,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
         <div className="contents sm:flex sm:items-center sm:gap-1">
           {/* Mobile Home/Dashboard Button - Only on mobile */}
           <Link
-            href={isLoggedIn ? '/dashboard' : '/auth?mode=signin'}
+            href={isLoggedIn ? '/dashboard' : '/'}
             className={`sm:hidden flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-200 ${
               pathname === '/dashboard' && isLoggedIn
                 ? 'bg-blue-600/20 text-blue-400'
@@ -76,7 +76,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 ? 'text-slate-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-gray-100 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                 : 'text-gray-300 hover:text-white hover:bg-slate-800/50'
             }`}
-            aria-label={isLoggedIn ? 'Dashboard' : 'Sign In'}
+            aria-label={isLoggedIn ? 'Dashboard' : 'Home'}
           >
             <Home className="w-5 h-5" />
           </Link>
@@ -179,13 +179,13 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 <>
                   <Link
                     href="/auth?mode=signin"
-                    className={`text-xs sm:text-sm font-medium whitespace-nowrap ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-400 hover:text-gray-200'} transition-colors`}
+                    className={`hidden sm:inline text-sm font-medium whitespace-nowrap ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-400 hover:text-gray-200'} transition-colors`}
                   >
                     Sign In
                   </Link>
                   <Link
                     href="/auth?mode=signup"
-                    className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow whitespace-nowrap"
+                    className="px-3 py-1.5 text-xs sm:text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow whitespace-nowrap"
                   >
                     Sign Up
                   </Link>
