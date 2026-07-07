@@ -461,30 +461,30 @@ export default function SetupStatusCard({
   // Render setup complete success state (first lead captured)
   if (cardState === 'setup-complete-success') {
     return (
-      <div className="bg-gradient-to-br from-green-600 to-emerald-700 dark:from-green-700 dark:to-emerald-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-green-500/30">
+      <div className="bg-slate-900/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-200/10 dark:border-slate-800/50 border-l-4 border-l-green-500">
         <div className="flex flex-col gap-6">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-7 h-7 text-white" />
+              <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-green-400" />
               </div>
             </div>
             <div className="flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Setup Complete!</h1>
-              <p className="text-green-100 text-base sm:text-lg">ReplyFlow successfully captured your first missed call. You're all set.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Setup Complete</h1>
+              <p className="text-slate-400 text-base sm:text-lg">ReplyFlow is now fully configured and ready to capture future missed calls automatically.</p>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
               href="/dashboard"
-              className="inline-flex items-center justify-center px-6 py-3 bg-white hover:bg-green-50 text-green-600 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+              className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
             >
-              View Lead
+              View First Lead
               <ArrowRight className="w-4 h-4 ml-2" />
             </Link>
             <button
               onClick={handleDismissSuccess}
-              className="inline-flex items-center justify-center px-6 py-3 bg-green-700/50 hover:bg-green-700/70 text-white text-base font-semibold rounded-xl transition-colors"
+              className="inline-flex items-center justify-center px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-base font-medium rounded-xl transition-colors"
             >
               Dismiss
             </button>
@@ -497,22 +497,22 @@ export default function SetupStatusCard({
   // Render collapsed state (after setup is complete)
   if (!isExpanded && (cardState === 'setup-complete' || cardState === 'healthy')) {
     return (
-      <div className="bg-gradient-to-br from-green-600 to-emerald-700 dark:from-green-700 dark:to-emerald-800 rounded-xl p-4 sm:p-5 shadow-lg border border-green-500/30">
+      <div className="bg-slate-900/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-xl p-4 sm:p-5 shadow-lg border border-slate-200/10 dark:border-slate-800/50 border-l-4 border-l-green-500">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 text-green-400" />
               </div>
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-base sm:text-lg font-semibold text-white">ReplyFlow Active</h3>
-              <p className="text-green-100 text-sm">All systems operational. No action needed.</p>
+              <p className="text-slate-400 text-sm">All systems operational. No action needed.</p>
             </div>
           </div>
           <button
             onClick={() => setIsExpanded(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium rounded-lg transition-colors"
           >
             View Details
             <ChevronDown className="w-4 h-4" />
