@@ -6099,42 +6099,49 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     const validateNameField = (s: string, rawTranscript?: string): string => {
       const normalized = collapseWhitespace(stripTrailingPeriod(stripLeadingFiller(s)));
       const lower = normalized.toLowerCase();
-      const wordCount = normalized.split(/\s+/).filter(Boolean).length;
-      const invalid = !normalized || normalized.length < 2 || normalized.length > 60 || wordCount > 4 || /\d/.test(normalized) || /[?]/.test(normalized) || /\b(need|want|looking|calling|service|appointment|address|street|road|avenue|tomorrow|morning|afternoon|evening|callback|call back|text back|not sure|hello|hi|hey)\b/i.test(lower);
+      const words = normalized.split(/\s+/).filter(Boolean);
+      const wordCount = words.length;
+      const blockedCategory = /\b(need|want|looking|calling|service|appointment|address|street|road|avenue|drive|boulevard|tomorrow|today|tonight|morning|mornings|afternoon|afternoons|evening|evenings|callback|call back|text back|not sure|hello|hi|hey|okay|ok|yes|yeah|yep|nope|thanks|thank you|grass|lawn|plumbing|electrical|hvac|cleaning|roof|repair|install|installation)\b/i.test(lower);
+      const invalid = !normalized || normalized.length < 2 || normalized.length > 60 || wordCount > 4 || /\d/.test(normalized) || /[?]/.test(normalized) || blockedCategory;
       if (invalid) {
-        logFieldValidation('customerName', rawTranscript, s, false, 'does_not_resemble_realistic_human_name', '');
+        logFieldValidation('customerName', rawTranscript, s, false, 'rejected_because_value_does_not_resemble_a_valid_customer_name', '');
         return '';
       }
       const stored = normalized.charAt(0).toUpperCase() + normalized.slice(1);
-      logFieldValidation('customerName', rawTranscript, s, true, 'accepted', stored);
+      logFieldValidation('customerName', rawTranscript, s, true, 'accepted_valid_customer_name', stored);
       return stored;
     };
 
     const validateServiceField = (s: string, rawTranscript?: string): string => {
       const normalized = collapseWhitespace(stripTrailingPeriod(stripLeadingFiller(normalizeAmPm(s))));
       const lower = normalized.toLowerCase();
-      const wordCount = normalized.split(/\s+/).filter(Boolean).length;
-      const invalid = !normalized || normalized.length < 3 || normalized.length > 140 || wordCount > 18 || /\b(hi|hello|hey|thanks|thank you|morning|afternoon|evening|tomorrow|today|tonight|asap|address|street|road|avenue|drive|boulevard|call me|call back|callback|anytime|after work|before noon)\b/i.test(lower) || /^\d/.test(normalized);
+      const words = normalized.split(/\s+/).filter(Boolean);
+      const wordCount = words.length;
+      const blockedCategory = /\b(hi|hello|hey|thanks|thank you|okay|ok|yes|yeah|yep|nope|morning|mornings|afternoon|afternoons|evening|evenings|tomorrow|today|tonight|asap|address|street|road|avenue|drive|boulevard|call me|call back|callback|anytime|after work|before noon)\b/i.test(lower) || /^\d/.test(normalized);
+      const hasServiceShape = /\b(service|repair|fix|install|installation|replace|replacement|remove|removal|clean|cleaning|wash|washing|paint|painting|mow|mowing|cut|trim|plumb|plumbing|electric|electrical|hvac|heat|heating|cooling|roof|roofing|lawn|grass|landscap|tree|gutter|window|door|floor|tile|concrete|pest|junk|moving|move|appointment|estimate|quote|consultation)\b/i.test(lower) || /\b(need|want|looking for|looking to|get|someone to|help with)\b/i.test(lower);
+      const looksLikeSinglePersonName = wordCount === 1 && /^[A-Z][a-z'-]{2,}$/.test(normalized);
+      const invalid = !normalized || normalized.length < 3 || normalized.length > 140 || wordCount > 18 || blockedCategory || looksLikeSinglePersonName || !hasServiceShape;
       if (invalid) {
-        logFieldValidation('serviceRequested', rawTranscript, s, false, 'does_not_resemble_legitimate_service_request', '');
+        logFieldValidation('serviceRequested', rawTranscript, s, false, 'rejected_because_value_does_not_resemble_a_valid_service_request', '');
         return '';
       }
       const stored = normalized.charAt(0).toUpperCase() + normalized.slice(1);
-      logFieldValidation('serviceRequested', rawTranscript, s, true, 'accepted', stored);
+      logFieldValidation('serviceRequested', rawTranscript, s, true, 'accepted_valid_service_request', stored);
       return stored;
     };
 
     const validateAddressField = (s: string, rawTranscript?: string): string => {
       const normalized = collapseWhitespace(stripTrailingPeriod(stripAddressWrapper(stripLeadingFiller(s))));
       const lower = normalized.toLowerCase();
-      const hasAddressShape = /\d{1,6}\s+[a-z0-9' .-]+\b(street|st|road|rd|avenue|ave|drive|dr|lane|ln|court|ct|circle|cir|boulevard|blvd|way|place|pl|terrace|ter)\b/i.test(normalized) || /\b(apartment|apt|suite|unit|floor|building|near|corner of|intersection|downtown|online|remote|virtual|at my house|at my home|my house|my home|business location|your location)\b/i.test(lower);
-      const invalid = !normalized || normalized.length < 4 || normalized.length > 180 || /\b(morning|afternoon|evening|tomorrow|today|tonight|asap|callback|call back|anytime|after work|before noon)\b/i.test(lower) || !hasAddressShape;
+      const hasAddressShape = /\d{1,6}\s+[a-z0-9' .-]+\b(street|st|road|rd|avenue|ave|drive|dr|lane|ln|court|ct|circle|cir|boulevard|blvd|way|place|pl|terrace|ter)\b/i.test(normalized) || /\b(apartment|apt|suite|unit|floor|building|near|corner of|intersection|downtown|online|remote|virtual|at my house|at my home|my house|my home|business location|your location|their location|your office|our office)\b/i.test(lower);
+      const blockedCategory = /\b(morning|mornings|afternoon|afternoons|evening|evenings|tomorrow|today|tonight|asap|callback|call back|anytime|after work|before noon|grass cut|lawn care|plumbing|electrical|repair|install|okay|ok|yes|yeah)\b/i.test(lower);
+      const invalid = !normalized || normalized.length < 4 || normalized.length > 180 || blockedCategory || !hasAddressShape;
       if (invalid) {
-        logFieldValidation('serviceAddress', rawTranscript, s, false, 'does_not_resemble_address_or_location', '');
+        logFieldValidation('serviceAddress', rawTranscript, s, false, 'rejected_because_value_does_not_resemble_a_valid_address_or_location', '');
         return '';
       }
       const stored = normalized.charAt(0).toUpperCase() + normalized.slice(1);
-      logFieldValidation('serviceAddress', rawTranscript, s, true, 'accepted', stored);
+      logFieldValidation('serviceAddress', rawTranscript, s, true, 'accepted_valid_address_or_location', stored);
       return stored;
     };
 
@@ -6240,17 +6247,18 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
         /\b(mon|tue|wed|thu|fri|sat|sun)\b/i,
         // Time of day
-        /\b(morning|afternoon|evening|night)\b/i,
+        /\b(morning|mornings|afternoon|afternoons|evening|evenings|night|nights)\b/i,
         /\b(am|pm)\b/i,
         // Urgency
         /\b(asap|as soon as possible|right away|immediately|urgently)\b/i,
         /\b(anytime|any time)\b/i,
         // Relative time
         /\b(after work|before work|during work)\b/i,
-        /\b(after \d+[\s:]*\d*\s*(am|pm)?)\b/i,
-        /\b(before \d+[\s:]*\d*\s*(am|pm)?)\b/i,
-        /\b(around \d+[\s:]*\d*\s*(am|pm)?)\b/i,
-        /\b(by \d+[\s:]*\d*\s*(am|pm)?)\b/i,
+        /\b(after \d{1,2}(?::\d{2})?\s*(am|pm)?)\b/i,
+        /\b(before \d{1,2}(?::\d{2})?\s*(am|pm)?)\b/i,
+        /\b(around \d{1,2}(?::\d{2})?\s*(am|pm)?)\b/i,
+        /\b(by \d{1,2}(?::\d{2})?\s*(am|pm)?)\b/i,
+        /^\d{1,2}(?::\d{2})?\s*(am|pm)$/i,
         // Time ranges
         /\b(within \d+\s+(day|days|hour|hours|week|weeks))\b/i,
         /\b(in \d+\s+(day|days|hour|hours|week|weeks))\b/i,
@@ -6273,16 +6281,21 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       if (!isValid && /\b(around lunch|lunch|lunchtime|before noon|noon|midday|end of day|this month|next month|this weekend|next weekend|within (one|two|three|four|five|six|seven) (day|days|hour|hours|week|weeks)|in (one|two|three|four|five|six|seven) (day|days|hour|hours|week|weeks))\b/i.test(lowerNormalized)) {
         isValid = true;
       }
+
+      const blockedCategory = /\b(us|thing|things|okay|ok|yes|yeah|yep|nope|ryan|grass|lawn|quarter acre|address|street|road|avenue|drive|plumbing|electrical|repair|install|installation|name is|my name|hello|hi|hey|thanks|thank you)\b/i.test(lowerNormalized);
+      if (blockedCategory) {
+        isValid = false;
+      }
       
       if (!isValid) {
-        logFieldValidation(fieldName, s, s, false, 'does_not_resemble_legitimate_time_phrase', '');
+        logFieldValidation(fieldName, s, s, false, `rejected_because_value_does_not_resemble_a_valid_${fieldName === 'callbackTime' ? 'callback_time' : 'time_or_date'}`, '');
         return '';
       }
       
       // Capitalize first letter
       normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1);
       
-      logFieldValidation(fieldName, s, s, true, 'accepted', normalized);
+      logFieldValidation(fieldName, s, s, true, `accepted_valid_${fieldName === 'callbackTime' ? 'callback_time' : 'time_or_date'}`, normalized);
       return normalized;
     };
     // ─────────────────────────────────────────────────────────────────────────
