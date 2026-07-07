@@ -262,6 +262,23 @@ export default function AnalyticsContent() {
     metrics.messagesSent > 0
   )
 
+  // Generate business impact text based on actual metrics
+  const getBusinessImpactText = (m: AnalyticsMetrics) => {
+    if (m.customerReplies > 0) {
+      return `Recovered ${m.customerReplies} customer conversation${m.customerReplies === 1 ? '' : 's'}`
+    }
+    if (m.missedCallsCaptured > 0) {
+      return `Captured ${m.missedCallsCaptured} missed call${m.missedCallsCaptured === 1 ? '' : 's'}`
+    }
+    if (m.leadsCreated > 0) {
+      return `Created ${m.leadsCreated} lead${m.leadsCreated === 1 ? '' : 's'} from missed calls`
+    }
+    if (m.aiIntakesCompleted > 0) {
+      return `Completed ${m.aiIntakesCompleted} AI intake${m.aiIntakesCompleted === 1 ? '' : 's'}`
+    }
+    return 'No activity yet'
+  }
+
   return (
     <AuthGuard>
       <BusinessGuard>
@@ -271,11 +288,16 @@ export default function AnalyticsContent() {
           <div className="flex-1 pt-2 sm:pt-3 lg:pt-4 px-3 sm:px-4 lg:px-6 pb-8 relative z-10">
             <div className="max-w-[1400px] mx-auto">
               {/* Header */}
-              <div className="mb-6">
-                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-foreground">
-                  Analytics
-                </h1>
-                <p className="text-sm text-slate-600 dark:text-muted-foreground mt-1">
+              <div className="mb-5">
+                <div className="flex items-center gap-3 mb-1">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-foreground">
+                    Analytics
+                  </h1>
+                  <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+                    Last 30 Days
+                  </span>
+                </div>
+                <p className="text-sm text-slate-600 dark:text-muted-foreground">
                   Track your ReplyFlow performance and lead recovery metrics
                 </p>
               </div>
@@ -316,7 +338,7 @@ export default function AnalyticsContent() {
               ) : metrics && (
                 <>
                   {/* Business Impact - Top Highlight */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/60 dark:border-blue-800/50 rounded-xl p-5 sm:p-6 mb-4 shadow-sm">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/60 dark:border-blue-800/50 rounded-xl p-4 sm:p-5 mb-3 shadow-sm">
                     <div className="flex items-start gap-4">
                       <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                         <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -326,15 +348,15 @@ export default function AnalyticsContent() {
                           Business Impact
                         </h3>
                         <p className="text-sm text-slate-600 dark:text-muted-foreground">
-                          ReplyFlow helped recover approximately <span className="font-bold text-blue-600 dark:text-blue-400">{metrics.estimatedLeadsSaved}</span> missed opportunities.
+                          <span className="font-bold text-blue-600 dark:text-blue-400">{getBusinessImpactText(metrics)}</span>
                         </p>
                       </div>
                     </div>
                   </div>
 
                   {/* Lead Recovery Overview */}
-                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-5 sm:p-6 mb-4">
-                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-4 flex items-center gap-2">
+                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 mb-3">
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                       <Phone className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                       Lead Recovery Overview
                     </h3>
@@ -365,11 +387,16 @@ export default function AnalyticsContent() {
                         icon={CheckCircle}
                       />
                     </div>
+                    {metrics.missedCallsCaptured === 0 && metrics.leadsCreated === 0 && metrics.customerReplies === 0 && metrics.activeLeads === 0 && metrics.completedLeads === 0 && (
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-3 text-center">
+                        No lead activity yet
+                      </p>
+                    )}
                   </div>
 
                   {/* AI Performance */}
-                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-5 sm:p-6 mb-4">
-                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-4 flex items-center gap-2">
+                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 mb-3">
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                       <BarChart3 className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                       AI Performance
                     </h3>
@@ -394,11 +421,16 @@ export default function AnalyticsContent() {
                         value={metrics.aiCompletionRate}
                       />
                     </div>
+                    {metrics.aiIntakesCompleted === 0 && metrics.aiIntakesIncomplete === 0 && metrics.voicemailsCaptured === 0 && (
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-3 text-center">
+                        No AI activity yet
+                      </p>
+                    )}
                   </div>
 
                   {/* Follow-Up Performance */}
-                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-5 sm:p-6 mb-4">
-                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-4 flex items-center gap-2">
+                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 mb-3">
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                       <Send className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                       Follow-Up Performance
                     </h3>
@@ -418,11 +450,16 @@ export default function AnalyticsContent() {
                         value={metrics.followUpResponseRate}
                       />
                     </div>
+                    {metrics.followUpsSent === 0 && metrics.followUpsCancelled === 0 && (
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-3 text-center">
+                        No follow-up activity yet
+                      </p>
+                    )}
                   </div>
 
                   {/* Customer Engagement */}
-                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-5 sm:p-6 mb-4">
-                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-4 flex items-center gap-2">
+                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 mb-3">
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                       <MessageSquare className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                       Customer Engagement
                     </h3>
@@ -443,13 +480,18 @@ export default function AnalyticsContent() {
                         isDecimal
                       />
                     </div>
+                    {metrics.totalConversations === 0 && (
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-3 text-center">
+                        No conversation activity yet
+                      </p>
+                    )}
                   </div>
 
                   {/* Charts */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Lead Activity Trend */}
-                    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-5 sm:p-6">
-                      <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-4 flex items-center gap-2">
+                    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5">
+                      <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                         <TrendingUp className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                         Lead Activity Trend (7 Days)
                       </h3>
@@ -457,8 +499,8 @@ export default function AnalyticsContent() {
                     </div>
 
                     {/* Customer Reply Trend */}
-                    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-5 sm:p-6">
-                      <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-4 flex items-center gap-2">
+                    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5">
+                      <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                         <MessageSquare className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                         Customer Reply Trend (7 Days)
                       </h3>
@@ -506,6 +548,23 @@ function PercentageCard({ label, value }: { label: string; value: number }) {
 }
 
 function SimpleBarChart({ data, color }: { data: TrendData[]; color: 'blue' | 'green' }) {
+  const hasData = data.some(d => d.value > 0)
+  
+  if (!hasData) {
+    return (
+      <div className="flex items-center justify-center h-32 sm:h-40 text-center">
+        <div className="px-4">
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+            No activity during the last 7 days
+          </p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+            Activity will appear here as customers call, text, and reply
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const maxValue = Math.max(...data.map(d => d.value), 1)
   
   const colorClass = color === 'blue' 
