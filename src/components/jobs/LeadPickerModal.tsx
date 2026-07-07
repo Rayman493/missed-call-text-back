@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Search, User, Phone, Briefcase, MapPin, Loader2, ChevronRight } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
@@ -54,15 +54,11 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
-  const searchRef = useRef<HTMLInputElement>(null)
-
   useEffect(() => {
     if (!isOpen) return
     setQuery('')
     setError('')
     fetchLeads()
-    // Focus search after mount
-    setTimeout(() => searchRef.current?.focus(), 100)
   }, [isOpen])
 
   const fetchLeads = async () => {
@@ -158,7 +154,6 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
-                ref={searchRef}
                 type="text"
                 value={query}
                 onChange={e => setQuery(e.target.value)}

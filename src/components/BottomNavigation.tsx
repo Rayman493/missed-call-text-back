@@ -139,7 +139,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   }
                   
                   const content = (
-                    <div className="flex items-center gap-4 min-w-0">
+                    <div className="flex w-full items-center gap-4 min-w-0 text-left">
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
                         isDanger
                           ? 'bg-red-100 dark:bg-red-900/30'
@@ -156,10 +156,10 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                         }`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className={`font-medium truncate ${isDanger ? 'text-red-400' : 'text-white'}`}>
+                        <div className={`font-medium truncate text-left ${isDanger ? 'text-red-400' : 'text-white'}`}>
                           {item.label}
                         </div>
-                        <div className="text-sm text-slate-400 truncate">
+                        <div className="text-sm text-slate-400 truncate text-left">
                           {isDanger ? 'Sign out of your account' : isBilling ? 'Manage your subscription' : item.label === 'View Homepage' ? 'Go to homepage' : 'Configure your account'}
                         </div>
                       </div>
@@ -172,7 +172,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                         key={item.label}
                         href={item.href}
                         onClick={() => setIsMoreMenuOpen(false)}
-                        className="flex items-center gap-4 p-4 hover:bg-white/[0.07] rounded-2xl transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                        className="flex w-full items-center justify-start gap-4 p-4 hover:bg-white/[0.07] rounded-2xl transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                       >
                         {content}
                       </Link>
@@ -183,7 +183,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                     <button
                       key={item.label}
                       onClick={handleClick}
-                      className="flex items-center gap-4 p-4 hover:bg-white/[0.07] rounded-2xl transition-all w-full active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                      className="flex w-full items-center justify-start gap-4 p-4 text-left hover:bg-white/[0.07] rounded-2xl transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                     >
                       {content}
                     </button>
