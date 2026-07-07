@@ -18,10 +18,10 @@ export default async function PayPage({ params }: PayPageProps) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // Look up payment request by token
+  // Look up payment request by token with business name
   const { data: paymentRequest, error } = await supabase
     .from('payment_requests')
-    .select('id, status, checkout_url, expires_at, amount_cents, description, payment_provider')
+    .select('id, status, checkout_url, expires_at, amount_cents, description, payment_provider, businesses!inner(name)')
     .eq('token', token)
     .single()
 
@@ -113,9 +113,101 @@ export default async function PayPage({ params }: PayPageProps) {
     )
   }
 
-  // Redirect to Stripe Checkout Session
+  // For Stripe, redirect directly to checkout
+  if (paymentRequest.payment_provider === 'stripe' && paymentRequest.checkout_url) {
+    console.log('[PAY TOKEN] redirect=true, reason=stripe-pending, url=', paymentRequest.checkout_url)
+    redirect(paymentRequest.checkout_url)
+  }
+
+  // For Venmo/PayPal, show payment handoff page
+  if (paymentRequest.payment_provider === 'venmo' || paymentRequest.payment_provider === 'paypal') {
+    console.log('[PAY TOKEN] redirect=false, reason=handoff-page, provider=', paymentRequest.payment_provider)
+    const amount = (paymentRequest.amount_cents / 100).toFixed(2)
+    const businessName = (paymentRequest as any).businesses?.name || 'the business'
+    const providerName = paymentRequest.payment_provider === 'venmo' ? 'Venmo' : 'PayPal'
+    const providerColor = paymentRequest.payment_provider === 'venmo' ? 'bg-blue-500' : 'bg-blue-600'
+
+    // Generate app-friendly deep link for Venmo
+    let appLink = paymentRequest.checkout_url
+    if (paymentRequest.payment_provider === 'venmo' && paymentRequest.checkout_url) {
+      // Venmo app deep link: venmo://paycharge?recipients=username&amount=1.00&note=description
+      try {
+        const url = new URL(paymentRequest.checkout_url)
+        const username = url.pathname.split('/').pop()
+        if (username) {
+          const note = paymentRequest.description || ''
+          appLink = `venmo://paycharge?recipients=${username}&amount=${amount}&note=${encodeURIComponent(note)}`
+        }
+      } catch (e) {
+        // Fallback to web URL if parsing fails
+        appLink = paymentRequest.checkout_url
+      }
+    }
+
+    // For PayPal, use the checkout_url as-is (PayPal.Me format)
+    if (paymentRequest.payment_provider === 'paypal') {
+      appLink = paymentRequest.checkout_url
+    }
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
+          <div className="text-center mb-6">
+            <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${providerColor} mb-4`}>
+              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                {paymentRequest.payment_provider === 'venmo' ? (
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                ) : (
+                  <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z" />
+                )}
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Request</h1>
+            <p className="text-gray-600">
+              {businessName} is requesting a payment via {providerName}
+            </p>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-600">Amount</span>
+              <span className="text-2xl font-bold text-gray-900">${amount}</span>
+            </div>
+            {paymentRequest.description && (
+              <div className="text-sm text-gray-600">
+                <span className="font-medium">Description:</span> {paymentRequest.description}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <a
+              href={appLink}
+              className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+            >
+              Open in {providerName}
+            </a>
+            <a
+              href={paymentRequest.checkout_url || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full text-center text-blue-600 hover:text-blue-700 font-medium py-3 px-4 rounded-lg transition-colors"
+            >
+              Continue in browser
+            </a>
+          </div>
+
+          <p className="text-xs text-gray-500 text-center mt-6">
+            By clicking above, you'll be redirected to {providerName} to complete your payment securely.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Redirect to Stripe Checkout Session (fallback)
   if (paymentRequest.checkout_url) {
-    console.log('[PAY TOKEN] redirect=true, reason=pending, url=', paymentRequest.checkout_url)
+    console.log('[PAY TOKEN] redirect=true, reason=pending-fallback, url=', paymentRequest.checkout_url)
     redirect(paymentRequest.checkout_url)
   }
 
