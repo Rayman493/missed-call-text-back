@@ -540,7 +540,7 @@ export default function InteractiveDemoWalkthrough({ compact = false, showHeader
     }
     const timer = setTimeout(() => {
       next()
-    }, compact ? 3500 : 4500)
+    }, compact ? 5500 : 6500)
     return () => clearTimeout(timer)
   }, [autoPlay, step, next, compact])
 
