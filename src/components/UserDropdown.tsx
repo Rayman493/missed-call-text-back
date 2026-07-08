@@ -140,7 +140,7 @@ export default function UserDropdown() {
           {isOpen && (
             <div className="absolute right-0 z-20 mt-2 w-72 min-w-72 bg-slate-950 rounded-xl shadow-xl border border-slate-700 py-2">
                 {/* Business Info Section */}
-                <div className="px-4 py-3 border-b border-slate-700 bg-slate-900/50">
+                <div className="px-4 py-3 border-b border-slate-700 bg-slate-900">
                   <p className="text-sm font-semibold text-white truncate">
                     {business?.name || 'Business'}
                   </p>
