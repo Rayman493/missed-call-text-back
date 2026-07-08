@@ -138,7 +138,84 @@ export default function UserDropdown() {
           </button>
 
           {isOpen && (
-            <div className="absolute right-0 z-20 mt-2 w-72 min-w-72 bg-slate-950 rounded-xl shadow-xl border border-slate-700 py-2">
+            <>
+              {/* Mobile backdrop overlay */}
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] sm:hidden" onClick={() => setIsOpen(false)} />
+              
+              {/* Mobile sheet - full screen on mobile */}
+              <div className="fixed inset-y-0 right-0 w-80 max-w-[85vw] bg-slate-950 shadow-2xl border-l border-slate-700 z-[70] sm:hidden overflow-y-auto animate-in slide-in-from-right duration-300">
+                <div className="p-4">
+                  {/* Close button */}
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+
+                  {/* Business Info Section */}
+                  <div className="px-4 py-4 border-b border-slate-700 bg-slate-900 rounded-lg mb-4">
+                    <p className="text-sm font-semibold text-white truncate">
+                      {business?.name || 'Business'}
+                    </p>
+                    <p className="text-xs text-slate-300 truncate mt-0.5">
+                      {user?.email || 'No email'}
+                    </p>
+                  </div>
+
+                  {/* Navigation Items */}
+                  <div className="space-y-1">
+                    {accountMenuItems.map((item) => {
+                      const Icon = item.icon
+                      const isDanger = item.variant === 'danger'
+                      const isBilling = item.action === 'billing'
+
+                      const handleClick = async () => {
+                        setIsOpen(false)
+                        if (isBilling) {
+                          await handleManageBilling()
+                        } else if (item.action === 'signout') {
+                          await handleSignOut()
+                        }
+                      }
+
+                      if (item.href && !isBilling) {
+                        return (
+                          <Link
+                            key={item.label}
+                            href={item.href}
+                            onClick={() => setIsOpen(false)}
+                            className="w-full px-4 py-3 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-3 rounded-lg"
+                          >
+                            <Icon className="w-5 h-5 text-slate-400" />
+                            {item.label}
+                          </Link>
+                        )
+                      }
+
+                      return (
+                        <button
+                          key={item.label}
+                          onClick={handleClick}
+                          className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center gap-3 rounded-lg ${
+                            isDanger
+                              ? 'text-red-400 hover:text-red-300 hover:bg-slate-800'
+                              : 'text-slate-200 hover:bg-slate-800'
+                          }`}
+                        >
+                          <Icon className={`w-5 h-5 ${isDanger ? '' : 'text-slate-400'}`} />
+                          {item.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop dropdown - unchanged */}
+              <div className="hidden sm:block absolute right-0 z-50 mt-2 w-72 min-w-72 bg-slate-950 rounded-xl shadow-xl border border-slate-700 py-2">
                 {/* Business Info Section */}
                 <div className="px-4 py-3 border-b border-slate-700 bg-slate-900">
                   <p className="text-sm font-semibold text-white truncate">
@@ -155,7 +232,7 @@ export default function UserDropdown() {
                     const Icon = item.icon
                     const isDanger = item.variant === 'danger'
                     const isBilling = item.action === 'billing'
-                    
+
                     const handleClick = async () => {
                       setIsOpen(false)
                       if (isBilling) {
@@ -164,7 +241,7 @@ export default function UserDropdown() {
                         await handleSignOut()
                       }
                     }
-                    
+
                     if (item.href && !isBilling) {
                       return (
                         <Link
@@ -178,7 +255,7 @@ export default function UserDropdown() {
                         </Link>
                       )
                     }
-                    
+
                     return (
                       <button
                         key={item.label}
@@ -195,7 +272,8 @@ export default function UserDropdown() {
                     )
                   })}
                 </div>
-            </div>
+              </div>
+            </>
           )}
         </>
       ) : (
