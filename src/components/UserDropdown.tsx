@@ -61,8 +61,9 @@ export default function UserDropdown() {
     }
 
     const handleClickOutside = (event: MouseEvent) => {
-      const isClickInsideDropdown = dropdownRef.current?.contains(event.target as Node) || dropdownContentRef.current?.contains(event.target as Node)
-      if (!isClickInsideDropdown) {
+      const isClickInsideTrigger = triggerRef.current?.contains(event.target as Node)
+      const isClickInsideDropdown = dropdownContentRef.current?.contains(event.target as Node)
+      if (!isClickInsideTrigger && !isClickInsideDropdown) {
         setIsOpen(false)
       }
     }
