@@ -154,40 +154,59 @@ export default function MobileDrawer({ isOpen, onClose, triggerRef }: MobileDraw
     >
       <div className="py-1">
         {isLoggedIn ? (
-          // Authenticated navigation
+          // Authenticated navigation - informational pages only
           <>
-            <Link
-              href="/dashboard"
-              onClick={handleNavClick}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-            >
-              <LayoutDashboard className="h-4 w-4 text-slate-400" />
-              Dashboard
-            </Link>
-            <Link
-              href="/dashboard/settings"
-              onClick={handleNavClick}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-            >
-              <Settings className="h-4 w-4 text-slate-400" />
-              Settings
-            </Link>
             <Link
               href="/"
               onClick={handleNavClick}
               className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
             >
-              <ExternalLink className="h-4 w-4 text-slate-400" />
-              View Homepage
+              <Home className="h-4 w-4 text-slate-400" />
+              Home
+            </Link>
+            <Link
+              href="/#interactive-demo"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              See How It Works
+            </Link>
+            <Link
+              href="/pricing"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              Pricing
+            </Link>
+            <Link
+              href="/faq"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              FAQ
+            </Link>
+            <Link
+              href="/compliance"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              Compliance
             </Link>
             <div className="h-px bg-slate-700 my-1" />
-            <button
-              onClick={handleSignOut}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-red-400 transition-colors hover:bg-slate-800"
+            <Link
+              href="/privacy"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
             >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </button>
+              Privacy Policy
+            </Link>
+            <Link
+              href="/terms"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              Terms of Service
+            </Link>
           </>
         ) : (
           // Logged out navigation
@@ -220,6 +239,28 @@ export default function MobileDrawer({ isOpen, onClose, triggerRef }: MobileDraw
               className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
             >
               FAQ
+            </Link>
+            <Link
+              href="/compliance"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              Compliance
+            </Link>
+            <div className="h-px bg-slate-700 my-1" />
+            <Link
+              href="/privacy"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              href="/terms"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              Terms of Service
             </Link>
             <div className="h-px bg-slate-700 my-1" />
             <Link
