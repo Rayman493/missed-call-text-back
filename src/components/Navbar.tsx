@@ -44,6 +44,14 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
     await signOut({ manual: true })
   }
 
+  const handleHomeClick = (e: React.MouseEvent) => {
+    // If already on homepage, scroll to top instead of navigating
+    if (isHomepage) {
+      e.preventDefault()
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
   if (loading || businessLoading) {
     return (
       <header className="w-full bg-slate-800/90 border-b border-slate-700">
@@ -69,6 +77,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
           {/* Mobile Home/Dashboard Button - Only on mobile */}
           <Link
             href={isLoggedIn ? '/dashboard' : '/'}
+            onClick={handleHomeClick}
             className={`sm:hidden flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-200 ${
               pathname === '/dashboard' && isLoggedIn
                 ? 'bg-blue-600/20 text-blue-400'
@@ -179,13 +188,13 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 <>
                   <Link
                     href="/auth?mode=signin"
-                    className={`hidden sm:inline text-sm font-medium whitespace-nowrap ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-400 hover:text-gray-200'} transition-colors`}
+                    className={`text-xs sm:text-sm font-medium whitespace-nowrap ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-400 hover:text-gray-200'} transition-colors`}
                   >
                     Sign In
                   </Link>
                   <Link
                     href="/auth?mode=signup"
-                    className="px-3 py-1.5 text-xs sm:text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow whitespace-nowrap"
+                    className="px-2.5 py-1.5 text-xs sm:text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow whitespace-nowrap"
                   >
                     Sign Up
                   </Link>
