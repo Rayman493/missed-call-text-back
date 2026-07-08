@@ -127,6 +127,8 @@ export default function SettingsContent() {
   const closeTimeInputRef = useRef<HTMLInputElement>(null)
   const outOfOfficeStartRef = useRef<HTMLInputElement>(null)
   const outOfOfficeEndRef = useRef<HTMLInputElement>(null)
+  const settingsTabsNavRef = useRef<HTMLElement>(null)
+  const sectionTabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   // Form state management
   const {
@@ -839,6 +841,23 @@ export default function SettingsContent() {
     }
   }, [business])
 
+  useEffect(() => {
+    const activeTab = sectionTabRefs.current[activeSection]
+    const tabsNav = settingsTabsNavRef.current
+
+    if (!activeTab || !tabsNav) return
+
+    const tabLeft = activeTab.offsetLeft
+    const tabWidth = activeTab.offsetWidth
+    const navWidth = tabsNav.clientWidth
+    const targetLeft = tabLeft - (navWidth / 2) + (tabWidth / 2)
+
+    tabsNav.scrollTo({
+      left: Math.max(0, targetLeft),
+      behavior: 'smooth'
+    })
+  }, [activeSection])
+
   // Scroll-aware active section detection using explicit scroll positions
   useEffect(() => {
     const sections = ['general', 'automation', 'integrations', 'payments', 'contacts', 'account']
@@ -1048,8 +1067,9 @@ export default function SettingsContent() {
 
               {/* Settings Navigation Tabs */}
               <div className="py-1">
-                <nav className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+                <nav ref={settingsTabsNavRef} className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
                   <button
+                    ref={(element) => { sectionTabRefs.current.general = element }}
                     onClick={() => handleSectionClick('general')}
                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
                       activeSection === 'general'
@@ -1060,6 +1080,7 @@ export default function SettingsContent() {
                     General
                   </button>
                   <button
+                    ref={(element) => { sectionTabRefs.current.automation = element }}
                     onClick={() => handleSectionClick('automation')}
                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
                       activeSection === 'automation'
@@ -1070,6 +1091,7 @@ export default function SettingsContent() {
                     Automation
                   </button>
                   <button
+                    ref={(element) => { sectionTabRefs.current.integrations = element }}
                     onClick={() => handleSectionClick('integrations')}
                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
                       activeSection === 'integrations'
@@ -1080,6 +1102,7 @@ export default function SettingsContent() {
                     Integrations
                   </button>
                   <button
+                    ref={(element) => { sectionTabRefs.current.payments = element }}
                     onClick={() => handleSectionClick('payments')}
                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
                       activeSection === 'payments'
@@ -1090,6 +1113,7 @@ export default function SettingsContent() {
                     Payments
                   </button>
                   <button
+                    ref={(element) => { sectionTabRefs.current.contacts = element }}
                     onClick={() => handleSectionClick('contacts')}
                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
                       activeSection === 'contacts'
@@ -1100,6 +1124,7 @@ export default function SettingsContent() {
                     Contacts
                   </button>
                   <button
+                    ref={(element) => { sectionTabRefs.current.account = element }}
                     onClick={() => handleSectionClick('account')}
                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
                       activeSection === 'account'

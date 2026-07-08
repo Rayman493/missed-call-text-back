@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 interface FollowUpConfig {
   step: number
   enabled: boolean
-  delayDays: number
+  delayDays: number | ''
   delayUnit: 'minutes' | 'hours' | 'days'
   message: string
 }
@@ -75,13 +75,23 @@ export default function FollowUpsSettingsPage() {
     setError(null)
     setSuccess(null)
 
+    const normalizedSettings = {
+      ...settings,
+      followUps: settings.followUps.map(followUp => ({
+        ...followUp,
+        delayDays: followUp.delayDays === '' ? 1 : followUp.delayDays
+      }))
+    }
+
+    setSettings(normalizedSettings)
+
     try {
       const response = await fetch('/api/settings/follow-ups', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(normalizedSettings),
       })
 
       if (!response.ok) {
@@ -114,13 +124,36 @@ export default function FollowUpsSettingsPage() {
     }))
   }
 
+  const normalizeFollowUpDelay = (step: number) => {
+    setSettings(prev => ({
+      ...prev,
+      followUps: prev.followUps.map(fu => {
+        if (fu.step !== step || fu.delayDays !== '') return fu
+        return { ...fu, delayDays: 1 }
+      })
+    }))
+  }
+
+  const updateFollowUpDelay = (step: number, value: string) => {
+    if (value === '') {
+      updateFollowUp(step, { delayDays: '' })
+      return
+    }
+
+    const parsedValue = parseInt(value, 10)
+    if (!Number.isNaN(parsedValue)) {
+      updateFollowUp(step, { delayDays: parsedValue })
+    }
+  }
+
   const getSequencePreview = () => {
     const enabledFollowUps = settings.followUps.filter(fu => fu.enabled && settings.enabled)
     if (enabledFollowUps.length === 0) return 'No follow-ups scheduled'
 
     return enabledFollowUps.map((fu, index) => {
       const unitText = fu.delayUnit === 'minutes' ? 'min' : fu.delayUnit === 'hours' ? 'hr' : 'day'
-      const delayText = fu.delayDays === 1 ? `1 ${unitText}` : `${fu.delayDays} ${unitText}s`
+      const delayDays = fu.delayDays === '' ? 1 : fu.delayDays
+      const delayText = delayDays === 1 ? `1 ${unitText}` : `${delayDays} ${unitText}s`
       return `${delayText}: Follow-up #${fu.step}`
     }).join(' → ')
   }
@@ -157,9 +190,9 @@ export default function FollowUpsSettingsPage() {
             <div className="w-px h-4 bg-blue-300 dark:bg-blue-600"></div>
             <div className="flex flex-col items-center text-center">
               <div className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                {followUp.delayUnit === 'minutes' ? `${followUp.delayDays} min` :
-                 followUp.delayUnit === 'hours' ? `${followUp.delayDays} hr` :
-                 followUp.delayDays === 1 ? 'Day 1' : `Day ${followUp.delayDays}`}
+                {followUp.delayUnit === 'minutes' ? `${followUp.delayDays === '' ? 1 : followUp.delayDays} min` :
+                 followUp.delayUnit === 'hours' ? `${followUp.delayDays === '' ? 1 : followUp.delayDays} hr` :
+                 (followUp.delayDays === '' ? 1 : followUp.delayDays) === 1 ? 'Day 1' : `Day ${followUp.delayDays === '' ? 1 : followUp.delayDays}`}
               </div>
               <div className="text-xs text-blue-700 dark:text-blue-300 mt-1">
                 {getFollowUpName(followUp.step)}
@@ -296,7 +329,8 @@ export default function FollowUpsSettingsPage() {
                           min="1"
                           max={followUp.delayUnit === 'minutes' ? 60 : followUp.delayUnit === 'hours' ? 24 : 30}
                           value={followUp.delayDays}
-                          onChange={(e) => updateFollowUp(followUp.step, { delayDays: parseInt(e.target.value) || 1 })}
+                          onChange={(e) => updateFollowUpDelay(followUp.step, e.target.value)}
+                          onBlur={() => normalizeFollowUpDelay(followUp.step)}
                           className="w-14 mx-2 px-2 py-1 border border-input rounded bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                           disabled={!followUp.enabled}
                         />

@@ -24,6 +24,7 @@ export default function SettingsActionBar({
   clearSuccess
 }: SettingsActionBarProps) {
   const [showMobileBar, setShowMobileBar] = useState(false)
+  const [keyboardOffset, setKeyboardOffset] = useState(0)
 
   // Auto-hide success state after 1 second
   useEffect(() => {
@@ -61,6 +62,30 @@ export default function SettingsActionBar({
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
+  useEffect(() => {
+    if (!showMobileBar || typeof window === 'undefined' || !window.visualViewport) {
+      setKeyboardOffset(0)
+      return
+    }
+
+    const updateKeyboardOffset = () => {
+      const viewport = window.visualViewport
+      if (!viewport) return
+
+      const offset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
+      setKeyboardOffset(offset > 80 ? offset : 0)
+    }
+
+    updateKeyboardOffset()
+    window.visualViewport.addEventListener('resize', updateKeyboardOffset)
+    window.visualViewport.addEventListener('scroll', updateKeyboardOffset)
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateKeyboardOffset)
+      window.visualViewport?.removeEventListener('scroll', updateKeyboardOffset)
+    }
+  }, [showMobileBar])
+
   const handleSave = async () => {
     clearError()
     await onSave()
@@ -77,11 +102,16 @@ export default function SettingsActionBar({
     return null
   }
 
+  const mobileBottomOffset = keyboardOffset > 0 ? keyboardOffset + 8 : 72
+
   // Sticky Bottom Action Bar (same for both desktop and mobile)
   return (
     <>
       {/* Sticky Bottom Action Bar */}
-      <div className={`fixed left-0 right-0 z-40 animate-in slide-in-from-bottom-3 fade-in duration-200 ${showMobileBar ? 'bottom-[72px]' : 'bottom-0'}`}>
+      <div
+        className="fixed left-0 right-0 z-40 animate-in slide-in-from-bottom-3 fade-in duration-200"
+        style={{ bottom: showMobileBar ? `${mobileBottomOffset}px` : 0 }}
+      >
         <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 pb-3 sm:pb-4">
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/95 dark:bg-slate-950/95 px-3 py-2.5 shadow-[0_18px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:px-4 sm:py-3">
             <div className="flex min-w-0 items-center gap-2.5">
