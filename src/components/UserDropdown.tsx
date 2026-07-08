@@ -308,18 +308,6 @@ export default function UserDropdown() {
 
             <div className="h-px bg-slate-700" />
 
-            {/* Status section */}
-            <div className="px-4 py-3">
-              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-xs">
-                <span className="text-slate-400">Trial</span>
-                <span className="truncate text-right font-medium text-slate-200">{trialStatus}</span>
-                <span className="text-slate-400">Plan</span>
-                <span className="truncate text-right font-medium capitalize text-slate-200">{currentPlan.replace(/_/g, ' ')}</span>
-              </div>
-            </div>
-
-            <div className="h-px bg-slate-700" />
-
             {/* Danger section */}
             <div className="px-2 py-1">
               <button
