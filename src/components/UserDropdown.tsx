@@ -19,6 +19,7 @@ export default function UserDropdown() {
   const { business } = useBusiness()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
+  const dropdownContentRef = useRef<HTMLDivElement>(null)
   const supabase = createBrowserClient()
   const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED !== 'false'
   const currentPlan = business?.subscription_price_id ? 'Paid plan' : business?.subscription_status || 'No plan'
@@ -57,7 +58,8 @@ export default function UserDropdown() {
     }
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const isClickInsideDropdown = dropdownRef.current?.contains(event.target as Node) || dropdownContentRef.current?.contains(event.target as Node)
+      if (!isClickInsideDropdown) {
         setIsOpen(false)
       }
     }
@@ -149,7 +151,7 @@ export default function UserDropdown() {
             <>
               <div
                 id="mobile-account-menu"
-                ref={mobileMenuRef}
+                ref={dropdownContentRef}
                 role="menu"
                 tabIndex={-1}
                 className="absolute right-0 top-full z-[90] mt-2 block w-[calc(100vw-1rem)] max-w-80 origin-top-right overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-950/20 ring-1 ring-slate-950/5 outline-none animate-in fade-in zoom-in-95 duration-150 dark:border-slate-700 dark:bg-slate-950 dark:shadow-black/40 sm:hidden"
@@ -232,7 +234,7 @@ export default function UserDropdown() {
               </div>
 
               {/* Desktop dropdown - unchanged */}
-              <div className="hidden sm:block absolute right-0 z-50 mt-2 w-72 min-w-72 bg-slate-950 rounded-xl shadow-xl border border-slate-700 py-2">
+              <div ref={dropdownContentRef} className="hidden sm:block absolute right-0 z-50 mt-2 w-72 min-w-72 bg-slate-950 rounded-xl shadow-xl border border-slate-700 py-2">
                 {/* Business Info Section */}
                 <div className="px-4 py-3 border-b border-slate-700 bg-slate-900">
                   <p className="text-sm font-semibold text-white truncate">
