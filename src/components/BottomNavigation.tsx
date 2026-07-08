@@ -4,9 +4,10 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { Home, Users, Calendar, CreditCard, Settings, ExternalLink, LogOut, X } from 'lucide-react'
+import { Home, Users, Calendar, CreditCard, Settings, ExternalLink, LogOut, X, MessageCircle } from 'lucide-react'
 import { primaryNavItems, accountMenuItems } from '@/lib/navigation-config'
 import { handleBillingAction } from '@/lib/billing'
+import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 
 interface BottomNavigationProps {
   onLogout?: () => void
@@ -17,6 +18,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const router = useRouter()
   const { signOut } = useAuth()
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false)
 
   // Hide bottom nav on public pages
   const isPublicPage = pathname === '/' || 
@@ -121,6 +123,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   const isDanger = item.variant === 'danger'
                   const isBilling = item.action === 'billing'
                   const isSignOut = item.action === 'signout'
+                  const isHomepage = item.label === 'View Homepage'
                   
                   const handleClick = async () => {
                     setIsMoreMenuOpen(false)
@@ -160,26 +163,22 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                           {item.label}
                         </div>
                         <div className="text-sm text-slate-400 truncate text-left">
-                          {isDanger ? 'Sign out of your account' : isBilling ? 'Manage your subscription' : item.label === 'View Homepage' ? 'Go to homepage' : 'Configure your account'}
+                          {isDanger ? 'Sign out of your account' : isBilling ? 'Manage your subscription' : isHomepage ? 'Go to homepage' : 'Configure your account'}
                         </div>
                       </div>
                     </div>
                   )
                   
-                  if (item.href && !isBilling) {
-                    return (
-                      <Link
-                        key={item.label}
-                        href={item.href}
-                        onClick={() => setIsMoreMenuOpen(false)}
-                        className="flex w-full items-center justify-start gap-4 p-4 hover:bg-white/[0.07] rounded-2xl transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-                      >
-                        {content}
-                      </Link>
-                    )
-                  }
-                  
-                  return (
+                  const menuItem = item.href && !isBilling ? (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      onClick={() => setIsMoreMenuOpen(false)}
+                      className="flex w-full items-center justify-start gap-4 p-4 hover:bg-white/[0.07] rounded-2xl transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
                     <button
                       key={item.label}
                       onClick={handleClick}
@@ -188,11 +187,52 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                       {content}
                     </button>
                   )
+
+                  if (!isBilling) return menuItem
+
+                  return (
+                    <div key="billing-and-assistant">
+                      {menuItem}
+                      <button
+                        onClick={() => {
+                          setIsMoreMenuOpen(false)
+                          setIsAssistantOpen(true)
+                        }}
+                        className="flex w-full items-center justify-start gap-4 p-4 text-left hover:bg-white/[0.07] rounded-2xl transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                      >
+                        <div className="flex w-full items-center gap-4 min-w-0 text-left">
+                          <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-500/10 ring-1 ring-blue-400/15">
+                            <MessageCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate text-left text-white">
+                              ReplyFlow Assistant
+                            </div>
+                            <div className="text-sm text-slate-400 truncate text-left">
+                              Search guides and troubleshooting
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  )
                 })}
               </div>
             </div>
           </div>
         </>
+      )}
+
+      {isAssistantOpen && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-3 md:hidden">
+          <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
+          <div className="relative mb-20 w-full max-w-lg">
+            <ReplyFlowAssistant
+              context={{ currentPage: 'dashboard' }}
+              onClose={() => setIsAssistantOpen(false)}
+            />
+          </div>
+        </div>
       )}
     </>
   )

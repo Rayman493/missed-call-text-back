@@ -7,11 +7,13 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { handleBillingAction } from '@/lib/billing'
 // import ThemeSelector from '@/components/ThemeSelector' // Temporarily disabled for mobile crash fix
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { ChevronDown, CreditCard, LogOut, ReceiptText, Settings, User } from 'lucide-react'
+import { ChevronDown, CreditCard, LogOut, MessageCircle, ReceiptText, Settings, User } from 'lucide-react'
 import { accountMenuItems } from '@/lib/navigation-config'
+import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false)
   const [isValidSession, setIsValidSession] = useState(false)
   const { user, signOut } = useAuth()
   const { business } = useBusiness()
@@ -257,21 +259,17 @@ export default function UserDropdown() {
                       }
                     }
 
-                    if (item.href && !isBilling) {
-                      return (
-                        <Link
-                          key={item.label}
-                          href={item.href}
-                          onClick={() => setIsOpen(false)}
-                          className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-3"
-                        >
-                          <Icon className="w-4 h-4 text-slate-400" />
-                          {item.label}
-                        </Link>
-                      )
-                    }
-
-                    return (
+                    const menuItem = item.href && !isBilling ? (
+                      <Link
+                        key={item.label}
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-3"
+                      >
+                        <Icon className="w-4 h-4 text-slate-400" />
+                        {item.label}
+                      </Link>
+                    ) : (
                       <button
                         key={item.label}
                         onClick={handleClick}
@@ -285,10 +283,48 @@ export default function UserDropdown() {
                         {item.label}
                       </button>
                     )
+
+                    if (!isBilling) return menuItem
+
+                    return (
+                      <div key="desktop-billing-and-assistant">
+                        {menuItem}
+                        <button
+                          onClick={() => {
+                            setIsOpen(false)
+                            setIsAssistantOpen(true)
+                          }}
+                          className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-3"
+                        >
+                          <MessageCircle className="w-4 h-4 text-slate-400" />
+                          ReplyFlow Assistant
+                        </button>
+                      </div>
+                    )
                   })}
                 </div>
               </div>
             </>
+          )}
+
+          {isAssistantOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/50" onClick={() => setIsAssistantOpen(false)} />
+              <div className="relative w-full max-w-lg">
+                <button
+                  onClick={() => setIsAssistantOpen(false)}
+                  className="absolute -top-10 right-0 text-white hover:text-slate-200 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <ReplyFlowAssistant
+                  context={{ currentPage: 'dashboard' }}
+                  onClose={() => setIsAssistantOpen(false)}
+                />
+              </div>
+            </div>
           )}
         </>
       ) : (
