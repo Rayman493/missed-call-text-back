@@ -23,6 +23,7 @@ export default function UserDropdown() {
   const triggerRef = useRef<HTMLButtonElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
   const dropdownContentRef = useRef<HTMLDivElement>(null)
+  const desktopDropdownContentRef = useRef<HTMLDivElement>(null)
   const supabase = createBrowserClient()
   const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED !== 'false'
   const currentPlan = business?.subscription_price_id ? 'Paid plan' : business?.subscription_status || 'No plan'
@@ -62,8 +63,9 @@ export default function UserDropdown() {
 
     const handleClickOutside = (event: MouseEvent) => {
       const isClickInsideTrigger = triggerRef.current?.contains(event.target as Node)
-      const isClickInsideDropdown = dropdownContentRef.current?.contains(event.target as Node)
-      if (!isClickInsideTrigger && !isClickInsideDropdown) {
+      const isClickInsideMobileDropdown = dropdownContentRef.current?.contains(event.target as Node)
+      const isClickInsideDesktopDropdown = desktopDropdownContentRef.current?.contains(event.target as Node)
+      if (!isClickInsideTrigger && !isClickInsideMobileDropdown && !isClickInsideDesktopDropdown) {
         setIsOpen(false)
       }
     }
@@ -324,7 +326,7 @@ export default function UserDropdown() {
           </div>
 
           {/* Desktop dropdown - portal rendered */}
-          <div ref={dropdownContentRef} className="hidden sm:block fixed z-[1000] bg-slate-950 rounded-xl shadow-xl border border-slate-700 py-2" style={{
+          <div ref={desktopDropdownContentRef} className="hidden sm:block fixed z-[1000] bg-slate-950 rounded-xl shadow-xl border border-slate-700 py-2" style={{
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
             width: `${dropdownPosition.width}px`

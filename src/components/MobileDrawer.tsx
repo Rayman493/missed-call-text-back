@@ -19,6 +19,7 @@ export default function MobileDrawer({ isOpen, onClose, triggerRef }: MobileDraw
   const { business } = useBusinessSafe()
   const pathname = usePathname()
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
+  const dropdownContentRef = useRef<HTMLDivElement>(null)
 
   const isLoggedIn = !!user
 
@@ -113,7 +114,9 @@ export default function MobileDrawer({ isOpen, onClose, triggerRef }: MobileDraw
     if (!isOpen) return
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (triggerRef?.current && !triggerRef.current.contains(event.target as Node)) {
+      const isClickInsideTrigger = triggerRef?.current?.contains(event.target as Node)
+      const isClickInsideDropdown = dropdownContentRef.current?.contains(event.target as Node)
+      if (!isClickInsideTrigger && !isClickInsideDropdown) {
         onClose()
       }
     }
@@ -146,6 +149,7 @@ export default function MobileDrawer({ isOpen, onClose, triggerRef }: MobileDraw
 
   return typeof document !== 'undefined' && createPortal(
     <div
+      ref={dropdownContentRef}
       className="fixed z-[1000] w-56 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl sm:hidden"
       style={{
         top: `${dropdownPosition.top}px`,
