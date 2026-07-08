@@ -166,6 +166,41 @@ async function reconcileTwilioNumberRow(
         console.error('[RECONCILE TWILIO NUMBER] Failed to update businesses:', updateError);
         return { success: false, error: 'Failed to update businesses table' };
       }
+
+      // Self-heal: Update sms_status to 'ready' if it's stuck at 'pending' for an already-provisioned number
+      console.log('[RECONCILE TWILIO NUMBER] Checking if sms_status needs repair for existing row');
+      const { data: currentTwilioNumber, error: fetchError } = await supabase
+        .from('twilio_numbers')
+        .select('sms_status, provisioning_status, status')
+        .eq('id', existingTwilioNumber.id)
+        .single();
+
+      if (!fetchError && currentTwilioNumber) {
+        const needsRepair = 
+          currentTwilioNumber.sms_status === 'pending' &&
+          currentTwilioNumber.provisioning_status === 'ready' &&
+          (currentTwilioNumber.status === 'active' || currentTwilioNumber.status === 'assigned');
+
+        if (needsRepair) {
+          console.log('[RECONCILE TWILIO NUMBER] Repairing sms_status from pending to ready for existing row');
+          const { error: smsUpdateError } = await supabase
+            .from('twilio_numbers')
+            .update({ sms_status: 'ready' })
+            .eq('id', existingTwilioNumber.id);
+
+          if (smsUpdateError) {
+            console.error('[RECONCILE TWILIO NUMBER] Failed to repair sms_status:', smsUpdateError);
+          } else {
+            console.log('[RECONCILE TWILIO NUMBER] ✓ sms_status repaired to ready');
+          }
+        } else {
+          console.log('[RECONCILE TWILIO NUMBER] sms_status does not need repair:', {
+            sms_status: currentTwilioNumber.sms_status,
+            provisioning_status: currentTwilioNumber.provisioning_status,
+            status: currentTwilioNumber.status
+          });
+        }
+      }
       
       console.log('[RECONCILE TWILIO NUMBER] ✓ Reconciliation complete - linked existing row');
       return { success: true };
@@ -1093,9 +1128,65 @@ export async function isNumberReadyForUse(businessId: string): Promise<boolean> 
       return false;
     }
 
+    // Self-heal: If sms_status is 'pending' but all other conditions indicate readiness, auto-repair
     if (twilioNumber.sms_status !== 'ready') {
-      console.log('[FAIL-SAFE FAILED because SMS_STATUS_NOT_READY]', { businessId, sms_status: twilioNumber.sms_status });
-      return false;
+      console.log('[FAIL-SAFE] SMS_STATUS_NOT_READY - checking for self-heal conditions');
+      console.log('[FAIL-SAFE] Current sms_status:', twilioNumber.sms_status);
+      console.log('[FAIL-SAFE] Number status:', twilioNumber.status);
+      console.log('[FAIL-SAFE] Number provisioning_status:', twilioNumber.provisioning_status);
+      console.log('[FAIL-SAFE] Business provisioning_status:', business.provisioning_status);
+
+      // Self-heal conditions: number is active/assigned, provisioning is ready, business provisioning is completed
+      const canSelfHeal = 
+        assignedOrActive &&
+        twilioNumber.provisioning_status === 'ready' &&
+        business.provisioning_status === 'completed';
+
+      if (canSelfHeal) {
+        console.log('[FAIL-SAFE SELF-HEAL] =========================================');
+        console.log('[FAIL-SAFE SELF-HEAL] Auto-repairing sms_status from pending to ready');
+        console.log('[FAIL-SAFE SELF-HEAL] businessId:', businessId);
+        console.log('[FAIL-SAFE SELF-HEAL] twilioNumber.id:', twilioNumber.id);
+        console.log('[FAIL-SAFE SELF-HEAL] twilio_sid:', twilioNumber.twilio_sid);
+        console.log('[FAIL-SAFE SELF-HEAL] phone_number:', twilioNumber.phone_number);
+        console.log('[FAIL-SAFE SELF-HEAL] Timestamp:', new Date().toISOString());
+        console.log('[FAIL-SAFE SELF-HEAL] =========================================');
+
+        // Update sms_status to 'ready'
+        const { error: updateError } = await supabase
+          .from('twilio_numbers')
+          .update({ sms_status: 'ready' })
+          .eq('id', twilioNumber.id);
+
+        if (updateError) {
+          console.error('[FAIL-SAFE SELF-HEAL FAILED] =========================================');
+          console.error('[FAIL-SAFE SELF-HEAL FAILED] Failed to update sms_status');
+          console.error('[FAIL-SAFE SELF-HEAL FAILED] Error:', updateError);
+          console.error('[FAIL-SAFE SELF-HEAL FAILED] Timestamp:', new Date().toISOString());
+          console.error('[FAIL-SAFE SELF-HEAL FAILED] =========================================');
+          console.log('[FAIL-SAFE FAILED because SELF_HEAL_UPDATE_FAILED]', { businessId, updateError });
+          return false;
+        }
+
+        console.log('[FAIL-SAFE SELF-HEAL SUCCESS] =========================================');
+        console.log('[FAIL-SAFE SELF-HEAL SUCCESS] sms_status updated to ready');
+        console.log('[FAIL-SAFE SELF-HEAL SUCCESS] Continuing with SMS dispatch');
+        console.log('[FAIL-SAFE SELF-HEAL SUCCESS] Timestamp:', new Date().toISOString());
+        console.log('[FAIL-SAFE SELF-HEAL SUCCESS] =========================================');
+        
+        // Update local variable to reflect the change
+        twilioNumber.sms_status = 'ready';
+      } else {
+        console.log('[FAIL-SAFE SELF-HEAL SKIPPED] =========================================');
+        console.log('[FAIL-SAFE SELF-HEAL SKIPPED] Cannot self-heal - conditions not met');
+        console.log('[FAIL-SAFE SELF-HEAL SKIPPED] assignedOrActive:', assignedOrActive);
+        console.log('[FAIL-SAFE SELF-HEAL SKIPPED] provisioning_status ready:', twilioNumber.provisioning_status === 'ready');
+        console.log('[FAIL-SAFE SELF-HEAL SKIPPED] business provisioning completed:', business.provisioning_status === 'completed');
+        console.log('[FAIL-SAFE SELF-HEAL SKIPPED] Timestamp:', new Date().toISOString());
+        console.log('[FAIL-SAFE SELF-HEAL SKIPPED] =========================================');
+        console.log('[FAIL-SAFE FAILED because SMS_STATUS_NOT_READY_NO_SELF_HEAL]', { businessId, sms_status: twilioNumber.sms_status });
+        return false;
+      }
     }
 
     if (twilioNumber.detached_at || twilioNumber.detached_reason) {
