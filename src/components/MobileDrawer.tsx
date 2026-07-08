@@ -184,13 +184,6 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                 Home
               </Link>
               <Link
-                href="/#features"
-                onClick={handleNavClick}
-                className="flex items-center gap-3 px-3 py-2.5 text-base font-medium text-gray-200 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
-              >
-                Features
-              </Link>
-              <Link
                 href="/#interactive-demo"
                 onClick={handleNavClick}
                 className="flex items-center gap-3 px-3 py-2.5 text-base font-medium text-gray-200 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
