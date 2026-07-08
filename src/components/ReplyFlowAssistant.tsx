@@ -82,6 +82,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -128,6 +129,8 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
 
     setIsSearching(true)
     setShowResults(true)
+    setSelectedArticle(null)
+    scrollContainerRef.current?.scrollTo({ top: 0 })
 
     // Small delay to show loading state for better UX
     setTimeout(() => {
@@ -135,9 +138,9 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
       const isAccount = searchResults.length === 0 && documentationProvider.canAnswer(trimmed, context ?? {})
 
       setHasSearched(true)
-      setIsAccountSpecific(!isAccount)
+      setIsAccountSpecific(isAccount)
       setResults(searchResults)
-      setSelectedArticle(searchResults[0]?.article ?? null)
+      setSelectedArticle(null)
       setSelectedIndex(searchResults.length > 0 ? 0 : -1)
 
       if (searchResults.length > 0) {
@@ -154,8 +157,18 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
 
   const handleSearch = () => performSearch(query)
 
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    inputRef.current?.blur()
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+    handleSearch()
+  }
+
   const handleSuggestedQuestion = (question: string) => {
     setQuery(question)
+    inputRef.current?.blur()
     performSearch(question)
   }
 
@@ -163,16 +176,19 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
     setSelectedArticle(article)
     setSelectedIndex(index)
     setRelatedQuestions(documentationProvider.getRelatedArticles(article.id, 3))
+    requestAnimationFrame(() => {
+      scrollContainerRef.current?.scrollTo({ top: 0 })
+    })
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
-      if (selectedIndex >= 0 && results[selectedIndex]) {
-        handleResultClick(results[selectedIndex].article, selectedIndex)
-      } else {
-        handleSearch()
+      inputRef.current?.blur()
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur()
       }
+      handleSearch()
     } else if (e.key === 'Escape') {
       e.preventDefault()
       onClose?.()
@@ -233,8 +249,8 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
   }
 
   return (
-    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full ${className}`}>
-      <div className="p-5 sm:p-6">
+    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full max-h-[70vh] overflow-hidden ${className}`}>
+      <div ref={scrollContainerRef} className="max-h-[70vh] overflow-y-auto p-5 sm:p-6">
         {/* Header */}
         <div className="flex items-start gap-3 mb-5">
           <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
@@ -257,40 +273,44 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
           )}
         </div>
 
-        {/* Search Box */}
-        <div className="relative mb-4">
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask a question about your business..."
-            className="w-full pl-11 pr-11 py-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
-          />
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
-          {query && (
-            <button
-              onClick={reset}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-md hover:bg-slate-200 dark:hover:bg-slate-600"
-              aria-label="Clear search"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+        <form onSubmit={handleSearchSubmit} className="mb-4">
+          {/* Search Box */}
+          <div className="relative mb-3">
+            <input
+              ref={inputRef}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              enterKeyHint="search"
+              placeholder="Ask a question about your business..."
+              className="w-full pl-11 pr-11 py-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+            />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
+            {query && (
+              <button
+                type="button"
+                onClick={reset}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-md hover:bg-slate-200 dark:hover:bg-slate-600"
+                aria-label="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
 
-        {/* Search Button */}
-        <button
-          onClick={handleSearch}
-          disabled={!query.trim()}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors mb-6 shadow-sm hover:shadow disabled:shadow-none"
-        >
-          Ask ReplyFlow Assistant
-        </button>
+          {/* Search Button */}
+          <button
+            type="submit"
+            disabled={!query.trim()}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors shadow-sm hover:shadow disabled:shadow-none"
+          >
+            Ask ReplyFlow Assistant
+          </button>
+        </form>
 
         {/* Results */}
-        {showResults && (
+        {showResults && !selectedArticle && (
           <div className="mb-4 space-y-4" ref={resultsRef}>
             {/* Loading State */}
             {isSearching && (
@@ -391,7 +411,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
             {!isSearching && results.length > 0 && (
               <div className="space-y-2">
                 {results.map((result, index) => {
-                  const isSelected = selectedArticle?.id === result.article.id
+                  const isSelected = false
                   const isHighlighted = selectedIndex === index
                   return (
                     <button
@@ -423,48 +443,53 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
                 })}
               </div>
             )}
+          </div>
+        )}
 
-            {/* Selected article detail */}
-            {!isSearching && selectedArticle && results.length > 0 && (
-              <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 border border-slate-200 dark:border-slate-600">
-                <button
-                  onClick={() => setSelectedArticle(null)}
-                  className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-3 font-medium transition-colors"
-                >
-                  <ChevronRight className="w-3.5 h-3.5 rotate-180" />
-                  Back to results
-                </button>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">
-                    {selectedArticle.category}
-                  </span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Source: {selectedArticle.source}</span>
-                </div>
-                <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-base leading-snug">{selectedArticle.question}</h4>
-                <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line space-y-3">
-                  {selectedArticle.answer}
-                </div>
+        {/* Selected article detail */}
+        {showResults && selectedArticle && results.length > 0 && (
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 border border-slate-200 dark:border-slate-600">
+            <button
+              onClick={() => {
+                setSelectedArticle(null)
+                requestAnimationFrame(() => {
+                  scrollContainerRef.current?.scrollTo({ top: 0 })
+                })
+              }}
+              className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-3 font-medium transition-colors"
+            >
+              <ChevronRight className="w-3.5 h-3.5 rotate-180" />
+              Back to results
+            </button>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">
+                {selectedArticle.category}
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">Source: {selectedArticle.source}</span>
+            </div>
+            <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-base leading-snug">{selectedArticle.question}</h4>
+            <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line space-y-3">
+              {selectedArticle.answer}
+            </div>
 
-                {/* Article-specific related questions */}
-                {selectedArticle.relatedQuestions && selectedArticle.relatedQuestions.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Related questions:</p>
-                    <div className="space-y-2">
-                      {selectedArticle.relatedQuestions.map((question, i) => (
-                        <button
-                          key={i}
-                          onClick={() => handleSuggestedQuestion(question)}
-                          className="w-full text-left p-2.5 bg-white dark:bg-slate-600 hover:bg-slate-100 dark:hover:bg-slate-500 rounded-lg transition-colors flex items-center gap-2 group"
-                        >
-                          <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" />
-                          <span className="text-xs text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
-                            {question}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            {/* Article-specific related questions */}
+            {selectedArticle.relatedQuestions && selectedArticle.relatedQuestions.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Related questions:</p>
+                <div className="space-y-2">
+                  {selectedArticle.relatedQuestions.map((question, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSuggestedQuestion(question)}
+                      className="w-full text-left p-2.5 bg-white dark:bg-slate-600 hover:bg-slate-100 dark:hover:bg-slate-500 rounded-lg transition-colors flex items-center gap-2 group"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" />
+                      <span className="text-xs text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
+                        {question}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>

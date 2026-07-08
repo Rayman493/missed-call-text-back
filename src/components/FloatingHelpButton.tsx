@@ -60,10 +60,8 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
               >
                 <X className="w-6 h-6" />
               </button>
-              <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-h-[70vh] overflow-hidden">
-                <div className="overflow-y-auto max-h-[70vh] pb-safe">
-                  <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
-                </div>
+              <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden pb-safe">
+                <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
               </div>
             </div>
             {/* Desktop: Centered modal */}
