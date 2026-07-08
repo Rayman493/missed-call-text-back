@@ -200,7 +200,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       userId: user?.id ?? null,
       businessId: business?.id ?? null,
       onboardingStatus: business?.onboarding_status,
-      subscriptionStatus: business?.subscription_status,
+      subscription_status: business?.subscription_status,
       renderBranch: 'loading',
       reason: 'Stripe return detected; business still loading or transiently missing; showing StripeReturnLoadingScreen',
     })
@@ -219,7 +219,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       userId: user?.id ?? null,
       businessId: business?.id ?? null,
       onboardingStatus: business?.onboarding_status,
-      subscriptionStatus: business?.subscription_status,
+      subscription_status: business?.subscription_status,
       renderBranch: 'checkout-redirect',
       reason: 'business exists but subscription_status is null; showing checkout redirect loading screen',
     })
@@ -231,8 +231,13 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   // During Stripe return rehydration, business can be temporarily null while businessVerified
   // is cached. Showing children without business data causes the onboarding/setup flash.
   if (showLoading || !initialized) {
-    if (businessVerified && business) {
+    // Check if we have cached business data from localStorage that can be used immediately
+    const hasCachedBusiness = typeof window !== 'undefined' && 
+      localStorage.getItem('replyflow_business_display_cache') !== null
+    
+    if (businessVerified && (business || hasCachedBusiness)) {
       // Render children immediately, don't wait for loading to complete
+      // Use cached business data if available, even if business state is temporarily null
       logRouteFlashDebug({
         source: 'BusinessGuard',
         pathname,
@@ -241,9 +246,9 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
         userId: user?.id ?? null,
         businessId: business?.id ?? null,
         onboardingStatus: business?.onboarding_status,
-        subscriptionStatus: business?.subscription_status,
+        subscription_status: business?.subscription_status,
         renderBranch: 'dashboard-content',
-        reason: 'businessVerified + business present; skip loading overlay',
+        reason: 'businessVerified + (business present OR cached business); skip loading overlay',
       })
       return <>{children}</>
     }
@@ -257,7 +262,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       userId: user?.id ?? null,
       businessId: business?.id ?? null,
       onboardingStatus: business?.onboarding_status,
-      subscriptionStatus: business?.subscription_status,
+      subscription_status: business?.subscription_status,
       renderBranch: 'loading',
       reason: 'business still loading or not initialized; rendering AppLoadingScreen',
     })
