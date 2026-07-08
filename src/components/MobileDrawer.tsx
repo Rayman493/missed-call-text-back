@@ -1,23 +1,24 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusinessSafe } from '@/contexts/BusinessContext'
-import { X } from 'lucide-react'
+import { LogOut, Home, LayoutDashboard, Settings, ExternalLink } from 'lucide-react'
 
 interface MobileDrawerProps {
   isOpen: boolean
   onClose: () => void
+  triggerRef?: React.RefObject<HTMLButtonElement>
 }
 
-export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
+export default function MobileDrawer({ isOpen, onClose, triggerRef }: MobileDrawerProps) {
   const { user, signOut } = useAuth()
   const { business } = useBusinessSafe()
   const pathname = usePathname()
-  const drawerRef = useRef<HTMLDivElement>(null)
-  const previousFocusRef = useRef<HTMLElement | null>(null)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
 
   const isLoggedIn = !!user
 
@@ -45,56 +46,84 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
     return () => document.removeEventListener('keydown', handleEscape)
   }, [isOpen, onClose])
 
-  // Prevent body scrolling when drawer is open
+  // Calculate dropdown position when opening
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-      // Store previous focus
-      previousFocusRef.current = document.activeElement as HTMLElement
-    } else {
-      document.body.style.overflow = ''
-      // Restore focus
-      if (previousFocusRef.current) {
-        previousFocusRef.current.focus()
+    if (isOpen && triggerRef?.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      const viewportPadding = 12
+      const desiredWidth = 224
+      const dropdownWidth = Math.min(
+        desiredWidth,
+        window.innerWidth - viewportPadding * 2
+      )
+
+      const unclampedLeft = rect.left
+
+      const left = Math.min(
+        Math.max(unclampedLeft, viewportPadding),
+        window.innerWidth - dropdownWidth - viewportPadding
+      )
+
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left
+      })
+    }
+  }, [isOpen, triggerRef])
+
+  // Update position on resize and scroll
+  useEffect(() => {
+    if (!isOpen) return
+
+    const updatePosition = () => {
+      if (triggerRef?.current) {
+        const rect = triggerRef.current.getBoundingClientRect()
+        const viewportPadding = 12
+        const desiredWidth = 224
+        const dropdownWidth = Math.min(
+          desiredWidth,
+          window.innerWidth - viewportPadding * 2
+        )
+
+        const unclampedLeft = rect.left
+
+        const left = Math.min(
+          Math.max(unclampedLeft, viewportPadding),
+          window.innerWidth - dropdownWidth - viewportPadding
+        )
+
+        setDropdownPosition({
+          top: rect.bottom + 8,
+          left
+        })
       }
     }
+
+    window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition)
 
     return () => {
-      document.body.style.overflow = ''
+      window.removeEventListener('resize', updatePosition)
+      window.removeEventListener('scroll', updatePosition)
     }
-  }, [isOpen])
+  }, [isOpen, triggerRef])
 
-  // Focus trap
+  // Close dropdown on outside click
   useEffect(() => {
-    if (isOpen && drawerRef.current) {
-      const focusableElements = drawerRef.current.querySelectorAll(
-        'a, button, [tabindex]:not([tabindex="-1"])'
-      )
-      const firstElement = focusableElements[0] as HTMLElement
-      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
+    if (!isOpen) return
 
-      firstElement?.focus()
-
-      const handleTab = (e: KeyboardEvent) => {
-        if (e.key === 'Tab') {
-          if (e.shiftKey) {
-            if (document.activeElement === firstElement) {
-              e.preventDefault()
-              lastElement?.focus()
-            }
-          } else {
-            if (document.activeElement === lastElement) {
-              e.preventDefault()
-              firstElement?.focus()
-            }
-          }
-        }
+    const handleClickOutside = (event: MouseEvent) => {
+      if (triggerRef?.current && !triggerRef.current.contains(event.target as Node)) {
+        onClose()
       }
-
-      document.addEventListener('keydown', handleTab)
-      return () => document.removeEventListener('keydown', handleTab)
     }
-  }, [isOpen])
+
+    document.addEventListener('mousedown', handleClickOutside)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen, onClose, triggerRef])
 
   const handleHomeClick = (e: React.MouseEvent) => {
     if (isHomepage) {
@@ -115,133 +144,95 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
 
   if (!isOpen) return null
 
-  return (
-    <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 sm:hidden"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Drawer */}
-      <div
-        ref={drawerRef}
-        className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-[#0b1220] border-r border-slate-800 z-50 sm:hidden transform transition-transform duration-300 ease-in-out"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Navigation menu"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-800">
-          <span className="text-lg font-semibold text-white">Menu</span>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-slate-800/50"
-            aria-label="Close menu"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Navigation */}
-        <nav className="p-4 space-y-1">
-          {isLoggedIn ? (
-            // Authenticated navigation
-            <>
-              <Link
-                href="/dashboard"
-                onClick={handleNavClick}
-                className="flex items-center gap-3 px-3 py-2.5 text-base font-medium text-gray-200 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/dashboard/settings"
-                onClick={handleNavClick}
-                className="flex items-center gap-3 px-3 py-2.5 text-base font-medium text-gray-200 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
-              >
-                Settings
-              </Link>
-              
-              <div className="border-t border-slate-800 my-4" />
-              
-              <button
-                onClick={handleSignOut}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-base font-medium text-gray-200 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors text-left"
-              >
-                Sign Out
-              </button>
-            </>
-          ) : (
-            // Logged out navigation
-            <>
-              <Link
-                href="/"
-                onClick={handleHomeClick}
-                className="flex items-center gap-3 px-3 py-2.5 text-base font-medium text-gray-200 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
-              >
-                Home
-              </Link>
-              <Link
-                href="/#interactive-demo"
-                onClick={handleNavClick}
-                className="flex items-center gap-3 px-3 py-2.5 text-base font-medium text-gray-200 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
-              >
-                See How It Works
-              </Link>
-              <Link
-                href="/pricing"
-                onClick={handleNavClick}
-                className="flex items-center gap-3 px-3 py-2.5 text-base font-medium text-gray-200 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
-              >
-                Pricing
-              </Link>
-              <Link
-                href="/faq"
-                onClick={handleNavClick}
-                className="flex items-center gap-3 px-3 py-2.5 text-base font-medium text-gray-200 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
-              >
-                FAQ
-              </Link>
-              
-              <div className="border-t border-slate-800 my-4" />
-              
-              <Link
-                href="/auth?mode=signin"
-                onClick={handleNavClick}
-                className="flex items-center gap-3 px-3 py-2.5 text-base font-medium text-gray-200 hover:text-white hover:bg-slate-800/50 rounded-lg transition-colors"
-              >
-                Sign In
-              </Link>
-              
-              <div className="border-t border-slate-800 my-4" />
-              
-              <Link
-                href="/privacy"
-                onClick={handleNavClick}
-                className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400 hover:text-gray-200 hover:bg-slate-800/50 rounded-lg transition-colors"
-              >
-                Privacy Policy
-              </Link>
-              <Link
-                href="/terms"
-                onClick={handleNavClick}
-                className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400 hover:text-gray-200 hover:bg-slate-800/50 rounded-lg transition-colors"
-              >
-                Terms of Service
-              </Link>
-              <Link
-                href="/compliance"
-                onClick={handleNavClick}
-                className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-400 hover:text-gray-200 hover:bg-slate-800/50 rounded-lg transition-colors"
-              >
-                Compliance
-              </Link>
-            </>
-          )}
-        </nav>
+  return typeof document !== 'undefined' && createPortal(
+    <div
+      className="fixed z-[1000] w-56 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl sm:hidden"
+      style={{
+        top: `${dropdownPosition.top}px`,
+        left: `${dropdownPosition.left}px`
+      }}
+    >
+      <div className="py-1">
+        {isLoggedIn ? (
+          // Authenticated navigation
+          <>
+            <Link
+              href="/dashboard"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              <LayoutDashboard className="h-4 w-4 text-slate-400" />
+              Dashboard
+            </Link>
+            <Link
+              href="/dashboard/settings"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              <Settings className="h-4 w-4 text-slate-400" />
+              Settings
+            </Link>
+            <Link
+              href="/"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              <ExternalLink className="h-4 w-4 text-slate-400" />
+              View Homepage
+            </Link>
+            <div className="h-px bg-slate-700 my-1" />
+            <button
+              onClick={handleSignOut}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-red-400 transition-colors hover:bg-slate-800"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </button>
+          </>
+        ) : (
+          // Logged out navigation
+          <>
+            <Link
+              href="/"
+              onClick={handleHomeClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              <Home className="h-4 w-4 text-slate-400" />
+              Home
+            </Link>
+            <Link
+              href="/#interactive-demo"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              See How It Works
+            </Link>
+            <Link
+              href="/pricing"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              Pricing
+            </Link>
+            <Link
+              href="/faq"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              FAQ
+            </Link>
+            <div className="h-px bg-slate-700 my-1" />
+            <Link
+              href="/auth?mode=signin"
+              onClick={handleNavClick}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              Sign In
+            </Link>
+          </>
+        )}
       </div>
-    </>
+    </div>,
+    document.body
   )
 }

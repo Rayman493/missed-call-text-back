@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusinessSafe } from '@/contexts/BusinessContext'
@@ -20,6 +20,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   const { business, loading: businessLoading } = useBusinessSafe()
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const hamburgerRef = useRef<HTMLButtonElement>(null)
 
   const isLoggedIn = user && !loading
   
@@ -77,12 +78,13 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
   
   return (
     <>
-      <MobileDrawer isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      <MobileDrawer isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} triggerRef={hamburgerRef} />
       <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-[#0b1220] backdrop-blur-sm border-b border-white/10 dark:border-slate-700' : 'bg-[#0b1220] border-b border-slate-800 dark:border-slate-700'}`}>
         <div className="mx-auto relative flex items-center justify-between px-4 py-1.5 sm:px-6 sm:py-2.5 lg:px-8">
           {/* Left: Hamburger menu (mobile only) */}
           <div className="flex items-center z-10">
             <button
+              ref={hamburgerRef}
               onClick={toggleMobileMenu}
               className={`sm:hidden flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-200 ${
                 isPublicPage && !forceDark
