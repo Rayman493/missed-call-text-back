@@ -193,10 +193,10 @@ export default function BillingSuccessPage() {
             {sessionRestorationState === 'missing' && (
               <div className="mt-4 bg-amber-900/20 border border-amber-800 rounded-lg p-3">
                 <p className="text-amber-100 text-sm font-medium mb-1">
-                  Your payment was successful
+                  Payment successful
                 </p>
                 <p className="text-amber-300 text-xs">
-                  Please sign back in to finish setup. Your account is ready.
+                  Please sign in to complete your account setup.
                 </p>
               </div>
             )}

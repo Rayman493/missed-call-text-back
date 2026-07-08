@@ -43,103 +43,6 @@ function StructuredData() {
   )
 }
 
-// Footer with theme support for homepage
-function HomepageFooter() {
-  const currentYear = new Date().getFullYear()
-
-  return (
-    <footer className="bg-background border-t border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 md:py-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 md:gap-12">
-          
-          {/* Company Info */}
-          <div className="col-span-1 sm:col-span-2 md:col-span-2">
-            <div className="flex items-center gap-2 mb-3 sm:mb-4 md:mb-6">
-              <BrandIcon size={40} />
-              <span className="text-xl sm:text-2xl font-bold text-foreground">ReplyFlow</span>
-            </div>
-            <p className="text-muted-foreground mb-3 sm:mb-4 md:mb-6 max-w-md text-sm sm:text-base leading-relaxed">
-              AI Voice, missed-call recovery, lead management, appointment scheduling, and Payment Requests — built for local businesses that can't afford to miss a customer.
-            </p>
-            <div className="flex items-center gap-4">
-              <a
-                href="https://mail.google.com/mail/?view=cm&fs=1&to=support@replyflowhq.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm sm:text-base font-medium"
-              >
-                support@replyflowhq.com
-              </a>
-            </div>
-          </div>
-
-          {/* Product */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-3 sm:mb-4 md:mb-6">Product</h3>
-            <ul className="space-y-2 sm:space-y-3">
-              <li>
-                <Link href="/#features" className="text-muted-foreground hover:text-foreground text-sm sm:text-base transition-colors">
-                  Features
-                </Link>
-              </li>
-              <li>
-                <Link href="/demo" className="text-muted-foreground hover:text-foreground text-sm sm:text-base transition-colors">
-                  Demo
-                </Link>
-              </li>
-              <li>
-                <Link href="/pricing" className="text-muted-foreground hover:text-foreground text-sm sm:text-base transition-colors">
-                  Pricing
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-3 sm:mb-4 md:mb-6">Company</h3>
-            <ul className="space-y-2 sm:space-y-3">
-              <li>
-                <Link href="/faq" className="text-muted-foreground hover:text-foreground text-sm sm:text-base transition-colors">
-                  FAQ
-                </Link>
-              </li>
-              <li>
-                <Link href="/privacy" className="text-muted-foreground hover:text-foreground text-sm sm:text-base transition-colors">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/terms" className="text-muted-foreground hover:text-foreground text-sm sm:text-base transition-colors">
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link href="/compliance" className="text-muted-foreground hover:text-foreground text-sm sm:text-base transition-colors">
-                  Compliance
-                </Link>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Bottom Section */}
-        <div className="mt-6 sm:mt-8 md:mt-10 pt-4 sm:pt-6 border-t border-border">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-muted-foreground text-sm sm:text-base">
-              © {currentYear} ReplyFlow. All rights reserved.
-            </p>
-            <div className="flex items-center gap-4 sm:gap-6 mt-2 sm:mt-3 md:mt-0">
-              <span className="text-muted-foreground text-sm sm:text-base">
-                Built for local businesses
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </footer>
-  )
-}
 
 export default async function Home() {
   let cookieStore: ReturnType<typeof cookies> | undefined
@@ -836,7 +739,7 @@ export default async function Home() {
           </div>
         </section>
       </HomepageErrorBoundary>
-      <HomepageFooter />
+      <Footer />
       </PageBackground>
     </>
   )

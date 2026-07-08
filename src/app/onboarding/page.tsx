@@ -384,11 +384,11 @@ export default function OnboardingPage() {
           {/* Progress indicator */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-slate-400">Step 1 of 2: Business Information</p>
+              <p className="text-xs text-slate-400">Getting started</p>
               <p className="text-xs text-slate-400">Almost ready — about 2 minutes</p>
             </div>
             <div className="w-full bg-slate-700 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full" style={{ width: '50%' }}></div>
+              <div className="bg-blue-600 h-2 rounded-full" style={{ width: '33%' }}></div>
             </div>
           </div>
 
@@ -462,11 +462,11 @@ export default function OnboardingPage() {
                 value={businessPhone}
                 onChange={(e) => setBusinessPhone(e.target.value)}
                 required
-                placeholder="(555) 123-4567"
+                placeholder="Your business phone (the number customers call)"
                 className="w-full px-3 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-700 text-white text-sm"
               />
               <p className="mt-2 text-xs text-slate-400">
-                The number your customers already call — ReplyFlow will handle missed calls to this number
+                This is the number your customers call. ReplyFlow will handle missed calls to this number.
               </p>
             </div>
 

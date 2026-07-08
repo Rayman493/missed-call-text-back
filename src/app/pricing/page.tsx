@@ -165,6 +165,10 @@ export default function PricingPage() {
                     Start Your 14-Day Free Trial
                   </Link>
                   
+                  <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+                    Enter your business info → Start 14-day trial → Set up call forwarding in 2 minutes
+                  </p>
+                  
                   {/* Trust/Reassurance Row */}
                   <div className="flex flex-wrap justify-center gap-3 pt-2">
                     <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">

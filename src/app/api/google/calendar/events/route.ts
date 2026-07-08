@@ -187,22 +187,24 @@ export async function GET(request: NextRequest) {
       console.warn('[Google Calendar Events] Error fetching holidays, continuing without them:', error)
     }
 
-    // Normalize primary events
-    const primaryEvents = (eventsData.items || []).map((event: any) => {
-      const normalizedEvent = {
-        id: event.id,
-        summary: event.summary || 'No title',
-        description: event.description || null,
-        start: event.start,
-        end: event.end,
-        location: event.location || null,
-        htmlLink: event.htmlLink || null,
-        source: 'primary' as const,
-        isHoliday: false
-      }
-      
-      return normalizedEvent
-    })
+    // Normalize primary events, filtering out cancelled events
+    const primaryEvents = (eventsData.items || [])
+      .filter((event: any) => event.status !== 'cancelled')
+      .map((event: any) => {
+        const normalizedEvent = {
+          id: event.id,
+          summary: event.summary || 'No title',
+          description: event.description || null,
+          start: event.start,
+          end: event.end,
+          location: event.location || null,
+          htmlLink: event.htmlLink || null,
+          source: 'primary' as const,
+          isHoliday: false
+        }
+        
+        return normalizedEvent
+      })
 
     // Normalize holiday events
     const normalizedHolidays = holidayEvents.map((event: any) => ({

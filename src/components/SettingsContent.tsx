@@ -2481,11 +2481,7 @@ export default function SettingsContent() {
                       </li>
                       <li className="flex items-start gap-2">
                         <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                        <span>We'll send call forwarding instructions by both email and text. If needed, we'll send up to two additional reminder rounds, for a maximum of 3 emails and 3 text messages. Once you confirm call forwarding has been disabled, all reminders stop immediately.</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <span>Temporary offboarding records are automatically removed once the offboarding process is complete.</span>
+                        <span>We'll send reminders to help you disable call forwarding. Reminders stop immediately once you confirm forwarding is disabled.</span>
                       </li>
                     </ul>
                   </div>

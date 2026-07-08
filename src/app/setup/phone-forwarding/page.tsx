@@ -489,8 +489,14 @@ export default function PhoneForwardingPage() {
                     </div>
                   ) : (
                     <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm text-amber-700 dark:text-amber-300">
-                      Search for your carrier's conditional call forwarding instructions, or contact your carrier and ask how to forward unanswered or missed calls to{' '}
-                      <span className="font-mono font-semibold">{formatPhoneNumber(business?.twilio_phone_number)}</span>.
+                      <p className="font-medium mb-2">For other carriers:</p>
+                      <p className="mb-3">
+                        Search for your carrier's "conditional call forwarding" or "no answer forwarding" instructions. Forward unanswered or missed calls to{' '}
+                        <span className="font-mono font-semibold">{formatPhoneNumber(business?.twilio_phone_number)}</span>.
+                      </p>
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        After enabling forwarding, click "I've enabled call forwarding" below to continue setup.
+                      </p>
                     </div>
                   )}
 

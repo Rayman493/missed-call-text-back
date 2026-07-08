@@ -75,12 +75,18 @@ export default function SchedulePage() {
   const [isJobDetailsOpen, setIsJobDetailsOpen] = useState(false)
   const [editingJob, setEditingJob] = useState<Job | null>(null)
 
-  // Check for OAuth success redirect
+  // Check for OAuth success/error redirect
   useEffect(() => {
-    if (searchParams && searchParams.get('calendar') === 'connected') {
-      showToast('Google Calendar connected successfully!', 'success')
-      setTokenExpired(false)
-      window.history.replaceState({}, '', '/dashboard/calendar')
+    if (searchParams) {
+      const calendarStatus = searchParams.get('calendar')
+      if (calendarStatus === 'connected') {
+        showToast('Google Calendar connected successfully!', 'success')
+        setTokenExpired(false)
+        window.history.replaceState({}, '', '/dashboard/calendar')
+      } else if (calendarStatus === 'error') {
+        showToast('Failed to connect Google Calendar. Please try again.', 'error')
+        window.history.replaceState({}, '', '/dashboard/calendar')
+      }
     }
   }, [searchParams])
 
@@ -173,6 +179,14 @@ export default function SchedulePage() {
       showToast('Failed to connect calendar', 'error')
       setIsConnecting(false)
     }
+  }
+
+  const handleConnectCalendarWithExplanation = async () => {
+    // Show explanation first, then proceed
+    if (!confirm('We\'ll sync your calendar to show appointments when scheduling with leads. We only read your calendar, never modify it. Continue?')) {
+      return
+    }
+    handleConnectCalendar()
   }
 
   const handleDisconnectCalendar = async () => {
@@ -430,7 +444,12 @@ export default function SchedulePage() {
     setIsSyncing(true)
     try {
       await fetchEvents()
-      showToast('Calendar synced successfully', 'success')
+      // Check if events were actually fetched
+      if (events.length === 0) {
+        showToast('Calendar synced (no events found)', 'info')
+      } else {
+        showToast('Calendar synced successfully', 'success')
+      }
     } catch (error) {
       console.error('[GOOGLE CALENDAR SYNC ERROR] Sync failed:', error)
       showToast('Failed to sync calendar. Please try again.', 'error')
@@ -790,6 +809,11 @@ export default function SchedulePage() {
                           <div className="flex items-center gap-2 px-3 py-1.5 bg-green-900/20 rounded-md border border-green-800/40">
                             <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
                             <span className="text-xs font-medium text-green-300">Connected</span>
+                            {lastSyncTime && (
+                              <span className="text-[10px] text-green-400/70">
+                                • {formatTimeAgo(lastSyncTime)}
+                              </span>
+                            )}
                           </div>
                           <button
                             onClick={handleSync}
@@ -1067,7 +1091,7 @@ export default function SchedulePage() {
                         Connect your Google Calendar to view your schedule from ReplyFlow.
                       </p>
                       <button
-                        onClick={handleConnectCalendar}
+                        onClick={handleConnectCalendarWithExplanation}
                         disabled={isConnecting}
                         className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
                       >
