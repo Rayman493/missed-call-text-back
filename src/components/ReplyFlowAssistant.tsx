@@ -281,12 +281,12 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
           <div className="relative mb-3">
             <input
               ref={inputRef}
-              type="search"
+              type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               enterKeyHint="search"
-              placeholder="Ask a question about your business..."
+              placeholder="Search ReplyFlow guides and FAQs..."
               className="w-full pl-11 pr-11 py-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
             />
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
@@ -505,9 +505,9 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
           <div className="space-y-5">
             {/* Welcome Message */}
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/30">
-              <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">Welcome to ReplyFlow Assistant</h4>
+              <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">ReplyFlow Help</h4>
               <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                Search our documentation for quick answers about your ReplyFlow account, features, and troubleshooting.
+                Search setup guides, billing, AI Voice, calendar, payments, troubleshooting, and FAQs.
               </p>
             </div>
 
