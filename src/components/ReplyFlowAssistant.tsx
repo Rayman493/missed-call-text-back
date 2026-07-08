@@ -250,30 +250,33 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
 
   return (
     <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full max-h-[70vh] overflow-hidden ${className}`}>
-      <div ref={scrollContainerRef} className="max-h-[70vh] overflow-y-auto p-5 sm:p-6">
-        {/* Header */}
-        <div className="flex items-start gap-3 mb-5">
-          <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
-            <MessageCircle className="w-5.5 h-5.5 text-white" />
+      <div ref={scrollContainerRef} className="max-h-[70vh] overflow-y-auto">
+        <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-b border-slate-200/80 dark:border-slate-700/80 p-5 pb-4 sm:p-6 sm:pb-4">
+          {/* Header */}
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+              <MessageCircle className="w-5.5 h-5.5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white leading-tight">ReplyFlow Assistant</h3>
+              {!showResults && (
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5 leading-snug">
+                  Search ReplyFlow documentation for answers about customers, appointments, payments, and more.
+                </p>
+              )}
+            </div>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                aria-label="Close ReplyFlow Assistant"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white leading-tight">ReplyFlow Assistant</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5 leading-snug">
-              Search ReplyFlow documentation for answers about customers, appointments, payments, and more.
-            </p>
-          </div>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-              aria-label="Close ReplyFlow Assistant"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
-        </div>
 
-        <form onSubmit={handleSearchSubmit} className="mb-4">
+          <form onSubmit={handleSearchSubmit}>
           {/* Search Box */}
           <div className="relative mb-3">
             <input
@@ -300,15 +303,17 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
           </div>
 
           {/* Search Button */}
-          <button
-            type="submit"
-            disabled={!query.trim()}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors shadow-sm hover:shadow disabled:shadow-none"
-          >
-            Ask ReplyFlow Assistant
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={!query.trim()}
+              className="hidden sm:block w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors shadow-sm hover:shadow disabled:shadow-none"
+            >
+              Ask ReplyFlow Assistant
+            </button>
+          </form>
+        </div>
 
+        <div className="p-5 pt-4 sm:p-6 sm:pt-4">
         {/* Results */}
         {showResults && !selectedArticle && (
           <div className="mb-4 space-y-4" ref={resultsRef}>
@@ -323,7 +328,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
             )}
 
             {/* Account-specific fallback */}
-            {!isSearching && isAccountSpecific && (
+            {!isSearching && isAccountSpecific && results.length === 0 && (
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
                 <p className="text-amber-800 dark:text-amber-200 text-sm mb-3">
                   This may require account-specific support. Here are some related troubleshooting steps:
@@ -538,6 +543,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   )
