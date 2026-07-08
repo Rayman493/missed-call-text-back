@@ -7182,18 +7182,21 @@ Reply to this message if you'd like to update or add any information.
             
             ws.send(JSON.stringify(markMessage));
             
-            // Set fallback timeout if mark is never received (10 seconds)
+            // Set fallback timeout if mark is never received (15 seconds)
+            // Increased from 10s to 15s to ensure full audio playback completes
+            // response.output_audio.done fires when OpenAI finishes generating audio,
+            // but audio still needs to stream to Twilio and play to caller (~8+ seconds for goodbye)
             state.simpleModeFinalTimeout = setTimeout(() => {
               console.log('[SIMPLE MODE] =========================================');
               console.log('[SIMPLE MODE] event: final_goodbye_fallback_timeout');
-              console.log('[SIMPLE MODE] fallbackMs:', 10000);
+              console.log('[SIMPLE MODE] fallbackMs:', 15000);
               console.log('[SIMPLE MODE] =========================================');
               logSimple('call_complete');
               ws.close();
               if (state.openAiWs) {
                 state.openAiWs.close();
               }
-            }, 10000);
+            }, 15000);
           }
 
           // Only handle transcription

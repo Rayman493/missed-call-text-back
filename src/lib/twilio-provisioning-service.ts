@@ -181,7 +181,7 @@ async function reconcileTwilioNumberRow(
         twilio_sid: business.twilio_phone_number_sid,
         number_type: 'both',
         status: 'active',
-        sms_status: 'pending',
+        sms_status: 'ready',
         provisioning_status: 'ready',
         last_provisioning_attempt_at: new Date().toISOString(),
         assigned_at: new Date().toISOString(),
