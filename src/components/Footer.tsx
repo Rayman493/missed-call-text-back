@@ -48,10 +48,10 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/demo" 
+                  href="/#interactive-demo" 
                   className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-xs sm:text-sm font-medium transition-colors"
                 >
-                  Demo
+                  How It Works
                 </Link>
               </li>
               <li>
