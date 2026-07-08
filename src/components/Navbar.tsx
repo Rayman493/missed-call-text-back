@@ -80,9 +80,8 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
       <MobileDrawer isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-[#0b1220] backdrop-blur-sm border-b border-white/10 dark:border-slate-700' : 'bg-[#0b1220] border-b border-slate-800 dark:border-slate-700'}`}>
         <div className="mx-auto relative flex items-center justify-between px-4 py-1.5 sm:px-6 sm:py-2.5 lg:px-8">
-          {/* Left: Hamburger menu */}
+          {/* Left: Hamburger menu (mobile only) */}
           <div className="flex items-center z-10">
-            {/* Mobile Hamburger Menu - Only on mobile */}
             <button
               onClick={toggleMobileMenu}
               className={`sm:hidden flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-200 ${
@@ -97,10 +96,10 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
             </button>
           </div>
 
-          {/* Center: Logo - absolutely centered on mobile, normal flow on desktop */}
-          <div className="absolute left-1/2 -translate-x-1/2 sm:static sm:translate-x-0 sm:left-auto">
-            <Link 
-              href={isLoggedIn && !isPublicPage ? '/dashboard' : '/'} 
+          {/* Center: Logo - absolutely centered on mobile, left-aligned on desktop */}
+          <div className="absolute left-1/2 -translate-x-1/2 sm:static sm:translate-x-0 sm:left-auto sm:flex-1">
+            <Link
+              href={isLoggedIn && !isPublicPage ? '/dashboard' : '/'}
               onClick={handleHomeClick}
               className="flex items-center gap-2 hover:opacity-90 transition"
             >
