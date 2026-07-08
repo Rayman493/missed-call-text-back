@@ -138,13 +138,13 @@ export default function UserDropdown() {
           </button>
 
           {isOpen && (
-            <div className="absolute right-0 z-20 mt-2 w-72 min-w-72 bg-card rounded-xl shadow-xl border border-border py-2">
+            <div className="absolute right-0 z-20 mt-2 w-72 min-w-72 bg-slate-950 rounded-xl shadow-xl border border-slate-700 py-2">
                 {/* Business Info Section */}
-                <div className="px-4 py-3 border-b border-border bg-muted/30">
-                  <p className="text-sm font-semibold text-foreground truncate">
+                <div className="px-4 py-3 border-b border-slate-700 bg-slate-900/50">
+                  <p className="text-sm font-semibold text-white truncate">
                     {business?.name || 'Business'}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                  <p className="text-xs text-slate-300 truncate mt-0.5">
                     {user?.email || 'No email'}
                   </p>
                 </div>
@@ -171,9 +171,9 @@ export default function UserDropdown() {
                           key={item.label}
                           href={item.href}
                           onClick={() => setIsOpen(false)}
-                          className="w-full px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-3"
+                          className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-3"
                         >
-                          <Icon className="w-4 h-4 text-muted-foreground" />
+                          <Icon className="w-4 h-4 text-slate-400" />
                           {item.label}
                         </Link>
                       )
@@ -185,11 +185,11 @@ export default function UserDropdown() {
                         onClick={handleClick}
                         className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-3 ${
                           isDanger
-                            ? 'text-red-400/90 hover:text-red-400 hover:bg-muted'
-                            : 'text-foreground hover:bg-muted'
+                            ? 'text-red-400 hover:text-red-300 hover:bg-slate-800'
+                            : 'text-slate-200 hover:bg-slate-800'
                         }`}
                       >
-                        <Icon className={`w-4 h-4 ${isDanger ? '' : 'text-muted-foreground'}`} />
+                        <Icon className={`w-4 h-4 ${isDanger ? '' : 'text-slate-400'}`} />
                         {item.label}
                       </button>
                     )
