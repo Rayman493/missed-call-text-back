@@ -192,8 +192,14 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
             // Logged-out navigation
             <>
               {isHomepage ? (
-                // Homepage: show only Sign Up on mobile (Sign In is in drawer)
+                // Homepage: show Sign In and Sign Up on desktop, only Sign Up on mobile (Sign In is in drawer)
                 <>
+                  <Link
+                    href="/auth?mode=signin"
+                    className={`text-xs sm:text-sm font-medium whitespace-nowrap ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-400 hover:text-gray-200'} transition-colors hidden sm:block`}
+                  >
+                    Sign In
+                  </Link>
                   <Link
                     href="/auth?mode=signup"
                     className="px-3 py-1.5 text-xs sm:text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md transition-shadow whitespace-nowrap"
