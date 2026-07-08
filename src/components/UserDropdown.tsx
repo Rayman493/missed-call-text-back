@@ -154,7 +154,7 @@ export default function UserDropdown() {
                 ref={dropdownContentRef}
                 role="menu"
                 tabIndex={-1}
-                className="absolute right-0 top-full z-[90] mt-2 block w-[calc(100vw-1rem)] max-w-80 origin-top-right overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-950/20 ring-1 ring-slate-950/5 outline-none animate-in fade-in zoom-in-95 duration-150 dark:border-slate-700 dark:bg-slate-950 dark:shadow-black/40 sm:hidden"
+                className="absolute right-0 top-full z-[100] mt-2 block w-[calc(100vw-1rem)] max-w-80 origin-top-right overflow-hidden rounded-2xl border border-slate-200/80 !bg-white shadow-2xl shadow-slate-950/20 ring-1 ring-slate-950/5 outline-none animate-in fade-in zoom-in-95 duration-150 dark:border-slate-700 !dark:bg-slate-950 dark:shadow-black/40 sm:hidden"
                 style={{ maxHeight: 'calc(100dvh - 5rem - env(safe-area-inset-top))' }}
               >
                 <div className="max-h-[inherit] overflow-y-auto py-2">
