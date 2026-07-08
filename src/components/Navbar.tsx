@@ -79,9 +79,9 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
     <>
       <MobileDrawer isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       <header className={`w-full ${isPublicPage && !forceDark ? 'bg-white/80 dark:bg-[#0b1220] backdrop-blur-sm border-b border-white/10 dark:border-slate-700' : 'bg-[#0b1220] border-b border-slate-800 dark:border-slate-700'}`}>
-        <div className="mx-auto grid grid-cols-[auto_1fr_auto] items-center gap-2 px-4 py-1.5 sm:flex sm:justify-between sm:px-6 sm:py-2.5 lg:px-8">
-          {/* Left column: Hamburger menu */}
-          <div className="flex items-center">
+        <div className="mx-auto relative flex items-center justify-between px-4 py-1.5 sm:px-6 sm:py-2.5 lg:px-8">
+          {/* Left: Hamburger menu */}
+          <div className="flex items-center z-10">
             {/* Mobile Hamburger Menu - Only on mobile */}
             <button
               onClick={toggleMobileMenu}
@@ -97,8 +97,8 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
             </button>
           </div>
 
-          {/* Center column: Logo - perfectly centered */}
-          <div className="flex justify-center">
+          {/* Center: Logo - absolutely centered on mobile, normal flow on desktop */}
+          <div className="absolute left-1/2 -translate-x-1/2 sm:static sm:translate-x-0 sm:left-auto">
             <Link 
               href={isLoggedIn && !isPublicPage ? '/dashboard' : '/'} 
               onClick={handleHomeClick}
@@ -113,8 +113,8 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
             </Link>
           </div>
 
-        {/* Right column: Navigation Items */}
-        <nav className="flex items-center justify-end gap-1.5 sm:gap-3">
+        {/* Right: Navigation Items */}
+        <nav className="flex items-center justify-end gap-1.5 sm:gap-3 z-10">
           {isLoggedIn ? (
             // Logged-in navigation
             <>
