@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -19,6 +20,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const { signOut } = useAuth()
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
+  const moreButtonRef = useRef<HTMLButtonElement>(null)
 
   // Hide bottom nav on public pages
   const isPublicPage = pathname === '/' || 
@@ -51,6 +54,65 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     setIsMoreMenuOpen(false)
   }
 
+  // Calculate dropdown position when opening
+  useEffect(() => {
+    if (isMoreMenuOpen && moreButtonRef.current) {
+      const rect = moreButtonRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.top - 8,
+        left: rect.right - 224
+      })
+    }
+  }, [isMoreMenuOpen])
+
+  // Update position on resize and scroll
+  useEffect(() => {
+    if (!isMoreMenuOpen) return
+
+    const updatePosition = () => {
+      if (moreButtonRef.current) {
+        const rect = moreButtonRef.current.getBoundingClientRect()
+        setDropdownPosition({
+          top: rect.top - 8,
+          left: rect.right - 224
+        })
+      }
+    }
+
+    window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition)
+
+    return () => {
+      window.removeEventListener('resize', updatePosition)
+      window.removeEventListener('scroll', updatePosition)
+    }
+  }, [isMoreMenuOpen])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!isMoreMenuOpen) return
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (moreButtonRef.current && !moreButtonRef.current.contains(event.target as Node)) {
+        setIsMoreMenuOpen(false)
+      }
+    }
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMoreMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscapeKey)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscapeKey)
+    }
+  }, [isMoreMenuOpen])
+
   return (
     <>
       {/* Bottom Navigation Bar - Mobile Only - Improved touch targets */}
@@ -79,7 +141,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
 
             {/* More Button - Improved touch target */}
             <button
-              onClick={() => setIsMoreMenuOpen(true)}
+              ref={moreButtonRef}
+              onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
               className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
                 isMoreMenuOpen
                   ? 'text-white bg-white/12 scale-105 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(37,99,235,0.16)]'
@@ -95,132 +158,51 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
         </div>
       </nav>
 
-      {/* More Menu Modal - Mobile Only - Improved spacing */}
-      {isMoreMenuOpen && (
-        <>
-          <div
-            className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 md:hidden"
-            onClick={() => setIsMoreMenuOpen(false)}
-          />
-          <div className="fixed bottom-0 left-0 right-0 rounded-t-[2rem] border-t border-white/10 bg-slate-900/96 shadow-[0_1px_0_rgba(255,255,255,0.07),0_-30px_100px_rgba(2,6,23,0.72)] backdrop-blur-2xl z-50 md:hidden animate-in slide-in-from-bottom duration-300">
-            <div className="p-4 pb-8" style={{ paddingBottom: 'max(32px, env(safe-area-inset-bottom))' }}>
-              {/* Drag Handle */}
-              <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4" />
-
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-white">Menu</h2>
-                <button
-                  onClick={() => setIsMoreMenuOpen(false)}
-                  className="p-2.5 hover:bg-white/10 rounded-xl transition-colors"
-                >
-                  <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-                </button>
-              </div>
-
-              <div className="space-y-1">
-                {accountMenuItems.map((item) => {
-                  const Icon = item.icon
-                  const isDanger = item.variant === 'danger'
-                  const isBilling = item.action === 'billing'
-                  const isSignOut = item.action === 'signout'
-                  const isHomepage = item.label === 'View Homepage'
-                  
-                  const handleClick = async () => {
-                    setIsMoreMenuOpen(false)
-                    if (isBilling) {
-                      try {
-                        const result = await handleBillingAction()
-                        if (result.success && result.url && typeof window !== 'undefined') {
-                          window.location.href = result.url
-                        }
-                      } catch (error) {
-                        console.error('Billing action error:', error)
-                      }
-                    } else if (isSignOut) {
-                      await handleLogout()
-                    }
-                  }
-                  
-                  const content = (
-                    <div className="flex w-full items-center gap-4 min-w-0 text-left">
-                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                        isDanger
-                          ? 'bg-red-100 dark:bg-red-900/30'
-                          : isBilling
-                          ? 'bg-purple-100 dark:bg-purple-900/30'
-                          : 'bg-blue-500/10 ring-1 ring-blue-400/15'
-                      }`}>
-                        <Icon className={`w-5 h-5 ${
-                          isDanger
-                            ? 'text-red-600 dark:text-red-400'
-                            : isBilling
-                            ? 'text-purple-600 dark:text-purple-400'
-                            : 'text-blue-600 dark:text-blue-400'
-                        }`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className={`font-medium truncate text-left ${isDanger ? 'text-red-400' : 'text-white'}`}>
-                          {item.label}
-                        </div>
-                        <div className="text-sm text-slate-400 truncate text-left">
-                          {isDanger ? 'Sign out of your account' : isBilling ? 'Manage your subscription' : isHomepage ? 'Go to homepage' : 'Configure your account'}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                  
-                  const menuItem = item.href && !isBilling ? (
-                    <Link
-                      key={item.label}
-                      href={item.href}
-                      onClick={() => setIsMoreMenuOpen(false)}
-                      className="flex w-full items-center justify-start gap-4 p-4 hover:bg-white/[0.07] rounded-2xl transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-                    >
-                      {content}
-                    </Link>
-                  ) : (
-                    <button
-                      key={item.label}
-                      onClick={handleClick}
-                      className="flex w-full items-center justify-start gap-4 p-4 text-left hover:bg-white/[0.07] rounded-2xl transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-                    >
-                      {content}
-                    </button>
-                  )
-
-                  if (!isBilling) return menuItem
-
-                  return (
-                    <div key="billing-and-assistant">
-                      {menuItem}
-                      <button
-                        onClick={() => {
-                          setIsMoreMenuOpen(false)
-                          setIsAssistantOpen(true)
-                        }}
-                        className="flex w-full items-center justify-start gap-4 p-4 text-left hover:bg-white/[0.07] rounded-2xl transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-                      >
-                        <div className="flex w-full items-center gap-4 min-w-0 text-left">
-                          <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-500/10 ring-1 ring-blue-400/15">
-                            <MessageCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate text-left text-white">
-                              ReplyFlow Assistant
-                            </div>
-                            <div className="text-sm text-slate-400 truncate text-left">
-                              Search guides and troubleshooting
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+      {/* Compact Dropdown Menu - Mobile Only */}
+      {isMoreMenuOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed z-[1000] w-56 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl md:hidden"
+          style={{
+            top: `${dropdownPosition.top}px`,
+            left: `${dropdownPosition.left}px`
+          }}
+        >
+          <div className="py-1">
+            <Link
+              href="/dashboard"
+              onClick={() => setIsMoreMenuOpen(false)}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              <Home className="h-4 w-4 text-slate-400" />
+              Dashboard
+            </Link>
+            <Link
+              href="/dashboard/settings"
+              onClick={() => setIsMoreMenuOpen(false)}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              <Settings className="h-4 w-4 text-slate-400" />
+              Settings
+            </Link>
+            <Link
+              href="/"
+              onClick={() => setIsMoreMenuOpen(false)}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            >
+              <ExternalLink className="h-4 w-4 text-slate-400" />
+              View Homepage
+            </Link>
+            <div className="h-px bg-slate-700 my-1" />
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-red-400 transition-colors hover:bg-slate-800"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </button>
           </div>
-        </>
+        </div>,
+        document.body
       )}
 
       {isAssistantOpen && (
