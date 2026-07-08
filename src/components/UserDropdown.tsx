@@ -149,87 +149,99 @@ export default function UserDropdown() {
 
           {isOpen && (
             <>
+              {/* Mobile dropdown - clean rebuild */}
               <div
                 id="mobile-account-menu"
                 ref={dropdownContentRef}
                 role="menu"
                 tabIndex={-1}
-                className="absolute right-0 top-full z-[100] mt-2 block w-[calc(100vw-1rem)] max-w-80 origin-top-right overflow-hidden rounded-2xl border border-slate-200/80 !bg-white shadow-2xl shadow-slate-950/20 ring-1 ring-slate-950/5 outline-none animate-in fade-in zoom-in-95 duration-150 dark:border-slate-700 !dark:bg-slate-950 dark:shadow-black/40 sm:hidden"
-                style={{ maxHeight: 'calc(100dvh - 5rem - env(safe-area-inset-top))' }}
+                className="absolute right-0 top-full z-[200] mt-2 block w-[min(20rem,calc(100vw-1rem))] overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl sm:hidden"
               >
-                <div className="max-h-[inherit] overflow-y-auto py-2">
-                  <div className="flex items-center gap-3 px-4 py-3">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950">
-                      <User className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-950 dark:text-white">
-                        {business?.name || 'Business'}
-                      </p>
-                      <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
-                        {user?.email || 'No email'}
-                      </p>
-                    </div>
+                {/* Identity section */}
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-slate-800 text-white">
+                    <User className="h-5 w-5" />
                   </div>
-
-                  <div className="my-1 h-px bg-slate-200/80 dark:bg-slate-800" />
-
-                  <div className="px-2 py-1">
-                    <Link
-                      href="/dashboard/settings"
-                      role="menuitem"
-                      onClick={() => setIsOpen(false)}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-950 focus:bg-slate-100 focus:outline-none dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-white dark:focus:bg-slate-900"
-                    >
-                      <Settings className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                      Account Settings
-                    </Link>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={handleManageBilling}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-950 focus:bg-slate-100 focus:outline-none dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-white dark:focus:bg-slate-900"
-                    >
-                      <ReceiptText className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                      Billing
-                    </button>
-                    {paymentsEnabled && (
-                      <Link
-                        href="/dashboard/payments"
-                        role="menuitem"
-                        onClick={() => setIsOpen(false)}
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-950 focus:bg-slate-100 focus:outline-none dark:text-slate-200 dark:hover:bg-slate-900 dark:hover:text-white dark:focus:bg-slate-900"
-                      >
-                        <CreditCard className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                        Payments
-                      </Link>
-                    )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-white">
+                      {business?.name || 'Business'}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-slate-400">
+                      {user?.email || 'No email'}
+                    </p>
                   </div>
+                </div>
 
-                  <div className="my-1 h-px bg-slate-200/80 dark:bg-slate-800" />
+                <div className="h-px bg-slate-700" />
 
-                  <div className="px-4 py-3">
-                    <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-xs">
-                      <span className="text-slate-500 dark:text-slate-400">Trial</span>
-                      <span className="truncate text-right font-medium text-slate-800 dark:text-slate-200">{trialStatus}</span>
-                      <span className="text-slate-500 dark:text-slate-400">Plan</span>
-                      <span className="truncate text-right font-medium capitalize text-slate-800 dark:text-slate-200">{currentPlan.replace(/_/g, ' ')}</span>
-                    </div>
+                {/* Menu items */}
+                <div className="px-2 py-1">
+                  <Link
+                    href="/dashboard/settings"
+                    role="menuitem"
+                    onClick={() => setIsOpen(false)}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                  >
+                    <Settings className="h-4 w-4 text-slate-400" />
+                    Account Settings
+                  </Link>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={handleManageBilling}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                  >
+                    <ReceiptText className="h-4 w-4 text-slate-400" />
+                    Billing
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsOpen(false)
+                      setIsAssistantOpen(true)
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                  >
+                    <MessageCircle className="h-4 w-4 text-slate-400" />
+                    ReplyFlow Assistant
+                  </button>
+                  <Link
+                    href="/"
+                    role="menuitem"
+                    onClick={() => setIsOpen(false)}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                  >
+                    <User className="h-4 w-4 text-slate-400" />
+                    View Homepage
+                  </Link>
+                </div>
+
+                <div className="h-px bg-slate-700" />
+
+                {/* Status section */}
+                <div className="px-4 py-3">
+                  <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-xs">
+                    <span className="text-slate-400">Trial</span>
+                    <span className="truncate text-right font-medium text-slate-200">{trialStatus}</span>
+                    <span className="text-slate-400">Plan</span>
+                    <span className="truncate text-right font-medium capitalize text-slate-200">{currentPlan.replace(/_/g, ' ')}</span>
                   </div>
+                </div>
 
-                  <div className="my-1 h-px bg-slate-200/80 dark:bg-slate-800" />
+                <div className="h-px bg-slate-700" />
 
-                  <div className="px-2 py-1">
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={handleSignOut}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 focus:bg-red-50 focus:outline-none dark:text-red-400 dark:hover:bg-red-950/30 dark:focus:bg-red-950/30"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Sign Out
-                    </button>
-                  </div>
+                {/* Danger section */}
+                <div className="px-2 py-1">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={handleSignOut}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-red-400 transition-colors hover:bg-slate-800"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </button>
                 </div>
               </div>
 
