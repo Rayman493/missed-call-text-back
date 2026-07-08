@@ -22,6 +22,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
   const moreButtonRef = useRef<HTMLButtonElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Hide bottom nav on public pages
   const isPublicPage = pathname === '/' || 
@@ -59,6 +60,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     if (isMoreMenuOpen && moreButtonRef.current) {
       const rect = moreButtonRef.current.getBoundingClientRect()
       const viewportPadding = 12
+      const safeBottom = 16
       const desiredWidth = 224
       const dropdownWidth = Math.min(
         desiredWidth,
@@ -72,8 +74,18 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
         window.innerWidth - dropdownWidth - viewportPadding
       )
 
+      // Estimate dropdown height (4 items + divider ≈ 200px)
+      const estimatedDropdownHeight = 200
+      const unclampedTop = rect.top - estimatedDropdownHeight - 8
+
+      // Clamp top to keep dropdown fully visible above bottom nav
+      const top = Math.max(
+        viewportPadding,
+        Math.min(unclampedTop, window.innerHeight - estimatedDropdownHeight - safeBottom)
+      )
+
       setDropdownPosition({
-        top: rect.top - 8,
+        top,
         left
       })
     }
@@ -87,6 +99,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       if (moreButtonRef.current) {
         const rect = moreButtonRef.current.getBoundingClientRect()
         const viewportPadding = 12
+        const safeBottom = 16
         const desiredWidth = 224
         const dropdownWidth = Math.min(
           desiredWidth,
@@ -100,8 +113,18 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
           window.innerWidth - dropdownWidth - viewportPadding
         )
 
+        // Estimate dropdown height (4 items + divider ≈ 200px)
+        const estimatedDropdownHeight = 200
+        const unclampedTop = rect.top - estimatedDropdownHeight - 8
+
+        // Clamp top to keep dropdown fully visible above bottom nav
+        const top = Math.max(
+          viewportPadding,
+          Math.min(unclampedTop, window.innerHeight - estimatedDropdownHeight - safeBottom)
+        )
+
         setDropdownPosition({
-          top: rect.top - 8,
+          top,
           left
         })
       }
@@ -121,7 +144,9 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     if (!isMoreMenuOpen) return
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (moreButtonRef.current && !moreButtonRef.current.contains(event.target as Node)) {
+      const isClickInsideTrigger = moreButtonRef.current?.contains(event.target as Node)
+      const isClickInsideDropdown = dropdownRef.current?.contains(event.target as Node)
+      if (!isClickInsideTrigger && !isClickInsideDropdown) {
         setIsMoreMenuOpen(false)
       }
     }
@@ -189,6 +214,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       {/* Compact Dropdown Menu - Mobile Only */}
       {isMoreMenuOpen && typeof document !== 'undefined' && createPortal(
         <div
+          ref={dropdownRef}
           className="fixed z-[1000] w-56 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl md:hidden"
           style={{
             top: `${dropdownPosition.top}px`,
