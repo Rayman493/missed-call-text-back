@@ -58,9 +58,23 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   useEffect(() => {
     if (isMoreMenuOpen && moreButtonRef.current) {
       const rect = moreButtonRef.current.getBoundingClientRect()
+      const viewportPadding = 12
+      const desiredWidth = 224
+      const dropdownWidth = Math.min(
+        desiredWidth,
+        window.innerWidth - viewportPadding * 2
+      )
+
+      const unclampedLeft = rect.right - dropdownWidth
+
+      const left = Math.min(
+        Math.max(unclampedLeft, viewportPadding),
+        window.innerWidth - dropdownWidth - viewportPadding
+      )
+
       setDropdownPosition({
         top: rect.top - 8,
-        left: rect.right - 224
+        left
       })
     }
   }, [isMoreMenuOpen])
@@ -72,9 +86,23 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     const updatePosition = () => {
       if (moreButtonRef.current) {
         const rect = moreButtonRef.current.getBoundingClientRect()
+        const viewportPadding = 12
+        const desiredWidth = 224
+        const dropdownWidth = Math.min(
+          desiredWidth,
+          window.innerWidth - viewportPadding * 2
+        )
+
+        const unclampedLeft = rect.right - dropdownWidth
+
+        const left = Math.min(
+          Math.max(unclampedLeft, viewportPadding),
+          window.innerWidth - dropdownWidth - viewportPadding
+        )
+
         setDropdownPosition({
           top: rect.top - 8,
-          left: rect.right - 224
+          left
         })
       }
     }

@@ -103,11 +103,25 @@ export default function UserDropdown() {
     if (isOpen && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect()
       const isMobile = window.innerWidth < 640
-      
+      const viewportPadding = 12
+
+      const desiredWidth = isMobile ? 320 : 288
+      const dropdownWidth = Math.min(
+        desiredWidth,
+        window.innerWidth - viewportPadding * 2
+      )
+
+      const unclampedLeft = rect.right - dropdownWidth
+
+      const left = Math.min(
+        Math.max(unclampedLeft, viewportPadding),
+        window.innerWidth - dropdownWidth - viewportPadding
+      )
+
       setDropdownPosition({
         top: rect.bottom + 8,
-        left: isMobile ? Math.max(8, window.innerWidth - rect.width - 8) : rect.right - rect.width,
-        width: isMobile ? Math.min(320, window.innerWidth - 16) : 288
+        left,
+        width: dropdownWidth
       })
     }
   }, [isOpen])
@@ -120,11 +134,25 @@ export default function UserDropdown() {
       if (triggerRef.current) {
         const rect = triggerRef.current.getBoundingClientRect()
         const isMobile = window.innerWidth < 640
-        
+        const viewportPadding = 12
+
+        const desiredWidth = isMobile ? 320 : 288
+        const dropdownWidth = Math.min(
+          desiredWidth,
+          window.innerWidth - viewportPadding * 2
+        )
+
+        const unclampedLeft = rect.right - dropdownWidth
+
+        const left = Math.min(
+          Math.max(unclampedLeft, viewportPadding),
+          window.innerWidth - dropdownWidth - viewportPadding
+        )
+
         setDropdownPosition({
           top: rect.bottom + 8,
-          left: isMobile ? Math.max(8, window.innerWidth - rect.width - 8) : rect.right - rect.width,
-          width: isMobile ? Math.min(320, window.innerWidth - 16) : 288
+          left,
+          width: dropdownWidth
         })
       }
     }
@@ -307,9 +335,10 @@ export default function UserDropdown() {
           </div>
 
           {/* Desktop dropdown - portal rendered */}
-          <div ref={dropdownContentRef} className="hidden sm:block fixed z-[1000] w-72 min-w-72 bg-slate-950 rounded-xl shadow-xl border border-slate-700 py-2" style={{
+          <div ref={dropdownContentRef} className="hidden sm:block fixed z-[1000] bg-slate-950 rounded-xl shadow-xl border border-slate-700 py-2" style={{
             top: `${dropdownPosition.top}px`,
-            left: `${dropdownPosition.left}px`
+            left: `${dropdownPosition.left}px`,
+            width: `${dropdownPosition.width}px`
           }}>
             {/* Business Info Section */}
             <div className="px-4 py-3 border-b border-slate-700 bg-slate-900">
