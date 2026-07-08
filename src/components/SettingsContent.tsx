@@ -36,6 +36,7 @@ import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
 import { getDefaultOutOfOfficeTemplate } from '@/lib/out-of-office'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 
@@ -110,17 +111,16 @@ export default function SettingsContent() {
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
   const [isCalendarDisconnectConfirmOpen, setIsCalendarDisconnectConfirmOpen] = useState(false)
 
-  // Business phone number change state
-  const [showPhoneChangeModal, setShowPhoneChangeModal] = useState(false)
-  const [newPhoneNumber, setNewPhoneNumber] = useState('')
-  const [isChangingPhone, setIsChangingPhone] = useState(false)
-  const [phoneChangeError, setPhoneChangeError] = useState('')
+  // Business phone number cooldown state
   const [phoneCooldown, setPhoneCooldown] = useState<{ inCooldown: boolean; nextAvailableDate: string | null } | null>(null)
 
   // Stripe Connect state
   const [isConnectingStripe, setIsConnectingStripe] = useState(false)
+  const isStripeConnectUnavailable = process.env.NEXT_PUBLIC_STRIPE_CONNECT_ENABLED === 'false'
 
   const supabase = createBrowserClient()
+
+  useBodyScrollLock(showAddModal || showDeleteModal || showChangePasswordModal || isCalendarDisconnectConfirmOpen)
 
   // Time input refs for better UX
   const openTimeInputRef = useRef<HTMLInputElement>(null)
@@ -226,11 +226,13 @@ export default function SettingsContent() {
       blockedNumbers: [] as string[]
     }
     
-    if (!business?.automation_settings) {
+    const sourceSettings = formBusiness?.automation_settings || business?.automation_settings
+
+    if (!sourceSettings) {
       return defaults
     }
     
-    return { ...defaults, ...business.automation_settings }
+    return { ...defaults, ...sourceSettings }
   }
 
   // Helper to convert ISO timestamp to datetime-local format (yyyy-MM-ddThh:mm)
@@ -290,27 +292,10 @@ export default function SettingsContent() {
   }
 
   // Handler to toggle spam filtering with immediate visual feedback
-  const handleToggleSpamFiltering = async () => {
+  const handleToggleSpamFiltering = () => {
     const newValue = !spamFilteringEnabled
-    
-    // Immediate visual feedback
     setSpamFilteringEnabled(newValue)
-    
-    // Update form state
     updateAutomationSetting('spamRepeatFilteringEnabled', newValue)
-    
-    // Persist to Supabase
-    setIsSavingSpamFiltering(true)
-    try {
-      await saveChanges()
-    } catch (error) {
-      // Revert on error
-      setSpamFilteringEnabled(!newValue)
-      updateAutomationSetting('spamRepeatFilteringEnabled', !newValue)
-      showToast('Failed to update spam filtering setting', 'error')
-    } finally {
-      setIsSavingSpamFiltering(false)
-    }
   }
 
   // Fetch ignored contacts
@@ -610,63 +595,12 @@ export default function SettingsContent() {
     }
   }
 
-  // Handle phone number change
-  const handleChangePhoneNumber = async () => {
-    if (!business?.id || !newPhoneNumber.trim()) {
-      setPhoneChangeError('Phone number is required')
+  // Handle Stripe Connect onboarding
+  const handleConnectStripe = async () => {
+    if (isStripeConnectUnavailable) {
       return
     }
 
-    setIsChangingPhone(true)
-    setPhoneChangeError('')
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        throw new Error('Not authenticated')
-      }
-
-      const response = await fetch('/api/business/update-phone-number', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          businessId: business.id,
-          newPhoneNumber: newPhoneNumber.trim(),
-        }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'We couldn\'t change your phone number. Please try again.')
-      }
-
-      const data = await response.json()
-      
-      if (data.success) {
-        showToast('Phone number changed successfully', 'success')
-        setShowPhoneChangeModal(false)
-        setNewPhoneNumber('')
-        refreshBusiness()
-        // Check cooldown again
-        checkPhoneCooldown()
-      } else {
-        throw new Error(data.error || 'We couldn\'t change your phone number. Please try again.')
-      }
-    } catch (error) {
-      console.error('[Settings] Error changing phone number:', error)
-      setPhoneChangeError(error instanceof Error ? error.message : 'We couldn\'t change your phone number. Please try again.')
-    } finally {
-      setIsChangingPhone(false)
-    }
-  }
-
-  // Handle Stripe Connect onboarding
-  const handleConnectStripe = async () => {
     if (!business?.id) {
       showToast('Business not found', 'error')
       return
@@ -694,6 +628,9 @@ export default function SettingsContent() {
 
       if (!response.ok) {
         const error = await response.json()
+        if (error.error === 'Stripe is not configured') {
+          throw new Error('Stripe card payments are not available yet. You can still use Venmo or PayPal.')
+        }
         throw new Error(error.error || 'We couldn\'t start the Stripe connection. Please try again.')
       }
 
@@ -862,19 +799,17 @@ export default function SettingsContent() {
   useEffect(() => {
     if (business && user) {
       fetchIgnoredContacts()
-      // Initialize spam filtering state from business data
-      const settings = getAutomationSettings()
-      setSpamFilteringEnabled(settings.spamRepeatFilteringEnabled)
-      // Initialize automation settings local state
-      setIgnoreRepeatCalls(settings.ignoreRepeatCalls)
-      setIgnoreBlockedPrivateNumbers(settings.ignoreBlockedPrivateNumbers)
-      setIgnoreSuspectedSpamCallers(settings.ignoreSuspectedSpamCallers)
-      // Fetch calendar status
+      if (!hasUnsavedChanges) {
+        const settings = getAutomationSettings()
+        setSpamFilteringEnabled(settings.spamRepeatFilteringEnabled)
+        setIgnoreRepeatCalls(settings.ignoreRepeatCalls)
+        setIgnoreBlockedPrivateNumbers(settings.ignoreBlockedPrivateNumbers)
+        setIgnoreSuspectedSpamCallers(settings.ignoreSuspectedSpamCallers)
+      }
       fetchCalendarStatus()
-      // Check phone cooldown status
       checkPhoneCooldown()
     }
-  }, [business, user])
+  }, [business, user, hasUnsavedChanges])
 
   // Check URL params for calendar connection status
   useEffect(() => {
@@ -1214,16 +1149,6 @@ export default function SettingsContent() {
                           disabled={phoneCooldown?.inCooldown}
                           className="flex-1 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         />
-                        <button
-                          onClick={() => {
-                            setNewPhoneNumber(formBusiness.business_phone_number || '')
-                            setShowPhoneChangeModal(true)
-                          }}
-                          disabled={phoneCooldown?.inCooldown}
-                          className="px-3 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-md hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                        >
-                          Change
-                        </button>
                       </div>
                       
                       {phoneCooldown?.inCooldown && phoneCooldown.nextAvailableDate && (
@@ -1963,14 +1888,16 @@ export default function SettingsContent() {
                       {!isConnectingStripe && (
                         <button
                           onClick={handleConnectStripe}
-                          disabled={isConnectingStripe}
+                          disabled={isConnectingStripe || isStripeConnectUnavailable}
                           className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
                             business?.stripe_charges_enabled && business?.stripe_details_submitted
                               ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
-                              : 'bg-blue-600 hover:bg-blue-700 text-white'
+                              : isStripeConnectUnavailable
+                                ? 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                                : 'bg-blue-600 hover:bg-blue-700 text-white'
                           }`}
                         >
-                          {business?.stripe_charges_enabled && business?.stripe_details_submitted ? 'Manage' : 'Connect'}
+                          {business?.stripe_charges_enabled && business?.stripe_details_submitted ? 'Manage' : isStripeConnectUnavailable ? 'Unavailable' : 'Connect'}
                         </button>
                       )}
                     </div>
@@ -1989,7 +1916,13 @@ export default function SettingsContent() {
                           </p>
                         </div>
                       )}
-                      {(!business?.stripe_connect_status || business.stripe_connect_status === 'not_connected') && (
+                      {isStripeConnectUnavailable ? (
+                        <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
+                          <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
+                            Stripe card payments are not available yet. You can still use Venmo or PayPal.
+                          </p>
+                        </div>
+                      ) : (!business?.stripe_connect_status || business.stripe_connect_status === 'not_connected') && (
                         <div className="p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                           <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-300">
                             <span className="font-semibold">Best for cards:</span> Stripe provides the most complete payment experience in ReplyFlow.
@@ -2433,8 +2366,8 @@ export default function SettingsContent() {
 
           {/* Delete Account Modal */}
           {showDeleteModal && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-white dark:bg-slate-900 rounded-xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl">
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[80] p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-4">
+              <div className="bg-white dark:bg-slate-900 rounded-xl max-w-lg w-full max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] sm:max-h-[85vh] flex flex-col shadow-2xl">
                 {/* Fixed Header */}
                 <div className="flex-shrink-0 p-6 border-b border-slate-200/70 dark:border-slate-700/50">
                   <div className="flex items-start gap-4">
@@ -2592,8 +2525,8 @@ export default function SettingsContent() {
                 </div>
 
                 {/* Fixed Footer */}
-                <div className="flex-shrink-0 p-6 border-t border-slate-200/70 dark:border-slate-700/50">
-                  <div className="flex justify-end gap-3">
+                <div className="flex-shrink-0 p-4 sm:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-6 border-t border-slate-200/70 dark:border-slate-700/50">
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
                     <button
                       onClick={() => {
                         setShowDeleteModal(false)
@@ -2631,15 +2564,17 @@ export default function SettingsContent() {
 
           {/* Add Ignored Contact Modal */}
           {showAddModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-card rounded-lg p-6 max-w-md w-full mx-4">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-foreground mb-4">
-                  Add Ignored Contact
-                </h2>
-                <p className="text-sm text-slate-600 dark:text-muted-foreground mb-4">
-                  Add people here when you never want ReplyFlow to respond to their missed calls. Friends, family, schools, doctors, and other personal contacts are common examples. When an ignored contact calls, ReplyFlow stays out of the conversation (no AI Voice, no automated texts, no lead, no follow-ups—just a simple voicemail). You can remove contacts from this list at any time.
-                </p>
-                <div className="space-y-3">
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[80] p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-4">
+              <div className="bg-card rounded-lg max-w-md w-full max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] sm:max-h-[85vh] flex flex-col overflow-hidden">
+                <div className="flex-shrink-0 p-4 sm:p-6 border-b border-border/60">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-foreground mb-4">
+                    Add Ignored Contact
+                  </h2>
+                  <p className="text-sm text-slate-600 dark:text-muted-foreground">
+                    Add people here when you never want ReplyFlow to respond to their missed calls. Friends, family, schools, doctors, and other personal contacts are common examples. When an ignored contact calls, ReplyFlow stays out of the conversation (no AI Voice, no automated texts, no lead, no follow-ups—just a simple voicemail). You can remove contacts from this list at any time.
+                  </p>
+                </div>
+                <div data-scroll-lock-allow className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
                   <div>
                     <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
                       Phone Number <span className="text-red-500">*</span>
@@ -2693,7 +2628,7 @@ export default function SettingsContent() {
                     />
                   </div>
                 </div>
-                <div className="flex justify-end gap-3 mt-6">
+                <div className="flex-shrink-0 flex justify-end gap-3 p-4 sm:p-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-6 border-t border-border/60">
                   <button
                     onClick={() => {
                       setShowAddModal(false)
@@ -2804,82 +2739,6 @@ export default function SettingsContent() {
                       </>
                     ) : (
                       'Update Password'
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Change Phone Number Modal */}
-          {showPhoneChangeModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-6">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
-                  Change Business Phone Number
-                </h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Current Phone Number
-                    </label>
-                    <div className="px-4 py-3 bg-slate-100 dark:bg-slate-900 rounded-lg text-slate-900 dark:text-slate-100">
-                      {formatPhoneNumber(business?.business_phone_number || '')}
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="newPhoneNumber" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      New Phone Number
-                    </label>
-                    <input
-                      id="newPhoneNumber"
-                      type="tel"
-                      value={newPhoneNumber}
-                      onChange={(e) => setNewPhoneNumber(e.target.value)}
-                      placeholder="(555) 123-4567"
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-500/80"
-                    />
-                  </div>
-                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg p-4">
-                    <p className="text-sm text-amber-800 dark:text-amber-200 font-medium mb-2">
-                      Important
-                    </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                      Changing your business number will require you to update call forwarding on the new phone number. After saving, ReplyFlow will guide you through re-verifying forwarding so missed calls continue to be captured.
-                    </p>
-                  </div>
-                  {phoneChangeError && (
-                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg p-3">
-                      <p className="text-sm text-red-600 dark:text-red-400">{phoneChangeError}</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-end gap-3 mt-6">
-                  <button
-                    onClick={() => {
-                      setShowPhoneChangeModal(false)
-                      setNewPhoneNumber('')
-                      setPhoneChangeError('')
-                    }}
-                    disabled={isChangingPhone}
-                    className="px-4 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleChangePhoneNumber}
-                    disabled={isChangingPhone || !newPhoneNumber.trim()}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isChangingPhone ? (
-                      <>
-                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
-                        Changing...
-                      </>
-                    ) : (
-                      'Change Number'
                     )}
                   </button>
                 </div>

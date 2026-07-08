@@ -35,14 +35,24 @@ export function useSettingsFormState({
   // Update business when initialBusiness changes (e.g., from server refresh)
   useEffect(() => {
     if (initialBusiness && initialBusiness !== prevBusinessRef.current) {
-      setState(prev => ({
-        ...prev,
-        business: { ...initialBusiness },
-        originalBusiness: { ...initialBusiness },
-        hasUnsavedChanges: false,
-        saveError: null
-      }))
-      prevBusinessRef.current = initialBusiness
+      setState(prev => {
+        if (prev.hasUnsavedChanges) {
+          prevBusinessRef.current = initialBusiness
+          return {
+            ...prev,
+            originalBusiness: { ...initialBusiness }
+          }
+        }
+
+        prevBusinessRef.current = initialBusiness
+        return {
+          ...prev,
+          business: { ...initialBusiness },
+          originalBusiness: { ...initialBusiness },
+          hasUnsavedChanges: false,
+          saveError: null
+        }
+      })
     }
   }, [initialBusiness])
 
