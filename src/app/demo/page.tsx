@@ -46,10 +46,10 @@ export default function DemoPage() {
               <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Interactive Demo</span>
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-white tracking-tight">
-              See How ReplyFlow Recovers Missed Leads
+              See How ReplyFlow Helps Recover Missed Leads
             </h1>
             <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              AI Voice answers your missed calls, collects customer information, and sends instant text responses.
+              AI Voice answers forwarded missed calls, collects customer information, and sends text responses quickly.
             </p>
             <div className="pt-6">
               <Link
@@ -87,7 +87,7 @@ export default function DemoPage() {
               </div>
             </div>
             <h3 className="text-base font-semibold text-slate-900 dark:text-white text-center mb-2">Automated Text Sent</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 text-center leading-relaxed">Instant text-back to recover the opportunity</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400 text-center leading-relaxed">Quick text-back to continue the conversation</p>
           </div>
           <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 hover:shadow-xl transition-shadow">
             <div className="flex justify-center mb-4">
@@ -109,7 +109,7 @@ export default function DemoPage() {
               Ready to stop missing leads?
             </h2>
             <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              Start your 14-day free trial and recover missed customer calls automatically.
+              Start your 14-day free trial and respond to missed customer calls automatically.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
               <Link

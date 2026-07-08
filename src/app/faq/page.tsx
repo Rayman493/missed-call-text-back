@@ -5,15 +5,17 @@ import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 import LegalNavigation from '@/components/LegalNavigation'
+import ScrollToTopOnMount from '@/components/ScrollToTopOnMount'
 
 export const metadata: Metadata = {
-  title: 'ReplyFlowHQ FAQ | AI Voice, Lead Management, Appointments & Payments',
-  description: 'Learn how ReplyFlowHQ provides AI Voice, missed-call recovery, lead management, appointment scheduling, and payment requests. Setup, pricing, and compliance questions answered.',
+  title: 'ReplyFlow FAQ | AI Voice, Lead Management, Appointments & Payments',
+  description: 'Learn how ReplyFlow provides AI Voice, missed-call recovery, lead management, appointment scheduling, and Payment Requests. Setup, pricing, and compliance questions answered.',
 }
 
 export default function FAQPage() {
   return (
     <PageBackground>
+      <ScrollToTopOnMount />
       <SSRSafeNavbar forceDark={true} />
 
       {/* Back to Home Navigation */}
@@ -48,8 +50,11 @@ export default function FAQPage() {
               Frequently Asked Questions
             </h1>
             <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto">
-              Everything you need to know about ReplyFlowHQ's AI Voice, missed-call recovery, lead management, appointment scheduling, and payments
+              Everything you need to know about ReplyFlow's AI Voice, missed-call recovery, lead management, appointment scheduling, and Payment Requests.
             </p>
+          </div>
+          <div className="mt-8 max-w-4xl mx-auto">
+            <ReplyFlowAssistant defaultCategory="Overview" context={{ currentPage: undefined }} />
           </div>
         </div>
       </div>
@@ -62,11 +67,11 @@ export default function FAQPage() {
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="p-8">
               <h2 className="text-2xl font-semibold text-foreground mb-4">
-                What does ReplyFlowHQ do?
+                What does ReplyFlow do?
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  ReplyFlowHQ is a complete customer management platform for local businesses. When a customer calls and the call is missed, <strong>AI Voice</strong> answers live, collects their information, and sends an instant text summary. From there, you can reply via SMS, schedule an appointment with Google Calendar, and send a branded payment request — all from one dashboard.
+                  ReplyFlow is a customer management platform for local businesses. When a customer call goes unanswered and forwards to ReplyFlow, <strong>AI Voice</strong> answers live, collects their information, and sends a text summary. From there, you can reply via SMS, schedule an appointment with Google Calendar, and send a branded Payment Request — all from one dashboard.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
                   This is <strong>not</strong> bulk marketing or cold outreach. Messages are only sent after
@@ -80,7 +85,7 @@ export default function FAQPage() {
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="p-8">
               <h2 className="text-2xl font-semibold text-foreground mb-4">
-                How does ReplyFlowHQ work?
+                How does ReplyFlow work?
               </h2>
               <div className="prose prose-invert max-w-none">
                 <div className="space-y-4">
@@ -186,7 +191,7 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  <strong>No.</strong> ReplyFlowHQ works with either a dedicated business number or a personal phone used for business.
+                  <strong>No.</strong> ReplyFlow works with either a dedicated business number or a personal phone used for business.
                 </p>
                 <div className="mt-4 space-y-4">
                   <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-4">
@@ -272,7 +277,7 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  <strong>Yes, absolutely.</strong> ReplyFlowHQ provides a complete conversation management system:
+                  <strong>Yes.</strong> ReplyFlow provides a conversation management system:
                 </p>
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center gap-3">
@@ -297,7 +302,7 @@ export default function FAQPage() {
                   </div>
                 </div>
                 <p className="text-muted-foreground mt-4">
-                  Continue conversations naturally through the ReplyFlowHQ dashboard. You can also schedule appointments directly from a lead and send payment requests via a branded ReplyFlow link — all within the same conversation view.
+                  Continue conversations naturally through the ReplyFlow dashboard. You can also schedule appointments directly from a lead and send Payment Requests via a branded ReplyFlow link — all within the same conversation view.
                 </p>
               </div>
             </div>
@@ -311,7 +316,7 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  <strong>No, absolutely not.</strong> ReplyFlowHQ is designed for <strong>automated missed-call text responses</strong> only.
+                  <strong>No.</strong> ReplyFlow is designed for <strong>automated missed-call text responses</strong> only.
                 </p>
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center gap-3">
@@ -345,7 +350,7 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  <strong>Yes, absolutely.</strong> ReplyFlowHQ supports full compliance with opt-out requirements:
+                  <strong>Yes.</strong> ReplyFlow supports opt-out requirements:
                 </p>
                 <div className="mt-4 space-y-3">
                   <div className="bg-muted rounded-2xl p-4">
@@ -429,11 +434,11 @@ export default function FAQPage() {
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="p-8">
               <h2 className="text-2xl font-semibold text-foreground mb-4">
-                Is ReplyFlowHQ TCPA compliant?
+                Is ReplyFlow TCPA compliant?
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  <strong>ReplyFlowHQ supports compliant conversational messaging workflows.</strong> Here's how:
+                  <strong>ReplyFlow supports compliant conversational messaging workflows.</strong> Here's how:
                 </p>
                 <div className="mt-4 space-y-3">
                   <div className="flex items-start gap-3">
@@ -491,7 +496,7 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  ReplyFlowHQ sends automated responses <strong>quickly</strong> after a missed call. 
+                  ReplyFlow sends automated responses <strong>quickly</strong> after a missed call. 
                   The typical delivery time is:
                 </p>
                 <div className="mt-4 text-center">
@@ -520,7 +525,7 @@ export default function FAQPage() {
                   When a call goes unanswered and forwards to ReplyFlow, AI Voice answers the call live and converses with the caller to collect information.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  AI Voice collects the caller's name, reason for calling, urgency level, and preferred callback time through natural conversation. This information is stored in your ReplyFlow dashboard and pre-fills lead details so you can follow up, schedule an appointment, or send a payment request without re-entering anything.
+                  AI Voice collects details such as the caller's name, reason for calling, important details, location or address, desired completion time, and preferred callback time through a guided conversation. This information is stored in your ReplyFlow dashboard so you can follow up, schedule an appointment, or send a Payment Request without re-entering the details.
                 </p>
               </div>
             </div>
@@ -595,7 +600,7 @@ export default function FAQPage() {
               </h2>
               <div className="prose prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">
-                  Our support team is here to help you succeed with ReplyFlowHQ:
+                  Our support team is here to help you succeed with ReplyFlow:
                 </p>
                 <div className="mt-6 bg-blue-100 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-6">
                   <div className="flex items-center gap-4">
@@ -748,11 +753,6 @@ export default function FAQPage() {
 
         </div>
 
-        {/* Help Assistant */}
-        <div className="mt-16">
-          <ReplyFlowAssistant defaultCategory="Overview" context={{ currentPage: undefined }} />
-        </div>
-
         {/* CTA Section */}
         <div className="mt-16 text-center">
           <h3 className="text-2xl font-semibold text-foreground mb-4">
@@ -775,7 +775,7 @@ export default function FAQPage() {
             Still have questions?
           </h3>
           <p className="text-muted-foreground mb-6">
-            Our support team is ready to help you get the most out of ReplyFlowHQ.
+            Our support team is ready to help you get the most out of ReplyFlow.
           </p>
           <a
             href="https://mail.google.com/mail/?view=cm&fs=1&to=support@replyflowhq.com"

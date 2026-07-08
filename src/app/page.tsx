@@ -16,7 +16,7 @@ function StructuredData() {
   const organizationData = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "ReplyFlowHQ",
+    "name": "ReplyFlow",
     "url": "https://replyflowhq.com",
     "logo": "https://replyflowhq.com/replyflow-r-logo.png",
     "sameAs": []
@@ -25,7 +25,7 @@ function StructuredData() {
   const webSiteData = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "ReplyFlowHQ",
+    "name": "ReplyFlow",
     "url": "https://replyflowhq.com"
   }
 
@@ -56,10 +56,10 @@ function HomepageFooter() {
           <div className="col-span-1 sm:col-span-2 md:col-span-2">
             <div className="flex items-center gap-2 mb-3 sm:mb-4 md:mb-6">
               <BrandIcon size={40} />
-              <span className="text-xl sm:text-2xl font-bold text-foreground">ReplyFlowHQ</span>
+              <span className="text-xl sm:text-2xl font-bold text-foreground">ReplyFlow</span>
             </div>
             <p className="text-muted-foreground mb-3 sm:mb-4 md:mb-6 max-w-md text-sm sm:text-base leading-relaxed">
-              AI Voice, missed call recovery, lead management, appointment scheduling, and payments — built for local businesses that can't afford to miss a customer.
+              AI Voice, missed-call recovery, lead management, appointment scheduling, and Payment Requests — built for local businesses that can't afford to miss a customer.
             </p>
             <div className="flex items-center gap-4">
               <a
@@ -127,7 +127,7 @@ function HomepageFooter() {
         <div className="mt-6 sm:mt-8 md:mt-10 pt-4 sm:pt-6 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-muted-foreground text-sm sm:text-base">
-              © {currentYear} ReplyFlowHQ. All rights reserved.
+              © {currentYear} ReplyFlow. All rights reserved.
             </p>
             <div className="flex items-center gap-4 sm:gap-6 mt-2 sm:mt-3 md:mt-0">
               <span className="text-muted-foreground text-sm sm:text-base">
@@ -207,7 +207,7 @@ export default async function Home() {
 
       {/* Hero Section - SAFE VERSION WITHOUT FRAMER-MOTION */}
       <HomepageErrorBoundary>
-        <section className="relative flex flex-col items-center justify-center py-4 sm:py-5 md:py-16 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background">
+        <section className="relative flex flex-col items-center justify-center py-4 sm:py-5 md:py-14 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-transparent dark:from-transparent dark:via-muted/30 dark:to-transparent"></div>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-1.5 sm:space-y-2 relative z-10">
             <div className="flex flex-col items-center text-center">
@@ -215,7 +215,7 @@ export default async function Home() {
                 Never Miss a Lead Again
               </h1>
               <p className="text-sm sm:text-base md:text-xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed mt-1 sm:mt-1.5">
-                AI Voice answers missed calls, captures leads, and helps you book more jobs — all while you focus on running your business.
+                AI Voice answers forwarded missed calls, captures lead details, and helps you book more jobs — all while you focus on running your business.
               </p>
 
               {/* Primary CTA - Only shown for non-authenticated users */}
@@ -249,7 +249,7 @@ export default async function Home() {
                     <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="leading-none">Setup In Under 5 Minutes</span>
+                    <span className="leading-none">Guided Setup in Minutes</span>
                   </div>
                   <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-700 dark:text-slate-400">
                     <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -297,7 +297,7 @@ export default async function Home() {
                 How ReplyFlow Works
               </h2>
               <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-muted-foreground max-w-2xl mx-auto">
-                Turn missed calls into conversations in 5 simple steps.
+                Turn forwarded missed calls into conversations in five simple steps.
               </p>
             </div>
             
@@ -364,8 +364,8 @@ export default async function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Customer Gets Instant Text</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-400">A confirmation text is automatically sent</p>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Customer Gets a Text</h3>
+                <p className="text-xs text-slate-700 dark:text-slate-400">A confirmation text is sent automatically</p>
               </div>
               
               {/* Arrow */}
@@ -457,8 +457,8 @@ export default async function Home() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Customer Gets Instant Text</h3>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-400">A confirmation text is automatically sent</p>
+                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Customer Gets a Text</h3>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-400">A confirmation text is sent automatically</p>
                 </div>
               </div>
               
@@ -492,7 +492,7 @@ export default async function Home() {
           <div className="max-w-4xl mx-auto px-6 lg:px-8">
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3 sm:p-4 text-center">
               <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-1.5">
-                AI Voice Answers Missed Calls
+                AI Voice Answers Forwarded Missed Calls
               </h3>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-slate-700 dark:text-slate-400">
                 <div className="flex items-center gap-1.5">
@@ -505,7 +505,7 @@ export default async function Home() {
                   <svg className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span>Instant text summary sent to you and the customer</span>
+                  <span>Text summary sent to you and the customer</span>
                 </div>
               </div>
             </div>
@@ -521,14 +521,14 @@ export default async function Home() {
 
       {/* Features Section */}
       <HomepageErrorBoundary>
-        <section id="features-section" className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-8 sm:py-10 md:py-14 border-t border-slate-200 dark:border-border">
+        <section id="features-section" className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-7 sm:py-9 md:py-12 border-t border-slate-200 dark:border-border">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-6 sm:mb-8 md:mb-10">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">
                 Capture Every Missed Call. Book More Jobs.
               </h2>
               <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-muted-foreground max-w-2xl mx-auto">
-                AI Voice answers missed calls, captures leads, and helps you schedule appointments and collect payments — all in one place.
+                AI Voice answers forwarded missed calls, captures lead details, and helps you schedule appointments and send Payment Requests — all in one place.
               </p>
             </div>
 
@@ -560,7 +560,7 @@ export default async function Home() {
                   <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">AI Voice</h3>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 mb-2 sm:mb-3 text-center">
-                  AI answers calls live, collects caller information, and sends a text summary.
+                  AI answers forwarded missed calls live, collects caller information, and sends a text summary.
                 </p>
               </div>
 
@@ -575,7 +575,7 @@ export default async function Home() {
                   <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Instant Text-Back</h3>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 mb-2 sm:mb-3 text-center">
-                  Automatically respond to missed calls within seconds.
+                  Automatically respond to missed callers quickly after the call.
                 </p>
               </div>
 
@@ -590,7 +590,7 @@ export default async function Home() {
                   <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Appointments & Payments</h3>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 mb-2 sm:mb-3 text-center">
-                  Schedule jobs with Google Calendar and send branded payment requests via text.
+                  Schedule jobs with Google Calendar and send branded Payment Requests via text.
                 </p>
               </div>
 
@@ -601,14 +601,14 @@ export default async function Home() {
 
       {/* Why Businesses Choose ReplyFlow - Trust Section */}
       <HomepageErrorBoundary>
-        <section className="bg-white dark:bg-background py-8 sm:py-10 md:py-14 border-t border-slate-200 dark:border-slate-800">
+        <section className="bg-white dark:bg-background py-7 sm:py-9 md:py-12 border-t border-slate-200 dark:border-slate-800">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-6 sm:mb-8 md:mb-10">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">
                 Why Local Businesses Choose ReplyFlow
               </h2>
               <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-muted-foreground max-w-2xl mx-auto">
-                Trusted by businesses that need to capture every opportunity
+                Built for businesses that need to respond quickly to every opportunity.
               </p>
             </div>
 
@@ -698,7 +698,7 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-sm sm:text-base">Schedule appointments & request payment</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-sm sm:text-base">Schedule appointments & send Payment Requests</h3>
                     <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-400">Book jobs with Google Calendar and send branded payment links via text.</p>
                   </div>
                 </div>
@@ -791,7 +791,7 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-xs sm:text-sm">Schedule appointments & request payment</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1 text-xs sm:text-sm">Schedule appointments & send Payment Requests</h3>
                     <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400">Book jobs with Google Calendar and send branded payment links via text.</p>
                   </div>
                 </div>
@@ -804,7 +804,7 @@ export default async function Home() {
       
       {/* Final CTA Section */}
       <HomepageErrorBoundary>
-        <section className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 py-12 sm:py-16 md:py-20 border-t border-blue-200 dark:border-blue-800">
+        <section className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 py-10 sm:py-14 md:py-16 border-t border-blue-200 dark:border-blue-800">
           <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
             <div>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-4 sm:mb-5 md:mb-6">

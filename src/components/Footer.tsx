@@ -15,11 +15,10 @@ export default function Footer() {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-1 mb-2 sm:mb-3">
               <BrandIcon size={48} />
-              <span className="text-lg font-bold text-slate-900 dark:text-foreground">ReplyFlowHQ</span>
+              <span className="text-lg font-bold text-slate-900 dark:text-foreground">ReplyFlow</span>
             </div>
             <p className="text-slate-800 dark:text-muted-foreground mb-2 sm:mb-3 max-w-md leading-relaxed text-xs sm:text-sm font-medium">
-              Conversational missed-call response automation for modern businesses. 
-              Capture leads and provide exceptional customer service.
+              AI Voice, missed-call recovery, lead management, appointment scheduling, and Payment Requests for local businesses.
             </p>
             <div className="flex items-center gap-3">
               <a
@@ -65,26 +64,10 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/dashboard" 
+                  href="/pricing" 
                   className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-xs sm:text-sm font-medium transition-colors"
                 >
-                  Dashboard
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/dashboard/leads" 
-                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-xs sm:text-sm font-medium transition-colors"
-                >
-                  Leads
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/dashboard/settings" 
-                  className="text-slate-800 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-blue-400 text-xs sm:text-sm font-medium transition-colors"
-                >
-                  Settings
+                  Pricing
                 </Link>
               </li>
             </ul>
@@ -128,7 +111,7 @@ export default function Footer() {
         <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-slate-300 dark:border-border">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-slate-700 dark:text-muted-foreground text-xs sm:text-sm font-medium">
-              © {currentYear} ReplyFlowHQ. All rights reserved.
+              © {currentYear} ReplyFlow. All rights reserved.
             </p>
             <div className="flex items-center gap-4 sm:gap-6 mt-2 sm:mt-0">
               <span className="text-slate-700 dark:text-muted-foreground text-xs sm:text-sm font-medium">

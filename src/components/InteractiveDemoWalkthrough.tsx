@@ -34,7 +34,7 @@ const steps = [
   { id: 'lead-created', label: 'Lead Created' },
   { id: 'sms-conversation', label: 'SMS Recovery' },
   { id: 'schedule', label: 'Appointment Scheduled' },
-  { id: 'payment', label: 'Payment Request' },
+  { id: 'payment', label: 'Payment Request Sent' },
   { id: 'success', label: 'Journey Complete' },
 ]
 
@@ -427,7 +427,7 @@ function StepPayment() {
             </div>
             <div>
               <h3 className="font-semibold text-slate-900 dark:text-white">Payment Request Sent</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Secure deposit before the visit</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Sent from the ReplyFlow dashboard</p>
             </div>
           </div>
 
@@ -446,7 +446,7 @@ function StepPayment() {
             </div>
             <div className="flex items-center gap-2 text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 rounded-lg px-3 py-2 border border-purple-200 dark:border-purple-800">
               <Send className="w-3.5 h-3.5" />
-              SMS payment link sent to customer
+              Payment Request link sent to customer
             </div>
           </div>
         </Card>
@@ -473,10 +473,10 @@ function StepSuccess() {
         transition={{ delay: 0.3, duration: 0.4 }}
       >
         <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-3">
-          Entire customer journey completed automatically.
+          From missed call to organized follow-up.
         </h3>
         <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-          From missed call to booked appointment and deposit — without the business lifting a finger.
+          ReplyFlow captures the lead, keeps the conversation organized, and gives your team tools to schedule appointments and send Payment Requests.
         </p>
       </motion.div>
     </div>
