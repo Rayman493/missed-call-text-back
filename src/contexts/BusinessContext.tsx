@@ -21,7 +21,7 @@ interface BusinessContextType {
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined)
 
-const BUSINESS_CACHE_KEY = 'replyflow_business_display_cache'
+const BUSINESS_CACHE_KEY_PREFIX = 'replyflow_business_display_cache'
 const BUSINESS_CACHE_TTL_MS = 6 * 60 * 60 * 1000
 const FOCUS_REVALIDATION_THRESHOLD_MS = 10 * 60 * 1000
 const FOCUS_DEBOUNCE_MS = 1000
@@ -32,34 +32,54 @@ type BusinessCachePayload = {
   userId?: string | null
 }
 
-function readBusinessCache(): BusinessCachePayload | null {
+function getBusinessCacheKey(userId: string | null): string {
+  return userId ? `${BUSINESS_CACHE_KEY_PREFIX}_${userId}` : BUSINESS_CACHE_KEY_PREFIX
+}
+
+function readBusinessCache(userId: string | null): BusinessCachePayload | null {
   if (typeof window === 'undefined') return null
   try {
-    const raw = localStorage.getItem(BUSINESS_CACHE_KEY)
+    const cacheKey = getBusinessCacheKey(userId)
+    const raw = localStorage.getItem(cacheKey)
     if (!raw) return null
     const parsed = JSON.parse(raw) as BusinessCachePayload
     if (!parsed?.business?.id || !parsed.verifiedAt) return null
     if (Date.now() - parsed.verifiedAt > BUSINESS_CACHE_TTL_MS) return null
+    // Verify the cached data belongs to the current user
+    if (userId && parsed.userId && parsed.userId !== userId) return null
     return parsed
   } catch {
     return null
   }
 }
 
-function writeBusinessCache(business: Business, userId?: string | null) {
+function writeBusinessCache(business: Business, userId: string | null) {
   if (typeof window === 'undefined') return
-  localStorage.setItem(BUSINESS_CACHE_KEY, JSON.stringify({ business, verifiedAt: Date.now(), userId }))
+  const cacheKey = getBusinessCacheKey(userId)
+  localStorage.setItem(cacheKey, JSON.stringify({ business, verifiedAt: Date.now(), userId }))
   sessionStorage.setItem('replyflow_business_verified', 'true')
 }
 
-function clearBusinessCache() {
+function clearBusinessCache(userId?: string | null) {
   if (typeof window === 'undefined') return
-  localStorage.removeItem(BUSINESS_CACHE_KEY)
+  // Clear the specific user's cache
+  if (userId) {
+    localStorage.removeItem(getBusinessCacheKey(userId))
+  } else {
+    // Clear all business caches if no user specified
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith(BUSINESS_CACHE_KEY_PREFIX)) {
+        localStorage.removeItem(key)
+      }
+    }
+  }
   sessionStorage.removeItem('replyflow_business_verified')
 }
 
 export function BusinessProvider({ children }: { children: ReactNode }) {
-  const cachedBusinessPayload = readBusinessCache()
+  // Initialize with null userId - will be updated when user is known
+  const cachedBusinessPayload = readBusinessCache(null)
   const [business, setBusinessState] = useState<Business | null>(cachedBusinessPayload?.business ?? null)
   const [loading, setLoading] = useState(!cachedBusinessPayload?.business)
   const [error, setError] = useState<string | null>(null)
@@ -87,7 +107,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     setBusinessState(nextBusiness)
     if (nextBusiness) {
       setBusinessVerified(true)
-      writeBusinessCache(nextBusiness, nextBusiness.user_id)
+      writeBusinessCache(nextBusiness, nextBusiness.user_id || userIdRef.current)
     }
   }, [])
 
@@ -132,12 +152,12 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      // If user changed, clear old business data
+      // If user changed, clear old business data and cache
       if (userIdRef.current && userIdRef.current !== user.id) {
-        log('[BusinessContext] User changed, clearing old business data')
+        log('[BusinessContext] User changed, clearing old business data and cache')
         setBusiness(null)
         setBusinessMissingConfirmed(false)
-        clearBusinessCache()
+        clearBusinessCache(userIdRef.current) // Clear previous user's cache
         setBusinessVerified(false)
       }
       userIdRef.current = user.id
@@ -158,7 +178,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           log('[BusinessContext] Orphan auth recovery triggered for user:', user.id)
           setBusiness(null)
           setBusinessMissingConfirmed(true) // Confirmed no business
-          clearBusinessCache()
+          clearBusinessCache(user.id)
           setBusinessVerified(false)
           setLoading(false)
           setFetchComplete(true)
@@ -201,10 +221,11 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           setBusiness(null)
           setBusinessMissingConfirmed(false)
           setBusinessVerified(false)
+          const previousUserId = userIdRef.current
           userIdRef.current = null
           setLoading(false)
           setFetchComplete(false) // Reset fetch complete on logout
-          clearBusinessCache()
+          clearBusinessCache(previousUserId) // Clear the specific user's cache
         } else if (event === 'SIGNED_IN') {
           // Only refetch if user actually changed (avoids redundant refetch on initial mount)
           const newUserId = session?.user?.id

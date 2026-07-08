@@ -137,57 +137,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Sign out function that clears all sensitive data
   const signOut = async (options?: { manual?: boolean }) => {
     const isManualLogout = options?.manual !== false // Default to true if not specified
-    
+
     console.log('[LOGOUT] Sign out initiated', {
       isManualLogout,
       pathname,
       timestamp: new Date().toISOString()
     })
-    
+
     try {
       // Clear any credential-related form data from session storage
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('carrier_form_data')
-        
+        sessionStorage.removeItem('replyflow_auth_cache')
+        sessionStorage.removeItem('replyflow_business_verified')
+
         // Clean up debug storage keys
         localStorage.removeItem('replyflow_auth_debug_logs')
-        
+
+        // Clear all business caches (user-scoped)
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && key.startsWith('replyflow_business_display_cache')) {
+            localStorage.removeItem(key)
+          }
+        }
+
         // Clear skip_homepage_redirect cookie to prevent trapping users on homepage
         document.cookie = 'skip_homepage_redirect=; path=/; max-age=0'
-        
+
         const localKeysToRemove = []
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i)
           if (key && (
-            key.includes('credential') || 
-            key.includes('token') || 
-            key.includes('secret') || 
-            key.includes('key') || 
-            key.includes('email') || 
+            key.includes('credential') ||
+            key.includes('token') ||
+            key.includes('secret') ||
+            key.includes('key') ||
+            key.includes('email') ||
             key.includes('password')
           ) && !key.startsWith('supabase.')) { // CRITICAL: Exclude Supabase keys to preserve session
             localKeysToRemove.push(key)
           }
         }
         localKeysToRemove.forEach(key => localStorage.removeItem(key))
-        
+
         console.log('[LOGOUT] Local storage cleared', {
           keysRemoved: localKeysToRemove.length
         })
       }
-      
+
       // Sign out from Supabase if available
       if (supabase) {
         await supabase.auth.signOut()
         console.log('[LOGOUT] Supabase session cleared')
       }
-      
+
       // Clear auth state
       setSession(null)
       setUser(null)
-      
+
       console.log('[LOGOUT] Auth state cleared')
-      
+
       // Redirect: manual logout goes to homepage, session expiration goes to signin
       if (isManualLogout) {
         console.log('[LOGOUT] Redirecting to homepage')
