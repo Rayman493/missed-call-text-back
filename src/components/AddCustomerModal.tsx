@@ -115,11 +115,11 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-      <div className="relative w-full max-w-lg max-h-[calc(100dvh-2rem)] md:max-h-[90vh] overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 shadow-[0_1px_0_rgba(255,255,255,0.06),0_28px_90px_rgba(2,6,23,0.65)] backdrop-blur-xl flex flex-col">
+      <div className="relative w-full max-w-lg max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] md:max-h-[90vh] overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 shadow-[0_1px_0_rgba(255,255,255,0.06),0_28px_90px_rgba(2,6,23,0.65)] backdrop-blur-xl flex flex-col">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/40 to-transparent" />
-        <div className="overflow-y-auto flex-1 overflow-x-hidden" style={{ maxHeight: 'calc(100dvh-8rem)' }}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/[0.025]">
+        
+        {/* Sticky Header */}
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10 bg-white/[0.025] flex-shrink-0">
           <h2 className="text-xl font-semibold text-white">Add Customer</h2>
           <button
             onClick={onClose}
@@ -131,148 +131,153 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Required Fields */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Phone Number <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="tel"
-                value={formData.phoneNumber}
-                onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                placeholder="+1 (555) 123-4567"
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                disabled={isSubmitting}
-              />
+        {/* Scrollable Form Body */}
+        <div className="overflow-y-auto flex-1 overflow-x-hidden">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+            {/* Required Fields */}
+            <div className="space-y-3 sm:space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Phone Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phoneNumber}
+                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                  placeholder="+1 (555) 123-4567"
+                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Customer Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.customerName}
+                  onChange={(e) => handleInputChange('customerName', e.target.value)}
+                  placeholder="John Smith"
+                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                  disabled={isSubmitting}
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Customer Name
-              </label>
-              <input
-                type="text"
-                value={formData.customerName}
-                onChange={(e) => handleInputChange('customerName', e.target.value)}
-                placeholder="John Smith"
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
+            {/* Recommended Fields */}
+            <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t border-white/10">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Service Requested
+                </label>
+                <input
+                  type="text"
+                  value={formData.serviceRequested}
+                  onChange={(e) => handleInputChange('serviceRequested', e.target.value)}
+                  placeholder="Plumbing repair, HVAC service, etc."
+                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                  disabled={isSubmitting}
+                />
+              </div>
 
-          {/* Recommended Fields */}
-          <div className="space-y-4 pt-4 border-t border-white/10">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Service Requested
-              </label>
-              <input
-                type="text"
-                value={formData.serviceRequested}
-                onChange={(e) => handleInputChange('serviceRequested', e.target.value)}
-                placeholder="Plumbing repair, HVAC service, etc."
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                disabled={isSubmitting}
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Service Address
+                </label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  placeholder="123 Main St, City, State"
+                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                  disabled={isSubmitting}
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Service Address
-              </label>
-              <input
-                type="text"
-                value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                placeholder="123 Main St, City, State"
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Desired Completion
-              </label>
-              <input
-                type="text"
-                value={formData.desiredCompletion}
-                onChange={(e) => handleInputChange('desiredCompletion', e.target.value)}
-                placeholder="ASAP, Next week, etc."
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
-
-          {/* Optional Fields */}
-          <div className="space-y-4 pt-4 border-t border-white/10">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Best Callback Time
-              </label>
-              <input
-                type="text"
-                value={formData.callbackTime}
-                onChange={(e) => handleInputChange('callbackTime', e.target.value)}
-                placeholder="Morning, Afternoon, etc."
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                disabled={isSubmitting}
-              />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Desired Completion
+                </label>
+                <input
+                  type="text"
+                  value={formData.desiredCompletion}
+                  onChange={(e) => handleInputChange('desiredCompletion', e.target.value)}
+                  placeholder="ASAP, Next week, etc."
+                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                  disabled={isSubmitting}
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Notes
-              </label>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => handleInputChange('notes', e.target.value)}
-                placeholder="Any additional details..."
-                rows={3}
-                className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
+            {/* Optional Fields */}
+            <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t border-white/10">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Best Callback Time
+                </label>
+                <input
+                  type="text"
+                  value={formData.callbackTime}
+                  onChange={(e) => handleInputChange('callbackTime', e.target.value)}
+                  placeholder="Morning, Afternoon, etc."
+                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                  disabled={isSubmitting}
+                />
+              </div>
 
-          {/* Error */}
-          {error && (
-            <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
-              <p className="text-sm text-red-200">{error}</p>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                  placeholder="Any additional details..."
+                  rows={3}
+                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
+                  disabled={isSubmitting}
+                />
+              </div>
             </div>
-          )}
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="flex-1 px-4 py-2.5 border border-white/10 text-slate-300 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="premium-button flex-1 px-4 py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Adding...
-                </>
-              ) : (
-                'Add Customer'
-              )}
-            </button>
-          </div>
-        </form>
+            {/* Error */}
+            {error && (
+              <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3">
+                <p className="text-sm text-red-200">{error}</p>
+              </div>
+            )}
+          </form>
+        </div>
+
+        {/* Sticky Footer */}
+        <div className="flex gap-3 p-4 sm:p-6 border-t border-white/10 bg-white/[0.025] flex-shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-6">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="flex-1 px-4 py-2.5 border border-white/10 text-slate-300 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            onClick={(e) => {
+              e.preventDefault()
+              handleSubmit(e)
+            }}
+            disabled={isSubmitting}
+            className="premium-button flex-1 px-4 py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Adding...
+              </>
+            ) : (
+              'Add Customer'
+            )}
+          </button>
         </div>
       </div>
     </div>
