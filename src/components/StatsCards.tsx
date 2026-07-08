@@ -34,36 +34,44 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
       setRefreshing(true)
     }
     try {
-        // Fetch leads count
+        // Get start of current month for "This Month" filter
+        const now = new Date()
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
+        // Fetch leads count (this month)
         const { count: leadsCountData } = await supabase
           .from('leads')
           .select('*', { count: 'exact', head: true })
           .eq('business_id', businessId)
           .eq('is_demo', false)
+          .gte('created_at', startOfMonth)
         setLeadsCount(leadsCountData || 0)
 
-        // Fetch conversations count
+        // Fetch conversations count (this month)
         const { count: conversationsCountData } = await supabase
           .from('conversations')
           .select('*', { count: 'exact', head: true })
           .eq('business_id', businessId)
+          .gte('created_at', startOfMonth)
         setConversationsCount(conversationsCountData || 0)
 
-        // Fetch follow-ups count (only pending/scheduled follow-ups)
+        // Fetch follow-ups count (only pending/scheduled follow-ups, this month)
         const supabaseAny = supabase as any
         const { count: followUpsCountData } = await supabaseAny
           .from('follow_up_jobs')
           .select('*', { count: 'exact', head: true })
           .eq('business_id', businessId)
           .eq('status', 'pending')
+          .gte('created_at', startOfMonth)
         setFollowUpsCount(followUpsCountData || 0)
 
-        // Fetch leads count for missed calls (leads = missed calls captured)
+        // Fetch leads count for missed calls (leads = missed calls captured, this month)
         const { count: missedCallsCountData } = await supabase
           .from('leads')
           .select('*', { count: 'exact', head: true })
           .eq('business_id', businessId)
           .eq('is_demo', false)
+          .gte('created_at', startOfMonth)
         setMissedCallsCount(missedCallsCountData || 0)
       } catch (error) {
         console.error('[StatsCards] Error fetching stats:', error)

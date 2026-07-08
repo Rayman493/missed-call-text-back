@@ -69,7 +69,7 @@ export async function GET(request: Request) {
 
     const pendingRequests = paymentRequests.filter(p => p.status === 'pending').length
 
-    const totalRequests = paymentRequests.filter(p => p.status !== 'cancelled').length
+    const totalRequests = paymentRequests.filter(p => p.status !== 'cancelled' && p.status !== 'expired').length
     const paidRequests = paymentRequests.filter(p => p.status === 'paid').length
     const collectionRate = totalRequests > 0 ? Math.round((paidRequests / totalRequests) * 100) : 0
 

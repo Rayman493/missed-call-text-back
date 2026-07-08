@@ -157,8 +157,8 @@ export default function AnalyticsContent() {
         const outboundMessages = outboundMessagesArray.length
         const totalMessages = messages?.length || 0
 
-        const aiIntakesCompleted = aiCallsArray.filter((c: any) => c.outcome === 'completed').length || 0
-        const aiIntakesIncomplete = aiCallsArray.filter((c: any) => c.outcome === 'incomplete').length || 0
+        const aiIntakesCompleted = aiCallsArray.filter((c: any) => c.outcome === 'completed_intake' || c.outcome === 'completed').length || 0
+        const aiIntakesIncomplete = aiCallsArray.filter((c: any) => c.outcome === 'partial_intake' || c.outcome === 'incomplete').length || 0
         const totalAiCalls = aiCallsArray.length
         const aiCompletionRate = totalAiCalls > 0 ? (aiIntakesCompleted / totalAiCalls) * 100 : 0
 
