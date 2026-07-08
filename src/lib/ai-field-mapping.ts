@@ -185,6 +185,7 @@ export function getAIIntakeStatus(lead: any): AIIntakeStatus {
     case 'completed':
       return 'complete'
     case 'partial_intake':
+    case 'incomplete':
       return 'partial'
     case 'ai_failed':
     case 'ai_connection_failed':
