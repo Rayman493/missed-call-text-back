@@ -37,6 +37,7 @@ import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-
 import ImportContactsModal from '@/components/ImportContactsModal'
 import { getDefaultOutOfOfficeTemplate } from '@/lib/out-of-office'
 import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle } from 'lucide-react'
+import ConfirmModal from '@/components/ui/ConfirmModal'
 
 export default function SettingsContent() {
   const router = useRouter()
@@ -107,6 +108,7 @@ export default function SettingsContent() {
   const [isDisconnectingCalendar, setIsDisconnectingCalendar] = useState(false)
   const [calendarEmail, setCalendarEmail] = useState<string | null>(null)
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
+  const [isCalendarDisconnectConfirmOpen, setIsCalendarDisconnectConfirmOpen] = useState(false)
 
   // Business phone number change state
   const [showPhoneChangeModal, setShowPhoneChangeModal] = useState(false)
@@ -550,10 +552,11 @@ export default function SettingsContent() {
   }
 
   const handleDisconnectCalendar = async () => {
-    if (!confirm('Disconnect Google Calendar? This will stop syncing your calendar events with ReplyFlow.')) {
-      return
-    }
+    setIsCalendarDisconnectConfirmOpen(true)
+  }
 
+  const handleDisconnectCalendarConfirmed = async () => {
+    setIsCalendarDisconnectConfirmOpen(false)
     setIsDisconnectingCalendar(true)
     try {
       const response = await fetch('/api/google/calendar/disconnect', {
@@ -2892,6 +2895,19 @@ export default function SettingsContent() {
               fetchIgnoredContacts()
               showToast('Contacts imported successfully', 'success')
             }}
+          />
+
+          {/* Calendar Disconnect Confirmation Modal */}
+          <ConfirmModal
+            isOpen={isCalendarDisconnectConfirmOpen}
+            onClose={() => setIsCalendarDisconnectConfirmOpen(false)}
+            onConfirm={handleDisconnectCalendarConfirmed}
+            title="Disconnect Google Calendar?"
+            description="Your Google Calendar will stop syncing with ReplyFlow. This will NOT delete any events already on your calendar. You can reconnect at any time."
+            confirmText="Disconnect"
+            cancelText="Cancel"
+            isDestructive={true}
+            isLoading={isDisconnectingCalendar}
           />
 
           {/* Toast Container */}

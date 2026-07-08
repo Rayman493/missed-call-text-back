@@ -23,6 +23,7 @@ import JobDetailsModal from '@/components/jobs/JobDetailsModal'
 import TodaySchedule from '@/components/jobs/TodaySchedule'
 import NewJobModal from '@/components/jobs/NewJobModal'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
+import ConfirmModal from '@/components/ui/ConfirmModal'
 import type { Job, JobStatus, JobPrefill } from '@/components/jobs/JobComposer'
 
 interface CalendarEvent {
@@ -74,6 +75,10 @@ export default function SchedulePage() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isJobDetailsOpen, setIsJobDetailsOpen] = useState(false)
   const [editingJob, setEditingJob] = useState<Job | null>(null)
+  
+  // Calendar confirmation modals
+  const [isConnectConfirmOpen, setIsConnectConfirmOpen] = useState(false)
+  const [isDisconnectConfirmOpen, setIsDisconnectConfirmOpen] = useState(false)
 
   // Check for OAuth success/error redirect
   useEffect(() => {
@@ -182,18 +187,20 @@ export default function SchedulePage() {
   }
 
   const handleConnectCalendarWithExplanation = async () => {
-    // Show explanation first, then proceed
-    if (!confirm('We\'ll sync your calendar to show appointments when scheduling with leads. We only read your calendar, never modify it. Continue?')) {
-      return
-    }
+    setIsConnectConfirmOpen(true)
+  }
+
+  const handleConnectCalendarConfirmed = async () => {
+    setIsConnectConfirmOpen(false)
     handleConnectCalendar()
   }
 
   const handleDisconnectCalendar = async () => {
-    if (!confirm('Disconnect Google Calendar? This will stop syncing your calendar events with ReplyFlow.')) {
-      return
-    }
+    setIsDisconnectConfirmOpen(true)
+  }
 
+  const handleDisconnectCalendarConfirmed = async () => {
+    setIsDisconnectConfirmOpen(false)
     setIsDisconnecting(true)
     try {
       const response = await fetch('/api/google/calendar/disconnect', {
@@ -1192,6 +1199,31 @@ export default function SchedulePage() {
                       }}
                     />
                   )}
+
+                  {/* Calendar Connect Confirmation Modal */}
+                  <ConfirmModal
+                    isOpen={isConnectConfirmOpen}
+                    onClose={() => setIsConnectConfirmOpen(false)}
+                    onConfirm={handleConnectCalendarConfirmed}
+                    title="Connect Google Calendar"
+                    description="We'll sync your calendar to show appointments when scheduling with leads. We only read your calendar, never modify it."
+                    confirmText="Connect"
+                    cancelText="Cancel"
+                    isDestructive={false}
+                  />
+
+                  {/* Calendar Disconnect Confirmation Modal */}
+                  <ConfirmModal
+                    isOpen={isDisconnectConfirmOpen}
+                    onClose={() => setIsDisconnectConfirmOpen(false)}
+                    onConfirm={handleDisconnectCalendarConfirmed}
+                    title="Disconnect Google Calendar?"
+                    description="Your Google Calendar will stop syncing with ReplyFlow. This will NOT delete any events already on your calendar. You can reconnect at any time."
+                    confirmText="Disconnect"
+                    cancelText="Cancel"
+                    isDestructive={true}
+                    isLoading={isDisconnecting}
+                  />
 
                   </div>{/* end right column */}
                   </div>{/* end 2-col grid */}
