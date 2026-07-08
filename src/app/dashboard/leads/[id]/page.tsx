@@ -510,15 +510,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const voicemails = leadData?.voicemailRecordings || []
     const systemEvents: any[] = []
     
-    // Add AI Intake Completed event - check actual outcome for consistency
+    // Add AI Intake event - check actual outcome for consistency
     if (leadData?.aiCallRecords && leadData.aiCallRecords.length > 0) {
       const latestAiCall = leadData.aiCallRecords[0]
       const outcome = latestAiCall.outcome
+      const intakeStatus = getAIIntakeStatus({ aiCallRecords: [latestAiCall] })
       
       // Determine message based on actual outcome
       let intakeMessage = 'AI Intake Completed'
-      if (outcome === 'partial_intake') {
-        intakeMessage = 'AI Intake Incomplete'
+      if (intakeStatus === 'partial') {
+        intakeMessage = 'AI Intake Partial'
       } else if (outcome === 'early_hangup') {
         intakeMessage = 'Caller Hung Up Early'
       } else if (outcome === 'no_speech') {

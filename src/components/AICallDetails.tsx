@@ -4,8 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
 import { MessageCircle, ChevronDown, ChevronUp, Pencil, X, Check, Loader2, User, FileText, MapPin, Calendar, Phone } from 'lucide-react'
-import { normalizeExtractedInfo, getLeadAIIntake } from '@/lib/ai-field-mapping'
-import { isCompleteAIIntake, determineAIOutcomeFromExtractedInfo } from '@/lib/ai-intake-completion'
+import { normalizeExtractedInfo, getLeadAIIntake, getAIIntakeStatus } from '@/lib/ai-field-mapping'
 
 interface AICallRecord {
   id: string
@@ -16,7 +15,7 @@ interface AICallRecord {
   forwarded_from: string | null
   call_sid: string
   ai_session_id: string | null
-  outcome: 'completed' | 'caller_hung_up' | 'ai_failed' | 'voicemail_fallback'
+  outcome: 'completed_intake' | 'partial_intake' | 'early_hangup' | 'no_speech' | 'ai_connection_failed' | 'completed' | 'caller_hung_up' | 'ai_failed' | 'voicemail_fallback'
   transcript: Array<{ role: 'user' | 'assistant'; text: string; timestamp: string }>
   extracted_info: {
     callerName?: string
@@ -221,8 +220,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   const getOutcomeColor = (outcome: string) => {
     switch (outcome) {
+      case 'completed_intake':
       case 'completed':
         return 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20'
+      case 'partial_intake':
+        return 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/20'
       case 'caller_hung_up':
         return 'text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20'
       case 'ai_failed':
@@ -274,9 +276,13 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
     : normalizeExtractedInfo(aiCallRecord.extracted_info || {})
   const correctedFields = leadData?.raw_metadata?.corrected_fields
 
-  // Use canonical helper to determine effective outcome
-  const isComplete = isCompleteAIIntake(extractedInfo as any)
-  const effectiveOutcome = determineAIOutcomeFromExtractedInfo(extractedInfo as any, aiCallRecord?.outcome)
+  const aiIntakeStatus = getAIIntakeStatus({ aiCallRecords: [aiCallRecord] })
+  const effectiveOutcome = aiCallRecord.outcome
+  const intakeBadgeLabel = aiIntakeStatus === 'complete'
+    ? 'Completed Intake'
+    : aiIntakeStatus === 'partial'
+      ? 'Partial Intake'
+      : effectiveOutcome.replace('_', ' ').toUpperCase()
 
   return (
     <div className="space-y-4">
@@ -346,7 +352,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               {/* AI Status Badge and Edit Controls */}
               <div className="flex items-center justify-between mb-4">
                 <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getOutcomeColor(effectiveOutcome)}`}>
-                  {effectiveOutcome.replace('_', ' ').toUpperCase()}
+                  {intakeBadgeLabel}
                 </span>
                 {isEditMode ? (
                   <div className="flex items-center gap-2">
@@ -571,7 +577,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           {/* AI Status Badge and Edit Controls */}
           <div className="flex items-center justify-between mb-4">
             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getOutcomeColor(effectiveOutcome)}`}>
-              {effectiveOutcome.replace('_', ' ').toUpperCase()}
+              {intakeBadgeLabel}
             </span>
             {isEditMode ? (
               <div className="flex items-center gap-2">
