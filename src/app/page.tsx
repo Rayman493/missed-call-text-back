@@ -135,9 +135,8 @@ export default async function Home() {
                   >
                     Start Protecting Your Missed Calls
                   </Link>
-                  <div className="flex flex-col items-center gap-1 text-sm text-slate-600 dark:text-slate-400">
-                    <span>No credit card required</span>
-                    <span>Cancel anytime</span>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">
+                    14-day free trial • $59/month after • Cancel anytime
                   </div>
                 </div>
               )}
