@@ -9,7 +9,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { handleBillingAction } from '@/lib/billing'
 // import ThemeSelector from '@/components/ThemeSelector' // Temporarily disabled for mobile crash fix
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { ChevronDown, CreditCard, LogOut, MessageCircle, ReceiptText, Settings, User } from 'lucide-react'
+import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User } from 'lucide-react'
 import { accountMenuItems } from '@/lib/navigation-config'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 
@@ -33,7 +33,7 @@ export default function UserDropdown() {
   const isHomepage = pathname === '/'
   const desktopAccountMenuItems = accountMenuItems.map(item => (
     isHomepage && item.label === 'View Homepage'
-      ? { ...item, label: 'Go to Dashboard', href: '/dashboard', external: false }
+      ? { ...item, label: 'Go to Dashboard', href: '/dashboard', external: false, icon: LayoutDashboard }
       : item
   ))
 
@@ -312,7 +312,7 @@ export default function UserDropdown() {
                 onClick={() => setIsOpen(false)}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
               >
-                <User className="h-4 w-4 text-slate-400" />
+                <LayoutDashboard className="h-4 w-4 text-slate-400" />
                 {isHomepage ? 'Go to Dashboard' : 'View Homepage'}
               </Link>
             </div>
