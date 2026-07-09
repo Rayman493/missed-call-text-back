@@ -4,7 +4,7 @@ import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
-import LegalNavigation from '@/components/LegalNavigation'
+import DocumentationHero from '@/components/DocumentationHero'
 import ScrollToTopOnMount from '@/components/ScrollToTopOnMount'
 
 export const metadata: Metadata = {
@@ -18,46 +18,16 @@ export default function FAQPage() {
       <ScrollToTopOnMount />
       <SSRSafeNavbar forceDark={true} />
 
-      {/* Back to Home Navigation */}
-      <div className="bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 group"
-          >
-            <svg
-              className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Home
-          </Link>
-        </div>
-      </div>
-
       {/* Hero Section */}
-      <div className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-6 sm:pb-8">
-          {/* Legal Page Navigation */}
-          <div className="flex justify-center mb-4">
-            <LegalNavigation activePage="faq" />
-          </div>
-          <div className="text-center">
-            <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">
-              Frequently Asked Questions
-            </h1>
-            <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto">
-              Everything you need to know about ReplyFlow's AI Voice, missed-call recovery, lead management, appointment scheduling, and Payment Requests.
-            </p>
-          </div>
-          <div className="mt-8 max-w-4xl mx-auto">
-            <ReplyFlowAssistant defaultCategory="Overview" context={{ currentPage: undefined }} />
-          </div>
+      <DocumentationHero
+        activePage="faq"
+        title="Frequently Asked Questions"
+        subtitle="Everything you need to know about ReplyFlow's AI Voice, missed-call recovery, lead management, appointment scheduling, and Payment Requests."
+      >
+        <div className="mt-8 max-w-4xl mx-auto">
+          <ReplyFlowAssistant defaultCategory="Overview" context={{ currentPage: undefined }} />
         </div>
-      </div>
+      </DocumentationHero>
 
       {/* FAQ Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
