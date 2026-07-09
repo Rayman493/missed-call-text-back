@@ -335,7 +335,7 @@ export default function PublicHome() {
                     </svg>
                   </div>
                   <span className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">
-                    14-day free trial
+                    AI Answers Every Missed Call
                   </span>
                 </div>
                 <div className="flex flex-col items-center text-center group">
