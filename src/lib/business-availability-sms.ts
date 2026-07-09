@@ -86,5 +86,5 @@ export function appendBusinessAvailabilityNote(message: string, business: any): 
 
   if (normalizedBody.includes(normalizedNotice)) return body
 
-  return `${body.trim()}\n\n${notice}`
+  return `${body.trim()}\n\n----------\n\n${notice}`
 }
