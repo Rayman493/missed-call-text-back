@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save } from 'lucide-react'
+import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 
 const supabase = createBrowserClient()
@@ -561,7 +561,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     onClick={handleEditClick}
                     className="flex-1 px-4 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
                   >
-                    <Save className="w-4 h-4" />
+                    <Pencil className="w-4 h-4" />
                     <span>Edit</span>
                   </button>
                   <button
