@@ -29,12 +29,13 @@ type CardState =
   | 'setup-complete-success'
   | 'healthy'
 
-export default function SetupStatusCard({ 
-  business, 
+export default function SetupStatusCard({
+  business,
   setupHealth,
-  missedCallCount = 0 
+  missedCallCount = 0
 }: SetupStatusCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [userHasToggled, setUserHasToggled] = useState(false)
   const [isOpeningBilling, setIsOpeningBilling] = useState(false)
   const [billingError, setBillingError] = useState<string | null>(null)
   const [successDismissed, setSuccessDismissed] = useState(false)
@@ -189,21 +190,24 @@ export default function SetupStatusCard({
   const cardState = getCardState()
   
   // Auto-expand during setup states and success state, collapse after setup
-  const shouldAutoExpand = 
-    cardState === 'needs-forwarding' || 
+  const shouldAutoExpand =
+    cardState === 'needs-forwarding' ||
     cardState === 'needs-verification' ||
     cardState === 'billing-blocker' ||
     cardState === 'critical-issue' ||
     cardState === 'setup-complete-success' ||
     cardState === 'subscription-active'
-  
+
   React.useEffect(() => {
-    if (shouldAutoExpand) {
-      setIsExpanded(true)
-    } else {
-      setIsExpanded(false)
+    // Only auto-expand if user hasn't manually toggled
+    if (!userHasToggled) {
+      if (shouldAutoExpand) {
+        setIsExpanded(true)
+      } else {
+        setIsExpanded(false)
+      }
     }
-  }, [shouldAutoExpand])
+  }, [shouldAutoExpand, userHasToggled])
 
   // Auto-expand the current step
   React.useEffect(() => {
@@ -515,6 +519,7 @@ export default function SetupStatusCard({
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
+              setUserHasToggled(true)
               setIsExpanded(true)
             }}
             className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
@@ -535,8 +540,8 @@ export default function SetupStatusCard({
         <div className="flex items-center justify-between gap-3 pb-2 sm:pb-4">
           <div className="flex-1 min-w-0">
             <h1 className="text-base sm:text-xl font-bold text-white truncate">
-              {cardState === 'needs-forwarding' || cardState === 'needs-verification' 
-                ? 'Complete these three steps to activate ReplyFlow'
+              {cardState === 'needs-forwarding' || cardState === 'needs-verification'
+                ? 'Complete Setup'
                 : 'ReplyFlow Active'
               }
             </h1>
@@ -554,6 +559,7 @@ export default function SetupStatusCard({
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
+              setUserHasToggled(true)
               setIsExpanded(false)
             }}
             className="flex-shrink-0 p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
