@@ -126,20 +126,29 @@ export default async function Home() {
                 AI Voice answers forwarded missed calls, captures lead details, and helps you book more jobs — all while you focus on running your business.
               </p>
 
-              {/* Primary CTA - Only shown for non-authenticated users */}
-              {!session?.user && (
-                <div className="mt-8 sm:mt-10 flex flex-col items-center justify-center gap-3 sm:gap-4">
+              {/* Primary CTA */}
+              <div className="mt-8 sm:mt-10 flex flex-col items-center justify-center gap-3 sm:gap-4">
+                {session?.user ? (
                   <Link
-                    href="/auth?mode=signup"
+                    href="/dashboard"
                     className="inline-flex items-center justify-center h-14 sm:h-16 px-8 sm:px-10 w-full sm:w-auto sm:min-w-[280px] bg-blue-600 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
-                    Start Protecting Your Missed Calls
+                    Go to Dashboard
                   </Link>
-                  <div className="text-sm text-slate-500 dark:text-slate-400">
-                    14-day free trial • $59/month after • Cancel anytime
-                  </div>
-                </div>
-              )}
+                ) : (
+                  <>
+                    <Link
+                      href="/auth?mode=signup"
+                      className="inline-flex items-center justify-center h-14 sm:h-16 px-8 sm:px-10 w-full sm:w-auto sm:min-w-[280px] bg-blue-600 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                      Start Your 14-Day Free Trial
+                    </Link>
+                    <div className="text-base text-slate-500 dark:text-slate-400">
+                      14-day free trial • $59/month after • Cancel anytime
+                    </div>
+                  </>
+                )}
+              </div>
 
               {/* Trust Indicators - Desktop */}
               <div className="mt-10 sm:mt-12 hidden sm:block">
@@ -836,10 +845,12 @@ export default async function Home() {
                   See How It Works
                 </a>
               </div>
-              
-              <div className="mt-4 sm:mt-5 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                14-day free trial • $59/month after • Cancel anytime
-              </div>
+
+              {!session?.user && (
+                <div className="mt-4 sm:mt-5 text-sm text-slate-500 dark:text-slate-400">
+                  14-day free trial • $59/month after • Cancel anytime
+                </div>
+              )}
             </div>
           </div>
         </section>

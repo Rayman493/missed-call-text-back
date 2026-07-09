@@ -327,18 +327,29 @@ export default function PublicHome() {
 
                 <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
                   {/* Primary CTA */}
-                  <Link
-                    href="/signup"
-                    className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
-                  >
-                    Start Protecting Your Missed Calls
-                  </Link>
+                  {isLoggedIn ? (
+                    <Link
+                      href="/dashboard"
+                      className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
+                    >
+                      Go to Dashboard
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/signup"
+                      className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
+                    >
+                      Start Your 14-Day Free Trial
+                    </Link>
+                  )}
                 </div>
 
-                {/* Pricing Helper Text */}
-                <div className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-                  14-day free trial • $59/month after • Cancel anytime
-                </div>
+                {/* Pricing Helper Text - Only for logged-out users */}
+                {!isLoggedIn && (
+                  <div className="mt-4 text-base text-slate-500 dark:text-slate-400">
+                    14-day free trial • $59/month after • Cancel anytime
+                  </div>
+                )}
 
                 {/* Works For Section - Mobile Conversion */}
                 <div className="mt-6 sm:mt-8">
@@ -971,7 +982,7 @@ export default function PublicHome() {
                 >
                   Start Your 14-Day Free Trial
                 </Link>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-4">
+                <p className="text-base text-slate-500 dark:text-slate-400 mt-4">
                   14-day free trial • $59/month after • Cancel anytime
                 </p>
               </>
