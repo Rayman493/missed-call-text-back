@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusinessSafe } from '@/contexts/BusinessContext'
-import { LogOut, Home, LayoutDashboard, Settings, ExternalLink } from 'lucide-react'
+import { Home } from 'lucide-react'
 
 interface MobileDrawerProps {
   isOpen: boolean
@@ -160,14 +160,6 @@ export default function MobileDrawer({ isOpen, onClose, triggerRef }: MobileDraw
         {isLoggedIn ? (
           // Authenticated navigation - informational pages only
           <>
-            <Link
-              href="/"
-              onClick={handleNavClick}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-            >
-              <Home className="h-4 w-4 text-slate-400" />
-              Home
-            </Link>
             <Link
               href="/#interactive-demo"
               onClick={handleNavClick}

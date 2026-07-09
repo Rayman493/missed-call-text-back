@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { handleBillingAction } from '@/lib/billing'
@@ -19,6 +20,7 @@ export default function UserDropdown() {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
   const { user, signOut } = useAuth()
   const { business } = useBusiness()
+  const pathname = usePathname()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
@@ -28,6 +30,12 @@ export default function UserDropdown() {
   const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED !== 'false'
   const currentPlan = business?.subscription_price_id ? 'Paid plan' : business?.subscription_status || 'No plan'
   const trialStatus = business?.trial_ends_at ? `Trial ends ${new Date(business.trial_ends_at).toLocaleDateString()}` : business?.subscription_status || 'No trial active'
+  const isHomepage = pathname === '/'
+  const desktopAccountMenuItems = accountMenuItems.map(item => (
+    isHomepage && item.label === 'View Homepage'
+      ? { ...item, label: 'Go to Dashboard', href: '/dashboard', external: false }
+      : item
+  ))
 
   // Validate Supabase session on mount and when user changes
   useEffect(() => {
@@ -299,13 +307,13 @@ export default function UserDropdown() {
                 ReplyFlow Assistant
               </button>
               <Link
-                href="/"
+                href={isHomepage ? '/dashboard' : '/'}
                 role="menuitem"
                 onClick={() => setIsOpen(false)}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
               >
                 <User className="h-4 w-4 text-slate-400" />
-                View Homepage
+                {isHomepage ? 'Go to Dashboard' : 'View Homepage'}
               </Link>
             </div>
 
@@ -343,7 +351,7 @@ export default function UserDropdown() {
 
             {/* Navigation Items */}
             <div className="py-1">
-              {accountMenuItems.map((item) => {
+              {desktopAccountMenuItems.map((item) => {
                 const Icon = item.icon
                 const isDanger = item.variant === 'danger'
                 const isBilling = item.action === 'billing'

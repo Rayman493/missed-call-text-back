@@ -127,7 +127,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                     <>
                       <Link
                         href="/dashboard"
-                        className={`text-base font-semibold ${isPublicPage && !forceDark ? 'text-slate-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-gray-100' : 'text-gray-200 hover:text-white'} transition-colors hidden sm:block py-1`}
+                        className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 sm:px-4 sm:py-2 sm:text-sm"
                       >
                         Dashboard
                       </Link>
@@ -135,6 +135,12 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                   ) : (
                     // Other public pages: show navigation options
                     <>
+                      <Link
+                        href="/dashboard"
+                        className="inline-flex items-center rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 sm:px-4 sm:py-2 sm:text-sm"
+                      >
+                        Dashboard
+                      </Link>
                       {/* Only show Home and Demo on non-homepage, non-content pages */}
                       {!isHomepage && !isContentPage && (
                         <>
