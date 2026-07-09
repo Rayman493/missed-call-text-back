@@ -4,7 +4,6 @@ import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 import { generateSummaryFromExtractedInfo } from '@/lib/sms-processing'
-import { getOutOfOfficeNotice } from '@/lib/out-of-office'
 
 export type AutoSmsTrigger = 'call_finished' | 'ai_confirmation' | 'voicemail_completed' | 'recording_fallback'
 export type AutoSmsOutcome = 'SUMMARY'
@@ -206,10 +205,8 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
       : 'post_call_structured_summary'
   let messageBody = generateSummaryFromExtractedInfo(extracted, callerPhone, businessName, '')
 
-  const outOfOfficeAppend = getOutOfOfficeNotice(business) || ''
-  if (outOfOfficeAppend && !messageBody.includes(outOfOfficeAppend.trim())) {
-    messageBody = `${messageBody}${outOfOfficeAppend}`
-  }
+  // Out of Office notice is handled centrally by sendSms via appendBusinessAvailabilityNote
+  // Do not append here to avoid duplication
 
   const conversationId = await getConversationId(leadId, businessId, params.conversationId)
 
