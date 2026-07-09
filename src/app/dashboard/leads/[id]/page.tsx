@@ -30,7 +30,7 @@ import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
 import EventComposer from '@/components/calendar/EventComposer'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
-import { CalendarDays, ClipboardPlus, CreditCard } from 'lucide-react'
+import { CalendarDays, ClipboardPlus, CreditCard, MessageSquare } from 'lucide-react'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -897,6 +897,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
   const paymentAmountRef = useRef<HTMLInputElement>(null)
 
+  // State for appointment confirmation
+  const [showAppointmentSelection, setShowAppointmentSelection] = useState(false)
+  const [isSendingConfirmation, setIsSendingConfirmation] = useState(false)
+  const [showResendConfirm, setShowResendConfirm] = useState(false)
+  const [confirmationError, setConfirmationError] = useState<string | null>(null)
+  const [leadJobs, setLeadJobs] = useState<any[]>([])
+  const [selectedJobForConfirmation, setSelectedJobForConfirmation] = useState<any>(null)
+
   // Set default payment provider when modal opens
   useEffect(() => {
     if (showPaymentModal && business) {
@@ -919,6 +927,99 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }, 100)
     }
   }, [showPaymentModal, business])
+
+  // Fetch jobs for lead to check for scheduled appointments
+  useEffect(() => {
+    const fetchLeadJobs = async () => {
+      if (!leadData?.id || !business) return
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
+
+        if (!token) return
+
+        const response = await fetch(`/api/jobs?lead_id=${leadData.id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setLeadJobs(data.jobs || [])
+        }
+      } catch (error) {
+        console.error('Error fetching lead jobs:', error)
+      }
+    }
+
+    fetchLeadJobs()
+  }, [leadData?.id, business])
+
+  // Get future scheduled appointments for this lead
+  const futureAppointments = leadJobs.filter((job: any) => {
+    if (!job.scheduled_date) return false
+    const scheduledDate = new Date(job.scheduled_date)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return scheduledDate >= today
+  })
+
+  // Handle appointment confirmation sending
+  const handleSendConfirmation = async (jobId: string) => {
+    setIsSendingConfirmation(true)
+    setConfirmationError(null)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch(`/api/jobs/${jobId}/send-confirmation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to send confirmation')
+      }
+
+      // Refresh lead data to update job confirmation status
+      await handleRefresh()
+      setShowAppointmentSelection(false)
+      setShowResendConfirm(false)
+    } catch (error: any) {
+      setConfirmationError(error.message || 'Failed to send confirmation')
+    } finally {
+      setIsSendingConfirmation(false)
+    }
+  }
+
+  // Handle appointment confirmation button click
+  const handleConfirmationClick = () => {
+    if (futureAppointments.length === 0) {
+      return // Should not happen due to button visibility check
+    }
+
+    if (futureAppointments.length === 1) {
+      const job = futureAppointments[0]
+      if (job.confirmation_sms_sent_at) {
+        setShowResendConfirm(true)
+      } else {
+        handleSendConfirmation(job.id)
+      }
+    } else {
+      setShowAppointmentSelection(true)
+    }
+  }
 
   // Handle ignore contact
   const handleIgnoreContact = async () => {
@@ -2063,6 +2164,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             <CreditCard className="w-4 h-4 stroke-[1.8]" />
                             Request Payment
                           </button>
+                          {futureAppointments.length > 0 && (
+                            <button
+                              onClick={() => {
+                                handleConfirmationClick()
+                                setShowMobileOverflow(false)
+                              }}
+                              disabled={isSendingConfirmation}
+                              className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                              {isSendingConfirmation ? (
+                                <>
+                                  <div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                                  Sending...
+                                </>
+                              ) : (
+                                <>
+                                  <MessageSquare className="w-4 h-4 stroke-[1.8]" />
+                                  Send Appointment Confirmation
+                                </>
+                              )}
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               setMobileInternalNotesExpanded(!mobileInternalNotesExpanded)
@@ -2313,6 +2436,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <CreditCard className="w-4 h-4 stroke-[1.8]" />
                 <span className="leading-none">Request Payment</span>
               </button>
+              {futureAppointments.length > 0 && (
+                <button
+                  onClick={handleConfirmationClick}
+                  disabled={isSendingConfirmation}
+                  className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={futureAppointments.length === 1 && futureAppointments[0].confirmation_sms_sent_at ? 'Resend confirmation' : 'Send appointment confirmation'}
+                >
+                  {isSendingConfirmation ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                      <span className="leading-none">Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquare className="w-4 h-4 stroke-[1.8]" />
+                      <span className="leading-none">Send Appointment Confirmation</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -3464,6 +3607,99 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       onSave={handleJobSave}
       prefill={jobPrefill}
     />
+
+    {/* Appointment Selection Modal */}
+    {showAppointmentSelection && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+            Select Appointment
+          </h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+            Choose which appointment to send a confirmation for.
+          </p>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {futureAppointments.map((job: any) => (
+              <button
+                key={job.id}
+                onClick={() => {
+                  if (job.confirmation_sms_sent_at) {
+                    setShowResendConfirm(true)
+                    setSelectedJobForConfirmation(job)
+                  } else {
+                    handleSendConfirmation(job.id)
+                  }
+                  setShowAppointmentSelection(false)
+                }}
+                className="w-full text-left p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <div className="font-medium text-slate-900 dark:text-white">
+                  {job.title || 'Appointment'}
+                </div>
+                <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                  {job.scheduled_date && new Date(job.scheduled_date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                  {job.scheduled_time && ` • ${job.scheduled_time}`}
+                </div>
+                {job.confirmation_sms_sent_at && (
+                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                    ✓ Confirmation sent
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={() => setShowAppointmentSelection(false)}
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Resend Confirmation Modal */}
+    {showResendConfirm && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+            Resend Confirmation
+          </h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+            A confirmation has already been sent for this appointment. Send it again?
+          </p>
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => {
+                setShowResendConfirm(false)
+                setSelectedJobForConfirmation(null)
+              }}
+              disabled={isSendingConfirmation}
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                if (selectedJobForConfirmation) {
+                  handleSendConfirmation(selectedJobForConfirmation.id)
+                }
+              }}
+              disabled={isSendingConfirmation}
+              className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isSendingConfirmation ? 'Sending...' : 'Resend Confirmation'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* Delete Confirmation Modal */}
     {showDeleteModal && (

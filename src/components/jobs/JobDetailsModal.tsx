@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Pencil, Trash2, Link as LinkIcon, MessageSquare, CheckCircle2, AlertCircle } from 'lucide-react'
 import type { Job, JobStatus } from './JobComposer'
 
@@ -53,9 +54,6 @@ export default function JobDetailsModal({
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [isSendingConfirmation, setIsSendingConfirmation] = useState(false)
-  const [showResendConfirm, setShowResendConfirm] = useState(false)
-  const [confirmationError, setConfirmationError] = useState('')
 
   if (!isOpen) return null
 
@@ -86,37 +84,6 @@ export default function JobDetailsModal({
     } finally {
       setIsDeleting(false)
       setShowDeleteConfirm(false)
-    }
-  }
-
-  const handleSendConfirmation = async () => {
-    // Check if already sent and show confirmation if so
-    if (job.confirmation_sms_sent_at && !showResendConfirm) {
-      setShowResendConfirm(true)
-      return
-    }
-
-    setIsSendingConfirmation(true)
-    setConfirmationError('')
-    setShowResendConfirm(false)
-
-    try {
-      const response = await fetch(`/api/jobs/${job.id}/send-confirmation`, {
-        method: 'POST',
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to send confirmation text')
-      }
-
-      const data = await response.json()
-      // Update the job with the new confirmation data
-      onStatusChange(data.job, job.status)
-    } catch (err) {
-      setConfirmationError(err instanceof Error ? err.message : 'Failed to send confirmation text')
-    } finally {
-      setIsSendingConfirmation(false)
     }
   }
 
@@ -236,8 +203,14 @@ export default function JobDetailsModal({
               ) : (
                 <p className="text-sm text-slate-600 dark:text-slate-300">No confirmation sent</p>
               )}
-              {confirmationError && (
-                <p className="text-xs text-red-600 dark:text-red-400 mt-1">{confirmationError}</p>
+              {job.lead_id && (
+                <Link
+                  href={`/dashboard/leads/${job.lead_id}`}
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mt-2 transition-colors"
+                >
+                  <LinkIcon className="w-3 h-3" />
+                  View Conversation
+                </Link>
               )}
             </div>
 
@@ -283,23 +256,6 @@ export default function JobDetailsModal({
                   {isDeleting ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
-            ) : showResendConfirm ? (
-              <div className="flex items-center gap-2 w-full">
-                <span className="text-xs text-slate-600 dark:text-slate-400 flex-1">A confirmation has already been sent for this appointment. Send it again?</span>
-                <button
-                  onClick={() => setShowResendConfirm(false)}
-                  className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleSendConfirmation()}
-                  disabled={isSendingConfirmation}
-                  className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {isSendingConfirmation ? 'Sending...' : 'Resend Confirmation'}
-                </button>
-              </div>
             ) : (
               <>
                 <button
@@ -309,40 +265,13 @@ export default function JobDetailsModal({
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-                <div className="flex items-center gap-2">
-                  {job.customer_phone && (
-                    <button
-                      onClick={handleSendConfirmation}
-                      disabled={isSendingConfirmation}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={job.confirmation_sms_sent_at ? 'Resend confirmation' : 'Send appointment confirmation'}
-                    >
-                      {isSendingConfirmation ? (
-                        <>
-                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Sending...</span>
-                        </>
-                      ) : job.confirmation_sms_sent_at ? (
-                        <>
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span>Resend Confirmation</span>
-                        </>
-                      ) : (
-                        <>
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span>Send Appointment Confirmation</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-                  <button
-                    onClick={() => { onEdit(job); onClose() }}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                    Edit
-                  </button>
-                </div>
+                <button
+                  onClick={() => { onEdit(job); onClose() }}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit
+                </button>
               </>
             )}
           </div>
