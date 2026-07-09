@@ -837,8 +837,8 @@ export default async function Home() {
                 </a>
               </div>
               
-              <div className="mt-4 sm:mt-5 text-xs sm:text-sm text-slate-700 dark:text-slate-400">
-                No contracts. Cancel anytime.
+              <div className="mt-4 sm:mt-5 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                14-day free trial • $59/month after • Cancel anytime
               </div>
             </div>
           </div>
