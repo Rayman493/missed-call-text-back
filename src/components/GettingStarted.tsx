@@ -602,14 +602,14 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       },
       {
         id: 'test',
-        title: 'Verify Setup',
-        description: 'Place a quick test call from your phone to confirm forwarding is working. ReplyFlow will answer and send you a text message.',
+        title: 'Activate ReplyFlow',
+        description: 'Call your business phone number one time to activate ReplyFlow. Once we successfully receive your forwarded call, your AI receptionist will begin answering missed calls automatically.',
         status: testActionNeeded ? 'action-needed' : (step3Complete ? 'complete' : 'needs-action'),
         details: testActionNeeded
           ? 'Verification failed - try again'
           : step3Complete
             ? (realCallDataExists ? 'ReplyFlow is live and monitoring your business line.' : 'ReplyFlow is now monitoring your missed calls.')
-            : (step2Complete ? 'This takes less than 30 seconds' : 'Available once forwarding is enabled'),
+            : (step2Complete ? '✓ Takes about 30 seconds' : 'Available once forwarding is enabled'),
         buttonText: step2Complete && !step3Complete ? 'Run Test Call' : undefined,
         buttonOnClick: step2Complete && !step3Complete ? () => {
           console.log('[RUN TEST CALL CLICKED]', {
@@ -1028,9 +1028,11 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
                     : isActionNeeded
                       ? 'bg-amber-50/70 dark:bg-amber-900/15 border-amber-300 dark:border-amber-700/60 shadow-sm'
-                      : isCurrent
-                        ? 'bg-blue-50/70 dark:bg-blue-900/20 border-blue-300/80 dark:border-blue-600/60 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm'
-                        : 'bg-muted/50 border-border'
+                      : isCurrent && item.id === 'test'
+                        ? 'bg-amber-50/80 dark:bg-amber-900/25 border-amber-400 dark:border-amber-600/70 shadow-md'
+                        : isCurrent
+                          ? 'bg-blue-50/70 dark:bg-blue-900/20 border-blue-300/80 dark:border-blue-600/60 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm'
+                          : 'bg-muted/50 border-border'
                 } ${isForwardingCard && !isComplete ? 'cursor-pointer hover:bg-blue-100/70 dark:hover:bg-blue-900/30' : ''}`}
               >
                 <div className="flex-shrink-0 mt-0.5">
@@ -1076,13 +1078,15 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                   {!isComplete && (isCurrent || isActionNeeded) && (
                     <div className="mb-3">
                       <span
-                        className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium ${
+                        className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-semibold ${
                           isActionNeeded
                             ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-                            : 'bg-blue-100/70 text-blue-800/80 dark:bg-blue-900/30 dark:text-blue-300/80'
+                            : item.id === 'test' && isCurrent
+                              ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-200 border border-amber-300 dark:border-amber-600'
+                              : 'bg-blue-100/70 text-blue-800/80 dark:bg-blue-900/30 dark:text-blue-300/80'
                         }`}
                       >
-                        {isActionNeeded ? 'Action Needed' : 'IN PROGRESS'}
+                        {isActionNeeded ? 'Action Needed' : item.id === 'test' && isCurrent ? 'Required' : 'IN PROGRESS'}
                       </span>
                     </div>
                   )}
