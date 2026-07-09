@@ -900,16 +900,16 @@ export default function PaymentsPage() {
                         No payment methods have been configured yet.
                       </p>
                       <p className="text-sm text-yellow-200 mb-2 md:mb-3">
-                        Connect Stripe, Venmo, or PayPal in Settings → Payments before sending payment requests.
+                        Connect Stripe, Venmo, or PayPal in your account settings to start accepting payments.
                       </p>
                       <button
                         onClick={() => {
-                          router.push('/dashboard/settings')
+                          router.push('/dashboard/settings#payments')
                           setShowPaymentModal(false)
                         }}
                         className="px-3 py-1.5 md:px-4 md:py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                       >
-                        Go to Payment Settings
+                        Configure Payment Methods
                       </button>
                     </div>
                   )}
