@@ -225,29 +225,17 @@ export default function DashboardHero({
   if (heroState === 'setup-complete-no-leads') {
     return (
       <div className="bg-gradient-to-br from-green-600 to-emerald-700 dark:from-green-700 dark:to-emerald-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-green-500/30">
-        <div className="flex flex-col gap-6">
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-white" />
-              </div>
-            </div>
-            <div className="flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">You're all set!</h1>
-              <p className="text-green-100 text-base sm:text-lg">
-                ReplyFlow is now monitoring your missed calls. The next missed call will automatically create a lead and text your customer back.
-              </p>
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0">
+            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-white" />
             </div>
           </div>
-
-          <div className="flex gap-3">
-            <Link
-              href="/dashboard/leads"
-              className="inline-flex items-center justify-center px-4 py-2 bg-white hover:bg-green-50 text-green-600 text-sm font-medium rounded-lg transition-colors"
-            >
-              View Leads
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Link>
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">You're all set!</h1>
+            <p className="text-green-100 text-base sm:text-lg">
+              ReplyFlow is now monitoring your missed calls. The next missed call will automatically create a lead and text your customer back.
+            </p>
           </div>
         </div>
       </div>
@@ -257,29 +245,17 @@ export default function DashboardHero({
   // Healthy state
   return (
     <div className="bg-gradient-to-br from-green-600 to-emerald-700 dark:from-green-700 dark:to-emerald-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-green-500/30">
-      <div className="flex flex-col gap-6">
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-white" />
-            </div>
-          </div>
-          <div className="flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">ReplyFlow Active</h1>
-            <p className="text-green-100 text-base sm:text-lg">
-              All systems are operational and ReplyFlow is actively monitoring your missed calls.
-            </p>
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0">
+          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+            <CheckCircle className="w-5 h-5 text-white" />
           </div>
         </div>
-
-        <div className="flex gap-3">
-          <Link
-            href="/dashboard/leads"
-            className="inline-flex items-center justify-center px-4 py-2 bg-white hover:bg-green-50 text-green-600 text-sm font-medium rounded-lg transition-colors"
-          >
-            View Leads
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Link>
+        <div className="flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">ReplyFlow Active</h1>
+          <p className="text-green-100 text-base sm:text-lg">
+            All systems are operational and ReplyFlow is actively monitoring your missed calls.
+          </p>
         </div>
       </div>
     </div>
