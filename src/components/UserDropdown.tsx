@@ -337,7 +337,7 @@ export default function UserDropdown() {
             <div className="h-px bg-slate-700" />
 
             {/* Danger section */}
-            <div className="px-2 py-1">
+            <div className="px-2 py-1.5">
               <button
                 type="button"
                 role="menuitem"
@@ -407,7 +407,16 @@ export default function UserDropdown() {
                   </button>
                 )
 
-                if (!isBilling) return menuItem
+                if (!isBilling) {
+                  if (isDanger) {
+                    return (
+                      <div key={item.label} className="mt-1 border-t border-slate-700 pt-1">
+                        {menuItem}
+                      </div>
+                    )
+                  }
+                  return menuItem
+                }
 
                 return (
                   <div key="desktop-billing-and-assistant">
