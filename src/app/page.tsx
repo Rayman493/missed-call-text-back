@@ -124,56 +124,58 @@ export default async function Home() {
                 Never Miss a Lead Again
               </h1>
               <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed sm:leading-relaxed md:leading-relaxed lg:leading-relaxed">
-                AI Voice answers forwarded missed calls, captures lead details, and helps you capture more leads — all while you focus on running your business.
+                AI Voice answers forwarded missed calls, collects caller information, and helps you capture more leads — all while you focus on running your business.
               </p>
 
-              {/* Primary CTA */}
-              <HomepageCTA variant="hero" />
+              <div className="flex flex-col items-center gap-y-3 sm:gap-y-4">
+                {/* Primary CTA */}
+                <HomepageCTA variant="hero" />
 
-              {/* Trust Indicators - Desktop */}
-              <div className="hidden sm:block">
-                <div className="flex items-center justify-center gap-8 sm:gap-12">
-                  <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-400">
-                    <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="leading-none font-medium">Capture More Leads</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-400">
-                    <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="leading-none font-medium">No Contracts</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-400">
-                    <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="leading-none font-medium">Keep Your Existing Number</span>
+                {/* Trust Indicators - Desktop */}
+                <div className="hidden sm:block">
+                  <div className="flex items-center justify-center gap-8 sm:gap-12">
+                    <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-400">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="leading-none font-medium">Capture More Leads</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-400">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="leading-none font-medium">No Contracts</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-400">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="leading-none font-medium">Keep Your Existing Number</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Trust Indicators - Mobile */}
-              <div className="sm:hidden">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="flex items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-400">
-                    <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="leading-none font-medium">Capture More Leads</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-400">
-                    <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="leading-none font-medium">No Contracts</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-400">
-                    <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="leading-none font-medium">Keep Your Existing Number</span>
+                {/* Trust Indicators - Mobile */}
+                <div className="sm:hidden">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="flex items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-400">
+                      <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="leading-none font-medium">Capture More Leads</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-400">
+                      <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="leading-none font-medium">No Contracts</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-400">
+                      <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span className="leading-none font-medium">Keep Your Existing Number</span>
+                    </div>
                   </div>
                 </div>
               </div>
