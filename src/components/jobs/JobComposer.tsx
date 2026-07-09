@@ -14,6 +14,8 @@ export interface JobPrefill {
   notes?: string
   lead_id?: string
   conversation_id?: string
+  scheduled_date?: string
+  scheduled_time?: string
 }
 
 export interface Job {

@@ -1689,11 +1689,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }, [])
 
   const handleScheduleClick = () => {
-    if (!calendarConnected) {
-      setError('Connect Google Calendar to schedule appointments from ReplyFlow. Go to the Schedule page to connect.')
-      return
+    // Check if there are existing jobs for this lead
+    if (leadJobs && leadJobs.length > 0) {
+      // If there are jobs, open JobComposer to edit the first job's schedule
+      const firstJob = leadJobs[0]
+      setJobPrefill({
+        ...generateJobPrefill(),
+        title: firstJob.title,
+        customer_name: firstJob.customer_name,
+        customer_phone: firstJob.customer_phone,
+        service_address: firstJob.service_address,
+        notes: firstJob.notes,
+        scheduled_date: firstJob.scheduled_date,
+        scheduled_time: firstJob.scheduled_time,
+      })
+      setIsJobComposerOpen(true)
+    } else {
+      // If no jobs, create a new job with scheduling
+      setJobPrefill(generateJobPrefill())
+      setIsJobComposerOpen(true)
     }
-    setIsAppointmentModalOpen(true)
   }
 
   // Generate JobComposer prefill data from lead and AI intake
@@ -2425,7 +2440,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium"
               >
                 <CalendarDays className="w-4 h-4 stroke-[1.8]" />
-                <span className="leading-none">Schedule</span>
+                <span className="leading-none">{leadJobs && leadJobs.length > 0 ? 'Edit Schedule' : 'Schedule Job'}</span>
               </button>
               <button
                 onClick={() => setShowPaymentModal(true)}
