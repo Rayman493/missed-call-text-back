@@ -705,7 +705,7 @@ export default function LeadsPage() {
             <AppHeader title="Leads" />
 
           {/* Main Content */}
-          <main className="flex-1 pt-4 lg:pt-8 px-4 lg:px-6 pb-6 md:pb-6 relative z-10" style={{ paddingBottom: 'max(8rem+32px, env(safe-area-inset-bottom))' }}>
+          <main className="flex-1 pt-4 lg:pt-8 px-4 lg:px-6 pb-6 md:pb-6 relative z-10 overflow-y-auto" style={{ paddingBottom: 'max(8rem+32px, env(safe-area-inset-bottom))' }}>
             <div className="max-w-[1400px] mx-auto space-y-4 lg:space-y-6">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
@@ -1128,61 +1128,61 @@ export default function LeadsPage() {
                   
                   // STATE 3: FULLY ACTIVE
                   return (
-                    <div className="text-center py-6 sm:py-20 px-4">
+                    <div className="text-center py-4 sm:py-20 px-4">
                       <div className="max-w-md mx-auto">
                         {/* Visual Process Flow */}
-                        <div className="flex flex-col items-center gap-3 mb-6 sm:mb-8">
-                          <div className="flex items-center gap-3 sm:gap-4 w-full">
+                        <div className="flex flex-col items-center gap-2 sm:gap-3 mb-4 sm:mb-8">
+                          <div className="flex items-center gap-2 sm:gap-4 w-full">
                             <div className="flex-1">
-                              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-1.5 sm:mb-2">
-                                <span className="text-xl sm:text-2xl">📞</span>
+                              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-1 sm:mb-2">
+                                <span className="text-lg sm:text-2xl">📞</span>
                               </div>
-                              <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">Missed Call</p>
+                              <p className="text-[10px] sm:text-sm font-medium text-slate-900 dark:text-foreground">Missed Call</p>
                             </div>
                             <div className="flex-shrink-0">
-                              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4 sm:w-6 sm:h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>
                             </div>
                             <div className="flex-1">
-                              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mx-auto mb-1.5 sm:mb-2">
-                                <span className="text-xl sm:text-2xl">💬</span>
+                              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mx-auto mb-1 sm:mb-2">
+                                <span className="text-lg sm:text-2xl">💬</span>
                               </div>
-                              <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">Auto Text Sent</p>
+                              <p className="text-[10px] sm:text-sm font-medium text-slate-900 dark:text-foreground">Auto Text Sent</p>
                             </div>
                             <div className="flex-shrink-0">
-                              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4 sm:w-6 sm:h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>
                             </div>
                             <div className="flex-1">
-                              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center mx-auto mb-1.5 sm:mb-2">
-                                <span className="text-xl sm:text-2xl">👤</span>
+                              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center mx-auto mb-1 sm:mb-2">
+                                <span className="text-lg sm:text-2xl">👤</span>
                               </div>
-                              <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">Lead Created</p>
+                              <p className="text-[10px] sm:text-sm font-medium text-slate-900 dark:text-foreground">Lead Created</p>
                             </div>
                           </div>
                         </div>
 
                         {/* Header */}
-                        <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">
+                        <h3 className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-foreground mb-1.5 sm:mb-3">
                           No Leads Yet
                         </h3>
 
                         {/* Description */}
-                        <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base mb-4 sm:mb-8 max-w-md mx-auto">
+                        <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-base mb-2 sm:mb-8 max-w-md mx-auto">
                           When someone misses a call to your business number, ReplyFlow will automatically create a lead here.
                         </p>
 
                         {/* Passive instruction */}
-                        <p className="text-slate-500 dark:text-slate-500 text-xs sm:text-sm max-w-md mx-auto mb-4 sm:mb-6">
+                        <p className="text-slate-500 dark:text-slate-500 text-[10px] sm:text-sm max-w-md mx-auto mb-3 sm:mb-6">
                           Leads will appear here as missed calls are detected.
                         </p>
 
                         {/* Add Customer Button */}
                         <button
                           onClick={() => setShowAddCustomerModal(true)}
-                          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow"
+                          className="inline-flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

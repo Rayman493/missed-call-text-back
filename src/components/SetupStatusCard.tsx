@@ -511,8 +511,13 @@ export default function SetupStatusCard({
             </div>
           </div>
           <button
-            onClick={() => setIsExpanded(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium rounded-lg transition-colors"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsExpanded(true)
+            }}
+            className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
           >
             View Details
             <ChevronDown className="w-4 h-4" />
@@ -546,8 +551,12 @@ export default function SetupStatusCard({
           </div>
           <button
             type="button"
-            onClick={() => setIsExpanded(false)}
-            className="flex-shrink-0 p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsExpanded(false)
+            }}
+            className="flex-shrink-0 p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
           >
             <ChevronUp className="w-4 h-4" />
           </button>
@@ -560,8 +569,12 @@ export default function SetupStatusCard({
             <div className="bg-slate-800/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden">
               <button
                 type="button"
-                onClick={() => setExpandedStep(expandedStep === 1 ? null : 1)}
-                className="w-full flex items-center gap-2 p-2.5 sm:p-3 hover:bg-slate-700/30 transition-colors"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setExpandedStep(expandedStep === 1 ? null : 1)
+                }}
+                className="w-full flex items-center gap-2 p-2.5 sm:p-3 hover:bg-slate-700/30 transition-colors cursor-pointer"
               >
                 <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
                   <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
@@ -601,8 +614,12 @@ export default function SetupStatusCard({
             }`}>
               <button
                 type="button"
-                onClick={() => setExpandedStep(expandedStep === 2 ? null : 2)}
-                className="w-full flex items-center gap-2 p-2.5 sm:p-3 hover:bg-slate-700/30 transition-colors"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setExpandedStep(expandedStep === 2 ? null : 2)
+                }}
+                className="w-full flex items-center gap-2 p-2.5 sm:p-3 hover:bg-slate-700/30 transition-colors cursor-pointer"
               >
                 {cardState === 'needs-verification' ? (
                   <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
@@ -652,8 +669,12 @@ export default function SetupStatusCard({
             }`}>
               <button
                 type="button"
-                onClick={() => setExpandedStep(expandedStep === 3 ? null : 3)}
-                className="w-full flex items-center gap-2 p-2.5 sm:p-3 hover:bg-slate-700/30 transition-colors"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setExpandedStep(expandedStep === 3 ? null : 3)
+                }}
+                className="w-full flex items-center gap-2 p-2.5 sm:p-3 hover:bg-slate-700/30 transition-colors cursor-pointer"
               >
                 {hasCompletedTestCall ? (
                   <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
