@@ -2316,14 +2316,16 @@ export default function SettingsContent() {
                                 month: 'long',
                                 day: 'numeric'
                               })}. You won't be charged until then.`
-                            : getSubscriptionStatusDescription(
-                                business?.subscription_status,
-                                business?.stripe_customer_id,
-                                business?.stripe_subscription_id,
-                                business?.cancel_at_period_end,
-                                business?.current_period_end,
-                                business?.trial_ends_at
-                              )}
+                            : (business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid')
+                              ? 'Your latest payment could not be processed. Stripe will retry automatically. Please update your payment method if needed.'
+                              : getSubscriptionStatusDescription(
+                                  business?.subscription_status,
+                                  business?.stripe_customer_id,
+                                  business?.stripe_subscription_id,
+                                  business?.cancel_at_period_end,
+                                  business?.current_period_end,
+                                  business?.trial_ends_at
+                                )}
                         </p>
                       </div>
                       <div className="flex-shrink-0">

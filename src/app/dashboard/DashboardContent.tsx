@@ -51,6 +51,7 @@ import SetupProgress from '@/components/setup/SetupProgress'
 import OffboardingBanner from '@/components/OffboardingBanner'
 import ProvisioningSuccessBanner from '@/components/ProvisioningSuccessBanner'
 import SetupStatusCard from '@/components/SetupStatusCard'
+import PaymentIssueBanner from '@/components/PaymentIssueBanner'
 import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
@@ -1067,6 +1068,14 @@ export default function DashboardContent() {
                     </div>
                   </SectionErrorBoundary>
                 )}
+
+                {/* Payment Issue Banner - Shows when subscription is past_due or unpaid */}
+                <SectionErrorBoundary sectionName="PaymentIssueBanner">
+                  <PaymentIssueBanner 
+                    businessId={business?.id}
+                    subscriptionStatus={business?.subscription_status}
+                  />
+                </SectionErrorBoundary>
 
                 {/* Old banners removed - now handled by DashboardHero */}
 

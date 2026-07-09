@@ -1026,17 +1026,21 @@ export async function POST(request: Request) {
       }
 
       case 'invoice.payment_failed': {
-        console.log('[STRIPE CANCEL] ========== INVOICE.PAYMENT.FAILED START ==========')
+        console.log('[STRIPE PAYMENT FAILED] ========== INVOICE.PAYMENT.FAILED START ==========')
         
         const invoice = event.data.object as Stripe.Invoice
         const subscriptionId = (invoice as any).subscription as string | null
+        const invoiceId = invoice.id
+        const retryCount = (invoice as any).attempt_count || 0
 
         if (!subscriptionId) {
-          console.log('[STRIPE CANCEL] No subscription ID in invoice, skipping')
+          console.log('[STRIPE PAYMENT FAILED] No subscription ID in invoice, skipping')
           break
         }
 
-        console.log('[STRIPE CANCEL] Subscription ID:', subscriptionId)
+        console.log('[STRIPE PAYMENT FAILED] Invoice ID:', invoiceId)
+        console.log('[STRIPE PAYMENT FAILED] Subscription ID:', subscriptionId)
+        console.log('[STRIPE PAYMENT FAILED] Retry count:', retryCount)
 
         // Find business by stripe_subscription_id
         const { data: business } = await supabase
@@ -1047,24 +1051,51 @@ export async function POST(request: Request) {
           .single()
 
         if (business) {
-          console.log('[STRIPE CANCEL] Business found:', business.id)
+          console.log('[STRIPE PAYMENT FAILED] Business found:', business.id)
+          
+          // Update subscription status to past_due
+          const { error: updateError } = await supabase
+            .from('businesses')
+            .update({ subscription_status: 'past_due' })
+            .eq('id', business.id)
+
+          if (updateError) {
+            console.error('[STRIPE PAYMENT FAILED] Failed to update subscription status:', updateError)
+          } else {
+            console.log('[STRIPE PAYMENT FAILED] Updated subscription status to past_due for business:', business.id)
+          }
+
+          // Create notification for payment failure
+          try {
+            await notificationServiceServer.createNotification(
+              business.id,
+              'subscription_issue',
+              'We couldn\'t process your latest payment. Update your billing information to avoid service interruption.',
+              { issue: 'Payment failed - please update payment method' },
+              '/dashboard/settings',
+              'Update Billing'
+            )
+            console.log('[STRIPE PAYMENT FAILED] Created notification for business:', business.id)
+          } catch (notificationError) {
+            console.error('[STRIPE PAYMENT FAILED] Failed to create notification:', notificationError)
+          }
           
           // Check if business has manual access - if so, don't schedule release
           const hasManualAccess = business.manual_access_enabled && 
             (!business.manual_access_expires_at || new Date(business.manual_access_expires_at) > new Date())
           
           if (!hasManualAccess) {
-            console.log('[STRIPE CANCEL] No manual access, scheduling Twilio release')
+            console.log('[STRIPE PAYMENT FAILED] No manual access, scheduling Twilio release')
             await scheduleTwilioRelease(business.id, 'subscription_canceled')
           } else {
-            console.log('[STRIPE CANCEL] Manual access exists, skipping Twilio release')
+            console.log('[STRIPE PAYMENT FAILED] Manual access exists, skipping Twilio release')
           }
 
           // Mark event as processed
           await markEventProcessed(supabase, event.id, event.type, business.id)
         }
         
-        console.log('[STRIPE CANCEL] ========== INVOICE.PAYMENT.FAILED END ==========')
+        console.log('[STRIPE PAYMENT FAILED] ========== INVOICE.PAYMENT.FAILED END ==========')
         break
       }
 
@@ -1073,12 +1104,14 @@ export async function POST(request: Request) {
         
         const invoice = event.data.object as Stripe.Invoice
         const subscriptionId = (invoice as any).subscription as string | null
+        const invoiceId = invoice.id
 
         if (!subscriptionId) {
           console.log('[STRIPE PAYMENT RECOVERY] No subscription ID in invoice, skipping')
           break
         }
 
+        console.log('[STRIPE PAYMENT RECOVERY] Invoice ID:', invoiceId)
         console.log('[STRIPE PAYMENT RECOVERY] Subscription ID:', subscriptionId)
 
         // Find business by stripe_subscription_id
@@ -1091,6 +1124,22 @@ export async function POST(request: Request) {
 
         if (business) {
           console.log('[STRIPE PAYMENT RECOVERY] Business found:', business.id)
+          console.log('[STRIPE PAYMENT RECOVERY] Current subscription status:', business.subscription_status)
+          
+          // Recover from past_due status
+          if (business.subscription_status === 'past_due') {
+            console.log('[STRIPE PAYMENT RECOVERY] Recovering from past_due status')
+            const { error: updateError } = await supabase
+              .from('businesses')
+              .update({ subscription_status: 'active' })
+              .eq('id', business.id)
+
+            if (updateError) {
+              console.error('[STRIPE PAYMENT RECOVERY] Failed to update subscription status:', updateError)
+            } else {
+              console.log('[STRIPE PAYMENT RECOVERY] Updated subscription status to active for business:', business.id)
+            }
+          }
           
           // Cancel any scheduled Twilio release since payment succeeded
           console.log('[STRIPE PAYMENT RECOVERY] Canceling scheduled Twilio release')
