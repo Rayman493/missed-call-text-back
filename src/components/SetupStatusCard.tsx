@@ -751,7 +751,7 @@ export default function SetupStatusCard({
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-white text-xs sm:text-sm font-medium block truncate">✅ Call Forwarding</span>
+                  <span className="text-white text-xs sm:text-sm font-medium block truncate">Call Forwarding</span>
                   <span className={`text-[10px] sm:text-xs block ${business?.forwarding_verified === true ? 'text-green-200' : 'text-gray-300'}`}>
                     {business?.forwarding_verified === true ? 'Verified' : 'Not Verified'}
                   </span>
@@ -770,7 +770,7 @@ export default function SetupStatusCard({
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-white text-xs sm:text-sm font-medium block truncate">✅ AI Receptionist</span>
+                  <span className="text-white text-xs sm:text-sm font-medium block truncate">AI Receptionist</span>
                   <span className={`text-[10px] sm:text-xs block ${business?.twilio_phone_number ? 'text-green-200' : 'text-gray-300'}`}>
                     {business?.twilio_phone_number ? 'Ready' : 'Not Configured'}
                   </span>
@@ -789,7 +789,7 @@ export default function SetupStatusCard({
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-white text-xs sm:text-sm font-medium block truncate">✅ SMS Replies</span>
+                  <span className="text-white text-xs sm:text-sm font-medium block truncate">SMS Replies</span>
                   <span className={`text-[10px] sm:text-xs block ${business?.messaging_status === 'active' ? 'text-green-200' : 'text-gray-300'}`}>
                     {business?.messaging_status === 'active' ? 'Ready' : 'Not Active'}
                   </span>
