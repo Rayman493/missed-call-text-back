@@ -223,14 +223,6 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
         >
           <div className="py-1">
             <Link
-              href="/dashboard"
-              onClick={() => setIsMoreMenuOpen(false)}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-            >
-              <Home className="h-4 w-4 text-slate-400" />
-              Dashboard
-            </Link>
-            <Link
               href="/dashboard/settings"
               onClick={() => setIsMoreMenuOpen(false)}
               className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
