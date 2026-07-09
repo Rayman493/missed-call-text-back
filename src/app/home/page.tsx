@@ -267,7 +267,7 @@ export default function PublicHome() {
                 <HomepageCTA variant="hero" />
 
                 {/* Works For Section - Mobile Conversion */}
-                <div className="mt-6 sm:mt-8">
+                <div className="mt-4 sm:mt-5">
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3 text-center">
                     Works for:
                   </p>
