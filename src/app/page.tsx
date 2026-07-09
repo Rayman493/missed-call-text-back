@@ -123,7 +123,7 @@ export default async function Home() {
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] sm:leading-[1.15] text-slate-900 dark:text-foreground">
                 Never Miss a Lead Again
               </h1>
-              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed sm:leading-relaxed md:leading-relaxed lg:leading-relaxed mt-6 sm:mt-8">
+              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed sm:leading-relaxed md:leading-relaxed lg:leading-relaxed">
                 AI Voice answers forwarded missed calls, captures lead details, and helps you book more jobs — all while you focus on running your business.
               </p>
 
@@ -131,7 +131,7 @@ export default async function Home() {
               <HomepageCTA variant="hero" />
 
               {/* Trust Indicators - Desktop */}
-              <div className="mt-6 sm:mt-8 hidden sm:block">
+              <div className="hidden sm:block">
                 <div className="flex items-center justify-center gap-8 sm:gap-12">
                   <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-400">
                     <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">

@@ -33,7 +33,7 @@ export default function HomepageCTA({
 
   if (variant === 'hero') {
     return (
-      <div className="flex flex-col items-center gap-2 sm:gap-2.5 mt-8 sm:mt-10">
+      <div className="flex flex-col items-center gap-2 sm:gap-2.5">
         {isLoggedIn ? (
           <Link
             href="/dashboard"
