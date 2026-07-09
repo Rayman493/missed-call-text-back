@@ -105,7 +105,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
               onClick={handleHomeClick}
               className="flex items-center gap-2 hover:opacity-90 transition"
             >
-              <BrandIcon size={40} className="block flex-shrink-0 sm:hidden" />
+              <BrandIcon size={44} className="block flex-shrink-0 sm:hidden" />
               <BrandIcon size={56} className="hidden sm:block" />
               <span className="hidden min-w-0 truncate text-base font-semibold tracking-tight sm:block sm:text-lg md:text-xl">
                 <span className={`${isPublicPage && !forceDark ? 'text-slate-800 dark:text-white' : 'text-white'}`}>ReplyFlow</span>
@@ -208,7 +208,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                 <>
                   <Link
                     href="/auth?mode=signin"
-                    className={`text-[11px] sm:text-sm font-medium whitespace-nowrap ${isPublicPage && !forceDark ? 'text-slate-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-400 hover:text-gray-200'} transition-colors`}
+                    className={`text-[10px] sm:text-sm font-medium whitespace-nowrap ${isPublicPage && !forceDark ? 'text-slate-500 dark:text-gray-500 hover:text-blue-600 dark:hover:text-gray-200' : 'text-gray-500 hover:text-gray-200'} transition-colors`}
                   >
                     Sign In
                   </Link>

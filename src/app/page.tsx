@@ -124,7 +124,7 @@ export default async function Home() {
                 Never Miss a Lead Again
               </h1>
               <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed sm:leading-relaxed md:leading-relaxed lg:leading-relaxed">
-                AI Voice answers forwarded missed calls, collects caller information, and helps you capture more leads — all while you focus on running your business.
+                AI Voice answers forwarded missed calls, collects caller information, and helps you turn missed calls into customers — all while you focus on running your business.
               </p>
 
               <div className="flex flex-col items-center gap-y-3 sm:gap-y-4">
