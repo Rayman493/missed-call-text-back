@@ -80,34 +80,39 @@ export default function OnboardingGuide({ isTrialActive = false }: OnboardingGui
         <div
           className={`flex gap-3 sm:gap-4 p-4 sm:p-5 rounded-xl border transition-all ${
             isTrialActive
-              ? 'bg-slate-50/50 dark:bg-slate-800/20 border-slate-200 dark:border-slate-700/30'
+              ? 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-300 dark:border-amber-600/50 shadow-sm'
               : 'bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50'
           }`}
         >
           <div
             className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${
               isTrialActive
-                ? 'bg-slate-200 dark:bg-slate-700/50'
+                ? 'bg-amber-500 dark:bg-amber-600 shadow-md'
                 : 'bg-slate-200 dark:bg-slate-700'
             }`}
           >
-            <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400 dark:text-slate-500" />
+            <MessageSquare className={`w-5 h-5 sm:w-6 sm:h-6 ${isTrialActive ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm sm:text-base font-medium text-slate-500 dark:text-slate-400 mb-1">
-              Capture missed callers automatically
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 leading-relaxed">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className={`text-sm sm:text-base font-bold ${isTrialActive ? 'text-amber-900 dark:text-amber-100' : 'text-muted-foreground'}`}>
+                Capture missed callers automatically
+              </h3>
+              {isTrialActive && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full shadow-sm">
+                  REQUIRED
+                </span>
+              )}
+            </div>
+            <p className={`text-xs sm:text-sm leading-relaxed ${isTrialActive ? 'text-amber-800/80 dark:text-amber-200/80' : 'text-muted-foreground'}`}>
               ReplyFlow texts missed callers and recovers leads for you.
             </p>
+            {isTrialActive && (
+              <p className="text-xs text-amber-700/70 dark:text-amber-300/70 mt-2 font-medium">
+                Complete this step to start capturing leads automatically.
+              </p>
+            )}
           </div>
-          {isTrialActive && (
-            <div className="flex-shrink-0">
-              <span className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/50 rounded-full">
-                Upcoming
-              </span>
-            </div>
-          )}
         </div>
       </div>
 

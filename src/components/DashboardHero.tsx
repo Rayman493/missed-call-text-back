@@ -144,11 +144,16 @@ export default function DashboardHero({
   
   if (heroState === 'needs-verification') {
     return (
-      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-700 dark:to-indigo-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-blue-500/30">
+      <div className="bg-gradient-to-br from-amber-500 to-orange-600 dark:from-amber-600 dark:to-orange-700 rounded-2xl p-6 sm:p-8 shadow-2xl border border-amber-400/30">
         <div className="flex flex-col gap-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Verify Your Setup</h1>
-            <p className="text-blue-100 text-base sm:text-lg">Complete your setup by testing call forwarding.</p>
+            <div className="flex items-center gap-3 mb-3">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">Verify Your Setup</h1>
+              <span className="inline-flex items-center px-3 py-1 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
+                Required
+              </span>
+            </div>
+            <p className="text-amber-50 text-base sm:text-lg font-medium">Complete your setup by testing call forwarding. This step is required before ReplyFlow can start capturing missed calls.</p>
           </div>
 
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
@@ -159,7 +164,7 @@ export default function DashboardHero({
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span className="text-white text-sm">ReplyFlow number activated</span>
+                <span className="text-white text-sm font-medium">ReplyFlow number activated</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -167,48 +172,50 @@ export default function DashboardHero({
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span className="text-white text-sm">Call forwarding connected</span>
+                <span className="text-white text-sm font-medium">Call forwarding connected</span>
               </div>
             </div>
           </div>
 
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-            <h3 className="text-white font-semibold mb-3">How to test:</h3>
+            <h3 className="text-white font-bold mb-3 text-lg">How to test:</h3>
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm font-semibold">1</span>
+                  <span className="text-white text-sm font-bold">1</span>
                 </div>
                 <p className="text-white text-sm pt-0.5">Call your business phone number from another phone.</p>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm font-semibold">2</span>
+                  <span className="text-white text-sm font-bold">2</span>
                 </div>
                 <p className="text-white text-sm pt-0.5">Let the call ring until it forwards to ReplyFlow.</p>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm font-semibold">3</span>
+                  <span className="text-white text-sm font-bold">3</span>
                 </div>
                 <p className="text-white text-sm pt-0.5">Listen for the AI greeting and complete a short conversation.</p>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm font-semibold">4</span>
+                  <span className="text-white text-sm font-bold">4</span>
                 </div>
                 <p className="text-white text-sm pt-0.5">Confirm that a new lead appears in your dashboard.</p>
               </div>
             </div>
           </div>
 
-          <div className="text-center sm:text-left">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <Link
               href="/setup/phone-forwarding?mode=review"
-              className="text-blue-200 text-sm hover:text-white underline underline-offset-2 transition-colors"
+              className="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-amber-50 text-amber-600 text-base font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
-              View carrier forwarding instructions
+              View Carrier Instructions
+              <ArrowRight className="w-4 h-4 ml-2" />
             </Link>
+            <p className="text-amber-100 text-sm font-medium">Takes about 2 minutes to complete.</p>
           </div>
         </div>
       </div>
