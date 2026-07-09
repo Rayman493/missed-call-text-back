@@ -1889,7 +1889,7 @@ export default function SettingsContent() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
                           <svg className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 003-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                           </svg>
                           <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Stripe</h3>
                           <span className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-full font-medium">
@@ -1960,8 +1960,8 @@ export default function SettingsContent() {
                   <div className="flex flex-col h-full p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                        <svg className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+                        <svg className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
                         <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Venmo</h3>
                         {formBusiness.venmo_username ? (
@@ -2053,14 +2053,20 @@ export default function SettingsContent() {
                   <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowAddModal(true)}
-                    className="h-11 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors text-xs flex items-center justify-center"
+                    className="h-11 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors text-xs inline-flex items-center justify-center gap-2"
                   >
-                    + Add
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add
                   </button>
                   <button
                     onClick={() => setShowImportModal(true)}
-                    className="h-11 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-md transition-colors text-xs flex items-center justify-center"
+                    className="h-11 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-md transition-colors text-xs inline-flex items-center justify-center gap-2"
                   >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
                     Import
                   </button>
                 </div>
@@ -2162,9 +2168,7 @@ export default function SettingsContent() {
                   {/* Email */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border-b border-slate-200/60 dark:border-slate-700/40 last:border-b-0">
                     <div className="flex items-center gap-2.5">
-                      <svg className="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 00-2-2H7a2 2 0 00-2 2z" />
-                      </svg>
+                      <Mail className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                       <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Email</span>
                     </div>
                     <span className="text-xs font-semibold text-slate-900 dark:text-foreground">{user?.email}</span>
