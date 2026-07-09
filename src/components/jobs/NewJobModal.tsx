@@ -1,6 +1,7 @@
 'use client'
 
 import { X, FileText, Users } from 'lucide-react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface NewJobModalProps {
   isOpen: boolean
@@ -15,12 +16,14 @@ export default function NewJobModal({
   onSelectManual,
   onSelectLead,
 }: NewJobModalProps) {
+  useBodyScrollLock(isOpen)
+
   if (!isOpen) return null
 
   return (
     <>
       <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:p-4" data-scroll-lock-allow>
         <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 shadow-[0_1px_0_rgba(255,255,255,0.06),0_28px_90px_rgba(2,6,23,0.65)] backdrop-blur-xl w-full max-w-sm max-h-[80dvh] flex flex-col">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/40 to-transparent" />
           {/* Header */}
@@ -34,13 +37,14 @@ export default function NewJobModal({
             </button>
           </div>
 
-          {/* Prompt */}
-          <div className="px-4 pt-2.5 pb-0.5">
-            <p className="text-sm text-slate-400">How would you like to create this job?</p>
-          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
+            {/* Prompt */}
+            <div className="px-4 pt-2.5 pb-0.5">
+              <p className="text-sm text-slate-400">How would you like to create this job?</p>
+            </div>
 
-          {/* Options */}
-          <div className="px-4 pt-2 pb-3 space-y-2">
+            {/* Options */}
+            <div className="px-4 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] space-y-2">
             {/* Manual Job */}
             <button
               onClick={() => { onClose(); onSelectManual() }}
@@ -72,6 +76,7 @@ export default function NewJobModal({
                 </p>
               </div>
             </button>
+            </div>
           </div>
         </div>
       </div>
