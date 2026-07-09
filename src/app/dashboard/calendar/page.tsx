@@ -1260,7 +1260,10 @@ export default function SchedulePage() {
                   {selectedEvent && (
                     <EventDetailsModal
                       isOpen={isEventDetailsOpen}
-                      onClose={() => setIsEventDetailsOpen(false)}
+                      onClose={() => {
+                        setIsEventDetailsOpen(false)
+                        setIsDayDetailOpen(false)
+                      }}
                       event={selectedEvent}
                       onRefresh={async () => {
                         // Refresh events from Google Calendar
