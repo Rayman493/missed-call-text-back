@@ -49,7 +49,7 @@ export default function HomepageCTA({
             Start Your 14-Day Free Trial
           </Link>
         )}
-        <div className="text-base text-slate-500 dark:text-slate-400">
+        <div className="text-base text-slate-400 dark:text-slate-300">
           14-day free trial • $59/month after • Cancel anytime
         </div>
       </div>
@@ -76,7 +76,7 @@ export default function HomepageCTA({
         )}
       </div>
 
-      <div className="text-sm text-slate-500 dark:text-slate-400">
+      <div className="text-sm text-slate-400 dark:text-slate-300">
         14-day free trial • $59/month after • Cancel anytime
       </div>
     </div>
