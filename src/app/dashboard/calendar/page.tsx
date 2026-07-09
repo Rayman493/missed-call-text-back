@@ -1262,6 +1262,12 @@ export default function SchedulePage() {
                       isOpen={isEventDetailsOpen}
                       onClose={() => setIsEventDetailsOpen(false)}
                       event={selectedEvent}
+                      onRefresh={async () => {
+                        // Refresh events from Google Calendar
+                        await fetchEvents()
+                        // Show success message
+                        showToast('Appointment updated.', 'success')
+                      }}
                       onDelete={async () => {
                         // Remove the deleted event from local state
                         setEvents(prev => prev.filter(e => e.id !== selectedEvent.id))
@@ -1271,7 +1277,7 @@ export default function SchedulePage() {
                         // Refresh events from Google Calendar
                         await fetchEvents()
                         // Show success message
-                        showToast('Event deleted successfully', 'success')
+                        showToast('Appointment deleted.', 'success')
                       }}
                     />
                   )}
