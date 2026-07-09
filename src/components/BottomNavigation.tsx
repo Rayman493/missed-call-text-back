@@ -20,7 +20,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const { signOut } = useAuth()
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null)
   const moreButtonRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -93,6 +93,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
         top,
         left
       })
+    } else if (!isMoreMenuOpen) {
+      setDropdownPosition(null)
     }
   }, [isMoreMenuOpen])
 
@@ -226,10 +228,10 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
         <div
           ref={dropdownRef}
           className="fixed z-[1000] w-56 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl md:hidden"
-          style={{
+          style={dropdownPosition ? {
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`
-          }}
+          } : undefined}
         >
           <div className="py-1">
             <Link

@@ -17,7 +17,7 @@ export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false)
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
   const [isValidSession, setIsValidSession] = useState(false)
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null)
   const { user, signOut } = useAuth()
   const { business } = useBusiness()
   const pathname = usePathname()
@@ -134,6 +134,8 @@ export default function UserDropdown() {
         left,
         width: dropdownWidth
       })
+    } else if (!isOpen) {
+      setDropdownPosition(null)
     }
   }, [isOpen])
 
@@ -251,11 +253,11 @@ export default function UserDropdown() {
             role="menu"
             tabIndex={-1}
             className="fixed z-[1000] overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl sm:hidden"
-            style={{
+            style={dropdownPosition ? {
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
               width: `${dropdownPosition.width}px`
-            }}
+            } : undefined}
           >
             {/* Identity section */}
             <div className="flex items-center gap-3 px-4 py-3">
@@ -334,11 +336,11 @@ export default function UserDropdown() {
           </div>
 
           {/* Desktop dropdown - portal rendered */}
-          <div ref={desktopDropdownContentRef} className="hidden sm:block fixed z-[1000] bg-slate-950 rounded-xl shadow-xl border border-slate-700 py-2" style={{
+          <div ref={desktopDropdownContentRef} className="hidden sm:block fixed z-[1000] bg-slate-950 rounded-xl shadow-xl border border-slate-700 py-2" style={dropdownPosition ? {
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
             width: `${dropdownPosition.width}px`
-          }}>
+          } : undefined}>
             {/* Business Info Section */}
             <div className="px-4 py-3 border-b border-slate-700 bg-slate-900">
               <p className="text-sm font-semibold text-white truncate">
