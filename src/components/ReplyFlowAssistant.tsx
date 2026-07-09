@@ -278,7 +278,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
 
         <form onSubmit={handleSearchSubmit}>
           {/* Search Box */}
-          <div className="relative mb-2 sm:mb-3">
+          <div className="relative mb-4 sm:mb-5">
             <input
               ref={inputRef}
               type="text"
@@ -287,7 +287,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
               onKeyDown={handleKeyDown}
               enterKeyHint="search"
               placeholder="Search guides and FAQs..."
-              className="w-full pl-10 pr-10 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow text-sm sm:text-base"
+              className="w-full pl-10 pr-10 py-3 sm:py-3.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-300 dark:border-slate-500 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow text-sm sm:text-base"
             />
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-4.5 sm:h-4.5 text-slate-400" />
             {query && (
@@ -314,7 +314,19 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
       </div>
 
       {/* Scrollable Content */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+      <div 
+        ref={scrollContainerRef} 
+        className="flex-1 overflow-y-auto scrollbar-hide"
+      >
+        <style>{`
+          .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+          }
+          .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+        `}</style>
         <div className="p-4 sm:p-5 sm:pt-4">
         {/* Results */}
         {showResults && !selectedArticle && (
@@ -505,15 +517,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
         {/* Suggested Prompts */}
         {!showResults && (
           <div className="space-y-4 sm:space-y-5">
-            {/* Welcome Message - Compressed on mobile */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-3 sm:p-4 border border-blue-100 dark:border-blue-800/30">
-              <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white mb-1.5 sm:mb-2">ReplyFlow Help</h4>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                Search setup guides, billing, AI Voice, calendar, payments, troubleshooting, and FAQs.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 mb-2 sm:mb-3">
+            <div className="flex items-center gap-2 mb-4 sm:mb-5">
               <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
               <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">Suggested questions</p>
             </div>
