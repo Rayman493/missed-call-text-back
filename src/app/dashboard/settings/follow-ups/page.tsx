@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import AppBackButton from '@/components/AppBackButton'
 
 interface FollowUpConfig {
   step: number
@@ -17,7 +17,6 @@ interface FollowUpSettings {
 }
 
 export default function FollowUpsSettingsPage() {
-  const router = useRouter()
   const [settings, setSettings] = useState<FollowUpSettings>({
     enabled: true,
     followUps: [
@@ -236,12 +235,7 @@ export default function FollowUpsSettingsPage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <button
-              onClick={() => router.back()}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              ← Back to Settings
-            </button>
+            <AppBackButton fallbackHref="/dashboard/settings" label="Back" />
           </div>
           <h1 className="text-3xl font-bold text-foreground">Automatic Follow-Ups</h1>
           <p className="text-muted-foreground mt-2">

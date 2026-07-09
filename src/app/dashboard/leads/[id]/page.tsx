@@ -7,6 +7,7 @@ import AutomaticFollowUpsControl from '@/components/AutomaticFollowUpsControl'
 import MobileConversationMessageList from '@/components/MobileConversationMessageList'
 import DesktopConversationMessageList from '@/components/DesktopConversationMessageList'
 import AppHeader from '@/components/AppHeader'
+import AppBackButton from '@/components/AppBackButton'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
@@ -1929,18 +1930,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="md:hidden">
             {/* Back to Leads link for mobile */}
             <div className="mb-2">
-              <button
-                type="button"
-                onClick={() => {
-                  router.push('/dashboard/leads')
-                }}
-                className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Back to Leads
-              </button>
+              <AppBackButton fallbackHref="/dashboard/leads" label="Back" />
             </div>
             <div className="flex items-center justify-between gap-2">
               {/* Enhanced Lead Info */}
@@ -2126,18 +2116,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="hidden md:block">
             {/* Back to Leads */}
             <div className="mb-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  router.push('/dashboard/leads')
-                }}
-                className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Back to Leads
-              </button>
+              <AppBackButton fallbackHref="/dashboard/leads" label="Back" />
             </div>
 
             {/* Lead Identity Section - Simplified */}

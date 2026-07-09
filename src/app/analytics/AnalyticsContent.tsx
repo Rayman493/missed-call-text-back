@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
+import AppBackButton from '@/components/AppBackButton'
 
 interface AnalyticsMetrics {
   missedCallsCaptured: number
@@ -289,6 +290,9 @@ export default function AnalyticsContent() {
             <div className="max-w-[1400px] mx-auto">
               {/* Header */}
               <div className="mb-5">
+                <div className="mb-2">
+                  <AppBackButton fallbackHref="/dashboard" label="Back" />
+                </div>
                 <div className="flex items-center gap-3 mb-1">
                   <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-foreground">
                     Analytics

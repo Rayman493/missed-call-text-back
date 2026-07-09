@@ -6,10 +6,11 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber } from '@/lib/utils'
 import { isReadyForForwardingSetup, hasActiveAccess, deriveSetupState } from '@/lib/subscription-utils'
-import { X, CheckCircle2, Copy, Phone, ArrowLeft, ChevronDown, Info } from 'lucide-react'
+import { X, CheckCircle2, Copy, Phone, ChevronDown, Info } from 'lucide-react'
 import Link from 'next/link'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
+import AppBackButton from '@/components/AppBackButton'
 
 const CARRIERS = [
   { id: 'verizon', name: 'Verizon', noAnswerCode: '*71', requiresLeadingOne: false, deactivationCode: '*73' },
@@ -251,13 +252,9 @@ export default function PhoneForwardingPage() {
           <div className="max-w-4xl mx-auto">
             {/* Header */}
             <div className="mb-8">
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Link>
+              <div className="mb-4">
+                <AppBackButton fallbackHref="/dashboard" label="Back" />
+              </div>
               <h1 className="text-3xl font-bold text-foreground mb-2">
                 {isReviewMode ? 'Review Call Forwarding Setup' : 'Replace voicemail with AI'}
               </h1>
