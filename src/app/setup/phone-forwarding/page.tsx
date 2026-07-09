@@ -256,12 +256,12 @@ export default function PhoneForwardingPage() {
                 <AppBackButton fallbackHref="/dashboard" label="Back" />
               </div>
               <h1 className="text-3xl font-bold text-foreground mb-2">
-                {isReviewMode ? 'Review Call Forwarding Setup' : 'Replace voicemail with AI'}
+                {isReviewMode ? 'Review Call Forwarding Setup' : 'Set Up Forwarding'}
               </h1>
               <p className="text-muted-foreground">
                 {isReviewMode
-                  ? 'Review and update your call forwarding configuration. Your business phone and ReplyFlow number are shown below.'
-                  : 'ReplyFlow answers missed calls instead of voicemail and texts customers back instantly.'}
+                  ? 'Review and update your call forwarding configuration.'
+                  : 'Forward missed calls to ReplyFlow so your AI receptionist can answer when you can\'t.'}
               </p>
             </div>
 
@@ -280,13 +280,6 @@ export default function PhoneForwardingPage() {
 
             {/* Main card */}
             <div className="bg-card rounded-xl shadow-lg p-6 sm:p-8 mb-8 border border-border min-h-[600px]">
-              {/* Reassuring explanation */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6">
-                <p className="text-sm text-blue-800 dark:text-blue-200 text-center font-medium">
-                  Your business phone still rings first. ReplyFlow only answers calls you miss or decline.
-                </p>
-              </div>
-
               {/* Error message */}
               {carrierError && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
@@ -300,23 +293,69 @@ export default function PhoneForwardingPage() {
                 </div>
               )}
 
-              {/* ReplyFlow Number - Compact card with reassurance */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5 mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">Your ReplyFlow Number</p>
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-white dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
-                    Handles missed calls
-                  </span>
-                </div>
-                <p className="text-2xl font-mono font-bold text-blue-900 dark:text-blue-100 mb-2">
+              {/* ReplyFlow Number - Simplified card */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 mb-6">
+                <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3">Forward this number</p>
+                <p className="text-3xl font-mono font-bold text-blue-900 dark:text-blue-100 mb-4">
                   {formatPhoneNumber(business?.twilio_phone_number)}
                 </p>
-                <p className="text-xs text-blue-700 dark:text-blue-300">
-                  Your business phone still rings first. ReplyFlow only answers calls you miss or decline.
-                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      if (business?.twilio_phone_number) {
+                        navigator.clipboard.writeText(business.twilio_phone_number)
+                        setCopiedCode(true)
+                        setTimeout(() => setCopiedCode(false), 2000)
+                      }
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg border border-blue-300 dark:border-blue-600 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-slate-700 transition-all"
+                  >
+                    {copiedCode ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (business?.twilio_phone_number) {
+                        window.location.href = `tel:${business.twilio_phone_number}`
+                      }
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg border border-blue-300 dark:border-blue-600 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-slate-700 transition-all"
+                  >
+                    <Phone className="w-4 h-4" />
+                    Dial
+                  </button>
+                </div>
               </div>
 
-              {/* Personal phone notice - Collapsible */}
+              {/* Simple steps */}
+              <div className="bg-slate-50 dark:bg-slate-900/30 rounded-xl p-6 mb-6">
+                <p className="text-sm font-medium text-foreground mb-4">Simple steps:</p>
+                <ol className="space-y-3 text-sm text-muted-foreground">
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-semibold">1</span>
+                    <span>Copy or dial the forwarding number above.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-semibold">2</span>
+                    <span>Follow your carrier's instructions.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-semibold">3</span>
+                    <span>Come back and continue setup.</span>
+                  </li>
+                </ol>
+              </div>
+
+              {/* Carrier Selection - Collapsed by default */}
               <div className="bg-slate-50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700 rounded-xl mb-6">
                 <button
                   onClick={() => setShowHelpSection(!showHelpSection)}
@@ -324,217 +363,118 @@ export default function PhoneForwardingPage() {
                 >
                   <div className="flex items-center gap-2">
                     <Info className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                    <span className="text-sm font-medium text-slate-900 dark:text-foreground">Using a personal phone for business?</span>
+                    <span className="text-sm font-medium text-slate-900 dark:text-foreground">Carrier-specific instructions</span>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-slate-600 dark:text-slate-400 transition-transform ${showHelpSection ? 'rotate-180' : ''}`} />
                 </button>
                 {showHelpSection && (
                   <div className="px-4 pb-4 pt-0 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <p className="text-xs text-slate-700 dark:text-slate-300 mb-3">
-                      If you use one phone for both business and personal calls, add personal contacts to Ignored Contacts so ReplyFlow stays out of those conversations.
-                    </p>
-                    <div className="space-y-2">
-                      <div className="flex items-start gap-2">
-                        <span className="text-slate-600 dark:text-slate-400 font-semibold text-xs">•</span>
-                        <p className="text-xs text-slate-700 dark:text-slate-300"><strong>Not on Ignored Contacts:</strong> ReplyFlow treats missed calls as potential customers.</p>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <span className="text-slate-600 dark:text-slate-400 font-semibold text-xs">•</span>
-                        <p className="text-xs text-slate-700 dark:text-slate-300"><strong>On Ignored Contacts:</strong> ReplyFlow stays out of the conversation.</p>
+                    <div className="mb-4">
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Select your carrier to see specific forwarding codes and instructions.
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {CARRIERS.map(carrier => {
+                          const isSelected = selectedCarrier === carrier.id
+                          return (
+                            <button
+                              key={carrier.id}
+                              onClick={() => setSelectedCarrier(carrier.id)}
+                              aria-pressed={isSelected}
+                              className={`group relative p-3 rounded-lg border text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
+                                isSelected
+                                  ? 'border-2 border-blue-500 bg-blue-50/80 dark:bg-blue-900/30 shadow-sm ring-2 ring-blue-500/20'
+                                  : 'border-border bg-card hover:border-slate-300 dark:hover:border-slate-500 hover:bg-muted'
+                              }`}
+                            >
+                              <div className="flex flex-col items-center gap-1">
+                                <div className={`text-sm font-semibold ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-foreground'}`}>
+                                  {carrier.name}
+                                </div>
+                                {isSelected && (
+                                  <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                )}
+                              </div>
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
 
-              {/* Carrier Selection */}
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
-                    Step 1
-                  </span>
-                  <p className="font-medium text-foreground">Choose your carrier</p>
-                </div>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Select the company that provides your business phone service.
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {CARRIERS.map(carrier => {
-                    const isSelected = selectedCarrier === carrier.id
-                    return (
-                      <button
-                        key={carrier.id}
-                        onClick={() => setSelectedCarrier(carrier.id)}
-                        aria-pressed={isSelected}
-                        className={`group relative p-4 rounded-xl border text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 ${
-                          isSelected
-                            ? 'border-2 border-blue-500 bg-blue-50/80 dark:bg-blue-900/30 shadow-sm ring-2 ring-blue-500/20'
-                            : 'border-border bg-card hover:border-slate-300 dark:hover:border-slate-500 hover:bg-muted'
-                        }`}
-                      >
-                        <div className="flex flex-col items-center gap-2">
-                          <div className={`text-base font-semibold ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-foreground'}`}>
-                            {carrier.name}
-                          </div>
-                          {isSelected && (
-                            <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                          )}
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Placeholder when no carrier selected */}
-              {!selectedCarrier && (
-                <div className="border-2 border-dashed border-border rounded-xl p-8 text-center mb-6">
-                  <Phone className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    Select your carrier to see your connection code
-                  </p>
-                </div>
-              )}
-
-              {/* Connection Instructions */}
-              {selectedCarrier && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
-                      Step 2
-                    </span>
-                    <p className="font-medium text-foreground">Set up call forwarding</p>
-                  </div>
-                  {hasValidCode ? (
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-2 border-blue-200 dark:border-blue-700 rounded-2xl p-6 sm:p-8 shadow-lg">
-                      <p className="text-sm font-semibold text-foreground mb-1">{CARRIERS.find(c => c.id === selectedCarrier)?.name}</p>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Open your phone's dialer, enter the code below, then press Call. You'll hear a confirmation tone or see a message when it's active.
-                      </p>
-                      <div 
-                        className="bg-white dark:bg-slate-800 border-2 border-blue-300 dark:border-blue-600 rounded-xl px-6 py-8 sm:py-10 mb-4 cursor-pointer hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
-                        onClick={handleCopyCode}
-                        title="Click to copy code"
-                      >
-                        <code
-                          aria-label="Connection dial code"
-                          className="block font-mono font-bold text-foreground text-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-normal break-words leading-relaxed"
-                        >
-                          {getForwardingCodeDisplay()}
-                        </code>
-                      </div>
-                      <p className="text-xs text-muted-foreground/70 text-center mb-4">
-                        Wait for the confirmation tone or message.
-                      </p>
-                      {selectedCarrier === 'at&t' && (
-                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4">
-                          <p className="text-xs text-amber-700 dark:text-amber-300">
-                            Some AT&T plans or devices may use different forwarding methods. Contact AT&T if this code doesn't work.
-                          </p>
-                        </div>
-                      )}
-                      {selectedCarrier === 't-mobile' && (
-                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4">
-                          <p className="text-xs text-amber-700 dark:text-amber-300 mb-2">
-                            This code forwards unanswered calls after approximately 20 seconds. You can copy and paste it directly into your phone's dialer.
-                          </p>
-                          <p className="text-xs text-amber-700/80 dark:text-amber-300/80">
-                            Some T-Mobile plans or devices may use different forwarding methods. Contact T-Mobile if this code doesn't work.
-                          </p>
-                        </div>
-                      )}
-                      <div className="flex gap-3 mb-3">
-                        <button
+                    {selectedCarrier && hasValidCode && (
+                      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                        <p className="text-sm font-semibold text-foreground mb-2">{CARRIERS.find(c => c.id === selectedCarrier)?.name} forwarding code:</p>
+                        <div 
+                          className="bg-slate-50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 mb-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                           onClick={handleCopyCode}
-                          className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg border transition-all ${
-                            copiedCode
-                              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
-                              : 'bg-white dark:bg-slate-800 border-border text-muted-foreground hover:bg-blue-50 dark:hover:bg-slate-700 hover:border-blue-300 dark:hover:border-blue-600'
-                          }`}
+                          title="Click to copy code"
                         >
-                          {copiedCode ? (
-                            <>
-                              <CheckCircle2 className="w-4 h-4" />
-                              Copied!
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-4 h-4" />
-                              Copy code
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => {
-                            const code = getForwardingCode()
-                            if (code && code !== 'Contact your carrier to enable call forwarding') {
-                              window.location.href = `tel:${code}`
-                            }
-                          }}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg border border-border bg-white dark:bg-slate-800 text-muted-foreground hover:bg-blue-50 dark:hover:bg-slate-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all"
-                        >
-                          <Phone className="w-4 h-4" />
-                          Dial
-                        </button>
+                          <code
+                            aria-label="Connection dial code"
+                            className="block font-mono font-bold text-foreground text-center text-lg sm:text-xl tracking-normal break-words"
+                          >
+                            {getForwardingCodeDisplay()}
+                          </code>
+                        </div>
+                        <div className="flex gap-2 mb-3">
+                          <button
+                            onClick={handleCopyCode}
+                            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border transition-all ${
+                              copiedCode
+                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                                : 'bg-white dark:bg-slate-800 border-border text-muted-foreground hover:bg-blue-50 dark:hover:bg-slate-700 hover:border-blue-300 dark:hover:border-blue-600'
+                            }`}
+                          >
+                            {copiedCode ? (
+                              <>
+                                <CheckCircle2 className="w-3 h-3" />
+                                Copied!
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3" />
+                                Copy
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => {
+                              const code = getForwardingCode()
+                              if (code && code !== 'Contact your carrier to enable call forwarding') {
+                                window.location.href = `tel:${code}`
+                              }
+                            }}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border border-border bg-white dark:bg-slate-800 text-muted-foreground hover:bg-blue-50 dark:hover:bg-slate-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all"
+                          >
+                            <Phone className="w-3 h-3" />
+                            Dial
+                          </button>
+                        </div>
+                        {selectedCarrier === 'at&t' && (
+                          <p className="text-xs text-amber-700 dark:text-amber-300">
+                            Some AT&T plans may use different forwarding methods. Contact AT&T if this code doesn't work.
+                          </p>
+                        )}
+                        {selectedCarrier === 't-mobile' && (
+                          <p className="text-xs text-amber-700 dark:text-amber-300">
+                            This code forwards unanswered calls after approximately 20 seconds. Contact T-Mobile if this code doesn't work.
+                          </p>
+                        )}
                       </div>
-                      {/* Deactivation helper */}
-                      {CARRIERS.find(c => c.id === selectedCarrier)?.deactivationCode && (
-                        <p className="text-xs text-muted-foreground/60 text-center">
-                          To disable later: Dial {CARRIERS.find(c => c.id === selectedCarrier)?.deactivationCode} and press Call.
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm text-amber-700 dark:text-amber-300">
-                      <p className="font-medium mb-2">For other carriers:</p>
-                      <p className="mb-3">
-                        Search for your carrier's "conditional call forwarding" or "no answer forwarding" instructions. Forward unanswered or missed calls to{' '}
-                        <span className="font-mono font-semibold">{formatPhoneNumber(business?.twilio_phone_number)}</span>.
-                      </p>
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
-                        After enabling forwarding, click "I've enabled call forwarding" below to continue setup.
-                      </p>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Collapsible troubleshooting */}
-                  <div className="bg-slate-50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700 rounded-xl">
-                    <button
-                      onClick={() => setShowTroubleshooting(!showTroubleshooting)}
-                      className="w-full flex items-center justify-between p-4 hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors rounded-xl"
-                    >
-                      <span className="text-sm font-medium text-foreground">Troubleshooting</span>
-                      <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showTroubleshooting ? 'rotate-180' : ''}`} />
-                    </button>
-                    {showTroubleshooting && (
-                      <div className="px-4 pb-4 pt-0 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                          <li className="flex items-start gap-2">
-                            <span className="text-muted-foreground mt-0.5">•</span>
-                            <span>Verify the forwarding code is correct</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="text-muted-foreground mt-0.5">•</span>
-                            <span>Press Call/Send after entering the code</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="text-muted-foreground mt-0.5">•</span>
-                            <span>Wait for the carrier confirmation tone or message</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="text-muted-foreground mt-0.5">•</span>
-                            <span>Restart your phone if needed</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="text-muted-foreground mt-0.5">•</span>
-                            <span>Contact your carrier if activation fails</span>
-                          </li>
-                        </ul>
+                    {selectedCarrier && !hasValidCode && (
+                      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-xs text-amber-700 dark:text-amber-300">
+                        <p className="font-medium mb-1">For other carriers:</p>
+                        <p>
+                          Search for your carrier's "conditional call forwarding" or "no answer forwarding" instructions. Forward unanswered or missed calls to{' '}
+                          <span className="font-mono font-semibold">{formatPhoneNumber(business?.twilio_phone_number)}</span>.
+                        </p>
                       </div>
                     )}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {showSuccess && (
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6 mb-6 mt-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
