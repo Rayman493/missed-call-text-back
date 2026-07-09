@@ -105,7 +105,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
               onClick={handleHomeClick}
               className="flex items-center gap-2 hover:opacity-90 transition"
             >
-              <BrandIcon size={32} className="block flex-shrink-0 sm:hidden" />
+              <BrandIcon size={40} className="block flex-shrink-0 sm:hidden" />
               <BrandIcon size={56} className="hidden sm:block" />
               <span className="hidden min-w-0 truncate text-base font-semibold tracking-tight sm:block sm:text-lg md:text-xl">
                 <span className={`${isPublicPage && !forceDark ? 'text-slate-800 dark:text-white' : 'text-white'}`}>ReplyFlow</span>
