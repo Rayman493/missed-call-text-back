@@ -70,12 +70,17 @@ export async function POST(request: NextRequest) {
       .insert({
         business_id: businessId,
         caller_phone: testPhoneNumber,
-        contact_name: testContactName,
         status: 'new',
         first_contact_at: new Date().toISOString(),
         last_message_at: new Date().toISOString(),
         opted_out: false,
         is_demo: true, // Mark as demo/test lead
+        raw_metadata: {
+          source: 'admin_test',
+          extracted_info: {
+            callerName: testContactName
+          }
+        }
       })
       .select()
       .single()
@@ -127,7 +132,6 @@ export async function POST(request: NextRequest) {
       lead: {
         id: lead.id,
         caller_phone: lead.caller_phone,
-        contact_name: lead.contact_name,
         status: lead.status,
       }
     })

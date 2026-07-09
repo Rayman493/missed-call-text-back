@@ -77,7 +77,6 @@ export async function POST(request: NextRequest) {
           business_id: businessId,
           caller_phone: normalizedPhone,
           status: 'new',
-          name: customerName || null,
           raw_metadata: {
             source: 'manual_entry',
             extracted_info: {
@@ -107,7 +106,7 @@ export async function POST(request: NextRequest) {
       // Update existing lead with new manual intake data
       const { data: currentLead } = await supabaseAdmin
         .from('leads')
-        .select('raw_metadata, name')
+        .select('raw_metadata')
         .eq('id', leadId)
         .single()
 
@@ -128,7 +127,6 @@ export async function POST(request: NextRequest) {
       const { error: updateError } = await supabaseAdmin
         .from('leads')
         .update({
-          name: customerName || currentLead?.name,
           raw_metadata: {
             ...existingMetadata,
             extracted_info: mergedExtractedInfo,
