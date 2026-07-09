@@ -205,7 +205,7 @@ export default async function Home() {
                 
                 {/* Mockup Content */}
                 <div className="p-4 sm:p-6 md:p-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
                     {/* Step 1: Missed Call */}
                     <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
                       <div className="flex items-center gap-2 mb-3">
@@ -262,7 +262,7 @@ export default async function Home() {
                       </div>
                     </div>
 
-                    {/* Step 4: Appointment Scheduled */}
+                    {/* Step 4: Job Scheduled */}
                     <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
                       <div className="flex items-center gap-2 mb-3">
                         <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
@@ -272,11 +272,29 @@ export default async function Home() {
                         </div>
                         <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 4</span>
                       </div>
-                      <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Appointment Booked</div>
+                      <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Job Scheduled</div>
                       <div className="text-xs text-slate-600 dark:text-slate-400">Tomorrow, 2:00 PM</div>
                       <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Plumbing Repair</div>
                       <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
                         <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">✓ Confirmed</div>
+                      </div>
+                    </div>
+
+                    {/* Step 5: Payment Requested */}
+                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 5</span>
+                      </div>
+                      <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Payment Requested</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">$425 Plumbing Repair</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Text message sent</div>
+                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                        <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Awaiting payment</div>
                       </div>
                     </div>
                   </div>
