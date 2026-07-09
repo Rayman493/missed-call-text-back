@@ -415,9 +415,9 @@ export default function UserDropdown() {
       )}
 
       {isAssistantOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsAssistantOpen(false)} />
-          <div className="relative w-full max-w-lg">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsAssistantOpen(false)} />
+          <div className="relative w-full max-w-lg max-h-[85vh] sm:max-h-[90vh] flex flex-col">
             <button
               onClick={() => setIsAssistantOpen(false)}
               className="absolute -top-10 right-0 text-white hover:text-slate-200 transition-colors"

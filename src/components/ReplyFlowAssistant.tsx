@@ -249,8 +249,8 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
   }
 
   return (
-    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full max-h-[70vh] overflow-hidden ${className}`}>
-      <div ref={scrollContainerRef} className="max-h-[70vh] overflow-y-auto">
+    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full h-full flex flex-col overflow-hidden ${className}`}>
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-b border-slate-200/80 dark:border-slate-700/80 p-5 pb-4 sm:p-6 sm:pb-4">
           {/* Header */}
           <div className="flex items-start gap-3 mb-4">
