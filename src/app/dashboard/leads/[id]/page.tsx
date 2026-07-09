@@ -1919,27 +1919,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   return (
     <DashboardErrorBoundary>
-      <main className="min-h-screen bg-background flex flex-col">
+      <main className="min-h-screen bg-background flex flex-col overflow-x-hidden">
       {/* Standard App Header */}
       <AppHeader />
 
       {/* Conversation Sub-Header */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-6xl mx-auto px-2 sm:px-6 lg:px-8 py-1 sm:py-2">
+      <div className="bg-white/95 dark:bg-slate-950/95 border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-2">
           {/* Mobile Layout: Enhanced Information Header */}
-          <div className="md:hidden">
+          <div className="md:hidden space-y-3">
             {/* Back to Leads link for mobile */}
-            <div className="mb-2">
+            <div>
               <AppBackButton fallbackHref="/dashboard/leads" label="Back" />
             </div>
-            <div className="flex items-center justify-between gap-2">
-              {/* Enhanced Lead Info */}
-              <div className="flex-1 min-w-0">
-                {/* Row 1: Customer name with actions */}
-                <div className="flex items-center justify-between mb-1">
-                  <h1 className="font-semibold text-slate-900 dark:text-white text-sm leading-tight truncate">
-                    {getLeadDisplayName(leadData || lead)}
-                  </h1>
+            <div className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-3 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/80">
+              <div className="flex items-start justify-between gap-3">
+                {/* Enhanced Lead Info */}
+                <div className="flex-1 min-w-0">
+                  {/* Row 1: Customer name with actions */}
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h1 className="font-semibold text-slate-950 dark:text-white text-lg leading-tight break-words min-w-0">
+                      {getLeadDisplayName(leadData || lead)}
+                    </h1>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {/* Info Button */}
                     <button
@@ -2087,20 +2088,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     )}
                   </div>
                 </div>
-                {/* Row 2: Phone number and metadata */}
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                  <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                  {/* Row 2: Phone number and metadata */}
+                  <div className="flex flex-wrap items-center gap-2 text-xs leading-relaxed">
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-slate-600 shadow-sm ring-1 ring-slate-200/70 dark:bg-slate-950/60 dark:text-slate-300 dark:ring-slate-800">
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
                     </svg>
                     <span className="truncate">{formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}</span>
                   </div>
-                  <span className="text-slate-400 dark:text-slate-500">{messagesArray.length} msg</span>
+                  <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-slate-500 shadow-sm ring-1 ring-slate-200/70 dark:bg-slate-950/60 dark:text-slate-400 dark:ring-slate-800">{messagesArray.length} msg</span>
                   {lead?.last_message_at && (
-                    <span className="text-slate-400 dark:text-slate-500">{formatRelativeTime(lead.last_message_at)}</span>
+                    <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-slate-500 shadow-sm ring-1 ring-slate-200/70 dark:bg-slate-950/60 dark:text-slate-400 dark:ring-slate-800">{formatRelativeTime(lead.last_message_at)}</span>
                   )}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
-                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
+                    <div className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-green-700 font-medium ring-1 ring-green-200/70 dark:bg-green-950/30 dark:text-green-300 dark:ring-green-900/70">
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
@@ -2110,6 +2111,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             </div>
+          </div>
           </div>
 
           {/* Desktop Layout: Simplified */}
@@ -2461,19 +2463,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
         
         {/* Mobile Layout */}
-        <div className="lg:hidden space-y-3">
+        <div className="lg:hidden space-y-4 pb-[calc(7rem+env(safe-area-inset-bottom))]">
           {/* Lead Overview Card - Unified AI Intake + Lead Status - Mobile optimized */}
           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id ? (
-            <div className="bg-card border border-border/50 rounded-xl p-2.5">
-              <div className="flex items-center justify-between mb-2">
+            <div className="bg-card/95 border border-border/70 rounded-2xl p-4 shadow-sm ring-1 ring-white/5">
+              <div className="flex items-center justify-between gap-3 mb-3">
                 <button
                   onClick={() => setCollapsedSections((prev: any) => ({ ...prev, aiIntake: !prev.aiIntake }))}
-                  className="flex items-center gap-1.5"
+                  className="flex min-w-0 items-center gap-2 text-left"
                 >
                   <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <h3 className="text-sm font-medium text-foreground">Lead Overview</h3>
+                  <h3 className="text-base font-semibold text-foreground">Lead Overview</h3>
                   <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
@@ -2481,21 +2483,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 {(followUpSettings?.enabled || (followUpJobs && followUpJobs.length > 0)) && (
                   <button
                     onClick={() => router.push('/dashboard/settings/follow-ups')}
-                    className="px-2.5 py-1 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-500 text-xs font-medium rounded-lg transition-colors duration-200 border border-slate-200 dark:border-slate-700/50"
+                    className="px-3 py-1.5 bg-white/80 hover:bg-slate-50 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-xl transition-colors duration-200 border border-slate-200 dark:border-slate-700/70 shadow-sm"
                   >
                     Configure
                   </button>
                 )}
               </div>
               {collapsedSections.aiIntake && (
-                <div className="mt-1 text-xs text-muted-foreground transition-all duration-200">
-                  <span className="font-medium text-foreground">{getLeadAIIntake(leadData).customerName || 'Customer'}</span>
-                  {' • '}
-                  {getLeadAIIntake(leadData).serviceRequested || 'Service request'}
+                <div className="mt-2 rounded-xl bg-slate-50/80 px-3 py-2 text-sm text-muted-foreground transition-all duration-200 dark:bg-slate-900/60">
+                  <span className="font-semibold text-foreground">{getLeadAIIntake(leadData).customerName || 'Customer'}</span>
+                  <span className="mx-1.5 text-slate-400">•</span>
+                  <span className="leading-relaxed">{getLeadAIIntake(leadData).serviceRequested || 'Service request'}</span>
                 </div>
               )}
               {!collapsedSections.aiIntake && (
-                <div className="mt-1.5 transition-all duration-200">
+                <div className="mt-3 transition-all duration-200">
                   <AICallDetails
                     leadId={params.id}
                     businessId={business.id}
@@ -2507,7 +2509,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   />
                 </div>
               )}
-              <div className="flex flex-wrap gap-1 mt-2">
+              <div className="flex flex-wrap gap-1.5 mt-3">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
                   {leadData?.status || lead?.status || 'New'}
                 </span>
@@ -2551,19 +2553,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             </div>
           ) : (
-            <div className="bg-card border border-border/50 rounded-xl p-2.5">
+            <div className="bg-card/95 border border-border/70 rounded-2xl p-4 shadow-sm ring-1 ring-white/5">
               <div className="flex items-center justify-between mb-1.5">
                 <h3 className="text-sm font-medium text-foreground">Lead Overview</h3>
                 {(followUpSettings?.enabled || (followUpJobs && followUpJobs.length > 0)) && (
                   <button
                     onClick={() => router.push('/dashboard/settings/follow-ups')}
-                    className="px-2.5 py-1 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-500 text-xs font-medium rounded-lg transition-colors duration-200 border border-slate-200 dark:border-slate-700/50"
+                    className="px-3 py-1.5 bg-white/80 hover:bg-slate-50 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-xl transition-colors duration-200 border border-slate-200 dark:border-slate-700/70 shadow-sm"
                   >
                     Configure
                   </button>
                 )}
               </div>
-              <div className="flex flex-wrap gap-1 mt-2">
+              <div className="flex flex-wrap gap-1.5 mt-3">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
                   {leadData?.status || lead?.status || 'New'}
                 </span>
@@ -2609,9 +2611,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           )}
 
           {/* Conversation Section - Self-contained messaging experience - Mobile optimized */}
-          <div className="bg-card border border-border/50 rounded-xl lg:hidden flex flex-col overflow-hidden" style={{ height: 'min(600px, 70vh)' }}>
-            <div className="px-4 py-3 flex-shrink-0 flex items-center justify-between border-b border-border/20">
-              <h3 className="text-sm font-medium text-foreground">Conversation</h3>
+          <div className="bg-card/95 border border-border/70 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-sm ring-1 ring-white/5" style={{ height: 'min(620px, calc(100svh - 15rem))', minHeight: '520px' }}>
+            <div className="px-4 py-3.5 flex-shrink-0 flex items-center justify-between border-b border-border/30 bg-slate-50/70 dark:bg-slate-950/30">
+              <h3 className="text-base font-semibold text-foreground">Conversation</h3>
               {!loading && conversationTimeline.length > 0 && (
                 <p className="text-xs text-muted-foreground">
                   {conversationTimeline.length === 1 ? '1 message' : `${conversationTimeline.length} messages`}
@@ -2619,9 +2621,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               )}
             </div>
             {/* Mobile Message Thread - Scrollable viewport */}
-            <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-behavior-contain" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
+            <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain bg-slate-50/40 dark:bg-slate-950/20" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '7rem' }}>
               {/* Inner content wrapper for justify-end */}
-              <div className="min-h-full px-3 flex flex-col justify-end">
+              <div className="min-h-full px-3.5 py-4 flex flex-col justify-end">
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -2649,9 +2651,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             </div>
             {/* Divider - Softer for natural integration */}
-            <div className="border-t border-border/20 flex-shrink-0"></div>
+            <div className="border-t border-border/30 flex-shrink-0"></div>
             {/* Composer - Integrated at bottom with better mobile spacing */}
-            <div className="px-3 py-3 flex-shrink-0">
+            <div className="px-3 py-3 flex-shrink-0 bg-card/98 shadow-[0_-12px_40px_rgba(2,6,23,0.12)]" style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}>
               {/* Image Previews */}
               {mobileImages.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
@@ -2675,11 +2677,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   ))}
                 </div>
               )}
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-end rounded-2xl border border-slate-200/70 bg-white/85 p-2 shadow-sm dark:border-slate-700/70 dark:bg-slate-950/70">
                 <button
                   type="button"
                   onClick={() => mobileFileInputRef.current?.click()}
-                  className="p-2.5 text-slate-400 hover:text-slate-200 transition-colors duration-200 flex-shrink-0 h-11 flex items-center justify-center"
+                  className="p-2.5 text-slate-400 hover:text-slate-200 transition-colors duration-200 flex-shrink-0 h-11 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
                   disabled={sending}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2699,13 +2701,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleMobileKeyDown}
                   placeholder="Type a message..."
-                  className="flex-1 min-h-[44px] max-h-[100px] px-3.5 py-2.5 bg-background border border-slate-700 rounded-xl text-base text-white placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="flex-1 min-h-[44px] max-h-[112px] px-3.5 py-2.5 bg-transparent border-0 rounded-xl text-base text-slate-950 dark:text-white placeholder-slate-500 resize-none focus:outline-none focus:ring-0 transition-all duration-200 leading-relaxed"
                   rows={1}
                 />
                 <button
                   onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
                   disabled={(!message.trim() && mobileImages.length === 0) || sending}
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2 flex-shrink-0 h-11"
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2 flex-shrink-0 h-11 shadow-sm active:scale-95"
                 >
                   {sending ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

@@ -75,36 +75,36 @@ export default function AIIntakeSummaryMessage({ body }: AIIntakeSummaryMessageP
   const { service, address, completionTime, callTime, details } = parseAISummary(body)
 
   return (
-    <div className="space-y-1.5">
-      <div className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+    <div className="max-w-full space-y-2.5 overflow-hidden rounded-2xl bg-blue-50/95 p-3 text-left ring-1 ring-blue-200/70 dark:bg-blue-950/30 dark:ring-blue-800/60">
+      <div className="break-words text-sm font-semibold leading-snug text-blue-950 dark:text-blue-100">
         {service}
       </div>
 
       {(address || completionTime || callTime) && (
-        <div className="space-y-0.5 text-[10px] text-blue-800 dark:text-blue-200">
+        <div className="space-y-1.5 text-[11px] leading-relaxed text-blue-800 dark:text-blue-200">
           {address && (
-            <div className="flex items-center gap-1">
-              <MapPin className="w-3 h-3 flex-shrink-0" />
-              <span>{address}</span>
+            <div className="flex items-start gap-1.5 min-w-0">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+              <span className="min-w-0 break-words">{address}</span>
             </div>
           )}
           {completionTime && (
-            <div className="flex items-center gap-1">
-              <Calendar className="w-3 h-3 flex-shrink-0" />
-              <span>{completionTime}</span>
+            <div className="flex items-start gap-1.5 min-w-0">
+              <Calendar className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+              <span className="min-w-0 break-words">{completionTime}</span>
             </div>
           )}
           {callTime && (
-            <div className="flex items-center gap-1">
-              <Phone className="w-3 h-3 flex-shrink-0" />
-              <span>{callTime}</span>
+            <div className="flex items-start gap-1.5 min-w-0">
+              <Phone className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+              <span className="min-w-0 break-words">{callTime}</span>
             </div>
           )}
         </div>
       )}
 
       {details && (
-        <div className="text-[10px] text-blue-700 dark:text-blue-300 leading-snug">
+        <div className="break-words border-t border-blue-200/60 pt-2 text-[11px] leading-relaxed text-blue-700 dark:border-blue-800/50 dark:text-blue-300">
           {details}
         </div>
       )}
