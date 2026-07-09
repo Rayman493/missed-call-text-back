@@ -48,30 +48,21 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
 
       {/* Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center md:items-center md:justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
-          <div className="relative bg-transparent max-w-lg w-full md:max-w-lg">
-            {/* Mobile: Bottom sheet style */}
-            <div className="md:hidden mb-20">
-              <button
-                onClick={() => setIsOpen(false)}
-                className="absolute -top-12 right-0 text-white hover:text-slate-200 transition-colors bg-blue-600/90 backdrop-blur-sm rounded-full p-2"
-                aria-label="Close help"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden pb-safe">
-                <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
-              </div>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          {/* Backdrop - prevents scroll and bleed-through */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            onClick={() => setIsOpen(false)}
+            style={{ touchAction: 'none' }}
+          />
+          {/* Modal container */}
+          <div className="relative w-full max-w-lg max-h-[calc(100dvh-32px)] flex flex-col">
+            {/* Mobile: Centered modal with safe areas */}
+            <div className="md:hidden bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)]">
+              <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
             </div>
             {/* Desktop: Centered modal */}
-            <div className="hidden md:block">
-              <button
-                onClick={() => setIsOpen(false)}
-                className="absolute -top-10 right-0 text-white hover:text-slate-200 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
+            <div className="hidden md:block bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden max-h-[80vh]">
               <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
             </div>
           </div>

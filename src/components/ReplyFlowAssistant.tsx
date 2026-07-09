@@ -250,35 +250,35 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
 
   return (
     <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full h-full flex flex-col overflow-hidden ${className}`}>
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
-        <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-b border-slate-200/80 dark:border-slate-700/80 p-5 pb-4 sm:p-6 sm:pb-4">
-          {/* Header */}
-          <div className="flex items-start gap-3 mb-4">
-            <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
-              <MessageCircle className="w-5.5 h-5.5 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white leading-tight">ReplyFlow Assistant</h3>
-              {!showResults && (
-                <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5 leading-snug">
-                  Search ReplyFlow documentation for answers about customers, appointments, payments, and more.
-                </p>
-              )}
-            </div>
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-                aria-label="Close ReplyFlow Assistant"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-30 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-b border-slate-200/80 dark:border-slate-700/80 p-4 sm:p-5 flex-shrink-0">
+        {/* Header */}
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-9 h-9 sm:w-11 sm:h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
+            <MessageCircle className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white leading-tight">ReplyFlow Help</h3>
+            {!showResults && (
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5 leading-snug">
+                Search documentation for answers about customers, appointments, payments, and more.
+              </p>
             )}
           </div>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0"
+              aria-label="Close ReplyFlow Assistant"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
 
-          <form onSubmit={handleSearchSubmit}>
+        <form onSubmit={handleSearchSubmit}>
           {/* Search Box */}
-          <div className="relative mb-3">
+          <div className="relative mb-2 sm:mb-3">
             <input
               ref={inputRef}
               type="text"
@@ -286,10 +286,10 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               enterKeyHint="search"
-              placeholder="Search ReplyFlow guides and FAQs..."
-              className="w-full pl-11 pr-11 py-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+              placeholder="Search guides and FAQs..."
+              className="w-full pl-10 pr-10 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow text-sm sm:text-base"
             />
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-4.5 sm:h-4.5 text-slate-400" />
             {query && (
               <button
                 type="button"
@@ -302,18 +302,20 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
             )}
           </div>
 
-          {/* Search Button */}
-            <button
-              type="submit"
-              disabled={!query.trim()}
-              className="hidden sm:block w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors shadow-sm hover:shadow disabled:shadow-none"
-            >
-              Ask ReplyFlow Assistant
-            </button>
-          </form>
-        </div>
+          {/* Search Button - Desktop only */}
+          <button
+            type="submit"
+            disabled={!query.trim()}
+            className="hidden sm:block w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors shadow-sm hover:shadow disabled:shadow-none"
+          >
+            Ask ReplyFlow Assistant
+          </button>
+        </form>
+      </div>
 
-        <div className="p-5 pt-4 sm:p-6 sm:pt-4">
+      {/* Scrollable Content */}
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+        <div className="p-4 sm:p-5 sm:pt-4">
         {/* Results */}
         {showResults && !selectedArticle && (
           <div className="mb-4 space-y-4" ref={resultsRef}>
@@ -502,37 +504,37 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
 
         {/* Suggested Prompts */}
         {!showResults && (
-          <div className="space-y-5">
-            {/* Welcome Message */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/30">
-              <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">ReplyFlow Help</h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+          <div className="space-y-4 sm:space-y-5">
+            {/* Welcome Message - Compressed on mobile */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-3 sm:p-4 border border-blue-100 dark:border-blue-800/30">
+              <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white mb-1.5 sm:mb-2">ReplyFlow Help</h4>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                 Search setup guides, billing, AI Voice, calendar, payments, troubleshooting, and FAQs.
               </p>
             </div>
 
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-2 sm:mb-3">
               <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">Suggested questions</p>
+              <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">Suggested questions</p>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {suggestedPrompts.map((category) => (
-                <div key={category.category} className="space-y-2">
+                <div key={category.category} className="space-y-1.5 sm:space-y-2">
                   <div className="flex items-center gap-2 px-1">
-                    <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
+                    <div className="p-1 sm:p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
                       {category.icon}
                     </div>
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">{category.category}</span>
+                    <span className="text-[10px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">{category.category}</span>
                   </div>
-                  <div className="pl-10 space-y-1.5">
+                  <div className="pl-8 sm:pl-10 space-y-1 sm:space-y-1.5">
                     {category.prompts.map((prompt, idx) => (
                       <button
                         key={idx}
                         onClick={() => handleSuggestedQuestion(prompt)}
-                        className="w-full text-left px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 group border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
+                        className="w-full text-left px-2.5 sm:px-3 py-2 sm:py-2.5 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 group border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
                       >
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0 transition-colors" />
-                        <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                        <ChevronRight className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0 transition-colors" />
+                        <span className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                           {prompt}
                         </span>
                       </button>
