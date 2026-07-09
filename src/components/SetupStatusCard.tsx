@@ -532,10 +532,9 @@ export default function SetupStatusCard({
     )
   }
   
-  // Render expanded state
-  if (isExpanded) {
-    return (
-      <div className="bg-slate-900/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-2xl p-3 sm:p-5 shadow-xl border border-slate-200/10 dark:border-slate-800/50">
+  // Render main card (for setup states)
+  return (
+    <div className="bg-slate-900/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-2xl p-3 sm:p-5 shadow-xl border border-slate-200/10 dark:border-slate-800/50">
       <div className="flex flex-col gap-2 sm:gap-4">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 pb-2 sm:pb-4">
@@ -561,16 +560,16 @@ export default function SetupStatusCard({
               e.preventDefault()
               e.stopPropagation()
               setUserHasToggled(true)
-              setIsExpanded(false)
+              setIsExpanded(!isExpanded)
             }}
             className="flex-shrink-0 p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
           >
-            <ChevronUp className="w-4 h-4" />
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
         </div>
 
-        {/* Setup Progress - Compact on mobile */}
-        {(cardState === 'needs-forwarding' || cardState === 'needs-verification') && (
+        {/* Setup Progress - Only show when expanded */}
+        {isExpanded && (
           <div className="space-y-2 sm:space-y-3">
             {/* Step 1: Always Complete */}
             <div className="bg-slate-800/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden">
@@ -837,9 +836,5 @@ export default function SetupStatusCard({
         </div>
       )}
     </div>
-    )
-  }
-
-  // Fallback - should not reach here
-  return null
+  )
 }
