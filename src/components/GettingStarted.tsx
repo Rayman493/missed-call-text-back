@@ -10,7 +10,7 @@ import {
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber } from '@/lib/utils'
-import { Circle, ChevronDown, ChevronRight } from 'lucide-react'
+import { Circle, ChevronDown, ChevronRight, Phone } from 'lucide-react'
 import Link from 'next/link'
 import { handleBillingAction } from '@/lib/billing'
 import { usePathname } from 'next/navigation'
@@ -603,7 +603,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       {
         id: 'test',
         title: 'Activate ReplyFlow',
-        description: 'Call your business phone number one time to activate ReplyFlow. Once we successfully receive your forwarded call, your AI receptionist will begin answering missed calls automatically.',
+        description: 'Call your business number once so ReplyFlow can verify forwarding and activate your AI receptionist.',
         status: testActionNeeded ? 'action-needed' : (step3Complete ? 'complete' : 'needs-action'),
         details: testActionNeeded
           ? 'Verification failed - try again'
@@ -800,12 +800,12 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       onClick={() => isForwardingCard && (isComplete || !isComplete && (isCurrent || isActionNeeded)) && handleCardToggle(item.id)}
                       className={`flex items-start gap-3 sm:gap-4 p-3 sm:p-3.5 rounded-xl border transition-all duration-300 ${
                         isComplete
-                          ? 'bg-green-50/30 dark:bg-green-900/5 border-green-200/40 dark:border-green-800/20'
+                          ? 'bg-green-50/20 dark:bg-green-900/5 border-green-200/30 dark:border-green-800/15'
                           : isActionNeeded
                             ? 'bg-amber-50/30 dark:bg-amber-900/10 border-amber-200/40 dark:border-amber-800/20'
                             : isCurrent
-                              ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200/60 dark:border-blue-700/40 hover:border-blue-300 dark:hover:border-blue-600'
-                              : 'bg-muted/50 border-border'
+                              ? 'bg-amber-50/60 dark:bg-amber-900/20 border-amber-300/70 dark:border-amber-700/50 hover:border-amber-400 dark:hover:border-amber-600 shadow-sm'
+                              : 'bg-muted/30 border-border/50'
                       } ${isForwardingCard && (isComplete || !isComplete && (isCurrent || isActionNeeded)) ? 'cursor-pointer hover:bg-blue-100/60 dark:hover:bg-blue-900/20' : ''}`}
                     >
                       <div className="flex-shrink-0 mt-0.5">
@@ -821,7 +821,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                               isActionNeeded
                                 ? 'bg-amber-600 text-white shadow-sm'
                                 : isCurrent
-                                  ? 'bg-blue-600 text-white shadow-sm'
+                                  ? 'bg-amber-600 text-white shadow-sm'
                                   : 'bg-muted text-muted-foreground'
                             }`}
                           >
@@ -830,8 +830,11 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <h3 className={`font-semibold text-sm sm:text-base ${!isCurrent && !isComplete && !isActionNeeded ? 'text-muted-foreground/70' : 'text-foreground'}`}>{item.title}</h3>
+                        <div className={`flex items-center gap-2 ${isCurrent ? 'mb-2' : 'mb-1.5'}`}>
+                          {item.id === 'test' && isCurrent && (
+                            <Phone className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                          )}
+                          <h3 className={`font-semibold ${isCurrent ? 'text-base sm:text-lg' : 'text-sm sm:text-base'} ${!isCurrent && !isComplete && !isActionNeeded ? 'text-muted-foreground/70' : 'text-foreground'}`}>{item.title}</h3>
                           <span
                             className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium ${
                               isComplete
@@ -839,11 +842,11 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                                 : isActionNeeded
                                   ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
                                   : isCurrent
-                                    ? 'bg-blue-100/70 text-blue-800/80 dark:bg-blue-900/30 dark:text-blue-300/80'
+                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
                                     : 'bg-muted text-muted-foreground'
                             }`}
                           >
-                            {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'IN PROGRESS' : ''}
+                            {isComplete ? 'Done' : isActionNeeded ? 'Action Needed' : isCurrent ? 'Final Step' : ''}
                           </span>
                           {isForwardingCard && (isComplete || !isComplete && (isCurrent || isActionNeeded)) && (
                             <div className="flex-shrink-0">
@@ -856,6 +859,12 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                           )}
                         </div>
                         <p className={`text-sm mb-2.5 ${!isCurrent && !isComplete && !isActionNeeded ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}>{item.description}</p>
+                        {item.id === 'test' && isCurrent && business?.business_phone_number && (
+                          <div className="mb-3.5 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg">
+                            <p className="text-xs text-amber-700 dark:text-amber-300 font-medium mb-1">Call this number:</p>
+                            <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">{formatPhoneNumber(business.business_phone_number)}</p>
+                          </div>
+                        )}
                         {item.details && (
                           <p className="text-xs text-muted-foreground mb-3.5">{item.details}</p>
                         )}
