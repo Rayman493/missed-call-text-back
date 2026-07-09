@@ -2053,13 +2053,13 @@ export default function SettingsContent() {
                   <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowAddModal(true)}
-                    className="h-9 px-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors text-xs"
+                    className="h-11 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors text-xs flex items-center justify-center"
                   >
                     + Add
                   </button>
                   <button
                     onClick={() => setShowImportModal(true)}
-                    className="h-9 px-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-md transition-colors text-xs"
+                    className="h-11 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-md transition-colors text-xs flex items-center justify-center"
                   >
                     Import
                   </button>
