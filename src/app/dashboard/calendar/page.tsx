@@ -802,45 +802,16 @@ export default function SchedulePage() {
                       )}
 
                       {/* Compact Status Bar - Desktop: Simplified */}
-                      <div className="hidden md:flex items-center justify-between gap-4 mb-3 p-3 bg-slate-900/50 border border-slate-700/50 rounded-xl shadow-sm">
-                        {/* Metrics - Appointments + Jobs */}
-                        <div className="flex items-center gap-5">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                            <div>
-                              <p className="text-[10px] text-slate-400">Today</p>
-                              <p className="text-base font-semibold text-foreground leading-tight">
-                                {getTodayCounts().appointments} <span className="text-xs font-normal text-slate-400">appts</span>
-                              </p>
-                              <p className="text-[10px] text-slate-400">
-                                {getTodayCounts().jobs} {getTodayCounts().jobs === 1 ? 'job' : 'jobs'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <div>
-                              <p className="text-[10px] text-slate-400">This Week</p>
-                              <p className="text-base font-semibold text-foreground leading-tight">
-                                {getThisWeekCounts().appointments} <span className="text-xs font-normal text-slate-400">appts</span>
-                              </p>
-                              <p className="text-[10px] text-slate-400">
-                                {getThisWeekCounts().jobs} {getThisWeekCounts().jobs === 1 ? 'job' : 'jobs'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                            <div>
-                              <p className="text-[10px] text-slate-400">This Month</p>
-                              <p className="text-base font-semibold text-foreground leading-tight">
-                                {getThisMonthCounts().appointments} <span className="text-xs font-normal text-slate-400">appts</span>
-                              </p>
-                              <p className="text-[10px] text-slate-400">
-                                {getThisMonthCounts().jobs} {getThisMonthCounts().jobs === 1 ? 'job' : 'jobs'}
-                              </p>
-                            </div>
-                          </div>
+                      <div className="hidden md:flex items-center justify-between gap-4 mb-4 p-3 bg-slate-900/50 border border-slate-700/50 rounded-xl shadow-sm">
+                        {/* Single compact summary */}
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <p className="text-sm text-slate-300">
+                            <span className="font-semibold text-foreground">{getThisMonthCounts().appointments} appointments</span>
+                            <span className="text-slate-400 mx-1">•</span>
+                            <span className="font-semibold text-foreground">{getThisMonthCounts().jobs} jobs</span>
+                            <span className="text-slate-400 ml-1">this month</span>
+                          </p>
                         </div>
 
                         {/* Calendar Status & Actions - Simplified */}
@@ -854,23 +825,6 @@ export default function SchedulePage() {
                               </span>
                             )}
                           </div>
-                          <button
-                            onClick={handleSync}
-                            disabled={isSyncing || isDisconnecting}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-md transition-colors border border-slate-700/40 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isSyncing ? (
-                              <>
-                                <div className="w-3 h-3 border-2 border-slate-600 dark:border-slate-400 border-t-transparent rounded-full animate-spin" />
-                                <span>Syncing...</span>
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw className="w-3.5 h-3.5" />
-                                <span>Sync</span>
-                              </>
-                            )}
-                          </button>
                           <div className="relative">
                             <button
                               ref={calendarOverflowButtonRef}
@@ -885,6 +839,26 @@ export default function SchedulePage() {
                                 className="absolute right-0 top-full mt-1 w-48 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden"
                               >
                                 <div className="py-1">
+                                  <button
+                                    onClick={() => {
+                                      setIsCalendarOverflowOpen(false)
+                                      handleSync()
+                                    }}
+                                    disabled={isSyncing || isDisconnecting}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isSyncing ? (
+                                      <>
+                                        <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                                        <span>Syncing...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <RefreshCw className="w-3.5 h-3.5" />
+                                        <span>Sync</span>
+                                      </>
+                                    )}
+                                  </button>
                                   <button
                                     onClick={() => {
                                       setIsCalendarOverflowOpen(false)
@@ -919,7 +893,7 @@ export default function SchedulePage() {
                       </div>
 
                       {/* View Mode Toggle - Desktop - Simplified */}
-                      <div className="hidden md:block mb-3">
+                      <div className="hidden md:block mb-4">
                         <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit">
                           <button
                             onClick={() => setViewMode('month')}
@@ -945,7 +919,7 @@ export default function SchedulePage() {
                       </div>
 
                       {/* Mobile: View Mode Toggle - Simplified */}
-                      <div className="md:hidden mb-3">
+                      <div className="md:hidden mb-4">
                         <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
                           <button
                             onClick={() => setViewMode('month')}
@@ -970,50 +944,21 @@ export default function SchedulePage() {
                         </div>
                       </div>
 
-                      {/* Mobile: Compact Metrics - shown above calendar */}
-                      <div className="md:hidden mb-3">
-                        <div className="grid grid-cols-3 gap-2 p-2.5 bg-slate-900/50 border border-slate-700/50 rounded-xl">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                            <div>
-                              <p className="text-[10px] text-slate-400">Today</p>
-                              <p className="text-sm font-semibold text-foreground leading-tight">
-                                {getTodayCounts().appointments} <span className="text-[10px] font-normal text-slate-400">appts</span>
-                              </p>
-                              <p className="text-[10px] text-slate-400">
-                                {getTodayCounts().jobs} {getTodayCounts().jobs === 1 ? 'job' : 'jobs'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <div>
-                              <p className="text-[10px] text-slate-400">Week</p>
-                              <p className="text-sm font-semibold text-foreground leading-tight">
-                                {getThisWeekCounts().appointments} <span className="text-[10px] font-normal text-slate-400">appts</span>
-                              </p>
-                              <p className="text-[10px] text-slate-400">
-                                {getThisWeekCounts().jobs} {getThisWeekCounts().jobs === 1 ? 'job' : 'jobs'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                            <div>
-                              <p className="text-[10px] text-slate-400">Month</p>
-                              <p className="text-sm font-semibold text-foreground leading-tight">
-                                {getThisMonthCounts().appointments} <span className="text-[10px] font-normal text-slate-400">appts</span>
-                              </p>
-                              <p className="text-[10px] text-slate-400">
-                                {getThisMonthCounts().jobs} {getThisMonthCounts().jobs === 1 ? 'job' : 'jobs'}
-                              </p>
-                            </div>
-                          </div>
+                      {/* Mobile: Compact Metrics - single summary */}
+                      <div className="md:hidden mb-4">
+                        <div className="flex items-center gap-2 p-2.5 bg-slate-900/50 border border-slate-700/50 rounded-xl">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <p className="text-xs text-slate-300">
+                            <span className="font-semibold text-foreground">{getThisMonthCounts().appointments} appointments</span>
+                            <span className="text-slate-400 mx-1">•</span>
+                            <span className="font-semibold text-foreground">{getThisMonthCounts().jobs} jobs</span>
+                            <span className="text-slate-400 ml-1">this month</span>
+                          </p>
                         </div>
                       </div>
 
-                      {/* Calendar Header with Sync Button - mobile only; desktop uses Compact Status Bar */}
-                      <div className="flex md:hidden items-center justify-between gap-3 mb-3 p-2.5 bg-slate-900/40 border border-slate-700/40 rounded-xl">
+                      {/* Calendar Header - mobile only */}
+                      <div className="flex md:hidden items-center justify-between gap-3 mb-4 p-2.5 bg-slate-900/40 border border-slate-700/40 rounded-xl">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-green-500 rounded-full"></div>
                           <div>
@@ -1023,67 +968,68 @@ export default function SchedulePage() {
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="relative">
                           <button
-                            onClick={handleSync}
-                            disabled={isSyncing || isDisconnecting}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                            ref={calendarOverflowButtonRef}
+                            onClick={() => setIsCalendarOverflowOpen(!isCalendarOverflowOpen)}
+                            className="inline-flex items-center justify-center p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-300 rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                           >
-                            {isSyncing ? (
-                              <>
-                                <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                                <span>Syncing...</span>
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw className="w-3.5 h-3.5" />
-                                <span>Sync</span>
-                              </>
-                            )}
+                            <MoreVertical className="w-4 h-4" />
                           </button>
-                          <div className="relative">
-                            <button
-                              ref={calendarOverflowButtonRef}
-                              onClick={() => setIsCalendarOverflowOpen(!isCalendarOverflowOpen)}
-                              className="inline-flex items-center justify-center p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-300 rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                          {isCalendarOverflowOpen && (
+                            <div
+                              ref={calendarOverflowRef}
+                              className="absolute right-0 top-full mt-1 w-48 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden"
                             >
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                            {isCalendarOverflowOpen && (
-                              <div
-                                ref={calendarOverflowRef}
-                                className="absolute right-0 top-full mt-1 w-48 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden"
-                              >
-                                <div className="py-1">
-                                  <button
-                                    onClick={() => {
-                                      setIsCalendarOverflowOpen(false)
-                                      handleDisconnectCalendar()
-                                    }}
-                                    disabled={isDisconnecting || isSyncing}
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {isDisconnecting ? (
-                                      <>
-                                        <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                                        <span>Disconnecting...</span>
-                                      </>
-                                    ) : (
-                                      <>
+                              <div className="py-1">
+                                <button
+                                  onClick={() => {
+                                    setIsCalendarOverflowOpen(false)
+                                    handleSync()
+                                  }}
+                                  disabled={isSyncing || isDisconnecting}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isSyncing ? (
+                                    <>
+                                      <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                                      <span>Syncing...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <RefreshCw className="w-3.5 h-3.5" />
+                                      <span>Sync</span>
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setIsCalendarOverflowOpen(false)
+                                    handleDisconnectCalendar()
+                                  }}
+                                  disabled={isDisconnecting || isSyncing}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isDisconnecting ? (
+                                    <>
+                                      <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                                      <span>Disconnecting...</span>
+                                    </>
+                                  ) : (
+                                    <>
                                         <span>Disconnect Google Calendar</span>
                                       </>
                                     )}
-                                  </button>
-                                </div>
+                                </button>
                               </div>
-                            )}
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       {/* Conditionally render Month or Agenda view */}
                       {viewMode === 'month' ? (
-                        <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-4 xl:gap-6">
+                        <div className="grid grid-cols-1 gap-4">
                           {/* Calendar Grid */}
                           <div className="order-1">
                             <CalendarGrid
@@ -1125,16 +1071,6 @@ export default function SchedulePage() {
                                   </div>
                                 ) : null
                               }}
-                            />
-                          </div>
-
-                          {/* Upcoming Agenda Sidebar */}
-                          <div className="order-2">
-                            <UpcomingAgenda
-                              events={events}
-                              maxEvents={8}
-                              onRefresh={handleSync}
-                              calendarConnected={calendarConnected}
                             />
                           </div>
                         </div>

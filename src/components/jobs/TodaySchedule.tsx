@@ -137,44 +137,22 @@ export default function TodaySchedule({
 
   return (
     <div className="bg-white dark:bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-800/60 shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/20">
-        <div>
-          <h2 className="text-base font-semibold text-slate-900 dark:text-foreground leading-tight">Today's Schedule</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{getTodayLabel()}</p>
+      {/* Header - Simplified */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/20">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground leading-tight">Today's Schedule</h2>
+          {todayJobs.length > 0 && (
+            <span className="text-xs text-slate-500 dark:text-slate-400">({todayJobs.length})</span>
+          )}
         </div>
         <button
           onClick={onNewJob}
-          className="md:hidden inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors active:scale-95 shadow-sm"
+          className="md:hidden inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors active:scale-95 shadow-sm"
         >
           <Plus className="w-3 h-3" />
-          New Job
+          New
         </button>
       </div>
-
-      {/* Summary chips — only when there are jobs */}
-      {todayJobs.length > 0 && (
-        <div className="flex items-center gap-2 px-4 pt-3 pb-1.5 flex-wrap">
-          {inProgress > 0 && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              {inProgress} in progress
-            </span>
-          )}
-          {remaining > 0 && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-              <Circle className="w-3 h-3" />
-              {remaining} upcoming
-            </span>
-          )}
-          {completed > 0 && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
-              <CheckCircle2 className="w-3 h-3" />
-              {completed} done
-            </span>
-          )}
-        </div>
-      )}
 
       {/* Body */}
       <div className="px-3 py-2">
@@ -185,16 +163,11 @@ export default function TodaySchedule({
             ))}
           </div>
         ) : todayJobs.length === 0 ? (
-          <div className="py-4 text-center">
-            <div className="w-9 h-9 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-2.5">
-              <CheckCircle2 className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-            </div>
-            <p className="text-sm font-semibold text-slate-900 dark:text-foreground">No jobs scheduled today</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 md:mt-2">Nothing scheduled. Add a job when you're ready.</p>
-            <p className="md:hidden text-xs text-slate-500 dark:text-slate-400 mt-2">Use the New Job button above to create your first job.</p>
+          <div className="py-3 text-center">
+            <p className="text-sm text-slate-500 dark:text-slate-400">No jobs scheduled today</p>
           </div>
         ) : (
-          <div className="space-y-1.5 py-1">
+          <div className="space-y-1 py-1">
             {visible.map(job => {
               const cfg = STATUS_CONFIG[job.status]
               const Icon = cfg.icon
@@ -203,10 +176,10 @@ export default function TodaySchedule({
               return (
                 <div
                   key={job.id}
-                  className={`group flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-lg border-l-2 ${cfg.row} bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors`}
+                  className={`group flex items-center gap-2.5 pl-2.5 pr-2 py-2 rounded-lg border-l-2 ${cfg.row} bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors`}
                 >
                   {/* Status icon */}
-                  <Icon className={`w-4 h-4 flex-shrink-0 ${
+                  <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${
                     job.status === 'in_progress' ? 'text-amber-500' :
                     job.status === 'completed' ? 'text-green-500' :
                     'text-blue-400'
@@ -214,33 +187,26 @@ export default function TodaySchedule({
 
                   {/* Time + info */}
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onJobClick(job)}>
-                    <div className="flex items-baseline gap-2">
+                    <div className="flex items-baseline gap-1.5">
                       {job.scheduled_time && (
-                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums flex-shrink-0">
+                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums flex-shrink-0">
                           {formatTime(job.scheduled_time)}
                         </span>
                       )}
-                      <span className="text-sm font-semibold text-slate-900 dark:text-foreground truncate">{job.title}</span>
+                      <span className="text-xs font-semibold text-slate-900 dark:text-foreground truncate">{job.title}</span>
                     </div>
                     {job.customer_name && (
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{job.customer_name}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{job.customer_name}</p>
                     )}
                   </div>
 
                   {/* Quick actions */}
-                  <div className="flex items-center gap-1.5 flex-shrink-0 opacity-90 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => onJobClick(job)}
-                      className="px-2 py-1 text-[10px] font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-foreground hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"
-                      title="View details"
-                    >
-                      View
-                    </button>
+                  <div className="flex items-center gap-1 flex-shrink-0 opacity-90 group-hover:opacity-100 transition-opacity">
                     {cfg.nextStatus && (
                       <button
                         onClick={(e) => handleQuickStatus(e, job, cfg.nextStatus!)}
                         disabled={isUpdating}
-                        className={`px-2.5 py-1 text-[10px] font-semibold rounded-md transition-all active:scale-95 disabled:opacity-50 ${
+                        className={`px-2 py-0.5 text-[10px] font-semibold rounded-md transition-all active:scale-95 disabled:opacity-50 ${
                           cfg.nextStatus === 'in_progress'
                             ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50'
                             : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50'
@@ -248,14 +214,14 @@ export default function TodaySchedule({
                         title={cfg.nextLabel ?? ''}
                       >
                         {isUpdating ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <Loader2 className="w-2.5 h-2.5 animate-spin" />
                         ) : (
                           cfg.nextLabel
                         )}
                       </button>
                     )}
                     {!cfg.nextStatus && job.status !== 'cancelled' && (
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.pill}`}>
+                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${cfg.pill}`}>
                         {cfg.label}
                       </span>
                     )}

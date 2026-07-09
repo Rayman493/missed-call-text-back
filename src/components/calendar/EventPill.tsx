@@ -71,17 +71,17 @@ export default function EventPill({ title, time, endTime, onClick, isHoliday = f
     <div
       onClick={onClick}
       className={`
-        px-1 py-0.5 md:px-1.5 md:py-1 rounded-md cursor-pointer transition-colors duration-150 group flex items-center gap-1 active:scale-95
+        px-1.5 py-1 md:px-2 md:py-1.5 rounded-md cursor-pointer transition-colors duration-150 group flex items-center gap-1.5 active:scale-95
         ${colors.bg}
       `}
     >
       <div className={`
-        w-1 h-1 rounded-full flex-shrink-0
+        w-1.5 h-1.5 rounded-full flex-shrink-0
         ${colors.dot}
       `} />
       <div className="flex-1 min-w-0">
         <div className={`
-          text-[9px] md:text-[11px] font-medium truncate leading-tight
+          text-[10px] md:text-[12px] font-medium truncate leading-tight
           ${colors.text}
         `}>
           {title}
