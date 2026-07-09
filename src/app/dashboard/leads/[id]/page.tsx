@@ -678,6 +678,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       })
     }
     
+    // Add Customer Added Manually event - only for manual leads with no messages
+    const isManualLead = leadData?.raw_metadata?.source === 'manual_entry'
+    const hasNoMessages = messages.length === 0
+    if (isManualLead && hasNoMessages) {
+      systemEvents.push({
+        type: 'system_event',
+        id: `manual-creation-${leadData.id}`,
+        created_at: leadData.created_at,
+        data: {
+          message: 'Customer added manually',
+          timestamp: leadData.created_at,
+          isDivider: true
+        }
+      })
+    }
+    
     // Convert voicemails to timeline items
     const voicemailItems = voicemails.map((voicemail: any) => ({
       type: 'voicemail',
