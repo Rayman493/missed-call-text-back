@@ -47,6 +47,8 @@ export default function FollowUpsSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [savedSettings, setSavedSettings] = useState<FollowUpSettings | null>(null)
+  const [showSavedAnimation, setShowSavedAnimation] = useState(false)
 
   useEffect(() => {
     loadSettings()
@@ -60,6 +62,7 @@ export default function FollowUpsSettingsPage() {
       }
       const data = await response.json()
       setSettings(data)
+      setSavedSettings(data)
       setError(null) // Clear any previous error on successful load
     } catch (err) {
       console.error('Error loading settings:', err)
@@ -97,11 +100,10 @@ export default function FollowUpsSettingsPage() {
         throw new Error('We couldn\'t save your settings. Please try again.')
       }
 
-      // Show success toast instead of inline message
-      setSuccess('✓ Follow-up settings saved')
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000)
+      // Update saved settings and trigger animation
+      setSavedSettings(normalizedSettings)
+      setShowSavedAnimation(true)
+      setTimeout(() => setShowSavedAnimation(false), 2000)
     } catch (err) {
       setError('We couldn\'t save your settings. Please try again.')
       console.error('Error saving settings:', err)
@@ -109,6 +111,8 @@ export default function FollowUpsSettingsPage() {
       setSaving(false)
     }
   }
+
+  const hasUnsavedChanges = savedSettings ? JSON.stringify(settings) !== JSON.stringify(savedSettings) : false
 
   const updateGlobalEnabled = (enabled: boolean) => {
     setSettings(prev => ({ ...prev, enabled }))
@@ -279,15 +283,10 @@ export default function FollowUpsSettingsPage() {
           </div>
         </div>
 
-        {/* Error and Success Messages */}
+        {/* Error Message */}
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
             <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-          </div>
-        )}
-        {success && (
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
-            <p className="text-sm text-green-800 dark:text-green-200">{success}</p>
           </div>
         )}
 
@@ -385,6 +384,37 @@ export default function FollowUpsSettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* Sticky Save Bar */}
+      {hasUnsavedChanges && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 shadow-lg p-4 z-50">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+              <span className="text-sm text-slate-600 dark:text-slate-400">You have unsaved changes</span>
+            </div>
+            <button
+              onClick={saveSettings}
+              disabled={saving}
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 text-white rounded-lg transition-colors font-medium text-sm"
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Animated Saved Confirmation */}
+      {showSavedAnimation && (
+        <div className="fixed bottom-0 left-0 right-0 bg-green-50 dark:bg-green-900/20 border-t border-green-200 dark:border-green-800 shadow-lg p-4 z-50 animate-in slide-in-from-bottom fade-in duration-300">
+          <div className="max-w-4xl mx-auto flex items-center justify-center gap-2">
+            <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="text-sm font-medium text-green-800 dark:text-green-200">Settings saved successfully</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
