@@ -27,7 +27,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
   if (!isOpen) return null
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
       role="dialog"
       aria-modal="true"
@@ -35,7 +35,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
       onKeyDown={handleKeyDown}
     >
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />

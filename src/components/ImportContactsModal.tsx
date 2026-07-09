@@ -189,7 +189,7 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-slate-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[calc(100dvh-2rem)] md:max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-6 border-b border-slate-700 shrink-0">
           <div className="flex justify-between items-center mb-4">
