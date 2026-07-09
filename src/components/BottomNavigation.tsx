@@ -81,9 +81,12 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       const unclampedTop = rect.top - estimatedDropdownHeight - spacing
 
       // Clamp top to keep dropdown fully visible, but prefer unclamped position
+      // Also ensure dropdown doesn't overlap bottom navigation (add safeBottom buffer)
+      const bottomNavHeight = 80 // Approximate bottom navigation height
+      const maxTop = window.innerHeight - bottomNavHeight - estimatedDropdownHeight - spacing - safeBottom
       const top = Math.max(
         viewportPadding,
-        unclampedTop
+        Math.min(unclampedTop, maxTop)
       )
 
       setDropdownPosition({
@@ -122,9 +125,12 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
         const unclampedTop = rect.top - estimatedDropdownHeight - spacing
 
         // Clamp top to keep dropdown fully visible, but prefer unclamped position
+        // Also ensure dropdown doesn't overlap bottom navigation (add safeBottom buffer)
+        const bottomNavHeight = 80 // Approximate bottom navigation height
+        const maxTop = window.innerHeight - bottomNavHeight - estimatedDropdownHeight - spacing - safeBottom
         const top = Math.max(
           viewportPadding,
-          unclampedTop
+          Math.min(unclampedTop, maxTop)
         )
 
         setDropdownPosition({
