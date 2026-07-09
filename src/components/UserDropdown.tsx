@@ -9,7 +9,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { handleBillingAction } from '@/lib/billing'
 // import ThemeSelector from '@/components/ThemeSelector' // Temporarily disabled for mobile crash fix
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User, Home } from 'lucide-react'
+import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User, Home, X } from 'lucide-react'
 import { accountMenuItems } from '@/lib/navigation-config'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 
@@ -415,21 +415,32 @@ export default function UserDropdown() {
       )}
 
       {isAssistantOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsAssistantOpen(false)} />
-          <div className="relative w-full max-w-lg max-h-[85vh] sm:max-h-[90vh] flex flex-col">
-            <button
-              onClick={() => setIsAssistantOpen(false)}
-              className="absolute -top-10 right-0 text-white hover:text-slate-200 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <ReplyFlowAssistant
-              context={{ currentPage: 'dashboard' }}
-              onClose={() => setIsAssistantOpen(false)}
-            />
+        <div className="fixed inset-0 z-[100] flex items-end justify-center md:items-center md:justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsAssistantOpen(false)} />
+          <div className="relative bg-transparent max-w-lg w-full md:max-w-lg">
+            {/* Mobile: Bottom sheet style */}
+            <div className="md:hidden mb-20">
+              <button
+                onClick={() => setIsAssistantOpen(false)}
+                className="absolute -top-12 right-0 text-white hover:text-slate-200 transition-colors bg-blue-600/90 backdrop-blur-sm rounded-full p-2"
+                aria-label="Close help"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden pb-safe">
+                <ReplyFlowAssistant context={{ currentPage: 'dashboard' }} onClose={() => setIsAssistantOpen(false)} />
+              </div>
+            </div>
+            {/* Desktop: Centered modal */}
+            <div className="hidden md:block">
+              <button
+                onClick={() => setIsAssistantOpen(false)}
+                className="absolute -top-10 right-0 text-white hover:text-slate-200 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <ReplyFlowAssistant context={{ currentPage: 'dashboard' }} onClose={() => setIsAssistantOpen(false)} />
+            </div>
           </div>
         </div>
       )}
