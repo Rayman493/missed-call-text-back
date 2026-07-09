@@ -37,6 +37,21 @@ export default function UserDropdown() {
       : item
   ))
 
+  // Lock body scroll when Assistant is open
+  useEffect(() => {
+    if (isAssistantOpen) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.touchAction = 'none'
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+    }
+  }, [isAssistantOpen])
+
   // Validate Supabase session on mount and when user changes
   useEffect(() => {
     const validateSession = async () => {
@@ -416,35 +431,27 @@ export default function UserDropdown() {
         document.body
       )}
 
-      {isAssistantOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center md:items-center md:justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsAssistantOpen(false)} />
-          <div className="relative bg-transparent max-w-lg w-full md:max-w-lg">
-            {/* Mobile: Bottom sheet style */}
-            <div className="md:hidden mb-20">
-              <button
-                onClick={() => setIsAssistantOpen(false)}
-                className="absolute -top-12 right-0 text-white hover:text-slate-200 transition-colors bg-blue-600/90 backdrop-blur-sm rounded-full p-2"
-                aria-label="Close help"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden pb-safe">
-                <ReplyFlowAssistant context={{ currentPage: 'dashboard' }} onClose={() => setIsAssistantOpen(false)} />
-              </div>
+      {isAssistantOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center md:items-center md:justify-center p-4">
+          {/* Backdrop - prevents scroll and bleed-through */}
+          <div 
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
+            onClick={() => setIsAssistantOpen(false)}
+            style={{ touchAction: 'none' }}
+          />
+          {/* Modal container */}
+          <div className="relative w-full max-w-lg max-h-[calc(100dvh-32px)] flex flex-col">
+            {/* Mobile: Centered modal with safe areas */}
+            <div className="md:hidden bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)]">
+              <ReplyFlowAssistant context={{ currentPage: 'dashboard' }} onClose={() => setIsAssistantOpen(false)} />
             </div>
             {/* Desktop: Centered modal */}
-            <div className="hidden md:block">
-              <button
-                onClick={() => setIsAssistantOpen(false)}
-                className="absolute -top-10 right-0 text-white hover:text-slate-200 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
+            <div className="hidden md:block bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden max-h-[80vh]">
               <ReplyFlowAssistant context={{ currentPage: 'dashboard' }} onClose={() => setIsAssistantOpen(false)} />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )

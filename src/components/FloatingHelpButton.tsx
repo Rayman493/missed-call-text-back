@@ -14,6 +14,21 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
   const [isVisible, setIsVisible] = useState(true)
   const pathname = usePathname()
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.touchAction = 'none'
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+    }
+  }, [isOpen])
+
   // Routes where the floating button should be hidden
   const hideOnRoutes = [
     '/setup',
@@ -51,7 +66,7 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           {/* Backdrop - prevents scroll and bleed-through */}
           <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
             onClick={() => setIsOpen(false)}
             style={{ touchAction: 'none' }}
           />
