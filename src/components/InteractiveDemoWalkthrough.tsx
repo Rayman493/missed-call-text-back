@@ -280,33 +280,67 @@ function StepLeadCreated() {
         transition={{ duration: 0.4 }}
         className="w-full max-w-sm"
       >
-        <Card className="p-5 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+        <Card className="p-4 sm:p-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+          {/* Header with status badge */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900 dark:text-white text-sm">John Smith</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">(555) 123-4567</p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold text-green-900 dark:text-green-100">Lead Created</h3>
-              <p className="text-xs text-green-700 dark:text-green-300">Ready for follow-up</p>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 bg-blue-500 rounded-full" />
+              <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full">
+                New Lead
+              </span>
             </div>
           </div>
 
+          {/* Lead details */}
           <div className="space-y-3">
-            <div className="flex justify-between items-center text-sm py-2 border-b border-green-100 dark:border-green-800">
-              <span className="text-green-700 dark:text-green-300">Status</span>
-              <span className="font-semibold text-green-900 dark:text-green-100">New Lead</span>
+            <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Wrench className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Service</span>
+              </div>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">AC not cooling</p>
             </div>
-            <div className="flex justify-between items-center text-sm py-2 border-b border-green-100 dark:border-green-800">
-              <span className="text-green-700 dark:text-green-300">Priority</span>
-              <span className="font-semibold text-green-900 dark:text-green-100">High</span>
+
+            <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Address</span>
+              </div>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">1234 Oak Street, Pittsburgh</p>
             </div>
-            <div className="flex justify-between items-center text-sm py-2 border-b border-green-100 dark:border-green-800">
-              <span className="text-green-700 dark:text-green-300">Customer</span>
-              <span className="font-semibold text-green-900 dark:text-green-100">John Smith</span>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Completion</span>
+                </div>
+                <p className="text-xs font-medium text-slate-900 dark:text-white">As soon as possible</p>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Callback</span>
+                </div>
+                <p className="text-xs font-medium text-slate-900 dark:text-white">After 5 PM</p>
+              </div>
             </div>
-            <div className="flex justify-between items-center text-sm py-2">
-              <span className="text-green-700 dark:text-green-300">Source</span>
-              <span className="font-semibold text-green-900 dark:text-green-100">AI Voice</span>
+          </div>
+
+          {/* Source indicator */}
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <Bot className="w-3.5 h-3.5" />
+              <span>Captured by AI Voice</span>
             </div>
           </div>
         </Card>
