@@ -58,7 +58,7 @@ export async function POST(
       }, { status: 400 })
     }
 
-    // Get lead if job has lead_id
+    // Get lead if job has lead_id, or look up by customer phone
     let lead = null
     if (job.lead_id) {
       const { data: leadData, error: leadError } = await supabase
@@ -74,6 +74,20 @@ export async function POST(
         }
         lead = leadData
       }
+    } else if (job.customer_phone) {
+      // Look up lead by customer phone for this business
+      const { data: leadData, error: leadError } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('business_id', business.id)
+        .eq('caller_phone', job.customer_phone)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!leadError && leadData) {
+        lead = leadData
+      }
     }
 
     // Get or create conversation if job has conversation_id or lead_id
@@ -85,11 +99,12 @@ export async function POST(
         .eq('id', job.conversation_id)
         .single()
       conversation = convData
-    } else if (job.lead_id) {
+    } else if (lead) {
+      // Look up conversation by lead_id
       const { data: convData } = await supabase
         .from('conversations')
         .select('*')
-        .eq('lead_id', job.lead_id)
+        .eq('lead_id', lead.id)
         .single()
       conversation = convData
     }
@@ -138,9 +153,10 @@ export async function POST(
 
     // Send SMS
     const result = await sendSms(business, job.customer_phone, sanitizedMessage, {
-      lead_id: job.lead_id || null,
+      lead_id: lead?.id || null,
       conversation_id: conversation?.id || null,
       isManual: true,
+      skipBusinessAvailabilityAppend: true, // Don't append Out of Office/After Hours notes to appointment confirmations
     })
 
     if (!result?.sid) {

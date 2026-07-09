@@ -35,6 +35,7 @@ export async function sendSms(
     source?: string; // Explicit source to identify message type (e.g., 'follow_up_job')
     reason?: string;
     isOffboarding?: boolean; // Flag to bypass number readiness check for offboarding/system SMS
+    skipBusinessAvailabilityAppend?: boolean; // Flag to skip appending business availability notes (for appointment confirmations)
   }
 ): Promise<{ sid: string | null; messageId: string | null }> {
   console.log('[SMS TRACE sendSms ENTRY]', {
@@ -48,14 +49,18 @@ export async function sendSms(
     source: options?.source,
     reason: options?.reason,
     isOffboarding: options?.isOffboarding,
+    skipBusinessAvailabilityAppend: options?.skipBusinessAvailabilityAppend,
     business_twilio_phone_number: business?.twilio_phone_number,
     business_twilio_phone_number_sid: business?.twilio_phone_number_sid,
     business_messaging_service_sid: business?.twilio_messaging_service_sid,
     business_provisioning_status: business?.provisioning_status
   });
 
-  console.log('[SMS TRACE sendSms STEP_1_APPEND_AVAILABILITY]', { isOffboarding: options?.isOffboarding });
-  message = options?.isOffboarding ? message : appendBusinessAvailabilityNote(message, business);
+  console.log('[SMS TRACE sendSms STEP_1_APPEND_AVAILABILITY]', { 
+    isOffboarding: options?.isOffboarding,
+    skipBusinessAvailabilityAppend: options?.skipBusinessAvailabilityAppend 
+  });
+  message = (options?.isOffboarding || options?.skipBusinessAvailabilityAppend) ? message : appendBusinessAvailabilityNote(message, business);
   console.log('[SMS TRACE sendSms STEP_1_COMPLETE]', { message_length_after_append: message?.length });
 
   // Idempotency check for automated messages (prevent duplicates within 5 minutes)
