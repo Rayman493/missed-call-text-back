@@ -27,15 +27,15 @@ import {
 } from 'lucide-react'
 
 const steps = [
-  { id: 'incoming-call', label: 'Incoming Call' },
-  { id: 'missed-call', label: 'Missed Call' },
-  { id: 'ai-conversation', label: 'AI Answers' },
-  { id: 'ai-summary', label: 'AI Intake Summary' },
-  { id: 'lead-created', label: 'Lead Created' },
-  { id: 'sms-conversation', label: 'SMS Recovery' },
-  { id: 'schedule', label: 'Appointment Scheduled' },
-  { id: 'payment', label: 'Payment Request Sent' },
-  { id: 'success', label: 'Journey Complete' },
+  { id: 'incoming-call', label: 'Customer Calls', description: 'A customer reaches out while you\'re unavailable.' },
+  { id: 'missed-call', label: 'You Miss the Call', description: 'ReplyFlow automatically detects the missed call.' },
+  { id: 'ai-conversation', label: 'AI Captures the Lead', description: 'ReplyFlow answers immediately and gathers the information your team needs.' },
+  { id: 'ai-summary', label: 'Lead Details Organized', description: 'Customer information is automatically organized into a clean lead profile.' },
+  { id: 'lead-created', label: 'Lead Saved Automatically', description: 'Nothing is lost—even if nobody answered the phone.' },
+  { id: 'sms-conversation', label: 'Customer Replies by Text', description: 'Customers can add or update information without another phone call.' },
+  { id: 'schedule', label: 'Book the Job', description: 'Schedule the appointment directly from ReplyFlow.' },
+  { id: 'payment', label: 'Get Paid', description: 'Send a payment request in seconds after the work is complete.' },
+  { id: 'success', label: 'Another Job Captured', description: 'One missed call became a booked customer.' },
 ]
 
 const stepTransition = {
@@ -473,10 +473,10 @@ function StepSuccess() {
         transition={{ delay: 0.3, duration: 0.4 }}
       >
         <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-3">
-          From missed call to organized follow-up.
+          Never lose another missed call.
         </h3>
         <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-          ReplyFlow captures the lead, keeps the conversation organized, and gives your team tools to schedule appointments and send Payment Requests.
+          ReplyFlow automatically captures leads, keeps conversations organized, helps schedule jobs, and sends payment requests—all from one dashboard.
         </p>
       </motion.div>
     </div>
@@ -582,11 +582,16 @@ export default function InteractiveDemoWalkthrough({ compact = false, showHeader
           >
             <Card className={`${compact ? 'p-4 sm:p-5 min-h-[300px] sm:min-h-[320px]' : 'p-5 sm:p-8 min-h-[360px] sm:min-h-[400px]'} flex flex-col`}>
               {showHeader && (
-                <div className={`flex items-center gap-3 ${compact ? 'mb-3' : 'mb-5 sm:mb-6'}`}>
-                  <StepBadge number={step + 1} color={step === 8 ? 'green' : 'blue'} />
-                  <h2 className={`font-semibold text-slate-900 dark:text-white ${compact ? 'text-base sm:text-lg' : 'text-lg sm:text-xl'}`}>
-                    {steps[step].label}
-                  </h2>
+                <div className={`flex flex-col gap-1.5 ${compact ? 'mb-3' : 'mb-5 sm:mb-6'}`}>
+                  <div className="flex items-center gap-3">
+                    <StepBadge number={step + 1} color={step === 8 ? 'green' : 'blue'} />
+                    <h2 className={`font-semibold text-slate-900 dark:text-white ${compact ? 'text-base sm:text-lg' : 'text-lg sm:text-xl'}`}>
+                      {steps[step].label}
+                    </h2>
+                  </div>
+                  <p className={`text-slate-600 dark:text-slate-400 ${compact ? 'text-xs sm:text-sm pl-11' : 'text-sm pl-11'}`}>
+                    {steps[step].description}
+                  </p>
                 </div>
               )}
               <div className="flex-1 flex items-center justify-center">
@@ -630,7 +635,7 @@ export default function InteractiveDemoWalkthrough({ compact = false, showHeader
             aria-label={autoPlay ? 'Pause autoplay' : 'Start autoplay'}
           >
             {autoPlay ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            {autoPlay ? 'Pause' : 'Auto-play'}
+            {autoPlay ? 'Pause' : 'Play Demo'}
           </button>
           <button
             onClick={next}

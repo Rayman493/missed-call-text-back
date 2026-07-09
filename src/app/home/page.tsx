@@ -331,7 +331,7 @@ export default function PublicHome() {
                     href="/signup"
                     className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
                   >
-                    Start Free Trial
+                    Start Protecting Your Missed Calls
                   </Link>
                 </div>
 
