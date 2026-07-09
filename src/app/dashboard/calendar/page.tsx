@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
@@ -8,7 +8,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Toast, { ToastContainer } from '@/components/Toast'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventComposer from '@/components/calendar/EventComposer'
@@ -79,6 +79,11 @@ export default function SchedulePage() {
   // Calendar confirmation modals
   const [isConnectConfirmOpen, setIsConnectConfirmOpen] = useState(false)
   const [isDisconnectConfirmOpen, setIsDisconnectConfirmOpen] = useState(false)
+  
+  // Overflow menu state
+  const [isCalendarOverflowOpen, setIsCalendarOverflowOpen] = useState(false)
+  const calendarOverflowRef = useRef<HTMLDivElement>(null)
+  const calendarOverflowButtonRef = useRef<HTMLButtonElement>(null)
 
   // Check for OAuth success/error redirect
   useEffect(() => {
@@ -112,6 +117,33 @@ export default function SchedulePage() {
   useEffect(() => {
     if (business) fetchJobs()
   }, [business])
+
+  // Close overflow menu on outside click or Escape key
+  useEffect(() => {
+    if (!isCalendarOverflowOpen) return
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const isClickInsideButton = calendarOverflowButtonRef.current?.contains(event.target as Node)
+      const isClickInsideMenu = calendarOverflowRef.current?.contains(event.target as Node)
+      if (!isClickInsideButton && !isClickInsideMenu) {
+        setIsCalendarOverflowOpen(false)
+      }
+    }
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsCalendarOverflowOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscapeKey)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscapeKey)
+    }
+  }, [isCalendarOverflowOpen])
 
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     const id = Date.now().toString()
@@ -839,22 +871,43 @@ export default function SchedulePage() {
                               </>
                             )}
                           </button>
-                          <button
-                            onClick={handleDisconnectCalendar}
-                            disabled={isDisconnecting || isSyncing}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600/80 hover:bg-red-700 text-white text-xs font-medium rounded-md transition-colors border border-red-700/40 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {isDisconnecting ? (
-                              <>
-                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                <span>Disconnecting...</span>
-                              </>
-                            ) : (
-                              <>
-                                <span>Disconnect</span>
-                              </>
+                          <div className="relative">
+                            <button
+                              ref={calendarOverflowButtonRef}
+                              onClick={() => setIsCalendarOverflowOpen(!isCalendarOverflowOpen)}
+                              className="inline-flex items-center justify-center p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-300 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                            {isCalendarOverflowOpen && (
+                              <div
+                                ref={calendarOverflowRef}
+                                className="absolute right-0 top-full mt-1 w-48 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden"
+                              >
+                                <div className="py-1">
+                                  <button
+                                    onClick={() => {
+                                      setIsCalendarOverflowOpen(false)
+                                      handleDisconnectCalendar()
+                                    }}
+                                    disabled={isDisconnecting || isSyncing}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isDisconnecting ? (
+                                      <>
+                                        <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                                        <span>Disconnecting...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span>Disconnect Google Calendar</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
                             )}
-                          </button>
+                          </div>
                           <button
                             onClick={() => handleAddEvent()}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-95 shadow-md"
@@ -988,20 +1041,43 @@ export default function SchedulePage() {
                               </>
                             )}
                           </button>
-                          <button
-                            onClick={handleDisconnectCalendar}
-                            disabled={isDisconnecting || isSyncing}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
-                          >
-                            {isDisconnecting ? (
-                              <>
-                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                <span>Disconnecting...</span>
-                              </>
-                            ) : (
-                              <span>Disconnect</span>
+                          <div className="relative">
+                            <button
+                              ref={calendarOverflowButtonRef}
+                              onClick={() => setIsCalendarOverflowOpen(!isCalendarOverflowOpen)}
+                              className="inline-flex items-center justify-center p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-300 rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                            {isCalendarOverflowOpen && (
+                              <div
+                                ref={calendarOverflowRef}
+                                className="absolute right-0 top-full mt-1 w-48 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden"
+                              >
+                                <div className="py-1">
+                                  <button
+                                    onClick={() => {
+                                      setIsCalendarOverflowOpen(false)
+                                      handleDisconnectCalendar()
+                                    }}
+                                    disabled={isDisconnecting || isSyncing}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isDisconnecting ? (
+                                      <>
+                                        <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                                        <span>Disconnecting...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span>Disconnect Google Calendar</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
                             )}
-                          </button>
+                          </div>
                         </div>
                       </div>
 
