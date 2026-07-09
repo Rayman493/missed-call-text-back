@@ -602,14 +602,14 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       },
       {
         id: 'test',
-        title: 'Activate ReplyFlow',
-        description: 'Call your business number once so ReplyFlow can verify forwarding and activate your AI receptionist.',
+        title: 'Activate Your AI Receptionist',
+        description: 'One quick test call is all that\'s left.',
         status: testActionNeeded ? 'action-needed' : (step3Complete ? 'complete' : 'needs-action'),
         details: testActionNeeded
           ? 'Verification failed - try again'
           : step3Complete
             ? (realCallDataExists ? 'ReplyFlow is live and monitoring your business line.' : 'ReplyFlow is now monitoring your missed calls.')
-            : (step2Complete ? '✓ Takes about 30 seconds' : 'Available once forwarding is enabled'),
+            : (step2Complete ? '🕒 Usually takes about 1 minute' : 'Available once forwarding is enabled'),
         buttonText: step2Complete && !step3Complete ? 'Run Test Call' : undefined,
         buttonOnClick: step2Complete && !step3Complete ? () => {
           console.log('[RUN TEST CALL CLICKED]', {
@@ -858,15 +858,59 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                             </div>
                           )}
                         </div>
-                        <p className={`text-sm mb-2.5 ${!isCurrent && !isComplete && !isActionNeeded ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}>{item.description}</p>
+                        <p className={`text-sm mb-3 ${!isCurrent && !isComplete && !isActionNeeded ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}>{item.description}</p>
+                        {item.id === 'test' && isCurrent && (
+                          <div className="mb-4 space-y-2">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
+                              <svg className="w-3.5 h-3.5 text-amber-500/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Call your business number</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
+                              <svg className="w-3.5 h-3.5 text-amber-500/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>ReplyFlow answers automatically</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
+                              <svg className="w-3.5 h-3.5 text-amber-500/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>Activation completes automatically</span>
+                            </div>
+                          </div>
+                        )}
                         {item.id === 'test' && isCurrent && business?.business_phone_number && (
-                          <div className="mb-3.5 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg">
-                            <p className="text-xs text-amber-700 dark:text-amber-300 font-medium mb-1">Call this number:</p>
-                            <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">{formatPhoneNumber(business.business_phone_number)}</p>
+                          <div className="mb-5">
+                            <p className="text-xs text-amber-200/80 dark:text-amber-300/80 font-medium mb-2">ReplyFlow Number</p>
+                            <div className="flex items-center gap-3 p-3 bg-slate-800/50 dark:bg-slate-800/50 border border-amber-500/30 dark:border-amber-500/40 rounded-lg">
+                              <p className="text-lg font-semibold text-amber-100 dark:text-amber-100 tabular-nums tracking-wide">{formatPhoneNumber(business.business_phone_number)}</p>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(formatPhoneNumber(business.business_phone_number))
+                                  // Show toast
+                                  const toast = document.createElement('div')
+                                  toast.className = 'fixed bottom-4 right-4 bg-slate-900 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 animate-in fade-in slide-in-from-bottom-2 duration-300'
+                                  toast.textContent = 'ReplyFlow number copied.'
+                                  document.body.appendChild(toast)
+                                  setTimeout(() => {
+                                    toast.classList.add('animate-out', 'fade-out', 'slide-out-to-bottom-2')
+                                    setTimeout(() => toast.remove(), 300)
+                                  }, 2000)
+                                }}
+                                className="p-1.5 hover:bg-amber-900/30 dark:hover:bg-amber-900/30 rounded-md transition-colors"
+                                title="Copy number"
+                              >
+                                <svg className="w-4 h-4 text-amber-200/80 dark:text-amber-300/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                         )}
                         {item.details && (
-                          <p className="text-xs text-muted-foreground mb-3.5">{item.details}</p>
+                          <p className="text-xs text-muted-foreground mb-4">{item.details}</p>
                         )}
                         {(item.buttonText || item.secondaryButtonText) && (
                           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
@@ -1038,7 +1082,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     : isActionNeeded
                       ? 'bg-amber-50/70 dark:bg-amber-900/15 border-amber-300 dark:border-amber-700/60 shadow-sm'
                       : isCurrent && item.id === 'test'
-                        ? 'bg-amber-50/80 dark:bg-amber-900/25 border-amber-400 dark:border-amber-600/70 shadow-md'
+                        ? 'bg-slate-800/90 dark:bg-slate-900/90 border-amber-500/30 dark:border-amber-500/40 shadow-md'
                         : isCurrent
                           ? 'bg-blue-50/70 dark:bg-blue-900/20 border-blue-300/80 dark:border-blue-600/60 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm'
                           : 'bg-muted/50 border-border'
@@ -1091,15 +1135,15 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                           isActionNeeded
                             ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
                             : item.id === 'test' && isCurrent
-                              ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-200 border border-amber-300 dark:border-amber-600'
+                              ? 'bg-amber-900/30 text-amber-200 dark:bg-amber-900/40 dark:text-amber-200 border border-amber-700/50 dark:border-amber-600/50'
                               : 'bg-blue-100/70 text-blue-800/80 dark:bg-blue-900/30 dark:text-blue-300/80'
                         }`}
                       >
-                        {isActionNeeded ? 'Action Needed' : item.id === 'test' && isCurrent ? 'Required' : 'IN PROGRESS'}
+                        {isActionNeeded ? 'Action Needed' : item.id === 'test' && isCurrent ? 'Almost Ready' : 'IN PROGRESS'}
                       </span>
                     </div>
                   )}
-                  <p className={`text-xs sm:text-sm mb-3 leading-relaxed ${
+                  <p className={`text-xs sm:text-sm mb-4 leading-relaxed ${
                     isComplete
                       ? 'text-muted-foreground/60'
                       : !isCurrent && !isActionNeeded
@@ -1108,6 +1152,28 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                   }`}>
                     {item.description}
                   </p>
+                  {item.id === 'test' && isCurrent && (
+                    <div className="mb-4 space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
+                        <svg className="w-3.5 h-3.5 text-amber-500/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Call your business number</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
+                        <svg className="w-3.5 h-3.5 text-amber-500/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>ReplyFlow answers automatically</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
+                        <svg className="w-3.5 h-3.5 text-amber-500/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Activation completes automatically</span>
+                      </div>
+                    </div>
+                  )}
                   {item.details && (
                     <p className={`text-[11px] mb-3 leading-relaxed ${
                       isComplete
