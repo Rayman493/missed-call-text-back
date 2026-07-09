@@ -539,12 +539,13 @@ export default function SetupStatusCard({
               {cardState === 'needs-forwarding' 
                 ? 'Step 2 of 3 • Set up call forwarding'
                 : cardState === 'needs-verification'
-                ? 'Step 3 of 3 • Make a test call'
+                ? 'Step 3 of 3 • Activate ReplyFlow'
                 : 'All systems operational'
               }
             </p>
           </div>
           <button
+            type="button"
             onClick={() => setIsExpanded(false)}
             className="flex-shrink-0 p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors"
           >
@@ -558,6 +559,7 @@ export default function SetupStatusCard({
             {/* Step 1: Always Complete */}
             <div className="bg-slate-800/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden">
               <button
+                type="button"
                 onClick={() => setExpandedStep(expandedStep === 1 ? null : 1)}
                 className="w-full flex items-center gap-2 p-2.5 sm:p-3 hover:bg-slate-700/30 transition-colors"
               >
@@ -598,6 +600,7 @@ export default function SetupStatusCard({
                   : 'bg-slate-800/50 dark:bg-slate-900/50 border-slate-700/50'
             }`}>
               <button
+                type="button"
                 onClick={() => setExpandedStep(expandedStep === 2 ? null : 2)}
                 className="w-full flex items-center gap-2 p-2.5 sm:p-3 hover:bg-slate-700/30 transition-colors"
               >
@@ -642,12 +645,13 @@ export default function SetupStatusCard({
             {/* Step 3: Upcoming or Current */}
             <div className={`backdrop-blur-sm rounded-xl border overflow-hidden transition-all ${
               cardState === 'needs-verification' && !hasCompletedTestCall
-                ? 'bg-slate-800/50 dark:bg-slate-900/50 border-l-4 border-l-blue-500 border-y border-r border-slate-700/50 shadow-lg'
+                ? 'bg-amber-900/20 dark:bg-amber-900/30 border-l-4 border-l-amber-500 border-y border-r border-amber-700/50 shadow-lg'
                 : cardState === 'needs-verification' && hasCompletedTestCall
                   ? 'bg-slate-800/50 dark:bg-slate-900/50 border-slate-700/50'
                   : 'bg-slate-800/50 dark:bg-slate-900/50 border-slate-700/50'
             }`}>
               <button
+                type="button"
                 onClick={() => setExpandedStep(expandedStep === 3 ? null : 3)}
                 className="w-full flex items-center gap-2 p-2.5 sm:p-3 hover:bg-slate-700/30 transition-colors"
               >
@@ -658,7 +662,7 @@ export default function SetupStatusCard({
                     </svg>
                   </div>
                 ) : cardState === 'needs-verification' ? (
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/30">
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-amber-500/30">
                     <span className="text-white text-xs sm:text-sm font-bold">3</span>
                   </div>
                 ) : (
@@ -667,16 +671,16 @@ export default function SetupStatusCard({
                   </div>
                 )}
                 <span className="text-white text-xs sm:text-sm font-medium flex-1 text-left truncate">
-                  {hasCompletedTestCall ? 'Step 3 — Test call' : cardState === 'needs-verification' ? 'Make a test call' : 'Step 3 — Test call'}
+                  {hasCompletedTestCall ? 'Step 3 — Test call' : cardState === 'needs-verification' ? 'Activate ReplyFlow' : 'Step 3 — Test call'}
                 </span>
                 {cardState === 'needs-verification' && !hasCompletedTestCall && (
-                  <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-full border border-blue-400/30 flex-shrink-0">
-                    Current
+                  <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 bg-amber-500/20 text-amber-300 text-xs font-bold rounded-full border border-amber-400/30 flex-shrink-0">
+                    Final Step
                   </span>
                 )}
                 <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform ${
                   cardState === 'needs-verification' && !hasCompletedTestCall
-                    ? 'text-blue-300'
+                    ? 'text-amber-300'
                     : 'text-slate-400'
                 } ${expandedStep === 3 ? 'rotate-180' : ''} flex-shrink-0`} />
               </button>
@@ -684,8 +688,19 @@ export default function SetupStatusCard({
                 <div className="p-2.5 pt-0 sm:p-3 sm:pt-0 border-t border-white/10">
                   <div className="space-y-2">
                     <p className="text-slate-300 text-xs sm:text-sm">
-                      Call your business number to verify forwarding works.
+                      Call your business number once so ReplyFlow can verify forwarding and activate your AI receptionist.
                     </p>
+                    <p className="text-amber-300 text-xs">
+                      ✓ Takes about 30 seconds
+                    </p>
+                    {business?.business_phone_number && (
+                      <div className="flex items-center justify-between bg-slate-700/30 rounded-lg p-2">
+                        <span className="text-blue-200 text-xs">Call this number:</span>
+                        <span className="text-white font-mono text-xs font-semibold">
+                          {formatPhoneNumber(business.business_phone_number)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
