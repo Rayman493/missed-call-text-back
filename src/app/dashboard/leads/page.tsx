@@ -705,7 +705,7 @@ export default function LeadsPage() {
             <AppHeader title="Leads" />
 
           {/* Main Content */}
-          <main className="flex-1 pt-4 lg:pt-8 px-4 lg:px-6 pb-16 relative z-10">
+          <main className="flex-1 pt-4 lg:pt-8 px-4 lg:px-6 pb-16 md:pb-6 relative z-10" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
             <div className="max-w-[1400px] mx-auto space-y-4 lg:space-y-6">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
