@@ -90,8 +90,8 @@ export default function JobDetailsModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]" onClick={onClose} />
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="flex items-start justify-between p-5 border-b border-slate-200 dark:border-slate-700">

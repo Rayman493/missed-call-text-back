@@ -147,10 +147,10 @@ export default function JobComposer({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
         onClick={onClose}
       />
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-4" data-scroll-lock-allow>
+      <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-4" data-scroll-lock-allow>
         <div className="relative bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg h-[min(82dvh,calc(100dvh-5.5rem-env(safe-area-inset-bottom)))] sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 bg-white dark:bg-slate-900">
