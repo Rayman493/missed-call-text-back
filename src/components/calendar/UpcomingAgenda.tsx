@@ -61,11 +61,12 @@ export default function UpcomingAgenda({ events, maxEvents = 5, onRefresh, calen
     const eventDateOnly = new Date(eventDateTime)
     eventDateOnly.setHours(0, 0, 0, 0)
 
-    if (eventDateOnly.getTime() === today.getTime()) {
+    // Use local date string comparison to avoid timezone issues around midnight
+    if (eventDateOnly.toDateString() === today.toDateString()) {
       groupedEvents.today.push(event)
-    } else if (eventDateOnly.getTime() === tomorrow.getTime()) {
+    } else if (eventDateOnly.toDateString() === tomorrow.toDateString()) {
       groupedEvents.tomorrow.push(event)
-    } else if (eventDateTime >= tomorrow && eventDateTime <= endOfWeek) {
+    } else if (eventDateOnly >= tomorrow && eventDateOnly <= endOfWeek) {
       groupedEvents.thisWeek.push(event)
     } else {
       groupedEvents.later.push(event)
