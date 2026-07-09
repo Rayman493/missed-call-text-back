@@ -237,7 +237,39 @@ export default function SettingsContent() {
     return { ...defaults, ...sourceSettings }
   }
 
+  // Helper to convert datetime-local format (yyyy-MM-ddThh:mm) to ISO string preserving local time
+  const fromDateTimeLocal = (dateTimeLocal: string | null | undefined): string | null => {
+    if (!dateTimeLocal) return null
+
+    try {
+      console.log('[Settings] fromDateTimeLocal input:', dateTimeLocal)
+      
+      // Parse the datetime-local value as local time by appending timezone offset
+      const date = new Date(dateTimeLocal)
+      if (isNaN(date.getTime())) {
+        return null
+      }
+
+      // Create ISO string that preserves local time by using the local components
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      const seconds = String(date.getSeconds()).padStart(2, '0')
+      
+      // Format as ISO without timezone indicator to preserve local time
+      const result = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
+      console.log('[Settings] fromDateTimeLocal output:', result)
+      return result
+    } catch (error) {
+      console.error('[Settings] Error converting from datetime-local:', error)
+      return null
+    }
+  }
+
   // Helper to convert ISO timestamp to datetime-local format (yyyy-MM-ddThh:mm)
+  // Preserves the user's intended local time by treating the input as local time
   const toDateTimeLocal = (isoString: string | null | undefined): string => {
     if (!isoString) return ''
 
@@ -247,14 +279,18 @@ export default function SettingsContent() {
         return ''
       }
 
-      // Format: yyyy-MM-ddThh:mm
+      console.log('[Settings] toDateTimeLocal input:', isoString, 'parsed date:', date.toISOString())
+
+      // Format: yyyy-MM-ddThh:mm using local time components
       const year = date.getFullYear()
       const month = String(date.getMonth() + 1).padStart(2, '0')
       const day = String(date.getDate()).padStart(2, '0')
       const hours = String(date.getHours()).padStart(2, '0')
       const minutes = String(date.getMinutes()).padStart(2, '0')
 
-      return `${year}-${month}-${day}T${hours}:${minutes}`
+      const result = `${year}-${month}-${day}T${hours}:${minutes}`
+      console.log('[Settings] toDateTimeLocal output:', result)
+      return result
     } catch (error) {
       console.error('[Settings] Error converting datetime:', error)
       return ''
@@ -1645,7 +1681,7 @@ export default function SettingsContent() {
                                   ref={outOfOfficeStartRef}
                                   type="datetime-local"
                                   value={toDateTimeLocal(formBusiness.out_of_office_start)}
-                                  onChange={(e) => updateBusiness({ out_of_office_start: e.target.value || null })}
+                                  onChange={(e) => updateBusiness({ out_of_office_start: fromDateTimeLocal(e.target.value) })}
                                   className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                                   aria-label="Out of office start date and time"
                                 />
@@ -1674,7 +1710,7 @@ export default function SettingsContent() {
                                   ref={outOfOfficeEndRef}
                                   type="datetime-local"
                                   value={toDateTimeLocal(formBusiness.out_of_office_end)}
-                                  onChange={(e) => updateBusiness({ out_of_office_end: e.target.value || null })}
+                                  onChange={(e) => updateBusiness({ out_of_office_end: fromDateTimeLocal(e.target.value) })}
                                   className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                                   aria-label="Out of office end date and time"
                                 />
