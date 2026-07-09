@@ -1433,13 +1433,17 @@ function JobsTab({
           <div className="w-11 h-11 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
             <Briefcase className="w-5 h-5 text-slate-400" />
           </div>
-          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">No jobs yet</h3>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">No jobs scheduled.</h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 max-w-xs mx-auto leading-relaxed">
-            Create jobs manually or prefill one from a ReplyFlow lead.
+            Create a job or convert a lead into a scheduled appointment.
           </p>
-          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs mx-auto leading-relaxed">
-            Use the New Job button above to create your first job.
-          </p>
+          <button
+            onClick={onNewJob}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-95"
+          >
+            <Briefcase className="w-4 h-4" />
+            New Job
+          </button>
         </div>
       ) : (
         <div className="space-y-6">

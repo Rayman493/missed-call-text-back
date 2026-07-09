@@ -164,7 +164,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
 
       {activities.length === 0 ? (
         <div className="text-center py-6">
-          <p className="text-sm text-slate-500 dark:text-slate-400">No recent activity</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Activity from missed calls, messages, jobs, and payments will appear here.</p>
         </div>
       ) : (
         <div className="space-y-0">

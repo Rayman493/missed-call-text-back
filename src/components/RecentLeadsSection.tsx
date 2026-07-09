@@ -348,10 +348,10 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
             {!isOnboardingExpanded && (
               <div className="space-y-1.5 sm:space-y-2">
                 <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">
-                  No leads captured yet
+                  No recent leads
                 </p>
                 <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
-                  Complete your setup and your first customer lead will appear here automatically.
+                  Recent leads will appear here automatically after missed calls.
                 </p>
               </div>
             )}

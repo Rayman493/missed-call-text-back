@@ -484,12 +484,12 @@ export default function PaymentsPage() {
               {/* Mobile card view */}
               <div className="md:hidden space-y-2.5 p-3">
                 {paymentRequests.length === 0 ? (
-                  <div className="text-center py-10 px-4 text-gray-400">
+                  <div className="text-center py-8 px-4 text-gray-400">
                     <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-slate-800/80 border border-slate-700">
                       <CreditCard className="h-5 w-5 text-blue-400" />
                     </div>
                     <h3 className="text-sm font-semibold text-white mb-1">No payment requests yet.</h3>
-                    <p className="text-xs text-gray-400 max-w-xs mx-auto mb-4">Send your first payment request to start tracking customer payments.</p>
+                    <p className="text-xs text-gray-400 max-w-xs mx-auto mb-4">Payment requests you send will appear here.</p>
                     <Button onClick={() => setShowPaymentModal(true)} size="sm">
                       <CreditCard className="h-4 w-4" />
                       New Payment Request

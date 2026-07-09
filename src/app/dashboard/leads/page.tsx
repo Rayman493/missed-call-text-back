@@ -1174,9 +1174,9 @@ export default function LeadsPage() {
                           When someone misses a call to your business number, ReplyFlow will automatically create a lead here.
                         </p>
 
-                        {/* Passive instruction */}
+                        {/* Secondary text */}
                         <p className="text-slate-500 dark:text-slate-500 text-[10px] sm:text-sm max-w-md mx-auto mb-3 sm:mb-6">
-                          Leads will appear here as missed calls are detected.
+                          You can also add customers manually at any time.
                         </p>
 
                         {/* Add Customer Button */}
@@ -1187,7 +1187,7 @@ export default function LeadsPage() {
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                           </svg>
-                          Add Customer Manually
+                          + Add Customer
                         </button>
                       </div>
                     </div>
