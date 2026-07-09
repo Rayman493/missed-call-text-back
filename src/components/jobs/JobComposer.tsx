@@ -32,6 +32,7 @@ export interface Job {
   payment_status: 'none' | 'requested' | 'paid'
   confirmation_sms_sent_at: string | null
   confirmation_sms_message_sid: string | null
+  google_calendar_event_id: string | null
   created_at: string
   updated_at: string
 }
@@ -264,6 +265,9 @@ export default function JobComposer({
                     className="w-full pl-8 pr-3 py-2 sm:py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                  Optional. If provided, this job will automatically appear on your schedule.
+                </p>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -278,6 +282,9 @@ export default function JobComposer({
                     className="w-full pl-8 pr-3 py-2 sm:py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                  Optional. Selecting a date and time automatically schedules this job.
+                </p>
               </div>
             </div>
 
