@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import ConversationComposer from '@/components/ConversationComposer'
 import MobileConversationComposer from '@/components/MobileConversationComposer'
 import AutomaticFollowUpsControl from '@/components/AutomaticFollowUpsControl'
@@ -213,6 +214,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [internalNotesExpanded, setInternalNotesExpanded] = useState(false)
   const [showOverflowMenu, setShowOverflowMenu] = useState(false)
+  const overflowButtonRef = useRef<HTMLButtonElement>(null)
+  const [overflowMenuPosition, setOverflowMenuPosition] = useState<{ top: number; left: number } | null>(null)
   const conversationContainerRef = useRef<HTMLDivElement>(null)
   const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
   const bottomSentinelRef = useRef<HTMLDivElement>(null)
@@ -232,6 +235,49 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showMoreActions])
+
+  // Calculate overflow menu position when opening
+  useEffect(() => {
+    if (showOverflowMenu && overflowButtonRef.current) {
+      const rect = overflowButtonRef.current.getBoundingClientRect()
+      const menuWidth = 160
+      const menuHeight = 200
+      const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
+
+      // Calculate position with viewport clamping
+      let left = rect.right
+      let top = rect.bottom + 4
+
+      // Clamp to right edge
+      if (left + menuWidth > viewportWidth) {
+        left = rect.left - menuWidth
+      }
+
+      // Clamp to bottom edge
+      if (top + menuHeight > viewportHeight) {
+        top = rect.top - menuHeight - 4
+      }
+
+      setOverflowMenuPosition({ top, left })
+    } else {
+      setOverflowMenuPosition(null)
+    }
+  }, [showOverflowMenu])
+
+  // Close overflow menu on Escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && showOverflowMenu) {
+        setShowOverflowMenu(false)
+      }
+    }
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
+    }
+  }, [showOverflowMenu])
 
   // Persist collapsedSections to localStorage
   useEffect(() => {
@@ -2144,6 +2190,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     />
                     {/* Desktop Overflow Button */}
                     <button
+                      ref={overflowButtonRef}
                       onClick={() => setShowOverflowMenu(!showOverflowMenu)}
                       className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors"
                       aria-label="More actions"
@@ -2153,13 +2200,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </svg>
                     </button>
 
-                    {showOverflowMenu && (
+                    {showOverflowMenu && overflowMenuPosition && typeof document !== 'undefined' && createPortal(
                       <>
                         <div
-                          className="fixed inset-0 z-40"
+                          className="fixed inset-0 z-[9998]"
                           onClick={() => setShowOverflowMenu(false)}
                         />
-                        <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[160px]">
+                        <div
+                          className="fixed z-[9999] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[160px]"
+                          style={{
+                            top: `${overflowMenuPosition.top}px`,
+                            left: `${overflowMenuPosition.left}px`
+                          }}
+                        >
                           <button
                             onClick={() => {
                               handleRefresh()
@@ -2220,7 +2273,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </button>
                         </div>
                       </>
-                    )}
+                    , document.body)}
                   </div>
                 </div>
 
