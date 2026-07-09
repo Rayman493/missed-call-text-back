@@ -1823,8 +1823,8 @@ export default function SettingsContent() {
                         </svg>
                         <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Google Calendar</h3>
                         {calendarConnected && (
-                          <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
-                            <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                          <span className="h-10 px-3 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                             Connected
                           </span>
                         )}
@@ -1847,9 +1847,9 @@ export default function SettingsContent() {
                       <button
                         onClick={calendarConnected ? handleDisconnectCalendar : handleConnectCalendar}
                         disabled={isConnectingCalendar || isDisconnectingCalendar}
-                        className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+                        className={`h-10 px-3 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
                           calendarConnected
-                            ? 'bg-red-600 hover:bg-red-700 text-white'
+                            ? 'border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30'
                             : 'bg-blue-600 hover:bg-blue-700 text-white'
                         }`}
                       >
