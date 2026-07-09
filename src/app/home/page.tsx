@@ -951,12 +951,21 @@ export default function PublicHome() {
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
               Recommended for service businesses with a dedicated business phone number.
             </p>
-            <Link
-              href="/signup"
-              className="h-14 px-10 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center text-lg"
-            >
-              Start Your 14-Day Free Trial
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                href="/dashboard"
+                className="h-14 px-10 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center text-lg"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="/signup"
+                className="h-14 px-10 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center text-lg"
+              >
+                Start Your 14-Day Free Trial
+              </Link>
+            )}
           </motion.div>
         </div>
       </section>
