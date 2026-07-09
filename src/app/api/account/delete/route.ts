@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import getStripe from '@/lib/stripe'
 import { twilioClient } from '@/lib/twilio'
 import { sendOffboardingEmail, sendAccountDeletionConfirmationEmail, sendJourneyEmail } from '@/lib/email'
@@ -54,11 +55,50 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('[delete-account] Missing NEXT_PUBLIC_SUPABASE_ANON_KEY')
+      return NextResponse.json(
+        { ok: false, step: 'env_check', error: 'Missing NEXT_PUBLIC_SUPABASE_ANON_KEY' },
+        { status: 500 }
+      )
+    }
+
     // Authenticate user using server-side client with RLS
-    const supabase = createServerSupabaseClient()
+    const cookieStore = cookies()
+    console.log('[delete-account] Cookie store obtained, creating server client')
+    
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            const allCookies = cookieStore.getAll()
+            console.log('[delete-account] Retrieved cookies:', allCookies.length, 'cookies')
+            return allCookies
+          },
+          setAll(cookiesToSet) {
+            console.log('[delete-account] Setting cookies:', cookiesToSet.length, 'cookies')
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+
+    console.log('[delete-account] Server client created, attempting to get user')
 
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    console.log('[delete-account] User retrieval result:', { 
+      hasUser: !!user, 
+      userId: user?.id, 
+      userEmail: user?.email,
+      authError: authError?.message,
+      authErrorCode: authError?.code 
+    })
 
     if (authError || !user) {
       console.error('[delete-account] Authentication failed:', authError)
