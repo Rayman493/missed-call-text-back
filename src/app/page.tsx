@@ -9,6 +9,7 @@ import BrandIcon from '@/components/BrandIcon'
 import HomepageErrorBoundary from '@/components/HomepageErrorBoundary'
 import HomepageInteractiveDemo from '@/components/HomepageInteractiveDemo'
 import HomepageAuthRedirect from '@/components/HomepageAuthRedirect'
+import HomepageCTA from '@/components/HomepageCTA'
 import { motion } from 'framer-motion'
 
 // Structured Data for Google Search
@@ -127,28 +128,7 @@ export default async function Home() {
               </p>
 
               {/* Primary CTA */}
-              <div className="mt-8 sm:mt-10 flex flex-col items-center justify-center gap-3 sm:gap-4">
-                {session?.user ? (
-                  <Link
-                    href="/dashboard"
-                    className="inline-flex items-center justify-center h-14 sm:h-16 px-8 sm:px-10 w-full sm:w-auto sm:min-w-[280px] bg-blue-600 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  >
-                    Go to Dashboard
-                  </Link>
-                ) : (
-                  <>
-                    <Link
-                      href="/auth?mode=signup"
-                      className="inline-flex items-center justify-center h-14 sm:h-16 px-8 sm:px-10 w-full sm:w-auto sm:min-w-[280px] bg-blue-600 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                      Start Your 14-Day Free Trial
-                    </Link>
-                    <div className="text-base text-slate-500 dark:text-slate-400">
-                      14-day free trial • $59/month after • Cancel anytime
-                    </div>
-                  </>
-                )}
-              </div>
+              <HomepageCTA variant="hero" />
 
               {/* Trust Indicators - Desktop */}
               <div className="mt-10 sm:mt-12 hidden sm:block">
@@ -831,26 +811,7 @@ export default async function Home() {
                 When you can't answer, ReplyFlow captures the lead, starts the conversation, and helps you book the job.
               </p>
               
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 md:gap-4">
-                <Link
-                  href={session?.user ? "/dashboard" : "/auth?mode=signup"}
-                  className="h-11 sm:h-12 px-5 sm:px-7 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center text-sm sm:text-base"
-                >
-                  {session?.user ? "Go to Dashboard" : "Start Your 14-Day Free Trial"}
-                </Link>
-                <a
-                  href="#interactive-demo"
-                  className="h-11 sm:h-12 px-5 sm:px-7 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-semibold rounded-xl shadow-lg hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center text-sm sm:text-base border border-blue-200 dark:border-blue-800"
-                >
-                  See How It Works
-                </a>
-              </div>
-
-              {!session?.user && (
-                <div className="mt-4 sm:mt-5 text-sm text-slate-500 dark:text-slate-400">
-                  14-day free trial • $59/month after • Cancel anytime
-                </div>
-              )}
+              <HomepageCTA variant="bottom" showSecondaryButton={true} />
             </div>
           </div>
         </section>

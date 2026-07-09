@@ -6,6 +6,7 @@ import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 import BrandIcon from '@/components/BrandIcon'
 import HomepageInteractiveDemo from '@/components/HomepageInteractiveDemo'
+import HomepageCTA from '@/components/HomepageCTA'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -165,126 +166,64 @@ export default function PublicHome() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="flex flex-col items-center text-center"
           >
-            {isLoggedIn ? (
-              <>
-                {/* Logged-in Hero */}
-                <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.15] text-slate-900 dark:text-foreground">
-                  Never Miss a Lead Again
-                </h1>
-                <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-3xl leading-relaxed mt-5 sm:mt-6">
-                  AI Voice answers your missed calls, collects customer information, and automatically follows up while you're busy.
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.15] text-slate-900 dark:text-foreground">
+              Turn Missed Calls Into Paying Customers
+            </h1>
+            <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-3xl leading-relaxed mt-5 sm:mt-6">
+              Built for service businesses with a dedicated business phone number. Automatically text back missed callers, capture leads, and recover lost revenue. Fast setup.
+            </p>
+
+            {/* Benefit Bullets */}
+            <div className="mt-8">
+              <div className="flex flex-col items-center space-y-3">
+                <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-base">Automatic text-back</span>
+                </div>
+                <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-base">Instant lead capture</span>
+                </div>
+                <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-base">Your existing business number</span>
+                </div>
+                <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-base">Fast setup</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Pricing Information */}
+            <div id="pricing-section" className="flex flex-col items-center gap-2 mt-4">
+              <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
+              <span className="text-slate-700 dark:text-foreground text-lg">$59/month after trial</span>
+            </div>
+
+            {/* Trust Copy */}
+            <div className="flex flex-col items-center gap-2 mt-3">
+              <span className="text-slate-500 dark:text-muted-foreground text-sm">No contracts. Cancel anytime.</span>
+              <span className="text-slate-500 dark:text-muted-foreground text-sm">Keep using the business number you already advertise everywhere.</span>
+            </div>
+
+            {/* Business Number Note */}
+            <div className="mt-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-md">
+                <p className="text-sm text-blue-800 dark:text-blue-200 font-semibold mb-1">Best experience: Dedicated business number</p>
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  ReplyFlow is designed for service businesses with a dedicated business phone number. Businesses using one phone for both business and personal calls are still fully supported, though a dedicated business number provides the most seamless experience.
                 </p>
-
-                {/* Trust Bullets for Logged-in Users */}
-                <div className="mt-10">
-                  <div className="flex flex-col items-center space-y-3">
-                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
-                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-base">14-Day Free Trial</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
-                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-base">$59/month after trial</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
-                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-base">Keep Your Existing Number</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
-                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-base">Setup In Under 5 Minutes</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
-                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-base">No Contracts</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Subtle Dashboard Link */}
-                <div className="mt-8">
-                  <Link
-                    href="/dashboard"
-                    className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground text-sm font-medium transition-colors"
-                  >
-                    Open Dashboard
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Logged-out Hero - Keep existing */}
-                <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.15] text-slate-900 dark:text-foreground">
-                  Turn Missed Calls Into Paying Customers
-                </h1>
-                <p className="text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-3xl leading-relaxed mt-5 sm:mt-6">
-                  Built for service businesses with a dedicated business phone number. Automatically text back missed callers, capture leads, and recover lost revenue. Fast setup.
-                </p>
-
-                {/* Benefit Bullets - Keep this copy in sync with src/app/home/page.tsx and src/app/page.tsx. */}
-                <div className="mt-8">
-                  <div className="flex flex-col items-center space-y-3">
-                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
-                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-base">Automatic text-back</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
-                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-base">Instant lead capture</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
-                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-base">Your existing business number</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-3 text-slate-700 dark:text-slate-300">
-                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-base">Fast setup</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pricing Information */}
-                <div id="pricing-section" className="flex flex-col items-center gap-2 mt-4">
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-lg">14-day free trial</span>
-                  <span className="text-slate-700 dark:text-foreground text-lg">$59/month after trial</span>
-                </div>
-
-                {/* Trust Copy */}
-                <div className="flex flex-col items-center gap-2 mt-3">
-                  <span className="text-slate-500 dark:text-muted-foreground text-sm">No contracts. Cancel anytime.</span>
-                  <span className="text-slate-500 dark:text-muted-foreground text-sm">Keep using the business number you already advertise everywhere.</span>
-                </div>
-
-                {/* Business Number Note */}
-                <div className="mt-4">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-md">
-                    <p className="text-sm text-blue-800 dark:text-blue-200 font-semibold mb-1">Best experience: Dedicated business number</p>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      ReplyFlow is designed for service businesses with a dedicated business phone number. Businesses using one phone for both business and personal calls are still fully supported, though a dedicated business number provides the most seamless experience.
-                    </p>
-                  </div>
-                </div>
+              </div>
+            </div>
 
                 {/* Trust Indicators */}
                 <div className="mt-6">
@@ -325,31 +264,7 @@ export default function PublicHome() {
                   </div>
                 </div>
 
-                <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-                  {/* Primary CTA */}
-                  {isLoggedIn ? (
-                    <Link
-                      href="/dashboard"
-                      className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
-                    >
-                      Go to Dashboard
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/signup"
-                      className="inline-flex items-center justify-center h-12 px-8 min-w-[160px] bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200"
-                    >
-                      Start Your 14-Day Free Trial
-                    </Link>
-                  )}
-                </div>
-
-                {/* Pricing Helper Text - Only for logged-out users */}
-                {!isLoggedIn && (
-                  <div className="mt-4 text-base text-slate-500 dark:text-slate-400">
-                    14-day free trial • $59/month after • Cancel anytime
-                  </div>
-                )}
+                <HomepageCTA variant="hero" />
 
                 {/* Works For Section - Mobile Conversion */}
                 <div className="mt-6 sm:mt-8">
@@ -389,8 +304,6 @@ export default function PublicHome() {
                     </div>
                   </div>
                 </div>
-              </>
-            )}
 
             {/* Enhanced Trust Indicators */}
             <div className="mt-16 pt-10 border-t border-slate-200/60 dark:border-slate-700/60">
@@ -967,26 +880,7 @@ export default function PublicHome() {
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
               Recommended for service businesses with a dedicated business phone number.
             </p>
-            {isLoggedIn ? (
-              <Link
-                href="/dashboard"
-                className="h-14 px-10 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center text-lg"
-              >
-                Go to Dashboard
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href="/signup"
-                  className="h-14 px-10 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center text-lg"
-                >
-                  Start Your 14-Day Free Trial
-                </Link>
-                <p className="text-base text-slate-500 dark:text-slate-400 mt-4">
-                  14-day free trial • $59/month after • Cancel anytime
-                </p>
-              </>
-            )}
+            <HomepageCTA variant="bottom" />
           </motion.div>
         </div>
       </section>
