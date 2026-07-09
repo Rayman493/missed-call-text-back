@@ -28,9 +28,8 @@ import VoicemailSummary from '@/components/VoicemailSummary'
 import { ImageMessage } from '@/components/ImageMessage'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
-import EventComposer from '@/components/calendar/EventComposer'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
-import { CalendarDays, ClipboardPlus, CreditCard, MessageSquare } from 'lucide-react'
+import { CalendarDays, ClipboardPlus, CreditCard } from 'lucide-react'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -920,6 +919,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [confirmationError, setConfirmationError] = useState<string | null>(null)
   const [leadJobs, setLeadJobs] = useState<any[]>([])
   const [selectedJobForConfirmation, setSelectedJobForConfirmation] = useState<any>(null)
+  const [appointmentDate, setAppointmentDate] = useState('')
+  const [appointmentTime, setAppointmentTime] = useState('')
+  const [appointmentNote, setAppointmentNote] = useState('')
+  const [selectedAppointmentJob, setSelectedAppointmentJob] = useState<any>(null)
+  const [isSavingAppointment, setIsSavingAppointment] = useState(false)
+  const [appointmentError, setAppointmentError] = useState('')
+
+  useEffect(() => {
+    if (!isAppointmentModalOpen || typeof document === 'undefined') return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isAppointmentModalOpen])
 
   // Set default payment provider when modal opens
   useEffect(() => {
@@ -944,32 +958,32 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }, [showPaymentModal, business])
 
+  const fetchLeadJobs = async () => {
+    if (!leadData?.id || !business) return
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) return
+
+      const response = await fetch(`/api/jobs?lead_id=${leadData.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setLeadJobs(data.jobs || [])
+      }
+    } catch (error) {
+      console.error('Error fetching lead jobs:', error)
+    }
+  }
+
   // Fetch jobs for lead to check for scheduled appointments
   useEffect(() => {
-    const fetchLeadJobs = async () => {
-      if (!leadData?.id || !business) return
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const token = session?.access_token
-
-        if (!token) return
-
-        const response = await fetch(`/api/jobs?lead_id=${leadData.id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setLeadJobs(data.jobs || [])
-        }
-      } catch (error) {
-        console.error('Error fetching lead jobs:', error)
-      }
-    }
-
     fetchLeadJobs()
   }, [leadData?.id, business])
 
@@ -983,7 +997,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   })
 
   // Handle appointment confirmation sending
-  const handleSendConfirmation = async (jobId: string) => {
+  const handleSendConfirmation = async (jobId: string, successText = 'Appointment confirmation sent.') => {
+    if (isSendingConfirmation) return
     setIsSendingConfirmation(true)
     setConfirmationError(null)
 
@@ -1010,6 +1025,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // Refresh lead data to update job confirmation status
       await handleRefresh()
+      await fetchLeadJobs()
+      setSuccessMessage(successText)
       setShowAppointmentSelection(false)
       setShowResendConfirm(false)
     } catch (error: any) {
@@ -1777,8 +1794,84 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     setIsJobComposerOpen(true)
   }
 
+  const handleAppointmentClick = () => {
+    const appointmentJob = futureAppointments[0] || leadJobs[0] || null
+    setSelectedAppointmentJob(appointmentJob)
+    setAppointmentDate(appointmentJob?.scheduled_date || '')
+    setAppointmentTime(appointmentJob?.scheduled_time?.slice(0, 5) || '')
+    setAppointmentNote(appointmentJob?.notes || '')
+    setAppointmentError('')
+    setIsAppointmentModalOpen(true)
+  }
+
+  const handleSaveAppointment = async (sendConfirmation = false) => {
+    if (isSavingAppointment || isSendingConfirmation) return
+    if (sendConfirmation && (!appointmentDate || !appointmentTime)) {
+      setAppointmentError('Choose an appointment date and time before sending confirmation.')
+      return
+    }
+
+    setIsSavingAppointment(true)
+    setAppointmentError('')
+    setError('')
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const prefill = generateJobPrefill()
+      const body = {
+        title: selectedAppointmentJob?.title || prefill.title,
+        customer_name: selectedAppointmentJob?.customer_name || prefill.customer_name || null,
+        customer_phone: selectedAppointmentJob?.customer_phone || prefill.customer_phone || null,
+        service_address: selectedAppointmentJob?.service_address || prefill.service_address || null,
+        notes: appointmentNote.trim() || selectedAppointmentJob?.notes || prefill.notes || null,
+        scheduled_date: appointmentDate || null,
+        scheduled_time: appointmentTime || null,
+        status: selectedAppointmentJob?.status || 'scheduled',
+        source: 'replyflow',
+        lead_id: params.id,
+        conversation_id: leadData?.conversation_id || null,
+      }
+
+      const response = await fetch(selectedAppointmentJob ? `/api/jobs/${selectedAppointmentJob.id}` : '/api/jobs', {
+        method: selectedAppointmentJob ? 'PATCH' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to save appointment')
+      }
+
+      const data = await response.json()
+      const savedJob = data.job
+      await fetchLeadJobs()
+
+      if (sendConfirmation) {
+        await handleSendConfirmation(savedJob.id, 'Appointment saved and confirmation sent.')
+      } else {
+        setSuccessMessage('Appointment saved.')
+      }
+
+      setIsAppointmentModalOpen(false)
+    } catch (error: any) {
+      setAppointmentError(error.message || 'Failed to save appointment')
+    } finally {
+      setIsSavingAppointment(false)
+    }
+  }
+
   const handleJobSave = (job: Job) => {
-    setSuccessMessage('Job created successfully')
+    setSuccessMessage('Job created.\nAdded to your schedule.')
     setIsJobComposerOpen(false)
   }
 
@@ -2176,13 +2269,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </button>
                           <button
                             onClick={() => {
-                              handleScheduleClick()
+                              handleAppointmentClick()
                               setShowMobileOverflow(false)
                             }}
                             className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
                           >
                             <CalendarDays className="w-4 h-4 stroke-[1.8]" />
-                            Schedule
+                            Appointment
                           </button>
                           <button
                             onClick={() => {
@@ -2195,28 +2288,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             <CreditCard className="w-4 h-4 stroke-[1.8]" />
                             Request Payment
                           </button>
-                          {futureAppointments.length > 0 && (
-                            <button
-                              onClick={() => {
-                                handleConfirmationClick()
-                                setShowMobileOverflow(false)
-                              }}
-                              disabled={isSendingConfirmation}
-                              className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                              {isSendingConfirmation ? (
-                                <>
-                                  <div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                                  Sending...
-                                </>
-                              ) : (
-                                <>
-                                  <MessageSquare className="w-4 h-4 stroke-[1.8]" />
-                                  Send Appointment Confirmation
-                                </>
-                              )}
-                            </button>
-                          )}
+                          <button
+                            onClick={() => {
+                              setShowRemoveModal(true)
+                              setShowMobileOverflow(false)
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Remove
+                          </button>
                           <button
                             onClick={() => {
                               setMobileInternalNotesExpanded(!mobileInternalNotesExpanded)
@@ -2452,11 +2535,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <span className="leading-none">Create Job</span>
               </button>
               <button
-                onClick={handleScheduleClick}
+                onClick={handleAppointmentClick}
                 className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium"
               >
                 <CalendarDays className="w-4 h-4 stroke-[1.8]" />
-                <span className="leading-none">{leadJobs && leadJobs.length > 0 ? 'Edit Schedule' : 'Schedule Job'}</span>
+                <span className="leading-none">Appointment</span>
               </button>
               <button
                 onClick={() => setShowPaymentModal(true)}
@@ -2467,27 +2550,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <CreditCard className="w-4 h-4 stroke-[1.8]" />
                 <span className="leading-none">Request Payment</span>
               </button>
-              {futureAppointments.length > 0 && (
-                <button
-                  onClick={handleConfirmationClick}
-                  disabled={isSendingConfirmation}
-                  className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={futureAppointments.length === 1 && futureAppointments[0].confirmation_sms_sent_at ? 'Resend confirmation' : 'Send appointment confirmation'}
-                >
-                  {isSendingConfirmation ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                      <span className="leading-none">Sending...</span>
-                    </>
-                  ) : (
-                    <>
-                      <MessageSquare className="w-4 h-4 stroke-[1.8]" />
-                      <span className="leading-none">Send Appointment Confirmation</span>
-                    </>
-                  )}
-                </button>
-              )}
+              <button
+                onClick={() => setShowRemoveModal(true)}
+                className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-xs font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span className="leading-none">Remove</span>
+              </button>
             </div>
+            {successMessage && (
+              <div className="mt-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-medium text-green-700 whitespace-pre-line dark:border-green-900/60 dark:bg-green-950/30 dark:text-green-300">
+                {successMessage}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -3590,7 +3667,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   setShowPaymentModal(false)
                   setPaymentAmount('')
                   setPaymentDescription('')
-                  setSuccessMessage('Payment request sent successfully')
+                  setSuccessMessage('Payment request sent.\nThe customer has been texted a payment link.')
                   
                   // Refresh lead data
                   const updatedData = await getLeadDetails(lead?.id)
@@ -3624,12 +3701,85 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     />
 
     {/* Appointment Modal */}
-    <EventComposer
-      isOpen={isAppointmentModalOpen}
-      onClose={() => setIsAppointmentModalOpen(false)}
-      onSave={handleAppointmentSave}
-      prefill={generateAppointmentPrefill()}
-    />
+    {isAppointmentModalOpen && (
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
+        <div className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-xl shadow-xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-6 border border-slate-200 dark:border-slate-800" data-scroll-lock-allow>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+            Appointment
+          </h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">
+            Set or update this customer’s appointment.
+          </p>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={appointmentDate}
+                  onChange={(e) => setAppointmentDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Time
+                </label>
+                <input
+                  type="time"
+                  value={appointmentTime}
+                  onChange={(e) => setAppointmentTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Note
+              </label>
+              <textarea
+                value={appointmentNote}
+                onChange={(e) => setAppointmentNote(e.target.value)}
+                rows={3}
+                data-scroll-lock-allow
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-y"
+                placeholder="Optional appointment details"
+              />
+            </div>
+            {appointmentError && (
+              <p className="text-sm text-red-600 dark:text-red-400">{appointmentError}</p>
+            )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-end mt-6">
+            <button
+              onClick={() => setIsAppointmentModalOpen(false)}
+              disabled={isSavingAppointment || isSendingConfirmation}
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => handleSaveAppointment(false)}
+              disabled={isSavingAppointment || isSendingConfirmation}
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSavingAppointment && !isSendingConfirmation ? 'Saving...' : 'Save Appointment'}
+            </button>
+            <button
+              onClick={() => handleSaveAppointment(true)}
+              disabled={isSavingAppointment || isSendingConfirmation}
+              className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSavingAppointment || isSendingConfirmation ? 'Saving...' : 'Save & Send Confirmation'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* Job Composer Modal */}
     <JobComposer
