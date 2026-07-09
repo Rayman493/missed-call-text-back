@@ -26,8 +26,8 @@ export function normalizeVenmoUsername(username: string | null | undefined): str
 
 /**
  * Generate Venmo payment link with optional amount and note
- * Format: https://venmo.com/u/{username}?amount={amount}&note={note}
- * Also supports deep link: venmo://paycharge?recipients={username}&amount={amount}&note={note}
+ * Uses deep link format for direct app opening: venmo://paycharge?recipients={username}&amount={amount}&note={note}
+ * Fallback to web URL if deep link fails: https://venmo.com/u/{username}?amount={amount}&note={note}
  */
 export function generateVenmoLink(
   username: string | null | undefined,
@@ -45,31 +45,63 @@ export function generateVenmoLink(
   }
 
   try {
-    const url = new URL(`https://venmo.com/u/${normalized}`);
+    // Use deep link format for direct app opening
+    const deepLink = new URL('venmo://paycharge');
+    deepLink.searchParams.set('recipients', normalized);
     
     // Add amount if provided (convert cents to dollars)
     if (amountCents && amountCents > 0) {
       const amountDollars = (amountCents / 100).toFixed(2);
-      url.searchParams.set('amount', amountDollars);
+      deepLink.searchParams.set('amount', amountDollars);
     }
     
     // Add note if provided (URL encode automatically)
     if (note) {
-      url.searchParams.set('note', note);
+      deepLink.searchParams.set('note', note);
     }
     
+    const finalUrl = deepLink.toString();
+    console.log('[VENMO LINK] Generated deep link:', finalUrl);
+    
     return {
-      link: url.toString(),
+      link: finalUrl,
       provider: 'venmo'
     };
   } catch (error) {
-    console.error('[VENMO LINK] Failed to generate dynamic link:', error);
-    // Fallback to simple profile link
-    return {
-      link: `https://venmo.com/u/${normalized}`,
-      provider: 'venmo',
-      error: 'Failed to generate dynamic link, using profile link'
-    };
+    console.error('[VENMO LINK] Failed to generate deep link, falling back to web URL:', error);
+    // Fallback to web URL
+    try {
+      const webUrl = new URL(`https://venmo.com/u/${normalized}`);
+      
+      if (amountCents && amountCents > 0) {
+        const amountDollars = (amountCents / 100).toFixed(2);
+        webUrl.searchParams.set('amount', amountDollars);
+      }
+      
+      if (note) {
+        webUrl.searchParams.set('note', note);
+      }
+      
+      const finalUrl = webUrl.toString();
+      console.log('[VENMO LINK] Generated web URL fallback:', finalUrl);
+      
+      return {
+        link: finalUrl,
+        provider: 'venmo',
+        error: 'Failed to generate deep link, using web URL'
+      };
+    } catch (webError) {
+      console.error('[VENMO LINK] Failed to generate web URL fallback:', webError);
+      // Final fallback to simple profile link
+      const finalUrl = `https://venmo.com/u/${normalized}`;
+      console.log('[VENMO LINK] Generated simple profile fallback:', finalUrl);
+      
+      return {
+        link: finalUrl,
+        provider: 'venmo',
+        error: 'Failed to generate dynamic link, using profile link'
+      };
+    }
   }
 }
 
