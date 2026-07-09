@@ -9,7 +9,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { handleBillingAction } from '@/lib/billing'
 // import ThemeSelector from '@/components/ThemeSelector' // Temporarily disabled for mobile crash fix
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User } from 'lucide-react'
+import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User, Home } from 'lucide-react'
 import { accountMenuItems } from '@/lib/navigation-config'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 
@@ -312,7 +312,7 @@ export default function UserDropdown() {
                 onClick={() => setIsOpen(false)}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
               >
-                <LayoutDashboard className="h-4 w-4 text-slate-400" />
+                <Home className="h-4 w-4 text-slate-400" />
                 {isHomepage ? 'Go to Dashboard' : 'View Homepage'}
               </Link>
             </div>

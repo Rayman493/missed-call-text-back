@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusinessSafe } from '@/contexts/BusinessContext'
-import { Menu, LayoutDashboard } from 'lucide-react'
+import { Menu, LayoutDashboard, Home } from 'lucide-react'
 import UserDropdown from '@/components/UserDropdown'
 import BrandIcon from '@/components/BrandIcon'
 import MobileDrawer from '@/components/MobileDrawer'
@@ -130,7 +130,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                         className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-blue-600 text-white shadow-sm transition-colors hover:bg-blue-700 sm:h-auto sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
                         aria-label="Go to Dashboard"
                       >
-                        <LayoutDashboard className="w-5 h-5 sm:hidden" />
+                        <Home className="w-5 h-5 sm:hidden" />
                         <span className="hidden sm:inline">Dashboard</span>
                       </Link>
                     </>
