@@ -122,9 +122,9 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 dark:bg-slate-900 rounded-xl border border-slate-700/60 shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200" onKeyDown={handleKeyDown}>
+      <div className="bg-slate-900 dark:bg-slate-900 rounded-xl border border-slate-700/60 shadow-2xl w-full max-w-md max-h-[85dvh] flex flex-col animate-in zoom-in-95 duration-200 pt-[calc(1rem+env(safe-area-inset-top))]" onKeyDown={handleKeyDown}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/60">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/60 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
               <Calendar className="w-5 h-5 text-blue-400" />
@@ -142,8 +142,8 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
           </button>
         </div>
 
-        {/* Form */}
-        <div className="p-6 space-y-4">
+        {/* Form - scrollable on mobile */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">
@@ -298,8 +298,8 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-2.5 px-5 py-4 border-t border-slate-700/60">
+        {/* Footer - fixed on mobile */}
+        <div className="flex items-center justify-end gap-2.5 px-5 py-4 border-t border-slate-700/60 flex-shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-all duration-200"
