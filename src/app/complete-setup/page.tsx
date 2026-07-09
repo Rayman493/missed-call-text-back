@@ -54,6 +54,7 @@ export default function CompleteSetupPage() {
   // If no business after loading, redirect to onboarding
   useEffect(() => {
     if (!businessLoading && !business && user) {
+      console.log('[CompleteSetup] No business found, redirecting to onboarding')
       router.replace('/onboarding')
     }
   }, [businessLoading, business, user, router])
@@ -92,6 +93,7 @@ export default function CompleteSetupPage() {
       }
 
       if (!freshBusiness) {
+        console.log('[CompleteSetup] No fresh business found, redirecting to onboarding')
         router.replace('/onboarding')
         return
       }
@@ -100,6 +102,7 @@ export default function CompleteSetupPage() {
       const hasPhone = Boolean(freshBusiness.business_phone_number && freshBusiness.business_phone_number.trim())
 
       if (!hasName || !hasPhone) {
+        console.log('[CompleteSetup] Business profile incomplete, redirecting to onboarding', { hasName, hasPhone })
         router.replace('/onboarding')
         return
       }

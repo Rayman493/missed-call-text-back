@@ -186,11 +186,18 @@ function AuthContent() {
       // Determine redirect target based on business query result
       let redirectTarget: string
       if (business) {
-        // Business found - check if Stripe Checkout is completed
-        if (business.subscription_status === null) {
-          // Business exists but Stripe Checkout NOT completed - redirect to complete-setup page
+        // Business found - check if business profile is complete
+        const hasName = Boolean(business.name && business.name.trim())
+        const hasPhone = Boolean(business.business_phone_number && business.business_phone_number.trim())
+        
+        if (!hasName || !hasPhone) {
+          // Business exists but profile incomplete - redirect to onboarding to complete profile
+          console.log('[Auth] Business found but profile incomplete, redirecting to onboarding', { hasName, hasPhone })
+          redirectTarget = '/onboarding'
+        } else if (business.subscription_status === null) {
+          // Business exists with complete profile but Stripe Checkout NOT completed - redirect to complete-setup page
           // This gives users an escape hatch to delete their account if they abandon checkout
-          console.log('[Auth] Business found but subscription_status is null - redirecting to complete-setup page')
+          console.log('[Auth] Business found with complete profile but subscription_status is null - redirecting to complete-setup page')
           redirectTarget = '/complete-setup'
         } else {
           // Business found and Stripe Checkout completed - go to dashboard

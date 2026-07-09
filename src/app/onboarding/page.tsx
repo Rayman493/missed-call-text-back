@@ -116,6 +116,9 @@ export default function OnboardingPage() {
                            existingBusiness.subscription_status === 'beta' ||
                            existingBusiness.subscription_status === 'comped'
         const hasNumber = Boolean(existingBusiness.twilio_phone_number)
+        const hasName = Boolean(existingBusiness.name && existingBusiness.name.trim())
+        const hasPhone = Boolean(existingBusiness.business_phone_number && existingBusiness.business_phone_number.trim())
+        const profileComplete = hasName && hasPhone
         const forwardingComplete = existingBusiness.forwarding_verified === true ||
                                  existingBusiness.phone_setup_completed_at !== null
 
@@ -129,53 +132,67 @@ export default function OnboardingPage() {
           redirectTarget = '/onboarding/new-onboarding'
           redirectReason = 'Has active subscription, continue setup'
         }
-        // If has number but no active subscription, resume at payment (trigger checkout)
+        // If has number but no active subscription, check profile completeness
         else if (hasNumber && !hasActiveSub) {
-          // Trigger checkout session to resume at Step 2 (payment)
-          const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              checkout_mode: 'trial',
-            }),
-          })
+          if (!profileComplete) {
+            // Business exists but profile incomplete - redirect to onboarding to complete profile
+            console.log('[Onboarding] Business exists but profile incomplete, redirecting to onboarding', { hasName, hasPhone })
+            redirectTarget = '/onboarding'
+            redirectReason = 'Business exists but profile incomplete'
+          } else {
+            // Profile complete, trigger checkout session to resume at Step 2 (payment)
+            const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                checkout_mode: 'trial',
+              }),
+            })
 
-          if (checkoutResponse.ok) {
-            const checkoutData = await checkoutResponse.json()
-            if (checkoutData.url) {
-              window.location.href = checkoutData.url
-              return
+            if (checkoutResponse.ok) {
+              const checkoutData = await checkoutResponse.json()
+              if (checkoutData.url) {
+                window.location.href = checkoutData.url
+                return
+              }
             }
+            // If checkout fails, go to dashboard where user can try again
+            redirectTarget = '/dashboard'
+            redirectReason = 'Business exists with number, checkout failed'
           }
-          // If checkout fails, go to dashboard where user can try again
-          redirectTarget = '/dashboard'
-          redirectReason = 'Business exists with number, checkout failed'
         }
-        // If has business but no number and no active subscription, resume at payment (trigger checkout)
+        // If has business but no number and no active subscription, check profile completeness
         else if (!hasNumber && !hasActiveSub) {
-          // Trigger checkout session to resume at Step 2 (payment)
-          const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              checkout_mode: 'trial',
-            }),
-          })
+          if (!profileComplete) {
+            // Business exists but profile incomplete - redirect to onboarding to complete profile
+            console.log('[Onboarding] Business exists but profile incomplete, redirecting to onboarding', { hasName, hasPhone })
+            redirectTarget = '/onboarding'
+            redirectReason = 'Business exists but profile incomplete'
+          } else {
+            // Profile complete, trigger checkout session to resume at Step 2 (payment)
+            const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                checkout_mode: 'trial',
+              }),
+            })
 
-          if (checkoutResponse.ok) {
-            const checkoutData = await checkoutResponse.json()
-            if (checkoutData.url) {
-              window.location.href = checkoutData.url
-              return
+            if (checkoutResponse.ok) {
+              const checkoutData = await checkoutResponse.json()
+              if (checkoutData.url) {
+                window.location.href = checkoutData.url
+                return
+              }
             }
+            // If checkout fails, go to dashboard where user can try again
+            redirectTarget = '/dashboard'
+            redirectReason = 'Business exists, checkout failed'
           }
-          // If checkout fails, go to dashboard where user can try again
-          redirectTarget = '/dashboard'
-          redirectReason = 'Business exists, checkout failed'
         }
         // Otherwise, go to dashboard
         else {
