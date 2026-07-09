@@ -7,7 +7,7 @@ import { hasActiveSubscription, hasActiveTrial, deriveSetupState } from '@/lib/s
 import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Settings, Loader2, HelpCircle, X } from 'lucide-react'
 import { formatPhoneNumber } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
-import HelpTroubleshootingModal from '@/components/HelpTroubleshootingModal'
+import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 
 interface SetupStatusCardProps {
   business: Business | null
@@ -38,7 +38,7 @@ export default function SetupStatusCard({
   const [isOpeningBilling, setIsOpeningBilling] = useState(false)
   const [billingError, setBillingError] = useState<string | null>(null)
   const [successDismissed, setSuccessDismissed] = useState(false)
-  const [showHelpModal, setShowHelpModal] = useState(false)
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false)
   const [expandedStep, setExpandedStep] = useState<number | null>(null)
   const { user } = useAuth()
   const setupState = deriveSetupState(business, missedCallCount)
@@ -770,7 +770,7 @@ export default function SetupStatusCard({
                 <span className="sm:hidden">Review Setup</span>
               </Link>
               <button
-                onClick={() => setShowHelpModal(true)}
+                onClick={() => setIsAssistantOpen(true)}
                 className="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2.5 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs sm:text-sm font-medium rounded-lg transition-colors min-h-[36px] sm:min-h-[40px]"
               >
                 <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
@@ -782,11 +782,17 @@ export default function SetupStatusCard({
         )}
       </div>
 
-      <HelpTroubleshootingModal
-        isOpen={showHelpModal}
-        onClose={() => setShowHelpModal(false)}
-        twilioPhoneNumber={business?.twilio_phone_number ?? undefined}
-      />
+      {isAssistantOpen && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-3 md:hidden">
+          <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
+          <div className="relative mb-20 w-full max-w-lg">
+            <ReplyFlowAssistant
+              context={{ currentPage: 'dashboard' }}
+              onClose={() => setIsAssistantOpen(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
