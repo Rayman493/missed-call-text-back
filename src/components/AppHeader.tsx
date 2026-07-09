@@ -33,11 +33,11 @@ export default function AppHeader({
         <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 border-0">
           <div className="flex items-center justify-between h-11">
             {/* Left side - Logo and navigation */}
-            <div className="flex items-center gap-2 md:gap-8">
+            <div className="flex items-center gap-2 md:gap-8 lg:gap-8">
               {/* Logo */}
-              <Link href={isPublicPage ? '/' : '/dashboard'} className="group flex items-center gap-2 rounded-full px-1.5 py-1 hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 transition-all duration-200">
+              <Link href={isPublicPage ? '/' : '/dashboard'} className="group flex items-center gap-1.5 md:gap-2 rounded-full px-1.5 py-1 hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 transition-all duration-200 flex-shrink-0">
                 <BrandIcon size={56} />
-                <span className="text-[15px] md:text-lg lg:text-xl font-semibold tracking-tight">
+                <span className="text-[15px] md:text-lg lg:text-xl font-semibold tracking-tight hidden sm:inline">
                   <span className="text-white">ReplyFlow</span>
                   <span className="bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">HQ</span>
                 </span>
@@ -48,13 +48,13 @@ export default function AppHeader({
                 {showNavigation && <Navigation />}
               </div>
             </div>
-            
+
             {/* Right side - Utility actions grouped together */}
             <div className="flex items-center gap-1.5 sm:gap-2">
               {/* Notifications - visible on all screen sizes */}
               <NavbarNotifications />
-              
-              
+
+
               {/* User dropdown - visible on desktop only (hidden on mobile) */}
               <div className="hidden md:block">
                 <UserDropdown />
