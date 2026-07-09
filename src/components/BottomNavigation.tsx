@@ -74,8 +74,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
         window.innerWidth - dropdownWidth - viewportPadding
       )
 
-      // Estimate dropdown height (4 items + divider ≈ 200px)
-      const estimatedDropdownHeight = 200
+      // Estimate dropdown height (3 items + divider ≈ 130px)
+      const estimatedDropdownHeight = 130
       // Position dropdown 8px above the More button (dropdown bottom = button top - 8px)
       const spacing = 8
       const unclampedTop = rect.top - estimatedDropdownHeight - spacing
@@ -115,8 +115,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
           window.innerWidth - dropdownWidth - viewportPadding
         )
 
-        // Estimate dropdown height (4 items + divider ≈ 200px)
-        const estimatedDropdownHeight = 200
+        // Estimate dropdown height (3 items + divider ≈ 130px)
+        const estimatedDropdownHeight = 130
         // Position dropdown 8px above the More button (dropdown bottom = button top - 8px)
         const spacing = 8
         const unclampedTop = rect.top - estimatedDropdownHeight - spacing
