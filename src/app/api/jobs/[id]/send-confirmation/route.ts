@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { sendSms } from '@/lib/twilio'
 import { sanitizeMessageContent } from '@/lib/security'
+import { db, supabaseAdmin } from '@/lib/supabase/admin'
 
 export async function POST(
   request: NextRequest,
@@ -15,17 +16,6 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get business for this user
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id, name, twilio_phone_number, twilio_messaging_service_sid')
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError || !business) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
-    }
-
     // Get job
     const { data: job, error: jobError } = await supabase
       .from('jobs')
@@ -37,12 +27,19 @@ export async function POST(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 })
     }
 
-    // Verify job belongs to this business
-    if (job.business_id !== business.id) {
-      console.error('[Job Confirmation] Business mismatch:', { 
-        jobId: job.id, 
-        jobBusinessId: job.business_id, 
-        userBusinessId: business.id 
+    // Get business using the same method as working send-sms route
+    const business = await db.getBusiness(job.business_id)
+
+    if (!business) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    }
+
+    // Verify user owns this business
+    if (business.user_id !== user.id) {
+      console.error('[Job Confirmation] User does not own business:', { 
+        userId: user.id, 
+        businessId: business.id, 
+        businessUserId: business.user_id 
       })
       return NextResponse.json({ error: 'You do not have access to this job' }, { status: 403 })
     }
@@ -57,7 +54,7 @@ export async function POST(
     // Check if business has ReplyFlow number
     if (!business.twilio_phone_number) {
       return NextResponse.json({ 
-        error: 'Business does not have a ReplyFlow phone number configured' 
+        error: 'ReplyFlow could not send this appointment confirmation because your ReplyFlow number is not fully configured.' 
       }, { status: 400 })
     }
 
