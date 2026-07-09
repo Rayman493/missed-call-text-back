@@ -547,11 +547,10 @@ export default function SetupStatusCard({
             </h1>
             <p className="text-slate-400 text-xs sm:text-sm truncate">
               {cardState === 'needs-forwarding'
-                ? 'Step 2 of 3 • Set up call forwarding'
+                ? 'Step 2 of 3'
                 : cardState === 'needs-verification'
-                ? 'Step 3 of 3 • Activate ReplyFlow'
-                : 'Setup complete. Ready for forwarded calls.'
-              }
+                ? 'Step 3 of 3'
+                : 'Setup complete'}
             </p>
           </div>
           <button
@@ -587,7 +586,7 @@ export default function SetupStatusCard({
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span className="text-white text-xs sm:text-sm font-medium flex-1 text-left truncate">Step 1 — ReplyFlow number ready</span>
+                <span className="text-white text-xs sm:text-sm font-medium flex-1 text-left truncate">Step 1 — Number ready</span>
                 <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 transition-transform flex-shrink-0 ${expandedStep === 1 ? 'rotate-180' : ''}`} />
               </button>
               {expandedStep === 1 && (
@@ -639,7 +638,7 @@ export default function SetupStatusCard({
                   </div>
                 )}
                 <span className="text-white text-xs sm:text-sm font-medium flex-1 text-left truncate">
-                  {cardState === 'needs-verification' ? 'Step 2 — Call forwarding' : 'Set up call forwarding'}
+                  {cardState === 'needs-verification' ? 'Step 2 — Forwarding' : 'Set up forwarding'}
                 </span>
                 {cardState === 'needs-forwarding' && (
                   <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-full border border-blue-400/30 flex-shrink-0">
@@ -698,7 +697,7 @@ export default function SetupStatusCard({
                   </div>
                 )}
                 <span className="text-white text-xs sm:text-sm font-medium flex-1 text-left truncate">
-                  {hasCompletedTestCall ? 'Step 3 — Test call' : cardState === 'needs-verification' ? 'Activate ReplyFlow' : 'Step 3 — Test call'}
+                  {hasCompletedTestCall ? 'Step 3 — Test call' : cardState === 'needs-verification' ? 'Activate' : 'Step 3 — Test call'}
                 </span>
                 {cardState === 'needs-verification' && !hasCompletedTestCall && (
                   <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 bg-amber-500/20 text-amber-300 text-xs font-bold rounded-full border border-amber-400/30 flex-shrink-0">
@@ -715,14 +714,11 @@ export default function SetupStatusCard({
                 <div className="p-2.5 pt-0 sm:p-3 sm:pt-0 border-t border-white/10">
                   <div className="space-y-2">
                     <p className="text-slate-300 text-xs sm:text-sm">
-                      Call your business number once so ReplyFlow can verify forwarding and activate your AI receptionist.
-                    </p>
-                    <p className="text-amber-300 text-xs">
-                      ✓ Takes about 30 seconds
+                      Call your business number to activate ReplyFlow.
                     </p>
                     {business?.business_phone_number && (
                       <div className="flex items-center justify-between bg-slate-700/30 rounded-lg p-2">
-                        <span className="text-blue-200 text-xs">Call this number:</span>
+                        <span className="text-blue-200 text-xs">Call:</span>
                         <span className="text-white font-mono text-xs font-semibold">
                           {formatPhoneNumber(business.business_phone_number)}
                         </span>
