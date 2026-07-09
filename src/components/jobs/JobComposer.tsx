@@ -30,6 +30,8 @@ export interface Job {
   conversation_id: string | null
   source: 'manual' | 'replyflow'
   payment_status: 'none' | 'requested' | 'paid'
+  confirmation_sms_sent_at: string | null
+  confirmation_sms_message_sid: string | null
   created_at: string
   updated_at: string
 }

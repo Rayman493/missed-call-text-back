@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Pencil, Trash2, Link as LinkIcon } from 'lucide-react'
+import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Pencil, Trash2, Link as LinkIcon, MessageSquare, CheckCircle2, AlertCircle } from 'lucide-react'
 import type { Job, JobStatus } from './JobComposer'
 
 interface JobDetailsModalProps {
@@ -53,6 +53,9 @@ export default function JobDetailsModal({
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isSendingConfirmation, setIsSendingConfirmation] = useState(false)
+  const [showResendConfirm, setShowResendConfirm] = useState(false)
+  const [confirmationError, setConfirmationError] = useState('')
 
   if (!isOpen) return null
 
@@ -83,6 +86,37 @@ export default function JobDetailsModal({
     } finally {
       setIsDeleting(false)
       setShowDeleteConfirm(false)
+    }
+  }
+
+  const handleSendConfirmation = async () => {
+    // Check if already sent and show confirmation if so
+    if (job.confirmation_sms_sent_at && !showResendConfirm) {
+      setShowResendConfirm(true)
+      return
+    }
+
+    setIsSendingConfirmation(true)
+    setConfirmationError('')
+    setShowResendConfirm(false)
+
+    try {
+      const response = await fetch(`/api/jobs/${job.id}/send-confirmation`, {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to send confirmation text')
+      }
+
+      const data = await response.json()
+      // Update the job with the new confirmation data
+      onStatusChange(data.job, job.status)
+    } catch (err) {
+      setConfirmationError(err instanceof Error ? err.message : 'Failed to send confirmation text')
+    } finally {
+      setIsSendingConfirmation(false)
     }
   }
 
@@ -188,6 +222,25 @@ export default function JobDetailsModal({
               <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Payment requests coming soon</p>
             </div>
 
+            {/* Confirmation SMS section */}
+            <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Appointment Confirmation</p>
+              {job.confirmation_sms_sent_at ? (
+                <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Confirmation sent</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {new Date(job.confirmation_sms_sent_at).toLocaleDateString()}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-600 dark:text-slate-300">Not sent yet</p>
+              )}
+              {confirmationError && (
+                <p className="text-xs text-red-600 dark:text-red-400 mt-1">{confirmationError}</p>
+              )}
+            </div>
+
             {/* Status Change */}
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Status</p>
@@ -230,6 +283,23 @@ export default function JobDetailsModal({
                   {isDeleting ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
+            ) : showResendConfirm ? (
+              <div className="flex items-center gap-2 w-full">
+                <span className="text-xs text-slate-600 dark:text-slate-400 flex-1">A confirmation text was already sent. Send it again?</span>
+                <button
+                  onClick={() => setShowResendConfirm(false)}
+                  className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleSendConfirmation()}
+                  disabled={isSendingConfirmation}
+                  className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isSendingConfirmation ? 'Sending...' : 'Send Again'}
+                </button>
+              </div>
             ) : (
               <>
                 <button
@@ -239,13 +309,40 @@ export default function JobDetailsModal({
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-                <button
-                  onClick={() => { onEdit(job); onClose() }}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  Edit
-                </button>
+                <div className="flex items-center gap-2">
+                  {job.customer_phone && (
+                    <button
+                      onClick={handleSendConfirmation}
+                      disabled={isSendingConfirmation}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={job.confirmation_sms_sent_at ? 'Send confirmation again' : 'Send confirmation text'}
+                    >
+                      {isSendingConfirmation ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Sending...</span>
+                        </>
+                      ) : job.confirmation_sms_sent_at ? (
+                        <>
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Send Again</span>
+                        </>
+                      ) : (
+                        <>
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Send Confirmation Text</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { onEdit(job); onClose() }}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Edit
+                  </button>
+                </div>
               </>
             )}
           </div>
