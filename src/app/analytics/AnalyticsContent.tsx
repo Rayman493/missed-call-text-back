@@ -80,6 +80,14 @@ export default function AnalyticsContent() {
         // Normalize to array - Supabase may return null or object in some cases
         const leadsArray = Array.isArray(leads) ? leads : []
 
+        console.log('[Analytics] RAW LEADS FROM QUERY:', leads)
+        console.log('[Analytics] LEAD DETAILS:', leadsArray.map(l => ({
+          id: l.id,
+          status: l.status,
+          payment_status: l.payment_status,
+          deleted_at: l.deleted_at
+        })))
+
         // Fetch messages for reply rate calculation - query by lead_id to match DashboardMetrics
         // IMPORTANT: Must select from_phone and to_phone for dual filter to work
         const leadIds = leadsArray.map((l: any) => l.id) || []
@@ -157,7 +165,9 @@ export default function AnalyticsContent() {
 
         // Calculate metrics using shared lead status helper
         const leadCount = leadsArray.length
+        console.log('[Analytics] INPUT TO HELPER:', leadsArray)
         const leadStatusCounts = calculateLeadStatusCounts(leadsArray)
+        console.log('[Analytics] HELPER OUTPUT:', leadStatusCounts)
         const activeLeads = leadStatusCounts.active
         const completedLeads = leadStatusCounts.completed
 
@@ -267,6 +277,9 @@ export default function AnalyticsContent() {
           recoveryRate,
           messagesSent: outboundMessages
         }
+
+        console.log('[Analytics] FINAL METRICS OBJECT:', finalMetrics)
+        console.log('[Analytics] FINAL activeLeads VALUE:', finalMetrics.activeLeads)
 
         setMetrics(finalMetrics)
 
