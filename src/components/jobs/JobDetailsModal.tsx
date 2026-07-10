@@ -6,6 +6,8 @@ import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Pencil, T
 import type { Job, JobStatus } from './JobComposer'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatCurrency } from '@/lib/utils'
+import { useBusiness } from '@/contexts/BusinessContext'
+import RequestPaymentModal from '@/components/payments/RequestPaymentModal'
 
 interface JobDetailsModalProps {
   isOpen: boolean
@@ -66,6 +68,7 @@ export default function JobDetailsModal({
   onStatusChange,
   onDelete,
 }: JobDetailsModalProps) {
+  const { business } = useBusiness()
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -491,36 +494,18 @@ export default function JobDetailsModal({
       </div>
 
       {/* Payment Request Modal */}
-      {showPaymentModal && (
-        <>
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]" onClick={() => setShowPaymentModal(false)} />
-          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground">Request Payment</h3>
-                <button
-                  onClick={() => setShowPaymentModal(false)}
-                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                >
-                  <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                </button>
-              </div>
-              <div className="p-4">
-                <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
-                  To request payment for this job, use the Payments page to create a payment request for this lead.
-                </p>
-                <Link
-                  href="/dashboard/payments"
-                  onClick={() => setShowPaymentModal(false)}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  Go to Payments Page
-                </Link>
-              </div>
-            </div>
-          </div>
-        </>
+      {showPaymentModal && business && (
+        <RequestPaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          business={business}
+          onPaymentCreated={() => {
+            setShowPaymentModal(false)
+            fetchPaymentRequest()
+          }}
+          prefillLeadId={job.lead_id || undefined}
+          prefillDescription={job.title || undefined}
+        />
       )}
 
       {/* Cancel Payment Confirmation */}
