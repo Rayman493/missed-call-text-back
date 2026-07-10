@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -11,18 +11,19 @@ import Link from 'next/link'
 import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
-import EventComposer from '@/components/calendar/EventComposer'
 import DayDetailModal from '@/components/calendar/DayDetailModal'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
 import UpcomingAgenda from '@/components/calendar/UpcomingAgenda'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { filterEventsByMonth } from '@/lib/calendar-date-utils'
+import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import JobComposer from '@/components/jobs/JobComposer'
 import JobPill from '@/components/jobs/JobPill'
 import JobDetailsModal from '@/components/jobs/JobDetailsModal'
 import TodaySchedule from '@/components/jobs/TodaySchedule'
 import NewJobModal from '@/components/jobs/NewJobModal'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
+import AddCustomerModal from '@/components/AddCustomerModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import type { Job, JobStatus, JobPrefill } from '@/components/jobs/JobComposer'
 
@@ -43,7 +44,6 @@ export default function SchedulePage() {
   const { business } = useBusiness()
   const supabase = createBrowserClient()
   const searchParams = useSearchParams()
-  const router = useRouter()
 
   const [calendarConnected, setCalendarConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -58,7 +58,6 @@ export default function SchedulePage() {
   const [isLoadingEvents, setIsLoadingEvents] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
-  const [isEventComposerOpen, setIsEventComposerOpen] = useState(false)
   const [isDayDetailOpen, setIsDayDetailOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false)
@@ -70,7 +69,11 @@ export default function SchedulePage() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [isLoadingJobs, setIsLoadingJobs] = useState(false)
   const [isNewJobModalOpen, setIsNewJobModalOpen] = useState(false)
+  const [newJobWorkflowTitle, setNewJobWorkflowTitle] = useState('Create Job')
+  const [newJobWorkflowPrompt, setNewJobWorkflowPrompt] = useState('Select a customer to create a job for')
+  const [newJobDefaultDate, setNewJobDefaultDate] = useState<Date | undefined>(undefined)
   const [isLeadPickerOpen, setIsLeadPickerOpen] = useState(false)
+  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false)
   const [isJobComposerOpen, setIsJobComposerOpen] = useState(false)
   const [jobPrefill, setJobPrefill] = useState<JobPrefill | undefined>(undefined)
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
@@ -99,39 +102,6 @@ export default function SchedulePage() {
         window.history.replaceState({}, '', '/dashboard/calendar')
       }
 
-      // Handle return from Leads page after adding customer
-      const createJob = searchParams.get('createJob')
-      const leadId = searchParams.get('leadId')
-      if (createJob === 'true' && leadId) {
-        // Fetch the lead details and prefill for job creation
-        const fetchLeadAndCreateJob = async () => {
-          try {
-            const response = await fetch(`/api/leads/${leadId}`)
-            if (response.ok) {
-              const data = await response.json()
-              const lead = data.lead
-              if (lead) {
-                // Set job prefill from lead
-                setJobPrefill({
-                  customer_name: lead.customer_name || lead.caller_name,
-                  customer_phone: lead.phone || lead.caller_phone,
-                  service_address: lead.address,
-                  lead_id: lead.id,
-                  conversation_id: lead.conversation_id,
-                })
-                // Open job composer
-                setIsJobComposerOpen(true)
-                // Clear URL params
-                window.history.replaceState({}, '', '/dashboard/calendar')
-              }
-            }
-          } catch (error) {
-            console.error('Error fetching lead for job creation:', error)
-            showToast('Failed to load customer details. Please try again.', 'error')
-          }
-        }
-        fetchLeadAndCreateJob()
-      }
     }
   }, [searchParams])
 
@@ -189,45 +159,16 @@ export default function SchedulePage() {
     setToasts(prev => prev.filter(toast => toast.id !== id))
   }
 
-  const handleCreateEvent = async (eventData: any) => {
-    try {
-      const response = await fetch('/api/google/calendar/create-event', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(eventData),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to add event')
-      }
-
-      const data = await response.json()
-      showToast('Event added successfully', 'success')
-      
-      // Refresh calendar events
-      await fetchEvents()
-    } catch (error) {
-      console.error('Failed to create event:', error)
-      showToast('Failed to add event', 'error')
-      throw error
-    }
-  }
-
   const handleAddEvent = (date?: Date) => {
-    if (!calendarConnected) {
-      showToast('Please connect Google Calendar first', 'error')
-      return
-    }
-    // If a date is provided (from day modal), set it as selected day
-    // Otherwise, use current selected day or today
-    if (date) {
-      setSelectedDay(date)
-    }
-    setIsEventComposerOpen(true)
+    // New appointments are always tied to a lead; schedule via JobComposer
+    const dateToUse = date || selectedDay || new Date()
+    setSelectedDay(dateToUse)
+    setNewJobWorkflowTitle('New Appointment')
+    setNewJobWorkflowPrompt('Select a customer to schedule an appointment for')
+    setNewJobDefaultDate(dateToUse)
+    setEditingJob(null)
+    setJobPrefill(undefined)
+    setIsNewJobModalOpen(true)
   }
 
   const handleConnectCalendar = async () => {
@@ -535,6 +476,9 @@ export default function SchedulePage() {
   const openNewJob = () => {
     setEditingJob(null)
     setJobPrefill(undefined)
+    setNewJobDefaultDate(undefined)
+    setNewJobWorkflowTitle('Create Job')
+    setNewJobWorkflowPrompt('Select a customer to create a job for')
     setIsNewJobModalOpen(true)
   }
 
@@ -550,6 +494,7 @@ export default function SchedulePage() {
     })
     setEditingJob(null)
     setJobPrefill(undefined)
+    setNewJobDefaultDate(undefined)
     showToast(editingJob ? 'Job updated' : 'Job created', 'success')
   }
 
@@ -561,6 +506,40 @@ export default function SchedulePage() {
   const handleJobDeleted = (job: Job) => {
     setJobs(prev => prev.filter(j => j.id !== job.id))
     showToast('Job deleted', 'success')
+  }
+
+  const handleLeadCreated = async (leadId: string) => {
+    try {
+      const response = await fetch(`/api/lead-details?id=${leadId}`, { credentials: 'include' })
+      const data = await response.json()
+      if (!data.ok || !data.lead) {
+        throw new Error(data.error || 'Failed to load customer details')
+      }
+      const lead = data.lead
+      const conversationId = data.conversation?.id || lead.conversation_id || null
+      const intake = getLeadAIIntake(lead)
+      const noteParts = [
+        intake.additionalDetails,
+        intake.desiredCompletion ? `Desired completion: ${intake.desiredCompletion}` : null,
+        intake.callbackTime ? `Best callback time: ${intake.callbackTime}` : null,
+      ].filter(Boolean)
+
+      const prefill: JobPrefill = {
+        customer_name: intake.customerName || undefined,
+        customer_phone: intake.customerPhone || lead.caller_phone || undefined,
+        service_address: intake.serviceAddress || undefined,
+        title: intake.serviceRequested || undefined,
+        notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
+        lead_id: lead.id,
+        conversation_id: conversationId || undefined,
+      }
+      setJobPrefill(prefill)
+      setIsAddCustomerModalOpen(false)
+      setIsJobComposerOpen(true)
+    } catch (error) {
+      console.error('Error loading lead details after creation:', error)
+      showToast('Failed to load customer details. Please try again.', 'error')
+    }
   }
 
   const getJobsForDay = (date: Date): Job[] => {
@@ -619,7 +598,13 @@ export default function SchedulePage() {
   }
 
   const handleNewAppointment = () => {
-    showToast('Appointment creation coming soon', 'info')
+    // Open lead-first appointment workflow
+    setNewJobWorkflowTitle('New Appointment')
+    setNewJobWorkflowPrompt('Select a customer to schedule an appointment for')
+    setNewJobDefaultDate(selectedDay || undefined)
+    setEditingJob(null)
+    setJobPrefill(undefined)
+    setIsNewJobModalOpen(true)
   }
 
   const goToPreviousMonth = () => {
@@ -1164,19 +1149,20 @@ export default function SchedulePage() {
                     </div>
                   )}
 
-                  {/* New Job Selection Modal */}
+                  {/* Lead Selection / Creation Modal */}
                   <NewJobModal
+                    title={newJobWorkflowTitle}
+                    prompt={newJobWorkflowPrompt}
                     isOpen={isNewJobModalOpen}
                     onClose={() => setIsNewJobModalOpen(false)}
                     onSelectLead={() => setIsLeadPickerOpen(true)}
-                    onAddCustomer={() => {
-                      // Navigate to Leads page with return intent
-                      router.push('/dashboard/leads?addCustomer=true&returnTo=calendar')
-                    }}
+                    onAddCustomer={() => setIsAddCustomerModalOpen(true)}
                   />
 
                   {/* Lead Picker Modal */}
                   <LeadPickerModal
+                    title={newJobWorkflowTitle}
+                    subtitle="Select a lead to continue"
                     isOpen={isLeadPickerOpen}
                     onClose={() => setIsLeadPickerOpen(false)}
                     onSelect={(prefill) => {
@@ -1184,16 +1170,24 @@ export default function SchedulePage() {
                       setIsLeadPickerOpen(false)
                       setIsJobComposerOpen(true)
                     }}
+                    onAddNew={() => setIsAddCustomerModalOpen(true)}
+                  />
+
+                  {/* Add Customer Modal */}
+                  <AddCustomerModal
+                    isOpen={isAddCustomerModalOpen}
+                    onClose={() => setIsAddCustomerModalOpen(false)}
+                    onLeadCreated={handleLeadCreated}
                   />
 
                   {/* Job Composer Modal */}
                   <JobComposer
                     isOpen={isJobComposerOpen}
-                    onClose={() => { setIsJobComposerOpen(false); setEditingJob(null); setJobPrefill(undefined) }}
+                    onClose={() => { setIsJobComposerOpen(false); setEditingJob(null); setJobPrefill(undefined); setNewJobDefaultDate(undefined) }}
                     onSave={handleJobSaved}
                     editJob={editingJob || undefined}
                     prefill={jobPrefill}
-                    defaultDate={selectedDay}
+                    defaultDate={newJobDefaultDate}
                   />
 
                   {/* Job Details Modal */}
@@ -1202,19 +1196,11 @@ export default function SchedulePage() {
                       isOpen={isJobDetailsOpen}
                       onClose={() => setIsJobDetailsOpen(false)}
                       job={selectedJob}
-                      onEdit={(job) => { setEditingJob(job); setJobPrefill(undefined); setIsJobComposerOpen(true) }}
+                      onEdit={(job) => { setEditingJob(job); setJobPrefill(undefined); setNewJobDefaultDate(undefined); setIsJobComposerOpen(true) }}
                       onStatusChange={handleJobStatusChange}
                       onDelete={handleJobDeleted}
                     />
                   )}
-
-                  {/* Event Composer Modal */}
-                  <EventComposer
-                    isOpen={isEventComposerOpen}
-                    onClose={() => setIsEventComposerOpen(false)}
-                    onSave={handleCreateEvent}
-                    selectedDate={selectedDay}
-                  />
 
                   {/* Day Detail Modal */}
                   {selectedDay && (

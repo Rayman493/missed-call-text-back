@@ -12,7 +12,7 @@ import AppBackButton from '@/components/AppBackButton'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { formatPhoneNumber, formatRelativeTime, getLeadStatusColor, getLeadDisplayName } from '@/lib/utils'
+import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadStatusColor, getLeadDisplayName } from '@/lib/utils'
 import { getLeadAIIntake, getAIIntakeStatus, getAIIntakeStatusLabel, getAIIntakeStatusColor } from '@/lib/ai-field-mapping'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import { copyToClipboard } from '@/lib/clipboard'
@@ -1415,6 +1415,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             }
             return prev
           })
+          fetchLeadJobs()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'jobs',
+          filter: `lead_id=eq.${leadId}`
+        },
+        (payload: any) => {
+          fetchLeadJobs()
         }
       )
       .subscribe((status: any) => {
@@ -1794,6 +1807,114 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     setIsJobComposerOpen(true)
   }
 
+  const renderWorkspaceSection = () => {
+    const paymentRequests = leadData?.paymentRequests || []
+
+    return (
+      <div className="bg-card rounded-lg border border-border/30 p-5 space-y-6">
+        {/* Jobs & Appointments */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-muted-foreground">Jobs & Appointments</h3>
+            <button
+              onClick={handleCreateJobClick}
+              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            >
+              + Job
+            </button>
+          </div>
+          {leadJobs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No jobs yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {leadJobs.map((job: any) => (
+                <div key={job.id} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString() : 'No date scheduled'}
+                      {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
+                    </p>
+                  </div>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 capitalize whitespace-nowrap ml-2">
+                    {job.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={handleAppointmentClick}
+            className="mt-3 w-full text-center text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+          >
+            {leadJobs.length === 0 ? 'Schedule Appointment' : 'Manage Appointment'}
+          </button>
+        </div>
+
+        {/* Payment Requests */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-muted-foreground">Payment Requests</h3>
+            <button
+              onClick={() => setShowPaymentModal(true)}
+              disabled={!business || getAvailableProviders(business).length === 0}
+              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              + Payment
+            </button>
+          </div>
+          {paymentRequests.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No payment requests yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {paymentRequests.map((pr: any) => (
+                <div key={pr.id} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
+                    <p className="text-xs text-muted-foreground truncate">{pr.description || 'Payment request'}</p>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 ${
+                    pr.status === 'paid'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                      : pr.status === 'pending'
+                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  }`}>
+                    {pr.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Timeline */}
+        <div>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">Timeline</h3>
+          {conversationTimeline.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No activity yet.</p>
+          ) : (
+            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+              {conversationTimeline.slice(-5).reverse().map((item: any) => (
+                <div key={item.id} className="flex gap-3 text-sm">
+                  <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-foreground break-words">
+                      {item.type === 'message'
+                        ? (item.data?.message_body || item.data?.body || 'Message')
+                        : (item.data?.message || 'Event')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{formatRelativeTime(item.created_at)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   const handleAppointmentClick = () => {
     const appointmentJob = futureAppointments[0] || leadJobs[0] || null
     setSelectedAppointmentJob(appointmentJob)
@@ -1873,6 +1994,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const handleJobSave = (job: Job) => {
     setSuccessMessage('Job created.\nAdded to your schedule.')
     setIsJobComposerOpen(false)
+    fetchLeadJobs()
   }
 
   // Generate comprehensive prefill data from lead and AI intake
@@ -2762,6 +2884,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   )}
                 </div>
               </div>
+
+              {renderWorkspaceSection()}
             </div>
           </aside>
         </div>
@@ -2913,6 +3037,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             </div>
           )}
+
+          {renderWorkspaceSection()}
 
           {/* Conversation Section - Self-contained messaging experience - Mobile optimized */}
           <div className="bg-card/95 border border-border/70 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-sm ring-1 ring-white/5" style={{ height: 'min(620px, calc(100svh - 15rem))', minHeight: '520px' }}>

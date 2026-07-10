@@ -21,6 +21,9 @@ interface LeadPickerModalProps {
   isOpen: boolean
   onClose: () => void
   onSelect: (prefill: JobPrefill) => void
+  onAddNew?: () => void
+  title?: string
+  subtitle?: string
 }
 
 // Resolve canonical AI intake fields from the lead record
@@ -49,7 +52,7 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPickerModalProps) {
+export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, title, subtitle }: LeadPickerModalProps) {
   const [leads, setLeads] = useState<LeadRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -141,8 +144,8 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
             <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">Select a Lead</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Customer info will be prefilled automatically.</p>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">{title || 'Select a Lead'}</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle || 'Customer info will be prefilled automatically.'}</p>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0">
               <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
@@ -252,12 +255,22 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect }: LeadPicke
             )}
           </div>
 
-          {/* Footer count */}
-          {!isLoading && !error && filtered.length > 0 && (
-            <div className="px-4 sm:px-5 py-2 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-2 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                {query ? `${filtered.length} of ${leads.length} leads` : `${leads.length} lead${leads.length !== 1 ? 's' : ''}`}
-              </p>
+          {/* Footer count + create new lead */}
+          {!isLoading && !error && (
+            <div className="px-4 sm:px-5 py-2 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-2 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 space-y-2">
+              {onAddNew && (
+                <button
+                  onClick={() => { onClose(); onAddNew() }}
+                  className="w-full text-left text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 py-2 px-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                >
+                  + Create New Lead
+                </button>
+              )}
+              {filtered.length > 0 && (
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                  {query ? `${filtered.length} of ${leads.length} leads` : `${leads.length} lead${leads.length !== 1 ? 's' : ''}`}
+                </p>
+              )}
             </div>
           )}
         </div>

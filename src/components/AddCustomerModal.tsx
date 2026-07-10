@@ -10,9 +10,10 @@ interface AddCustomerModalProps {
   isOpen: boolean
   onClose: () => void
   returnTo?: string
+  onLeadCreated?: (leadId: string) => void
 }
 
-export default function AddCustomerModal({ isOpen, onClose, returnTo }: AddCustomerModalProps) {
+export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCreated }: AddCustomerModalProps) {
   const router = useRouter()
   const { business } = useBusiness()
   const supabase = createBrowserClient()
@@ -96,8 +97,10 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo }: AddCusto
         notes: ''
       })
 
-      // Redirect based on returnTo parameter
-      if (data.leadId) {
+      // If a workflow provided a callback, hand the lead back without redirecting
+      if (data.leadId && onLeadCreated) {
+        onLeadCreated(data.leadId)
+      } else if (data.leadId) {
         if (returnTo === 'calendar') {
           // Return to calendar page with the new lead selected for job creation
           router.push('/dashboard/calendar?createJob=true&leadId=' + data.leadId)

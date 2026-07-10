@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const status = url.searchParams.get('status')
     const from = url.searchParams.get('from')
     const to = url.searchParams.get('to')
+    const leadId = url.searchParams.get('lead_id')
 
     let query = supabase
       .from('jobs')
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest) {
     if (status) query = query.eq('status', status)
     if (from) query = query.gte('scheduled_date', from)
     if (to) query = query.lte('scheduled_date', to)
+    if (leadId) query = query.eq('lead_id', leadId)
 
     const { data: jobs, error } = await query
 

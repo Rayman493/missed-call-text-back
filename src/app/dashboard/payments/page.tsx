@@ -11,6 +11,9 @@ import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import LeadPickerModal from '@/components/jobs/LeadPickerModal'
+import AddCustomerModal from '@/components/AddCustomerModal'
+import type { JobPrefill } from '@/components/jobs/JobComposer'
 
 interface PaymentRequest {
   id: string
@@ -70,19 +73,6 @@ function getStatusLabel(status: string): string {
   }
 }
 
-function formatManualPhoneInput(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 10)
-
-  if (digits.length <= 3) {
-    return digits
-  }
-
-  if (digits.length <= 6) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
-  }
-
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
-}
 
 export default function PaymentsPage() {
   const router = useRouter()
@@ -97,11 +87,9 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [leads, setLeads] = useState<any[]>([])
-  const [recipientType, setRecipientType] = useState<'lead' | 'manual'>('lead')
-  const [selectedLeadId, setSelectedLeadId] = useState('')
-  const [manualPhone, setManualPhone] = useState('')
-  const [manualName, setManualName] = useState('')
+  const [isLeadPickerOpen, setIsLeadPickerOpen] = useState(false)
+  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false)
+  const [paymentPrefill, setPaymentPrefill] = useState<JobPrefill | undefined>(undefined)
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentDescription, setPaymentDescription] = useState('')
   const [paymentProvider, setPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
@@ -150,30 +138,6 @@ export default function PaymentsPage() {
     fetchPayments()
   }, [])
 
-  const fetchLeads = async () => {
-    try {
-      const supabase = createBrowserClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      const headers: HeadersInit = { 'Content-Type': 'application/json' }
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`
-      }
-
-      const response = await fetch('/api/leads', { headers })
-      if (!response.ok) return
-      const data = await response.json()
-      setLeads(data.leads || [])
-    } catch (err) {
-      console.error('Error fetching leads:', err)
-    }
-  }
-
-  useEffect(() => {
-    if (showPaymentModal) {
-      fetchLeads()
-    }
-  }, [showPaymentModal])
-
   const fetchPayments = async () => {
     try {
       const supabase = createBrowserClient()
@@ -203,19 +167,65 @@ export default function PaymentsPage() {
     }
   }
 
+  const handleStartPaymentRequest = () => {
+    setPaymentPrefill(undefined)
+    setPaymentAmount('')
+    setPaymentDescription('')
+    setPaymentProvider('stripe')
+    setError('')
+    setIsLeadPickerOpen(true)
+  }
+
+  const handleLeadSelected = (prefill: JobPrefill) => {
+    setPaymentPrefill(prefill)
+    setIsLeadPickerOpen(false)
+    setIsAddCustomerModalOpen(false)
+    setShowPaymentModal(true)
+  }
+
+  const handleLeadCreated = async (leadId: string) => {
+    try {
+      const response = await fetch(`/api/lead-details?id=${leadId}`, { credentials: 'include' })
+      const data = await response.json()
+      if (!data.ok || !data.lead) {
+        throw new Error(data.error || 'Failed to load customer details')
+      }
+      const lead = data.lead
+      const conversationId = data.conversation?.id || lead.conversation_id || null
+      const intake = getLeadAIIntake(lead)
+      const noteParts = [
+        intake.additionalDetails,
+        intake.desiredCompletion ? `Desired completion: ${intake.desiredCompletion}` : null,
+        intake.callbackTime ? `Best callback time: ${intake.callbackTime}` : null,
+      ].filter(Boolean)
+
+      const prefill: JobPrefill = {
+        customer_name: intake.customerName || undefined,
+        customer_phone: intake.customerPhone || lead.caller_phone || undefined,
+        service_address: intake.serviceAddress || undefined,
+        title: intake.serviceRequested || undefined,
+        notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
+        lead_id: lead.id,
+        conversation_id: conversationId || undefined,
+      }
+      setPaymentPrefill(prefill)
+      setIsAddCustomerModalOpen(false)
+      setIsLeadPickerOpen(false)
+      setShowPaymentModal(true)
+    } catch (error) {
+      console.error('Error loading lead details after creation:', error)
+      setError('Failed to load customer details. Please try again.')
+    }
+  }
+
   const handleCreatePayment = async () => {
     if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
       setError('Please enter a valid amount')
       return
     }
 
-    if (recipientType === 'lead' && !selectedLeadId) {
-      setError('Please select a lead')
-      return
-    }
-
-    if (recipientType === 'manual' && !manualPhone) {
-      setError('Please enter a phone number')
+    if (!paymentPrefill?.lead_id) {
+      setError('Please select a customer')
       return
     }
 
@@ -248,68 +258,8 @@ export default function PaymentsPage() {
         throw new Error('Not authenticated')
       }
 
-      let leadId: string
-      let conversationId: string
-
-      if (recipientType === 'manual') {
-        // Create lead/conversation for manual phone number
-        console.log('[PAYMENT MODAL] Creating lead for manual phone:', manualPhone)
-        
-        const createResponse = await fetch('/api/leads', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            phone: manualPhone,
-            name: manualName || undefined,
-          }),
-        })
-
-        console.log('[PAYMENT MODAL] Lead creation response status:', createResponse.status)
-
-        if (!createResponse.ok) {
-          const contentType = createResponse.headers.get('content-type')
-          let errorMessage = 'Failed to create lead'
-          
-          if (contentType && contentType.includes('application/json')) {
-            try {
-              const error = await createResponse.json()
-              errorMessage = error.error || errorMessage
-            } catch (e) {
-              console.error('[PAYMENT MODAL] Failed to parse error JSON:', e)
-            }
-          } else {
-            const text = await createResponse.text()
-            console.error('[PAYMENT MODAL] Non-JSON error response:', text)
-            errorMessage = 'Server error creating lead'
-          }
-          
-          throw new Error(errorMessage)
-        }
-
-        const contentType = createResponse.headers.get('content-type')
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await createResponse.text()
-          console.error('[PAYMENT MODAL] Non-JSON response:', text)
-          throw new Error('Invalid response from server')
-        }
-
-        const createData = await createResponse.json()
-        console.log('[PAYMENT MODAL] Lead created:', createData.lead?.id)
-        
-        leadId = createData.lead.id
-        conversationId = createData.conversation?.id
-      } else {
-        // Use existing lead
-        const selectedLead = leads.find(l => l.id === selectedLeadId)
-        if (!selectedLead) {
-          throw new Error('Lead not found')
-        }
-        leadId = selectedLead.id
-        conversationId = selectedLead.conversation?.id
-      }
+      const leadId = paymentPrefill.lead_id
+      const conversationId = paymentPrefill.conversation_id
 
       const payload = {
         business_id: business?.id,
@@ -335,9 +285,7 @@ export default function PaymentsPage() {
       }
 
       setShowPaymentModal(false)
-      setSelectedLeadId('')
-      setManualPhone('')
-      setManualName('')
+      setPaymentPrefill(undefined)
       setPaymentAmount('')
       setPaymentDescription('')
       setPaymentProvider('stripe')
@@ -419,7 +367,7 @@ export default function PaymentsPage() {
           title="Payments"
           description="Request and track customer payments."
           actions={(
-            <Button onClick={() => setShowPaymentModal(true)}>
+            <Button onClick={handleStartPaymentRequest}>
               <CreditCard className="h-5 w-5" />
               New Payment Request
             </Button>
@@ -490,7 +438,7 @@ export default function PaymentsPage() {
                     </div>
                     <h3 className="text-sm font-semibold text-white mb-1">No payment requests yet.</h3>
                     <p className="text-xs text-gray-400 max-w-xs mx-auto mb-4">Payment requests you send will appear here.</p>
-                    <Button onClick={() => setShowPaymentModal(true)} size="sm">
+                    <Button onClick={handleStartPaymentRequest} size="sm">
                       <CreditCard className="h-4 w-4" />
                       New Payment Request
                     </Button>
@@ -730,9 +678,7 @@ export default function PaymentsPage() {
                 <button
                   onClick={() => {
                     setShowPaymentModal(false)
-                    setSelectedLeadId('')
-                    setManualPhone('')
-                    setManualName('')
+                    setPaymentPrefill(undefined)
                     setPaymentAmount('')
                     setPaymentDescription('')
                     setPaymentProvider('stripe')
@@ -746,75 +692,33 @@ export default function PaymentsPage() {
 
               {/* Content - flex-1 overflow-y-auto */}
               <div data-scroll-lock-allow className="overflow-y-auto flex-1 overscroll-contain px-4 py-3 md:px-5 md:py-4 space-y-2.5 md:space-y-3" style={{ maxHeight: 'calc(100dvh-10rem)', WebkitOverflowScrolling: 'touch' }}>
-                <div>
-                  <label className="block text-sm font-medium text-slate-100 mb-1.5">
-                    Recipient
-                  </label>
-                  <select
-                    value={recipientType}
-                    onChange={(e) => setRecipientType(e.target.value as 'lead' | 'manual')}
-                    disabled={isCreatingPayment}
-                    className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <option value="lead">Select existing lead</option>
-                    <option value="manual">Enter phone number</option>
-                  </select>
-                </div>
-
-                {recipientType === 'lead' ? (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-100 mb-1.5">
-                      Select Lead
-                    </label>
-                    <select
-                      value={selectedLeadId}
-                      onChange={(e) => setSelectedLeadId(e.target.value)}
-                      disabled={isCreatingPayment}
-                      className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      <option value="">Select a lead</option>
-                      {leads.map((lead) => {
-                        const displayName = lead.raw_metadata?.customerName || 
-                                            lead.raw_metadata?.callerName || 
-                                            lead.raw_metadata?.name || 
-                                            'Customer'
-                        return (
-                          <option key={lead.id} value={lead.id}>
-                            {formatPhoneNumber(lead.caller_phone)} - {displayName}
-                          </option>
-                        )
-                      })}
-                    </select>
+                {paymentPrefill && (
+                  <div className="p-3 bg-[#0f172a] border border-slate-700 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-gray-400">Customer</p>
+                        <p className="text-sm font-medium text-white">
+                          {paymentPrefill.customer_name || 'Customer'}
+                        </p>
+                        {paymentPrefill.customer_phone && (
+                          <p className="text-xs text-gray-400">
+                            {formatPhoneNumber(paymentPrefill.customer_phone)}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPaymentModal(false)
+                          setIsLeadPickerOpen(true)
+                        }}
+                        disabled={isCreatingPayment}
+                        className="text-sm text-blue-400 hover:text-blue-300 disabled:opacity-50"
+                      >
+                        Change
+                      </button>
+                    </div>
                   </div>
-                ) : (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-100 mb-1.5">
-                        Phone Number
-                      </label>
-                      <input
-                        type="tel"
-                        value={manualPhone}
-                        onChange={(e) => setManualPhone(formatManualPhoneInput(e.target.value))}
-                        placeholder="(555) 123-4567"
-                        disabled={isCreatingPayment}
-                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-100 mb-1.5">
-                        Customer Name
-                      </label>
-                      <input
-                        type="text"
-                        value={manualName}
-                        onChange={(e) => setManualName(e.target.value)}
-                        placeholder="Optional"
-                        disabled={isCreatingPayment}
-                        className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                      />
-                    </div>
-                  </>
                 )}
 
                 <div>
@@ -941,9 +845,7 @@ export default function PaymentsPage() {
                 <button
                   onClick={() => {
                     setShowPaymentModal(false)
-                    setSelectedLeadId('')
-                    setManualPhone('')
-                    setManualName('')
+                    setPaymentPrefill(undefined)
                     setPaymentAmount('')
                     setPaymentDescription('')
                     setPaymentProvider('stripe')
@@ -956,7 +858,7 @@ export default function PaymentsPage() {
                 </button>
                 <button
                   onClick={handleCreatePayment}
-                  disabled={isCreatingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || (recipientType === 'lead' && !selectedLeadId) || (recipientType === 'manual' && !manualPhone) || !hasAnyPaymentMethod}
+                  disabled={isCreatingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || !paymentPrefill?.lead_id || !hasAnyPaymentMethod}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isCreatingPayment ? 'Sending Request...' : 'Send Payment Request'}
@@ -965,6 +867,23 @@ export default function PaymentsPage() {
             </div>
           </div>
         )}
+
+        {/* Lead Picker Modal */}
+        <LeadPickerModal
+          title="New Payment Request"
+          subtitle="Select a customer to send a payment request to"
+          isOpen={isLeadPickerOpen}
+          onClose={() => setIsLeadPickerOpen(false)}
+          onSelect={handleLeadSelected}
+          onAddNew={() => setIsAddCustomerModalOpen(true)}
+        />
+
+        {/* Add Customer Modal */}
+        <AddCustomerModal
+          isOpen={isAddCustomerModalOpen}
+          onClose={() => setIsAddCustomerModalOpen(false)}
+          onLeadCreated={handleLeadCreated}
+        />
 
         {/* Cancel Payment Confirmation Modal */}
         {showCancelModal && paymentToCancel && (

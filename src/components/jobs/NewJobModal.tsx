@@ -8,6 +8,8 @@ interface NewJobModalProps {
   onClose: () => void
   onSelectLead: () => void
   onAddCustomer: () => void
+  title?: string
+  prompt?: string
 }
 
 export default function NewJobModal({
@@ -15,6 +17,8 @@ export default function NewJobModal({
   onClose,
   onSelectLead,
   onAddCustomer,
+  title = 'Create Job',
+  prompt = 'Select a customer to create a job for',
 }: NewJobModalProps) {
   useBodyScrollLock(isOpen)
 
@@ -28,7 +32,7 @@ export default function NewJobModal({
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/40 to-transparent" />
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/[0.025] flex-shrink-0">
-            <h2 className="text-base font-semibold text-white">Create Job</h2>
+            <h2 className="text-base font-semibold text-white">{title}</h2>
             <button
               onClick={onClose}
               className="p-1.5 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
@@ -40,7 +44,7 @@ export default function NewJobModal({
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
             {/* Prompt */}
             <div className="px-4 pt-2.5 pb-0.5">
-              <p className="text-sm text-slate-400">Select a customer to create a job for</p>
+              <p className="text-sm text-slate-400">{prompt}</p>
             </div>
 
             {/* Options */}
