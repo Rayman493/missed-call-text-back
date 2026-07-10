@@ -33,9 +33,9 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden p-3 sm:p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-card text-card-foreground w-full max-w-2xl rounded-xl shadow-2xl border border-border flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)]"
+        className="bg-card text-card-foreground w-full max-w-2xl rounded-xl shadow-2xl border border-border flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -62,7 +62,7 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
           <ForwardingHelpCenter phoneNumber={phoneNumber} />
         </div>
 
