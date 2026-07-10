@@ -153,8 +153,9 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
 
       // Calculate metrics - 30 days
       // Exclude manual leads from captured leads count
+      // Manual leads are identified by raw_metadata.source = 'manual_entry' or 'manual_backfill'
       const capturedLeads = leads?.filter((l: any) => 
-        l.source !== 'manual' && l.source !== 'manual_backfill'
+        l.raw_metadata?.source !== 'manual_entry' && l.raw_metadata?.source !== 'manual_backfill'
       ) || []
       const missedCallsCaptured = capturedLeads.length
       const leadsGenerated = missedCallsCaptured
@@ -170,7 +171,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       // Calculate metrics - today
       // Exclude manual leads from today's captured leads
       const capturedLeadsToday = leadsToday?.filter((l: any) => 
-        l.source !== 'manual' && l.source !== 'manual_backfill'
+        l.raw_metadata?.source !== 'manual_entry' && l.raw_metadata?.source !== 'manual_backfill'
       ) || []
       const missedCallsToday = capturedLeadsToday.length
       const newLeadsToday = missedCallsToday
@@ -380,8 +381,8 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-2 sm:gap-3">
-        <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
+      <div className="grid grid-cols-1 gap-3">
+        <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 sm:p-4">
           <div className="animate-pulse">
             <div className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4"></div>
             <div className="h-8 sm:h-10 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
@@ -393,9 +394,9 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-2 sm:gap-3">
+    <div className="grid grid-cols-1 gap-3">
       {/* Recovery Rate - Key business impact metric */}
-      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
+      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
         <div className="flex items-start justify-between mb-3">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-lg flex items-center justify-center shadow-sm">
             <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -425,7 +426,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       </div>
 
       {/* Captured Leads - Lead generation metric */}
-      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
+      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
         <div className="flex items-start justify-between mb-3">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-center shadow-sm">
             <PhoneMissed className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -455,7 +456,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       </div>
 
       {/* Messages Sent - Communication volume metric */}
-      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
+      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
         <div className="flex items-start justify-between mb-3">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-lg flex items-center justify-center shadow-sm">
             <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -485,7 +486,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       </div>
 
       {/* Customer Replies - Engagement metric */}
-      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
+      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
         <div className="flex items-start justify-between mb-3">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg flex items-center justify-center shadow-sm">
             <Reply className="w-5 h-5 sm:w-6 sm:h-6" />

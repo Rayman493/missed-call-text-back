@@ -945,8 +945,27 @@ If forwarding does not stop immediately, restart your phone or contact your carr
           console.error('[delete-account] Excess inventory cleanup failed (non-blocking):', cleanupError)
         })
 
-      // Step 18: Delete leads linked to businesses
-      console.log('[delete-account] Step 18: delete leads')
+      // Step 18: Delete jobs linked to businesses (must be before leads due to RESTRICT constraint)
+      console.log('[delete-account] Step 18: delete jobs')
+      
+      const { error: jobsDeleteError, count: jobsCount } = await supabaseAdmin
+        .from('jobs')
+        .delete()
+        .in('business_id', businessIds)
+        .select()
+
+      if (jobsDeleteError) {
+        console.error('[delete-account] Step 18 failed:', jobsDeleteError)
+        return NextResponse.json(
+          { ok: false, step: 'delete_jobs', error: 'Failed to delete account data. Please try again or contact support.', details: jobsDeleteError.message },
+          { status: 500 }
+        )
+      }
+      summary.tablesDeleted.jobs = jobsCount || 0
+      console.log('[delete-account] Step 18 completed: deleted jobs:', jobsCount)
+
+      // Step 19: Delete leads linked to businesses
+      console.log('[delete-account] Step 19: delete leads')
       
       const { error: leadsDeleteError, count: leadsCount } = await supabaseAdmin
         .from('leads')
@@ -955,17 +974,17 @@ If forwarding does not stop immediately, restart your phone or contact your carr
         .select()
 
       if (leadsDeleteError) {
-        console.error('[delete-account] Step 18 failed:', leadsDeleteError)
+        console.error('[delete-account] Step 19 failed:', leadsDeleteError)
         return NextResponse.json(
           { ok: false, step: 'delete_leads', error: 'Failed to delete account data. Please try again or contact support.', details: leadsDeleteError.message },
           { status: 500 }
         )
       }
       summary.tablesDeleted.leads = leadsCount || 0
-      console.log('[delete-account] Step 18 completed: deleted leads:', leadsCount)
+      console.log('[delete-account] Step 19 completed: deleted leads:', leadsCount)
 
-      // Step 19: Hard-delete businesses
-      console.log('[delete-account] Step 19: hard-delete businesses')
+      // Step 20: Hard-delete businesses
+      console.log('[delete-account] Step 20: hard-delete businesses')
       
       for (const business of businesses as any[]) {
         // Note: trial_history table insert removed as the table doesn't exist in production schema
@@ -979,7 +998,7 @@ If forwarding does not stop immediately, restart your phone or contact your carr
             .eq('id', business.id)
 
           if (businessesDeleteError) {
-            console.error('[delete-account] Step 19 hard-delete failed:', businessesDeleteError)
+            console.error('[delete-account] Step 20 hard-delete failed:', businessesDeleteError)
             return NextResponse.json(
               { ok: false, step: 'delete_businesses', error: 'Failed to delete account data. Please try again or contact support.', details: businessesDeleteError.message },
               { status: 500 }
@@ -988,11 +1007,11 @@ If forwarding does not stop immediately, restart your phone or contact your carr
         }
       }
       summary.tablesDeleted.businesses = businesses.length
-      console.log('[delete-account] Step 19 completed: hard-deleted businesses')
+      console.log('[delete-account] Step 20 completed: hard-deleted businesses')
     }
 
-    // Step 22: Delete the Supabase Auth user last
-    console.log('[delete-account] Step 22: delete auth user', { userId: user.id })
+    // Step 21: Delete the Supabase Auth user last
+    console.log('[delete-account] Step 21: delete auth user', { userId: user.id })
 
     if (!dryRun) {
       try {

@@ -249,7 +249,11 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+      <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Needs Attention</h3>
+          <div className="text-xs text-slate-500 dark:text-slate-400">Loading...</div>
+        </div>
         <div className="animate-pulse space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="flex items-center gap-3">
@@ -277,8 +281,8 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
   }, {} as Record<string, AttentionItem[]>)
 
   return (
-    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-3.5">
-      <div className="flex items-center justify-between mb-2">
+    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-200">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Needs Attention</h3>
         {totalCount > 0 && (
           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${

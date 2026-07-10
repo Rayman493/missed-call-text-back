@@ -86,15 +86,15 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
 
   if (loading) {
     return (
-      <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-foreground">Lead Engagement</h3>
-          <div className="text-xs text-muted-foreground">Loading...</div>
+      <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Customer Responses</h3>
+          <div className="text-xs text-slate-500 dark:text-slate-400">Loading...</div>
         </div>
         <div className="space-y-3">
           <div className="animate-pulse">
-            <div className="h-8 bg-muted rounded w-3/4 mb-2"></div>
-            <div className="h-3 bg-muted rounded w-1/2"></div>
+            <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-2"></div>
+            <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div>
           </div>
         </div>
       </div>
@@ -119,10 +119,10 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
   }
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-4">
+    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-200">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-foreground">Customer Responses</h3>
-        <div className="text-xs text-muted-foreground">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Customer Responses</h3>
+        <div className="text-xs text-slate-500 dark:text-slate-400">
           Last 30 days
         </div>
       </div>

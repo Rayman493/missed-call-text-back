@@ -82,16 +82,16 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
 
   if (loading) {
     return (
-      <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3 sm:p-4">
+      <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-foreground">Follow-Up Activity</h3>
-          <div className="text-xs text-muted-foreground">Loading...</div>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Follow-Ups</h3>
+          <div className="text-xs text-slate-500 dark:text-slate-400">Loading...</div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map(i => (
             <div key={i} className="animate-pulse">
-              <div className="h-6 bg-muted rounded w-8 mb-1"></div>
-              <div className="h-3 bg-muted rounded w-12"></div>
+              <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-8 mb-1"></div>
+              <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-12"></div>
             </div>
           ))}
         </div>
@@ -100,7 +100,7 @@ export default function FollowUpActivityCard({ business }: FollowUpActivityCardP
   }
 
   return (
-    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-200">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Follow-Ups</h3>
         <div className="text-[10px] text-slate-500 dark:text-slate-400">
