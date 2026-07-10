@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import ForwardingHelpCenter from './ForwardingHelpCenter'
 
 interface CallForwardingInstructionsProps {
@@ -10,6 +10,8 @@ interface CallForwardingInstructionsProps {
 }
 
 export default function CallForwardingInstructions({ phoneNumber, isOpen, onClose }: CallForwardingInstructionsProps) {
+  const bodyRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     if (!isOpen) return
 
@@ -23,6 +25,13 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
     }
 
     window.addEventListener('keydown', handleKeyDown)
+
+    // Reset scroll position to top when modal opens
+    requestAnimationFrame(() => {
+      if (bodyRef.current) {
+        bodyRef.current.scrollTop = 0
+      }
+    })
 
     return () => {
       document.body.style.overflow = originalOverflow
@@ -62,7 +71,7 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
         </div>
 
         {/* Body */}
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 overscroll-contain">
           <ForwardingHelpCenter phoneNumber={phoneNumber} />
         </div>
 
