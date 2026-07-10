@@ -92,17 +92,6 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
         <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6 overscroll-contain">
           <ForwardingHelpCenter phoneNumber={phoneNumber} />
         </div>
-
-        {/* Footer */}
-        <div className="flex justify-end p-4 sm:p-5 border-t border-border/50 flex-shrink-0 bg-muted/30">
-          <Link
-            href="/dashboard/test-setup"
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-semibold transition-colors shadow-sm hover:shadow"
-          >
-            <Phone className="w-4 h-4" />
-            Run Test Call
-          </Link>
-        </div>
       </div>
     </div>,
     document.body

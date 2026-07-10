@@ -606,12 +606,6 @@ export default function SetupStatusCard({
                         {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 pt-1">
-                      <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-green-500 text-xs font-medium">Completed</span>
-                    </div>
                   </div>
                 </div>
               )}
@@ -677,21 +671,15 @@ export default function SetupStatusCard({
                         </div>
                       )}
                     </div>
-                    <button
-                      onClick={() => setShowForwardingInstructions(true)}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition-colors text-sm font-medium w-full sm:w-auto"
-                    >
-                      <Settings className="w-4 h-4" />
-                      Open Forwarding Instructions
-                    </button>
-                    {cardState === 'needs-verification' && (
-                      <div className="flex items-center gap-2 pt-1">
-                        <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        <span className="text-green-500 text-xs font-medium">Completed</span>
-                      </div>
-                    )}
+                    <p className="text-muted-foreground text-xs pt-2">
+                      Need to review forwarding instructions?{' '}
+                      <button
+                        onClick={() => setShowForwardingInstructions(true)}
+                        className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors"
+                      >
+                        View instructions
+                      </button>
+                    </p>
                   </div>
                 </div>
               )}
@@ -700,7 +688,7 @@ export default function SetupStatusCard({
             {/* Step 3: Upcoming or Current */}
             <div className={`border rounded-xl overflow-hidden transition-all duration-200 ${
               cardState === 'needs-verification' && !hasCompletedTestCall
-                ? 'bg-amber-500/5 border-l-4 border-l-amber-500 border-y border-r border-border/50 shadow-sm'
+                ? 'bg-muted/30 border-border/50 ring-1 ring-amber-500/30'
                 : cardState === 'needs-verification' && hasCompletedTestCall
                   ? 'bg-muted/30 border-border/50'
                   : 'bg-muted/30 border-border/50'
