@@ -8,6 +8,7 @@ import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Setting
 import { formatPhoneNumber } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
+import ForwardingHelpCenter from '@/components/ForwardingHelpCenter'
 
 interface SetupStatusCardProps {
   business: Business | null
@@ -653,11 +654,8 @@ export default function SetupStatusCard({
                     <p className="text-slate-300 text-xs sm:text-sm">
                       Forward missed calls to your ReplyFlow number.
                     </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-blue-200 text-xs">ReplyFlow Number</span>
-                      <span className="text-white font-mono text-xs">
-                        {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
-                      </span>
+                    <div className="mt-3">
+                      <ForwardingHelpCenter />
                     </div>
                   </div>
                 </div>
