@@ -177,15 +177,19 @@ const FAQS: FAQItem[] = [
   }
 ]
 
-export default function ForwardingHelpCenter() {
+interface ForwardingHelpCenterProps {
+  phoneNumber?: string
+}
+
+export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCenterProps) {
   const { business } = useBusiness()
   const [selectedCarrier, setSelectedCarrier] = useState(business?.business_phone_carrier || '')
   const [copiedCode, setCopiedCode] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const [copiedNumber, setCopiedNumber] = useState(false)
 
-  // Use business's dedicated Twilio number
-  const twilioNumber = business?.twilio_phone_number || process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || '+18336584303'
+  // Use business's dedicated Twilio number, fallback to prop
+  const twilioNumber = phoneNumber || business?.twilio_phone_number || process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || '+18336584303'
   const formattedTwilioNumber = formatForDisplay(twilioNumber)
 
   const handleCopyCode = async (code: string) => {

@@ -8,7 +8,7 @@ import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Setting
 import { formatPhoneNumber } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
-import ForwardingHelpCenter from '@/components/ForwardingHelpCenter'
+import CallForwardingInstructions from '@/components/CallForwardingInstructions'
 
 interface SetupStatusCardProps {
   business: Business | null
@@ -41,6 +41,7 @@ export default function SetupStatusCard({
   const [billingError, setBillingError] = useState<string | null>(null)
   const [successDismissed, setSuccessDismissed] = useState(false)
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
+  const [showForwardingInstructions, setShowForwardingInstructions] = useState(false)
   const [expandedStep, setExpandedStep] = useState<number | null>(null)
   const { user } = useAuth()
   const setupState = deriveSetupState(business, missedCallCount)
@@ -650,12 +651,41 @@ export default function SetupStatusCard({
               </button>
               {expandedStep === 2 && (
                 <div className="p-2.5 pt-0 sm:p-3 sm:pt-0 border-t border-white/10">
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <p className="text-slate-300 text-xs sm:text-sm">
                       Forward missed calls to your ReplyFlow number.
                     </p>
-                    <div className="mt-3">
-                      <ForwardingHelpCenter />
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-200 text-xs">ReplyFlow Number</span>
+                        <span className="text-white font-mono text-xs">
+                          {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
+                        </span>
+                      </div>
+                      {business?.business_phone_carrier && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-blue-200 text-xs">Carrier</span>
+                          <span className="text-white font-mono text-xs">
+                            {business.business_phone_carrier}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setShowForwardingInstructions(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors text-xs sm:text-sm font-medium"
+                      >
+                        <Settings className="w-3.5 h-3.5" />
+                        Open Forwarding Instructions
+                      </button>
+                      <Link
+                        href="/dashboard/test-setup"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors text-xs sm:text-sm font-medium"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        Run Test Call
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -817,6 +847,14 @@ export default function SetupStatusCard({
           </div>
         )}
       </div>
+
+      {showForwardingInstructions && (
+        <CallForwardingInstructions
+          phoneNumber={business?.twilio_phone_number || ''}
+          isOpen={showForwardingInstructions}
+          onClose={() => setShowForwardingInstructions(false)}
+        />
+      )}
 
       {isAssistantOpen && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center p-3 md:hidden">
