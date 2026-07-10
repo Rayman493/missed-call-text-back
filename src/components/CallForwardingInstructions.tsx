@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { X, PhoneForwarded, Phone } from 'lucide-react'
+import Link from 'next/link'
 import ForwardingHelpCenter from './ForwardingHelpCenter'
 
 interface CallForwardingInstructionsProps {
@@ -57,45 +59,55 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
       }}
     >
       <div
-        className="relative bg-card text-card-foreground w-full max-w-2xl rounded-xl shadow-2xl border border-border flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden"
+        className="relative bg-card text-card-foreground w-full max-w-2xl rounded-2xl shadow-2xl border border-border/50 flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden ring-1 ring-border/50"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 p-4 sm:p-6 border-b border-border flex-shrink-0">
-          <div className="min-w-0">
-            <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-              Set Up Call Forwarding
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Forward missed calls to your ReplyFlow number so ReplyFlow can capture and respond to new leads.
+        <div className="flex items-start justify-between gap-3 p-5 sm:p-6 border-b border-border/50 flex-shrink-0 bg-muted/30">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2.5 mb-1.5">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary">
+                <PhoneForwarded className="w-4 h-4" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-semibold text-foreground">
+                Set Up Call Forwarding
+              </h2>
+            </div>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Forward missed calls to your ReplyFlow number so every lead can be captured and followed up.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="flex-shrink-0 p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-            aria-label="Close"
+            className="flex-shrink-0 p-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg transition-colors"
+            aria-label="Close modal"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Body */}
-        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 overscroll-contain">
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6 overscroll-contain">
           <ForwardingHelpCenter phoneNumber={phoneNumber} />
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end p-4 sm:p-6 border-t border-border flex-shrink-0">
+        <div className="flex items-center justify-between gap-3 p-4 sm:p-5 border-t border-border/50 flex-shrink-0 bg-muted/30">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors"
+            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg transition-colors"
           >
-            Close
+            Cancel
           </button>
+          <Link
+            href="/dashboard/test-setup"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-semibold transition-colors shadow-sm hover:shadow"
+          >
+            <Phone className="w-4 h-4" />
+            Run Test Call
+          </Link>
         </div>
       </div>
     </div>,
