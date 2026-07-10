@@ -59,13 +59,13 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
       }}
     >
       <div
-        className="relative bg-card text-card-foreground w-full max-w-2xl rounded-2xl shadow-2xl border border-border/50 flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden ring-1 ring-border/50"
+        className="relative bg-card text-card-foreground w-full max-w-2xl rounded-2xl shadow-2xl border border-border/50 flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden ring-1 ring-border/50"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 p-5 sm:p-6 border-b border-border/50 flex-shrink-0 bg-muted/30">
+        <div className="flex items-start justify-between gap-3 p-4 sm:p-6 border-b border-border/50 flex-shrink-0 bg-muted/30">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 mb-1.5">
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary">
@@ -89,7 +89,7 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
         </div>
 
         {/* Body */}
-        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6 overscroll-contain">
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 overscroll-contain">
           <ForwardingHelpCenter phoneNumber={phoneNumber} />
         </div>
       </div>
