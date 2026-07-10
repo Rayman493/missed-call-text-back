@@ -541,22 +541,15 @@ export default function SetupStatusCard({
         {/* Header */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2.5 mb-1">
-              <h1 className="text-lg sm:text-xl font-semibold text-foreground">
-                {cardState === 'needs-forwarding' || cardState === 'needs-verification'
-                  ? 'Complete Setup'
-                  : 'ReplyFlow Ready'
-                }
-              </h1>
-              {cardState === 'needs-verification' && (
-                <span className="inline-flex items-center px-2 py-0.5 bg-amber-500/20 text-amber-300 text-xs font-semibold rounded-full border border-amber-400/30">
-                  Almost ready
-                </span>
-              )}
-            </div>
+            <h1 className="text-lg sm:text-xl font-semibold text-foreground">
+              {cardState === 'needs-forwarding' || cardState === 'needs-verification'
+                ? 'Complete Setup'
+                : 'ReplyFlow Ready'
+              }
+            </h1>
             <p className="text-muted-foreground text-xs sm:text-sm">
               {cardState === 'needs-forwarding'
-                ? 'Step 2 of 3'
+                ? 'One final step remaining'
                 : cardState === 'needs-verification'
                 ? 'Step 3 of 3'
                 : 'Setup complete'}
@@ -580,7 +573,7 @@ export default function SetupStatusCard({
         {isExpanded && (
           <div className="space-y-2">
             {/* Step 1: Always Complete */}
-            <div className="bg-muted/30 border border-border/50 rounded-xl overflow-hidden">
+            <div className="bg-muted/30 border border-border/50 rounded-xl overflow-hidden transition-all duration-200">
               <button
                 type="button"
                 onClick={(e) => {
@@ -588,7 +581,7 @@ export default function SetupStatusCard({
                   e.stopPropagation()
                   setExpandedStep(expandedStep === 1 ? null : 1)
                 }}
-                className="w-full flex items-center gap-3 p-3 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-3 p-3 sm:p-4 hover:bg-muted/50 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
                   <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
@@ -603,15 +596,21 @@ export default function SetupStatusCard({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between py-1">
                       <span className="text-muted-foreground text-xs">ReplyFlow Number</span>
-                      <span className="text-foreground font-mono text-sm tabular-nums">
+                      <span className="text-foreground font-mono text-sm font-semibold tabular-nums">
                         {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between py-1">
                       <span className="text-muted-foreground text-xs">Business Number</span>
-                      <span className="text-foreground font-mono text-sm tabular-nums">
+                      <span className="text-foreground font-mono text-sm font-semibold tabular-nums">
                         {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
                       </span>
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-green-500 text-xs font-medium">Completed</span>
                     </div>
                   </div>
                 </div>
@@ -619,7 +618,7 @@ export default function SetupStatusCard({
             </div>
 
             {/* Step 2: Complete or Current */}
-            <div className={`border rounded-xl overflow-hidden transition-all ${
+            <div className={`border rounded-xl overflow-hidden transition-all duration-200 ${
               cardState === 'needs-verification' 
                 ? 'bg-muted/30 border-border/50' 
                 : cardState === 'needs-forwarding'
@@ -633,7 +632,7 @@ export default function SetupStatusCard({
                   e.stopPropagation()
                   setExpandedStep(expandedStep === 2 ? null : 2)
                 }}
-                className="w-full flex items-center gap-3 p-3 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-3 p-3 sm:p-4 hover:bg-muted/50 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 {cardState === 'needs-verification' ? (
                   <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
@@ -658,14 +657,14 @@ export default function SetupStatusCard({
               </button>
               {expandedStep === 2 && (
                 <div className="p-3 sm:p-4 pt-0 border-t border-border/50">
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <p className="text-muted-foreground text-sm">
                       Forward missed calls to your ReplyFlow number.
                     </p>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <div className="flex items-center justify-between py-1">
                         <span className="text-muted-foreground text-xs">ReplyFlow Number</span>
-                        <span className="text-foreground font-mono text-sm tabular-nums">
+                        <span className="text-foreground font-mono text-sm font-semibold tabular-nums">
                           {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
                         </span>
                       </div>
@@ -685,13 +684,21 @@ export default function SetupStatusCard({
                       <Settings className="w-4 h-4" />
                       Open Forwarding Instructions
                     </button>
+                    {cardState === 'needs-verification' && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-green-500 text-xs font-medium">Completed</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
 
             {/* Step 3: Upcoming or Current */}
-            <div className={`border rounded-xl overflow-hidden transition-all ${
+            <div className={`border rounded-xl overflow-hidden transition-all duration-200 ${
               cardState === 'needs-verification' && !hasCompletedTestCall
                 ? 'bg-amber-500/5 border-l-4 border-l-amber-500 border-y border-r border-border/50 shadow-sm'
                 : cardState === 'needs-verification' && hasCompletedTestCall
@@ -705,7 +712,7 @@ export default function SetupStatusCard({
                   e.stopPropagation()
                   setExpandedStep(expandedStep === 3 ? null : 3)
                 }}
-                className="w-full flex items-center gap-3 p-3 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-3 p-3 sm:p-4 hover:bg-muted/50 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 {hasCompletedTestCall ? (
                   <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
@@ -738,16 +745,21 @@ export default function SetupStatusCard({
               </button>
               {expandedStep === 3 && (
                 <div className="p-3 sm:p-4 pt-0 border-t border-border/50">
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <p className="text-muted-foreground text-sm">
                       Call your business number once to finish setup.
                     </p>
                     {business?.business_phone_number && (
-                      <div className="flex items-center gap-3 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                        <Phone className="w-5 h-5 text-amber-500 flex-shrink-0" />
-                        <span className="text-foreground font-mono text-lg sm:text-xl font-semibold tabular-nums">
-                          {formatPhoneNumber(business.business_phone_number)}
-                        </span>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-4">
+                          <Phone className="w-6 h-6 text-amber-500 flex-shrink-0" />
+                          <span className="text-foreground font-mono text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight">
+                            {formatPhoneNumber(business.business_phone_number)}
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground text-xs pl-10">
+                          Call this number once to complete setup.
+                        </p>
                       </div>
                     )}
                   </div>

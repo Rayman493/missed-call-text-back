@@ -256,27 +256,29 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
               <p className="text-xs text-muted-foreground">
                 Dial this code from your business phone, then press Send/Call.
               </p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 px-4 py-3 bg-background border border-border/50 rounded-lg text-sm font-mono font-semibold text-foreground break-all tabular-nums">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                <code className="w-full sm:flex-1 px-4 py-3 bg-background border border-border/50 rounded-lg text-sm font-mono font-semibold text-foreground break-all tabular-nums">
                   {dialCode}
                 </code>
-                <button
-                  onClick={() => handleCopyCode(dialCode)}
-                  className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg text-xs font-medium transition-colors"
-                  title="Copy code"
-                >
-                  {copiedCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copiedCode ? 'Copied' : 'Copy'}
-                </button>
-                {selectedCarrier !== 'ringcentral' && selectedCarrier !== 'grasshopper' && selectedCarrier !== 'google_voice' && selectedCarrier !== 'other' && (
+                <div className="flex sm:flex-1 gap-2 w-full sm:w-auto">
                   <button
-                    onClick={() => handleOpenDialer(dialCode)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-medium transition-colors shadow-sm"
+                    onClick={() => handleCopyCode(dialCode)}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg text-xs font-medium transition-colors flex-1 sm:flex-none"
+                    title="Copy code"
                   >
-                    <Phone className="w-3.5 h-3.5" />
-                    Dial
+                    {copiedCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedCode ? 'Copied' : 'Copy'}
                   </button>
-                )}
+                  {selectedCarrier !== 'ringcentral' && selectedCarrier !== 'grasshopper' && selectedCarrier !== 'google_voice' && selectedCarrier !== 'other' && (
+                    <button
+                      onClick={() => handleOpenDialer(dialCode)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-medium transition-colors shadow-sm flex-1 sm:flex-none"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      Dial
+                    </button>
+                  )}
+                </div>
               </div>
               {instructions.notes && <p className="text-xs text-muted-foreground">{instructions.notes}</p>}
             </div>
