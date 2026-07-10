@@ -80,15 +80,6 @@ export default function AnalyticsContent() {
         // Normalize to array - Supabase may return null or object in some cases
         const leadsArray = Array.isArray(leads) ? leads : []
 
-        console.log('[Analytics] Raw leads fetched:', leadsArray.length)
-        console.log('[Analytics] Lead details:', leadsArray.map((l: any) => ({
-          id: l.id,
-          status: l.status,
-          deleted_at: l.deleted_at,
-          payment_status: l.payment_status,
-          created_at: l.created_at
-        })))
-
         // Fetch messages for reply rate calculation - query by lead_id to match DashboardMetrics
         // IMPORTANT: Must select from_phone and to_phone for dual filter to work
         const leadIds = leadsArray.map((l: any) => l.id) || []
@@ -169,15 +160,6 @@ export default function AnalyticsContent() {
         const leadStatusCounts = calculateLeadStatusCounts(leadsArray)
         const activeLeads = leadStatusCounts.active
         const completedLeads = leadStatusCounts.completed
-
-        console.log('[Analytics] Lifecycle status for each lead:', leadsArray.map((l: any) => ({
-          id: l.id,
-          status: l.status,
-          lifecycleStatus: calculateLeadStatusCounts([l]),
-          deleted_at: l.deleted_at,
-          payment_status: l.payment_status
-        })))
-        console.log('[Analytics] Final lead status counts:', leadStatusCounts)
 
         // Filter messages using dual filter (direction + phone number) to match DashboardMetrics
         const businessPhone = business.twilio_phone_number || ''
