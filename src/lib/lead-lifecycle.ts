@@ -128,40 +128,23 @@ export function isCompletedLead(lead: any): boolean {
  * Get the appropriate lifecycle status for a lead
  */
 export function getLeadLifecycleStatus(lead: any): LeadLifecycleStatus {
-  console.log('[getLeadLifecycleStatus] INPUT:', {
-    status: lead.status,
-    lead_status: lead.lead_status,
-    deleted_at: lead.deleted_at,
-    payment_status: lead.payment_status
-  })
-
   // Map 'replied' status to 'active' lifecycle status
   if (lead.status === 'replied' || lead.lead_status === 'replied') {
-    console.log('[getLeadLifecycleStatus] BRANCH: replied -> active')
     return 'active'
   }
 
   // Use the database status directly if it's a valid status
   const validStatuses: LeadLifecycleStatus[] = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'lost', 'ignored']
   if (lead.status && validStatuses.includes(lead.status)) {
-    console.log('[getLeadLifecycleStatus] BRANCH: valid status ->', lead.status)
     return lead.status as LeadLifecycleStatus
   }
   if (lead.lead_status && validStatuses.includes(lead.lead_status)) {
-    console.log('[getLeadLifecycleStatus] BRANCH: valid lead_status ->', lead.lead_status)
     return lead.lead_status as LeadLifecycleStatus
   }
   
   // Fallback to inference
-  if (isCompletedLead(lead)) {
-    console.log('[getLeadLifecycleStatus] BRANCH: fallback completed')
-    return 'completed'
-  }
-  if (isActiveLead(lead)) {
-    console.log('[getLeadLifecycleStatus] BRANCH: fallback active')
-    return 'active'
-  }
-  console.log('[getLeadLifecycleStatus] BRANCH: fallback new')
+  if (isCompletedLead(lead)) return 'completed'
+  if (isActiveLead(lead)) return 'active'
   return 'new'
 }
 
