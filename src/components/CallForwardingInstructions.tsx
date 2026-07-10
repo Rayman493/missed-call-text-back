@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import ForwardingHelpCenter from './ForwardingHelpCenter'
 
 interface CallForwardingInstructionsProps {
@@ -10,7 +11,12 @@ interface CallForwardingInstructionsProps {
 }
 
 export default function CallForwardingInstructions({ phoneNumber, isOpen, onClose }: CallForwardingInstructionsProps) {
+  const [mounted, setMounted] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!isOpen) return
@@ -39,12 +45,19 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
     }
   }, [isOpen, onClose])
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden p-3 sm:p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden p-3 sm:p-4 bg-black/70"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
+    >
       <div
-        className="bg-card text-card-foreground w-full max-w-2xl rounded-xl shadow-2xl border border-border flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden"
+        className="relative bg-card text-card-foreground w-full max-w-2xl rounded-xl shadow-2xl border border-border flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -85,6 +98,7 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
