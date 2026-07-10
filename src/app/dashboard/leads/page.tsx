@@ -46,7 +46,7 @@ import UserDropdown from '@/components/UserDropdown'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
-import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
+import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus, calculateLeadStatusCounts } from '@/lib/lead-lifecycle'
 import StatCard from '@/components/StatCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
@@ -881,54 +881,61 @@ export default function LeadsPage() {
               <>
             {/* Lifecycle Summary Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-4 sm:mb-6">
-              <StatCard
-                value={leads.filter(l => getLeadLifecycleStatus(l) === 'new' && !l.deleted_at).length}
-                label="New Leads"
-                description={
-                  leads.filter(l => getLeadLifecycleStatus(l) === 'new' && !l.deleted_at).length === 0
-                    ? 'Awaiting Contact'
-                    : 'Waiting For Reply'
-                }
-                icon="👥"
-                iconColor="blue"
-                isInteractive={false}
-              />
-              <StatCard
-                value={leads.filter(l => getLeadLifecycleStatus(l) === 'active' && !l.deleted_at && l.payment_status !== 'paid').length}
-                label="Active Leads"
-                description={
-                  leads.filter(l => getLeadLifecycleStatus(l) === 'active' && !l.deleted_at && l.payment_status !== 'paid').length === 0
-                    ? 'No active leads'
-                    : 'Leads being worked on'
-                }
-                icon="💬"
-                iconColor="green"
-                isInteractive={false}
-              />
-              <StatCard
-                value={leads.filter(l => getLeadLifecycleStatus(l) === 'completed' && !l.deleted_at).length}
-                label="Completed Leads"
-                description={
-                  leads.filter(l => getLeadLifecycleStatus(l) === 'completed' && !l.deleted_at).length === 0
-                    ? 'No completed leads yet'
-                    : 'Successfully completed'
-                }
-                icon="📅"
-                iconColor="slate"
-                isInteractive={false}
-              />
-              <StatCard
-                value={ignoredContactsCount}
-                label="Ignored Contacts"
-                description={
-                  ignoredContactsCount === 0
-                    ? 'No Blocked Contacts'
-                    : 'Blocked From Automation'
-                }
-                icon="🚫"
-                iconColor="orange"
-                isInteractive={false}
-              />
+              {(() => {
+                const leadStatusCounts = calculateLeadStatusCounts(leads)
+                return (
+                  <>
+                    <StatCard
+                      value={leadStatusCounts.new}
+                      label="New Leads"
+                      description={
+                        leadStatusCounts.new === 0
+                          ? 'Awaiting Contact'
+                          : 'Waiting For Reply'
+                      }
+                      icon="👥"
+                      iconColor="blue"
+                      isInteractive={false}
+                    />
+                    <StatCard
+                      value={leadStatusCounts.active}
+                      label="Active Leads"
+                      description={
+                        leadStatusCounts.active === 0
+                          ? 'No active leads'
+                          : 'Leads being worked on'
+                      }
+                      icon="💬"
+                      iconColor="green"
+                      isInteractive={false}
+                    />
+                    <StatCard
+                      value={leadStatusCounts.completed}
+                      label="Completed Leads"
+                      description={
+                        leadStatusCounts.completed === 0
+                          ? 'No completed leads yet'
+                          : 'Successfully completed'
+                      }
+                      icon="📅"
+                      iconColor="slate"
+                      isInteractive={false}
+                    />
+                    <StatCard
+                      value={ignoredContactsCount}
+                      label="Ignored Contacts"
+                      description={
+                        ignoredContactsCount === 0
+                          ? 'No Blocked Contacts'
+                          : 'Blocked From Automation'
+                      }
+                      icon="🚫"
+                      iconColor="orange"
+                      isInteractive={false}
+                    />
+                  </>
+                )
+              })()}
             </div>
 
             {/* Leads Header - Simplified */}

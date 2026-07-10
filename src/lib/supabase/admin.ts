@@ -1397,57 +1397,27 @@ export const db = {
       leadId = newLead.id
     }
     
-    // Step 5: Find or create conversation for this lead
+    // Step 5: Find or create conversation for this lead using shared helper
     if (!leadId) {
       console.error('[CALL INTAKE] No lead_id available')
       return { leadId: null, conversationId: null, isNew: false }
     }
     
-    console.log('[CALL INTAKE] Looking up existing conversations for lead_id and business_id')
-    const { data: existingConversations } = await supabaseAdmin
-      .from('conversations')
-      .select('id, status, created_at')
-      .eq('lead_id', leadId)
-      .eq('business_id', params.businessId)
-      .in('status', ['active', 'open'])
-      .order('created_at', { ascending: false })
-    
+    console.log('[CALL INTAKE] Getting or creating conversation for lead:', leadId)
     let conversationId: string | null = null
+    let conversationIsNew = false
     
-    if (existingConversations && existingConversations.length > 0) {
-      console.log('[CALL INTAKE] Found existing conversations:', existingConversations.length)
-      // Reuse the newest conversation (first in array due to descending order)
-      conversationId = existingConversations[0].id
-      console.log('[CALL INTAKE] Reusing existing conversation:', conversationId, 'with status:', existingConversations[0].status)
-    } else {
-      console.log('[CALL INTAKE] No existing conversation found, creating new conversation')
-      const { data: newConversation, error: conversationError } = await supabaseAdmin
-        .from('conversations')
-        .insert({
-          lead_id: leadId,
-          business_id: params.businessId,
-          status: 'active'
-        })
-        .select()
-        .single()
-      
-      if (conversationError || !newConversation) {
-        console.error('[CALL INTAKE] Failed to create conversation:', conversationError)
-        return { leadId, conversationId: null, isNew: isNewLead }
-      }
-      
-      console.log('[CALL INTAKE] Created new conversation:', newConversation.id)
-      console.log('[CONVERSATION CREATE TRACE]', {
-        route: 'getOrCreateCallIntakeRecords',
-        file: 'admin.ts',
-        function: 'getOrCreateCallIntakeRecords',
-        callSid: params.callSid,
-        businessId: params.businessId,
-        leadId: leadId,
-        conversationId: newConversation.id,
-        reason: 'No existing conversation found, creating new conversation'
+    try {
+      const result = await this.getOrCreateConversation(leadId, params.businessId)
+      conversationId = result.conversationId
+      conversationIsNew = result.isNew
+      console.log('[CALL INTAKE] Conversation handled:', {
+        conversationId,
+        isNew: conversationIsNew
       })
-      conversationId = newConversation.id
+    } catch (error) {
+      console.error('[CALL INTAKE] Failed to get or create conversation:', error)
+      return { leadId, conversationId: null, isNew: isNewLead }
     }
     
     // Step 6: Update call_events with conversation_id if it exists
@@ -1550,6 +1520,71 @@ export const db = {
     }
 
     return data
+  },
+
+  /**
+   * Get or create conversation for a lead with idempotent, concurrency-safe behavior
+   * Canonical selection order:
+   * 1. Prefer conversation with messages (real customer conversation)
+   * 2. Otherwise use oldest conversation for the lead
+   * 3. If none exists, create new conversation
+   * 
+   * This handles historical duplicates by selecting the canonical conversation
+   * and prevents race conditions through proper error handling.
+   */
+  async getOrCreateConversation(leadId: string, businessId: string): Promise<{ conversationId: string; isNew: boolean }> {
+    console.log('[GET OR CREATE CONVERSATION] Looking up conversation for lead:', leadId, 'business:', businessId)
+
+    // Step 1: Try to find existing conversation with canonical selection
+    // Fetch conversations with message counts to determine canonical
+    const { data: existingConversations, error: lookupError } = await supabaseAdmin
+      .from('conversations')
+      .select('id, status, created_at, messages(id)')
+      .eq('lead_id', leadId)
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: true }) // Oldest first for canonical selection
+
+    if (lookupError) {
+      console.error('[GET OR CREATE CONVERSATION] Lookup error:', lookupError)
+      throw new Error(`Failed to lookup conversation: ${lookupError.message}`)
+    }
+
+    if (existingConversations && existingConversations.length > 0) {
+      console.log('[GET OR CREATE CONVERSATION] Found', existingConversations.length, 'existing conversation(s)')
+
+      // Canonical selection: prefer conversation with messages, otherwise oldest
+      const canonicalConversation = existingConversations.find((c: any) => c.messages && c.messages.length > 0) 
+        || existingConversations[0] // Fallback to oldest
+
+      console.log('[GET OR CREATE CONVERSATION] Reusing canonical conversation:', canonicalConversation.id, {
+        hasMessages: canonicalConversation.messages?.length > 0,
+        created_at: canonicalConversation.created_at,
+        totalFound: existingConversations.length
+      })
+
+      return { conversationId: canonicalConversation.id, isNew: false }
+    }
+
+    // Step 2: No existing conversation, create new one
+    console.log('[GET OR CREATE CONVERSATION] No existing conversation found, creating new one')
+    
+    const { data: newConversation, error: createError } = await supabaseAdmin
+      .from('conversations')
+      .insert({
+        lead_id: leadId,
+        business_id: businessId,
+        status: 'active'
+      })
+      .select('id')
+      .single()
+
+    if (createError || !newConversation) {
+      console.error('[GET OR CREATE CONVERSATION] Failed to create conversation:', createError)
+      throw new Error(`Failed to create conversation: ${createError?.message || 'Unknown error'}`)
+    }
+
+    console.log('[GET OR CREATE CONVERSATION] Created new conversation:', newConversation.id)
+    return { conversationId: newConversation.id, isNew: true }
   },
 
   async createConversation(conversation: Omit<Conversation, 'id' | 'created_at'>): Promise<Conversation | null> {

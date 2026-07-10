@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { supabaseAdmin, db } from '@/lib/supabase/admin'
 import { normalizePhoneNumberForStorage } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
@@ -147,39 +147,19 @@ export async function POST(request: NextRequest) {
       console.log('[MANUAL CUSTOMER ENTRY] Lead updated:', leadId)
     }
 
-    // Create conversation if this is a new lead
+    // Get or create conversation using shared helper with canonical selection
     let conversationId: string | null = null
-    if (isNewLead) {
-      const { data: newConversation, error: conversationError } = await supabaseAdmin
-        .from('conversations')
-        .insert({
-          lead_id: leadId,
-          business_id: businessId,
-          status: 'active'
+    if (leadId) {
+      try {
+        const result = await db.getOrCreateConversation(leadId, businessId)
+        conversationId = result.conversationId
+        console.log('[MANUAL CUSTOMER ENTRY] Conversation handled:', {
+          conversationId,
+          isNew: result.isNew,
+          isNewLead
         })
-        .select()
-        .single()
-
-      if (conversationError || !newConversation) {
-        console.error('[MANUAL CUSTOMER ENTRY] Failed to create conversation:', conversationError)
-      } else {
-        conversationId = newConversation.id
-        console.log('[MANUAL CUSTOMER ENTRY] Conversation created:', conversationId)
-      }
-    } else {
-      // Find existing conversation
-      const { data: existingConversation } = await supabaseAdmin
-        .from('conversations')
-        .select('id')
-        .eq('lead_id', leadId)
-        .eq('business_id', businessId)
-        .in('status', ['active', 'open'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (existingConversation) {
-        conversationId = existingConversation.id
+      } catch (error) {
+        console.error('[MANUAL CUSTOMER ENTRY] Failed to get or create conversation:', error)
       }
     }
 

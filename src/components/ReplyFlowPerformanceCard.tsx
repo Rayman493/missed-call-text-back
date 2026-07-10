@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { calculateLeadStatusCounts } from '@/lib/lead-lifecycle'
 import { Phone, MessageSquare, Send, Users, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
@@ -55,7 +56,8 @@ export default function ReplyFlowPerformanceCard() {
           .gte('created_at', thirtyDaysAgo)
 
         const leadCount = leads?.length || 0
-        const activeLeads = leads?.filter((l: any) => l.status === 'active' || l.status === 'new').length || 0
+        const leadStatusCounts = calculateLeadStatusCounts(leads || [])
+        const activeLeads = leadStatusCounts.active
         const customerReplies = messages?.filter((m: any) => m.direction === 'inbound').length || 0
         const followUpsSent = followUps?.filter((f: any) => f.status === 'sent').length || 0
 

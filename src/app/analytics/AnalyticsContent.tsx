@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { calculateLeadStatusCounts } from '@/lib/lead-lifecycle'
 import AppHeader from '@/components/AppHeader'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
@@ -65,10 +66,10 @@ export default function AnalyticsContent() {
         // Get date range for analytics (last 30 days)
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
-        // Fetch leads in the last 30 days
+        // Fetch leads in the last 30 days - include all fields required by calculateLeadStatusCounts
         const { data: leads, error: leadsError } = await supabase
           .from('leads')
-          .select('id, status, created_at, business_id')
+          .select('id, status, created_at, business_id, deleted_at, payment_status')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
 
@@ -78,6 +79,15 @@ export default function AnalyticsContent() {
 
         // Normalize to array - Supabase may return null or object in some cases
         const leadsArray = Array.isArray(leads) ? leads : []
+
+        console.log('[Analytics] Raw leads fetched:', leadsArray.length)
+        console.log('[Analytics] Lead details:', leadsArray.map((l: any) => ({
+          id: l.id,
+          status: l.status,
+          deleted_at: l.deleted_at,
+          payment_status: l.payment_status,
+          created_at: l.created_at
+        })))
 
         // Fetch messages for reply rate calculation - query by lead_id to match DashboardMetrics
         // IMPORTANT: Must select from_phone and to_phone for dual filter to work
@@ -124,11 +134,13 @@ export default function AnalyticsContent() {
         const followUpsArray = Array.isArray(followUps) ? followUps : []
 
         // Fetch conversations for accurate conversation count
+        // Only count conversations that have associated messages (real customer conversations)
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
-          .select('id, status, created_at')
+          .select('id, status, created_at, messages(id)')
           .eq('business_id', business.id)
           .gte('created_at', thirtyDaysAgo)
+          .order('created_at', { ascending: false })
 
         if (conversationsError) {
           console.error('[Analytics] Failed to fetch conversations:', conversationsError.message)
@@ -137,10 +149,35 @@ export default function AnalyticsContent() {
         // Normalize to array
         const conversationsArray = Array.isArray(conversations) ? conversations : []
 
-        // Calculate metrics
+        // Filter to only count conversations that have at least one message (real customer conversations)
+        const conversationsWithMessages = conversationsArray.filter((c: any) => 
+          c.messages && c.messages.length > 0
+        )
+
+        // Log conversation count for debugging
+        console.log('[Analytics] Total conversations fetched:', conversationsArray.length)
+        console.log('[Analytics] Conversations with messages:', conversationsWithMessages.length)
+        console.log('[Analytics] Conversation details:', conversationsArray.map((c: any) => ({ 
+          id: c.id, 
+          status: c.status, 
+          created_at: c.created_at,
+          message_count: c.messages?.length || 0
+        })))
+
+        // Calculate metrics using shared lead status helper
         const leadCount = leadsArray.length
-        const activeLeads = leadsArray.filter((l: any) => l.status === 'active' || l.status === 'new').length || 0
-        const completedLeads = leadsArray.filter((l: any) => l.status === 'completed' || l.status === 'won').length || 0
+        const leadStatusCounts = calculateLeadStatusCounts(leadsArray)
+        const activeLeads = leadStatusCounts.active
+        const completedLeads = leadStatusCounts.completed
+
+        console.log('[Analytics] Lifecycle status for each lead:', leadsArray.map((l: any) => ({
+          id: l.id,
+          status: l.status,
+          lifecycleStatus: calculateLeadStatusCounts([l]),
+          deleted_at: l.deleted_at,
+          payment_status: l.payment_status
+        })))
+        console.log('[Analytics] Final lead status counts:', leadStatusCounts)
 
         // Filter messages using dual filter (direction + phone number) to match DashboardMetrics
         const businessPhone = business.twilio_phone_number || ''
@@ -171,9 +208,17 @@ export default function AnalyticsContent() {
           ? Math.round((followUpsCancelled / (followUpsSent + followUpsCancelled)) * 100) 
           : 0
 
-        const totalConversations = conversationsArray.length
+        const totalConversations = conversationsWithMessages.length
         const customerReplyRate = totalMessages > 0 ? (inboundMessages / totalMessages) * 100 : 0
         const averageMessagesPerConversation = totalConversations > 0 ? totalMessages / totalConversations : 0
+
+        console.log('[Analytics] FINAL METRICS CALCULATION:', {
+          totalConversations,
+          totalMessages,
+          averageMessagesPerConversation,
+          activeLeads,
+          inboundMessages
+        })
 
         // Calculate Recovery Rate to match Dashboard: leads with customer replies / total leads
         // A lead is recovered if it has at least one inbound customer message

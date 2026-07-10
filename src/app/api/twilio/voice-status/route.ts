@@ -580,24 +580,19 @@ async function processVoiceStatusCallback(params: any, method: string) {
       }
     }
 
-    // Create conversation for this lead
+    // Create conversation for this lead using shared helper with canonical selection
     let conversationId: string | null = null
     if (leadId) {
-      const { data: newConversation, error: conversationError } = await supabase
-        .from('conversations')
-        .insert({
-          lead_id: leadId,
-          business_id: business.id,
-          status: 'active'
+      try {
+        const result = await db.getOrCreateConversation(leadId, business.id)
+        conversationId = result.conversationId
+        console.log('[AI INTAKE FINALIZE] Conversation handled:', {
+          conversationId,
+          isNew: result.isNew,
+          leadId
         })
-        .select()
-        .single()
-
-      if (conversationError || !newConversation) {
-        console.error('[AI INTAKE FINALIZE] Failed to create conversation:', conversationError)
-      } else {
-        conversationId = newConversation.id
-        console.log('[AI INTAKE FINALIZE] Created conversation for AI intake:', conversationId)
+      } catch (error) {
+        console.error('[AI INTAKE FINALIZE] Failed to get or create conversation:', error)
       }
     }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
+import { db } from '@/lib/supabase/admin';
 
 export async function GET(request: NextRequest) {
   console.log('[API LEADS GET] ========== ROUTE ENTERED ==========')
@@ -255,62 +256,18 @@ export async function POST(request: NextRequest) {
       console.log('[API LEADS POST] Using existing lead:', existingLead.id)
       lead = existingLead;
 
-      // Check if conversation exists
-      console.log('[API LEADS POST] Looking for conversation for lead:', lead.id)
-      let existingConversation, convError
+      // Get or create conversation using shared helper with canonical selection
+      console.log('[API LEADS POST] Getting or creating conversation for lead:', lead.id)
       try {
-        const result = await supabase
-          .from('conversations')
-          .select('*')
-          .eq('lead_id', lead.id)
-          .maybeSingle();
-        existingConversation = result.data
-        convError = result.error
-      } catch (e) {
-        console.log('[API LEADS POST] Exception during conversation lookup:', e)
-        return NextResponse.json({ error: 'Database error during conversation lookup', details: String(e) }, { status: 500 });
-      }
-
-      if (convError) {
-        console.log('[API LEADS POST] Conversation lookup error:', convError)
-        return NextResponse.json({ error: 'Database error during conversation lookup', details: convError.message }, { status: 500 });
-      }
-
-      console.log('[API LEADS POST] Existing conversation lookup result:', existingConversation ? 'Found' : 'Not found')
-
-      if (existingConversation) {
-        console.log('[API LEADS POST] Using existing conversation:', existingConversation.id)
-        conversation = existingConversation;
-      } else {
-        // Create conversation for existing lead
-        const convPayload = {
-          lead_id: lead.id,
-          business_id: business.id,
-          status: 'active',
-        }
-        console.log('[API LEADS POST] Creating conversation with payload:', convPayload)
-        
-        let newConversation, createConvError
-        try {
-          const result = await supabase
-            .from('conversations')
-            .insert(convPayload)
-            .select()
-            .single();
-          newConversation = result.data
-          createConvError = result.error
-        } catch (e) {
-          console.log('[API LEADS POST] Exception during conversation creation:', e)
-          return NextResponse.json({ error: 'Database error during conversation creation', details: String(e) }, { status: 500 });
-        }
-
-        if (createConvError) {
-          console.log('[API LEADS POST] Conversation creation error:', createConvError)
-          return NextResponse.json({ error: 'Failed to create conversation', details: createConvError.message }, { status: 500 });
-        }
-
-        console.log('[API LEADS POST] Conversation created:', newConversation.id)
-        conversation = newConversation;
+        const result = await db.getOrCreateConversation(lead.id, business.id)
+        conversation = { id: result.conversationId } as any
+        console.log('[API LEADS POST] Conversation handled:', {
+          conversationId: result.conversationId,
+          isNew: result.isNew
+        })
+      } catch (error) {
+        console.log('[API LEADS POST] Exception during conversation handling:', error)
+        return NextResponse.json({ error: 'Database error during conversation handling', details: String(error) }, { status: 500 });
       }
     } else {
       // Create new lead
@@ -350,35 +307,19 @@ export async function POST(request: NextRequest) {
       console.log('[API LEADS POST] Lead created:', newLead.id)
       lead = newLead;
 
-      // Create conversation for new lead
-      const convPayload = {
-        lead_id: lead.id,
-        business_id: business.id,
-        status: 'active',
-      }
-      console.log('[API LEADS POST] Creating conversation with payload:', convPayload)
-      
-      let newConversation, createConvError
+      // Get or create conversation using shared helper with canonical selection
+      console.log('[API LEADS POST] Getting or creating conversation for new lead:', lead.id)
       try {
-        const result = await supabase
-          .from('conversations')
-          .insert(convPayload)
-          .select()
-          .single();
-        newConversation = result.data
-        createConvError = result.error
-      } catch (e) {
-        console.log('[API LEADS POST] Exception during conversation creation:', e)
-        return NextResponse.json({ error: 'Database error during conversation creation', details: String(e) }, { status: 500 });
+        const result = await db.getOrCreateConversation(lead.id, business.id)
+        conversation = { id: result.conversationId } as any
+        console.log('[API LEADS POST] Conversation handled:', {
+          conversationId: result.conversationId,
+          isNew: result.isNew
+        })
+      } catch (error) {
+        console.log('[API LEADS POST] Exception during conversation handling:', error)
+        return NextResponse.json({ error: 'Database error during conversation handling', details: String(error) }, { status: 500 });
       }
-
-      if (createConvError) {
-        console.log('[API LEADS POST] Conversation creation error:', createConvError)
-        return NextResponse.json({ error: 'Failed to create conversation', details: createConvError.message }, { status: 500 });
-      }
-
-      console.log('[API LEADS POST] Conversation created:', newConversation.id)
-      conversation = newConversation;
     }
 
     console.log('[API LEADS POST] Final response - lead:', lead.id, 'conversation:', conversation.id)

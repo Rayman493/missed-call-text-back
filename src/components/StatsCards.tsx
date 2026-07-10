@@ -47,13 +47,17 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           .gte('created_at', startOfMonth)
         setLeadsCount(leadsCountData || 0)
 
-        // Fetch conversations count (this month)
-        const { count: conversationsCountData } = await supabase
+        // Fetch conversations count (this month) - only count conversations with messages
+        const { data: conversations } = await supabase
           .from('conversations')
-          .select('*', { count: 'exact', head: true })
+          .select('id, messages(id)')
           .eq('business_id', businessId)
           .gte('created_at', startOfMonth)
-        setConversationsCount(conversationsCountData || 0)
+        
+        const conversationsWithMessages = conversations?.filter((c: any) => 
+          c.messages && c.messages.length > 0
+        ) || []
+        setConversationsCount(conversationsWithMessages.length)
 
         // Fetch follow-ups count (only pending/scheduled follow-ups, this month)
         const supabaseAny = supabase as any

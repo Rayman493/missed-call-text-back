@@ -152,6 +152,24 @@ export function transitionLeadStatus(currentStatus: LeadLifecycleStatus, targetS
 }
 
 /**
+ * Calculate lead status counts from an array of leads
+ * This provides consistent lead counting across the application
+ */
+export function calculateLeadStatusCounts(leads: any[]): {
+  new: number
+  active: number
+  completed: number
+  ignored: number
+} {
+  return {
+    new: leads.filter(l => getLeadLifecycleStatus(l) === 'new' && !l.deleted_at).length,
+    active: leads.filter(l => getLeadLifecycleStatus(l) === 'active' && !l.deleted_at && l.payment_status !== 'paid').length,
+    completed: leads.filter(l => getLeadLifecycleStatus(l) === 'completed' && !l.deleted_at).length,
+    ignored: leads.filter(l => getLeadLifecycleStatus(l) === 'ignored' && !l.deleted_at).length
+  }
+}
+
+/**
  * Promote a lead from 'new' to 'active' status
  * This is called when engagement events occur (follow-up sent, manual SMS, customer reply)
  * Only promotes if current status is 'new' - leaves Active, Completed, Ignored unchanged
