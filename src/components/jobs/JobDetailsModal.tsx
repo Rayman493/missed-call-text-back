@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Pencil, Trash2, Link as LinkIcon, MessageSquare, CheckCircle2, AlertCircle } from 'lucide-react'
+import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Pencil, Trash2, Link as LinkIcon, MessageSquare, CheckCircle2, AlertCircle, CreditCard, Copy, ExternalLink } from 'lucide-react'
 import type { Job, JobStatus } from './JobComposer'
+import { createBrowserClient } from '@/lib/supabase/browser'
+import { formatCurrency } from '@/lib/utils'
 
 interface JobDetailsModalProps {
   isOpen: boolean
@@ -12,6 +14,19 @@ interface JobDetailsModalProps {
   onEdit: (job: Job) => void
   onStatusChange: (job: Job, status: JobStatus) => void
   onDelete: (job: Job) => void
+}
+
+interface PaymentRequest {
+  id: string
+  lead_id: string
+  amount_cents: number
+  description: string
+  status: string
+  created_at: string
+  paid_at: string | null
+  checkout_url: string | null
+  expires_at: string | null
+  payment_provider: string | null
 }
 
 const STATUS_OPTIONS: { value: JobStatus; label: string; color: string }[] = [
@@ -54,6 +69,120 @@ export default function JobDetailsModal({
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null)
+  const [isLoadingPayment, setIsLoadingPayment] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [isCancellingPayment, setIsCancellingPayment] = useState(false)
+
+  // Fetch payment request when modal opens or job changes
+  useEffect(() => {
+    if (isOpen && job.lead_id) {
+      fetchPaymentRequest()
+    }
+  }, [isOpen, job.lead_id])
+
+  const fetchPaymentRequest = async () => {
+    if (!job.lead_id) return
+
+    setIsLoadingPayment(true)
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+
+      const response = await fetch('/api/payments', { headers })
+      if (!response.ok) return
+
+      const data = await response.json()
+      const payment = data.paymentRequests?.find((p: PaymentRequest) => p.lead_id === job.lead_id)
+      setPaymentRequest(payment || null)
+    } catch (err) {
+      console.error('Error fetching payment request:', err)
+    } finally {
+      setIsLoadingPayment(false)
+    }
+  }
+
+  const handleCancelPayment = async () => {
+    if (!paymentRequest) return
+
+    setIsCancellingPayment(true)
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch(`/api/payments/${paymentRequest.id}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to cancel payment request')
+      }
+
+      setShowCancelConfirm(false)
+      await fetchPaymentRequest()
+    } catch (err) {
+      console.error('Error cancelling payment request:', err)
+    } finally {
+      setIsCancellingPayment(false)
+    }
+  }
+
+  const copyPaymentLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch (err) {
+      console.error('Failed to copy link:', err)
+    }
+  }
+
+  const getPaymentStatusColor = (status: string): string => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+      case 'paid':
+        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+      case 'cancelled':
+        return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+      case 'expired':
+        return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+      case 'failed':
+        return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+      default:
+        return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+    }
+  }
+
+  const getPaymentStatusLabel = (status: string): string => {
+    switch (status) {
+      case 'pending':
+        return 'Pending'
+      case 'paid':
+        return 'Paid'
+      case 'cancelled':
+        return 'Cancelled'
+      case 'expired':
+        return 'Expired'
+      case 'failed':
+        return 'Failed'
+      default:
+        return status
+    }
+  }
 
   if (!isOpen) return null
 
@@ -182,11 +311,94 @@ export default function JobDetailsModal({
               )}
             </div>
 
-            {/* Payment placeholder */}
+            {/* Payment */}
             <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Payment</p>
-              <p className="text-sm text-slate-600 dark:text-slate-300">Not requested</p>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Payment requests coming soon</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Payment</p>
+              
+              {isLoadingPayment ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">Loading...</p>
+              ) : !job.lead_id ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400 italic">No lead associated with this job</p>
+              ) : !paymentRequest ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-slate-600 dark:text-slate-300">Not requested</p>
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    Request Payment
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getPaymentStatusColor(paymentRequest.status)}`}>
+                      {getPaymentStatusLabel(paymentRequest.status)}
+                    </span>
+                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {formatCurrency(paymentRequest.amount_cents / 100)}
+                    </span>
+                  </div>
+                  
+                  {paymentRequest.description && (
+                    <p className="text-xs text-slate-600 dark:text-slate-300">{paymentRequest.description}</p>
+                  )}
+                  
+                  <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                    <span className="capitalize">{paymentRequest.payment_provider}</span>
+                    <span>•</span>
+                    <span>{new Date(paymentRequest.created_at).toLocaleDateString()}</span>
+                  </div>
+
+                  {paymentRequest.status === 'pending' && (
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                      {paymentRequest.checkout_url && (
+                        <>
+                          <button
+                            onClick={() => copyPaymentLink(paymentRequest.checkout_url!)}
+                            className="p-1.5 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            title="Copy payment link"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                          <a
+                            href={paymentRequest.checkout_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            title="Open payment link"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </>
+                      )}
+                      <button
+                        onClick={() => setShowCancelConfirm(true)}
+                        className="p-1.5 text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                        title="Cancel payment request"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {paymentRequest.status === 'paid' && paymentRequest.paid_at && (
+                    <div className="text-[10px] text-green-600 dark:text-green-400">
+                      Paid on {new Date(paymentRequest.paid_at).toLocaleDateString()}
+                    </div>
+                  )}
+
+                  {(paymentRequest.status === 'cancelled' || paymentRequest.status === 'expired') && (
+                    <button
+                      onClick={() => setShowPaymentModal(true)}
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                    >
+                      Create new payment request
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Confirmation SMS section */}
@@ -277,6 +489,72 @@ export default function JobDetailsModal({
           </div>
         </div>
       </div>
+
+      {/* Payment Request Modal */}
+      {showPaymentModal && (
+        <>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]" onClick={() => setShowPaymentModal(false)} />
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground">Request Payment</h3>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                </button>
+              </div>
+              <div className="p-4">
+                <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+                  To request payment for this job, use the Payments page to create a payment request for this lead.
+                </p>
+                <Link
+                  href="/dashboard/payments"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  Go to Payments Page
+                </Link>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Cancel Payment Confirmation */}
+      {showCancelConfirm && (
+        <>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]" onClick={() => setShowCancelConfirm(false)} />
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-sm">
+              <div className="p-5">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Cancel Payment Request?</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+                  This will cancel the payment request for {paymentRequest ? formatCurrency(paymentRequest.amount_cents / 100) : 'this amount'}. This action cannot be undone.
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setShowCancelConfirm(false)}
+                    disabled={isCancellingPayment}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    Keep Request
+                  </button>
+                  <button
+                    onClick={handleCancelPayment}
+                    disabled={isCancellingPayment}
+                    className="flex-1 px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {isCancellingPayment ? 'Cancelling...' : 'Cancel Request'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </>
   )
 }
