@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Phone, Copy, ChevronDown, ChevronUp, ExternalLink, Video, Check } from 'lucide-react'
+import { useState } from 'react'
+import { Phone, Copy, ChevronDown, ChevronUp, Video, Check } from 'lucide-react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatForDisplay, generateForwardingCode } from '@/utils/phone-formatting'
 import Link from 'next/link'
@@ -185,6 +185,7 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
   const { business } = useBusiness()
   const [selectedCarrier, setSelectedCarrier] = useState(business?.business_phone_carrier || '')
   const [copiedCode, setCopiedCode] = useState(false)
+  const [copiedDisable, setCopiedDisable] = useState(false)
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const [copiedNumber, setCopiedNumber] = useState(false)
 
@@ -199,6 +200,16 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
       setTimeout(() => setCopiedCode(false), 2000)
     } catch (error) {
       console.error('Failed to copy code:', error)
+    }
+  }
+
+  const handleCopyDisable = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopiedDisable(true)
+      setTimeout(() => setCopiedDisable(false), 2000)
+    } catch (error) {
+      console.error('Failed to copy disable code:', error)
     }
   }
 
@@ -231,176 +242,160 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
     const disableCode = instructions.disableCode ? generateForwardingCode(instructions.disableCode, twilioNumber) : null
 
     return (
-      <div className="space-y-2">
-        {/* Enable Forwarding - Compact Code Row */}
-        <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-2">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <span className="text-xs font-medium text-slate-300">Enable forwarding</span>
-            <button
-              onClick={() => handleCopyCode(dialCode)}
-              className="p-1 hover:bg-slate-700 text-slate-400 rounded transition-colors"
-              title="Copy code"
-            >
-              {copiedCode ? (
-                <span className="text-green-400 text-xs font-medium">Copied!</span>
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <code className="text-sm font-mono text-slate-200 flex-1 px-2 py-1 bg-slate-900/50 rounded">
-              {dialCode}
-            </code>
-            {selectedCarrier !== 'ringcentral' && selectedCarrier !== 'grasshopper' && selectedCarrier !== 'google_voice' && selectedCarrier !== 'other' && (
+      <section className="space-y-3">
+        {/* Enable forwarding */}
+        <div className="space-y-1.5">
+          <h3 className="text-sm font-semibold text-foreground">3. Enable forwarding</h3>
+          <div className="p-3 bg-muted border border-border rounded-lg space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Dial this code from your business phone, then press Send/Call.
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 px-3 py-2 bg-background border border-border rounded-md text-sm font-mono font-semibold text-foreground break-all">
+                {dialCode}
+              </code>
               <button
-                onClick={() => handleOpenDialer(dialCode)}
-                className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors flex items-center gap-1"
-              >
-                <Phone className="w-3 h-3" />
-                Dial
-              </button>
-            )}
-          </div>
-          {instructions.notes && (
-            <p className="text-xs text-slate-500 mt-1">{instructions.notes}</p>
-          )}
-        </div>
-
-        {/* Disable Forwarding - Compact Code Row */}
-        {disableCode && (
-          <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-2">
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="text-xs font-medium text-slate-300">Disable forwarding</span>
-              <button
-                onClick={() => handleCopyCode(disableCode)}
-                className="p-1 hover:bg-slate-700 text-slate-400 rounded transition-colors"
+                onClick={() => handleCopyCode(dialCode)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-md text-xs font-medium transition-colors"
                 title="Copy code"
               >
-                {copiedCode ? (
-                  <span className="text-green-400 text-xs font-medium">Copied!</span>
-                ) : (
-                  <Copy className="w-3.5 h-3.5" />
-                )}
+                {copiedCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedCode ? 'Copied' : 'Copy'}
               </button>
+              {selectedCarrier !== 'ringcentral' && selectedCarrier !== 'grasshopper' && selectedCarrier !== 'google_voice' && selectedCarrier !== 'other' && (
+                <button
+                  onClick={() => handleOpenDialer(dialCode)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-md text-xs font-medium transition-colors"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  Dial
+                </button>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <code className="text-sm font-mono text-slate-200 flex-1 px-2 py-1 bg-slate-900/50 rounded">
-                {disableCode}
-              </code>
+            {instructions.notes && <p className="text-xs text-muted-foreground">{instructions.notes}</p>}
+          </div>
+        </div>
+
+        {/* Disable forwarding */}
+        {disableCode && (
+          <div className="space-y-1.5">
+            <h3 className="text-sm font-semibold text-foreground">4. Disable forwarding</h3>
+            <div className="p-3 bg-muted border border-border rounded-lg space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Save this code to turn off forwarding later.
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 px-3 py-2 bg-background border border-border rounded-md text-sm font-mono font-semibold text-foreground break-all">
+                  {disableCode}
+                </code>
+                <button
+                  onClick={() => handleCopyDisable(disableCode)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-md text-xs font-medium transition-colors"
+                  title="Copy code"
+                >
+                  {copiedDisable ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedDisable ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              {instructions.disableNotes && <p className="text-xs text-muted-foreground">{instructions.disableNotes}</p>}
             </div>
-            {instructions.disableNotes && (
-              <p className="text-xs text-slate-500 mt-1">{instructions.disableNotes}</p>
-            )}
           </div>
         )}
-      </div>
+      </section>
     )
   }
 
   return (
-    <div className="space-y-3">
-      {/* Two-column layout on desktop */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Left Column: Forwarding Setup */}
-        <div className="space-y-2">
-          {/* ReplyFlow Number - Compact */}
-          <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-2">
-            <p className="text-xs text-slate-400 mb-1">Your ReplyFlow Number</p>
-            <div className="flex items-center gap-2">
-              <code className="text-sm font-mono text-slate-200">{formattedTwilioNumber}</code>
-              <button
-                onClick={handleCopyNumber}
-                className="p-1 hover:bg-slate-700 text-slate-400 rounded transition-colors"
-                title="Copy number"
-              >
-                {copiedNumber ? (
-                  <span className="text-green-400 text-xs font-medium">Copied!</span>
-                ) : (
-                  <Copy className="w-3 h-3" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Carrier Selection - Compact */}
-          <div>
-            <label htmlFor="carrier" className="block text-xs font-medium text-slate-300 mb-1">
-              Your Phone Carrier
-            </label>
-            <select
-              id="carrier"
-              value={selectedCarrier}
-              onChange={(e) => setSelectedCarrier(e.target.value)}
-              className="w-full px-2.5 py-1.5 text-sm border border-slate-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 bg-slate-900/50 text-slate-200"
-            >
-              <option value="">Select your carrier</option>
-              {CARRIER_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Forwarding Codes */}
-          {selectedCarrier && getCarrierInstructions()}
-        </div>
-
-        {/* Right Column: Testing & Help */}
-        <div className="space-y-2">
-          {/* Run Test Call - Compact Green Button */}
-          <Link
-            href="/dashboard/test-setup"
-            className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors"
+    <div className="space-y-5">
+      {/* 1. ReplyFlow number */}
+      <section className="space-y-1.5">
+        <h3 className="text-sm font-semibold text-foreground">1. Your ReplyFlow number</h3>
+        <p className="text-xs text-muted-foreground">
+          Missed calls should forward to this number.
+        </p>
+        <div className="flex items-center gap-2 p-3 bg-muted border border-border rounded-lg">
+          <code className="flex-1 text-base sm:text-lg font-mono font-semibold text-foreground tracking-wide">
+            {formattedTwilioNumber}
+          </code>
+          <button
+            onClick={handleCopyNumber}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-md text-xs font-medium transition-colors"
+            title="Copy number"
           >
-            <Phone className="w-3.5 h-3.5" />
-            Run Test Call
-          </Link>
+            {copiedNumber ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            {copiedNumber ? 'Copied' : 'Copy'}
+          </button>
+        </div>
+      </section>
 
-          {/* Watch Demo - Link-style */}
+      {/* 2. Select carrier */}
+      <section className="space-y-1.5">
+        <h3 className="text-sm font-semibold text-foreground">2. Choose your carrier</h3>
+        <p className="text-xs text-muted-foreground">
+          Select your phone provider to see the correct forwarding code.
+        </p>
+        <select
+          id="carrier"
+          value={selectedCarrier}
+          onChange={(e) => setSelectedCarrier(e.target.value)}
+          className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
+        >
+          <option value="">Select your carrier</option>
+          {CARRIER_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </section>
+
+      {/* 3-4. Enable / disable forwarding */}
+      {selectedCarrier && getCarrierInstructions()}
+
+      {/* 5. Help and demo */}
+      <section className="space-y-2">
+        <h3 className="text-sm font-semibold text-foreground">Need help?</h3>
+        <div className="flex flex-col sm:flex-row gap-2">
           <Link
             href="/demo"
-            className="flex items-center justify-center gap-2 px-3 py-2 text-slate-400 hover:text-slate-200 text-xs font-medium rounded-lg transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg text-xs font-medium transition-colors"
           >
             <Video className="w-3.5 h-3.5" />
             Watch Setup Demo
           </Link>
-
-          {/* Troubleshooting - Collapsed by default */}
-          <div className="border-t border-slate-700/50 pt-2">
-            <button
-              onClick={() => toggleSection('troubleshooting')}
-              className="w-full flex items-center justify-between text-left py-1 text-xs font-medium text-slate-300 hover:text-slate-200"
-            >
-              Troubleshooting
-              {expandedSection === 'troubleshooting' ? (
-                <ChevronUp className="w-3 h-3 text-slate-500" />
-              ) : (
-                <ChevronDown className="w-3 h-3 text-slate-500" />
-              )}
-            </button>
-            
-            {expandedSection === 'troubleshooting' && (
-              <div className="mt-2 space-y-1.5 text-xs text-slate-400">
-                <p><strong className="text-slate-300">Calls not reaching ReplyFlow?</strong></p>
-                <ul className="list-disc list-inside space-y-0.5 ml-2">
-                  <li>Verify carrier forwarding settings</li>
-                  <li>Confirm ReplyFlow number is accurate</li>
-                  <li>Try restarting your phone</li>
-                </ul>
-                
-                <p className="mt-1.5"><strong className="text-slate-300">Forwarding not activating?</strong></p>
-                <ul className="list-disc list-inside space-y-0.5 ml-2">
-                  <li>Ensure you pressed Send/Call</li>
-                  <li>Listen for confirmation tone</li>
-                  <li>Contact your carrier if needed</li>
-                </ul>
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => toggleSection('troubleshooting')}
+            className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-xs font-medium transition-colors"
+          >
+            {expandedSection === 'troubleshooting' ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            Troubleshooting
+          </button>
         </div>
-      </div>
+        {expandedSection === 'troubleshooting' && (
+          <div className="p-3 bg-muted border border-border rounded-lg text-xs text-muted-foreground space-y-2">
+            {FAQS.map((faq, idx) => (
+              <div key={idx}>
+                <p className="font-medium text-foreground">{faq.question}</p>
+                <p className="mt-0.5">{faq.answer}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 6. Final action */}
+      <section className="pt-1 space-y-2">
+        <Link
+          href="/dashboard/test-setup"
+          className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-semibold transition-colors"
+        >
+          <Phone className="w-4 h-4" />
+          Run Test Call
+        </Link>
+        <p className="text-xs text-muted-foreground text-center">
+          Run this after you&apos;ve enabled forwarding on your phone.
+        </p>
+      </section>
     </div>
   )
 }
