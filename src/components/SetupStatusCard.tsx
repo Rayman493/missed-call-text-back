@@ -503,17 +503,17 @@ export default function SetupStatusCard({
   // Render collapsed state (after setup is complete)
   if (!isExpanded && (cardState === 'setup-complete' || cardState === 'healthy')) {
     return (
-      <div className="bg-slate-900/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-xl p-4 sm:p-5 shadow-lg border border-slate-200/10 dark:border-slate-800/50 border-l-4 border-l-green-500">
-        <div className="flex items-center justify-between gap-4">
+      <div className="bg-card text-card-foreground rounded-2xl shadow-xl border border-border/50 ring-1 ring-border/50">
+        <div className="flex items-center justify-between gap-4 p-4 sm:p-5">
           <div className="flex items-center gap-3 flex-1">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
-                <CheckCircle className="w-4 h-4 text-green-400" />
+              <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-green-500" />
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-base sm:text-lg font-semibold text-white">ReplyFlow Ready</h3>
-              <p className="text-slate-400 text-sm">Setup complete and ready to receive forwarded calls.</p>
+              <h3 className="text-base sm:text-lg font-semibold text-foreground">ReplyFlow Ready</h3>
+              <p className="text-muted-foreground text-sm">Setup complete and ready to receive forwarded calls.</p>
             </div>
           </div>
           <button
@@ -524,7 +524,7 @@ export default function SetupStatusCard({
               setUserHasToggled(true)
               setIsExpanded(true)
             }}
-            className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3 py-2 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-sm font-medium rounded-lg transition-colors cursor-pointer"
           >
             View Details
             <ChevronDown className="w-4 h-4" />
@@ -536,18 +536,25 @@ export default function SetupStatusCard({
   
   // Render main card (for setup states)
   return (
-    <div className="bg-slate-900/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-2xl p-3 sm:p-5 shadow-xl border border-slate-200/10 dark:border-slate-800/50">
-      <div className="flex flex-col gap-2 sm:gap-4">
+    <div className="bg-card text-card-foreground rounded-2xl shadow-xl border border-border/50 ring-1 ring-border/50">
+      <div className="flex flex-col gap-3 sm:gap-4 p-4 sm:p-5">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 pb-2 sm:pb-4">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <h1 className="text-base sm:text-xl font-bold text-white truncate">
-              {cardState === 'needs-forwarding' || cardState === 'needs-verification'
-                ? 'Complete Setup'
-                : 'ReplyFlow Ready'
-              }
-            </h1>
-            <p className="text-slate-400 text-xs sm:text-sm truncate">
+            <div className="flex items-center gap-2.5 mb-1">
+              <h1 className="text-lg sm:text-xl font-semibold text-foreground">
+                {cardState === 'needs-forwarding' || cardState === 'needs-verification'
+                  ? 'Complete Setup'
+                  : 'ReplyFlow Ready'
+                }
+              </h1>
+              {cardState === 'needs-verification' && (
+                <span className="inline-flex items-center px-2 py-0.5 bg-amber-500/20 text-amber-300 text-xs font-semibold rounded-full border border-amber-400/30">
+                  Almost ready
+                </span>
+              )}
+            </div>
+            <p className="text-muted-foreground text-xs sm:text-sm">
               {cardState === 'needs-forwarding'
                 ? 'Step 2 of 3'
                 : cardState === 'needs-verification'
@@ -563,7 +570,7 @@ export default function SetupStatusCard({
               setUserHasToggled(true)
               setIsExpanded(!isExpanded)
             }}
-            className="flex-shrink-0 p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+            className="flex-shrink-0 p-2 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground rounded-lg transition-colors cursor-pointer"
           >
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -571,9 +578,9 @@ export default function SetupStatusCard({
 
         {/* Setup Progress - Only show when expanded */}
         {isExpanded && (
-          <div className="space-y-2 sm:space-y-3">
+          <div className="space-y-2">
             {/* Step 1: Always Complete */}
-            <div className="bg-slate-800/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden">
+            <div className="bg-muted/30 border border-border/50 rounded-xl overflow-hidden">
               <button
                 type="button"
                 onClick={(e) => {
@@ -581,28 +588,28 @@ export default function SetupStatusCard({
                   e.stopPropagation()
                   setExpandedStep(expandedStep === 1 ? null : 1)
                 }}
-                className="w-full flex items-center gap-2 p-2.5 sm:p-3 hover:bg-slate-700/30 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-3 p-3 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer"
               >
-                <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span className="text-white text-xs sm:text-sm font-medium flex-1 text-left truncate">Step 1 — Number ready</span>
-                <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 transition-transform flex-shrink-0 ${expandedStep === 1 ? 'rotate-180' : ''}`} />
+                <span className="text-foreground text-sm font-medium flex-1 text-left">Step 1 — Number ready</span>
+                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform flex-shrink-0 ${expandedStep === 1 ? 'rotate-180' : ''}`} />
               </button>
               {expandedStep === 1 && (
-                <div className="p-2.5 pt-0 sm:p-3 sm:pt-0 border-t border-white/10">
+                <div className="p-3 sm:p-4 pt-0 border-t border-border/50">
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-blue-200 text-xs">ReplyFlow Number</span>
-                      <span className="text-white font-mono text-xs">
+                    <div className="flex items-center justify-between py-1">
+                      <span className="text-muted-foreground text-xs">ReplyFlow Number</span>
+                      <span className="text-foreground font-mono text-sm tabular-nums">
                         {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-blue-200 text-xs">Business Number</span>
-                      <span className="text-white font-mono text-xs">
+                    <div className="flex items-center justify-between py-1">
+                      <span className="text-muted-foreground text-xs">Business Number</span>
+                      <span className="text-foreground font-mono text-sm tabular-nums">
                         {business?.business_phone_number ? formatPhoneNumber(business.business_phone_number) : 'Not set'}
                       </span>
                     </div>
@@ -612,12 +619,12 @@ export default function SetupStatusCard({
             </div>
 
             {/* Step 2: Complete or Current */}
-            <div className={`backdrop-blur-sm rounded-xl border overflow-hidden transition-all ${
+            <div className={`border rounded-xl overflow-hidden transition-all ${
               cardState === 'needs-verification' 
-                ? 'bg-slate-800/50 dark:bg-slate-900/50 border-slate-700/50' 
+                ? 'bg-muted/30 border-border/50' 
                 : cardState === 'needs-forwarding'
-                  ? 'bg-slate-800/50 dark:bg-slate-900/50 border-l-4 border-l-blue-500 border-y border-r border-slate-700/50 shadow-lg'
-                  : 'bg-slate-800/50 dark:bg-slate-900/50 border-slate-700/50'
+                  ? 'bg-primary/5 border-l-4 border-l-primary border-y border-r border-border/50 shadow-sm'
+                  : 'bg-muted/30 border-border/50'
             }`}>
               <button
                 type="button"
@@ -626,79 +633,70 @@ export default function SetupStatusCard({
                   e.stopPropagation()
                   setExpandedStep(expandedStep === 2 ? null : 2)
                 }}
-                className="w-full flex items-center gap-2 p-2.5 sm:p-3 hover:bg-slate-700/30 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-3 p-3 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer"
               >
                 {cardState === 'needs-verification' ? (
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   </div>
                 ) : (
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/30">
-                    <span className="text-white text-xs sm:text-sm font-bold">2</span>
+                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0 shadow-sm shadow-primary/30">
+                    <span className="text-primary-foreground text-sm font-bold">2</span>
                   </div>
                 )}
-                <span className="text-white text-xs sm:text-sm font-medium flex-1 text-left truncate">
+                <span className="text-foreground text-sm font-medium flex-1 text-left">
                   {cardState === 'needs-verification' ? 'Step 2 — Forwarding' : 'Set up forwarding'}
                 </span>
                 {cardState === 'needs-forwarding' && (
-                  <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-full border border-blue-400/30 flex-shrink-0">
+                  <span className="inline-flex items-center px-2 py-0.5 bg-primary/20 text-primary text-xs font-semibold rounded-full border border-primary/30 flex-shrink-0">
                     Current
                   </span>
                 )}
-                <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform ${cardState === 'needs-forwarding' ? 'text-blue-300' : 'text-slate-400'} ${expandedStep === 2 ? 'rotate-180' : ''} flex-shrink-0`} />
+                <ChevronDown className={`w-4 h-4 transition-transform ${cardState === 'needs-forwarding' ? 'text-primary' : 'text-muted-foreground'} ${expandedStep === 2 ? 'rotate-180' : ''} flex-shrink-0`} />
               </button>
               {expandedStep === 2 && (
-                <div className="p-2.5 pt-0 sm:p-3 sm:pt-0 border-t border-white/10">
+                <div className="p-3 sm:p-4 pt-0 border-t border-border/50">
                   <div className="space-y-3">
-                    <p className="text-slate-300 text-xs sm:text-sm">
+                    <p className="text-muted-foreground text-sm">
                       Forward missed calls to your ReplyFlow number.
                     </p>
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-blue-200 text-xs">ReplyFlow Number</span>
-                        <span className="text-white font-mono text-xs">
+                      <div className="flex items-center justify-between py-1">
+                        <span className="text-muted-foreground text-xs">ReplyFlow Number</span>
+                        <span className="text-foreground font-mono text-sm tabular-nums">
                           {business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Not assigned'}
                         </span>
                       </div>
                       {business?.business_phone_carrier && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-blue-200 text-xs">Carrier</span>
-                          <span className="text-white font-mono text-xs">
+                        <div className="flex items-center justify-between py-1">
+                          <span className="text-muted-foreground text-xs">Carrier</span>
+                          <span className="text-foreground font-mono text-sm">
                             {business.business_phone_carrier}
                           </span>
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => setShowForwardingInstructions(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background rounded-lg hover:bg-foreground/90 transition-colors text-xs sm:text-sm font-medium"
-                      >
-                        <Settings className="w-3.5 h-3.5" />
-                        Open Forwarding Instructions
-                      </button>
-                      <Link
-                        href="/dashboard/test-setup"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors text-xs sm:text-sm font-medium"
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                        Run Test Call
-                      </Link>
-                    </div>
+                    <button
+                      onClick={() => setShowForwardingInstructions(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition-colors text-sm font-medium w-full sm:w-auto"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Open Forwarding Instructions
+                    </button>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Step 3: Upcoming or Current */}
-            <div className={`backdrop-blur-sm rounded-xl border overflow-hidden transition-all ${
+            <div className={`border rounded-xl overflow-hidden transition-all ${
               cardState === 'needs-verification' && !hasCompletedTestCall
-                ? 'bg-amber-900/20 dark:bg-amber-900/30 border-l-4 border-l-amber-500 border-y border-r border-amber-700/50 shadow-lg'
+                ? 'bg-amber-500/5 border-l-4 border-l-amber-500 border-y border-r border-border/50 shadow-sm'
                 : cardState === 'needs-verification' && hasCompletedTestCall
-                  ? 'bg-slate-800/50 dark:bg-slate-900/50 border-slate-700/50'
-                  : 'bg-slate-800/50 dark:bg-slate-900/50 border-slate-700/50'
+                  ? 'bg-muted/30 border-border/50'
+                  : 'bg-muted/30 border-border/50'
             }`}>
               <button
                 type="button"
@@ -707,47 +705,47 @@ export default function SetupStatusCard({
                   e.stopPropagation()
                   setExpandedStep(expandedStep === 3 ? null : 3)
                 }}
-                className="w-full flex items-center gap-2 p-2.5 sm:p-3 hover:bg-slate-700/30 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-3 p-3 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer"
               >
                 {hasCompletedTestCall ? (
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   </div>
                 ) : cardState === 'needs-verification' ? (
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-amber-500/30">
-                    <span className="text-white text-xs sm:text-sm font-bold">3</span>
+                  <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0 shadow-sm shadow-amber-500/30">
+                    <span className="text-white text-sm font-bold">3</span>
                   </div>
                 ) : (
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-slate-600/50 flex items-center justify-center flex-shrink-0">
-                    <span className="text-slate-400 text-xs font-semibold">3</span>
+                  <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                    <span className="text-muted-foreground text-sm font-semibold">3</span>
                   </div>
                 )}
-                <span className="text-white text-xs sm:text-sm font-medium flex-1 text-left truncate">
+                <span className="text-foreground text-sm font-medium flex-1 text-left">
                   {hasCompletedTestCall ? 'Step 3 — Test call' : cardState === 'needs-verification' ? 'Activate' : 'Step 3 — Test call'}
                 </span>
                 {cardState === 'needs-verification' && !hasCompletedTestCall && (
-                  <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 bg-amber-500/20 text-amber-300 text-xs font-bold rounded-full border border-amber-400/30 flex-shrink-0">
+                  <span className="inline-flex items-center px-2 py-0.5 bg-amber-500/20 text-amber-300 text-xs font-semibold rounded-full border border-amber-400/30 flex-shrink-0">
                     Final Step
                   </span>
                 )}
-                <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform ${
+                <ChevronDown className={`w-4 h-4 transition-transform ${
                   cardState === 'needs-verification' && !hasCompletedTestCall
-                    ? 'text-amber-300'
-                    : 'text-slate-400'
+                    ? 'text-amber-500'
+                    : 'text-muted-foreground'
                 } ${expandedStep === 3 ? 'rotate-180' : ''} flex-shrink-0`} />
               </button>
               {expandedStep === 3 && (
-                <div className="p-2.5 pt-0 sm:p-3 sm:pt-0 border-t border-white/10">
-                  <div className="space-y-2">
-                    <p className="text-slate-300 text-xs sm:text-sm">
+                <div className="p-3 sm:p-4 pt-0 border-t border-border/50">
+                  <div className="space-y-3">
+                    <p className="text-muted-foreground text-sm">
                       Call your business number once to finish setup.
                     </p>
                     {business?.business_phone_number && (
-                      <div className="flex items-center gap-3 sm:gap-4 px-2 py-1">
-                        <Phone className="w-4 h-4 text-blue-300 flex-shrink-0" />
-                        <span className="text-white font-mono text-lg sm:text-xl font-semibold whitespace-nowrap">
+                      <div className="flex items-center gap-3 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                        <Phone className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                        <span className="text-foreground font-mono text-lg sm:text-xl font-semibold tabular-nums">
                           {formatPhoneNumber(business.business_phone_number)}
                         </span>
                       </div>
@@ -761,60 +759,60 @@ export default function SetupStatusCard({
 
         {/* Phone Numbers - Compact on mobile */}
         {(cardState === 'setup-complete' || cardState === 'healthy') && (
-          <div className="bg-slate-800/30 rounded-xl p-2.5 sm:p-3 border border-slate-700/30">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+          <div className="bg-muted/30 rounded-xl p-3 sm:p-4 border border-border/50">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Call Forwarding - Check actual state */}
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center flex-shrink-0 ${business?.forwarding_verified === true ? 'bg-green-500' : 'bg-gray-500'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${business?.forwarding_verified === true ? 'bg-green-500' : 'bg-muted'}`}>
                   {business?.forwarding_verified === true ? (
-                    <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   ) : (
-                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/50 rounded-full" />
+                    <div className="w-2 h-2 bg-muted-foreground/50 rounded-full" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-white text-xs sm:text-sm font-medium block truncate">Call Forwarding</span>
-                  <span className={`text-[10px] sm:text-xs block ${business?.forwarding_verified === true ? 'text-green-200' : 'text-gray-300'}`}>
+                  <span className="text-foreground text-sm font-medium block truncate">Call Forwarding</span>
+                  <span className={`text-xs block ${business?.forwarding_verified === true ? 'text-green-500' : 'text-muted-foreground'}`}>
                     {business?.forwarding_verified === true ? 'Verified' : 'Not Verified'}
                   </span>
                 </div>
               </div>
 
               {/* AI Receptionist - Check actual state */}
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center flex-shrink-0 ${business?.twilio_phone_number ? 'bg-green-500' : 'bg-gray-500'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${business?.twilio_phone_number ? 'bg-green-500' : 'bg-muted'}`}>
                   {business?.twilio_phone_number ? (
-                    <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   ) : (
-                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/50 rounded-full" />
+                    <div className="w-2 h-2 bg-muted-foreground/50 rounded-full" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-white text-xs sm:text-sm font-medium block truncate">AI Receptionist</span>
-                  <span className={`text-[10px] sm:text-xs block ${business?.twilio_phone_number ? 'text-green-200' : 'text-gray-300'}`}>
+                  <span className="text-foreground text-sm font-medium block truncate">AI Receptionist</span>
+                  <span className={`text-xs block ${business?.twilio_phone_number ? 'text-green-500' : 'text-muted-foreground'}`}>
                     {business?.twilio_phone_number ? 'Ready' : 'Not Configured'}
                   </span>
                 </div>
               </div>
 
               {/* SMS Replies - Check actual state */}
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center flex-shrink-0 ${business?.messaging_status === 'active' ? 'bg-green-500' : 'bg-gray-500'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${business?.messaging_status === 'active' ? 'bg-green-500' : 'bg-muted'}`}>
                   {business?.messaging_status === 'active' ? (
-                    <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                   ) : (
-                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/50 rounded-full" />
+                    <div className="w-2 h-2 bg-muted-foreground/50 rounded-full" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-white text-xs sm:text-sm font-medium block truncate">SMS Replies</span>
-                  <span className={`text-[10px] sm:text-xs block ${business?.messaging_status === 'active' ? 'text-green-200' : 'text-gray-300'}`}>
+                  <span className="text-foreground text-sm font-medium block truncate">SMS Replies</span>
+                  <span className={`text-xs block ${business?.messaging_status === 'active' ? 'text-green-500' : 'text-muted-foreground'}`}>
                     {business?.messaging_status === 'active' ? 'Ready' : 'Not Active'}
                   </span>
                 </div>
@@ -825,23 +823,21 @@ export default function SetupStatusCard({
 
         {/* CTA Buttons - Compact on mobile */}
         {(cardState === 'setup-complete' || cardState === 'healthy') && (
-          <div className="flex flex-col gap-2 sm:gap-3">
-            <div className="flex gap-2 sm:gap-3">
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
               <Link
                 href="/setup/phone-forwarding?mode=review"
-                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors min-h-[36px] sm:min-h-[40px]"
+                className="inline-flex items-center justify-center px-4 py-2.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-sm font-medium rounded-lg transition-colors"
               >
-                <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                <span className="hidden sm:inline">Setup</span>
-                <span className="sm:hidden">Setup</span>
+                <Settings className="w-4 h-4 mr-2" />
+                Setup
               </Link>
               <button
                 onClick={() => setIsAssistantOpen(true)}
-                className="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2.5 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs sm:text-sm font-medium rounded-lg transition-colors min-h-[36px] sm:min-h-[40px]"
+                className="inline-flex items-center justify-center px-4 py-2.5 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-sm font-medium rounded-lg transition-colors"
               >
-                <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                <span className="hidden sm:inline">Help Center</span>
-                <span className="sm:hidden">Help</span>
+                <HelpCircle className="w-4 h-4 mr-2" />
+                Help
               </button>
             </div>
           </div>
