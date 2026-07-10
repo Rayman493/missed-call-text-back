@@ -39,6 +39,7 @@ export default function PhoneForwardingPage() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [showHelpSection, setShowHelpSection] = useState(false)
   const [showTroubleshooting, setShowTroubleshooting] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
 
   // Initialize business_phone_carrier from business data if available
   useEffect(() => {
@@ -269,8 +270,11 @@ export default function PhoneForwardingPage() {
             {!isReviewMode && (
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-muted-foreground">Step 2 of 3: Connect Your Business Line</p>
-                  <p className="text-xs text-muted-foreground">Almost ready — about 1 minute left</p>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Step 2 of 3</p>
+                    <p className="text-sm font-medium text-foreground">Forward your business number</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">About 1 minute left</p>
                 </div>
                 <div className="w-full bg-muted rounded-full h-2">
                   <div className="bg-blue-600 h-2 rounded-full" style={{ width: '66%' }}></div>
@@ -363,7 +367,7 @@ export default function PhoneForwardingPage() {
                 >
                   <div className="flex items-center gap-2">
                     <Info className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                    <span className="text-sm font-medium text-slate-900 dark:text-foreground">Carrier-specific instructions</span>
+                    <span className="text-sm font-medium text-slate-900 dark:text-foreground">How do I forward my calls?</span>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-slate-600 dark:text-slate-400 transition-transform ${showHelpSection ? 'rotate-180' : ''}`} />
                 </button>
@@ -403,7 +407,7 @@ export default function PhoneForwardingPage() {
 
                     {selectedCarrier && hasValidCode && (
                       <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                        <p className="text-sm font-semibold text-foreground mb-2">{CARRIERS.find(c => c.id === selectedCarrier)?.name} forwarding code:</p>
+                        <p className="text-sm font-semibold text-foreground mb-2">Dial this from your business phone:</p>
                         <div 
                           className="bg-slate-50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 mb-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                           onClick={handleCopyCode}
@@ -496,7 +500,7 @@ export default function PhoneForwardingPage() {
               {!isReviewMode ? (
                 <div className="mt-8 space-y-3">
                   <button
-                    onClick={handleCompleteSetup}
+                    onClick={() => setShowConfirmModal(true)}
                     disabled={loading || forwardingCompleted}
                     className={`w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 dark:bg-blue-500 dark:hover:bg-blue-600 dark:disabled:bg-blue-400/50 text-white font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 ${
                       loading ? 'opacity-70 cursor-not-allowed' : forwardingCompleted ? 'bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600' : 'hover:shadow-lg'
@@ -524,7 +528,7 @@ export default function PhoneForwardingPage() {
                   <p className="text-xs text-center text-muted-foreground">
                     {forwardingCompleted
                       ? 'Proceeding to final test step...'
-                      : 'Only click after you\'ve dialed the code on your phone'}
+                      : 'Once call forwarding is enabled, continue to the next step.'}
                   </p>
                 </div>
               ) : (
@@ -581,6 +585,34 @@ export default function PhoneForwardingPage() {
             </div>
           </div>
         </div>
+
+        {showConfirmModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-md w-full p-6">
+              <h2 className="text-xl font-semibold text-foreground mb-2">Call forwarding enabled?</h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                We'll verify everything with one quick test call in the next step.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 px-4 py-3 rounded-xl border border-border text-sm font-semibold text-foreground hover:bg-muted transition-all"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={() => {
+                    setShowConfirmModal(false)
+                    handleCompleteSetup()
+                  }}
+                  className="flex-1 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm font-semibold text-white transition-all"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </BusinessGuard>
     </AuthGuard>
   )

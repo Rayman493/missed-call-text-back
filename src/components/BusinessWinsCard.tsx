@@ -240,14 +240,6 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           })
         }
 
-        // Check for 25 leads
-        if (leadCount && leadCount >= 25) {
-          earnedAchievements.push({
-            ...allAchievements.find(a => a.id === 'twenty_five_leads')!,
-            earned: true
-          })
-        }
-
         // Sort earned achievements by date (most recent first)
         earnedAchievements.sort((a, b) => {
           if (!a.earnedAt) return 1

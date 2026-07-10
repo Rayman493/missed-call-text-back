@@ -59,15 +59,17 @@ export async function GET(request: Request) {
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     
-    const pendingAmount = paymentRequests
+    const actionablePendingRequests = paymentRequests
       .filter(p => p.status === 'pending' && (!p.expires_at || new Date(p.expires_at) > now))
+
+    const pendingAmount = actionablePendingRequests
       .reduce((sum, p) => sum + p.amount_cents, 0)
 
     const paidThisMonth = paymentRequests
       .filter(p => p.status === 'paid' && new Date(p.paid_at || p.created_at) >= startOfMonth)
       .reduce((sum, p) => sum + p.amount_cents, 0)
 
-    const pendingRequests = paymentRequests.filter(p => p.status === 'pending').length
+    const pendingRequests = actionablePendingRequests.length
 
     const totalRequests = paymentRequests.filter(p => p.status !== 'cancelled' && p.status !== 'expired').length
     const paidRequests = paymentRequests.filter(p => p.status === 'paid').length

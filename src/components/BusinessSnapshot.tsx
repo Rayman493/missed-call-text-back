@@ -162,7 +162,7 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
     },
     {
       type: 'missed',
-      label: 'Missed Calls',
+      label: 'Forwarded Missed Calls',
       value: kpiData.missedCallsCaptured,
       description: 'Calls handled',
       trend: null
@@ -174,13 +174,6 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
       description: 'Responses',
       trend: null
     },
-    {
-      type: 'response',
-      label: 'Avg Response',
-      value: kpiData.avgResponseTime ? `${Math.round(kpiData.avgResponseTime / 60)}m` : '--',
-      description: kpiData.avgResponseTime ? 'Response time' : 'Not available',
-      trend: null
-    }
   ]
 
   const hasEnoughActivity = kpiData.leadsRecovered > 0 || kpiData.textsSent > 0 || kpiData.repliesReceived > 0
@@ -192,8 +185,8 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
           <h3 className="text-lg font-semibold text-foreground">Business Snapshot</h3>
           <div className="text-xs text-muted-foreground">Loading...</div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-3">
+          {[1, 2, 3].map((i) => (
             <div key={i} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2.5 animate-pulse">
               <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
               <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded"></div>
@@ -217,7 +210,7 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
           <p className="text-xs text-slate-400 mt-1">Metrics will appear once you start receiving calls</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-3">
           {kpiItems.map((item) => (
             <div
               key={item.type}

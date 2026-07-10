@@ -125,7 +125,7 @@ export async function POST(request: Request) {
     // BETA PROVISIONING: Use server-side admin client to bypass RLS
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
-      .select('id, user_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_error, provisioning_lock_id, last_provisioning_attempt_at')
+      .select('id, user_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, provisioning_status, provisioning_error, provisioning_lock_id, last_provisioning_attempt_at, provisioned_at')
       .eq('id', business_id)
       .single()
 
@@ -348,6 +348,7 @@ export async function POST(request: Request) {
             provisioning_status: 'completed',
             provisioning_lock_id: null,
             provisioning_error: null,
+            provisioned_at: business.provisioned_at || new Date().toISOString(),
             onboarding_status: 'completed' // Advance onboarding
           })
           .eq('id', business.id)

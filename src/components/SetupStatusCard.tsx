@@ -717,9 +717,9 @@ export default function SetupStatusCard({
                       Call your business number to activate ReplyFlow.
                     </p>
                     {business?.business_phone_number && (
-                      <div className="flex items-center justify-between bg-slate-700/30 rounded-lg p-2">
-                        <span className="text-blue-200 text-xs">Call:</span>
-                        <span className="text-white font-mono text-xs font-semibold">
+                      <div className="flex items-center gap-3 sm:gap-4 bg-slate-700/30 rounded-lg p-2 overflow-x-auto">
+                        <span className="text-blue-200 text-xs flex-shrink-0">Call:</span>
+                        <span className="text-white font-mono text-xs font-semibold whitespace-nowrap">
                           {formatPhoneNumber(business.business_phone_number)}
                         </span>
                       </div>

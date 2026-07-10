@@ -366,7 +366,7 @@ export default function AnalyticsContent() {
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                       <MetricCard
-                        label="Missed Calls Captured"
+                        label="Captured Leads"
                         value={metrics.missedCallsCaptured}
                         icon={Phone}
                       />

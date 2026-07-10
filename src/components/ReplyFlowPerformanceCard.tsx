@@ -109,7 +109,7 @@ export default function ReplyFlowPerformanceCard() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <MetricItem
-          label="Missed Calls Captured"
+          label="Captured Leads"
           value={metrics?.missedCallsCaptured || 0}
           icon={Phone}
           color="blue"

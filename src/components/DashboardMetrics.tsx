@@ -307,7 +307,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   const getMetricLabel = (type: string) => {
     switch (type) {
       case 'missedCalls':
-        return 'Missed Calls'
+        return 'Captured Leads'
       case 'leads':
         return 'Leads'
       case 'messages':
@@ -324,7 +324,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   const getEmptyStateText = (type: string) => {
     switch (type) {
       case 'missedCalls':
-        return 'No missed calls yet'
+        return 'No captured leads yet'
       case 'leads':
         return 'Waiting for first lead'
       case 'messages':
@@ -339,7 +339,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   const getMetricDescription = (type: string) => {
     switch (type) {
       case 'missedCalls':
-        return 'Missed calls that were captured and converted to leads'
+        return 'Leads captured from missed calls and customer inquiries'
       case 'leads':
         return 'Total leads generated from missed calls and customer inquiries'
       case 'messages':
@@ -416,7 +416,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         </div>
       </div>
 
-      {/* Missed Calls Captured - Lead generation metric */}
+      {/* Captured Leads - Lead generation metric */}
       <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-4 sm:p-6 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
         <div className="flex items-start justify-between mb-3">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-center shadow-sm">
@@ -432,15 +432,15 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           </div>
           <div className="flex items-center gap-1">
             <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
-              Missed Calls Captured
+              Captured Leads
             </div>
-            <span className="inline-flex items-center cursor-help" title="Calls missed by your business that ReplyFlow converted to leads">
+            <span className="inline-flex items-center cursor-help" title="Leads captured by ReplyFlow from missed calls and customer inquiries">
               <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
             </span>
           </div>
           {metrics.missedCallsCaptured === 0 && (
             <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
-              No missed calls yet
+              No captured leads yet
             </div>
           )}
         </div>

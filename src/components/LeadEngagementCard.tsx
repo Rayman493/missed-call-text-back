@@ -32,20 +32,25 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
       try {
         const supabase = createBrowserClient()
         
-        // Get all leads
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+        // Get leads from the last 30 days
         const { data: allLeads } = await supabase
           .from('leads')
           .select('id, created_at')
           .eq('business_id', business.id)
+          .gte('created_at', thirtyDaysAgo)
 
         const businessPhone = business.twilio_phone_number || ''
 
         // Get leads with replies (inbound messages to business phone)
         // Use dual filter for consistency with DashboardMetrics and AnalyticsContent
-        const { data: allMessages } = await supabase
+        const leadIds = allLeads?.map((l: any) => l.id) || []
+        const { data: allMessages } = leadIds.length > 0 ? await supabase
           .from('messages')
           .select('lead_id, direction, to_phone, created_at')
-          .in('lead_id', allLeads?.map((l: any) => l.id) || [])
+          .in('lead_id', leadIds)
+          .gte('created_at', thirtyDaysAgo) : { data: [] }
 
         const leadsWithReplies = allMessages?.filter((m: any) => {
           const isDirectionInbound = m.direction === 'inbound' || m.direction?.startsWith?.('inbound')

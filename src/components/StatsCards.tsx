@@ -65,12 +65,10 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           .gte('created_at', startOfMonth)
         setFollowUpsCount(followUpsCountData || 0)
 
-        // Fetch leads count for missed calls (leads = missed calls captured, this month)
         const { count: missedCallsCountData } = await supabase
-          .from('leads')
+          .from('call_events')
           .select('*', { count: 'exact', head: true })
           .eq('business_id', businessId)
-          .eq('is_demo', false)
           .gte('created_at', startOfMonth)
         setMissedCallsCount(missedCallsCountData || 0)
       } catch (error) {
@@ -207,11 +205,11 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
         {/* Missed Calls */}
         <StatCard
           value={missedCallsCount}
-          label="Missed Calls"
+          label="Forwarded Missed Calls"
           description={
             missedCallsCount === 0 
-              ? (isOnboardingComplete ? 'Customers automatically contacted after missed calls' : 'Complete setup to begin capturing missed calls') 
-              : 'Customers automatically contacted'
+              ? (isOnboardingComplete ? 'Forwarded missed calls will appear here' : 'Complete setup to begin forwarding missed calls') 
+              : 'Missed calls forwarded to ReplyFlow'
           }
           icon="📞"
           iconColor="amber"
@@ -237,7 +235,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
         {/* Conversations */}
         <StatCard
           value={conversationsCount}
-          label="Replies"
+          label="Conversations"
           description={conversationsCount === 0 ? 'Customer conversations started automatically' : 'Customer conversations started'}
           icon="💬"
           iconColor="green"
