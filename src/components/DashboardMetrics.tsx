@@ -152,7 +152,11 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         : 0
 
       // Calculate metrics - 30 days
-      const missedCallsCaptured = leads?.length || 0
+      // Exclude manual leads from captured leads count
+      const capturedLeads = leads?.filter((l: any) => 
+        l.source !== 'manual' && l.source !== 'manual_backfill'
+      ) || []
+      const missedCallsCaptured = capturedLeads.length
       const leadsGenerated = missedCallsCaptured
       const messagesSent = outboundMessages.length
       const customerReplies = inboundMessages.length
@@ -164,7 +168,11 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       const recoveryRate = missedCallsCaptured > 0 ? Math.min(100, Math.max(0, Math.round((recoveredLeadsCount / missedCallsCaptured) * 100))) : 0
 
       // Calculate metrics - today
-      const missedCallsToday = leadsToday?.length || 0
+      // Exclude manual leads from today's captured leads
+      const capturedLeadsToday = leadsToday?.filter((l: any) => 
+        l.source !== 'manual' && l.source !== 'manual_backfill'
+      ) || []
+      const missedCallsToday = capturedLeadsToday.length
       const newLeadsToday = missedCallsToday
       const messagesSentToday = messagesToday?.filter((m: any) => {
         const isDirectionOutbound = m.direction === 'outbound' || m.direction?.startsWith?.('outbound')

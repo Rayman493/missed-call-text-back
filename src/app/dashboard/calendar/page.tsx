@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -43,6 +43,7 @@ export default function SchedulePage() {
   const { business } = useBusiness()
   const supabase = createBrowserClient()
   const searchParams = useSearchParams()
+  const router = useRouter()
 
   const [calendarConnected, setCalendarConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -96,6 +97,40 @@ export default function SchedulePage() {
       } else if (calendarStatus === 'error') {
         showToast('Failed to connect Google Calendar. Please try again.', 'error')
         window.history.replaceState({}, '', '/dashboard/calendar')
+      }
+
+      // Handle return from Leads page after adding customer
+      const createJob = searchParams.get('createJob')
+      const leadId = searchParams.get('leadId')
+      if (createJob === 'true' && leadId) {
+        // Fetch the lead details and prefill for job creation
+        const fetchLeadAndCreateJob = async () => {
+          try {
+            const response = await fetch(`/api/leads/${leadId}`)
+            if (response.ok) {
+              const data = await response.json()
+              const lead = data.lead
+              if (lead) {
+                // Set job prefill from lead
+                setJobPrefill({
+                  customer_name: lead.customer_name || lead.caller_name,
+                  customer_phone: lead.phone || lead.caller_phone,
+                  service_address: lead.address,
+                  lead_id: lead.id,
+                  conversation_id: lead.conversation_id,
+                })
+                // Open job composer
+                setIsJobComposerOpen(true)
+                // Clear URL params
+                window.history.replaceState({}, '', '/dashboard/calendar')
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching lead for job creation:', error)
+            showToast('Failed to load customer details. Please try again.', 'error')
+          }
+        }
+        fetchLeadAndCreateJob()
       }
     }
   }, [searchParams])
@@ -1133,11 +1168,11 @@ export default function SchedulePage() {
                   <NewJobModal
                     isOpen={isNewJobModalOpen}
                     onClose={() => setIsNewJobModalOpen(false)}
-                    onSelectManual={() => {
-                      setJobPrefill(undefined)
-                      setIsJobComposerOpen(true)
-                    }}
                     onSelectLead={() => setIsLeadPickerOpen(true)}
+                    onAddCustomer={() => {
+                      // Navigate to Leads page with return intent
+                      router.push('/dashboard/leads?addCustomer=true&returnTo=calendar')
+                    }}
                   />
 
                   {/* Lead Picker Modal */}
@@ -1227,7 +1262,7 @@ export default function SchedulePage() {
                     onClose={() => setIsConnectConfirmOpen(false)}
                     onConfirm={handleConnectCalendarConfirmed}
                     title="Connect Google Calendar"
-                    description="We'll sync your calendar to show appointments when scheduling with leads. We only read your calendar, never modify it."
+                    description="Connect Google Calendar to keep your ReplyFlow schedule in sync. ReplyFlow can view your calendar and create, update, or remove calendar events for jobs and appointments you manage in ReplyFlow."
                     confirmText="Connect"
                     cancelText="Cancel"
                     isDestructive={false}

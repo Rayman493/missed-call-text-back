@@ -205,6 +205,17 @@ export default function LeadsPage() {
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null)
   const [deletedFilter, setDeletedFilter] = useState(false)
 
+  // Handle query parameters for return flow
+  const addCustomer = searchParams?.get('addCustomer')
+  const returnTo = searchParams?.get('returnTo')
+
+  // Auto-open AddCustomerModal if addCustomer=true
+  useEffect(() => {
+    if (addCustomer === 'true' && !showAddCustomerModal) {
+      setShowAddCustomerModal(true)
+    }
+  }, [addCustomer, showAddCustomerModal])
+
   const supabase = createBrowserClient()
 
   // Determine if onboarding is fully complete using derived logic
@@ -1784,6 +1795,7 @@ export default function LeadsPage() {
     <AddCustomerModal
       isOpen={showAddCustomerModal}
       onClose={() => setShowAddCustomerModal(false)}
+      returnTo={returnTo || undefined}
     />
     {showDeleteModal && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

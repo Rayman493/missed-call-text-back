@@ -6,15 +6,15 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 interface NewJobModalProps {
   isOpen: boolean
   onClose: () => void
-  onSelectManual: () => void
   onSelectLead: () => void
+  onAddCustomer: () => void
 }
 
 export default function NewJobModal({
   isOpen,
   onClose,
-  onSelectManual,
   onSelectLead,
+  onAddCustomer,
 }: NewJobModalProps) {
   useBodyScrollLock(isOpen)
 
@@ -40,27 +40,11 @@ export default function NewJobModal({
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
             {/* Prompt */}
             <div className="px-4 pt-2.5 pb-0.5">
-              <p className="text-sm text-slate-400">How would you like to create this job?</p>
+              <p className="text-sm text-slate-400">Select a customer to create a job for</p>
             </div>
 
             {/* Options */}
             <div className="px-4 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] space-y-2">
-            {/* Manual Job */}
-            <button
-              onClick={() => { onClose(); onSelectManual() }}
-              className="w-full flex items-start gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.025] hover:border-blue-400/50 hover:bg-blue-500/10 transition-all text-left group active:scale-[0.99]"
-            >
-              <div className="w-8 h-8 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 flex items-center justify-center flex-shrink-0 transition-colors ring-1 ring-blue-400/15">
-                <FileText className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-white">Create Manually</p>
-                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                  Enter customer and job details from scratch.
-                </p>
-              </div>
-            </button>
-
             {/* Existing Lead */}
             <button
               onClick={() => { onClose(); onSelectLead() }}
@@ -70,9 +54,25 @@ export default function NewJobModal({
                 <Users className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Use Existing Lead</p>
+                <p className="text-sm font-semibold text-white">Select Existing Customer</p>
                 <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                  Prefill a job from a ReplyFlow lead or caller.
+                  Choose from your existing leads and customers.
+                </p>
+              </div>
+            </button>
+
+            {/* Add New Customer */}
+            <button
+              onClick={() => { onClose(); onAddCustomer() }}
+              className="w-full flex items-start gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.025] hover:border-blue-400/50 hover:bg-blue-500/10 transition-all text-left group active:scale-[0.99]"
+            >
+              <div className="w-8 h-8 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 flex items-center justify-center flex-shrink-0 transition-colors ring-1 ring-blue-400/15">
+                <FileText className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Add New Customer</p>
+                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                  Add a new customer in Leads, then create the job.
                 </p>
               </div>
             </button>

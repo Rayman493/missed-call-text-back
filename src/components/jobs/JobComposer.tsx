@@ -108,6 +108,13 @@ export default function JobComposer({
       setError('Job title is required')
       return
     }
+    
+    // Require lead_id for new jobs (not edits)
+    if (!editJob && !prefill?.lead_id) {
+      setError('A customer must be selected to create a job. Please select a customer from the Leads page first.')
+      return
+    }
+    
     setError('')
     setIsSaving(true)
     try {

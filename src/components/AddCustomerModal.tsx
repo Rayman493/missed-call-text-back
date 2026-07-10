@@ -9,9 +9,10 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 interface AddCustomerModalProps {
   isOpen: boolean
   onClose: () => void
+  returnTo?: string
 }
 
-export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalProps) {
+export default function AddCustomerModal({ isOpen, onClose, returnTo }: AddCustomerModalProps) {
   const router = useRouter()
   const { business } = useBusiness()
   const supabase = createBrowserClient()
@@ -95,9 +96,15 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
         notes: ''
       })
 
-      // Redirect to lead detail page
+      // Redirect based on returnTo parameter
       if (data.leadId) {
-        router.push(`/dashboard/leads/${data.leadId}`)
+        if (returnTo === 'calendar') {
+          // Return to calendar page with the new lead selected for job creation
+          router.push('/dashboard/calendar?createJob=true&leadId=' + data.leadId)
+        } else {
+          // Default: redirect to lead detail page
+          router.push(`/dashboard/leads/${data.leadId}`)
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Failed to add customer')

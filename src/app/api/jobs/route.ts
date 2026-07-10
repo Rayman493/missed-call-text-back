@@ -88,6 +88,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
+    // Require lead_id for job creation
+    if (!lead_id) {
+      return NextResponse.json({ error: 'A customer (lead) must be selected to create a job. Please select a customer from the Leads page first.' }, { status: 400 })
+    }
+
+    // Verify the lead belongs to the authenticated business
+    const { data: lead, error: leadError } = await supabase
+      .from('leads')
+      .select('id, business_id, deleted_at')
+      .eq('id', lead_id)
+      .single()
+
+    if (leadError || !lead) {
+      return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
+    }
+
+    if (lead.business_id !== business.id) {
+      return NextResponse.json({ error: 'Lead does not belong to your business' }, { status: 403 })
+    }
+
+    if (lead.deleted_at) {
+      return NextResponse.json({ error: 'Lead has been deleted' }, { status: 400 })
+    }
+
     const { data: job, error } = await supabase
       .from('jobs')
       .insert({
