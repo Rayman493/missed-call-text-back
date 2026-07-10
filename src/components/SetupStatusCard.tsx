@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { Business } from '@/lib/types'
 import { hasActiveSubscription, hasActiveTrial, deriveSetupState } from '@/lib/subscription-utils'
-import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Settings, Loader2, HelpCircle, X } from 'lucide-react'
+import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Settings, Loader2, HelpCircle, X, Phone } from 'lucide-react'
 import { formatPhoneNumber } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
@@ -717,9 +717,9 @@ export default function SetupStatusCard({
                       Call your business number to activate ReplyFlow.
                     </p>
                     {business?.business_phone_number && (
-                      <div className="flex items-center gap-3 sm:gap-4 bg-slate-700/30 rounded-lg p-2 overflow-x-auto">
-                        <span className="text-blue-200 text-xs flex-shrink-0">Call:</span>
-                        <span className="text-white font-mono text-xs font-semibold whitespace-nowrap">
+                      <div className="flex items-center gap-3 sm:gap-4 px-2 py-1">
+                        <Phone className="w-4 h-4 text-blue-300 flex-shrink-0" />
+                        <span className="text-white font-mono text-sm sm:text-base font-semibold whitespace-nowrap">
                           {formatPhoneNumber(business.business_phone_number)}
                         </span>
                       </div>
