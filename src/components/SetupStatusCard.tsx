@@ -714,12 +714,12 @@ export default function SetupStatusCard({
                 <div className="p-2.5 pt-0 sm:p-3 sm:pt-0 border-t border-white/10">
                   <div className="space-y-2">
                     <p className="text-slate-300 text-xs sm:text-sm">
-                      Call your business number to activate ReplyFlow.
+                      Call your business number once to finish setup.
                     </p>
                     {business?.business_phone_number && (
                       <div className="flex items-center gap-3 sm:gap-4 px-2 py-1">
                         <Phone className="w-4 h-4 text-blue-300 flex-shrink-0" />
-                        <span className="text-white font-mono text-sm sm:text-base font-semibold whitespace-nowrap">
+                        <span className="text-white font-mono text-lg sm:text-xl font-semibold whitespace-nowrap">
                           {formatPhoneNumber(business.business_phone_number)}
                         </span>
                       </div>
