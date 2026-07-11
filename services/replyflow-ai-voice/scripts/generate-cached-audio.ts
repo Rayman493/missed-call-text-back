@@ -1,5 +1,9 @@
 import WebSocket from 'ws';
 import fetch from 'node-fetch';
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -42,35 +46,49 @@ function pcmToMulaw(pcmData: Float32Array): Buffer {
   return Buffer.from(muLawData);
 }
 
-// Cubic interpolation for resampling
-function cubicInterpolate(samples: Float32Array, position: number): number {
-  const i = Math.floor(position);
-  const frac = position - i;
-  const p0 = samples[Math.max(0, i - 1)];
-  const p1 = samples[i];
-  const p2 = samples[Math.min(samples.length - 1, i + 1)];
-  const p3 = samples[Math.min(samples.length - 1, i + 2)];
+// Windowed-sinc resampler with built-in anti-aliasing
+function windowedSincResample(samples: Float32Array, fromRate: number, toRate: number): Float32Array {
+  const ratio = fromRate / toRate;
+  const outputLength = Math.floor(samples.length / ratio);
+  const result = new Float32Array(outputLength);
 
-  const a0 = p3 - p2 - p0 + p1;
-  const a1 = p0 - p1 - a0;
-  const a2 = p2 - p0;
-  const a3 = p1;
-
-  return a0 * frac * frac * frac + a1 * frac * frac + a2 * frac + a3;
-}
-
-// Low-pass filter
-function applyLowPassFilter(samples: Float32Array, sampleRate: number, cutoffHz: number): Float32Array {
-  const filtered = new Float32Array(samples.length);
-  const rc = 1.0 / (cutoffHz * 2 * Math.PI);
-  const dt = 1.0 / sampleRate;
-  const alpha = dt / (rc + dt);
-
-  filtered[0] = samples[0];
-  for (let i = 1; i < samples.length; i++) {
-    filtered[i] = alpha * samples[i] + (1 - alpha) * filtered[i - 1];
+  // Windowed-sinc filter parameters
+  const kernelSize = 16; // Number of samples on each side
+  const cutoff = 0.9; // Cutoff frequency (normalized, < 1.0 to prevent aliasing)
+  
+  // Pre-compute sinc kernel
+  const kernel = new Float32Array(kernelSize * 2 + 1);
+  for (let i = -kernelSize; i <= kernelSize; i++) {
+    if (i === 0) {
+      kernel[i + kernelSize] = 1.0;
+    } else {
+      const x = i * Math.PI * cutoff;
+      kernel[i + kernelSize] = Math.sin(x) / x;
+    }
+    // Apply Hamming window
+    kernel[i + kernelSize] *= 0.54 + 0.46 * Math.cos(Math.PI * i / kernelSize);
   }
-  return filtered;
+
+  // Resample using windowed-sinc interpolation
+  for (let i = 0; i < outputLength; i++) {
+    const srcPos = i * ratio;
+    const srcIndex = Math.floor(srcPos);
+    const frac = srcPos - srcIndex;
+
+    let sum = 0;
+    for (let k = -kernelSize; k <= kernelSize; k++) {
+      const srcIdx = srcIndex + k;
+      if (srcIdx >= 0 && srcIdx < samples.length) {
+        const kernelIdx = Math.round(k - frac) + kernelSize;
+        if (kernelIdx >= 0 && kernelIdx < kernel.length) {
+          sum += samples[srcIdx] * kernel[kernelIdx];
+        }
+      }
+    }
+    result[i] = sum;
+  }
+
+  return result;
 }
 
 async function generateCachedAudio() {
@@ -98,12 +116,30 @@ async function generateCachedAudio() {
 
   // Also write to file
   const fs = require('fs');
+  const crypto = require('crypto');
+  
+  // Generate checksums for each asset
+  const checksums: Record<string, string> = {};
+  for (const [key, value] of Object.entries(results)) {
+    checksums[key] = crypto.createHash('sha256').update(value).digest('hex');
+  }
+  
   const output = `// Cached PCMU audio for Simple Mode prompts
+// Generated with windowed-sinc resampler (v2)
+// Generation date: ${new Date().toISOString()}
+export const CACHED_AUDIO_GENERATION_VERSION = "resampler-v2";
+export const CACHED_AUDIO_GENERATED_AT = "${new Date().toISOString()}";
+
 export const cachedPromptAudio = {
 ${Object.entries(results).map(([key, value]) => `  ${key}: \`${value}\`,`).join('\n')}
+} as const;
+
+export const cachedAudioChecksums = {
+${Object.entries(checksums).map(([key, value]) => `  ${key}: "${value}",`).join('\n')}
 } as const;`;
   fs.writeFileSync('src/cached-audio.ts', output);
   console.log('\n✓ Wrote to src/cached-audio.ts');
+  console.log('✓ Added version tracking and checksums');
 }
 
 async function generateSingleAudio(prompt: string): Promise<string | null> {
@@ -139,20 +175,8 @@ async function generateSingleAudio(prompt: string): Promise<string | null> {
       pcmData[i] = sample / 32768.0;
     }
 
-    // Apply low-pass filter
-    const lowPassFiltered = applyLowPassFilter(pcmData, 24000, 3400);
-
-    // Resample to 8kHz
-    const targetSampleRate = 8000;
-    const sourceSampleRate = 24000;
-    const ratio = sourceSampleRate / targetSampleRate;
-    const newLength = Math.floor(lowPassFiltered.length / ratio);
-    const resampledPcm = new Float32Array(newLength);
-
-    for (let i = 0; i < newLength; i++) {
-      const srcIndex = i * ratio;
-      resampledPcm[i] = cubicInterpolate(lowPassFiltered, srcIndex);
-    }
+    // Resample from 24kHz to 8kHz using windowed-sinc (built-in anti-aliasing)
+    const resampledPcm = windowedSincResample(pcmData, 24000, 8000);
 
     // Convert to μ-law
     const mulawBuffer = pcmToMulaw(resampledPcm);

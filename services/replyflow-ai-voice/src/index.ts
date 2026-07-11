@@ -49,7 +49,7 @@ import { OpenAIRealtimeClient } from './openai-client';
 import { TwilioStreamHandler } from './twilio-stream';
 import { createClient } from '@supabase/supabase-js';
 import audioDecode from 'audio-decode';
-import { cachedPromptAudio } from './cached-audio';
+import { cachedPromptAudio, CACHED_AUDIO_GENERATION_VERSION, CACHED_AUDIO_GENERATED_AT } from './cached-audio';
 import {
   IntakeTemplate,
   AI_INTAKE_TEMPLATES,
@@ -137,6 +137,33 @@ console.log('[AUDIO QUALITY FIX] Cached prompts: direct PCMU passthrough');
 console.log('[AUDIO QUALITY FIX] Live AI audio: direct PCMU passthrough');
 console.log('[AUDIO QUALITY FIX] Timestamp:', new Date().toISOString());
 console.log('[AUDIO QUALITY FIX] =========================================');
+
+// Cached audio version validation
+console.log('[CACHED AUDIO VALIDATION] =========================================');
+console.log('[CACHED AUDIO VALIDATION] generationVersion:', CACHED_AUDIO_GENERATION_VERSION);
+console.log('[CACHED AUDIO VALIDATION] generatedAt:', CACHED_AUDIO_GENERATED_AT);
+const crypto = require('crypto');
+for (const [key, base64Audio] of Object.entries(cachedPromptAudio)) {
+  const buffer = Buffer.from(base64Audio, 'base64');
+  const checksum = crypto.createHash('sha256').update(buffer).digest('hex');
+  const expectedDuration = (buffer.length / 160 * 0.02).toFixed(3);
+  console.log(`[CACHED AUDIO VALIDATION] promptKey: ${key}`);
+  console.log(`[CACHED AUDIO VALIDATION] byteLength: ${buffer.length}`);
+  console.log(`[CACHED AUDIO VALIDATION] expectedDurationMs: ${expectedDuration}`);
+  console.log(`[CACHED AUDIO VALIDATION] checksum: ${checksum}`);
+  
+  // Validate asset integrity
+  if (buffer.length === 0) {
+    console.error(`[CACHED AUDIO VALIDATION] ERROR: ${key} has zero byte length`);
+    process.exit(1);
+  }
+  if (expectedDuration === '0.000') {
+    console.error(`[CACHED AUDIO VALIDATION] ERROR: ${key} has zero duration`);
+    process.exit(1);
+  }
+}
+console.log('[CACHED AUDIO VALIDATION] All cached assets validated successfully');
+console.log('[CACHED AUDIO VALIDATION] =========================================');
 
 // Explicit build marker for speech path refactoring
 console.log('[AI VOICE BUILD MARKER] =========================================');
