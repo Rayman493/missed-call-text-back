@@ -60,7 +60,6 @@ import {
 } from './intake-templates';
 import { testFallbacks, warnIfTestFallbacksActive } from './test-fallbacks';
 import { OPENAI_REALTIME_MODEL, createOpenAIRealtimeUrl } from './realtime-model';
-import { applyPcmuOutputHeadroom } from './audio-quality';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -130,6 +129,14 @@ console.log('[AI VOICE BUILD INFO] deployVersion:', 'app-driven-intake-v3');
 console.log('[AI VOICE BUILD INFO] appDrivenIntakeEnabled:', true);
 console.log('[AI VOICE BUILD INFO] nodeEnv:', process.env.NODE_ENV || 'development');
 console.log('[AI VOICE BUILD INFO] =========================================');
+
+// Audio quality fix marker
+console.log('[AUDIO QUALITY FIX] =========================================');
+console.log('[AUDIO QUALITY FIX] Double PCMU encoding removed');
+console.log('[AUDIO QUALITY FIX] Cached prompts: direct PCMU passthrough');
+console.log('[AUDIO QUALITY FIX] Live AI audio: direct PCMU passthrough');
+console.log('[AUDIO QUALITY FIX] Timestamp:', new Date().toISOString());
+console.log('[AUDIO QUALITY FIX] =========================================');
 
 // Explicit build marker for speech path refactoring
 console.log('[AI VOICE BUILD MARKER] =========================================');
@@ -5728,11 +5735,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     }
 
     const sendStart = Date.now();
-    const adjustedAudio = applyPcmuOutputHeadroom(combined);
     const mediaMessage = {
       event: 'media',
       streamSid,
-      media: { payload: adjustedAudio.toString('base64') }
+      media: { payload: combined.toString('base64') }
     };
     ws.send(JSON.stringify(mediaMessage));
     const sendLatencyMs = Date.now() - sendStart;
@@ -5743,7 +5749,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         bytes: combined.length,
         chunks: state.audioChunkCount,
         flushCount: state.audioFlushCount,
-        sendLatencyMs
+        sendLatencyMs,
+        audioPath: 'direct_pcmu_passthrough'
       });
     }
   };
@@ -6654,6 +6661,7 @@ Reply to this message if you'd like to update or add any information.
         console.log('[AUDIO TIMING] expectedChunks:', expectedChunks);
         console.log('[AUDIO TIMING] expectedDurationMs:', expectedChunks * 20);
         console.log('[AUDIO TIMING] assistantSpeaking:', state.assistantSpeaking);
+        console.log('[AUDIO TIMING] audioPath: direct_pcmu_passthrough');
         console.log('[AUDIO TIMING] =========================================');
 
         for (let i = 0; i < audioBuffer.length; i += chunkSize) {
@@ -6669,8 +6677,7 @@ Reply to this message if you'd like to update or add any information.
           }
 
           const rawChunk = audioBuffer.slice(i, i + chunkSize);
-          const adjustedChunk = applyPcmuOutputHeadroom(rawChunk);
-          const base64Chunk = adjustedChunk.toString('base64');
+          const base64Chunk = rawChunk.toString('base64');
           const mediaMessage = {
             event: 'media',
             streamSid: state.streamSid,
