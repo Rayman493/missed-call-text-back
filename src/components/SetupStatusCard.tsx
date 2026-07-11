@@ -722,11 +722,11 @@ export default function SetupStatusCard({
                     ? 'text-foreground text-sm font-semibold'
                     : 'text-foreground text-sm font-medium'
                 }`}>
-                  {hasCompletedTestCall ? 'Step 3 — Test call' : cardState === 'needs-verification' ? 'Activate' : 'Step 3 — Test call'}
+                  {hasCompletedTestCall ? 'Step 3 — Test call' : cardState === 'needs-verification' ? 'Test Your Setup' : 'Step 3 — Test call'}
                 </span>
                 {cardState === 'needs-verification' && !hasCompletedTestCall && (
                   <span className="inline-flex items-center px-2 py-0.5 bg-muted/60 text-muted-foreground text-xs font-medium rounded-md border border-border/50 flex-shrink-0">
-                    Final Step
+                    Final Test
                   </span>
                 )}
                 <ChevronDown className={`w-4 h-4 transition-transform ${
@@ -739,7 +739,7 @@ export default function SetupStatusCard({
                 <div className="p-3 sm:p-4 pt-0 border-t border-border/50">
                   <div className="space-y-4">
                     <p className="text-muted-foreground text-sm">
-                      Call your business number once to finish setup.
+                      From another phone, call your business number once to test your setup.
                     </p>
                     {business?.business_phone_number && (
                       <div className="space-y-2">
@@ -750,7 +750,10 @@ export default function SetupStatusCard({
                           </span>
                         </div>
                         <p className="text-muted-foreground text-xs pl-10">
-                          Call this number once to complete setup.
+                          This confirms your call forwarding is working correctly.
+                        </p>
+                        <p className="text-muted-foreground text-xs pl-10">
+                          Use any phone other than your business phone.
                         </p>
                       </div>
                     )}

@@ -442,7 +442,7 @@ export default function OnboardingPage() {
                 <p className="text-sm text-blue-200 font-medium mb-1">Dedicated business number works best</p>
                 <p className="text-xs text-blue-300 mb-2">A separate business line lets ReplyFlow handle every missed customer call automatically.</p>
                 <p className="text-sm text-blue-200 font-medium mb-1">Personal phones work too</p>
-                <p className="text-xs text-blue-300 leading-relaxed">If you use one phone for both, you can add personal contacts to Ignored Contacts so ReplyFlow stays out of those conversations.</p>
+                <p className="text-xs text-blue-300 leading-relaxed">If you use one phone for both, add personal contacts to Ignored Contacts. Their calls stay separate from your customer workflow, and their voicemails appear in Personal Voicemail.</p>
               </div>
             </div>
           </div>

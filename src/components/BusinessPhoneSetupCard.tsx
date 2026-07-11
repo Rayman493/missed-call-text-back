@@ -225,7 +225,7 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
             <div className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
               <p><strong>Step 1:</strong> On your business phone, dial the code above</p>
               <p><strong>Step 2:</strong> Save the forwarding settings</p>
-              <p><strong>Step 3:</strong> Test by calling your business number and letting it go unanswered</p>
+              <p><strong>Step 3:</strong> From another phone, call your business number and let it go unanswered</p>
             </div>
           </div>
         )}
