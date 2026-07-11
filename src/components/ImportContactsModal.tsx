@@ -23,7 +23,7 @@ interface ImportStats {
 interface ImportContactsModalProps {
   isOpen: boolean
   onClose: () => void
-  onImportSuccess: () => void
+  onImportSuccess: (message: string) => void
 }
 
 export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }: ImportContactsModalProps) {
@@ -126,7 +126,19 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
         throw new Error(data.error || 'Failed to import contacts')
       }
 
-      onImportSuccess()
+      // Build success message
+      let successMessage = ''
+      if (data.imported > 0 && data.skipped === 0) {
+        successMessage = `${data.imported} contact${data.imported === 1 ? '' : 's'} added.`
+      } else if (data.imported > 0 && data.skipped > 0) {
+        successMessage = `${data.imported} added. ${data.skipped} already existed.`
+      } else if (data.imported === 0 && data.skipped > 0) {
+        successMessage = `${data.skipped} already existed.`
+      } else {
+        successMessage = 'No valid phone numbers found.'
+      }
+
+      onImportSuccess(successMessage)
       onClose()
       setPreview(null)
       setStats(null)

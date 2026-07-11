@@ -77,11 +77,13 @@ export default function SettingsContent() {
   const [isAdding, setIsAdding] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState('')
   const [label, setLabel] = useState('')
-  const [contactType, setContactType] = useState('spam')
-  const [reason, setReason] = useState('')
 
   // Import contacts modal state
   const [showImportModal, setShowImportModal] = useState(false)
+  const handleImportSuccess = (message: string) => {
+    fetchIgnoredContacts()
+    showToast(message, 'success')
+  }
 
   // Change password modal state
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
@@ -437,8 +439,7 @@ export default function SettingsContent() {
         body: JSON.stringify({
           phoneNumber,
           label: label.trim() || null,
-          type: contactType,
-          reason: reason.trim() || 'Added manually in settings'
+          reason: 'Added manually in settings'
         })
       })
 
@@ -454,11 +455,9 @@ export default function SettingsContent() {
       // Reset form
       setPhoneNumber('')
       setLabel('')
-      setContactType('spam')
-      setReason('')
       setShowAddModal(false)
       
-      showToast('Contact added to ignore list', 'success')
+      showToast('Contact added', 'success')
     } catch (error) {
       console.error('Error adding ignored contact:', error)
       showToast(error instanceof Error ? error.message : 'Failed to add ignored contact', 'error')
@@ -2655,43 +2654,20 @@ export default function SettingsContent() {
                   </div>
                   <div>
                     <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
-                      Label
+                      Label (optional)
                     </label>
                     <input
                       type="text"
                       value={label}
                       onChange={(e) => setLabel(e.target.value)}
                       className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground"
-                      placeholder="Optional label (e.g., 'John Doe')"
+                      placeholder="e.g., John Doe"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
-                      Type
-                    </label>
-                    <select
-                      value={contactType}
-                      onChange={(e) => setContactType(e.target.value)}
-                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-slate-900 dark:text-foreground"
-                    >
-                      <option value="spam">Spam</option>
-                      <option value="personal">Personal</option>
-                      <option value="employee">Employee</option>
-                      <option value="vendor">Vendor</option>
-                      <option value="existing_customer">Existing Customer</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
-                      Notes/Reason
-                    </label>
-                    <textarea
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      rows={2}
-                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground resize-none"
-                      placeholder="Optional notes"
-                    />
+                  <div className="p-3 bg-blue-50/70 dark:bg-blue-900/15 border border-blue-200/70 dark:border-blue-800/60 rounded-lg">
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      Numbers added here stay out of your customer workflow. Any voicemail they leave will appear separately in Personal Voicemail.
+                    </p>
                   </div>
                 </div>
                 <div className="flex-shrink-0 flex justify-end gap-3 p-4 sm:p-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-6 border-t border-border/60">
@@ -2700,8 +2676,6 @@ export default function SettingsContent() {
                       setShowAddModal(false)
                       setPhoneNumber('')
                       setLabel('')
-                      setContactType('spam')
-                      setReason('')
                     }}
                     disabled={isAdding}
                     className="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
@@ -2816,10 +2790,7 @@ export default function SettingsContent() {
           <ImportContactsModal
             isOpen={showImportModal}
             onClose={() => setShowImportModal(false)}
-            onImportSuccess={() => {
-              fetchIgnoredContacts()
-              showToast('Contacts imported successfully', 'success')
-            }}
+            onImportSuccess={handleImportSuccess}
           />
 
           {/* Calendar Disconnect Confirmation Modal */}

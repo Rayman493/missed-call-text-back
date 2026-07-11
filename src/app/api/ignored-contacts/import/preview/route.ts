@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
-import { normalizePhoneNumber } from '@/lib/twilio';
+import { normalizePhoneNumber, phoneNumbersMatch } from '@/lib/phone-utils';
 
 interface ContactPreview {
   name: string | null;
@@ -107,28 +107,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for duplicates in database
-    const normalizedPhones = contacts
-      .filter(c => c.status === 'valid')
-      .map(c => c.phoneNormalized);
+    const validContacts = contacts.filter(c => c.status === 'valid');
     
-    if (normalizedPhones.length > 0) {
+    if (validContacts.length > 0) {
       const { data: existingContacts } = await supabase
         .from('ignored_contacts')
         .select('phone_number')
-        .eq('business_id', business.id)
-        .in('phone_number', normalizedPhones);
+        .eq('business_id', business.id);
 
-      const existingPhones = new Set(existingContacts?.map(c => c.phone_number) || []);
+      const existingPhones = existingContacts?.map(c => c.phone_number) || [];
 
-      // Mark duplicates
+      // Mark duplicates using phoneNumbersMatch for better matching
       contacts = contacts.map(contact => {
-        if (contact.status === 'valid' && existingPhones.has(contact.phoneNormalized)) {
-          return {
-            ...contact,
-            status: 'duplicate' as const,
-            reason: 'Already in ignored contacts',
-            selected: false
-          };
+        if (contact.status === 'valid') {
+          const isDuplicate = existingPhones.some(existingPhone => 
+            phoneNumbersMatch(contact.phoneNormalized, existingPhone)
+          );
+          if (isDuplicate) {
+            return {
+              ...contact,
+              status: 'duplicate' as const,
+              reason: 'Already in ignored contacts',
+              selected: false
+            };
+          }
         }
         return contact;
       });

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase/admin';
-import { normalizePhoneNumber } from '@/lib/twilio';
+import { normalizePhoneNumber } from '@/lib/phone-utils';
 
 export async function GET(request: NextRequest) {
   try {

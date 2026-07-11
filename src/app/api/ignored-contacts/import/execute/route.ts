@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
+import { phoneNumbersMatch } from '@/lib/phone-utils';
 
 interface ContactImport {
   name: string | null;
@@ -50,13 +51,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No valid contacts selected for import' }, { status: 400 });
     }
 
+    // Get existing contacts for duplicate check
+    const { data: existingContacts } = await supabase
+      .from('ignored_contacts')
+      .select('phone_number')
+      .eq('business_id', business.id);
+
+    const existingPhones = existingContacts?.map(c => c.phone_number) || [];
+
+    // Filter out duplicates before inserting
+    const contactsToInsert = contactsToImport.filter(contact => {
+      return !existingPhones.some(existingPhone => 
+        phoneNumbersMatch(contact.phoneNormalized, existingPhone)
+      );
+    });
+
+    if (contactsToInsert.length === 0) {
+      return NextResponse.json({
+        imported: 0,
+        skipped: contactsToImport.length,
+        total: contactsToImport.length
+      });
+    }
+
     // Insert contacts in batches
     const batchSize = 100;
     let importedCount = 0;
-    let skippedCount = 0;
 
-    for (let i = 0; i < contactsToImport.length; i += batchSize) {
-      const batch = contactsToImport.slice(i, i + batchSize);
+    for (let i = 0; i < contactsToInsert.length; i += batchSize) {
+      const batch = contactsToInsert.slice(i, i + batchSize);
       
       const inserts = batch.map(contact => ({
         business_id: business.id,
@@ -76,6 +99,8 @@ export async function POST(request: NextRequest) {
         importedCount += inserts.length;
       }
     }
+
+    const skippedCount = contactsToImport.length - importedCount;
 
     return NextResponse.json({
       imported: importedCount,
