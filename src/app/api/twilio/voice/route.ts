@@ -222,7 +222,12 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
 
   try {
     console.log('[VOICE WEBHOOK] Starting call processing');
-    console.log('[VOICE WEBHOOK] Headers:', Object.fromEntries(request.headers.entries()));
+    console.log('[VOICE WEBHOOK] Safe metadata:', {
+      contentType: request.headers.get('content-type'),
+      hasTwilioSignature: request.headers.has('x-twilio-signature'),
+      callSid: request.headers.get('x-twilio-call-sid')?.substring(0, 8) || 'unknown',
+      timestamp: new Date().toISOString()
+    });
     
     // Extract params based on HTTP method
     let params: any;

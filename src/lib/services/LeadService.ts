@@ -17,7 +17,7 @@ export interface CreateLeadOptions {
   name?: string
   email?: string
   status?: string
-  source?: string
+  source?: string // Deprecated: stored in raw_metadata.creation_source
   raw_metadata?: Record<string, any>
   callSid?: string // For idempotency guard
 }
@@ -201,11 +201,11 @@ export class LeadService {
       business_id,
       caller_phone: normalizedPhone,
       status: leadData.status || 'new',
-      source: leadData.source || 'ai_voice',
       name: leadData.name,
       email: leadData.email,
       raw_metadata: {
         ...leadData.raw_metadata,
+        creation_source: leadData.source || 'ai_voice',
         callSid: callSid
       }
     }

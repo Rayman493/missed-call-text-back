@@ -5,6 +5,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
 import { MessageCircle, ChevronDown, ChevronUp, Pencil, X, Check, Loader2, User, FileText, MapPin, Calendar, Phone } from 'lucide-react'
 import { normalizeExtractedInfo, getLeadAIIntake, getAIIntakeStatus } from '@/lib/ai-field-mapping'
+import { normalizeAITranscript } from '@/lib/transcript-normalization'
 
 interface AICallRecord {
   id: string
@@ -827,32 +828,42 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           {fullTranscriptExpanded && (
             <div className="px-4 pb-4 pt-2 border-t border-border/50">
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {aiCallRecord.transcript.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`flex gap-3 ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
-                  >
-                    {message.role === 'assistant' && (
-                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm">🤖</span>
+                {(() => {
+                  const messages = normalizeAITranscript(aiCallRecord.transcript);
+                  if (messages.length === 0) {
+                    return (
+                      <div className="text-sm text-muted-foreground py-4 text-center">
+                        Full conversation unavailable
                       </div>
-                    )}
+                    );
+                  }
+                  return messages.map((message, index) => (
                     <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
-                        message.role === 'assistant'
-                          ? 'bg-slate-100 dark:bg-slate-800 text-foreground'
-                          : 'bg-blue-600 text-white'
-                      }`}
+                      key={message.id || index}
+                      className={`flex gap-3 ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
                     >
-                      <p className="text-sm leading-relaxed">{message.text}</p>
-                    </div>
-                    {message.role === 'user' && (
-                      <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm">👤</span>
+                      {message.role === 'assistant' && (
+                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm">🤖</span>
+                        </div>
+                      )}
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                          message.role === 'assistant'
+                            ? 'bg-slate-100 dark:bg-slate-800 text-foreground'
+                            : 'bg-blue-600 text-white'
+                        }`}
+                      >
+                        <p className="text-sm leading-relaxed">{message.content}</p>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {message.role !== 'assistant' && (
+                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm">👤</span>
+                        </div>
+                      )}
+                    </div>
+                  ));
+                })()}
               </div>
             </div>
           )}

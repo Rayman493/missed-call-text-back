@@ -5,6 +5,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime } from '@/lib/utils'
 import { formatAiIntakeSummary } from '@/lib/ai-intake-formatter'
 import { Phone, ChevronDown } from 'lucide-react'
+import { normalizeAITranscript } from '@/lib/transcript-normalization'
 
 interface AICallRecord {
   id: string
@@ -262,14 +263,24 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
             {transcriptExpanded && (
               <div className="mt-3 space-y-2.5 max-h-60 overflow-y-auto">
-                {aiCallRecord.transcript.map((entry, index) => (
-                  <div key={index} className="text-sm">
-                    <span className={`font-medium ${entry.role === 'user' ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'}`}>
-                      {entry.role === 'user' ? 'Caller:' : 'Assistant:'}
-                    </span>
-                    <p className="text-foreground mt-1 leading-relaxed">{entry.text}</p>
-                  </div>
-                ))}
+                {(() => {
+                  const messages = normalizeAITranscript(aiCallRecord.transcript);
+                  if (messages.length === 0) {
+                    return (
+                      <div className="text-sm text-muted-foreground py-4 text-center">
+                        Full conversation unavailable
+                      </div>
+                    );
+                  }
+                  return messages.map((entry, index) => (
+                    <div key={entry.id || index} className="text-sm">
+                      <span className={`font-medium ${entry.role === 'user' || entry.role === 'caller' ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'}`}>
+                        {entry.role === 'user' || entry.role === 'caller' ? 'Caller:' : 'Assistant:'}
+                      </span>
+                      <p className="text-foreground mt-1 leading-relaxed">{entry.content}</p>
+                    </div>
+                  ));
+                })()}
               </div>
             )}
           </div>
