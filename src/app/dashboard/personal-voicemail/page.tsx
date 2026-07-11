@@ -174,7 +174,7 @@ export default function PersonalVoicemailPage() {
                           <button
                             onClick={() => handlePlay(voicemail)}
                             disabled={playingId === voicemail.id}
-                            className="p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
                             title="Play"
                           >
                             <Play className="w-4 h-4" />
@@ -183,7 +183,7 @@ export default function PersonalVoicemailPage() {
                           {!voicemail.listened_at && (
                             <button
                               onClick={() => handleMarkListened(voicemail)}
-                              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+                              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors duration-150"
                               title="Mark as listened"
                             >
                               <Check className="w-4 h-4" />
@@ -192,7 +192,7 @@ export default function PersonalVoicemailPage() {
                           
                           <button
                             onClick={() => handleDelete(voicemail)}
-                            className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
+                            className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors duration-150"
                             title="Delete"
                           >
                             <Trash2 className="w-4 h-4" />

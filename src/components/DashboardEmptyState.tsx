@@ -63,7 +63,7 @@ export default function DashboardEmptyState() {
 
       {/* SMS Status */}
       {!hasTwilioNumber && (
-        <div className="bg-green-900/20 border border-green-800 rounded-lg p-3 mb-6 max-w-md">
+        <div className="bg-green-900/20 border border-green-800/50 rounded-lg p-3 mb-6 max-w-md">
           <div className="flex items-center">
             <svg className="w-5 h-5 text-green-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -96,14 +96,14 @@ export default function DashboardEmptyState() {
         {canShowTestSetup && (
           <button
             onClick={handleTestSetup}
-            className="bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+            className="bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-150 font-medium text-sm"
           >
             Test Your Setup
           </button>
         )}
         <button
           onClick={handleViewInstructions}
-          className="bg-slate-800 text-foreground py-2.5 px-4 rounded-lg hover:bg-slate-700 transition-colors font-medium text-sm"
+          className="bg-slate-800 text-foreground py-2.5 px-4 rounded-lg hover:bg-slate-700 transition-colors duration-150 font-medium text-sm"
         >
           View Setup Instructions
         </button>
@@ -200,7 +200,7 @@ export default function DashboardEmptyState() {
             {/* Close Button */}
             <button
               onClick={handleCloseTestModal}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium"
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors duration-150 font-medium"
             >
               Close
             </button>

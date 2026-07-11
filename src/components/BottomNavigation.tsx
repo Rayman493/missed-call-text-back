@@ -190,14 +190,14 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
+                  className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-150 ${
                     isActive(item.href)
                       ? 'text-white bg-white/12 scale-105 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(37,99,235,0.16)]'
                       : 'text-slate-400 hover:text-white hover:bg-white/[0.07] active:scale-95'
                   }`}
                 >
-                                    <Icon className="w-5 h-5 sm:w-5 sm:h-5 mb-1 transition-transform duration-200" />
-                  <span className={`text-[10px] sm:text-[10px] font-medium transition-colors ${
+                                    <Icon className="w-5 h-5 sm:w-5 sm:h-5 mb-1 transition-transform duration-150" />
+                  <span className={`text-[10px] sm:text-[10px] font-medium transition-colors duration-150 ${
                     isActive(item.href) ? 'font-semibold' : ''
                   }`}>{item.label}</span>
                 </Link>
@@ -208,14 +208,14 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             <button
               ref={moreButtonRef}
               onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
-              className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
+              className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-150 ${
                 isMoreMenuOpen
                   ? 'text-white bg-white/12 scale-105 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(37,99,235,0.16)]'
                   : 'text-slate-400 hover:text-white hover:bg-white/[0.07] active:scale-95'
               }`}
             >
-                            <Settings className="w-5 h-5 sm:w-5 sm:h-5 mb-1 transition-transform duration-200" />
-              <span className={`text-[10px] sm:text-[10px] font-medium transition-colors ${
+                            <Settings className="w-5 h-5 sm:w-5 sm:h-5 mb-1 transition-transform duration-150" />
+              <span className={`text-[10px] sm:text-[10px] font-medium transition-colors duration-150 ${
                 isMoreMenuOpen ? 'font-semibold' : ''
               }`}>More</span>
             </button>
@@ -237,7 +237,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             <Link
               href="/dashboard/settings"
               onClick={() => setIsMoreMenuOpen(false)}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
             >
               <Settings className="h-4 w-4 text-slate-400" />
               Settings
@@ -245,7 +245,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             <Link
               href="/"
               onClick={() => setIsMoreMenuOpen(false)}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
             >
               <ExternalLink className="h-4 w-4 text-slate-400" />
               View Homepage
@@ -253,7 +253,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             <div className="h-px bg-slate-700 my-1" />
             <button
               onClick={handleLogout}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-red-400 transition-colors hover:bg-slate-800"
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-red-400 transition-colors duration-150 hover:bg-slate-800"
             >
               <LogOut className="h-4 w-4" />
               Sign Out
