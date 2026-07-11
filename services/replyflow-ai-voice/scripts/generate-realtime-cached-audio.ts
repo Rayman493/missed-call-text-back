@@ -21,13 +21,13 @@ if (!OPENAI_API_KEY) {
 const REALTIME_MODEL = "gpt-realtime-2.1";
 
 // Voice selection: marin or cedar (recommended for telephone quality)
-const TTS_VOICE = "cedar";
+const TTS_VOICE = "marin";
 
 // Output format: audio/pcmu for direct telephony compatibility
 const OUTPUT_FORMAT = "audio/pcmu";
 
 // Generation version
-const CACHED_AUDIO_GENERATION_VERSION = "realtime-pcmu-cedar-test";
+const CACHED_AUDIO_GENERATION_VERSION = "realtime-pcmu-marin-test";
 
 // Test prompts for Phase 2 comparison (most sibilant)
 const prompts = {
