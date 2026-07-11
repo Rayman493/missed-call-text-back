@@ -2555,6 +2555,32 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       onStatusChange={handleStatusUpdate}
                       size="md"
                     />
+                    {/* Primary Actions */}
+                    <button
+                      onClick={handleCreateJobClick}
+                      className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium"
+                      title="Create job"
+                    >
+                      <ClipboardPlus className="w-4 h-4 stroke-[1.8]" />
+                      <span className="leading-none">Create Job</span>
+                    </button>
+                    <button
+                      onClick={handleAppointmentClick}
+                      className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium"
+                      title="Schedule appointment"
+                    >
+                      <CalendarDays className="w-4 h-4 stroke-[1.8]" />
+                      <span className="leading-none">Schedule</span>
+                    </button>
+                    <button
+                      onClick={() => setShowPaymentModal(true)}
+                      disabled={!business || getAvailableProviders(business).length === 0}
+                      className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={!business || getAvailableProviders(business).length === 0 ? 'Configure a payment method in Settings to request payments' : 'Request payment'}
+                    >
+                      <CreditCard className="w-4 h-4 stroke-[1.8]" />
+                      <span className="leading-none">Request Payment</span>
+                    </button>
                     {/* Desktop Overflow Button */}
                     <button
                       ref={overflowButtonRef}
@@ -2662,29 +2688,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
             {/* Secondary Actions - Simplified */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleCreateJobClick}
-                className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium"
-              >
-                <ClipboardPlus className="w-4 h-4 stroke-[1.8]" />
-                <span className="leading-none">Create Job</span>
-              </button>
-              <button
-                onClick={handleAppointmentClick}
-                className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium"
-              >
-                <CalendarDays className="w-4 h-4 stroke-[1.8]" />
-                <span className="leading-none">Appointment</span>
-              </button>
-              <button
-                onClick={() => setShowPaymentModal(true)}
-                disabled={!business || getAvailableProviders(business).length === 0}
-                className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                title={!business || getAvailableProviders(business).length === 0 ? 'Configure a payment method in Settings to request payments' : 'Request payment'}
-              >
-                <CreditCard className="w-4 h-4 stroke-[1.8]" />
-                <span className="leading-none">Request Payment</span>
-              </button>
               <button
                 onClick={() => setShowRemoveModal(true)}
                 className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-lg text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-xs font-medium"
