@@ -2,19 +2,25 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X, PhoneForwarded, Phone } from 'lucide-react'
+import { X, PhoneForwarded, Phone, Check } from 'lucide-react'
 import Link from 'next/link'
 import ForwardingHelpCenter from './ForwardingHelpCenter'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface CallForwardingInstructionsProps {
   phoneNumber: string
   isOpen: boolean
   onClose: () => void
+  businessId?: string
+  onConfirm?: () => void
 }
 
-export default function CallForwardingInstructions({ phoneNumber, isOpen, onClose }: CallForwardingInstructionsProps) {
+export default function CallForwardingInstructions({ phoneNumber, isOpen, onClose, businessId, onConfirm }: CallForwardingInstructionsProps) {
   const [mounted, setMounted] = useState(false)
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [alreadyConfirmed, setAlreadyConfirmed] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
+  const { user } = useAuth()
 
   useEffect(() => {
     setMounted(true)
@@ -46,6 +52,37 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [isOpen, onClose])
+
+  const handleConfirmForwarding = async () => {
+    if (!user || !businessId) return
+
+    setIsConfirming(true)
+    try {
+      const response = await fetch('/api/onboarding/confirm-forwarding-instructions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${await user.getIdToken()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ businessId }),
+      })
+
+      if (response.ok) {
+        setAlreadyConfirmed(true)
+        if (onConfirm) {
+          onConfirm()
+        }
+        // Close modal after short delay to show success state
+        setTimeout(() => {
+          onClose()
+        }, 500)
+      }
+    } catch (error) {
+      console.error('[CallForwardingInstructions] Failed to confirm forwarding:', error)
+    } finally {
+      setIsConfirming(false)
+    }
+  }
 
   if (!isOpen || !mounted) return null
 
@@ -91,6 +128,34 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
         {/* Body */}
         <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 overscroll-contain">
           <ForwardingHelpCenter phoneNumber={phoneNumber} />
+        </div>
+
+        {/* Footer with completion button */}
+        <div className="flex-shrink-0 border-t border-border/50 bg-muted/30 p-4 sm:p-6 pb-safe-bottom sm:pb-6">
+          <div className="space-y-3">
+            <p className="text-xs sm:text-sm text-muted-foreground text-center">
+              After enabling forwarding from your business phone, continue to the final test.
+            </p>
+            <button
+              onClick={handleConfirmForwarding}
+              disabled={isConfirming || alreadyConfirmed}
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isConfirming ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  Confirming...
+                </>
+              ) : alreadyConfirmed ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Forwarding Confirmed
+                </>
+              ) : (
+                "I've Enabled Forwarding"
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>,

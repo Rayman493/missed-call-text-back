@@ -53,6 +53,11 @@ export default function SetupStatusCard({
     missedCallCount > 0
   )
 
+  // Check if user has confirmed forwarding instructions
+  const hasConfirmedForwardingInstructions = Boolean(
+    business?.forwarding_instructions_confirmed_at
+  )
+
   // Check if success state has been dismissed (localStorage)
   React.useEffect(() => {
     if (typeof window !== 'undefined' && business?.id) {
@@ -165,13 +170,13 @@ export default function SetupStatusCard({
       return 'critical-issue'
     }
     
-    // Priority 4: Needs call forwarding setup
-    if (setupState === 'needs_forwarding') {
+    // Priority 4: Needs call forwarding setup (user hasn't confirmed instructions yet)
+    if (setupState === 'needs_forwarding' && !hasConfirmedForwardingInstructions) {
       return 'needs-forwarding'
     }
     
-    // Priority 5: Needs verification test
-    if (setupState === 'needs_final_test') {
+    // Priority 5: Needs verification test (user confirmed instructions but test call not done)
+    if (hasConfirmedForwardingInstructions && !hasCompletedTestCall) {
       return 'needs-verification'
     }
     
@@ -201,6 +206,13 @@ export default function SetupStatusCard({
     cardState === 'subscription-active'
 
   React.useEffect(() => {
+    // Reset userHasToggled when setup completes to allow auto-collapse
+    if (cardState === 'setup-complete' || cardState === 'setup-complete-success' || cardState === 'healthy') {
+      setUserHasToggled(false)
+    }
+  }, [cardState])
+
+  React.useEffect(() => {
     // Only auto-expand if user hasn't manually toggled
     if (!userHasToggled) {
       if (shouldAutoExpand) {
@@ -217,8 +229,11 @@ export default function SetupStatusCard({
       setExpandedStep(2)
     } else if (cardState === 'needs-verification') {
       setExpandedStep(3)
+    } else if (hasConfirmedForwardingInstructions && !hasCompletedTestCall) {
+      // After confirming instructions but before test call, expand step 3
+      setExpandedStep(3)
     }
-  }, [cardState])
+  }, [cardState, hasConfirmedForwardingInstructions, hasCompletedTestCall])
   
   // Render billing blocker state
   if (cardState === 'billing-blocker') {
@@ -512,8 +527,8 @@ export default function SetupStatusCard({
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-base sm:text-lg font-semibold text-foreground">ReplyFlow Ready</h3>
-              <p className="text-muted-foreground text-sm">Setup complete and ready to receive forwarded calls.</p>
+              <h3 className="text-base sm:text-lg font-semibold text-foreground">Setup Complete</h3>
+              <p className="text-muted-foreground text-sm">Your forwarding test passed and ReplyFlow is ready.</p>
             </div>
           </div>
           <button
@@ -613,8 +628,8 @@ export default function SetupStatusCard({
 
             {/* Step 2: Complete or Current */}
             <div className={`border rounded-xl overflow-hidden transition-all duration-200 ${
-              cardState === 'needs-verification' 
-                ? 'bg-muted/30 border-border/50' 
+              hasConfirmedForwardingInstructions
+                ? 'bg-muted/30 border-border/50'
                 : cardState === 'needs-forwarding'
                   ? 'bg-primary/5 border-l-4 border-l-primary border-y border-r border-border/50 shadow-sm'
                   : 'bg-muted/30 border-border/50'
@@ -628,7 +643,7 @@ export default function SetupStatusCard({
                 }}
                 className="w-full flex items-center gap-3 p-3 sm:p-4 hover:bg-muted/50 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
-                {cardState === 'needs-verification' ? (
+                {hasConfirmedForwardingInstructions ? (
                   <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
                     <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -640,14 +655,14 @@ export default function SetupStatusCard({
                   </div>
                 )}
                 <span className="text-foreground text-sm font-medium flex-1 text-left">
-                  {cardState === 'needs-verification' ? 'Step 2 — Forwarding' : 'Set up forwarding'}
+                  {hasConfirmedForwardingInstructions ? 'Step 2 — Forwarding' : 'Set up forwarding'}
                 </span>
-                {cardState === 'needs-forwarding' && (
+                {cardState === 'needs-forwarding' && !hasConfirmedForwardingInstructions && (
                   <span className="inline-flex items-center px-2 py-0.5 bg-primary/20 text-primary text-xs font-semibold rounded-full border border-primary/30 flex-shrink-0">
                     Current
                   </span>
                 )}
-                <ChevronDown className={`w-4 h-4 transition-transform ${cardState === 'needs-forwarding' ? 'text-primary' : 'text-muted-foreground'} ${expandedStep === 2 ? 'rotate-180' : ''} flex-shrink-0`} />
+                <ChevronDown className={`w-4 h-4 transition-transform ${cardState === 'needs-forwarding' && !hasConfirmedForwardingInstructions ? 'text-primary' : 'text-muted-foreground'} ${expandedStep === 2 ? 'rotate-180' : ''} flex-shrink-0`} />
               </button>
               {expandedStep === 2 && (
                 <div className="p-3 sm:p-4 pt-0 border-t border-border/50">
@@ -856,6 +871,23 @@ export default function SetupStatusCard({
           phoneNumber={business?.twilio_phone_number || ''}
           isOpen={showForwardingInstructions}
           onClose={() => setShowForwardingInstructions(false)}
+          businessId={business?.id}
+          onConfirm={async () => {
+            // Refresh business data after confirmation
+            if (business?.id) {
+              try {
+                const response = await fetch(`/api/businesses/${business.id}`)
+                if (response.ok) {
+                  const data = await response.json()
+                  // The parent component will need to update business state
+                  // For now, we'll trigger a re-render by setting expandedStep
+                  setExpandedStep(3)
+                }
+              } catch (error) {
+                console.error('[SetupStatusCard] Failed to refresh business data:', error)
+              }
+            }
+          }}
         />
       )}
 

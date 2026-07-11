@@ -62,6 +62,7 @@ export interface Business {
   // Forwarding verification fields
   forwarding_verified?: boolean | null;
   forwarding_verified_at?: string | null;
+  forwarding_instructions_confirmed_at?: string | null;
   
   // AI assistant settings
   ai_assistant_enabled?: boolean | null;
