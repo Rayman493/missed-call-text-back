@@ -48,6 +48,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const [transcriptExpanded, setTranscriptExpanded] = useState(false)
   const [summaryExpanded, setSummaryExpanded] = useState(!collapsible)
   const [detailsExpanded, setDetailsExpanded] = useState(false)
+  const [fullTranscriptExpanded, setFullTranscriptExpanded] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editValues, setEditValues] = useState({
@@ -802,6 +803,59 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Full AI Conversation Transcript - Collapsible */}
+      {aiCallRecord?.transcript && aiCallRecord.transcript.length > 0 && (
+        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          <button
+            onClick={() => setFullTranscriptExpanded(!fullTranscriptExpanded)}
+            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <MessageCircle className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+              </div>
+              <span className="text-sm font-semibold text-foreground">
+                View Full AI Conversation
+              </span>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${fullTranscriptExpanded ? 'rotate-180' : 'rotate-0'}`} />
+          </button>
+          
+          {fullTranscriptExpanded && (
+            <div className="px-4 pb-4 pt-2 border-t border-border/50">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {aiCallRecord.transcript.map((message, index) => (
+                  <div
+                    key={index}
+                    className={`flex gap-3 ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
+                  >
+                    {message.role === 'assistant' && (
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm">🤖</span>
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                        message.role === 'assistant'
+                          ? 'bg-slate-100 dark:bg-slate-800 text-foreground'
+                          : 'bg-blue-600 text-white'
+                      }`}
+                    >
+                      <p className="text-sm leading-relaxed">{message.text}</p>
+                    </div>
+                    {message.role === 'user' && (
+                      <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm">👤</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
