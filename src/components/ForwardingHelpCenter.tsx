@@ -1,10 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Phone, Copy, ChevronDown, ChevronUp, Video, Check } from 'lucide-react'
+import { Phone, Copy, ChevronDown, ChevronUp, Check } from 'lucide-react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatForDisplay, generateForwardingCode } from '@/utils/phone-formatting'
-import Link from 'next/link'
 
 // Carrier types and their specific forwarding instructions
 // TESTED CARRIERS: Verizon (✓), AT&T (✓), T-Mobile (✓), Comcast (✓)
@@ -253,11 +252,11 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
           </div>
           <div className="pl-7">
             <div className="p-3 sm:p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-2 sm:space-y-3">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground/80">
                 Dial this code from your business phone.
               </p>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                <code className="w-full sm:flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-background border border-border/50 rounded-lg text-sm sm:text-base font-mono font-semibold text-foreground break-all tabular-nums">
+                <code className="w-full sm:flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-background border border-border/60 rounded-lg text-sm sm:text-base font-mono font-semibold text-foreground break-all tabular-nums shadow-sm">
                   {dialCode}
                 </code>
                 <div className="flex sm:flex-1 gap-2 w-full sm:w-auto">
@@ -280,43 +279,10 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
                   )}
                 </div>
               </div>
-              {instructions.notes && <p className="text-xs text-muted-foreground">{instructions.notes}</p>}
+              {instructions.notes && <p className="text-xs text-muted-foreground/80">{instructions.notes}</p>}
             </div>
           </div>
         </div>
-
-        {/* Disable forwarding */}
-        {disableCode && (
-          <div className="space-y-1.5 sm:space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-muted text-muted-foreground text-xs font-semibold">
-                4
-              </div>
-              <h3 className="text-sm font-semibold text-foreground">Disable forwarding</h3>
-            </div>
-            <div className="pl-7">
-              <div className="p-3 sm:p-4 bg-muted/30 border border-border/50 rounded-xl space-y-2 sm:space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  Save this code in case you ever need to turn forwarding off.
-                </p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-background border border-border/50 rounded-lg text-sm font-mono font-semibold text-foreground break-all tabular-nums">
-                    {disableCode}
-                  </code>
-                  <button
-                    onClick={() => handleCopyDisable(disableCode)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-2 sm:px-3 sm:py-2.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg text-xs font-medium transition-colors"
-                    title="Copy code"
-                  >
-                    {copiedDisable ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copiedDisable ? 'Copied' : 'Copy'}
-                  </button>
-                </div>
-                {instructions.disableNotes && <p className="text-xs text-muted-foreground">{instructions.disableNotes}</p>}
-              </div>
-            </div>
-          </div>
-        )}
       </section>
     )
   }
@@ -331,11 +297,11 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
           </div>
           <h3 className="text-sm font-semibold text-foreground">Your ReplyFlow number</h3>
         </div>
-        <p className="text-xs text-muted-foreground pl-7">
+        <p className="text-xs text-muted-foreground/80 pl-7">
           Calls forwarded here are handled by ReplyFlow.
         </p>
         <div className="pl-7">
-          <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-muted/50 border border-border/50 rounded-xl">
+          <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-muted/40 border border-border/60 rounded-xl shadow-sm">
             <code className="flex-1 text-sm sm:text-base sm:text-lg font-mono font-semibold text-foreground tracking-wide tabular-nums">
               {formattedTwilioNumber}
             </code>
@@ -359,7 +325,7 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
           </div>
           <h3 className="text-sm font-semibold text-foreground">Choose your carrier</h3>
         </div>
-        <p className="text-xs text-muted-foreground pl-7">
+        <p className="text-xs text-muted-foreground/80 pl-7">
           Select your phone provider to see the correct forwarding code.
         </p>
         <div className="pl-7">
@@ -367,7 +333,7 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
             id="carrier"
             value={selectedCarrier}
             onChange={(e) => setSelectedCarrier(e.target.value)}
-            className="w-full px-3 py-2 sm:py-2.5 text-sm bg-muted/50 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-foreground transition-colors"
+            className="w-full px-3 py-2.5 sm:py-2.5 text-sm bg-background border border-border/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-foreground transition-colors shadow-sm"
           >
             <option value="">Select your carrier</option>
             {CARRIER_OPTIONS.map((option) => (
@@ -379,10 +345,44 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
         </div>
       </section>
 
-      {/* 3-4. Enable / disable forwarding */}
+      {/* 3. Enable forwarding */}
       {selectedCarrier && getCarrierInstructions()}
 
-      {/* 5. Help and demo */}
+      {/* Reference: Disable forwarding */}
+      {selectedCarrier && (() => {
+        const instructions = CARRIER_INSTRUCTIONS[selectedCarrier]
+        const disableCode = instructions?.disableCode ? generateForwardingCode(instructions.disableCode, twilioNumber) : null
+        if (!disableCode) return null
+
+        return (
+          <section className="space-y-1.5 sm:space-y-2 pt-4 sm:pt-6 border-t border-border/40">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Need to turn forwarding off?
+            </h3>
+            <div className="p-3 sm:p-4 bg-muted/20 border border-border/40 rounded-xl space-y-2 sm:space-y-3">
+              <p className="text-xs text-muted-foreground/70">
+                Save this code for when you need to disable call forwarding.
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-background border border-border/50 rounded-lg text-sm font-mono font-medium text-muted-foreground break-all tabular-nums">
+                  {disableCode}
+                </code>
+                <button
+                  onClick={() => handleCopyDisable(disableCode)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-2 sm:px-3 sm:py-2.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg text-xs font-medium transition-colors"
+                  title="Copy code"
+                >
+                  {copiedDisable ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedDisable ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              {instructions.disableNotes && <p className="text-xs text-muted-foreground/70">{instructions.disableNotes}</p>}
+            </div>
+          </section>
+        )
+      })()}
+
+      {/* 4. Help */}
       <section className="space-y-1.5 sm:space-y-2">
         <div className="flex items-center gap-2">
           <div className="flex items-center justify-center w-5 h-5 rounded-full bg-muted text-muted-foreground text-xs font-semibold">
@@ -391,24 +391,15 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
           <h3 className="text-sm font-semibold text-foreground">Need help?</h3>
         </div>
         <div className="pl-7">
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Link
-              href="/demo"
-              className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg text-xs font-medium transition-colors"
-            >
-              <Video className="w-3.5 h-3.5" />
-              Watch Setup Demo
-            </Link>
-            <button
-              onClick={() => toggleSection('troubleshooting')}
-              className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-muted/50 hover:bg-muted/80 text-foreground rounded-lg text-xs font-medium transition-colors"
-            >
-              {expandedSection === 'troubleshooting' ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              Troubleshooting
-            </button>
-          </div>
+          <button
+            onClick={() => toggleSection('troubleshooting')}
+            className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-muted/50 hover:bg-muted/80 text-foreground rounded-lg text-xs font-medium transition-colors"
+          >
+            {expandedSection === 'troubleshooting' ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            Troubleshooting
+          </button>
           {expandedSection === 'troubleshooting' && (
-            <div className="mt-2 p-3 sm:p-4 bg-muted/30 border border-border/50 rounded-lg text-xs text-muted-foreground space-y-2">
+            <div className="mt-2 p-3 sm:p-4 bg-muted/30 border border-border/60 rounded-lg text-xs text-muted-foreground/80 space-y-2">
               {FAQS.map((faq, idx) => (
                 <div key={idx}>
                   <p className="font-medium text-foreground">{faq.question}</p>
