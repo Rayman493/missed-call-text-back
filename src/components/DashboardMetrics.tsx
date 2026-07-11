@@ -71,24 +71,30 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       // Fetch leads (missed calls captured) - 30 days
       const { data: leads } = await supabase
         .from('leads')
-        .select('id, created_at, caller_phone')
+        .select('id, created_at, caller_phone, deleted_at, status')
         .eq('business_id', business.id)
         .gte('created_at', thirtyDaysAgo)
+        .is('deleted_at', null)
+        .neq('status', 'ignored')
 
       // Fetch leads (missed calls captured) - today
       const { data: leadsToday } = await supabase
         .from('leads')
-        .select('created_at')
+        .select('created_at, deleted_at, status')
         .eq('business_id', business.id)
         .gte('created_at', todayStartISO)
+        .is('deleted_at', null)
+        .neq('status', 'ignored')
 
       // Fetch messages sent - 30 days
-      // First get lead IDs for this business
+      // First get lead IDs for this business (same filtering as captured leads)
       const { data: businessLeads } = await supabase
         .from('leads')
         .select('id')
         .eq('business_id', business.id)
         .gte('created_at', thirtyDaysAgo)
+        .is('deleted_at', null)
+        .neq('status', 'ignored')
 
       const leadIds = businessLeads?.map((l: any) => l.id) || []
 
@@ -123,6 +129,8 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         .select('id')
         .eq('business_id', business.id)
         .gte('created_at', todayStartISO)
+        .is('deleted_at', null)
+        .neq('status', 'ignored')
 
       const leadIdsToday = businessLeadsToday?.map((l: any) => l.id) || []
 
@@ -142,6 +150,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         .select('id, status, cancelled_reason')
         .eq('business_id', business.id)
         .gte('created_at', thirtyDaysAgo)
+        .is('deleted_at', null)
 
       const followUpsSent = followUpJobs?.filter((f: any) => f.status === 'sent').length || 0
       const followUpsCancelled = followUpJobs?.filter((f: any) => f.status === 'cancelled' && f.cancelled_reason === 'customer_replied').length || 0
