@@ -146,29 +146,31 @@ console.log('[CACHED AUDIO VALIDATION] realtimeModel:', REALTIME_MODEL);
 console.log('[CACHED AUDIO VALIDATION] ttsVoice:', TTS_VOICE);
 console.log('[CACHED AUDIO VALIDATION] outputFormat:', OUTPUT_FORMAT);
 
-// Required production prompts for Simple Mode (matching runtime stage names)
+// Required production prompts for Simple Mode (canonical keys)
+// These must match SIMPLE_MODE_PROMPT_KEYS exactly
 const REQUIRED_PROMPTS = [
   'ask_name_reason',
   'ask_details',
-  'ask_location_or_context',
-  'ask_timing',
+  'ask_location',
+  'ask_completion_time',
   'ask_callback_time',
   'complete'
 ];
 
 const crypto = require('crypto');
-let missingPromptCount = 0;
-let loadedPromptCount = 0;
 
-// Validate all required prompts are present
-for (const requiredKey of REQUIRED_PROMPTS) {
-  if (!cachedPromptAudio[requiredKey]) {
-    console.error(`[CACHED AUDIO VALIDATION] ERROR: Required prompt missing: ${requiredKey}`);
-    missingPromptCount++;
-  } else {
-    loadedPromptCount++;
-  }
-}
+// Exact set equality validation for required prompts
+const loadedPromptKeys = Object.keys(cachedPromptAudio);
+const requiredPromptKeys = [...REQUIRED_PROMPTS];
+const missingPromptKeys = requiredPromptKeys.filter(key => !loadedPromptKeys.includes(key));
+const unexpectedPromptKeys = loadedPromptKeys.filter(key => !requiredPromptKeys.includes(key));
+
+console.log('[CACHED AUDIO VALIDATION] =========================================');
+console.log('[CACHED AUDIO VALIDATION] requiredPromptKeys:', requiredPromptKeys);
+console.log('[CACHED AUDIO VALIDATION] loadedPromptKeys:', loadedPromptKeys);
+console.log('[CACHED AUDIO VALIDATION] missingPromptKeys:', missingPromptKeys);
+console.log('[CACHED AUDIO VALIDATION] unexpectedPromptKeys:', unexpectedPromptKeys);
+console.log('[CACHED AUDIO VALIDATION] =========================================');
 
 // Validate all cached assets
 for (const [key, base64Audio] of Object.entries(cachedPromptAudio)) {
@@ -191,14 +193,32 @@ for (const [key, base64Audio] of Object.entries(cachedPromptAudio)) {
   }
 }
 
-console.log(`[CACHED AUDIO VALIDATION] requiredPromptCount: ${REQUIRED_PROMPTS.length}`);
-console.log(`[CACHED AUDIO VALIDATION] loadedPromptCount: ${loadedPromptCount}`);
-console.log(`[CACHED AUDIO VALIDATION] missingPromptCount: ${missingPromptCount}`);
-
-if (missingPromptCount > 0) {
-  console.error('[CACHED AUDIO VALIDATION] ERROR: Missing required prompts. Deployment cannot proceed.');
+// Exact set equality check - fail if any mismatch
+if (missingPromptKeys.length > 0) {
+  console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: Missing required prompts. Deployment cannot proceed.');
+  console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: missingPromptKeys:', missingPromptKeys);
   process.exit(1);
 }
+
+if (unexpectedPromptKeys.length > 0) {
+  console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: Unexpected prompt keys found. Registry may be misaligned.');
+  console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: unexpectedPromptKeys:', unexpectedPromptKeys);
+  process.exit(1);
+}
+
+// Verify exact set equality
+const requiredSet = new Set(requiredPromptKeys);
+const loadedSet = new Set(loadedPromptKeys);
+const setsEqual = requiredSet.size === loadedSet.size && 
+                  [...requiredSet].every(key => loadedSet.has(key));
+
+if (!setsEqual) {
+  console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: Set equality check failed. Required and loaded keys do not match exactly.');
+  process.exit(1);
+}
+
+console.log('[CACHED AUDIO VALIDATION] SUCCESS: Exact set equality validated.');
+console.log('[CACHED AUDIO VALIDATION] All required prompts present and no unexpected keys found.');
 
 console.log('[CACHED AUDIO VALIDATION] All cached assets validated successfully');
 console.log('[CACHED AUDIO VALIDATION] =========================================');
@@ -5226,21 +5246,16 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     cachedPlaybackInterrupted: false,
   };
 
-  const simpleModeStageToTemplateStage: Record<string, IntakeStage> = {
-    ask_name_reason: 'ask_name_reason',
-    ask_details: 'ask_details',
-    ask_location: 'ask_location_or_context',
-    ask_completion_time: 'ask_timing',
-    ask_callback_time: 'ask_callback_time',
-    complete: 'complete'
+  // Canonical Simple Mode prompt keys - no mapping layer
+  // These are the exact keys used for cached audio lookups
+  const prompts: Record<string, string> = {
+    ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
+    ask_details: "Got it. Can you share any important details the business should know?",
+    ask_location: "Thanks. Just a couple more questions. Where will this take place?",
+    ask_completion_time: "When are you hoping this will be done?",
+    ask_callback_time: "Perfect. Last question—what's the best time for the business to call you back?",
+    complete: "Perfect. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
   };
-
-  const prompts: Record<string, string> = Object.fromEntries(
-    Object.entries(simpleModeStageToTemplateStage).map(([stage, templateStage]) => [
-      stage,
-      getIntakeStageTextSafe('on_site', templateStage)
-    ])
-  );
 
   // Cached PCMU audio for each prompt (pre-generated for deterministic speech)
   state.sessionId = url.searchParams.get('sessionId') || '';
@@ -6832,19 +6847,21 @@ Reply to this message if you'd like to update or add any information.
 
     } else {
       console.log('[SIMPLE MODE] =========================================');
-      console.log('[SIMPLE MODE] ERROR: Cached prompt audio is required but missing!');
-      console.log('[SIMPLE MODE] ERROR: cached_prompt_key:', stage);
-      console.log('[SIMPLE MODE] ERROR: Please populate cachedPromptAudio with base64 PCMU audio');
-      console.log('[SIMPLE MODE] ERROR: Run: npx ts-node scripts/generate-realtime-cached-audio.ts');
-      console.log('[SIMPLE MODE] ERROR: Fallback: Using live TTS prompt');
+      console.log('[SIMPLE MODE] CRITICAL ERROR: Cached prompt audio is required but missing!');
+      console.log('[SIMPLE MODE] CRITICAL ERROR: cached_prompt_key:', stage);
+      console.log('[SIMPLE MODE] CRITICAL ERROR: Simple Mode cannot proceed without cached audio');
+      console.log('[SIMPLE MODE] CRITICAL ERROR: Live speech fallback is DISABLED in Simple Mode');
+      console.log('[SIMPLE MODE] CRITICAL ERROR: Please populate cachedPromptAudio with base64 PCMU audio');
+      console.log('[SIMPLE MODE] CRITICAL ERROR: Run: npx ts-node scripts/generate-realtime-cached-audio.ts');
+      console.log('[SIMPLE MODE] CRITICAL ERROR: Terminating call to prevent off-script speech');
       console.log('[SIMPLE MODE] =========================================');
       
-      // Fallback: Use live TTS prompt instead of cached audio
-      const sent = sendSimpleModeLivePrompt(prompt, false, false);
-      if (!sent) {
-        console.log('[SIMPLE MODE] ERROR: Fallback live prompt also failed');
-        state.assistantSpeaking = false;
-        return;
+      // Simple Mode must never fall back to live speech - terminate call instead
+      state.assistantSpeaking = false;
+      logSimple('cached_prompt_missing_critical_error', { stage });
+      ws.close();
+      if (state.openAiWs) {
+        state.openAiWs.close();
       }
       return;
     }
@@ -7147,6 +7164,22 @@ Reply to this message if you'd like to update or add any information.
 
           // Handle audio delta from OpenAI Realtime (PCMU)
           if (message.type === 'response.output_audio.delta' && message.delta) {
+            // CRITICAL: Simple Mode must never use live OpenAI audio output
+            // All outbound speech must come from cached scripted prompts only
+            if (customParams?.simple_mode === 'true') {
+              console.log('[SIMPLE MODE] =========================================');
+              console.log('[SIMPLE MODE] CRITICAL INVARIANT VIOLATION: Assistant audio delta received in Simple Mode');
+              console.log('[SIMPLE MODE] CRITICAL: Simple Mode only allows cached scripted prompts');
+              console.log('[SIMPLE MODE] CRITICAL: Discarding live OpenAI audio to prevent off-script speech');
+              console.log('[SIMPLE MODE] CRITICAL: outboundSpeechSource must be cached_scripted_prompt only');
+              console.log('[SIMPLE MODE] =========================================');
+              logSimple('critical_invariant_violation', { 
+                violation: 'assistant_audio_delta_in_simple_mode',
+                action: 'discarded'
+              });
+              return; // Discard the audio delta - do not forward to Twilio
+            }
+            
             // Decode base64 delta into raw bytes and accumulate
             const deltaBytes = Buffer.from(message.delta, 'base64');
             state.audioAccumulator.push(deltaBytes);

@@ -18,8 +18,26 @@ export const INTAKE_TEMPLATES = [
 export type IntakeTemplate = typeof INTAKE_TEMPLATES[number]
 
 /**
- * AI Intake Template Stages
- * Stages in the scripted AI intake flow
+ * Simple Mode Canonical Prompt Keys
+ * These are the exact stage names used by the runtime state machine.
+ * All cached audio, generation scripts, and validation must use these exact keys.
+ * No aliases or mappings are allowed - this is the single source of truth.
+ */
+export const SIMPLE_MODE_PROMPT_KEYS = [
+  "ask_name_reason",
+  "ask_details",
+  "ask_location",
+  "ask_completion_time",
+  "ask_callback_time",
+  "complete",
+] as const;
+
+export type SimpleModePromptKey = typeof SIMPLE_MODE_PROMPT_KEYS[number];
+
+/**
+ * AI Intake Template Stages (legacy, for template text lookup only)
+ * These are used only for retrieving prompt text from templates.
+ * The runtime uses SIMPLE_MODE_PROMPT_KEYS for all cached audio lookups.
  */
 export type IntakeStage = 
   | 'ask_name_reason'
