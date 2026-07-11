@@ -60,7 +60,7 @@ export default function NewJobModal({
               <div>
                 <p className="text-sm font-semibold text-white">Select Existing Customer</p>
                 <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                  Choose from your existing leads and customers.
+                  Choose from your existing customers.
                 </p>
               </div>
             </button>
@@ -76,7 +76,7 @@ export default function NewJobModal({
               <div>
                 <p className="text-sm font-semibold text-white">Add New Customer</p>
                 <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                  Add a new customer in Leads, then create the job.
+                  Add a new customer in Customers, then create the job.
                 </p>
               </div>
             </button>

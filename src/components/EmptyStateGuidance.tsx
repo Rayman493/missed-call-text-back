@@ -17,7 +17,7 @@ export default function EmptyStateGuidance({
     switch (type) {
       case 'leads':
         return {
-          title: 'No leads captured yet',
+          title: 'No customers captured yet',
           description: 'Enable call forwarding to start capturing missed calls',
           steps: [
             {
@@ -46,7 +46,7 @@ export default function EmptyStateGuidance({
             {
               icon: Phone,
               title: 'Missed calls trigger activity',
-              description: 'Each missed call creates a new lead'
+              description: 'Each missed call creates a new customer'
             },
             {
               icon: MessageSquare,

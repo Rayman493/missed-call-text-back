@@ -290,7 +290,7 @@ export default function AnalyticsContent() {
       return `Captured ${m.missedCallsCaptured} missed call${m.missedCallsCaptured === 1 ? '' : 's'}`
     }
     if (m.leadsCreated > 0) {
-      return `Created ${m.leadsCreated} lead${m.leadsCreated === 1 ? '' : 's'} from missed calls`
+      return `Created ${m.leadsCreated} customer${m.leadsCreated === 1 ? '' : 's'} from missed calls`
     }
     if (m.aiIntakesCompleted > 0) {
       return `Completed ${m.aiIntakesCompleted} AI intake${m.aiIntakesCompleted === 1 ? '' : 's'}`
@@ -320,7 +320,7 @@ export default function AnalyticsContent() {
                   </span>
                 </div>
                 <p className="text-sm text-slate-600 dark:text-muted-foreground">
-                  Track your ReplyFlow performance and lead recovery metrics
+                  Track your ReplyFlow performance and customer recovery metrics
                 </p>
               </div>
 
@@ -380,16 +380,16 @@ export default function AnalyticsContent() {
                   <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 mb-3">
                     <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                       <Phone className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                      Lead Recovery Overview
+                      Customer Recovery Overview
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                       <MetricCard
-                        label="Captured Leads"
+                        label="Captured Customers"
                         value={metrics.missedCallsCaptured}
                         icon={Phone}
                       />
                       <MetricCard
-                        label="Leads Created"
+                        label="Customers Created"
                         value={metrics.leadsCreated}
                         icon={Users}
                       />
@@ -399,19 +399,19 @@ export default function AnalyticsContent() {
                         icon={MessageSquare}
                       />
                       <MetricCard
-                        label="Active Leads"
+                        label="Active Customers"
                         value={metrics.activeLeads}
                         icon={Clock}
                       />
                       <MetricCard
-                        label="Completed Leads"
+                        label="Completed Customers"
                         value={metrics.completedLeads}
                         icon={CheckCircle}
                       />
                     </div>
                     {metrics.missedCallsCaptured === 0 && metrics.leadsCreated === 0 && metrics.customerReplies === 0 && metrics.activeLeads === 0 && metrics.completedLeads === 0 && (
                       <p className="text-xs text-slate-400 dark:text-slate-500 mt-3 text-center">
-                        No lead activity yet
+                        No customer activity yet
                       </p>
                     )}
                   </div>

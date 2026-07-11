@@ -155,7 +155,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           })
         })
 
-        // 3. Urgent leads - individual items
+        // 3. Urgent customers - individual items
         leads?.filter((lead: any) => {
           const intake = getLeadAIIntake(lead)
           const urgency = intake.desiredCompletion
@@ -163,7 +163,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
         }).forEach((lead: any) => {
           attentionItems.push({
             id: `urgent-${lead.id}`,
-            label: 'Urgent lead',
+            label: 'Urgent customer',
             subtitle: getLeadDisplayName(lead),
             actionLabel: 'View',
             count: 1,
@@ -202,10 +202,10 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
           })
         }
 
-        // Forwarding not verified - only show if business is actively using the system (has leads)
+        // Forwarding not verified - only show if business is actively using the system (has customers)
         // This avoids showing onboarding-style warnings to businesses still in setup
-        const hasLeads = leads && leads.length > 0
-        const isActivelyUsing = hasLeads || business?.forwarding_verified_at
+        const hasCustomers = leads && leads.length > 0
+        const isActivelyUsing = hasCustomers || business?.forwarding_verified_at
 
         if (!business.forwarding_verified && isActivelyUsing) {
           attentionItems.push({

@@ -74,7 +74,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
             id: `lead-${lead.id}`,
             type: 'call_captured',
             title: 'Missed call captured',
-            description: `New lead from ${displayName}`,
+            description: `New customer from ${displayName}`,
             timestamp: lead.created_at,
             icon: <Phone className="w-3 h-3" />,
             color: 'text-blue-600 dark:text-blue-400'

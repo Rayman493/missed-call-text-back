@@ -164,7 +164,7 @@ function processLeads(leads: any[], searchQuery: string, statusFilter: string): 
 }
 function formatLeadPhone(phone: string): string {
   if (phone === '+10000000000') {
-    return 'Test Lead'
+    return 'Test Customer'
   }
   return formatPhoneNumber(phone)
 }

@@ -108,7 +108,7 @@ export default function LeadStatusDropdown({
       case 'completed':
         return 'Handled and resolved'
       case 'lost':
-        return 'Lead lost'
+        return 'Customer lost'
       default:
         return ''
     }

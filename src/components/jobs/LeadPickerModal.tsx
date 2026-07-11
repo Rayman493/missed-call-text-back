@@ -85,7 +85,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
       setLeads(data.leads || [])
     } catch (e) {
       console.error('[LeadPicker] Failed to load leads:', e)
-      setError('Could not load leads. Please try again.')
+      setError('Could not load customers. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -144,7 +144,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
             <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">{title || 'Select a Lead'}</h2>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">{title || 'Select a Customer'}</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle || 'Customer info will be prefilled automatically.'}</p>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0">
@@ -171,7 +171,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
             {isLoading ? (
               <div className="flex items-center justify-center py-10 gap-2 text-slate-400">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="text-sm">Loading leads...</span>
+                <span className="text-sm">Loading customers...</span>
               </div>
             ) : error ? (
               <div className="py-8 text-center">
@@ -184,16 +184,16 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
               <div className="py-10 text-center px-6">
                 {query ? (
                   <>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">No leads match <span className="font-medium">"{query}"</span></p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">No customers match <span className="font-medium">"{query}"</span></p>
                     <button onClick={() => setQuery('')} className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">
                       Clear search
                     </button>
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">No leads yet</p>
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">No customers yet</p>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 leading-relaxed">
-                      ReplyFlow leads will appear here once customers call or text your business number.
+                      ReplyFlow customers will appear here once customers call or text your business number.
                     </p>
                   </>
                 )}
@@ -263,12 +263,12 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
                   onClick={() => { onClose(); onAddNew() }}
                   className="w-full text-left text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 py-2 px-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
-                  + Create New Lead
+                  + Create New Customer
                 </button>
               )}
               {filtered.length > 0 && (
                 <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                  {query ? `${filtered.length} of ${leads.length} leads` : `${leads.length} lead${leads.length !== 1 ? 's' : ''}`}
+                  {query ? `${filtered.length} of ${leads.length} customers` : `${leads.length} customer${leads.length !== 1 ? 's' : ''}`}
                 </p>
               )}
             </div>

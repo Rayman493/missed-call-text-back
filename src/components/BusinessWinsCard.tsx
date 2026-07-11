@@ -34,7 +34,7 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
         const allAchievements: Achievement[] = [
           {
             id: 'first_lead',
-            title: 'First Lead Recovered',
+            title: 'First Customer Recovered',
             description: 'Captured your first missed call',
             icon: 'star',
             earned: false
@@ -48,14 +48,14 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           },
           {
             id: 'five_leads',
-            title: '5 Leads Recovered',
+            title: '5 Customers Recovered',
             description: 'Successfully captured 5 missed calls',
             icon: 'trophy',
             earned: false
           },
           {
             id: 'ten_leads',
-            title: '10 Leads Recovered',
+            title: '10 Customers Recovered',
             description: 'Successfully captured 10 missed calls',
             icon: 'trophy',
             earned: false
@@ -76,21 +76,21 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           },
           {
             id: 'twenty_five_leads',
-            title: '25 Leads Recovered',
+            title: '25 Customers Recovered',
             description: 'Successfully captured 25 missed calls',
             icon: 'trophy',
             earned: false
           },
           {
             id: 'fifty_leads',
-            title: '50 Leads Recovered',
+            title: '50 Customers Recovered',
             description: 'Successfully captured 50 missed calls',
             icon: 'trophy',
             earned: false
           },
           {
             id: 'hundred_leads',
-            title: '100 Leads Recovered',
+            title: '100 Customers Recovered',
             description: 'Successfully captured 100 missed calls',
             icon: 'trophy',
             earned: false

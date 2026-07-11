@@ -322,7 +322,7 @@ export default function LeadsPage() {
       setIgnoredContactsCount(ignoredCount || 0)
     } catch (error) {
       console.error('Error fetching leads:', error)
-      setError('Failed to load leads. Please try again.')
+      setError('Failed to load customers. Please try again.')
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -353,7 +353,7 @@ export default function LeadsPage() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || `Failed to update lead status to ${newStatus}`)
+        throw new Error(error.error || `Failed to update customer status to ${newStatus}`)
       }
 
       // Update local state
@@ -403,7 +403,7 @@ export default function LeadsPage() {
       ))
     } catch (error) {
       console.error('Error ignoring lead:', error)
-      alert('Failed to ignore lead. Please try again.')
+      alert('Failed to ignore customer. Please try again.')
     }
   }
 
@@ -430,7 +430,7 @@ export default function LeadsPage() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to restore lead')
+        throw new Error(error.error || 'Failed to restore customer')
       }
 
       // Update local state
@@ -441,7 +441,7 @@ export default function LeadsPage() {
       ))
     } catch (error) {
       console.error('Error restoring lead:', error)
-      alert('Failed to restore lead. Please try again.')
+      alert('Failed to restore customer. Please try again.')
     }
   }
 
@@ -474,7 +474,7 @@ export default function LeadsPage() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to delete lead')
+        throw new Error(error.error || 'Failed to delete customer')
       }
 
       // Update local state
@@ -488,7 +488,7 @@ export default function LeadsPage() {
       setLeadToDelete(null)
     } catch (error) {
       console.error('Error deleting lead:', error)
-      alert('Failed to delete lead. Please try again.')
+      alert('Failed to delete customer. Please try again.')
     }
   }
 
@@ -913,7 +913,7 @@ export default function LeadsPage() {
                       label="Active Customers"
                       description={
                         leadStatusCounts.active === 0
-                          ? 'No active leads'
+                          ? 'No active customers'
                           : 'Customers being worked on'
                       }
                       icon="💬"
@@ -925,7 +925,7 @@ export default function LeadsPage() {
                       label="Completed Customers"
                       description={
                         leadStatusCounts.completed === 0
-                          ? 'No completed leads yet'
+                          ? 'No completed customers yet'
                           : 'Successfully completed'
                       }
                       icon="📅"
@@ -1276,7 +1276,7 @@ export default function LeadsPage() {
                 const singleLead = filteredLeads.length === 1
 
                 if (singleLead) {
-                  // Single lead: centered with supportive text
+                  // Single customer: centered with supportive text
                   const lead = filteredLeads[0]
                   const latestMessage = lead.messages && lead.messages.length > 0
                     ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]     
@@ -1289,7 +1289,7 @@ export default function LeadsPage() {
                   const isUnread = hasUnread(lead.id)
                   const needsResponse = needsResponseCheck(lead.id)
                   const leadTiming = calculateLeadTiming(lead)
-                  const isNewLead = (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
+                  const isNewCustomer = (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
                   const aiData = getAIData(lead)
 
                   return (
@@ -1311,7 +1311,7 @@ export default function LeadsPage() {
                           {/* Header: Name, Phone, Status */}
                           <div className="flex items-start justify-between gap-3 mb-2.5">
                             <div className="flex-1 min-w-0">
-                              <h3 className={`text-base font-semibold text-white mb-0.5 truncate tracking-tight ${isNewLead ? 'text-orange-400' : ''}`}>
+                              <h3 className={`text-base font-semibold text-white mb-0.5 truncate tracking-tight ${isNewCustomer ? 'text-orange-400' : ''}`}>
                                 {getLeadDisplayName(lead)}
                               </h3>
                               <p className="text-xs text-slate-400">
@@ -1376,25 +1376,25 @@ export default function LeadsPage() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  const status = isNewLead ? 'new' : getLeadLifecycleStatus(lead)
+                                  const status = isNewCustomer ? 'new' : getLeadLifecycleStatus(lead)
                                   setStatusFilter(statusFilter === status ? 'all' : status)
                                 }}
                                 className={`px-2 py-0.5 text-[10px] font-medium rounded-full transition-all duration-200 ${
-                                  isNewLead ? 'bg-orange-600/20 text-orange-300' :
+                                  isNewCustomer ? 'bg-orange-600/20 text-orange-300' :
                                   getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-600/20 text-blue-300' :
                                   getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-600/20 text-green-300' :
                                   'bg-slate-600/20 text-slate-300'
                                 } hover:opacity-80 cursor-pointer`}
-                                title={`Filter by ${isNewLead ? 'New' : getLeadLifecycleStatus(lead)} status`}
-                                aria-label={`Filter by ${isNewLead ? 'New' : getLeadLifecycleStatus(lead)} status`}
+                                title={`Filter by ${isNewCustomer ? 'New' : getLeadLifecycleStatus(lead)} status`}
+                                aria-label={`Filter by ${isNewCustomer ? 'New' : getLeadLifecycleStatus(lead)} status`}
                               >
-                                {isNewLead ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
+                                {isNewCustomer ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
                               </button>
                               <span className="text-[11px] text-slate-500">
                                 {formatRelativeTime(lead.created_at)}
                               </span>
                             </div>
-                            {isNewLead && (
+                            {isNewCustomer && (
                               <span className="px-2 py-0.5 bg-orange-600/20 text-orange-300 text-[10px] font-semibold rounded-full">
                                 New
                               </span>
@@ -1481,7 +1481,7 @@ export default function LeadsPage() {
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                         </svg>
-                                        Ignore Lead
+                                        Ignore Customer
                                       </button>
                                     )}
                                     {!lead.deleted_at && getLeadLifecycleStatus(lead) === 'ignored' && (
@@ -1528,12 +1528,12 @@ export default function LeadsPage() {
                     </div>
                   )
                 } else {
-                  // Multiple leads: grid layout
+                  // Multiple customers: grid layout
                   return (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
                       {filteredLeads.map((lead: any, index: number) => {
                         const latestMessage = lead.messages && lead.messages.length > 0
-                          ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]     
+                          ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
                           : null
 
                         const messageStatus = getLeadMessageStatus(latestMessage)
@@ -1546,8 +1546,8 @@ export default function LeadsPage() {
                         // Calculate lead timing
                         const leadTiming = calculateLeadTiming(lead)
 
-                        // Check if this is the newest lead (within 24 hours)
-                        const isNewLead = index === 0 && (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
+                        // Check if this is the newest customer (within 24 hours)
+                        const isNewCustomer = index === 0 && (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
 
                         const aiData = getAIData(lead)
 
@@ -1563,7 +1563,7 @@ export default function LeadsPage() {
                               {/* Header: Name, Phone, Status */}
                               <div className="flex items-start justify-between gap-3 mb-2">
                                 <div className="flex-1 min-w-0">
-                                  <h3 className={`text-base font-semibold text-white mb-0.5 truncate tracking-tight ${isNewLead ? 'text-orange-400' : ''}`}>
+                                  <h3 className={`text-base font-semibold text-white mb-0.5 truncate tracking-tight ${isNewCustomer ? 'text-orange-400' : ''}`}>
                                     {getLeadDisplayName(lead)}
                                   </h3>
                                   <p className="text-xs text-slate-400">
@@ -1628,25 +1628,25 @@ export default function LeadsPage() {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      const status = isNewLead ? 'new' : getLeadLifecycleStatus(lead)
+                                      const status = isNewCustomer ? 'new' : getLeadLifecycleStatus(lead)
                                       setStatusFilter(statusFilter === status ? 'all' : status)
                                     }}
                                     className={`px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full transition-all duration-200 ${
-                                      isNewLead ? 'bg-orange-600/20 text-orange-300' :
+                                      isNewCustomer ? 'bg-orange-600/20 text-orange-300' :
                                       getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-600/20 text-blue-300' :
                                       getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-600/20 text-green-300' :
                                       'bg-slate-600/20 text-slate-300'
                                     } hover:opacity-80 cursor-pointer`}
-                                    title={`Filter by ${isNewLead ? 'New' : getLeadLifecycleStatus(lead)} status`}
-                                    aria-label={`Filter by ${isNewLead ? 'New' : getLeadLifecycleStatus(lead)} status`}
+                                    title={`Filter by ${isNewCustomer ? 'New' : getLeadLifecycleStatus(lead)} status`}
+                                    aria-label={`Filter by ${isNewCustomer ? 'New' : getLeadLifecycleStatus(lead)} status`}
                                   >
-                                    {isNewLead ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
+                                    {isNewCustomer ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
                                   </button>
                                   <span className="text-[11px] text-slate-500">
                                     {formatRelativeTime(lead.created_at)}
                                   </span>
                                 </div>
-                                {isNewLead && (
+                                {isNewCustomer && (
                                   <span className="px-2 py-0.5 bg-orange-600/20 text-orange-300 text-[10px] font-semibold rounded-full">
                                     New
                                   </span>
@@ -1733,7 +1733,7 @@ export default function LeadsPage() {
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                             </svg>
-                                            Ignore Lead
+                                            Ignore Customer
                                           </button>
                                         )}
                                         {!lead.deleted_at && getLeadLifecycleStatus(lead) === 'ignored' && (

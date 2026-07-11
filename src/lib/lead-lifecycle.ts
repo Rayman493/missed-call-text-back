@@ -53,13 +53,13 @@ export const LEAD_LIFECYCLE_CONFIG: Record<LeadLifecycleStatus, LeadLifecycleCon
     color: 'text-red-700 dark:text-red-300',
     bgColor: 'bg-red-100 dark:bg-red-900/30',
     label: 'Lost',
-    description: 'Lead lost'
+    description: 'Customer lost'
   },
   ignored: {
     color: 'text-red-700 dark:text-red-300',
     bgColor: 'bg-red-100 dark:bg-red-900/30',
     label: 'Ignored',
-    description: 'Lead ignored'
+    description: 'Customer ignored'
   }
 }
 

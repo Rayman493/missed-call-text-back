@@ -132,7 +132,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     if (!phoneSetupComplete) {
       items.push({
         title: 'Complete call forwarding setup',
-        description: 'Forward missed calls from your business phone to capture leads automatically',
+        description: 'Forward missed calls from your business phone to capture customers automatically',
         status: 'error',
         details: 'This step is required to start receiving missed calls'
       })

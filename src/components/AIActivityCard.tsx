@@ -106,7 +106,7 @@ export default function AIActivityCard({ business }: AIActivityCardProps) {
       bgColor: 'bg-blue-100 dark:bg-blue-900/20'
     },
     {
-      label: 'Urgent Leads',
+      label: 'Urgent Customers',
       value: activity.urgentLeads,
       icon: AlertTriangle,
       color: 'text-amber-600 dark:text-amber-400',

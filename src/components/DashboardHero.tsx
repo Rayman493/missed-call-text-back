@@ -202,7 +202,7 @@ export default function DashboardHero({
                 <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-white text-sm font-bold">4</span>
                 </div>
-                <p className="text-white text-sm pt-0.5">Confirm that a new lead appears in your dashboard.</p>
+                <p className="text-white text-sm pt-0.5">Confirm that a new customer appears in your dashboard.</p>
               </div>
             </div>
           </div>
@@ -234,7 +234,7 @@ export default function DashboardHero({
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">You're all set!</h1>
             <p className="text-green-100 text-base sm:text-lg">
-              ReplyFlow is now monitoring your missed calls. The next missed call will automatically create a lead and text your customer back.
+              ReplyFlow is now monitoring your missed calls. The next missed call will automatically create a customer and text your customer back.
             </p>
           </div>
         </div>

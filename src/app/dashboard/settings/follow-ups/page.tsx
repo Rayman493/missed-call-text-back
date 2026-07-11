@@ -243,7 +243,7 @@ export default function FollowUpsSettingsPage() {
           </div>
           <h1 className="text-3xl font-bold text-foreground">Automatic Follow-Ups</h1>
           <p className="text-muted-foreground mt-2">
-            Configure automated follow-up messages to re-engage leads who haven't responded.
+            Configure automated follow-up messages to re-engage customers who haven't responded.
           </p>
         </div>
 
@@ -253,7 +253,7 @@ export default function FollowUpsSettingsPage() {
             <div>
               <h2 className="text-lg font-semibold text-foreground">Enable Automatic Follow-Ups</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Turn on to automatically send follow-up messages to unresponsive leads
+                Turn on to automatically send follow-up messages to unresponsive customers
               </p>
             </div>
             <button

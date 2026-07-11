@@ -155,9 +155,9 @@ export default function BusinessSnapshot({ business }: BusinessSnapshotProps) {
   const kpiItems = [
     {
       type: 'leads',
-      label: 'Total Leads',
+      label: 'Total Customers',
       value: kpiData.leadsRecovered,
-      description: 'Leads generated',
+      description: 'Customers generated',
       trend: null
     },
     {

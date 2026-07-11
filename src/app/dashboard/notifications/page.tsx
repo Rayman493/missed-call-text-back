@@ -270,10 +270,10 @@ export default function NotificationsPage() {
                       </span>
                     </div>
                     
-                    {/* Lead context */}
+                    {/* Customer context */}
                     {getLeadContext(notification) && (
                       <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                        Lead: {getLeadContext(notification)}
+                        Customer: {getLeadContext(notification)}
                       </p>
                     )}
                     

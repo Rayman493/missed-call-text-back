@@ -485,7 +485,7 @@ export default function SetupStatusCard({
               href="/dashboard"
               className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
             >
-              View First Lead
+              View First Customer
               <ArrowRight className="w-4 h-4 ml-2" />
             </Link>
             <button

@@ -160,7 +160,7 @@ export default function SchedulePage() {
   }
 
   const handleAddEvent = (date?: Date) => {
-    // New appointments are always tied to a lead; schedule via JobComposer
+    // New appointments are always tied to a customer; schedule via JobComposer
     const dateToUse = date || selectedDay || new Date()
     setSelectedDay(dateToUse)
     setNewJobWorkflowTitle('New Appointment')
@@ -598,7 +598,7 @@ export default function SchedulePage() {
   }
 
   const handleNewAppointment = () => {
-    // Open lead-first appointment workflow
+    // Open customer-first appointment workflow
     setNewJobWorkflowTitle('New Appointment')
     setNewJobWorkflowPrompt('Select a customer to schedule an appointment for')
     setNewJobDefaultDate(selectedDay || undefined)
@@ -1162,7 +1162,7 @@ export default function SchedulePage() {
                   {/* Lead Picker Modal */}
                   <LeadPickerModal
                     title={newJobWorkflowTitle}
-                    subtitle="Select a lead to continue"
+                    subtitle="Select a customer to continue"
                     isOpen={isLeadPickerOpen}
                     onClose={() => setIsLeadPickerOpen(false)}
                     onSelect={(prefill) => {
@@ -1382,7 +1382,7 @@ function JobsTab({
         <div>
           <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">Jobs</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 max-w-sm">
-            Track scheduled work from leads or manual jobs.
+            Track scheduled work from customers or manual jobs.
           </p>
         </div>
         <button
@@ -1401,7 +1401,7 @@ function JobsTab({
           </div>
           <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">No jobs scheduled.</h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 max-w-xs mx-auto leading-relaxed">
-            Create a job or convert a lead into a scheduled appointment.
+            Create a job or convert a customer into a scheduled appointment.
           </p>
           <button
             onClick={onNewJob}

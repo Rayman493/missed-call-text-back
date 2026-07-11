@@ -265,7 +265,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
     if (hasInbound && !hasOutboundAfterInbound) return 'Needs Response'
     if (hasInbound && hasOutboundAfterInbound) return 'Follow-up Active'
     if (!hasInbound && lead.messages?.length > 0) return 'Initial Contact'
-    return 'New Lead'
+    return 'New Customer'
   }
 
   const getNextFollowUp = (lead: any) => {

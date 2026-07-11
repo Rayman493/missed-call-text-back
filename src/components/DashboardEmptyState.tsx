@@ -55,7 +55,7 @@ export default function DashboardEmptyState() {
 
       {/* Empty State Message */}
       <h2 className="text-xl font-semibold text-foreground mb-2 text-center">
-        You're ready to start recovering leads
+        You're ready to start recovering customers
       </h2>
       <p className="text-sm text-slate-400 text-center mb-6 max-w-md">
         Your first missed call will appear here automatically.
@@ -80,7 +80,7 @@ export default function DashboardEmptyState() {
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-5 mb-6 max-w-md shadow-lg">
           <h3 className="text-white font-semibold mb-2">Start your 14-day free trial</h3>
           <p className="text-blue-100 text-sm mb-4">
-            Get your ReplyFlow number and start recovering leads immediately. No credit card required.
+            Get your ReplyFlow number and start recovering customers immediately. No credit card required.
           </p>
           <button
             onClick={() => router.push('/pricing')}

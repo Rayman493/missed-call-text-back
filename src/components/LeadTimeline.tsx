@@ -169,7 +169,7 @@ export default function LeadTimeline({ leadId, events: propEvents, compact = fal
       {events.length === 0 && (
         <div className="text-center py-4">
           <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">No lead activity yet</p>
+          <p className="text-sm text-muted-foreground">No customer activity yet</p>
         </div>
       )}
     </div>

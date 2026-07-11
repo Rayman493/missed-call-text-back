@@ -488,7 +488,7 @@ export default function PaymentsPage() {
                           onClick={() => router.push(`/dashboard/leads/${payment.leads.id}`)}
                           className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
                         >
-                          View Lead
+                          View Customer
                         </button>
                         {payment.status === 'pending' && payment.checkout_url && (
                           <>
@@ -615,7 +615,7 @@ export default function PaymentsPage() {
                                 onClick={() => router.push(`/dashboard/leads/${payment.leads.id}`)}
                                 className="text-gray-400 hover:text-white text-xs font-medium"
                               >
-                                View Lead
+                                View Customer
                               </button>
                               {payment.status === 'pending' && payment.checkout_url && (
                                 <>

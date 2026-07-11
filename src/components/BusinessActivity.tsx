@@ -146,7 +146,7 @@ export default function BusinessActivity({
               Finish setup to begin tracking
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
-              Complete setup and place a test call to begin tracking missed calls and recovered leads.
+              Complete setup and place a test call to begin tracking missed calls and recovered customers.
             </p>
           </div>
         )}
@@ -200,12 +200,12 @@ export default function BusinessActivity({
               </p>
             </div>
 
-            {/* Leads Captured */}
+            {/* Customers Captured */}
             <div className="bg-slate-100/80 dark:bg-muted/30 rounded-lg p-1 sm:p-2.5">
               <div className="flex items-center gap-1 mb-0.5 sm:mb-1.5">
                 <span className="text-xs sm:text-lg">👥</span>
                 <span className="text-[8px] sm:text-xs font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide leading-tight">
-                  Leads
+                  Customers
                 </span>
               </div>
               <p className="text-base sm:text-2xl font-extrabold text-green-600 dark:text-green-400 tracking-tight mb-0.5 sm:mb-1 leading-none">

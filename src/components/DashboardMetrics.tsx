@@ -413,19 +413,19 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
             <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
               Recovery Rate
             </div>
-            <span className="inline-flex items-center cursor-help" title="Percentage of leads that replied to your messages">
+            <span className="inline-flex items-center cursor-help" title="Percentage of customers that replied to your messages">
               <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
             </span>
           </div>
           {metrics.recoveryRate === 0 && (
             <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
-              No recovered leads yet
+              No recovered customers yet
             </div>
           )}
         </div>
       </div>
 
-      {/* Captured Leads - Lead generation metric */}
+      {/* Captured Customers - Customer generation metric */}
       <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
         <div className="flex items-start justify-between mb-3">
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-center shadow-sm">
@@ -441,15 +441,15 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           </div>
           <div className="flex items-center gap-1">
             <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
-              Captured Leads
+              Captured Customers
             </div>
-            <span className="inline-flex items-center cursor-help" title="Leads captured by ReplyFlow from missed calls and customer inquiries">
+            <span className="inline-flex items-center cursor-help" title="Customers captured by ReplyFlow from missed calls and customer inquiries">
               <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
             </span>
           </div>
           {metrics.missedCallsCaptured === 0 && (
             <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
-              No captured leads yet
+              No captured customers yet
             </div>
           )}
         </div>
@@ -473,7 +473,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
             <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
               Messages Sent
             </div>
-            <span className="inline-flex items-center cursor-help" title="Automated and manual messages sent to leads">
+            <span className="inline-flex items-center cursor-help" title="Automated and manual messages sent to customers">
               <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
             </span>
           </div>
