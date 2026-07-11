@@ -44,7 +44,7 @@ interface AICallDetailsProps {
 }
 
 export default function AICallDetails({ leadId, businessId, conversationId, callerPhone, leadData, collapsible = true, onSave }: AICallDetailsProps) {
-  const [aiCallRecord, setAiCallRecord] = useState<AICallRecord | null>(null)
+  const [aiCallRecords, setAiCallRecords] = useState<AICallRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [transcriptExpanded, setTranscriptExpanded] = useState(false)
   const [summaryExpanded, setSummaryExpanded] = useState(!collapsible)
@@ -62,6 +62,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   })
   const [manualFields, setManualFields] = useState<Set<string>>(new Set())
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [previousIntakesExpanded, setPreviousIntakesExpanded] = useState(false)
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
   const supabase = createBrowserClient()
 
   const handleSave = async () => {
@@ -158,45 +160,48 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   }
 
   useEffect(() => {
-    fetchAICallRecord()
+    fetchAICallRecords()
   }, [leadId, businessId, conversationId, callerPhone])
 
-  const fetchAICallRecord = async () => {
+  const fetchAICallRecords = async () => {
     try {
       setLoading(true)
       
-      // Try to find AI call record by lead_id first
+      // Try to find AI call records by lead_id first
       let { data } = await supabase
         .from('ai_call_records')
         .select('*')
         .eq('lead_id', leadId)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
 
       // If not found by lead_id, try by caller_phone and business_id
-      if (!data) {
+      if (!data || data.length === 0) {
         const { data: fallbackData } = await supabase
           .from('ai_call_records')
           .select('*')
           .eq('caller_phone', callerPhone)
           .eq('business_id', businessId)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
 
         if (fallbackData) {
           data = fallbackData
         }
       }
 
-      setAiCallRecord(data)
+      setAiCallRecords(data || [])
+      // Default to latest record if none selected
+      if (data && data.length > 0 && !selectedRecordId) {
+        setSelectedRecordId(data[0].id)
+      }
     } catch (error) {
-      console.error('Error in fetchAICallRecord:', error)
+      console.error('Error in fetchAICallRecords:', error)
     } finally {
       setLoading(false)
     }
   }
+
+  // Get the currently selected AI call record (latest by default)
+  const aiCallRecord = aiCallRecords.find(r => r.id === selectedRecordId) || aiCallRecords[0] || null
 
   const calculateCallDuration = () => {
     if (!aiCallRecord?.transcript || aiCallRecord.transcript.length < 2) return 'Unknown'
@@ -288,6 +293,66 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   return (
     <div className="space-y-4">
+      {/* Previous Intakes - Show when multiple records exist */}
+      {aiCallRecords.length > 1 && (
+        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          <button
+            onClick={() => setPreviousIntakesExpanded(!previousIntakesExpanded)}
+            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <MessageCircle className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-foreground">
+                  Previous Intakes
+                </span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  ({aiCallRecords.length} total)
+                </span>
+              </div>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${previousIntakesExpanded ? 'rotate-180' : 'rotate-0'}`} />
+          </button>
+          
+          {previousIntakesExpanded && (
+            <div className="px-4 pb-4 pt-2 border-t border-border/50">
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {aiCallRecords.map((record, index) => (
+                  <button
+                    key={record.id}
+                    onClick={() => setSelectedRecordId(record.id)}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
+                      selectedRecordId === record.id
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                        : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900/50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-foreground">
+                        {index === 0 ? 'Latest Intake' : `Intake #${aiCallRecords.length - index}`}
+                      </span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getOutcomeColor(record.outcome)}`}>
+                        {record.outcome.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {formatRelativeTime(record.created_at)}
+                    </div>
+                    {record.extracted_info?.callerName && (
+                      <div className="text-[11px] text-foreground mt-1">
+                        {record.extracted_info.callerName}
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* AI Summary Card - Compact and Collapsible */}
       {collapsible ? (
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
@@ -302,7 +367,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 </svg>
               </div>
               <span className="text-sm font-semibold text-foreground">
-                AI Intake Summary
+                {aiCallRecords.length > 1 ? 'Selected Intake Details' : 'AI Intake Summary'}
               </span>
             </button>
             <div className="flex items-center gap-2">

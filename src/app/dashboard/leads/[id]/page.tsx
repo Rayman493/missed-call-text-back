@@ -556,32 +556,38 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const voicemails = leadData?.voicemailRecordings || []
     const systemEvents: any[] = []
     
-    // Add AI Intake event - check actual outcome for consistency
+    // Add AI Intake events - show ALL AI call records as separate timeline events
     if (leadData?.aiCallRecords && leadData.aiCallRecords.length > 0) {
-      const latestAiCall = leadData.aiCallRecords[0]
-      const outcome = latestAiCall.outcome
-      const intakeStatus = getAIIntakeStatus({ aiCallRecords: [latestAiCall] })
-      
-      // Determine message based on actual outcome
-      let intakeMessage = 'AI Intake Completed'
-      if (intakeStatus === 'partial') {
-        intakeMessage = 'AI Intake Partial'
-      } else if (outcome === 'early_hangup') {
-        intakeMessage = 'Caller Hung Up Early'
-      } else if (outcome === 'no_speech') {
-        intakeMessage = 'No Speech Detected'
-      } else if (outcome === 'ai_connection_failed') {
-        intakeMessage = 'AI Connection Failed'
-      }
-      
-      systemEvents.push({
-        type: 'system_event',
-        id: `ai-intake-${latestAiCall.id}`,
-        created_at: latestAiCall.created_at,
-        data: {
-          message: intakeMessage,
-          timestamp: latestAiCall.created_at
+      leadData.aiCallRecords.forEach((aiCall: any, index: number) => {
+        const outcome = aiCall.outcome
+        const intakeStatus = getAIIntakeStatus({ aiCallRecords: [aiCall] })
+        
+        // Determine message based on actual outcome
+        let intakeMessage = 'AI Intake Completed'
+        if (intakeStatus === 'partial') {
+          intakeMessage = 'AI Intake Partial'
+        } else if (outcome === 'early_hangup') {
+          intakeMessage = 'Caller Hung Up Early'
+        } else if (outcome === 'no_speech') {
+          intakeMessage = 'No Speech Detected'
+        } else if (outcome === 'ai_connection_failed') {
+          intakeMessage = 'AI Connection Failed'
         }
+        
+        // Add "Latest" label for the most recent intake
+        const isLatest = index === 0
+        const messageLabel = isLatest ? `${intakeMessage} (Latest)` : intakeMessage
+        
+        systemEvents.push({
+          type: 'system_event',
+          id: `ai-intake-${aiCall.id}`,
+          created_at: aiCall.created_at,
+          data: {
+            message: messageLabel,
+            timestamp: aiCall.created_at,
+            isDivider: isLatest // Add divider for latest intake
+          }
+        })
       })
     }
     

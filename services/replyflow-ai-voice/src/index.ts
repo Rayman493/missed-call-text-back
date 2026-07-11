@@ -5610,16 +5610,18 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         return;
       }
 
-      // Update lead metadata with partial intake data
+      // Update lead metadata with partial intake metadata only
+      // CRITICAL: Do NOT overwrite extracted_info fields - preserve historical intake data
       const { error: metaUpdateError } = await supabase
         .from('leads')
         .update({
           raw_metadata: {
-            ...canonicalExtractedInfo,
-            extracted_info: canonicalExtractedInfo,
+            ...(lead.raw_metadata || {}),
+            // Only update partial intake metadata, NOT extracted_info fields
             ai_intake_completed: false,
             ai_intake_partial: true,
             ai_intake_partial_updated_at: new Date().toISOString(),
+            ai_intake_partial_call_sid: state.callSid,
           }
         })
         .eq('id', lead.id);
@@ -6307,137 +6309,183 @@ Reply to this message if you'd like to update or add any information.
       console.log('[AI INTAKE FINAL EXTRACTION AUDIT] Timestamp:', new Date().toISOString());
       console.log('[AI INTAKE FINAL EXTRACTION AUDIT] =========================================');
 
-      const { data: lead, error: leadError } = await supabase
+      // CRITICAL FIX: Preserve historical intake data in lead.raw_metadata
+      // Do NOT overwrite previous intake information on repeat callers
+      // ai_call_records is the authoritative intake history - lead.raw_metadata is only a latest snapshot
+      const { data: existingLead } = await supabase
         .from('leads')
-        .upsert({
+        .select('id, raw_metadata, status')
+        .eq('business_id', state.businessId)
+        .eq('caller_phone', state.callerPhone || '')
+        .maybeSingle();
+
+      let lead;
+      if (existingLead) {
+        // Existing lead: preserve raw_metadata, only update status and completion timestamp
+        const { data: updatedLead, error: updateError } = await supabase
+          .from('leads')
+          .update({
+            status: 'new', // Reset to 'new' for new intake
+            raw_metadata: {
+              ...(existingLead.raw_metadata || {}),
+              // Only update completion metadata, NOT extracted_info fields
+              ai_intake_completed: true,
+              ai_intake_completed_at: new Date().toISOString(),
+              ai_intake_latest_call_sid: state.callSid,
+            }
+          })
+          .eq('id', existingLead.id)
+          .select()
+          .single();
+        
+        lead = updatedLead;
+        if (updateError) {
+          console.log('[SIMPLE MODE] lead update failed:', updateError);
+        } else {
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: simple_mode_lead_updated_preserving_history');
+          console.log('[SIMPLE MODE] leadId:', lead.id);
+          console.log('[SIMPLE MODE] action: preserved_existing_raw_metadata');
+          console.log('[SIMPLE MODE] =========================================');
+        }
+      } else {
+        // New lead: create with current intake data
+        const { data: newLead, error: createError } = await supabase
+          .from('leads')
+          .insert({
+            business_id: state.businessId,
+            caller_phone: state.callerPhone || '',
+            status: 'new',
+            raw_metadata: {
+              ...canonicalExtractedInfo,
+              extracted_info: canonicalExtractedInfo,
+              ai_intake_completed: true,
+              ai_intake_completed_at: new Date().toISOString(),
+              ai_intake_latest_call_sid: state.callSid,
+            }
+          })
+          .select()
+          .single();
+        
+        lead = newLead;
+        if (createError) {
+          console.log('[SIMPLE MODE] lead creation failed:', createError);
+        } else {
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: simple_mode_lead_created');
+          console.log('[SIMPLE MODE] leadId:', lead.id);
+          console.log('[SIMPLE MODE] =========================================');
+        }
+      }
+
+      if (!lead) {
+        console.log('[SIMPLE MODE] lead creation/update failed - cannot proceed');
+        return;
+      }
+
+      // Create conversation
+      const { data: conversation, error: conversationError } = await supabase
+        .from('conversations')
+        .insert({
+          lead_id: lead.id,
           business_id: state.businessId,
-          caller_phone: state.callerPhone || '',
-          status: 'new',
-          raw_metadata: {
-            ...canonicalExtractedInfo,
-            extracted_info: canonicalExtractedInfo,
-            ai_intake_completed: true,
-            ai_intake_completed_at: new Date().toISOString(),
-          }
-        }, {
-          onConflict: 'business_id,caller_phone',
+          status: 'active',
         })
         .select()
         .single();
 
-      if (leadError) {
-        console.log('[SIMPLE MODE] lead creation failed:', leadError);
+      if (conversationError) {
+        console.log('[SIMPLE MODE] conversation creation failed:', conversationError);
       } else {
         console.log('[SIMPLE MODE] =========================================');
-        console.log('[SIMPLE MODE] event: simple_mode_lead_created_or_updated');
-        console.log('[SIMPLE MODE] leadId:', lead.id);
+        console.log('[SIMPLE MODE] event: simple_mode_conversation_created');
+        console.log('[SIMPLE MODE] conversationId:', conversation.id);
         console.log('[SIMPLE MODE] =========================================');
 
-        // Create conversation
-        const { data: conversation, error: conversationError } = await supabase
-          .from('conversations')
-          .insert({
-            lead_id: lead.id,
-            business_id: state.businessId,
-            status: 'active',
-          })
-          .select()
-          .single();
+        // Create ai_call_record with exact call_sid
+        // Store canonical field names that match getLeadAIIntake expectations.
+        const aiCallRecordPayload = {
+          lead_id: lead.id,
+          conversation_id: conversation.id,
+          business_id: state.businessId,
+          call_sid: state.callSid,
+          caller_phone: state.callerPhone,
+          transcript: state.transcript,
+          extracted_info: canonicalExtractedInfo,
+          summary: canonicalExtractedInfo.additionalDetails || '',
+          outcome: 'completed',
+        };
+        console.log('[SIMPLE MODE] ai_call_record insert payload:', {
+          callSid: aiCallRecordPayload.call_sid,
+          leadId: aiCallRecordPayload.lead_id,
+          conversationId: aiCallRecordPayload.conversation_id,
+          businessId: aiCallRecordPayload.business_id,
+          callerPhone: aiCallRecordPayload.caller_phone,
+          extractedInfoKeys: Object.keys(aiCallRecordPayload.extracted_info),
+        });
+        const { error: callRecordError } = await supabase
+          .from('ai_call_records')
+          .insert(aiCallRecordPayload);
 
-        if (conversationError) {
-          console.log('[SIMPLE MODE] conversation creation failed:', conversationError);
+        console.log('[AI RECORD WRITE DEBUG] =========================================');
+        console.log('[AI RECORD WRITE DEBUG] callSid:', aiCallRecordPayload.call_sid);
+        console.log('[AI RECORD WRITE DEBUG] businessId:', aiCallRecordPayload.business_id);
+        console.log('[AI RECORD WRITE DEBUG] leadId:', aiCallRecordPayload.lead_id);
+        console.log('[AI RECORD WRITE DEBUG] conversationId:', aiCallRecordPayload.conversation_id);
+        console.log('[AI RECORD WRITE DEBUG] outcome:', aiCallRecordPayload.outcome);
+        console.log('[AI RECORD WRITE DEBUG] extractedInfoKeys:', Object.keys(aiCallRecordPayload.extracted_info));
+        console.log('[AI RECORD WRITE DEBUG] success:', !callRecordError);
+        console.log('[AI RECORD WRITE DEBUG] error:', callRecordError || null);
+        console.log('[AI RECORD WRITE DEBUG] =========================================');
+
+        if (callRecordError) {
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: simple_mode_ai_call_record_insert_failed');
+          console.log('[SIMPLE MODE] errorCode:', callRecordError.code);
+          console.log('[SIMPLE MODE] errorMessage:', callRecordError.message);
+          console.log('[SIMPLE MODE] errorDetails:', callRecordError.details);
+          console.log('[SIMPLE MODE] callSid:', state.callSid);
+          console.log('[SIMPLE MODE] =========================================');
         } else {
           console.log('[SIMPLE MODE] =========================================');
-          console.log('[SIMPLE MODE] event: simple_mode_conversation_created');
+          console.log('[SIMPLE MODE] event: simple_mode_ai_call_record_created');
+          console.log('[SIMPLE MODE] callSid:', state.callSid);
+          console.log('[SIMPLE MODE] leadId:', lead.id);
           console.log('[SIMPLE MODE] conversationId:', conversation.id);
           console.log('[SIMPLE MODE] =========================================');
 
-          // Create ai_call_record with exact call_sid
-          // Store canonical field names that match getLeadAIIntake expectations.
-          const aiCallRecordPayload = {
-            lead_id: lead.id,
-            conversation_id: conversation.id,
-            business_id: state.businessId,
-            call_sid: state.callSid,
-            caller_phone: state.callerPhone,
-            transcript: state.transcript,
-            extracted_info: canonicalExtractedInfo,
-            summary: canonicalExtractedInfo.additionalDetails || '',
-            outcome: 'completed',
-          };
-          console.log('[SIMPLE MODE] ai_call_record insert payload:', {
-            callSid: aiCallRecordPayload.call_sid,
-            leadId: aiCallRecordPayload.lead_id,
-            conversationId: aiCallRecordPayload.conversation_id,
-            businessId: aiCallRecordPayload.business_id,
-            callerPhone: aiCallRecordPayload.caller_phone,
-            extractedInfoKeys: Object.keys(aiCallRecordPayload.extracted_info),
-          });
-          const { error: callRecordError } = await supabase
-            .from('ai_call_records')
-            .insert(aiCallRecordPayload);
-
-          console.log('[AI RECORD WRITE DEBUG] =========================================');
-          console.log('[AI RECORD WRITE DEBUG] callSid:', aiCallRecordPayload.call_sid);
-          console.log('[AI RECORD WRITE DEBUG] businessId:', aiCallRecordPayload.business_id);
-          console.log('[AI RECORD WRITE DEBUG] leadId:', aiCallRecordPayload.lead_id);
-          console.log('[AI RECORD WRITE DEBUG] conversationId:', aiCallRecordPayload.conversation_id);
-          console.log('[AI RECORD WRITE DEBUG] outcome:', aiCallRecordPayload.outcome);
-          console.log('[AI RECORD WRITE DEBUG] extractedInfoKeys:', Object.keys(aiCallRecordPayload.extracted_info));
-          console.log('[AI RECORD WRITE DEBUG] success:', !callRecordError);
-          console.log('[AI RECORD WRITE DEBUG] error:', callRecordError || null);
-          console.log('[AI RECORD WRITE DEBUG] =========================================');
-
-          if (callRecordError) {
-            console.log('[SIMPLE MODE] =========================================');
-            console.log('[SIMPLE MODE] event: simple_mode_ai_call_record_insert_failed');
-            console.log('[SIMPLE MODE] errorCode:', callRecordError.code);
-            console.log('[SIMPLE MODE] errorMessage:', callRecordError.message);
-            console.log('[SIMPLE MODE] errorDetails:', callRecordError.details);
-            console.log('[SIMPLE MODE] callSid:', state.callSid);
-            console.log('[SIMPLE MODE] =========================================');
+          // ── A: Update leads.raw_metadata with completion metadata only ───────
+          // CRITICAL: Do NOT overwrite extracted_info fields - preserve historical intake data
+          // ai_call_records is the authoritative intake history
+          // lead.raw_metadata only stores completion timestamps and latest call_sid reference
+          console.log('[simple_mode_lead_summary_update_start]', { leadId: lead.id, callSid: state.callSid });
+          const { data: currentLead } = await supabase
+            .from('leads')
+            .select('raw_metadata')
+            .eq('id', lead.id)
+            .single();
+          const { error: metaUpdateError } = await supabase
+            .from('leads')
+            .update({
+              raw_metadata: {
+                ...(currentLead?.raw_metadata || {}),
+                // Only update completion metadata, NOT extracted_info fields
+                ai_intake_completed: true,
+                ai_intake_completed_at: new Date().toISOString(),
+                ai_intake_latest_call_sid: state.callSid,
+              },
+            })
+            .eq('id', lead.id);
+          if (metaUpdateError) {
+            console.log('[simple_mode_lead_summary_update_failed]', { leadId: lead.id, callSid: state.callSid, error: metaUpdateError.message });
           } else {
-            console.log('[SIMPLE MODE] =========================================');
-            console.log('[SIMPLE MODE] event: simple_mode_ai_call_record_created');
-            console.log('[SIMPLE MODE] callSid:', state.callSid);
-            console.log('[SIMPLE MODE] leadId:', lead.id);
-            console.log('[SIMPLE MODE] conversationId:', conversation.id);
-            console.log('[SIMPLE MODE] =========================================');
-
-            // ── A: Update leads.raw_metadata with structured intake data ───────
-            // This enables getLeadDisplayName, getLeadAIIntake, and lead card preview
-            // to read canonical fields without joining ai_call_records.
-            console.log('[simple_mode_lead_summary_update_start]', { leadId: lead.id, callSid: state.callSid });
-            const { data: currentLead } = await supabase
-              .from('leads')
-              .select('raw_metadata')
-              .eq('id', lead.id)
-              .single();
-            const { error: metaUpdateError } = await supabase
-              .from('leads')
-              .update({
-                raw_metadata: {
-                  ...(currentLead?.raw_metadata || {}),
-                  ...canonicalExtractedInfo,
-                  extracted_info: canonicalExtractedInfo,
-                  ai_intake_completed: true,
-                  ai_intake_completed_at: new Date().toISOString(),
-                },
-              })
-              .eq('id', lead.id);
-            if (metaUpdateError) {
-              console.log('[simple_mode_lead_summary_update_failed]', { leadId: lead.id, callSid: state.callSid, error: metaUpdateError.message });
-            } else {
-              console.log('[simple_mode_lead_summary_update_success]', {
-                leadId: lead.id,
-                callSid: state.callSid,
-                customerName:       canonicalExtractedInfo.customerName,
-                serviceRequested:   canonicalExtractedInfo.serviceRequested,
-                serviceAddress:     canonicalExtractedInfo.serviceAddress,
-              });
-            }
-            // ──────────────────────────────────────────────────────────────────
+            console.log('[simple_mode_lead_summary_update_success]', {
+              leadId: lead.id,
+              callSid: state.callSid,
+              action: 'preserved_existing_raw_metadata',
+            });
           }
+          // ──────────────────────────────────────────────────────────────────
 
           // Log final structured intake data before sending SMS
           const finalIntakeData = {
