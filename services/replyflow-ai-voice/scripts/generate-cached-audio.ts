@@ -21,10 +21,10 @@ if (!OPENAI_API_KEY) {
 // Higher values = more high-frequency preservation (sharper S sounds)
 // Valid range: 0.5 to 1.0 (normalized to target Nyquist)
 // ========================================
-const RESAMPLER_CUTOFF = 0.85;
+const RESAMPLER_CUTOFF = 0.90;
 
-// Generation version - update when changing cutoff
-const CACHED_AUDIO_GENERATION_VERSION = "resampler-v3-085";
+// Generation version - update when changing cutoff or voice
+const CACHED_AUDIO_GENERATION_VERSION = "resampler-v3";
 
 const prompts = {
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
