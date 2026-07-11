@@ -49,7 +49,7 @@ import { OpenAIRealtimeClient } from './openai-client';
 import { TwilioStreamHandler } from './twilio-stream';
 import { createClient } from '@supabase/supabase-js';
 import audioDecode from 'audio-decode';
-import { cachedPromptAudio, CACHED_AUDIO_GENERATION_VERSION, CACHED_AUDIO_GENERATED_AT, RESAMPLER_CUTOFF } from './cached-audio';
+import { cachedPromptAudio, CACHED_AUDIO_GENERATION_VERSION, CACHED_AUDIO_GENERATED_AT, REALTIME_MODEL, TTS_VOICE, OUTPUT_FORMAT } from './cached-audio';
 import {
   IntakeTemplate,
   AI_INTAKE_TEMPLATES,
@@ -142,7 +142,9 @@ console.log('[AUDIO QUALITY FIX] =========================================');
 console.log('[CACHED AUDIO VALIDATION] =========================================');
 console.log('[CACHED AUDIO VALIDATION] generationVersion:', CACHED_AUDIO_GENERATION_VERSION);
 console.log('[CACHED AUDIO VALIDATION] generatedAt:', CACHED_AUDIO_GENERATED_AT);
-console.log('[CACHED AUDIO VALIDATION] resamplerCutoff:', RESAMPLER_CUTOFF);
+console.log('[CACHED AUDIO VALIDATION] realtimeModel:', REALTIME_MODEL);
+console.log('[CACHED AUDIO VALIDATION] ttsVoice:', TTS_VOICE);
+console.log('[CACHED AUDIO VALIDATION] outputFormat:', OUTPUT_FORMAT);
 const crypto = require('crypto');
 for (const [key, base64Audio] of Object.entries(cachedPromptAudio)) {
   const buffer = Buffer.from(base64Audio, 'base64');

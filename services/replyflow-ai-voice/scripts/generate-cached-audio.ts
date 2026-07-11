@@ -23,8 +23,16 @@ if (!OPENAI_API_KEY) {
 // ========================================
 const RESAMPLER_CUTOFF = 0.90;
 
+// ========================================
+// OPENAI VOICE CONFIGURATION
+// ========================================
+// Change this value to test different OpenAI TTS voices
+// Supported voices: alloy, echo, fable, onyx, nova, shimmer
+// ========================================
+const TTS_VOICE = "alloy";
+
 // Generation version - update when changing cutoff or voice
-const CACHED_AUDIO_GENERATION_VERSION = "resampler-v3";
+const CACHED_AUDIO_GENERATION_VERSION = "voice-alloy";
 
 const prompts = {
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
@@ -149,10 +157,12 @@ async function generateCachedAudio() {
   const output = `// Cached PCMU audio for Simple Mode prompts
 // Generated with windowed-sinc resampler
 // Cutoff: ${RESAMPLER_CUTOFF}
+// Voice: ${TTS_VOICE}
 // Generation date: ${new Date().toISOString()}
 export const CACHED_AUDIO_GENERATION_VERSION = "${CACHED_AUDIO_GENERATION_VERSION}";
 export const CACHED_AUDIO_GENERATED_AT = "${new Date().toISOString()}";
 export const RESAMPLER_CUTOFF = ${RESAMPLER_CUTOFF};
+export const TTS_VOICE = "${TTS_VOICE}";
 
 export const cachedPromptAudio = {
 ${Object.entries(results).map(([key, value]) => `  ${key}: \`${value}\`,`).join('\n')}
@@ -177,7 +187,7 @@ async function generateSingleAudio(prompt: string): Promise<string | null> {
       body: JSON.stringify({
         model: 'tts-1',
         input: prompt,
-        voice: 'alloy',
+        voice: TTS_VOICE,
         response_format: 'pcm',
         sample_rate: 24000,
       }),
