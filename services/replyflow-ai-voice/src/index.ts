@@ -6691,6 +6691,31 @@ Reply to this message if you'd like to update or add any information.
           await new Promise(resolve => setTimeout(resolve, 20));
         }
 
+        // Add trailing silence for final prompt to prevent cutoff
+        if (stage === 'complete') {
+          const silenceDurationMs = 500; // 500ms of trailing silence
+          const silenceChunks = Math.ceil(silenceDurationMs / 20);
+          const silenceChunk = Buffer.alloc(160, 255).toString('base64'); // 255 = silence in PCMU
+
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: adding_trailing_silence');
+          console.log('[SIMPLE MODE] silenceDurationMs:', silenceDurationMs);
+          console.log('[SIMPLE MODE] silenceChunks:', silenceChunks);
+          console.log('[SIMPLE MODE] =========================================');
+
+          for (let i = 0; i < silenceChunks; i++) {
+            const mediaMessage = {
+              event: 'media',
+              streamSid: state.streamSid,
+              media: {
+                payload: silenceChunk
+              }
+            };
+            ws.send(JSON.stringify(mediaMessage));
+            await new Promise(resolve => setTimeout(resolve, 20));
+          }
+        }
+
         console.log('[SIMPLE MODE] =========================================');
         state.promptAudioSentAt = Date.now();
         console.log('[SIMPLE MODE] event: cached_prompt_audio_sent');
