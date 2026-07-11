@@ -11,6 +11,7 @@ import { useTrialEligibility } from '@/hooks/useTrialEligibility'
 import { useDashboardRouteTracking } from '@/hooks/useDashboardRouteTracking'
 import { useOperationalMetrics } from '@/hooks/useOperationalMetrics'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
+import GenericLoadingScreen from '@/components/GenericLoadingScreen'
 import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { isAdminUserById } from '@/lib/admin'
 import { CalendarOff } from 'lucide-react'
@@ -869,9 +870,9 @@ export default function DashboardContent() {
       missedCallCount,
       derivedSetupState: setupState,
       renderBranch: 'loading',
-      reason: `authLoading=${authLoading}, businessLoading=${businessLoading}, webhookConfirming=${webhookConfirming}, businessFetchComplete=${businessFetchComplete}; no usable business state; rendering AppLoadingScreen`,
+      reason: `authLoading=${authLoading}, businessLoading=${businessLoading}, webhookConfirming=${webhookConfirming}, businessFetchComplete=${businessFetchComplete}; no usable business state; rendering GenericLoadingScreen`,
     })
-    return <AppLoadingScreen />
+    return <GenericLoadingScreen />
   }
   
   // Check for manual/lifetime access
@@ -921,7 +922,7 @@ export default function DashboardContent() {
 
       if (targetRoute && targetRoute !== pathname) {
         router.push(targetRoute)
-        return <AppLoadingScreen />
+        return <GenericLoadingScreen />
       }
     }
   }
@@ -943,7 +944,7 @@ export default function DashboardContent() {
         reason: 'businessFetchComplete but no business; redirecting to /onboarding',
       })
       router.push('/onboarding')
-      return <AppLoadingScreen />
+      return <GenericLoadingScreen />
     }
 
     // Check if user has active subscription (trialing or active)
@@ -964,7 +965,7 @@ export default function DashboardContent() {
           reason: 'business exists but missing required fields and no active subscription; redirecting to /onboarding',
         })
         router.push('/onboarding')
-        return <AppLoadingScreen />
+        return <GenericLoadingScreen />
       }
       // Allow dashboard access - Setup Progress component will handle incomplete profile
     }

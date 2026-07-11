@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { isActiveSubscription } from '@/lib/subscription'
 import { hasBillingAccess } from '@/lib/manual-access'
 import AppLoadingScreen from '@/components/AppLoadingScreen'
+import GenericLoadingScreen from '@/components/GenericLoadingScreen'
 import StripeReturnLoadingScreen from '@/components/StripeReturnLoadingScreen'
 import CheckoutRedirectLoadingScreen from '@/components/CheckoutRedirectLoadingScreen'
 import { logRouteFlashDebug } from '@/lib/route-flash-debug'
@@ -264,9 +265,9 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       onboardingStatus: business?.onboarding_status,
       subscription_status: business?.subscription_status,
       renderBranch: 'loading',
-      reason: 'business still loading or not initialized; rendering AppLoadingScreen',
+      reason: 'business still loading or not initialized; rendering GenericLoadingScreen',
     })
-    return <AppLoadingScreen />
+    return <GenericLoadingScreen />
   }
 
   if (!business) {
@@ -288,7 +289,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
     if (hasRedirectedRef.current === pathname) return
     hasRedirectedRef.current = pathname
     router.push('/onboarding')
-    return <AppLoadingScreen />
+    return <GenericLoadingScreen />
   }
 
   logRouteFlashDebug({
