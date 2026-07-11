@@ -145,7 +145,32 @@ console.log('[CACHED AUDIO VALIDATION] generatedAt:', CACHED_AUDIO_GENERATED_AT)
 console.log('[CACHED AUDIO VALIDATION] realtimeModel:', REALTIME_MODEL);
 console.log('[CACHED AUDIO VALIDATION] ttsVoice:', TTS_VOICE);
 console.log('[CACHED AUDIO VALIDATION] outputFormat:', OUTPUT_FORMAT);
+
+// Required production prompts for Simple Mode (matching runtime stage names)
+const REQUIRED_PROMPTS = [
+  'ask_name_reason',
+  'ask_details',
+  'ask_location_or_context',
+  'ask_timing',
+  'ask_callback_time',
+  'complete'
+];
+
 const crypto = require('crypto');
+let missingPromptCount = 0;
+let loadedPromptCount = 0;
+
+// Validate all required prompts are present
+for (const requiredKey of REQUIRED_PROMPTS) {
+  if (!cachedPromptAudio[requiredKey]) {
+    console.error(`[CACHED AUDIO VALIDATION] ERROR: Required prompt missing: ${requiredKey}`);
+    missingPromptCount++;
+  } else {
+    loadedPromptCount++;
+  }
+}
+
+// Validate all cached assets
 for (const [key, base64Audio] of Object.entries(cachedPromptAudio)) {
   const buffer = Buffer.from(base64Audio, 'base64');
   const checksum = crypto.createHash('sha256').update(buffer).digest('hex');
@@ -165,6 +190,16 @@ for (const [key, base64Audio] of Object.entries(cachedPromptAudio)) {
     process.exit(1);
   }
 }
+
+console.log(`[CACHED AUDIO VALIDATION] requiredPromptCount: ${REQUIRED_PROMPTS.length}`);
+console.log(`[CACHED AUDIO VALIDATION] loadedPromptCount: ${loadedPromptCount}`);
+console.log(`[CACHED AUDIO VALIDATION] missingPromptCount: ${missingPromptCount}`);
+
+if (missingPromptCount > 0) {
+  console.error('[CACHED AUDIO VALIDATION] ERROR: Missing required prompts. Deployment cannot proceed.');
+  process.exit(1);
+}
+
 console.log('[CACHED AUDIO VALIDATION] All cached assets validated successfully');
 console.log('[CACHED AUDIO VALIDATION] =========================================');
 
@@ -6668,7 +6703,7 @@ Reply to this message if you'd like to update or add any information.
       // Use cached PCMU audio
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: cached_prompt_audio_found');
-      console.log('[SIMPLE MODE] sourceOfSpeech:', 'cached_pcmu_prompt');
+      console.log('[SIMPLE MODE] sourceOfSpeech:', 'cached_realtime_pcmu_prompt');
       console.log('[SIMPLE MODE] cached_prompt_key:', stage);
       console.log('[SIMPLE MODE] cached_prompt_audio_found:', true);
       console.log('[SIMPLE MODE] response_create_live_prompt_disabled:', true);
@@ -6800,9 +6835,17 @@ Reply to this message if you'd like to update or add any information.
       console.log('[SIMPLE MODE] ERROR: Cached prompt audio is required but missing!');
       console.log('[SIMPLE MODE] ERROR: cached_prompt_key:', stage);
       console.log('[SIMPLE MODE] ERROR: Please populate cachedPromptAudio with base64 PCMU audio');
-      console.log('[SIMPLE MODE] ERROR: Run: npx ts-node scripts/generate-cached-audio.ts');
+      console.log('[SIMPLE MODE] ERROR: Run: npx ts-node scripts/generate-realtime-cached-audio.ts');
+      console.log('[SIMPLE MODE] ERROR: Fallback: Using live TTS prompt');
       console.log('[SIMPLE MODE] =========================================');
-      state.assistantSpeaking = false;
+      
+      // Fallback: Use live TTS prompt instead of cached audio
+      const sent = sendSimpleModeLivePrompt(prompt, false, false);
+      if (!sent) {
+        console.log('[SIMPLE MODE] ERROR: Fallback live prompt also failed');
+        state.assistantSpeaking = false;
+        return;
+      }
       return;
     }
   };
