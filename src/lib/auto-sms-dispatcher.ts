@@ -101,14 +101,26 @@ function mergeExtractedInfo(params: any, aiCallRecord: any, leadMetadata: any): 
   return merged;
 }
 
-async function hasAutomaticSmsForCall(callSid: string, leadId: string): Promise<boolean> {
-  // Verify a message with a valid Twilio SID exists for this call
+async function hasAutomaticSmsForCall(callSid: string, businessId: string): Promise<boolean> {
+  // CRITICAL: This is CallSid-scoped to ensure exactly one automatic SMS per call
+  // Previous calls should NOT suppress future calls' automatic SMS
+  console.log('[AUTO SMS IDEMPOTENCY CHECK] =========================================');
+  console.log('[AUTO SMS IDEMPOTENCY CHECK] Checking for existing automatic SMS');
+  console.log('[AUTO SMS IDEMPOTENCY CHECK] callSid:', callSid);
+  console.log('[AUTO SMS IDEMPOTENCY CHECK] businessId:', businessId);
+  console.log('[AUTO SMS IDEMPOTENCY CHECK] scoping: Business + CallSid + Automatic SMS Type');
+  console.log('[AUTO SMS IDEMPOTENCY CHECK] Timestamp:', new Date().toISOString());
+  console.log('[AUTO SMS IDEMPOTENCY CHECK] =========================================');
+
+  // Verify a message with a valid Twilio SID exists for this specific call
   // This prevents false positives from failed attempts that set metadata flags
   const { data: existingMessage } = await supabaseAdmin
     .from('messages')
-    .select('id, twilio_message_sid, status, error_code')
-    .eq('lead_id', leadId)
+    .select('id, call_sid, business_id, twilio_message_sid, status, error_code, is_manual')
+    .eq('call_sid', callSid)
+    .eq('business_id', businessId)
     .eq('direction', 'outbound')
+    .eq('is_manual', false)
     .not('twilio_message_sid', 'is', null)
     .not('twilio_message_sid', 'eq', 'NOT_CALLED')
     .not('twilio_message_sid', 'like', 'SIM_%')
@@ -121,16 +133,26 @@ async function hasAutomaticSmsForCall(callSid: string, leadId: string): Promise<
     const isFailedStatus = existingMessage.status === 'failed' || existingMessage.status === 'undelivered'
 
     if (wasTwilioCalled && !hasError && !isFailedStatus) {
-      console.log('[AUTO SMS IDEMPOTENCY] Valid SMS already sent for lead:', {
-        leadId,
+      console.log('[AUTO SMS IDEMPOTENCY] Valid SMS already sent for call:', {
+        callSid,
+        businessId,
         messageId: existingMessage.id,
         twilioMessageSid: existingMessage.twilio_message_sid,
         status: existingMessage.status
       })
+      console.log('[AUTO SMS IDEMPOTENCY CHECK RESULT] =========================================');
+      console.log('[AUTO SMS IDEMPOTENCY CHECK RESULT] hasSms: true');
+      console.log('[AUTO SMS IDEMPOTENCY CHECK RESULT] existingMessageId:', existingMessage.id);
+      console.log('[AUTO SMS IDEMPOTENCY CHECK RESULT] Timestamp:', new Date().toISOString());
+      console.log('[AUTO SMS IDEMPOTENCY CHECK RESULT] =========================================');
       return true
     }
   }
 
+  console.log('[AUTO SMS IDEMPOTENCY CHECK RESULT] =========================================');
+  console.log('[AUTO SMS IDEMPOTENCY CHECK RESULT] hasSms: false');
+  console.log('[AUTO SMS IDEMPOTENCY CHECK RESULT] Timestamp:', new Date().toISOString());
+  console.log('[AUTO SMS IDEMPOTENCY CHECK RESULT] =========================================');
   return false
 }
 
@@ -182,7 +204,7 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     return { success: true, skipped: true, reason: 'ignored_contact' }
   }
 
-  if (await hasAutomaticSmsForCall(callSid, leadId)) {
+  if (await hasAutomaticSmsForCall(callSid, businessId)) {
     return { success: true, skipped: true, reason: 'automatic_sms_already_dispatched_for_call' }
   }
 
@@ -270,11 +292,11 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]))
 
     // Re-check idempotency after delay (SMS may have been sent by another process)
-    if (await hasAutomaticSmsForCall(callSid, leadId)) {
+    if (await hasAutomaticSmsForCall(callSid, businessId)) {
       console.log('[IDEMPOTENCY]', {
         existingSmsFound: true,
         callSid,
-        leadId,
+        businessId,
         action: 'skipping_sms_already_sent'
       })
       // Mark as success since SMS was already sent

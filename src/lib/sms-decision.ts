@@ -145,18 +145,20 @@ export async function determineSmsTemplate(params: {
     }
   }
 
-  // Check if any automated SMS has been sent for this lead in the last 5 minutes
-  const recentAutomatedSms = await hasRecentAutomatedSms(leadId)
-  if (recentAutomatedSms) {
-    console.log('[AUTO SMS DECISION] Recent automated SMS already sent - suppressing duplicate', {
-      leadId,
+  // Check if an automatic SMS has already been sent for this specific call
+  // This is CallSid-scoped to ensure exactly one automatic SMS per call
+  const automaticSmsForCall = await hasAutomaticSmsForCall(callSid, businessId)
+  if (automaticSmsForCall) {
+    console.log('[AUTO SMS DECISION] Automatic SMS already sent for this call - suppressing duplicate', {
       callSid,
-      reason: 'recent_automated_sms_exists'
+      businessId,
+      leadId,
+      reason: 'automatic_sms_for_call_exists'
     })
     return {
       template: 'none',
       shouldSend: false,
-      reason: 'recent_automated_sms_exists',
+      reason: 'automatic_sms_for_call_exists',
       aiCompleted: false,
       voicemailCompleted: false,
       aiCallRecordId: aiCallRecord?.id
@@ -425,20 +427,37 @@ export async function hasAiSummaryBeenSent(conversationId: string): Promise<bool
 }
 
 /**
- * Check if any automated SMS has been sent for a lead in the last 5 minutes
- * This prevents duplicate automated messages
+ * Check if an automatic SMS has already been sent for a specific call
+ * This ensures exactly one automatic SMS per call, scoped by Business + CallSid + Automatic SMS Type
+ * 
+ * CRITICAL: This is CallSid-scoped, NOT leadId-scoped, to prevent previous calls from suppressing
+ * future calls' automatic SMS. Each phone call should receive exactly one automatic SMS.
  */
-export async function hasRecentAutomatedSms(leadId: string): Promise<boolean> {
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+export async function hasAutomaticSmsForCall(callSid: string, businessId: string): Promise<boolean> {
+  console.log('[SMS IDEMPOTENCY CHECK] =========================================');
+  console.log('[SMS IDEMPOTENCY CHECK] Checking for existing automatic SMS');
+  console.log('[SMS IDEMPOTENCY CHECK] callSid:', callSid);
+  console.log('[SMS IDEMPOTENCY CHECK] businessId:', businessId);
+  console.log('[SMS IDEMPOTENCY CHECK] scoping: Business + CallSid + Automatic SMS Type');
+  console.log('[SMS IDEMPOTENCY CHECK] Timestamp:', new Date().toISOString());
+  console.log('[SMS IDEMPOTENCY CHECK] =========================================');
   
-  const { data: recentMessage } = await supabaseAdmin
+  const { data: existingMessage } = await supabaseAdmin
     .from('messages')
-    .select('id')
-    .eq('lead_id', leadId)
+    .select('id, call_sid, business_id, is_manual, created_at')
+    .eq('call_sid', callSid)
+    .eq('business_id', businessId)
     .eq('is_manual', false)
-    .gte('created_at', fiveMinutesAgo)
     .limit(1)
     .maybeSingle()
 
-  return !!recentMessage
+  const hasSms = !!existingMessage;
+  
+  console.log('[SMS IDEMPOTENCY CHECK RESULT] =========================================');
+  console.log('[SMS IDEMPOTENCY CHECK RESULT] hasSms:', hasSms);
+  console.log('[SMS IDEMPOTENCY CHECK RESULT] existingMessageId:', existingMessage?.id || 'none');
+  console.log('[SMS IDEMPOTENCY CHECK RESULT] Timestamp:', new Date().toISOString());
+  console.log('[SMS IDEMPOTENCY CHECK RESULT] =========================================');
+  
+  return hasSms;
 }

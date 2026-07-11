@@ -5873,11 +5873,21 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
   // Completion persistence function - runs exactly once when intake is complete
   const processSimpleModeCompletion = async () => {
+    console.log('[COMPLETION SOURCE] =========================================');
+    console.log('[COMPLETION SOURCE] event: completion_triggered');
+    console.log('[COMPLETION SOURCE] callSid:', state.callSid);
+    console.log('[COMPLETION SOURCE] currentStage:', state.currentStage);
+    console.log('[COMPLETION SOURCE] stageCaptures:', state.stageCaptures.length);
+    console.log('[COMPLETION SOURCE] transcript:', state.transcript);
+    console.log('[COMPLETION SOURCE] intakeData:', JSON.stringify(state.intakeData, null, 2));
+    console.log('[COMPLETION SOURCE] Timestamp:', new Date().toISOString());
+    console.log('[COMPLETION SOURCE] =========================================');
+
     if (state.completionPersistenceStarted) {
-      console.log('[SIMPLE MODE] =========================================');
-      console.log('[SIMPLE MODE] event: simple_mode_completion_already_started');
-      console.log('[SIMPLE MODE] skipping duplicate completion');
-      console.log('[SIMPLE MODE] =========================================');
+      console.log('[COMPLETION SOURCE] =========================================');
+      console.log('[COMPLETION SOURCE] event: completion_already_started');
+      console.log('[COMPLETION SOURCE] action: skipping_duplicate');
+      console.log('[COMPLETION SOURCE] =========================================');
       return;
     }
 
@@ -6803,8 +6813,27 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] chunk_count:', totalChunks);
         console.log('[SIMPLE MODE] =========================================');
 
-        state.assistantSpeaking = false;
-        state.ttsCompleteTime = state.promptAudioSentAt;
+        // CRITICAL FIX: Do NOT set assistantSpeaking = false yet
+        // Wait for Twilio mark event to confirm audio playback completion
+        // This prevents stage advancement before the prompt actually finishes playing
+        // Send a mark event to track when Twilio finishes playing the audio
+        const markName = `prompt-complete-${stage}`;
+        const markMessage = {
+          event: 'mark',
+          streamSid: state.streamSid,
+          mark: {
+            name: markName
+          }
+        };
+        ws.send(JSON.stringify(markMessage));
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] event: prompt_mark_sent');
+        console.log('[SIMPLE MODE] markName:', markName);
+        console.log('[SIMPLE MODE] stage:', stage);
+        console.log('[SIMPLE MODE] =========================================');
+
+        // assistantSpeaking remains true until mark is received
+        // state.ttsCompleteTime will be set when mark is received
         console.log('[AUDIO TIMING] =========================================');
         console.log('[AUDIO TIMING] event: prompt_audio_completed');
         console.log('[AUDIO TIMING] stage:', stage);
@@ -7273,17 +7302,36 @@ Reply to this message if you'd like to update or add any information.
               if (isValidStage) {
                 if (currentIndex < stages.length - 1) {
                   // Normal stage advancement
-                  state.currentStage = stages[currentIndex + 1];
+                  const previousStage = state.currentStage;
+                  const nextStage = stages[currentIndex + 1];
+                  state.currentStage = nextStage;
+                  
+                  console.log('[STAGE TRANSITION] =========================================');
+                  console.log('[STAGE TRANSITION] event: stage_advanced');
+                  console.log('[STAGE TRANSITION] trigger: queued_transcript_after_assistant_response');
+                  console.log('[STAGE TRANSITION] previousStage:', previousStage);
+                  console.log('[STAGE TRANSITION] nextStage:', nextStage);
+                  console.log('[STAGE TRANSITION] queuedTranscript:', state.queuedTranscript);
+                  console.log('[STAGE TRANSITION] fieldName:', fieldName);
+                  console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+                  console.log('[STAGE TRANSITION] =========================================');
+                  
                   sendPrompt(state.currentStage);
                 } else if (isFinalStage) {
                   // Final stage (ask_callback_time) completed - advance to complete
-                  console.log('[SIMPLE MODE] =========================================');
-                  console.log('[SIMPLE MODE] event: final_callback_answer_accepted');
-                  console.log('[SIMPLE MODE] previousStage:', state.currentStage);
-                  console.log('[SIMPLE MODE] transcript:', state.queuedTranscript);
-                  console.log('[SIMPLE MODE] advancingTo:', 'complete');
-                  console.log('[SIMPLE MODE] =========================================');
+                  const previousStage = state.currentStage;
                   state.currentStage = 'complete';
+                  
+                  console.log('[STAGE TRANSITION] =========================================');
+                  console.log('[STAGE TRANSITION] event: final_stage_advanced_to_complete');
+                  console.log('[STAGE TRANSITION] trigger: queued_transcript_after_assistant_response');
+                  console.log('[STAGE TRANSITION] previousStage:', previousStage);
+                  console.log('[STAGE TRANSITION] nextStage:', 'complete');
+                  console.log('[STAGE TRANSITION] queuedTranscript:', state.queuedTranscript);
+                  console.log('[STAGE TRANSITION] fieldName:', fieldName);
+                  console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+                  console.log('[STAGE TRANSITION] =========================================');
+                  
                   sendPrompt('complete');
                   
                   // Run completion persistence immediately after setting stage to complete
@@ -7416,36 +7464,56 @@ Reply to this message if you'd like to update or add any information.
             if (accepted && !state.assistantSpeaking) {
               if (currentIndex < stages.length - 1) {
                 // Normal stage advancement
-                state.currentStage = stages[currentIndex + 1];
+                const previousStage = state.currentStage;
+                const nextStage = stages[currentIndex + 1];
+                state.currentStage = nextStage;
+                
+                console.log('[STAGE TRANSITION] =========================================');
+                console.log('[STAGE TRANSITION] event: stage_advanced');
+                console.log('[STAGE TRANSITION] trigger: user_transcription_accepted');
+                console.log('[STAGE TRANSITION] previousStage:', previousStage);
+                console.log('[STAGE TRANSITION] nextStage:', nextStage);
+                console.log('[STAGE TRANSITION] transcript:', transcript);
+                console.log('[STAGE TRANSITION] fieldName:', fieldName);
+                console.log('[STAGE TRANSITION] assistantSpeaking:', state.assistantSpeaking);
+                console.log('[STAGE TRANSITION] timeSinceTtsCompleteMs:', timeSinceTtsCompleteMs);
+                console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+                console.log('[STAGE TRANSITION] =========================================');
+                
                 sendPrompt(state.currentStage);
               } else if (isFinalStage) {
                 // Final stage (ask_callback_time) completed - advance to complete
-                console.log('[SIMPLE MODE] =========================================');
-                console.log('[SIMPLE MODE] event: final_callback_answer_accepted');
-                console.log('[SIMPLE MODE] previousStage:', state.currentStage);
-                console.log('[SIMPLE MODE] transcript:', transcript);
-                console.log('[SIMPLE MODE] advancingTo:', 'complete');
-                console.log('[SIMPLE MODE] =========================================');
+                const previousStage = state.currentStage;
                 state.currentStage = 'complete';
-                sendPrompt('complete');
                 
-                console.log('[SIMPLE MODE] =========================================');
-                console.log('[SIMPLE MODE] event: final_callback_stage_advanced_to_complete');
-                console.log('[SIMPLE MODE] currentStage:', state.currentStage);
-                console.log('[SIMPLE MODE] =========================================');
+                console.log('[STAGE TRANSITION] =========================================');
+                console.log('[STAGE TRANSITION] event: final_stage_advanced_to_complete');
+                console.log('[STAGE TRANSITION] trigger: user_transcription_accepted');
+                console.log('[STAGE TRANSITION] previousStage:', previousStage);
+                console.log('[STAGE TRANSITION] nextStage:', 'complete');
+                console.log('[STAGE TRANSITION] transcript:', transcript);
+                console.log('[STAGE TRANSITION] fieldName:', fieldName);
+                console.log('[STAGE TRANSITION] assistantSpeaking:', state.assistantSpeaking);
+                console.log('[STAGE TRANSITION] timeSinceTtsCompleteMs:', timeSinceTtsCompleteMs);
+                console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+                console.log('[STAGE TRANSITION] =========================================');
+                
+                sendPrompt('complete');
                 
                 // Run completion persistence immediately after setting stage to complete
                 processSimpleModeCompletion().catch(console.error);
               }
             } else if (isFinalStage) {
                 // Log when final callback answer is ignored
-                console.log('[SIMPLE MODE] =========================================');
-                console.log('[SIMPLE MODE] event: final_callback_first_answer_ignored');
-                console.log('[SIMPLE MODE] transcript:', transcript);
-                console.log('[SIMPLE MODE] accepted:', accepted);
-                console.log('[SIMPLE MODE] assistantSpeaking:', state.assistantSpeaking);
-                console.log('[SIMPLE MODE] ignoredReason:', ignoredReason);
-                console.log('[SIMPLE MODE] =========================================');
+                console.log('[STAGE TRANSITION] =========================================');
+                console.log('[STAGE TRANSITION] event: final_callback_answer_ignored');
+                console.log('[STAGE TRANSITION] currentStage:', state.currentStage);
+                console.log('[STAGE TRANSITION] transcript:', transcript);
+                console.log('[STAGE TRANSITION] accepted:', accepted);
+                console.log('[STAGE TRANSITION] assistantSpeaking:', state.assistantSpeaking);
+                console.log('[STAGE TRANSITION] ignoredReason:', ignoredReason);
+                console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+                console.log('[STAGE TRANSITION] =========================================');
               }
           }
         });
@@ -7539,6 +7607,29 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] event: mark_received');
         console.log('[SIMPLE MODE] markName:', message.mark?.name);
         console.log('[SIMPLE MODE] =========================================');
+
+        // Handle prompt completion marks (for regular intake stages)
+        if (message.mark?.name && message.mark.name.startsWith('prompt-complete-')) {
+          const stage = message.mark.name.replace('prompt-complete-', '');
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: prompt_mark_received');
+          console.log('[SIMPLE MODE] stage:', stage);
+          console.log('[SIMPLE MODE] markName:', message.mark.name);
+          console.log('[SIMPLE MODE] action: setting_assistantSpeaking_false');
+          console.log('[SIMPLE MODE] =========================================');
+          
+          // Now that audio has finished playing, allow caller audio
+          state.assistantSpeaking = false;
+          state.ttsCompleteTime = Date.now();
+          
+          console.log('[AUDIO TIMING] =========================================');
+          console.log('[AUDIO TIMING] event: prompt_playback_completed');
+          console.log('[AUDIO TIMING] stage:', stage);
+          console.log('[AUDIO TIMING] ttsCompleteTime:', state.ttsCompleteTime);
+          console.log('[AUDIO TIMING] elapsedMsSinceSend:', state.ttsCompleteTime - state.promptAudioSentAt);
+          console.log('[AUDIO TIMING] assistantSpeaking:', state.assistantSpeaking);
+          console.log('[AUDIO TIMING] =========================================');
+        }
 
         // Handle final goodbye mark
         if (message.mark?.name === 'final-goodbye-complete') {
