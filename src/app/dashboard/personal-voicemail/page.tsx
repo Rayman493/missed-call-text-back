@@ -122,7 +122,7 @@ export default function PersonalVoicemailPage() {
               <div className="mb-6">
                 <h1 className="text-2xl font-bold text-foreground mb-2">Personal Voicemail</h1>
                 <p className="text-sm text-muted-foreground">
-                  Voicemails from ignored contacts and personal callers
+                  Voicemails from callers in Ignored Contacts appear here without entering your customer workflow
                 </p>
               </div>
 
@@ -137,9 +137,9 @@ export default function PersonalVoicemailPage() {
               ) : voicemails.length === 0 ? (
                 <div className="bg-card rounded-lg border border-border p-8 text-center">
                   <Phone className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">No personal voicemails</h3>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No personal voicemails yet</h3>
                   <p className="text-sm text-muted-foreground">
-                    Voicemails from ignored contacts will appear here
+                    Voicemails from callers in Ignored Contacts will appear here without entering your customer workflow
                   </p>
                 </div>
               ) : (

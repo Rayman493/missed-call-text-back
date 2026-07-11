@@ -171,6 +171,10 @@ const FAQS: FAQItem[] = [
     answer: 'Yes. Forwarding only activates when you miss a call. All answered calls go directly to you as normal.'
   },
   {
+    question: 'What about personal callers like friends and family?',
+    answer: 'Add personal numbers to Ignored Contacts in Settings. Their calls stay separate from Customers, and their voicemails appear in Personal Voicemail.'
+  },
+  {
     question: 'What if I change my phone number?',
     answer: 'You\'ll need to set up forwarding again with your new number. Contact support if you need a new ReplyFlow number.'
   }

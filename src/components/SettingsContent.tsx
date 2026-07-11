@@ -1250,7 +1250,7 @@ export default function SettingsContent() {
                             </summary>
                             <div className="mt-2 space-y-1.5 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                               <p>A dedicated business number gives the cleanest experience.</p>
-                              <p>Personal business phones are supported. Use Ignored Contacts to keep known personal callers out of ReplyFlow.</p>
+                              <p>Personal business phones are supported. Use Ignored Contacts to keep personal callers separate from your customer workflow. Their voicemails will be saved separately in Personal Voicemail.</p>
                             </div>
                           </details>
                         </div>
@@ -2084,7 +2084,7 @@ export default function SettingsContent() {
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Ignored Contacts</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Keep non-customer calls out of ReplyFlow.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Add personal callers, friends, family, or other numbers that should stay out of ReplyFlow's customer workflow.</p>
                   </div>
                   <div className="flex items-center gap-2">
                   <button
@@ -2109,12 +2109,11 @@ export default function SettingsContent() {
                 </div>
                 <details className="group rounded-md border border-blue-200/60 dark:border-blue-800/60 bg-blue-50/50 dark:bg-blue-900/10 px-3 py-2 mb-2">
                   <summary className="cursor-pointer list-none text-xs font-medium text-blue-800 dark:text-blue-200">
-                    <span className="group-open:hidden">▸ Personal phone guidance</span>
-                    <span className="hidden group-open:inline">▾ Personal phone guidance</span>
+                    <span className="group-open:hidden">▸ What happens to ignored callers</span>
+                    <span className="hidden group-open:inline">▾ What happens to ignored callers</span>
                   </summary>
                   <div className="mt-2 space-y-1.5 text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                    <p>Personal business phones are supported.</p>
-                    <p>Add personal callers here when you want ReplyFlow to stay out.</p>
+                    <p>If one of these callers reaches ReplyFlow after a missed call, their voicemail will be saved separately in Personal Voicemail. ReplyFlow will not create a customer, send an automatic text, or schedule follow-ups.</p>
                   </div>
                 </details>
                 <details className="group rounded-md border border-slate-200/60 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/30 px-3 py-2 mb-3">
@@ -2125,7 +2124,7 @@ export default function SettingsContent() {
                   <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                     <div>
                       <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">On the list</p>
-                      <p>No AI Voice, texts, lead, or follow-ups.</p>
+                      <p>No customer, texts, AI Voice, or follow-ups. Voicemail saved separately.</p>
                     </div>
                     <div>
                       <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Off the list</p>

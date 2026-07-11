@@ -218,7 +218,7 @@ export default function PublicHome() {
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-md">
                 <p className="text-sm text-blue-800 dark:text-blue-200 font-semibold mb-1">Best experience: Dedicated business number</p>
                 <p className="text-xs text-blue-700 dark:text-blue-300">
-                  ReplyFlow is designed for service businesses with a dedicated business phone number. Businesses using one phone for both business and personal calls are still fully supported, though a dedicated business number provides the most seamless experience.
+                  ReplyFlow is designed for service businesses with a dedicated business phone number. Personal business phones are fully supported — use Ignored Contacts to keep personal callers separate from your customer workflow.
                 </p>
               </div>
             </div>

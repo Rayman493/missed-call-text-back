@@ -176,7 +176,7 @@ export default function FAQPage() {
                       If you use one phone for both business and personal calls, ReplyFlow still works well. You can use Ignored Contacts to keep known personal callers out of the normal ReplyFlow customer workflow.
                     </p>
                     <p className="text-sm text-blue-800 dark:text-blue-200">
-                      Those callers will hear a brief unavailable message instead of entering the ReplyFlow experience.
+                      If an ignored caller reaches ReplyFlow after a missed call, their voicemail will be saved separately in Personal Voicemail. ReplyFlow will not create a customer, send an automatic text, or schedule follow-ups.
                     </p>
                   </div>
                 </div>
@@ -215,14 +215,14 @@ export default function FAQPage() {
                   <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-2xl p-4">
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">Add a number to Ignored Contacts</h3>
                     <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
-                      ReplyFlow stays out of the conversation:
+                      ReplyFlow stays out of the customer workflow:
                     </p>
                     <ul className="text-sm text-slate-700 dark:text-slate-300 space-y-1 list-disc pl-5">
-                      <li>No AI Voice</li>
+                      <li>No customer is created</li>
                       <li>No automated text messages</li>
-                      <li>No lead is created</li>
+                      <li>No AI Voice intake</li>
                       <li>No follow-ups are scheduled</li>
-                      <li>The caller hears a brief unavailable message</li>
+                      <li>If they reach ReplyFlow, their voicemail is saved separately in Personal Voicemail</li>
                     </ul>
                   </div>
                 </div>
