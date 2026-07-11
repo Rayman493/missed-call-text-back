@@ -688,7 +688,7 @@ export default function SetupStatusCard({
             {/* Step 3: Upcoming or Current */}
             <div className={`border rounded-xl overflow-hidden transition-all duration-200 ${
               cardState === 'needs-verification' && !hasCompletedTestCall
-                ? 'bg-muted/30 border-border/50 ring-1 ring-primary/30'
+                ? 'bg-muted/40 border-border/60 shadow-sm'
                 : cardState === 'needs-verification' && hasCompletedTestCall
                   ? 'bg-muted/30 border-border/50'
                   : 'bg-muted/30 border-border/50'
@@ -709,25 +709,29 @@ export default function SetupStatusCard({
                     </svg>
                   </div>
                 ) : cardState === 'needs-verification' ? (
-                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0 shadow-sm shadow-primary/30">
-                    <span className="text-primary-foreground text-sm font-bold">3</span>
+                  <div className="w-6 h-6 rounded-full bg-background border-2 border-primary/40 flex items-center justify-center flex-shrink-0">
+                    <span className="text-primary text-sm font-semibold">3</span>
                   </div>
                 ) : (
                   <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                     <span className="text-muted-foreground text-sm font-semibold">3</span>
                   </div>
                 )}
-                <span className="text-foreground text-sm font-medium flex-1 text-left">
+                <span className={`flex-1 text-left ${
+                  cardState === 'needs-verification' && !hasCompletedTestCall
+                    ? 'text-foreground text-sm font-semibold'
+                    : 'text-foreground text-sm font-medium'
+                }`}>
                   {hasCompletedTestCall ? 'Step 3 — Test call' : cardState === 'needs-verification' ? 'Activate' : 'Step 3 — Test call'}
                 </span>
                 {cardState === 'needs-verification' && !hasCompletedTestCall && (
-                  <span className="inline-flex items-center px-2 py-0.5 bg-primary/20 text-primary text-xs font-semibold rounded-full border border-primary/30 flex-shrink-0">
+                  <span className="inline-flex items-center px-2 py-0.5 bg-muted/60 text-muted-foreground text-xs font-medium rounded-md border border-border/50 flex-shrink-0">
                     Final Step
                   </span>
                 )}
                 <ChevronDown className={`w-4 h-4 transition-transform ${
                   cardState === 'needs-verification' && !hasCompletedTestCall
-                    ? 'text-primary'
+                    ? 'text-foreground'
                     : 'text-muted-foreground'
                 } ${expandedStep === 3 ? 'rotate-180' : ''} flex-shrink-0`} />
               </button>
@@ -740,7 +744,7 @@ export default function SetupStatusCard({
                     {business?.business_phone_number && (
                       <div className="space-y-2">
                         <div className="flex items-center gap-4">
-                          <Phone className="w-6 h-6 text-primary flex-shrink-0" />
+                          <Phone className="w-6 h-6 text-foreground flex-shrink-0" />
                           <span className="text-foreground font-mono text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight">
                             {formatPhoneNumber(business.business_phone_number)}
                           </span>
