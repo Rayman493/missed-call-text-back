@@ -141,11 +141,10 @@ function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): strin
   return voicemailTwiml;
 }
 
-// Helper to generate clean hangup for ignored contacts
+// Helper to generate clean hangup for spam/blocked calls
 function generateIgnoredContactResponse(): string {
   // Silent hangup - no message, no voicemail
-  // Clean UX for intentionally blocked calls
-  // No persistence, no AI, no lead, no conversation, no SMS, no follow-ups
+  // Used for spam filtering and blocked calls
   const responseTwiml = `
 <Response>
   <Hangup/>
@@ -153,6 +152,33 @@ function generateIgnoredContactResponse(): string {
 `.trim();
   
   return responseTwiml;
+}
+
+// Helper to generate personal voicemail recording for ignored contacts
+function generatePersonalVoicemailResponse(): string {
+  // Answer and record voicemail for ignored/personal callers
+  // Stores in personal_voicemails table - completely separate from customer system
+  // No AI, no lead, no conversation, no SMS, no follow-ups
+  const voicemailMessage = "Thank you for calling. Please leave a message after the tone.";
+  
+  const voicemailTwiml = `
+<Response>
+  <Pause length="1"/>
+  <Say voice="alice">${voicemailMessage}</Say>
+  <Record
+    maxLength="60"
+    playBeep="true"
+    trim="trim-silence"
+    action="/api/twilio/personal-voicemail"
+    method="POST"
+    recordingStatusCallback="/api/twilio/recording-status"
+    recordingStatusCallbackMethod="POST"
+  />
+  <Hangup/>
+</Response>
+`.trim();
+  
+  return voicemailTwiml;
 }
 
 // Helper to generate complete TwiML response with fallback structure
@@ -518,12 +544,12 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     }
 
     if (isIgnored) {
-      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] =========================================');
-      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] businessId:', business.id);
-      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] normalizedFrom:', normalizedFrom);
-      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] action: silent hangup / no AI / no persistence');
-      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] timestamp:', new Date().toISOString());
-      console.log('[IGNORED CONTACT BLOCKED - WEBHOOK] =========================================');
+      console.log('[IGNORED CONTACT - PERSONAL VOICEMAIL] =========================================');
+      console.log('[IGNORED CONTACT - PERSONAL VOICEMAIL] businessId:', business.id);
+      console.log('[IGNORED CONTACT - PERSONAL VOICEMAIL] normalizedFrom:', normalizedFrom);
+      console.log('[IGNORED CONTACT - PERSONAL VOICEMAIL] action: record personal voicemail / no AI / no customer system');
+      console.log('[IGNORED CONTACT - PERSONAL VOICEMAIL] timestamp:', new Date().toISOString());
+      console.log('[IGNORED CONTACT - PERSONAL VOICEMAIL] =========================================');
 
       console.log('[IGNORED CONTACT MESSAGE]', {
         businessId: business.id,
@@ -535,15 +561,16 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         businessId: business.id
       })
 
-      // Return silent hangup
-      // No voicemail recording, no persistence, no AI, no lead, no conversation, no SMS, no follow-ups
-      const twiml = generateIgnoredContactResponse()
-      console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-hangup')
+      // Return personal voicemail recording
+      // Records voicemail to personal_voicemails table - completely separate from customer system
+      // No AI, no lead, no conversation, no SMS, no follow-ups
+      const twiml = generatePersonalVoicemailResponse()
+      console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-personal-voicemail')
       console.log('[AI POC FINAL TWIML]', twiml)
-      console.log('[VOICE PATH] IGNORED_CONTACT_HANGUP')
+      console.log('[VOICE PATH] IGNORED_CONTACT_PERSONAL_VOICEMAIL')
       console.log('[VOICE ROUTE RETURN]', {
-        path: 'IGNORED_CONTACT_HANGUP',
-        reason: 'Caller is in ignored contacts list - silent hangup',
+        path: 'IGNORED_CONTACT_PERSONAL_VOICEMAIL',
+        reason: 'Caller is in ignored contacts list - recording personal voicemail',
         callSid: CallSid || 'unknown',
         phoneNumber: normalizedFrom
       });
@@ -552,7 +579,8 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         headers: {
           "Content-Type": "text/xml",
           "X-ReplyFlow-Voice-Version": "v2",
-          "X-ReplyFlow-Ignored-Contact": "true"
+          "X-ReplyFlow-Ignored-Contact": "true",
+          "X-ReplyFlow-Personal-Voicemail": "true"
         },
       })
     }

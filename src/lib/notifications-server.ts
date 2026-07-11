@@ -4,7 +4,7 @@ import { normalizePunctuation } from '@/lib/utils'
 export interface Notification {
   id: string
   business_id: string
-  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'ai_intake_completed' | 'payment_requested' | 'payment_completed' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted'
+  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'ai_intake_completed' | 'payment_requested' | 'payment_completed' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted' | 'personal_voicemail'
   title: string
   message: string
   data?: any
@@ -124,6 +124,13 @@ export const NOTIFICATION_TEMPLATES = {
     message: `${data.title} has been deleted`,
     action_url: '/dashboard/calendar',
     action_text: 'View Calendar'
+  }),
+
+  personal_voicemail: (data: { callerPhone: string; voicemailId: string }) => ({
+    title: 'New Personal Voicemail',
+    message: `Voicemail from ${data.callerPhone}`,
+    action_url: '/dashboard/personal-voicemail',
+    action_text: 'Listen'
   })
 }
 

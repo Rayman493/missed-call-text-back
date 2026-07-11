@@ -1,4 +1,4 @@
-import { Home, Users, Calendar, CreditCard, Settings, ExternalLink, LogOut, CreditCard as BillingIcon } from 'lucide-react'
+import { Home, Users, Calendar, CreditCard, Settings, ExternalLink, LogOut, CreditCard as BillingIcon, Voicemail } from 'lucide-react'
 import { LucideIcon } from 'lucide-react'
 
 export interface NavItem {
@@ -41,6 +41,12 @@ export const primaryNavItems: NavItem[] = [
     label: 'Payments',
     icon: CreditCard,
     isActive: (pathname) => pathname === '/dashboard/payments' || pathname?.startsWith('/dashboard/payments/'),
+  },
+  {
+    href: '/dashboard/personal-voicemail',
+    label: 'Personal',
+    icon: Voicemail,
+    isActive: (pathname) => pathname === '/dashboard/personal-voicemail',
   },
 ]
 
