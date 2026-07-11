@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase/admin';
 import { LeadService } from '@/lib/services/LeadService';
+import { ConversationService } from '@/lib/services/ConversationService';
 
 export async function GET(request: NextRequest) {
   console.log('[API LEADS GET] ========== ROUTE ENTERED ==========')
@@ -248,12 +249,16 @@ export async function POST(request: NextRequest) {
       console.log('[API LEADS POST] Using existing lead:', existingLead.id)
       lead = existingLead;
 
-      // Get or create conversation using shared helper with canonical selection
+      // Get or create conversation using canonical ConversationService
       console.log('[API LEADS POST] Getting or creating conversation for lead:', lead.id)
       try {
-        const result = await db.getOrCreateConversation(lead.id, business.id)
-        conversation = { id: result.conversationId } as any
-        console.log('[API LEADS POST] Conversation handled:', {
+        const result = await ConversationService.findOrCreateConversation({
+          lead_id: lead.id,
+          business_id: business.id,
+          status: 'active'
+        })
+        conversation = result.conversation
+        console.log('[API LEADS POST] Conversation handled via ConversationService:', {
           conversationId: result.conversationId,
           isNew: result.isNew
         })
@@ -293,12 +298,16 @@ export async function POST(request: NextRequest) {
       console.log('[API LEADS POST] Lead created:', newLead.id)
       lead = newLead;
 
-      // Get or create conversation using shared helper with canonical selection
+      // Get or create conversation using canonical ConversationService
       console.log('[API LEADS POST] Getting or creating conversation for new lead:', lead.id)
       try {
-        const result = await db.getOrCreateConversation(lead.id, business.id)
-        conversation = { id: result.conversationId } as any
-        console.log('[API LEADS POST] Conversation handled:', {
+        const result = await ConversationService.findOrCreateConversation({
+          lead_id: lead.id,
+          business_id: business.id,
+          status: 'active'
+        })
+        conversation = result.conversation
+        console.log('[API LEADS POST] Conversation handled via ConversationService:', {
           conversationId: result.conversationId,
           isNew: result.isNew
         })
@@ -308,7 +317,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('[API LEADS POST] Final response - lead:', lead.id, 'conversation:', conversation.id)
+    console.log('[API LEADS POST] Final response - lead:', lead.id, 'conversation:', conversation?.id)
     console.log('[API LEADS POST] ========== ROUTE COMPLETE ==========')
     
     return NextResponse.json({ 

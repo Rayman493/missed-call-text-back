@@ -10,6 +10,7 @@ import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { extractFromSmsBody, safeMergeSmsExtraction } from '@/lib/voicemail-extraction'
 import { promoteLeadToActiveIfNew } from '@/lib/lead-lifecycle'
 import { LeadService } from '@/lib/services/LeadService'
+import { ConversationService } from '@/lib/services/ConversationService'
 
 /**
  * Strip trailing punctuation from name fields only
@@ -182,18 +183,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       }
 
       // Store the opt-out/opt-in message in conversation history
-      let conversation = await db.getOpenConversationForLead(lead.id, business.id)
+      const conversationResult = await ConversationService.findOrCreateConversation({
+        lead_id: lead.id,
+        business_id: business.id,
+        status: 'active'
+      })
       
-      if (!conversation) {
-        conversation = await db.createConversation({
-          lead_id: lead.id,
-          business_id: business.id,
-          status: 'open',
-          source: 'sms',
-          started_at: new Date().toISOString(),
-          last_activity_at: new Date().toISOString(),
-        })
-      }
+      const conversation = conversationResult.conversation
 
       if (conversation) {
         const sanitizedBody = sanitizeMessageContent(body)
@@ -457,36 +453,34 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     leadId: lead.id,
     businessId: business.id
   })
-  let conversation = await db.getOpenConversationForLead(lead.id, business.id)
+  
+  const conversationResult = await ConversationService.findOrCreateConversation({
+    lead_id: lead.id,
+    business_id: business.id,
+    status: 'active'
+  })
+
+  const conversation = conversationResult.conversation
 
   console.log('[INBOUND SMS CONVERSATION LOOKUP RESULT]', {
     found: !!conversation,
-    conversationId: conversation?.id
+    conversationId: conversation?.id,
+    isNew: conversationResult.isNew
   })
 
   if (!conversation) {
-    // Create new conversation for SMS
-    conversation = await db.createConversation({
-      lead_id: lead.id,
-      business_id: business.id,
-      status: 'open',
-      source: 'sms',
-      started_at: new Date().toISOString(),
-      last_activity_at: new Date().toISOString(),
-    })
-
-    if (!conversation) {
-      console.error(`[SMS Processing] Failed to create conversation`)
-      return {
-        success: false,
-        error: 'Failed to create conversation',
-        twiml: `<?xml version="1.0" encoding="UTF-8"?>
+    console.error(`[SMS Processing] Failed to get or create conversation`)
+    return {
+      success: false,
+      error: 'Failed to create conversation',
+      twiml: `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>Error processing message</Message>
 </Response>`
-      }
     }
+  }
 
+  if (conversationResult.isNew) {
     console.log(`[SMS Processing] Conversation created:`, {
       conversation_id: conversation.id,
       lead_id: conversation.lead_id
@@ -1541,7 +1535,6 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     console.error(`[SMS Processing] Failed to update conversation`)
   } else {
     console.log(`[SMS Processing] Updated conversation: ${updatedConversation.id}`)
-    conversation = updatedConversation
   }
 
   // Cancel all pending follow-ups for this conversation when customer replies

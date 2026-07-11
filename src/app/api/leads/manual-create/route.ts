@@ -5,6 +5,7 @@ import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { createFollowUpJobs } from '@/lib/follow-ups'
 import { LeadService } from '@/lib/services/LeadService'
+import { ConversationService } from '@/lib/services/ConversationService'
 
 export async function POST(request: NextRequest) {
   try {
@@ -145,13 +146,17 @@ export async function POST(request: NextRequest) {
       console.log('[MANUAL CUSTOMER ENTRY] Lead updated via LeadService:', leadId)
     }
 
-    // Get or create conversation using shared helper with canonical selection
+    // Get or create conversation using canonical ConversationService
     let conversationId: string | null = null
     if (leadId) {
       try {
-        const result = await db.getOrCreateConversation(leadId, businessId)
+        const result = await ConversationService.findOrCreateConversation({
+          lead_id: leadId,
+          business_id: businessId,
+          status: 'active'
+        })
         conversationId = result.conversationId
-        console.log('[MANUAL CUSTOMER ENTRY] Conversation handled:', {
+        console.log('[MANUAL CUSTOMER ENTRY] Conversation handled via ConversationService:', {
           conversationId,
           isNew: result.isNew,
           isNewLead

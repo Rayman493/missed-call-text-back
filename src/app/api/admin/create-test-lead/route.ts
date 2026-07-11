@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isAdmin } from '@/lib/admin'
 import { LeadService } from '@/lib/services/LeadService'
+import { ConversationService } from '@/lib/services/ConversationService'
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,11 +85,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create test lead' }, { status: 500 })
     }
 
+    // Create conversation for test lead (fix: was missing conversation)
+    const conversationResult = await ConversationService.findOrCreateConversation({
+      lead_id: lead.id,
+      business_id: businessId,
+      status: 'active'
+    })
+
+    if (!conversationResult.conversation) {
+      console.error('[Admin Test Lead] Error creating conversation via ConversationService')
+      return NextResponse.json({ error: 'Failed to create test conversation' }, { status: 500 })
+    }
+
+    console.log('[Admin Test Lead] Conversation created:', conversationResult.conversationId)
+
     // Create test message
     const { error: messageError } = await supabase
       .from('messages')
       .insert({
         lead_id: lead.id,
+        conversation_id: conversationResult.conversationId,
         business_id: businessId,
         direction: 'inbound',
         body: 'This is a test message created for UI testing.',
